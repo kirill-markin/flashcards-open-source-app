@@ -12,7 +12,6 @@ This starts:
 
 1. `postgres` (Postgres 18)
 2. `migrate` (runs `scripts/migrate.sh`)
-3. `worker` (scheduled background worker)
 
 ### Stop
 
@@ -27,7 +26,6 @@ The CDK stack provisions:
 - VPC + private subnets
 - RDS Postgres
 - API Gateway + Lambda backend
-- Lambda worker + EventBridge schedule
 - CloudWatch alarms + SNS topic
 - AWS Backup plan for RDS
 

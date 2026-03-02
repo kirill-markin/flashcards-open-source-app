@@ -12,14 +12,11 @@ dev:
 build:
 	npm ci --prefix apps/backend
 	npm run build --prefix apps/backend
-	npm ci --prefix apps/worker
-	npm run build --prefix apps/worker
 	npm ci --prefix infra/aws
 	npm run build --prefix infra/aws
 
 lint:
 	npm run lint --prefix apps/backend
-	npm run lint --prefix apps/worker
 	npm run build --prefix infra/aws
 
 migrate:

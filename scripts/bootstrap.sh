@@ -28,7 +28,6 @@ fi
 
 echo "=== Install dependencies ==="
 npm ci --silent --prefix "${ROOT_DIR}/apps/backend"
-npm ci --silent --prefix "${ROOT_DIR}/apps/worker"
 npm ci --silent --prefix "$CDK_DIR"
 
 echo "=== CDK bootstrap ==="

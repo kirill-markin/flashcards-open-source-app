@@ -13,7 +13,6 @@ export interface MonitoringProps {
   db: rds.DatabaseInstance;
   restApi: apigw.RestApi;
   backendFn: lambda.IFunction;
-  workerFn: lambda.IFunction;
 }
 
 export interface MonitoringResult {
@@ -71,17 +70,6 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     threshold: 1,
     evaluationPeriods: 1,
     alarmDescription: "Backend Lambda had errors",
-    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
-
-  new cloudwatch.Alarm(scope, "WorkerLambdaErrorAlarm", {
-    metric: props.workerFn.metricErrors({
-      period: cdk.Duration.minutes(15),
-      statistic: "Sum",
-    }),
-    threshold: 1,
-    evaluationPeriods: 1,
-    alarmDescription: "Worker Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 

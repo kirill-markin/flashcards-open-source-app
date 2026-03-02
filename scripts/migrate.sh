@@ -57,16 +57,4 @@ $$;
 SQL
 fi
 
-if [[ -n "${WORKER_DB_PASSWORD:-}" ]]; then
-  run_psql -v "worker_pass=$WORKER_DB_PASSWORD" <<'SQL'
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'worker') THEN
-    EXECUTE format('ALTER ROLE worker WITH PASSWORD %L', :'worker_pass');
-  END IF;
-END
-$$;
-SQL
-fi
-
 echo "Migrations complete."

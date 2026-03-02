@@ -24,26 +24,11 @@ services:
     environment:
       MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:-postgresql://flashcards_owner:flashcards_owner@postgres:5432/flashcards}
       APP_DB_PASSWORD: ${APP_DB_PASSWORD:-app}
-      WORKER_DB_PASSWORD: ${WORKER_DB_PASSWORD:-worker}
     volumes:
       - ../../scripts:/scripts:ro
       - ../../db:/db:ro
     entrypoint: ["bash", "/scripts/migrate.sh"]
     restart: "no"
-
-  worker:
-    build:
-      context: ../../apps/worker
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://worker:${WORKER_DB_PASSWORD:-worker}@postgres:5432/flashcards}
-      WORKER_TIMEZONE: ${WORKER_TIMEZONE:-UTC}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
 
 volumes:
   pgdata:

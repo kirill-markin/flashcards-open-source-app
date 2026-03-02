@@ -7,7 +7,6 @@ This stack deploys v1 backend infrastructure for `flashcards-open-source-app`.
 - VPC with private subnets
 - RDS Postgres 18
 - API Gateway (REST API) + Lambda backend
-- Lambda worker + EventBridge schedule
 - CloudWatch alarms + SNS notifications
 - AWS Backup plan for RDS
 - GitHub Actions OIDC deployment role

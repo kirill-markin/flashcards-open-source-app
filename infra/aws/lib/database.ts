@@ -11,7 +11,6 @@ export interface DatabaseProps {
 export interface DatabaseResult {
   db: rds.DatabaseInstance;
   appDbSecret: cdk.aws_secretsmanager.Secret;
-  workerDbSecret: cdk.aws_secretsmanager.Secret;
 }
 
 export function database(scope: Construct, props: DatabaseProps): DatabaseResult {
@@ -60,15 +59,5 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
     },
   });
 
-  const workerDbSecret = new cdk.aws_secretsmanager.Secret(scope, "WorkerDbSecret", {
-    secretName: "flashcards-open-source-app/worker-db-password",
-    generateSecretString: {
-      secretStringTemplate: JSON.stringify({ username: "worker" }),
-      generateStringKey: "password",
-      excludePunctuation: true,
-      passwordLength: 32,
-    },
-  });
-
-  return { db, appDbSecret, workerDbSecret };
+  return { db, appDbSecret };
 }

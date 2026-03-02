@@ -4,14 +4,12 @@
 
 ```
 Mobile app (iOS first) -> Cloudflare -> API Gateway -> Lambda backend -> Postgres
-                                                  |
-                                                  +-> EventBridge -> Lambda worker -> Postgres
 ```
 
 ## Principles
 
 1. Single public gateway in v1: API Gateway only.
-2. Worker is internal and event-driven (no public HTTP surface).
+2. No background scheduling worker in v1.
 3. Postgres is the source of truth.
 4. Mobile clients are offline-first and synchronize when online.
 
@@ -20,16 +18,17 @@ Mobile app (iOS first) -> Cloudflare -> API Gateway -> Lambda backend -> Postgre
 1. Mobile app writes locally (SQLite).
 2. App sends batched sync operations to `/v1/sync/push`.
 3. App fetches remote updates via `/v1/sync/pull`.
-4. Worker periodically recalculates review scheduling data.
+4. API updates scheduling fields on review submit (compute-on-write).
 
 ## Core schema (v1)
 
-- `users`
-- `decks`
-- `notes`
+- `workspaces`
+- `workspace_members`
+- `devices`
 - `cards`
-- `review_events` (append-only)
-- `sync_operations` (idempotent operation log)
+- `review_events`
+- `applied_operations`
+- `sync_state`
 
 ## Security
 

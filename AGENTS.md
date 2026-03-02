@@ -32,14 +32,14 @@ Reasons:
 
 - Source of truth: Postgres in AWS
 - Mobile local database: SQLite on device
-- Sync model: offline-first with background synchronization
+- Sync model: offline-first synchronization via API
 
 ## Database Decision
 
 Use Postgres as the backend primary database.
 
 Why Postgres (vs DynamoDB as primary):
-- Natural fit for relational flashcards data (users, decks, notes, cards, reviews, sync metadata)
+- Natural fit for relational flashcards data (workspaces, cards, review events, sync metadata)
 - Strong transactions and consistency
 - Easier evolution of schema and query patterns for scheduling, stats, and filtering
 
@@ -65,7 +65,6 @@ Why Postgres (vs DynamoDB as primary):
 ```text
 apps/
   backend/
-  worker/
   ios/
   android/
 db/

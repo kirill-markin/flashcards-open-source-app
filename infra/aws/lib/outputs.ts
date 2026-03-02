@@ -9,11 +9,9 @@ export interface OutputsProps {
   baseDomain: string;
   db: rds.DatabaseInstance;
   appDbSecret: cdk.aws_secretsmanager.Secret;
-  workerDbSecret: cdk.aws_secretsmanager.Secret;
   alertTopic: sns.Topic;
   restApi: apigw.RestApi;
   backendFn: lambda.IFunction;
-  workerFn: lambda.IFunction;
 }
 
 export function outputs(scope: Construct, props: OutputsProps): void {
@@ -47,19 +45,9 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     description: "Secrets Manager ARN for app role credentials",
   });
 
-  new cdk.CfnOutput(scope, "WorkerDbSecretArn", {
-    value: props.workerDbSecret.secretArn,
-    description: "Secrets Manager ARN for worker role credentials",
-  });
-
   new cdk.CfnOutput(scope, "BackendFunctionName", {
     value: props.backendFn.functionName,
     description: "Lambda function name for API backend",
-  });
-
-  new cdk.CfnOutput(scope, "WorkerFunctionName", {
-    value: props.workerFn.functionName,
-    description: "Lambda function name for review worker",
   });
 
   new cdk.CfnOutput(scope, "AlertTopicArn", {

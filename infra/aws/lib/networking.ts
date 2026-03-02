@@ -29,7 +29,7 @@ export function networking(scope: Construct): NetworkingResult {
 
   const lambdaSg = new ec2.SecurityGroup(scope, "LambdaSg", {
     vpc,
-    description: "Lambda security group for backend and worker",
+    description: "Lambda security group for backend",
   });
 
   dbSg.addIngressRule(lambdaSg, ec2.Port.tcp(5432), "Lambda to Postgres");
