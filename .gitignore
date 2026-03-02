@@ -1,13 +1,32 @@
-# Node
+# Node dependencies and build outputs
 **/node_modules/
 **/dist/
+**/build/
+**/coverage/
+**/.cache/
+**/.turbo/
 
 # Local env files
-.env
-scripts/cloudflare/.env
+**/.env
+**/.env.*
+!**/.env.example
 
-# AWS CDK local context
+# AWS CDK local context and synth outputs
 infra/aws/cdk.context.local.json
+infra/aws/cdk.out/
+
+# Terraform/Terragrunt local state
+**/.terraform/
+**/.terragrunt-cache/
+**/*.tfstate
+**/*.tfstate.*
+
+# Logs
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # macOS
 .DS_Store
