@@ -1,0 +1,103 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'db/**'
+      - 'infra/**'
+      - 'scripts/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  STACK_NAME: FlashcardsOpenSourceApp
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        id: changes
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            migrations:
+              - 'db/migrations/**'
+              - 'db/views/**'
+              - 'scripts/migrate.sh'
+            worker:
+              - 'apps/worker/**'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: |
+            apps/backend/package-lock.json
+            apps/worker/package-lock.json
+            infra/aws/package-lock.json
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix apps/backend
+          npm ci --prefix apps/worker
+          npm ci --prefix infra/aws
+
+      - name: CDK deploy
+        working-directory: infra/aws
+        run: |
+          cat > cdk.context.local.json <<CTXEOF
+          {
+            "region": "${{ vars.AWS_REGION }}",
+            "domainName": "${{ vars.CDK_DOMAIN_NAME }}",
+            "apiCertificateArn": "${{ secrets.CDK_API_CERTIFICATE_ARN }}",
+            "alertEmail": "${{ vars.CDK_ALERT_EMAIL }}",
+            "githubRepo": "${{ vars.CDK_GITHUB_REPO }}"
+          }
+          CTXEOF
+          npx cdk deploy --all --require-approval never
+
+      - name: Read stack outputs
+        id: outputs
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.worker == 'true'
+        run: |
+          get_output() {
+            aws cloudformation describe-stacks \
+              --stack-name ${{ env.STACK_NAME }} \
+              --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" \
+              --output text
+          }
+          echo "worker_function=$(get_output WorkerFunctionName)" >> "$GITHUB_OUTPUT"
+
+      - name: Invoke worker once after deploy
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.worker == 'true'
+        continue-on-error: true
+        run: bash scripts/invoke-worker.sh
+        env:
+          WORKER_FUNCTION: ${{ steps.outputs.outputs.worker_function }}
+
+      - name: Migration reminder
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.migrations == 'true'
+        run: echo "::warning::Migrations changed. Run scripts/migrate.sh against target database manually or via your migration pipeline."

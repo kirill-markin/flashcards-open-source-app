@@ -1,0 +1,6 @@
+FROM postgres:18-alpine
+COPY scripts/migrate.sh /scripts/migrate.sh
+COPY db/ /db/
+COPY infra/docker/migrate-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh /scripts/migrate.sh
+ENTRYPOINT ["/entrypoint.sh"]

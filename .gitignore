@@ -1,0 +1,13 @@
+# Node
+**/node_modules/
+**/dist/
+
+# Local env files
+.env
+scripts/cloudflare/.env
+
+# AWS CDK local context
+infra/aws/cdk.context.local.json
+
+# macOS
+.DS_Store

@@ -1,0 +1,7 @@
+{
+  "region": "eu-central-1",
+  "domainName": "flashcards-open-source-app.com",
+  "apiCertificateArn": "arn:aws:acm:eu-central-1:123456789012:certificate/replace-me",
+  "alertEmail": "alerts@example.com",
+  "githubRepo": "kirill-markin/flashcards-open-source-app"
+}
