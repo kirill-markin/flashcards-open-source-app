@@ -1,11 +1,9 @@
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as lambda from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 
 export interface CiCdProps {
   stackId: string;
-  workerFn: lambda.IFunction;
   githubRepo: string;
 }
 
@@ -37,11 +35,6 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
             sid: "ReadStackOutputs",
             actions: ["cloudformation:DescribeStacks"],
             resources: [props.stackId],
-          }),
-          new iam.PolicyStatement({
-            sid: "InvokeWorker",
-            actions: ["lambda:InvokeFunction"],
-            resources: [props.workerFn.functionArn],
           }),
         ],
       }),

@@ -41,8 +41,6 @@ jobs:
               - 'db/migrations/**'
               - 'db/views/**'
               - 'scripts/migrate.sh'
-            worker:
-              - 'apps/worker/**'
 
       - uses: actions/setup-node@v4
         with:
@@ -50,7 +48,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: |
             apps/backend/package-lock.json
-            apps/worker/package-lock.json
             infra/aws/package-lock.json
 
       - name: Configure AWS credentials (OIDC)
@@ -62,7 +59,6 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci --prefix apps/backend
-          npm ci --prefix apps/worker
           npm ci --prefix infra/aws
 
       - name: CDK deploy
@@ -78,25 +74,6 @@ jobs:
           }
           CTXEOF
           npx cdk deploy --all --require-approval never
-
-      - name: Read stack outputs
-        id: outputs
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.worker == 'true'
-        run: |
-          get_output() {
-            aws cloudformation describe-stacks \
-              --stack-name ${{ env.STACK_NAME }} \
-              --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" \
-              --output text
-          }
-          echo "worker_function=$(get_output WorkerFunctionName)" >> "$GITHUB_OUTPUT"
-
-      - name: Invoke worker once after deploy
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.worker == 'true'
-        continue-on-error: true
-        run: bash scripts/invoke-worker.sh
-        env:
-          WORKER_FUNCTION: ${{ steps.outputs.outputs.worker_function }}
 
       - name: Migration reminder
         if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.migrations == 'true'

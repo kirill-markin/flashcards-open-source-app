@@ -3,7 +3,6 @@ import { Construct } from "constructs";
 import { networking } from "./networking";
 import { database } from "./database";
 import { apiGateway } from "./api-gateway";
-import { reviewWorker } from "./review-worker";
 import { monitoring } from "./monitoring";
 import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
@@ -29,24 +28,15 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apiCertificateArn,
     });
 
-    const worker = reviewWorker(this, {
-      vpc: net.vpc,
-      lambdaSg: net.lambdaSg,
-      db: dbResult.db,
-      workerDbSecret: dbResult.workerDbSecret,
-    });
-
     const mon = monitoring(this, {
       alertEmail,
       db: dbResult.db,
       restApi: api.restApi,
       backendFn: api.backendFn,
-      workerFn: worker.workerFn,
     });
 
     ciCd(this, {
       stackId: this.stackId,
-      workerFn: worker.workerFn,
       githubRepo,
     });
 
@@ -56,11 +46,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       baseDomain,
       db: dbResult.db,
       appDbSecret: dbResult.appDbSecret,
-      workerDbSecret: dbResult.workerDbSecret,
       alertTopic: mon.alertTopic,
       restApi: api.restApi,
       backendFn: api.backendFn,
-      workerFn: worker.workerFn,
     });
   }
 }

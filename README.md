@@ -6,15 +6,14 @@ Open-source offline-first flashcards app.
 
 This repository is under active development and not production-ready yet.
 
-## v1 architecture
+## v1 Architecture
 
 - Cloudflare -> API Gateway -> Lambda backend -> Postgres
-- EventBridge -> Lambda worker -> Postgres
-- iOS app in Swift first, Android later
-- Offline-first sync model for mobile clients (local SQLite + server sync)
+- No background worker for scheduling in v1
+- Card scheduling is compute-on-write in API (on review submit)
+- Card queue is filter-on-read (`due_at <= now()`)
 
-## Stack
+## Planned clients
 
-- AWS (API Gateway, Lambda, RDS Postgres, CloudWatch)
-- TypeScript for backend and worker
-- Postgres as server source of truth
+- iOS app in Swift (first)
+- Android app later
