@@ -1,0 +1,20 @@
+{
+  "name": "flashcards-open-source-app-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/handler.js",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.996.0",
+    "pg": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.149",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.16.0",
+    "typescript": "^5.9.3"
+  }
+}
