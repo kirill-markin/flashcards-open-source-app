@@ -12,6 +12,9 @@ This starts:
 
 1. `postgres` (Postgres 18)
 2. `migrate` (runs `scripts/migrate.sh`)
+3. `auth` (auth service on port 8081, requires Cognito env vars)
+
+By default `AUTH_MODE=none` — sync endpoints accept any request with `userId=local`. Set `AUTH_MODE=cognito` and fill in Cognito env vars in `.env` to test real auth locally.
 
 ### Stop
 
@@ -25,7 +28,9 @@ The CDK stack provisions:
 
 - VPC + private subnets
 - RDS Postgres
-- API Gateway + Lambda backend
+- Cognito User Pool (EMAIL_OTP passwordless auth)
+- API Gateway + two Lambdas (backend + auth)
+- Session encryption key in Secrets Manager
 - CloudWatch alarms + SNS topic
 - AWS Backup plan for RDS
 

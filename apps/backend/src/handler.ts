@@ -1,5 +1,7 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { query } from "./db";
+import { authenticateRequest, AuthError } from "./auth";
+import { ensureUserAndWorkspace } from "./ensureUser";
 
 function json(statusCode: number, body: Record<string, unknown>): APIGatewayProxyResult {
   return {
@@ -32,11 +34,27 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     });
   }
 
+  // Protected routes — require authentication
+  let userId: string;
+  try {
+    const auth = await authenticateRequest(event);
+    userId = auth.userId;
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return json(err.statusCode, { error: err.message });
+    }
+    return json(500, { error: "Authentication failed" });
+  }
+
+  const userWorkspace = await ensureUserAndWorkspace(userId);
+
   if (routeKey === "POST /sync/push") {
     const body = parseBody(event);
     return json(200, {
       status: "accepted",
       endpoint: "sync/push",
+      userId: userWorkspace.userId,
+      workspaceId: userWorkspace.workspaceId,
       note: "Sync push v1 stub. Replace with full outbox processing.",
       receivedKeys: Object.keys(body),
     });
@@ -47,6 +65,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return json(200, {
       status: "accepted",
       endpoint: "sync/pull",
+      userId: userWorkspace.userId,
+      workspaceId: userWorkspace.workspaceId,
       note: "Sync pull v1 stub. Replace with cursor-based delta sync.",
       receivedKeys: Object.keys(body),
     });

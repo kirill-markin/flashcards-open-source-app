@@ -14,11 +14,14 @@ export interface ApiGatewayProps {
   appDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   apiCertificateArn: string | undefined;
+  userPoolId: string;
+  userPoolClientId: string;
 }
 
 export interface ApiGatewayResult {
   restApi: apigw.RestApi;
   backendFn: lambdaNodejs.NodejsFunction;
+  authFn: lambdaNodejs.NodejsFunction;
 }
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
@@ -49,10 +52,49 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       DB_SECRET_ARN: props.appDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
+      AUTH_MODE: "cognito",
+      COGNITO_USER_POOL_ID: props.userPoolId,
+      COGNITO_CLIENT_ID: props.userPoolClientId,
+      COGNITO_REGION: cdk.Stack.of(scope).region,
     },
   });
 
   props.appDbSecret.grantRead(backendFn);
+
+  // Session encryption key for auth service OTP cookies
+  const sessionEncryptionKey = new cdk.aws_secretsmanager.Secret(scope, "SessionEncryptionKey", {
+    secretName: "flashcards-open-source-app/session-encryption-key",
+    generateSecretString: {
+      passwordLength: 64,
+      includeSpace: false,
+      excludeUppercase: true,
+      excludePunctuation: true,
+      excludeCharacters: "ghijklmnopqrstuvwxyz",
+      requireEachIncludedType: false,
+    },
+  });
+
+  const authFn = new lambdaNodejs.NodejsFunction(scope, "AuthHandler", {
+    entry: path.join(__dirname, "../../../apps/auth/src/lambda.ts"),
+    handler: "handler",
+    runtime: lambda.Runtime.NODEJS_24_X,
+    timeout: cdk.Duration.seconds(30),
+    memorySize: 256,
+    bundling: { minify: true, sourceMap: true },
+    environment: {
+      COGNITO_CLIENT_ID: props.userPoolClientId,
+      COGNITO_REGION: cdk.Stack.of(scope).region,
+      ALLOWED_REDIRECT_URIS: `https://${props.baseDomain},https://app.${props.baseDomain}`,
+      COOKIE_DOMAIN: props.baseDomain,
+    },
+  });
+
+  sessionEncryptionKey.grantRead(authFn);
+  // Inject the secret value as SESSION_ENCRYPTION_KEY env var at deploy time
+  authFn.addEnvironment(
+    "SESSION_ENCRYPTION_KEY",
+    sessionEncryptionKey.secretValue.unsafeUnwrap(),
+  );
 
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
@@ -78,6 +120,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   sync.addResource("push").addMethod("POST", integration);
   sync.addResource("pull").addMethod("POST", integration);
 
+  // Auth Lambda routes under /auth/{proxy+}
+  const authIntegration = new apigw.LambdaIntegration(authFn);
+  const authResource = restApi.root.addResource("auth");
+  authResource.addProxy({
+    defaultIntegration: authIntegration,
+    anyMethod: true,
+  });
+
   if (props.apiCertificateArn) {
     const apiDomainName = `api.${props.baseDomain}`;
     const certificate = cdk.aws_certificatemanager.Certificate.fromCertificateArn(
@@ -99,5 +149,5 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     });
   }
 
-  return { restApi, backendFn };
+  return { restApi, backendFn, authFn };
 }

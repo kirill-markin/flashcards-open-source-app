@@ -4,6 +4,8 @@
 
 ```
 Mobile app (iOS first) -> Cloudflare -> API Gateway -> Lambda backend -> Postgres
+                                             |
+                                             +-> Auth Lambda -> Cognito (EMAIL_OTP)
 ```
 
 ## Principles
@@ -24,11 +26,20 @@ Mobile app (iOS first) -> Cloudflare -> API Gateway -> Lambda backend -> Postgre
 
 - `workspaces`
 - `workspace_members`
+- `user_settings`
 - `devices`
 - `cards`
 - `review_events`
 - `applied_operations`
 - `sync_state`
+
+## Auth
+
+- Cognito User Pool with EMAIL_OTP (passwordless, Essentials tier).
+- Auth Lambda (`/auth/*`) handles OTP send/verify, token refresh/revoke.
+- Backend Lambda verifies JWT from `Authorization: Bearer` header via `aws-jwt-verify`.
+- `AUTH_MODE=none` for local dev (no auth, `userId=local`), `AUTH_MODE=cognito` in production.
+- First authenticated request auto-provisions `user_settings` row and a default workspace.
 
 ## Security
 
@@ -36,3 +47,5 @@ Mobile app (iOS first) -> Cloudflare -> API Gateway -> Lambda backend -> Postgre
 - Lambdas access DB via VPC security groups.
 - Cloudflare manages DNS and edge TLS.
 - API custom domain is optional and configured via ACM certificate.
+- OTP session cookies are HMAC-signed (SESSION_ENCRYPTION_KEY in Secrets Manager).
+- CSRF token + 3-min TTL on OTP sessions.

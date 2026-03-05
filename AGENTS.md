@@ -80,6 +80,23 @@ docs/
 scripts/
 ```
 
+## Auth Service (`apps/auth/`)
+
+Email + OTP authentication via AWS Cognito (passwordless).
+
+- `AUTH_MODE` env var: `none` (local dev, no auth) or `cognito` (verify JWT from `Authorization: Bearer` header)
+- Auth Lambda handles `/auth/*` routes via API Gateway
+- Backend Lambda verifies JWTs using `aws-jwt-verify`
+- Key files:
+  - `apps/auth/src/app.ts` — Hono app factory (shared between local and Lambda)
+  - `apps/auth/src/lambda.ts` — Lambda entry point
+  - `apps/auth/src/routes/` — sendCode, verifyCode, refreshToken, revokeToken, loginPage, health
+  - `apps/auth/src/server/cognitoAuth.ts` — Cognito API client
+  - `apps/backend/src/auth.ts` — JWT verification middleware
+  - `apps/backend/src/ensureUser.ts` — auto-provision user_settings + workspace on first request
+  - `infra/aws/lib/auth.ts` — CDK Cognito User Pool construct
+  - `db/migrations/0002_user_settings.sql` — user_settings table
+
 ## Engineering Principles
 
 - Keep logic simple and explicit

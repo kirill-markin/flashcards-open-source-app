@@ -12,6 +12,8 @@ export interface OutputsProps {
   alertTopic: sns.Topic;
   restApi: apigw.RestApi;
   backendFn: lambda.IFunction;
+  userPoolId: string;
+  userPoolClientId: string;
 }
 
 export function outputs(scope: Construct, props: OutputsProps): void {
@@ -53,5 +55,15 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "AlertTopicArn", {
     value: props.alertTopic.topicArn,
     description: "SNS topic for alarms",
+  });
+
+  new cdk.CfnOutput(scope, "CognitoUserPoolId", {
+    value: props.userPoolId,
+    description: "Cognito User Pool ID",
+  });
+
+  new cdk.CfnOutput(scope, "CognitoClientId", {
+    value: props.userPoolClientId,
+    description: "Cognito App Client ID",
   });
 }
