@@ -32,7 +32,7 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
     supportedIdentityProviders: [
       cognito.UserPoolClientIdentityProvider.COGNITO,
     ],
-    refreshTokenValidity: cdk.Duration.days(7),
+    refreshTokenValidity: cdk.Duration.days(365),
     enableTokenRevocation: true,
   });
 
