@@ -102,6 +102,17 @@ app.post("/api/verify-code", async (c) => {
     domain: cookieDomain,
   });
 
+  // UI indicator cookie — readable by JavaScript on the marketing site
+  // to toggle between "Log In" and "Open App" buttons. Not used for security.
+  setCookie(c, "logged_in", "1", {
+    path: "/",
+    maxAge: 604800,
+    httpOnly: false,
+    secure: true,
+    sameSite: "Lax",
+    domain: cookieDomain,
+  });
+
   // Clear OTP cookie
   deleteCookie(c, "otp_session", { path: "/", secure: true });
 

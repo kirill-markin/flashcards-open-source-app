@@ -3,6 +3,7 @@
  * Accepts a refresh token and revokes it via Cognito.
  */
 import { Hono } from "hono";
+import { deleteCookie } from "hono/cookie";
 import { revokeToken } from "../server/cognitoAuth.js";
 import { log } from "../server/logger.js";
 
@@ -24,6 +25,12 @@ app.post("/api/revoke-token", async (c) => {
 
   try {
     await revokeToken(refreshToken);
+    // Clear auth cookies for web clients
+    const cookieDomain = process.env.COOKIE_DOMAIN ?? "";
+    const domainOpts = cookieDomain !== "" ? { path: "/", secure: true, domain: cookieDomain } as const : { path: "/", secure: true } as const;
+    deleteCookie(c, "session", domainOpts);
+    deleteCookie(c, "refresh", domainOpts);
+    deleteCookie(c, "logged_in", domainOpts);
     return c.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
