@@ -1,9 +1,8 @@
 /**
  * Auto-provision user settings and workspace on first authenticated request.
  *
- * - INSERT INTO user_settings ON CONFLICT DO NOTHING
- * - Check workspace_members for existing workspace
- * - If none: create workspace + workspace_members row with role='owner'
+ * - Upsert org.user_settings row
+ * - If workspace_id is NULL: create workspace and bind it to the user
  * - Return workspaceId
  */
 import { randomUUID } from "node:crypto";
@@ -17,31 +16,31 @@ export type UserWorkspace = Readonly<{
 export async function ensureUserAndWorkspace(userId: string): Promise<UserWorkspace> {
   // Ensure user_settings row exists
   await query(
-    "INSERT INTO user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
+    "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
     [userId],
   );
 
-  // Check for existing workspace membership
+  // Check for existing workspace
   const existing = await query(
-    "SELECT workspace_id FROM workspace_members WHERE user_id = $1 LIMIT 1",
+    "SELECT workspace_id FROM org.user_settings WHERE user_id = $1",
     [userId],
   );
 
-  if (existing.rows.length > 0) {
-    return { userId, workspaceId: existing.rows[0].workspace_id as string };
+  const currentWorkspaceId = existing.rows[0].workspace_id as string | null;
+  if (currentWorkspaceId !== null) {
+    return { userId, workspaceId: currentWorkspaceId };
   }
 
-  // Create new workspace + membership
+  // Create new workspace and bind to user
   const workspaceId = randomUUID();
-  const workspaceName = "My Flashcards";
 
   await query(
-    "INSERT INTO workspaces (workspace_id, name) VALUES ($1, $2)",
-    [workspaceId, workspaceName],
+    "INSERT INTO org.workspaces (workspace_id, name) VALUES ($1, $2)",
+    [workspaceId, "My Flashcards"],
   );
 
   await query(
-    "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'owner')",
+    "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
     [workspaceId, userId],
   );
 
