@@ -86,7 +86,7 @@ app.post("/api/verify-code", async (c) => {
 
   setCookie(c, "session", tokens.idToken, {
     path: "/",
-    maxAge: 3600,
+    maxAge: 3024000,
     httpOnly: true,
     secure: true,
     sameSite: "Lax",
@@ -95,7 +95,7 @@ app.post("/api/verify-code", async (c) => {
 
   setCookie(c, "refresh", tokens.refreshToken, {
     path: "/",
-    maxAge: 604800,
+    maxAge: 3024000,
     httpOnly: true,
     secure: true,
     sameSite: "Lax",
@@ -106,7 +106,7 @@ app.post("/api/verify-code", async (c) => {
   // to toggle between "Log In" and "Open App" buttons. Not used for security.
   setCookie(c, "logged_in", "1", {
     path: "/",
-    maxAge: 604800,
+    maxAge: 3024000,
     httpOnly: false,
     secure: true,
     sameSite: "Lax",
