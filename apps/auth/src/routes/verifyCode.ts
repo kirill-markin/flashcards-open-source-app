@@ -1,8 +1,8 @@
 /**
  * Email OTP verification endpoint. Reads the OTP session from an HMAC-signed
  * cookie, validates the 8-digit code via Cognito RespondToAuthChallenge,
- * and on success sets session + refresh cookies AND returns tokens in the
- * response body for mobile clients.
+ * and on success sets session + refresh + logged_in cookies AND returns
+ * tokens in the response body for mobile clients.
  *
  * CSRF token is compared with crypto.timingSafeEqual to prevent timing attacks.
  */
