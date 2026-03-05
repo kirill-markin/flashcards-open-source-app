@@ -47,6 +47,7 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: |
+            apps/auth/package-lock.json
             apps/backend/package-lock.json
             infra/aws/package-lock.json
 
@@ -58,6 +59,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          npm ci --prefix apps/auth
           npm ci --prefix apps/backend
           npm ci --prefix infra/aws
 

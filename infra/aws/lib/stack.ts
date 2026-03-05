@@ -2,6 +2,8 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { networking } from "./networking";
 import { database } from "./database";
+import { preSignUp } from "./pre-signup";
+import { auth } from "./auth";
 import { apiGateway } from "./api-gateway";
 import { monitoring } from "./monitoring";
 import { ciCd } from "./ci-cd";
@@ -19,6 +21,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
 
     const net = networking(this);
     const dbResult = database(this, { vpc: net.vpc, dbSg: net.dbSg });
+    const preSignUpFn = preSignUp(this);
+    const authResult = auth(this, { preSignUpFn });
     const api = apiGateway(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -26,6 +30,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       appDbSecret: dbResult.appDbSecret,
       baseDomain,
       apiCertificateArn,
+      userPoolId: authResult.userPool.userPoolId,
+      userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
 
     const mon = monitoring(this, {
@@ -49,6 +55,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       alertTopic: mon.alertTopic,
       restApi: api.restApi,
       backendFn: api.backendFn,
+      userPoolId: authResult.userPool.userPoolId,
+      userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
   }
 }

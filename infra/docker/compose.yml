@@ -30,5 +30,19 @@ services:
     entrypoint: ["bash", "/scripts/migrate.sh"]
     restart: "no"
 
+  auth:
+    build:
+      context: ../../apps/auth
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      NODE_ENV: development
+      ALLOWED_REDIRECT_URIS: "http://localhost:3000"
+      COOKIE_DOMAIN: "localhost"
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      COGNITO_REGION: ${COGNITO_REGION:-}
+      SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY:-}
+
 volumes:
   pgdata:

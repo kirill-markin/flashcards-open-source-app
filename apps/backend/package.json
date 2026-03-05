@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.996.0",
+    "aws-jwt-verify": "^4.0.1",
     "pg": "^8.18.0"
   },
   "devDependencies": {
