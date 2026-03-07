@@ -10,6 +10,7 @@ import health from "./routes/health.js";
 import sendCode from "./routes/sendCode.js";
 import verifyCode from "./routes/verifyCode.js";
 import loginPage from "./routes/loginPage.js";
+import refreshSession from "./routes/refreshSession.js";
 import refreshToken from "./routes/refreshToken.js";
 import revokeToken from "./routes/revokeToken.js";
 
@@ -40,6 +41,7 @@ function createMountedApp(basePath: string): Hono {
   app.route("/", sendCode);
   app.route("/", verifyCode);
   app.route("/", loginPage);
+  app.route("/", refreshSession);
   app.route("/", refreshToken);
   app.route("/", revokeToken);
 

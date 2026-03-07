@@ -8,6 +8,7 @@ import * as path from "path";
 export interface AuthGatewayProps {
   baseDomain: string;
   authCertificateArn: string | undefined;
+  userPoolId: string;
   userPoolClientId: string;
 }
 
@@ -37,6 +38,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     memorySize: 256,
     bundling: { minify: true, sourceMap: true },
     environment: {
+      COGNITO_USER_POOL_ID: props.userPoolId,
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
       ALLOWED_REDIRECT_URIS: `https://${props.baseDomain},https://app.${props.baseDomain}`,
