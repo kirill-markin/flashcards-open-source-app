@@ -85,7 +85,7 @@ function getSelectOverlayStyle(rect: OverlayRect): CSSProperties {
   const maxTop = Math.max(window.innerHeight - 220, 12);
 
   return {
-    top: Math.min(rect.top + rect.height, maxTop),
+    top: Math.min(rect.top, maxTop),
     left: Math.min(rect.left, maxLeft),
     minWidth,
   };
