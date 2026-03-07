@@ -6,43 +6,64 @@
  * - Return workspaceId
  */
 import { randomUUID } from "node:crypto";
-import { query } from "./db";
+import { transaction } from "./db";
 
 export type UserWorkspace = Readonly<{
   userId: string;
   workspaceId: string;
+  email: string | null;
+  locale: string;
+}>;
+
+type UserSettingsRow = Readonly<{
+  workspace_id: string | null;
+  email: string | null;
+  locale: string;
 }>;
 
 export async function ensureUserAndWorkspace(userId: string): Promise<UserWorkspace> {
-  // Ensure user_settings row exists
-  await query(
-    "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
-    [userId],
-  );
+  return transaction(async (executor) => {
+    await executor.query(
+      "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
+      [userId],
+    );
 
-  // Check for existing workspace
-  const existing = await query(
-    "SELECT workspace_id FROM org.user_settings WHERE user_id = $1",
-    [userId],
-  );
+    const existing = await executor.query<UserSettingsRow>(
+      "SELECT workspace_id, email, locale FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
+      [userId],
+    );
 
-  const currentWorkspaceId = existing.rows[0].workspace_id as string | null;
-  if (currentWorkspaceId !== null) {
-    return { userId, workspaceId: currentWorkspaceId };
-  }
+    if (existing.rows.length === 0) {
+      throw new Error("Failed to load user settings after upsert");
+    }
 
-  // Create new workspace and bind to user
-  const workspaceId = randomUUID();
+    const settings = existing.rows[0];
+    if (settings.workspace_id !== null) {
+      return {
+        userId,
+        workspaceId: settings.workspace_id,
+        email: settings.email,
+        locale: settings.locale,
+      };
+    }
 
-  await query(
-    "INSERT INTO org.workspaces (workspace_id, name) VALUES ($1, $2)",
-    [workspaceId, "My Flashcards"],
-  );
+    const workspaceId = randomUUID();
 
-  await query(
-    "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
-    [workspaceId, userId],
-  );
+    await executor.query(
+      "INSERT INTO org.workspaces (workspace_id, name) VALUES ($1, $2)",
+      [workspaceId, "My Flashcards"],
+    );
 
-  return { userId, workspaceId };
+    await executor.query(
+      "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+      [workspaceId, userId],
+    );
+
+    return {
+      userId,
+      workspaceId,
+      email: settings.email,
+      locale: settings.locale,
+    };
+  });
 }

@@ -10,6 +10,7 @@ export interface DatabaseProps {
 
 export interface DatabaseResult {
   db: rds.DatabaseInstance;
+  dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
   appDbSecret: cdk.aws_secretsmanager.Secret;
 }
 
@@ -49,6 +50,11 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
     removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
   });
 
+  const dbOwnerSecret = db.secret;
+  if (dbOwnerSecret === undefined) {
+    throw new Error("Database owner secret must be defined for generated credentials");
+  }
+
   const appDbSecret = new cdk.aws_secretsmanager.Secret(scope, "AppDbSecret", {
     secretName: "flashcards-open-source-app/app-db-password",
     generateSecretString: {
@@ -59,5 +65,5 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
     },
   });
 
-  return { db, appDbSecret };
+  return { db, dbOwnerSecret, appDbSecret };
 }

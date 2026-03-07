@@ -2,9 +2,8 @@
  * Shared Hono app factory used by both local server (index.ts) and
  * Lambda handler (lambda.ts).
  *
- * basePath: "/" for local dev, "/auth" for Lambda behind API Gateway
- * (API Gateway routes /auth/{proxy+} to this Lambda, so paths arrive
- * as /auth/health, /auth/api/send-code, etc.)
+ * basePath: "/" for local dev, "/v1" for Lambda execute-api stage paths.
+ * Custom-domain auth traffic arrives without a stage prefix.
  */
 import { Hono } from "hono";
 import health from "./routes/health.js";
@@ -14,7 +13,15 @@ import loginPage from "./routes/loginPage.js";
 import refreshToken from "./routes/refreshToken.js";
 import revokeToken from "./routes/revokeToken.js";
 
-export function createApp(basePath: string): Hono {
+function getMountPaths(basePath: string): ReadonlyArray<string> {
+  if (basePath === "/v1") {
+    return ["/", "/v1"];
+  }
+
+  return [basePath];
+}
+
+function createMountedApp(basePath: string): Hono {
   const app = new Hono().basePath(basePath);
 
   // Deny cross-origin requests to API endpoints (defense-in-depth).
@@ -35,6 +42,20 @@ export function createApp(basePath: string): Hono {
   app.route("/", loginPage);
   app.route("/", refreshToken);
   app.route("/", revokeToken);
+
+  return app;
+}
+
+export function createApp(basePath: string): Hono {
+  const mountPaths = getMountPaths(basePath);
+  if (mountPaths.length === 1) {
+    return createMountedApp(mountPaths[0]);
+  }
+
+  const app = new Hono();
+  for (const mountPath of mountPaths) {
+    app.route("/", createMountedApp(mountPath));
+  }
 
   return app;
 }

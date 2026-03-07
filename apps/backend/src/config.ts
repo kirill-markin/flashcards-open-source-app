@@ -1,4 +1,4 @@
-import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { getDatabaseCredentialsSecret } from "./secrets";
 
 let resolvedDatabaseUrl: string | undefined;
 
@@ -9,13 +9,7 @@ export async function getDatabaseUrl(): Promise<string> {
 
   const secretArn = process.env.DB_SECRET_ARN;
   if (secretArn) {
-    const client = new SecretsManagerClient({});
-    const response = await client.send(new GetSecretValueCommand({ SecretId: secretArn }));
-    if (!response.SecretString) {
-      throw new Error("DB secret does not contain SecretString");
-    }
-
-    const secret = JSON.parse(response.SecretString) as { username: string; password: string };
+    const secret = await getDatabaseCredentialsSecret(secretArn);
     const host = process.env.DB_HOST;
     const dbName = process.env.DB_NAME;
     if (!host || !dbName) {

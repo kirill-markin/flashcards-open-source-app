@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Deprecated in v1.
-# This project currently uses API Gateway custom domain only (`api.<domain>`).
-# Keep this placeholder for future web/auth domain setup.
+# Create an ACM public certificate for the auth API Gateway custom domain and validate via Cloudflare DNS.
 
-echo "setup-auth-domain.sh is deprecated for v1 (no web auth domain yet)."
-echo "Use: scripts/cloudflare/setup-api-domain.sh and scripts/cloudflare/setup-dns.sh"
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+bash "${SCRIPT_DIR}/setup-api-domain.sh" \
+  --api-subdomain auth \
+  --context-key authCertificateArn \
+  "$@"
