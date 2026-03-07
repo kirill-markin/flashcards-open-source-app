@@ -14,16 +14,76 @@ function renderTags(tags: ReadonlyArray<string>): string {
   return tags.length === 0 ? "—" : tags.join(", ");
 }
 
+function isCardDue(card: Card, nowTimestamp: number): boolean {
+  if (card.dueAt === null) {
+    return true;
+  }
+
+  return new Date(card.dueAt).getTime() <= nowTimestamp;
+}
+
+function compareCardsForReviewQueue(leftCard: Card, rightCard: Card, nowTimestamp: number): number {
+  const leftIsDue = isCardDue(leftCard, nowTimestamp);
+  const rightIsDue = isCardDue(rightCard, nowTimestamp);
+
+  if (leftIsDue !== rightIsDue) {
+    return leftIsDue ? -1 : 1;
+  }
+
+  if (leftCard.dueAt === null && rightCard.dueAt !== null) {
+    return -1;
+  }
+
+  if (leftCard.dueAt !== null && rightCard.dueAt === null) {
+    return 1;
+  }
+
+  if (leftCard.dueAt !== null && rightCard.dueAt !== null) {
+    const dueAtDifference = new Date(leftCard.dueAt).getTime() - new Date(rightCard.dueAt).getTime();
+    if (dueAtDifference !== 0) {
+      return dueAtDifference;
+    }
+  }
+
+  return new Date(rightCard.updatedAt).getTime() - new Date(leftCard.updatedAt).getTime();
+}
+
+function sortCardsForReviewQueue(cards: ReadonlyArray<Card>, nowTimestamp: number): ReadonlyArray<Card> {
+  return [...cards].sort((leftCard, rightCard) => compareCardsForReviewQueue(leftCard, rightCard, nowTimestamp));
+}
+
+function formatQueueBadge(dueCount: number, totalCount: number): string {
+  const upcomingCount = totalCount - dueCount;
+  if (upcomingCount <= 0) {
+    return `${dueCount} due`;
+  }
+
+  return `${dueCount} due • ${upcomingCount} upcoming`;
+}
+
 export function ReviewScreen(): ReactElement {
-  const { reviewQueue, reviewQueueState, ensureReviewQueueLoaded, refreshReviewQueue, submitReviewItem, setErrorMessage } = useAppData();
+  const {
+    cards,
+    cardsState,
+    reviewQueue,
+    reviewQueueState,
+    ensureCardsLoaded,
+    ensureReviewQueueLoaded,
+    refreshReviewQueue,
+    submitReviewItem,
+    setErrorMessage,
+  } = useAppData();
   const [selectedCardId, setSelectedCardId] = useState<string>("");
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const nowTimestamp = Date.now();
+  const queueCards = cardsState.hasLoaded ? sortCardsForReviewQueue(cards, nowTimestamp) : reviewQueue;
   const selectedCard = reviewQueue.find((card) => card.cardId === selectedCardId) ?? reviewQueue[0] ?? null;
 
   useEffect(() => {
+    void ensureCardsLoaded();
     void ensureReviewQueueLoaded();
-  }, [ensureReviewQueueLoaded]);
+  }, [ensureCardsLoaded, ensureReviewQueueLoaded]);
 
   useEffect(() => {
     if (reviewQueue.length === 0) {
@@ -53,7 +113,11 @@ export function ReviewScreen(): ReactElement {
     }
   }
 
-  const resourceErrorMessage = reviewQueueState.status === "error" ? reviewQueueState.errorMessage : "";
+  const resourceErrorMessage = reviewQueueState.status === "error"
+    ? reviewQueueState.errorMessage
+    : cardsState.status === "error"
+      ? cardsState.errorMessage
+      : "";
 
   if (reviewQueueState.status === "loading" && !reviewQueueState.hasLoaded) {
     return (
@@ -89,7 +153,7 @@ export function ReviewScreen(): ReactElement {
             <h1 className="title">Review</h1>
             <p className="subtitle">Queue table plus a focused flip flow.</p>
           </div>
-          <span className="badge">{reviewQueue.length} due</span>
+          <span className="badge">{formatQueueBadge(reviewQueue.length, queueCards.length)}</span>
         </div>
 
         <div className="review-layout">
@@ -161,25 +225,34 @@ export function ReviewScreen(): ReactElement {
                 </tr>
               </thead>
               <tbody>
-                {reviewQueue.map((card) => (
-                  <tr
-                    key={card.cardId}
-                    className={`txn-row review-row${selectedCard?.cardId === card.cardId ? " review-row-active" : ""}`}
-                    onClick={() => setSelectedCardId(card.cardId)}
-                  >
-                    <td className="txn-cell">
-                      <div className="cell-stack">
-                        <span className="cell-primary">{card.frontText}</span>
-                      </div>
-                    </td>
-                    <td className="txn-cell txn-cell-mono">{renderTags(card.tags)}</td>
-                    <td className="txn-cell txn-cell-mono">{card.effortLevel}</td>
-                    <td className="txn-cell txn-cell-mono">{formatTimestamp(card.dueAt)}</td>
-                  </tr>
-                ))}
-                {reviewQueue.length === 0 ? (
+                {queueCards.map((card) => {
+                  const isDue = isCardDue(card, nowTimestamp);
+
+                  return (
+                    <tr
+                      key={card.cardId}
+                      className={`txn-row${isDue ? " review-row" : " review-row-upcoming"}${selectedCard?.cardId === card.cardId ? " review-row-active" : ""}`}
+                      onClick={() => {
+                        if (isDue) {
+                          setSelectedCardId(card.cardId);
+                        }
+                      }}
+                    >
+                      <td className="txn-cell">
+                        <div className="cell-stack">
+                          <span className="cell-primary">{card.frontText}</span>
+                          {isDue ? null : <span className="cell-secondary">Upcoming</span>}
+                        </div>
+                      </td>
+                      <td className="txn-cell txn-cell-mono">{renderTags(card.tags)}</td>
+                      <td className="txn-cell txn-cell-mono">{card.effortLevel}</td>
+                      <td className="txn-cell txn-cell-mono">{formatTimestamp(card.dueAt)}</td>
+                    </tr>
+                  );
+                })}
+                {queueCards.length === 0 ? (
                   <tr>
-                    <td className="txn-cell txn-empty" colSpan={4}>No due cards.</td>
+                    <td className="txn-cell txn-empty" colSpan={4}>No cards yet.</td>
                   </tr>
                 ) : null}
               </tbody>
