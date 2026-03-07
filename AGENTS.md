@@ -104,3 +104,5 @@ Email + OTP authentication via AWS Cognito (passwordless).
 - Use strict typing across services
 - Keep changes minimal and scoped
 - Prioritize clear, actionable errors
+
+Card reappearance and FSRS scheduling logic are described in `docs/fsrs-scheduling-logic.md`.
