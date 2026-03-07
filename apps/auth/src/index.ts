@@ -10,6 +10,7 @@ import { createApp } from "./app.js";
 
 const validateEnv = (): void => {
   const errors: Array<string> = [];
+  if (!process.env.COGNITO_USER_POOL_ID) errors.push("COGNITO_USER_POOL_ID");
   if (!process.env.COGNITO_CLIENT_ID) errors.push("COGNITO_CLIENT_ID");
   if (!process.env.COGNITO_REGION) errors.push("COGNITO_REGION");
   if (!process.env.SESSION_ENCRYPTION_KEY) errors.push("SESSION_ENCRYPTION_KEY");

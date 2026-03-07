@@ -8,8 +8,9 @@
  */
 import { timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
-import { getCookie, setCookie, deleteCookie } from "hono/cookie";
+import { deleteCookie, getCookie } from "hono/cookie";
 import { verifyEmailOtp } from "../server/cognitoAuth.js";
+import { setBrowserSessionCookies } from "../server/browserSession.js";
 import { verify } from "../server/crypto.js";
 import { log } from "../server/logger.js";
 
@@ -24,11 +25,6 @@ type OtpPayload = Readonly<{
   csrf: string; // CSRF token
   t: number;   // timestamp
 }>;
-
-const getCookieDomain = (): string | undefined => {
-  const domain = process.env.COOKIE_DOMAIN ?? "";
-  return domain === "" ? undefined : domain;
-};
 
 app.post("/api/verify-code", async (c) => {
   const signedSession = getCookie(c, "otp_session") ?? "";
@@ -81,37 +77,8 @@ app.post("/api/verify-code", async (c) => {
     return c.json({ error: "Verification failed — please try again" }, 400);
   }
 
-  // Set session cookies with Domain so they're visible on app.*
-  const cookieDomain = getCookieDomain();
-
-  setCookie(c, "session", tokens.idToken, {
-    path: "/",
-    maxAge: 3024000,
-    httpOnly: true,
-    secure: true,
-    sameSite: "Lax",
-    domain: cookieDomain,
-  });
-
-  setCookie(c, "refresh", tokens.refreshToken, {
-    path: "/",
-    maxAge: 3024000,
-    httpOnly: true,
-    secure: true,
-    sameSite: "Lax",
-    domain: cookieDomain,
-  });
-
-  // UI indicator cookie — readable by JavaScript on the marketing site
-  // to toggle between "Log In" and "Open App" buttons. Not used for security.
-  setCookie(c, "logged_in", "1", {
-    path: "/",
-    maxAge: 3024000,
-    httpOnly: false,
-    secure: true,
-    sameSite: "Lax",
-    domain: cookieDomain,
-  });
+  // Shared session cookies are visible on app.* and auth.* subdomains.
+  setBrowserSessionCookies(c, tokens.idToken, tokens.refreshToken);
 
   // Clear OTP cookie
   deleteCookie(c, "otp_session", { path: "/", secure: true });

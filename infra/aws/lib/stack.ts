@@ -33,6 +33,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const authApi = authGateway(this, {
       baseDomain,
       authCertificateArn,
+      userPoolId: authResult.userPool.userPoolId,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
     const migrationFn = migrationRunner(this, {

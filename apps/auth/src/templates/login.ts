@@ -125,6 +125,12 @@ export const renderLoginPage = (redirectUri: string): string => {
       margin: 0 0 16px;
     }
 
+    .login-status {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
     .hidden { display: none; }
 
     @media (max-width: 768px) {
@@ -146,7 +152,11 @@ export const renderLoginPage = (redirectUri: string): string => {
     <div class="login-card">
       <h1 class="login-title">Sign in</h1>
 
-      <div id="step-email">
+      <div id="step-checking">
+        <p class="login-status">Checking session...</p>
+      </div>
+
+      <div id="step-email" class="hidden">
         <label class="login-label" for="login-email">Email</label>
         <input id="login-email" class="login-input" type="email" autocomplete="email" autofocus>
         <div id="email-error" class="login-error hidden"></div>
@@ -173,6 +183,7 @@ export const renderLoginPage = (redirectUri: string): string => {
       var otpInput = document.getElementById("login-otp");
       var sendBtn = document.getElementById("send-btn");
       var verifyBtn = document.getElementById("verify-btn");
+      var stepChecking = document.getElementById("step-checking");
       var stepEmail = document.getElementById("step-email");
       var stepOtp = document.getElementById("step-otp");
       var emailError = document.getElementById("email-error");
@@ -186,6 +197,29 @@ export const renderLoginPage = (redirectUri: string): string => {
       function hideError(el) {
         el.classList.add("hidden");
         el.textContent = "";
+      }
+
+      function showEmailStep() {
+        stepChecking.classList.add("hidden");
+        stepOtp.classList.add("hidden");
+        stepEmail.classList.remove("hidden");
+        emailInput.focus();
+      }
+
+      function tryRefreshSession() {
+        return fetch("api/refresh-session", {
+          method: "POST",
+          credentials: "same-origin",
+        }).then(function(res) {
+          if (res.ok) {
+            window.location.href = redirectUri;
+            return;
+          }
+
+          showEmailStep();
+        }).catch(function() {
+          showEmailStep();
+        });
       }
 
       otpInput.addEventListener("input", function() {
@@ -270,6 +304,8 @@ export const renderLoginPage = (redirectUri: string): string => {
             verifyBtn.textContent = "Verify";
           });
       });
+
+      void tryRefreshSession();
     })();
   </script>
 </body>

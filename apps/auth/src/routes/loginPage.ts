@@ -7,6 +7,8 @@
  */
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
+import { validateSessionToken } from "../server/browserSession.js";
+import { log } from "../server/logger.js";
 import { renderLoginPage } from "../templates/login.js";
 
 const app = new Hono();
@@ -32,7 +34,7 @@ const isAllowedRedirectUri = (uri: string): boolean => {
   }
 };
 
-app.get("/login", (c) => {
+app.get("/login", async (c) => {
   const redirectUri = c.req.query("redirect_uri") ?? "";
 
   if (redirectUri === "") {
@@ -43,12 +45,18 @@ app.get("/login", (c) => {
     return c.text("Invalid redirect_uri", 400);
   }
 
-  // If the user already has a session, skip the login form and redirect.
-  // Real JWT verification happens in the backend — if the session is expired,
-  // the client handles refresh or sends the user back here.
   const sessionCookie = getCookie(c, "session") ?? "";
   if (sessionCookie !== "") {
-    return c.redirect(redirectUri, 302);
+    const validation = await validateSessionToken(sessionCookie);
+    if (validation.status === "valid") {
+      return c.redirect(redirectUri, 302);
+    }
+
+    if (validation.status === "error") {
+      throw new Error(validation.reason);
+    }
+
+    log({ domain: "auth", action: "error", error: validation.reason });
   }
 
   const html = renderLoginPage(redirectUri);
