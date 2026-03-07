@@ -38,3 +38,4 @@ pnpm-debug.log*
 **/*.xcuserstate
 **/*.xcodeproj/xcuserdata/
 **/*.xcworkspace/xcuserdata/
+**/Local.xcconfig

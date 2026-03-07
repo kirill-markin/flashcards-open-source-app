@@ -1,0 +1,9 @@
+// Copy this file to Local.xcconfig for personal machine-only overrides.
+// Local.xcconfig is gitignored and should never be committed.
+
+// Uncomment and replace with your Apple Developer Team ID when you need
+// to run on a physical device or archive the app.
+// DEVELOPMENT_TEAM = ABCDE12345
+
+// Uncomment if you need a personal bundle identifier for local signing.
+// APP_BUNDLE_IDENTIFIER = com.yourname.flashcards.dev
