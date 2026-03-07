@@ -1,3 +1,6 @@
+const AUTH_FAVICON_URL =
+  "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22512%22%20height=%22512%22%20viewBox=%220%200%20512%20512%22%3E%3Crect%20width=%22512%22%20height=%22512%22%20rx=%2296%22%20fill=%22%23232323%22/%3E%3Crect%20x=%22104%22%20y=%2292%22%20width=%22184%22%20height=%22264%22%20rx=%2232%22%20fill=%22%23f8f3ec%22/%3E%3Crect%20x=%22212%22%20y=%22156%22%20width=%22196%22%20height=%22272%22%20rx=%2232%22%20fill=%22%23c44b2d%22/%3E%3C/svg%3E";
+
 /**
  * Login page HTML template. Vanilla HTML + CSS + JS — no React, no bundler.
  * English only. On successful verification, auth service sets session cookies
@@ -11,6 +14,7 @@ export const renderLoginPage = (redirectUri: string): string => {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="${AUTH_FAVICON_URL}">
   <title>Sign in</title>
   <style>
     :root {
