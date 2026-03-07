@@ -1,24 +1,11 @@
-import { useState, type KeyboardEvent, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../appData";
-import type { Card, EffortLevel, UpdateCardInput } from "../types";
+import { EditableCardEffortCell, EditableCardTextCell } from "./CardsTableEditors";
+import type { Card, UpdateCardInput } from "../types";
 
 type SortKey = "frontText" | "backText" | "tags" | "effortLevel" | "dueAt" | "reps" | "lapses" | "updatedAt";
 type SortDirection = "asc" | "desc";
-
-type EditableTextCellProps = Readonly<{
-  displayValue: string;
-  inputValue: string;
-  multiline: boolean;
-  saving: boolean;
-  onCommit: (nextValue: string) => Promise<void>;
-}>;
-
-type EditableEffortCellProps = Readonly<{
-  value: EffortLevel;
-  saving: boolean;
-  onCommit: (nextValue: EffortLevel) => Promise<void>;
-}>;
 
 function formatTimestamp(value: string | null): string {
   if (value === null) {
@@ -44,84 +31,6 @@ function compareCards(left: Card, right: Card, sortKey: SortKey, sortDirection: 
   const leftString = leftValue ?? "";
   const rightString = rightValue ?? "";
   return String(leftString).localeCompare(String(rightString)) * multiplier;
-}
-
-function EditableTextCell(props: EditableTextCellProps): ReactElement {
-  const { displayValue, inputValue, multiline, saving, onCommit } = props;
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [draftValue, setDraftValue] = useState<string>(inputValue);
-
-  if (!isEditing) {
-    return (
-      <button
-        type="button"
-        className="table-editable"
-        disabled={saving}
-        onClick={() => {
-          setDraftValue(inputValue);
-          setIsEditing(true);
-        }}
-      >
-        {displayValue}
-      </button>
-    );
-  }
-
-  const Editor = multiline ? "textarea" : "input";
-
-  async function commit(): Promise<void> {
-    const trimmedDraftValue = draftValue.trim();
-    setIsEditing(false);
-    if (trimmedDraftValue !== inputValue.trim()) {
-      await onCommit(trimmedDraftValue);
-    }
-  }
-
-  return (
-    <Editor
-      autoFocus
-      className="table-inline-input"
-      value={draftValue}
-      onChange={(event) => setDraftValue(event.target.value)}
-      onBlur={() => void commit()}
-      onKeyDown={(event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        if (event.key === "Escape") {
-          setDraftValue(inputValue);
-          setIsEditing(false);
-          return;
-        }
-
-        if (!multiline && event.key === "Enter") {
-          event.preventDefault();
-          void commit();
-          return;
-        }
-
-        if (multiline && event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-          event.preventDefault();
-          void commit();
-        }
-      }}
-      rows={multiline ? 4 : undefined}
-    />
-  );
-}
-
-function EditableEffortCell(props: EditableEffortCellProps): ReactElement {
-  const { value, saving, onCommit } = props;
-
-  return (
-    <select
-      className="table-inline-select"
-      value={value}
-      disabled={saving}
-      onChange={(event) => void onCommit(event.target.value as EffortLevel)}
-    >
-      <option value="fast">fast</option>
-      <option value="medium">medium</option>
-      <option value="long">long</option>
-    </select>
-  );
 }
 
 export function CardsScreen(): ReactElement {
@@ -160,8 +69,8 @@ export function CardsScreen(): ReactElement {
       <section className="panel">
         <div className="screen-head">
           <div>
-            <h1 className="title">All cards</h1>
-            <p className="subtitle">Manage the whole deck in the expense-style table.</p>
+            <h1 className="title">Cards</h1>
+            <p className="subtitle">Manage the whole deck in one table.</p>
           </div>
           <div className="screen-actions">
             <span className="badge">{cards.length} total</span>
@@ -189,45 +98,41 @@ export function CardsScreen(): ReactElement {
                 const isSaving = savingCardId === card.cardId;
                 return (
                   <tr key={card.cardId} className="txn-row cards-row">
-                    <td className="txn-cell">
-                      <EditableTextCell
-                        displayValue={card.frontText}
-                        inputValue={card.frontText}
-                        multiline={true}
-                        saving={isSaving}
-                        onCommit={(nextValue) => handleInlineSave(card, { frontText: nextValue })}
-                      />
-                    </td>
-                    <td className="txn-cell">
-                      <EditableTextCell
-                        displayValue={card.backText}
-                        inputValue={card.backText}
-                        multiline={true}
-                        saving={isSaving}
-                        onCommit={(nextValue) => handleInlineSave(card, { backText: nextValue })}
-                      />
-                    </td>
-                    <td className="txn-cell txn-cell-mono">
-                      <EditableTextCell
-                        displayValue={tagsToString(card.tags)}
-                        inputValue={card.tags.join(", ")}
-                        multiline={false}
-                        saving={isSaving}
-                        onCommit={(nextValue) => handleInlineSave(card, {
-                          tags: nextValue
-                            .split(",")
-                            .map((item) => item.trim())
-                            .filter((item) => item !== ""),
-                        })}
-                      />
-                    </td>
-                    <td className="txn-cell">
-                      <EditableEffortCell
-                        value={card.effortLevel}
-                        saving={isSaving}
-                        onCommit={(nextValue) => handleInlineSave(card, { effortLevel: nextValue })}
-                      />
-                    </td>
+                    <EditableCardTextCell
+                      value={card.frontText}
+                      displayValue={card.frontText}
+                      cellClassName=""
+                      multiline={true}
+                      saving={isSaving}
+                      onCommit={(nextValue) => handleInlineSave(card, { frontText: nextValue })}
+                    />
+                    <EditableCardTextCell
+                      value={card.backText}
+                      displayValue={card.backText}
+                      cellClassName=""
+                      multiline={true}
+                      saving={isSaving}
+                      onCommit={(nextValue) => handleInlineSave(card, { backText: nextValue })}
+                    />
+                    <EditableCardTextCell
+                      value={card.tags.join(", ")}
+                      displayValue={tagsToString(card.tags)}
+                      cellClassName="txn-cell-mono"
+                      multiline={false}
+                      saving={isSaving}
+                      onCommit={(nextValue) => handleInlineSave(card, {
+                        tags: nextValue
+                          .split(",")
+                          .map((item) => item.trim())
+                          .filter((item) => item !== ""),
+                      })}
+                    />
+                    <EditableCardEffortCell
+                      value={card.effortLevel}
+                      cellClassName=""
+                      saving={isSaving}
+                      onCommit={(nextValue) => handleInlineSave(card, { effortLevel: nextValue })}
+                    />
                     <td className="txn-cell txn-cell-mono">{formatTimestamp(card.dueAt)}</td>
                     <td className="txn-cell txn-cell-mono">{card.reps}</td>
                     <td className="txn-cell txn-cell-mono">{card.lapses}</td>

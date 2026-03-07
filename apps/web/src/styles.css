@@ -437,19 +437,69 @@ select {
   white-space: nowrap;
 }
 
-.table-editable {
-  width: auto;
-  padding: 0;
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  white-space: pre-wrap;
-  color: inherit;
+.cards-cell-disabled {
+  cursor: progress;
 }
 
-.table-inline-input,
-.table-inline-select,
+.cards-cell-multiline {
+  white-space: pre-wrap;
+}
+
+.drilldown-editable {
+  cursor: pointer;
+}
+
+.drilldown-editable:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.drilldown-editable-select::after {
+  content: " \25BE";
+  color: var(--muted);
+  font-size: 10px;
+  opacity: 0;
+}
+
+.drilldown-editable-select:hover::after {
+  opacity: 1;
+}
+
+.cell-editor-overlay {
+  position: fixed;
+  z-index: 200;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.45;
+  white-space: nowrap;
+  background: var(--bg);
+  color: var(--text);
+  border: none;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--panel-border), 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+}
+
+.cell-editor-overlay-multiline {
+  white-space: pre-wrap;
+  resize: vertical;
+}
+
+.cell-select-overlay {
+  position: fixed;
+  z-index: 200;
+  max-height: 260px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--panel-border), 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.cell-select-search,
 .settings-input,
 .settings-select {
   width: 100%;
@@ -459,14 +509,38 @@ select {
   padding: 8px 10px;
 }
 
-.table-inline-input {
-  min-height: 40px;
-  resize: vertical;
+.cell-select-search {
+  border: none;
+  border-bottom: 1px solid var(--panel-border);
+  outline: none;
+  box-sizing: border-box;
 }
 
-.table-inline-select {
-  min-width: 84px;
-  padding: 4px 26px 4px 8px;
+.cell-select-options {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.cell-select-option {
+  width: 100%;
+  padding: 4px 10px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cell-select-option:hover,
+.cell-select-option-highlight {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.cell-select-option-active {
+  font-weight: 650;
 }
 
 .card-form-layout {
