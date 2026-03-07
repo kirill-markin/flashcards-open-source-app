@@ -7,6 +7,13 @@ import { query } from "./db";
 import { ensureWebDevice } from "./devices";
 import { HttpError } from "./errors";
 import { ensureUserAndWorkspace } from "./ensureUser";
+import {
+  enforceSessionCsrfProtection,
+  extractRequestAuthInputs,
+  getSessionCsrfToken,
+  toAuthRequest,
+  type RequestAuthInputs,
+} from "./requestSecurity";
 import type { ReviewRating } from "./schedule";
 
 type RequestContext = Readonly<{
@@ -34,37 +41,8 @@ function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
   return [basePath];
 }
 
-function getAuthorizationHeader(request: Request): string | undefined {
-  const value = request.headers.get("authorization");
-  return value === null ? undefined : value;
-}
-
-function getCookieValue(request: Request, cookieName: string): string | undefined {
-  const cookieHeader = request.headers.get("cookie");
-  if (cookieHeader === null || cookieHeader === "") {
-    return undefined;
-  }
-
-  const cookies = cookieHeader.split(";");
-
-  for (const cookie of cookies) {
-    const [name, ...valueParts] = cookie.trim().split("=");
-    if (name !== cookieName) {
-      continue;
-    }
-
-    return decodeURIComponent(valueParts.join("="));
-  }
-
-  return undefined;
-}
-
-async function loadRequestContext(request: Request): Promise<RequestContext> {
-  const sessionToken = getCookieValue(request, "session");
-  const auth = await authenticateRequest({
-    authorizationHeader: getAuthorizationHeader(request),
-    sessionToken,
-  });
+async function loadRequestContext(requestAuthInputs: RequestAuthInputs): Promise<RequestContext> {
+  const auth = await authenticateRequest(toAuthRequest(requestAuthInputs));
   const userWorkspace = await ensureUserAndWorkspace(auth.userId);
 
   if (auth.transport === "session") {
@@ -89,8 +67,8 @@ async function loadRequestContext(request: Request): Promise<RequestContext> {
   };
 }
 
-async function loadReviewContext(request: Request): Promise<RequestContext> {
-  const requestContext = await loadRequestContext(request);
+async function loadReviewContext(requestAuthInputs: RequestAuthInputs): Promise<RequestContext> {
+  const requestContext = await loadRequestContext(requestAuthInputs);
 
   if (requestContext.deviceId !== null) {
     return requestContext;
@@ -100,6 +78,28 @@ async function loadReviewContext(request: Request): Promise<RequestContext> {
   return {
     ...requestContext,
     deviceId: device.deviceId,
+  };
+}
+
+async function loadRequestContextFromRequest(
+  request: Request,
+  allowedOrigins: ReadonlyArray<string>,
+): Promise<Readonly<{
+  requestAuthInputs: RequestAuthInputs;
+  requestContext: RequestContext;
+}>> {
+  const requestAuthInputs = extractRequestAuthInputs(request);
+  const requestContext = await loadRequestContext(requestAuthInputs);
+
+  // Cookie-authenticated browser requests need CSRF validation, while bearer
+  // clients keep the existing API contract unchanged.
+  if (requestContext.transport === "session") {
+    await enforceSessionCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
+  }
+
+  return {
+    requestAuthInputs,
+    requestContext,
   };
 }
 
@@ -178,6 +178,7 @@ function getInternalErrorMessage(error: unknown): string {
 
 export function createApp(basePath: string): Hono {
   const app = new Hono();
+  const allowedOrigins = getAllowedOrigins();
   const routeMountPaths = getRouteMountPaths(basePath);
   const registerRoute = (
     method: "get" | "post",
@@ -198,9 +199,9 @@ export function createApp(basePath: string): Hono {
   app.use(
     "*",
     cors({
-      origin: getAllowedOrigins(),
+      origin: allowedOrigins,
       allowMethods: ["GET", "POST", "OPTIONS"],
-      allowHeaders: ["content-type", "authorization"],
+      allowHeaders: ["content-type", "authorization", "x-csrf-token"],
       credentials: true,
     }),
   );
@@ -238,11 +239,17 @@ export function createApp(basePath: string): Hono {
   });
 
   registerRoute("get", "/me", async (context) => {
-    const requestContext = await loadRequestContext(context.req.raw);
+    const { requestAuthInputs, requestContext } = await loadRequestContextFromRequest(
+      context.req.raw,
+      allowedOrigins,
+    );
     return context.json({
       userId: requestContext.userId,
       workspaceId: requestContext.workspaceId,
       authTransport: requestContext.transport,
+      csrfToken: requestContext.transport === "session" && requestAuthInputs.sessionToken !== undefined
+        ? await getSessionCsrfToken(requestAuthInputs.sessionToken)
+        : null,
       profile: {
         email: requestContext.email,
         locale: requestContext.locale,
@@ -251,39 +258,43 @@ export function createApp(basePath: string): Hono {
   });
 
   registerRoute("get", "/cards", async (context) => {
-    const requestContext = await loadRequestContext(context.req.raw);
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
     const cards = await listCards(requestContext.workspaceId);
     return context.json({ items: cards });
   });
 
   registerRoute("post", "/cards", async (context) => {
-    const requestContext = await loadRequestContext(context.req.raw);
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
     const input = parseCreateCardInput(await parseJsonBody(context.req.raw));
     const card = await createCard(requestContext.workspaceId, input);
     return context.json({ card }, 201);
   });
 
   registerRoute("get", "/review-queue", async (context) => {
-    const requestContext = await loadRequestContext(context.req.raw);
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
     const limit = parseLimit(context.req.query("limit"));
     const cards = await listReviewQueue(requestContext.workspaceId, limit);
     return context.json({ items: cards });
   });
 
   registerRoute("post", "/reviews", async (context) => {
-    const requestContext = await loadReviewContext(context.req.raw);
+    const requestAuthInputs = extractRequestAuthInputs(context.req.raw);
+    const requestContext = await loadReviewContext(requestAuthInputs);
+    if (requestContext.transport === "session") {
+      await enforceSessionCsrfProtection(context.req.method, requestAuthInputs, allowedOrigins);
+    }
     const input = parseSubmitReviewInput(await parseJsonBody(context.req.raw));
     const result = await submitReview(requestContext.workspaceId, requestContext.deviceId!, input);
     return context.json(result);
   });
 
   registerRoute("post", "/sync/push", async (context) => {
-    await loadRequestContext(context.req.raw);
+    await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
     return context.json({ error: "Sync push is not implemented yet" }, 501);
   });
 
   registerRoute("post", "/sync/pull", async (context) => {
-    await loadRequestContext(context.req.raw);
+    await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
     return context.json({ error: "Sync pull is not implemented yet" }, 501);
   });
 

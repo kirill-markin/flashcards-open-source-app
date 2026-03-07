@@ -2,6 +2,7 @@ export type SessionInfo = Readonly<{
   userId: string;
   workspaceId: string;
   authTransport: string;
+  csrfToken: string | null;
   profile: Readonly<{
     email: string | null;
     locale: string;

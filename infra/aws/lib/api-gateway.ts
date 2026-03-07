@@ -40,6 +40,17 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     `https://app.${props.baseDomain}`,
     "http://localhost:3000",
   ];
+  const backendCsrfSecret = new cdk.aws_secretsmanager.Secret(scope, "BackendCsrfSecret", {
+    secretName: "flashcards-open-source-app/backend-csrf-secret",
+    generateSecretString: {
+      passwordLength: 64,
+      includeSpace: false,
+      excludeUppercase: true,
+      excludePunctuation: true,
+      excludeCharacters: "ghijklmnopqrstuvwxyz",
+      requireEachIncludedType: false,
+    },
+  });
 
   const backendFn = new lambdaNodejs.NodejsFunction(scope, "BackendHandler", {
     entry: path.join(__dirname, "../../../apps/backend/src/lambda.ts"),
@@ -61,10 +72,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
       BACKEND_ALLOWED_ORIGINS: allowedOrigins.join(","),
+      BACKEND_CSRF_SECRET_ARN: backendCsrfSecret.secretArn,
     },
   });
 
   props.appDbSecret.grantRead(backendFn);
+  backendCsrfSecret.grantRead(backendFn);
 
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
@@ -77,7 +90,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     defaultCorsPreflightOptions: {
       allowOrigins: allowedOrigins,
       allowMethods: ["GET", "POST", "OPTIONS"],
-      allowHeaders: ["content-type", "authorization"],
+      allowHeaders: ["content-type", "authorization", "x-csrf-token"],
       allowCredentials: true,
     },
   });

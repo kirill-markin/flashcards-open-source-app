@@ -63,11 +63,14 @@ bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-sour
 2. Auth Lambda calls Cognito `InitiateAuth` (EMAIL_OTP), stores session in HMAC-signed cookie, returns CSRF token.
 3. Mobile app or browser login page calls `POST https://auth.<domain>/api/verify-code` with `{ code, csrfToken }`.
 4. Auth Lambda calls Cognito `RespondToAuthChallenge`, returns `{ idToken, refreshToken, expiresIn }` in response body.
-5. Mobile app stores tokens locally, sends `Authorization: Bearer <idToken>` on sync requests.
-6. Backend Lambda verifies JWT via `aws-jwt-verify`, extracts `sub` as userId.
-7. `POST https://auth.<domain>/api/refresh-token` — exchange refresh token for new id token.
-8. `POST https://auth.<domain>/api/revoke-token` — logout (revoke refresh token).
-9. `GET https://auth.<domain>/login?redirect_uri=...` — browser-based login page.
+5. Browser app reuses the shared domain `session` cookie for SSO and loads a session-bound CSRF token from `GET https://api.<domain>/v1/me`.
+6. Browser mutating requests to `https://api.<domain>/v1/*` send `X-CSRF-Token`; backend checks exact allowed `Origin` (or `Referer` fallback), rejects explicit `Sec-Fetch-Site: cross-site`, and validates the HMAC-derived token with a dedicated Secrets Manager secret.
+7. Mobile app stores tokens locally, sends `Authorization: Bearer <idToken>` on sync requests.
+8. Backend Lambda verifies JWT via `aws-jwt-verify`, extracts `sub` as userId.
+9. Host-only `__Host-` app cookies are intentionally not used in v1 because `app.<domain>` is served as a static CloudFront/S3 SPA and `api.<domain>` cannot set an `app.<domain>` host-only cookie without adding a proxy or edge layer.
+10. `POST https://auth.<domain>/api/refresh-token` — exchange refresh token for new id token.
+11. `POST https://auth.<domain>/api/revoke-token` — logout (revoke refresh token).
+12. `GET https://auth.<domain>/login?redirect_uri=...` — browser-based login page.
 
 ## DNS (Cloudflare)
 

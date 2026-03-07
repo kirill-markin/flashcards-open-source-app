@@ -11,6 +11,51 @@ export class ApiError extends Error {
 }
 
 type JsonObject = Record<string, unknown>;
+type SessionCsrfState = "unknown" | "session" | "non-session";
+
+let sessionCsrfToken: string | null = null;
+let sessionCsrfState: SessionCsrfState = "unknown";
+
+// The web app bootstraps session state from /me once and reuses the token for
+// all later unsafe requests sent with the shared domain session cookie.
+function setSessionCsrfToken(csrfToken: string | null, authTransport: string): void {
+  sessionCsrfToken = csrfToken;
+  sessionCsrfState = authTransport === "session" ? "session" : "non-session";
+}
+
+function isUnsafeMethod(method: string): boolean {
+  return method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
+}
+
+function getMethod(init: RequestInit): string {
+  return typeof init.method === "string" && init.method !== "" ? init.method.toUpperCase() : "GET";
+}
+
+function createHeaders(init: RequestInit): Headers {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (isUnsafeMethod(getMethod(init))) {
+    // Failing early here keeps missing session bootstrap visible instead of
+    // silently sending a mutating request without the required CSRF header.
+    if (sessionCsrfState === "unknown") {
+      throw new Error("Session must be loaded before sending mutating requests");
+    }
+
+    if (sessionCsrfState === "session") {
+      const csrfToken = sessionCsrfToken;
+      if (csrfToken === null || csrfToken === "") {
+        throw new Error("CSRF token is not loaded for this browser session");
+      }
+
+      headers.set("X-CSRF-Token", csrfToken);
+    }
+  }
+
+  return headers;
+}
 
 function getJsonErrorMessage(value: unknown, fallbackMessage: string): string {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -43,10 +88,7 @@ async function request(
   const response = await fetch(`${config.apiBaseUrl}${pathname}`, {
     ...init,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
+    headers: createHeaders(init),
   });
 
   const payload = await readJsonResponse(response);
@@ -68,8 +110,9 @@ function expectObject(value: unknown): JsonObject {
 
 export async function getSession(): Promise<SessionInfo> {
   const payload = expectObject(await request("/me", { method: "GET" }));
-
-  return payload as unknown as SessionInfo;
+  const session = payload as unknown as SessionInfo;
+  setSessionCsrfToken(session.csrfToken, session.authTransport);
+  return session;
 }
 
 export async function getCards(): Promise<ReadonlyArray<Card>> {
