@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type ReactElement } from "react";
+import { useCallback, useEffect, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAppData } from "../appData";
 import { buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition, type DeckTagsOperator } from "../deckFilters";
@@ -35,11 +35,30 @@ function toggleEffortLevel(
 
 export function DeckFormScreen(): ReactElement {
   const navigate = useNavigate();
-  const { cards, createDeckItem, setErrorMessage } = useAppData();
+  const { cards, ensureCardsLoaded, ensureDecksLoaded, createDeckItem, setErrorMessage } = useAppData();
   const [formState, setFormState] = useState<FormState>(createInitialFormState());
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
   const tagSuggestions = getTagSuggestionsFromCards(cards);
   const filterDefinition = buildDeckFilterDefinition(formState.effortLevels, formState.tagsOperator, formState.tags);
+
+  const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+    setIsLoading(true);
+    setScreenErrorMessage("");
+
+    try {
+      await Promise.all([ensureDecksLoaded(), ensureCardsLoaded()]);
+    } catch (error) {
+      setScreenErrorMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [ensureCardsLoaded, ensureDecksLoaded]);
+
+  useEffect(() => {
+    void loadScreenData();
+  }, [loadScreenData]);
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]): void {
     setFormState((currentFormState) => ({
@@ -63,6 +82,31 @@ export function DeckFormScreen(): ReactElement {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  if (isLoading) {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">New deck</h1>
+          <p className="subtitle">Loading deck data…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (screenErrorMessage !== "") {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">New deck</h1>
+          <p className="error-banner">{screenErrorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void loadScreenData()}>
+            Retry
+          </button>
+        </section>
+      </main>
+    );
   }
 
   return (

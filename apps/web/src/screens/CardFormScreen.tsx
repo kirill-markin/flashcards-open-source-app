@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type ReactElement } from "react";
+import { useCallback, useEffect, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
 import { getTagSuggestionsFromCards } from "./CardTagsInput";
@@ -41,35 +41,52 @@ function toFormState(card: Card | null): FormState {
 export function CardFormScreen(): ReactElement {
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const { cards, getCardById, createCardItem, updateCardItem, setErrorMessage } = useAppData();
+  const { cards, ensureCardsLoaded, getCardById, createCardItem, updateCardItem, setErrorMessage } = useAppData();
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [formState, setFormState] = useState<FormState>(toFormState(null));
-  const [isLoading, setIsLoading] = useState<boolean>(cardId !== undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
   const isCreateMode = cardId === undefined;
   const tagSuggestions = getTagSuggestionsFromCards(cards);
 
-  useEffect(() => {
+  const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+    setScreenErrorMessage("");
+
     if (isCreateMode) {
       setCurrentCard(null);
       setFormState(toFormState(null));
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    void (async () => {
+      setIsLoading(true);
       try {
-        const card = await getCardById(cardId);
-        setCurrentCard(card);
-        setFormState(toFormState(card));
+        await ensureCardsLoaded();
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setScreenErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
         setIsLoading(false);
       }
-    })();
-  }, [cardId, getCardById, isCreateMode, setErrorMessage]);
+      return;
+    }
+
+    if (cardId === undefined) {
+      throw new Error("Card ID is required");
+    }
+
+    setIsLoading(true);
+    try {
+      await ensureCardsLoaded();
+      const card = await getCardById(cardId);
+      setCurrentCard(card);
+      setFormState(toFormState(card));
+    } catch (error) {
+      setScreenErrorMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [cardId, ensureCardsLoaded, getCardById, isCreateMode]);
+
+  useEffect(() => {
+    void loadScreenData();
+  }, [loadScreenData]);
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]): void {
     setFormState((currentFormState) => ({
@@ -115,6 +132,20 @@ export function CardFormScreen(): ReactElement {
         <section className="panel">
           <h1 className="title">Card form</h1>
           <p className="subtitle">Loading card…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (screenErrorMessage !== "") {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">Card form</h1>
+          <p className="error-banner">{screenErrorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void loadScreenData()}>
+            Retry
+          </button>
         </section>
       </main>
     );

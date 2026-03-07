@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../appData";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
@@ -31,10 +31,14 @@ function compareCards(left: Card, right: Card, sortKey: SortKey, sortDirection: 
 }
 
 export function CardsScreen(): ReactElement {
-  const { cards, updateCardItem, setErrorMessage } = useAppData();
+  const { cards, cardsState, ensureCardsLoaded, refreshCards, updateCardItem, setErrorMessage } = useAppData();
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [savingCardId, setSavingCardId] = useState<string>("");
+
+  useEffect(() => {
+    void ensureCardsLoaded();
+  }, [ensureCardsLoaded]);
 
   async function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
     setSavingCardId(card.cardId);
@@ -61,10 +65,37 @@ export function CardsScreen(): ReactElement {
 
   const sortedCards = [...cards].sort((left, right) => compareCards(left, right, sortKey, sortDirection));
   const tagSuggestions = getTagSuggestionsFromCards(cards);
+  const resourceErrorMessage = cardsState.status === "error" ? cardsState.errorMessage : "";
+
+  if (cardsState.status === "loading" && !cardsState.hasLoaded) {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">Cards</h1>
+          <p className="subtitle">Loading cards…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (cardsState.status === "error" && !cardsState.hasLoaded) {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">Cards</h1>
+          <p className="error-banner">{cardsState.errorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void refreshCards()}>
+            Retry
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="container">
       <section className="panel">
+        {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
             <h1 className="title">Cards</h1>

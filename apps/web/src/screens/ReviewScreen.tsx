@@ -15,11 +15,15 @@ function renderTags(tags: ReadonlyArray<string>): string {
 }
 
 export function ReviewScreen(): ReactElement {
-  const { reviewQueue, submitReviewItem } = useAppData();
+  const { reviewQueue, reviewQueueState, ensureReviewQueueLoaded, refreshReviewQueue, submitReviewItem, setErrorMessage } = useAppData();
   const [selectedCardId, setSelectedCardId] = useState<string>("");
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const selectedCard = reviewQueue.find((card) => card.cardId === selectedCardId) ?? reviewQueue[0] ?? null;
+
+  useEffect(() => {
+    void ensureReviewQueueLoaded();
+  }, [ensureReviewQueueLoaded]);
 
   useEffect(() => {
     if (reviewQueue.length === 0) {
@@ -39,16 +43,47 @@ export function ReviewScreen(): ReactElement {
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<void> {
     setIsSubmitting(true);
+    setErrorMessage("");
     try {
       await submitReviewItem(card.cardId, rating);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  const resourceErrorMessage = reviewQueueState.status === "error" ? reviewQueueState.errorMessage : "";
+
+  if (reviewQueueState.status === "loading" && !reviewQueueState.hasLoaded) {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">Review</h1>
+          <p className="subtitle">Loading review queue…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (reviewQueueState.status === "error" && !reviewQueueState.hasLoaded) {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">Review</h1>
+          <p className="error-banner">{reviewQueueState.errorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void refreshReviewQueue()}>
+            Retry
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="container">
       <section className="panel">
+        {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
             <h1 className="title">Review</h1>

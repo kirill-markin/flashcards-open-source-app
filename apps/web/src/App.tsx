@@ -11,24 +11,24 @@ import { DecksScreen } from "./screens/DecksScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 
 function AppShell(): ReactElement {
-  const { loadState, session, errorMessage, initialize } = useAppData();
+  const { sessionLoadState, sessionErrorMessage, session, errorMessage, initialize } = useAppData();
 
-  if (loadState === "loading" || loadState === "redirecting") {
+  if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (
       <main className="page-state">
         <section className="panel panel-center">
-          <p className="subtitle">{loadState === "redirecting" ? "Redirecting to login…" : "Loading…"}</p>
+          <p className="subtitle">{sessionLoadState === "redirecting" ? "Redirecting to login…" : "Loading…"}</p>
         </section>
       </main>
     );
   }
 
-  if (loadState === "error") {
+  if (sessionLoadState === "error") {
     return (
       <main className="page-state">
         <section className="panel panel-center">
           <h1 className="title">Flashcards</h1>
-          <p className="error-banner">{errorMessage}</p>
+          <p className="error-banner">{sessionErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void initialize()}>
             Retry
           </button>
