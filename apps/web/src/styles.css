@@ -681,6 +681,17 @@ select {
   white-space: normal;
 }
 
+.card-form-tags-trigger {
+  display: flex;
+  align-items: flex-start;
+  min-height: 42px;
+  cursor: pointer;
+}
+
+.card-form-tags-overlay {
+  max-height: none;
+}
+
 .card-form-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

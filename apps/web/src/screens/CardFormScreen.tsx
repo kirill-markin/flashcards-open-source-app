@@ -1,7 +1,8 @@
 import { useEffect, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
-import { CardTagsInput, getTagSuggestionsFromCards } from "./CardTagsInput";
+import { getTagSuggestionsFromCards } from "./CardTagsInput";
+import { CardFormTagsField } from "./CardFormTagsField";
 import type { Card, CreateCardInput, EffortLevel, UpdateCardInput } from "../types";
 
 type FormState = Readonly<{
@@ -162,15 +163,15 @@ export function CardFormScreen(): ReactElement {
               />
             </label>
 
-            <label className="form-label">
+            <div className="form-label">
               <span>Tags</span>
-              <CardTagsInput
+              <CardFormTagsField
                 value={formState.tags}
                 suggestions={tagSuggestions}
-                placeholder="Type tag and press Enter"
                 onChange={(nextValue) => updateField("tags", nextValue)}
+                disabled={isSaving}
               />
-            </label>
+            </div>
 
             <label className="form-label">
               <span>Effort</span>
