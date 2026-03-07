@@ -1,7 +1,8 @@
 import { useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../appData";
-import { EditableCardEffortCell, EditableCardTextCell } from "./CardsTableEditors";
+import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
+import { getTagSuggestionsFromCards } from "./CardTagsInput";
 import type { Card, UpdateCardInput } from "../types";
 
 type SortKey = "frontText" | "backText" | "tags" | "effortLevel" | "dueAt" | "reps" | "lapses" | "updatedAt";
@@ -15,14 +16,10 @@ function formatTimestamp(value: string | null): string {
   return new Date(value).toLocaleString();
 }
 
-function tagsToString(tags: ReadonlyArray<string>): string {
-  return tags.length === 0 ? "—" : tags.join(", ");
-}
-
 function compareCards(left: Card, right: Card, sortKey: SortKey, sortDirection: SortDirection): number {
   const multiplier = sortDirection === "asc" ? 1 : -1;
-  const leftValue = sortKey === "tags" ? tagsToString(left.tags) : left[sortKey];
-  const rightValue = sortKey === "tags" ? tagsToString(right.tags) : right[sortKey];
+  const leftValue = sortKey === "tags" ? left.tags.join(", ") : left[sortKey];
+  const rightValue = sortKey === "tags" ? right.tags.join(", ") : right[sortKey];
 
   if (typeof leftValue === "number" && typeof rightValue === "number") {
     return (leftValue - rightValue) * multiplier;
@@ -63,6 +60,7 @@ export function CardsScreen(): ReactElement {
   }
 
   const sortedCards = [...cards].sort((left, right) => compareCards(left, right, sortKey, sortDirection));
+  const tagSuggestions = getTagSuggestionsFromCards(cards);
 
   return (
     <main className="container">
@@ -114,18 +112,12 @@ export function CardsScreen(): ReactElement {
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { backText: nextValue })}
                     />
-                    <EditableCardTextCell
-                      value={card.tags.join(", ")}
-                      displayValue={tagsToString(card.tags)}
-                      cellClassName="txn-cell-mono"
-                      multiline={false}
+                    <EditableCardTagsCell
+                      value={card.tags}
+                      suggestions={tagSuggestions}
+                      cellClassName="cards-tag-cell"
                       saving={isSaving}
-                      onCommit={(nextValue) => handleInlineSave(card, {
-                        tags: nextValue
-                          .split(",")
-                          .map((item) => item.trim())
-                          .filter((item) => item !== ""),
-                      })}
+                      onCommit={(nextValue) => handleInlineSave(card, { tags: nextValue })}
                     />
                     <EditableCardEffortCell
                       value={card.effortLevel}

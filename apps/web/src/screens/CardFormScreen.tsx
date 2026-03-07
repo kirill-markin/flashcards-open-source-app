@@ -1,12 +1,13 @@
 import { useEffect, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
+import { CardTagsInput, getTagSuggestionsFromCards } from "./CardTagsInput";
 import type { Card, CreateCardInput, EffortLevel, UpdateCardInput } from "../types";
 
 type FormState = Readonly<{
   frontText: string;
   backText: string;
-  tagsText: string;
+  tags: ReadonlyArray<string>;
   effortLevel: EffortLevel;
 }>;
 
@@ -23,7 +24,7 @@ function toFormState(card: Card | null): FormState {
     return {
       frontText: "",
       backText: "",
-      tagsText: "",
+      tags: [],
       effortLevel: "fast",
     };
   }
@@ -31,27 +32,21 @@ function toFormState(card: Card | null): FormState {
   return {
     frontText: card.frontText,
     backText: card.backText,
-    tagsText: card.tags.join(", "),
+    tags: card.tags,
     effortLevel: card.effortLevel,
   };
-}
-
-function toTags(tagsText: string): ReadonlyArray<string> {
-  return tagsText
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item !== "");
 }
 
 export function CardFormScreen(): ReactElement {
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const { getCardById, createCardItem, updateCardItem, setErrorMessage } = useAppData();
+  const { cards, getCardById, createCardItem, updateCardItem, setErrorMessage } = useAppData();
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [formState, setFormState] = useState<FormState>(toFormState(null));
   const [isLoading, setIsLoading] = useState<boolean>(cardId !== undefined);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const isCreateMode = cardId === undefined;
+  const tagSuggestions = getTagSuggestionsFromCards(cards);
 
   useEffect(() => {
     if (isCreateMode) {
@@ -91,7 +86,7 @@ export function CardFormScreen(): ReactElement {
         const payload: CreateCardInput = {
           frontText: formState.frontText,
           backText: formState.backText,
-          tags: toTags(formState.tagsText),
+          tags: formState.tags,
           effortLevel: formState.effortLevel,
         };
         await createCardItem(payload);
@@ -99,7 +94,7 @@ export function CardFormScreen(): ReactElement {
         const payload: UpdateCardInput = {
           frontText: formState.frontText,
           backText: formState.backText,
-          tags: toTags(formState.tagsText),
+          tags: formState.tags,
           effortLevel: formState.effortLevel,
         };
         await updateCardItem(cardId, payload);
@@ -169,11 +164,11 @@ export function CardFormScreen(): ReactElement {
 
             <label className="form-label">
               <span>Tags</span>
-              <input
-                className="settings-input"
-                type="text"
-                value={formState.tagsText}
-                onChange={(event) => updateField("tagsText", event.target.value)}
+              <CardTagsInput
+                value={formState.tags}
+                suggestions={tagSuggestions}
+                placeholder="Type tag and press Enter"
+                onChange={(nextValue) => updateField("tags", nextValue)}
               />
             </label>
 
