@@ -8,16 +8,18 @@ import {
 } from "react";
 import {
   ApiError,
+  createDeck,
   buildLoginUrl,
   createCard,
   getCard,
   getCards,
+  getDecks,
   getReviewQueue,
   getSession,
   submitReview,
   updateCard,
 } from "./api";
-import type { Card, CreateCardInput, SessionInfo, UpdateCardInput } from "./types";
+import type { Card, CreateCardInput, CreateDeckInput, Deck, SessionInfo, UpdateCardInput } from "./types";
 
 type LoadState = "loading" | "ready" | "redirecting" | "error";
 
@@ -25,6 +27,7 @@ type AppDataContextValue = Readonly<{
   loadState: LoadState;
   session: SessionInfo | null;
   cards: ReadonlyArray<Card>;
+  decks: ReadonlyArray<Deck>;
   reviewQueue: ReadonlyArray<Card>;
   errorMessage: string;
   setErrorMessage: (message: string) => void;
@@ -32,6 +35,7 @@ type AppDataContextValue = Readonly<{
   reloadData: () => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;
   createCardItem: (input: CreateCardInput) => Promise<Card>;
+  createDeckItem: (input: CreateDeckInput) => Promise<Deck>;
   updateCardItem: (cardId: string, input: UpdateCardInput) => Promise<Card>;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
 }>;
@@ -50,6 +54,18 @@ function upsertCard(
   return items.map((item) => (item.cardId === nextCard.cardId ? nextCard : item));
 }
 
+function upsertDeck(
+  items: ReadonlyArray<Deck>,
+  nextDeck: Deck,
+): ReadonlyArray<Deck> {
+  const existingIndex = items.findIndex((item) => item.deckId === nextDeck.deckId);
+  if (existingIndex === -1) {
+    return [nextDeck, ...items];
+  }
+
+  return items.map((item) => (item.deckId === nextDeck.deckId ? nextDeck : item));
+}
+
 type Props = Readonly<{
   children: ReactNode;
 }>;
@@ -59,12 +75,14 @@ export function AppDataProvider(props: Props): ReactElement {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [cards, setCards] = useState<ReadonlyArray<Card>>([]);
+  const [decks, setDecks] = useState<ReadonlyArray<Deck>>([]);
   const [reviewQueue, setReviewQueue] = useState<ReadonlyArray<Card>>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   async function reloadData(): Promise<void> {
-    const [nextCards, nextQueue] = await Promise.all([getCards(), getReviewQueue()]);
+    const [nextCards, nextDecks, nextQueue] = await Promise.all([getCards(), getDecks(), getReviewQueue()]);
     setCards(nextCards);
+    setDecks(nextDecks);
     setReviewQueue(nextQueue);
   }
 
@@ -111,6 +129,13 @@ export function AppDataProvider(props: Props): ReactElement {
     return card;
   }
 
+  async function createDeckItem(input: CreateDeckInput): Promise<Deck> {
+    const deck = await createDeck(input);
+    await reloadData();
+    setDecks((currentDecks) => upsertDeck(currentDecks, deck));
+    return deck;
+  }
+
   async function updateCardItem(cardId: string, input: UpdateCardInput): Promise<Card> {
     const card = await updateCard(cardId, input);
     await reloadData();
@@ -130,6 +155,7 @@ export function AppDataProvider(props: Props): ReactElement {
         loadState,
         session,
         cards,
+        decks,
         reviewQueue,
         errorMessage,
         setErrorMessage,
@@ -137,6 +163,7 @@ export function AppDataProvider(props: Props): ReactElement {
         reloadData,
         getCardById,
         createCardItem,
+        createDeckItem,
         updateCardItem,
         submitReviewItem,
       }}

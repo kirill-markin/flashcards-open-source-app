@@ -2,7 +2,9 @@ import { getAppConfig } from "./config";
 import type {
   Card,
   ChatMessage,
+  CreateDeckInput,
   CreateCardInput,
+  Deck,
   SessionInfo,
   UpdateCardInput,
 } from "./types";
@@ -129,6 +131,11 @@ export async function getCards(): Promise<ReadonlyArray<Card>> {
   return payload.items as ReadonlyArray<Card>;
 }
 
+export async function getDecks(): Promise<ReadonlyArray<Deck>> {
+  const payload = expectObject(await requestJson("/decks", { method: "GET" }));
+  return payload.items as ReadonlyArray<Deck>;
+}
+
 export async function getCard(cardId: string): Promise<Card> {
   const payload = expectObject(await requestJson(`/cards/${encodeURIComponent(cardId)}`, { method: "GET" }));
   return payload.card as Card;
@@ -140,6 +147,14 @@ export async function createCard(input: CreateCardInput): Promise<Card> {
     body: JSON.stringify(input),
   }));
   return payload.card as Card;
+}
+
+export async function createDeck(input: CreateDeckInput): Promise<Deck> {
+  const payload = expectObject(await requestJson("/decks", {
+    method: "POST",
+    body: JSON.stringify(input),
+  }));
+  return payload.deck as Deck;
 }
 
 export async function updateCard(cardId: string, input: UpdateCardInput): Promise<Card> {

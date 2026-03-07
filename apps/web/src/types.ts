@@ -1,5 +1,23 @@
 export type EffortLevel = "fast" | "medium" | "long";
 
+export type DeckPredicate =
+  | Readonly<{
+    field: "effortLevel";
+    operator: "in";
+    values: ReadonlyArray<EffortLevel>;
+  }>
+  | Readonly<{
+    field: "tags";
+    operator: "containsAny" | "containsAll";
+    values: ReadonlyArray<string>;
+  }>;
+
+export type DeckFilterDefinition = Readonly<{
+  version: 1;
+  combineWith: "and" | "or";
+  predicates: ReadonlyArray<DeckPredicate>;
+}>;
+
 export type SessionInfo = Readonly<{
   userId: string;
   workspaceId: string;
@@ -35,6 +53,19 @@ export type UpdateCardInput = Readonly<{
   backText?: string;
   tags?: ReadonlyArray<string>;
   effortLevel?: EffortLevel;
+}>;
+
+export type Deck = Readonly<{
+  deckId: string;
+  name: string;
+  filterDefinition: DeckFilterDefinition;
+  createdAt: string;
+  updatedAt: string;
+}>;
+
+export type CreateDeckInput = Readonly<{
+  name: string;
+  filterDefinition: DeckFilterDefinition;
 }>;
 
 export type ChatRole = "user" | "assistant";

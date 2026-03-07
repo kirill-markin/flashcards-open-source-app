@@ -6,6 +6,8 @@ import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatToggle } from "./chat/ChatToggle";
 import { CardFormScreen } from "./screens/CardFormScreen";
 import { CardsScreen } from "./screens/CardsScreen";
+import { DeckFormScreen } from "./screens/DeckFormScreen";
+import { DecksScreen } from "./screens/DecksScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 
 function AppShell(): ReactElement {
@@ -70,6 +72,9 @@ function AppShell(): ReactElement {
           <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/cards">
             Cards
           </NavLink>
+          <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/decks">
+            Decks
+          </NavLink>
           <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/review">
             Review
           </NavLink>
@@ -106,6 +111,8 @@ function RoutedShell(): ReactElement {
           <Route path="/cards" element={<CardsScreen />} />
           <Route path="/cards/new" element={<CardFormScreen />} />
           <Route path="/cards/:cardId" element={<CardFormScreen />} />
+          <Route path="/decks" element={<DecksScreen />} />
+          <Route path="/decks/new" element={<DeckFormScreen />} />
           <Route path="/review" element={<ReviewScreen />} />
           <Route
             path="/chat"
