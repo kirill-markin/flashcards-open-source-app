@@ -9,6 +9,10 @@ type ChatLayoutContextValue = Readonly<{
 
 const CHAT_OPEN_KEY = "flashcards-chat-open";
 const CHAT_WIDTH_KEY = "flashcards-chat-width";
+const DEFAULT_CHAT_OPEN = true;
+const DEFAULT_CHAT_WIDTH = 560;
+const MIN_CHAT_WIDTH = 320;
+const MAX_CHAT_WIDTH = 600;
 
 const ChatLayoutContext = createContext<ChatLayoutContextValue | null>(null);
 
@@ -28,7 +32,11 @@ function readStoredNumber(key: string, fallbackValue: number): number {
   }
 
   const parsedValue = Number.parseInt(storedValue, 10);
-  return Number.isFinite(parsedValue) ? parsedValue : fallbackValue;
+  if (!Number.isFinite(parsedValue)) {
+    return fallbackValue;
+  }
+
+  return Math.max(MIN_CHAT_WIDTH, Math.min(parsedValue, MAX_CHAT_WIDTH));
 }
 
 type Props = Readonly<{
@@ -37,8 +45,8 @@ type Props = Readonly<{
 
 export function ChatLayoutProvider(props: Props): ReactElement {
   const { children } = props;
-  const [isOpen, setIsOpenState] = useState<boolean>(() => readStoredBoolean(CHAT_OPEN_KEY, false));
-  const [chatWidth, setChatWidthState] = useState<number>(() => readStoredNumber(CHAT_WIDTH_KEY, 360));
+  const [isOpen, setIsOpenState] = useState<boolean>(() => readStoredBoolean(CHAT_OPEN_KEY, DEFAULT_CHAT_OPEN));
+  const [chatWidth, setChatWidthState] = useState<number>(() => readStoredNumber(CHAT_WIDTH_KEY, DEFAULT_CHAT_WIDTH));
 
   function setIsOpen(open: boolean): void {
     setIsOpenState(open);
@@ -46,7 +54,7 @@ export function ChatLayoutProvider(props: Props): ReactElement {
   }
 
   function setChatWidth(width: number): void {
-    const roundedWidth = Math.round(width);
+    const roundedWidth = Math.max(MIN_CHAT_WIDTH, Math.min(Math.round(width), MAX_CHAT_WIDTH));
     setChatWidthState(roundedWidth);
     localStorage.setItem(CHAT_WIDTH_KEY, String(roundedWidth));
   }
