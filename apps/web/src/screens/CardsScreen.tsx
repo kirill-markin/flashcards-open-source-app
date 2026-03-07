@@ -80,6 +80,7 @@ export function CardsScreen(): ReactElement {
           <table className="txn-table cards-table">
             <thead>
               <tr>
+                <th className="txn-th cards-open-th" />
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("frontText")}>Front</th>
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("backText")}>Back</th>
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("tags")}>Tags</th>
@@ -88,7 +89,6 @@ export function CardsScreen(): ReactElement {
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("reps")}>Reps</th>
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("lapses")}>Lapses</th>
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("updatedAt")}>Updated</th>
-                <th className="txn-th cards-open-th" />
               </tr>
             </thead>
             <tbody>
@@ -96,6 +96,9 @@ export function CardsScreen(): ReactElement {
                 const isSaving = savingCardId === card.cardId;
                 return (
                   <tr key={card.cardId} className="txn-row cards-row">
+                    <td className="txn-cell cards-open-cell">
+                      <Link className="row-open-link" to={`/cards/${card.cardId}`}>Open</Link>
+                    </td>
                     <EditableCardTextCell
                       value={card.frontText}
                       displayValue={card.frontText}
@@ -129,9 +132,6 @@ export function CardsScreen(): ReactElement {
                     <td className="txn-cell txn-cell-mono">{card.reps}</td>
                     <td className="txn-cell txn-cell-mono">{card.lapses}</td>
                     <td className="txn-cell txn-cell-mono">{formatTimestamp(card.updatedAt)}</td>
-                    <td className="txn-cell cards-open-cell">
-                      <Link className="row-open-link" to={`/cards/${card.cardId}`}>Open</Link>
-                    </td>
                   </tr>
                 );
               })}
