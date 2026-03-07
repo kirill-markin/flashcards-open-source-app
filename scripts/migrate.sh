@@ -47,13 +47,9 @@ done
 
 if [[ -n "${APP_DB_PASSWORD:-}" ]]; then
   run_psql -v "app_pass=$APP_DB_PASSWORD" <<'SQL'
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app') THEN
-    EXECUTE format('ALTER ROLE app WITH PASSWORD %L', :'app_pass');
-  END IF;
-END
-$$;
+SELECT format('ALTER ROLE app WITH PASSWORD %L', :'app_pass')
+WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app')
+\gexec
 SQL
 fi
 
