@@ -1,9 +1,9 @@
 /**
- * Auth service Lambda entry point for API Gateway.
+ * Auth service Lambda entry point for the dedicated auth API Gateway.
  */
 import { handle } from "hono/aws-lambda";
 import { createApp } from "./app.js";
 
-const app = createApp("/auth");
+const app = createApp("/v1");
 
 export const handler = handle(app);

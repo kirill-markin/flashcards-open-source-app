@@ -3,19 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/handler.js",
+    "start": "node dist/index.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.6",
     "@aws-sdk/client-secrets-manager": "^3.996.0",
     "aws-jwt-verify": "^4.0.1",
+    "hono": "^4.7.0",
     "pg": "^8.18.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.149",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.16.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.3"
   }
 }

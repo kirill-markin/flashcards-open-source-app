@@ -85,7 +85,7 @@ scripts/
 Email + OTP authentication via AWS Cognito (passwordless).
 
 - `AUTH_MODE` env var: `none` (local dev, no auth) or `cognito` (verify JWT from `Authorization: Bearer` header)
-- Auth Lambda handles `/auth/*` routes via API Gateway
+- Auth Lambda handles auth UI/API on `auth.<domain>` (and `/v1` stage paths on execute-api)
 - Backend Lambda verifies JWTs using `aws-jwt-verify`
 - Key files:
   - `apps/auth/src/app.ts` — Hono app factory (shared between local and Lambda)

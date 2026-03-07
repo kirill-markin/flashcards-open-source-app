@@ -16,15 +16,23 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/load-env.sh"
+
 # --- Parse arguments ---
 DOMAIN=""
 REGION=""
 API_SUBDOMAIN="api"
+CONTEXT_FILE=""
+CONTEXT_KEY="apiCertificateArn"
 while [[ $# -gt 0 ]]; do
   case $1 in
     --domain) DOMAIN="$2"; shift 2 ;;
     --region) REGION="$2"; shift 2 ;;
     --api-subdomain) API_SUBDOMAIN="$2"; shift 2 ;;
+    --context-file) CONTEXT_FILE="$2"; shift 2 ;;
+    --context-key) CONTEXT_KEY="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -124,14 +132,31 @@ aws acm wait certificate-validated \
 echo ""
 echo "Certificate ISSUED."
 echo "ARN: ${CERT_ARN}"
+
+if [[ -n "$CONTEXT_FILE" ]]; then
+  python3 - "$CONTEXT_FILE" "$CERT_ARN" "$CONTEXT_KEY" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+certificate_arn = sys.argv[2]
+context_key = sys.argv[3]
+context = {}
+if path.exists():
+    context = json.loads(path.read_text())
+context[context_key] = certificate_arn
+path.write_text(json.dumps(context, indent=2) + "\n")
+PY
+  echo "Updated ${CONTEXT_FILE} with ${CONTEXT_KEY}."
+fi
 echo ""
 echo "Add this to cdk.context.local.json:"
-echo "  \"apiCertificateArn\": \"${CERT_ARN}\""
+echo "  \"${CONTEXT_KEY}\": \"${CERT_ARN}\""
 echo ""
 echo "Do NOT delete the validation CNAME record — ACM needs it for automatic renewal."
 echo ""
 echo "Next steps:"
-echo "  1. Add apiCertificateArn to cdk.context.local.json"
+echo "  1. Add ${CONTEXT_KEY} to cdk.context.local.json"
 echo "  2. Run: npx cdk deploy"
-echo "  3. Run: bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain "
-echo "     setup-dns.sh creates or updates api. CNAME from stack output."
+echo "  3. Run: bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain ${DOMAIN}"

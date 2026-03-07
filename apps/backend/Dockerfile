@@ -22,4 +22,5 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist/ dist/
 
 USER backend
-CMD ["node", "dist/handler.js"]
+EXPOSE 8080
+CMD ["node", "dist/index.js"]

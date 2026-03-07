@@ -5,11 +5,13 @@
 **/coverage/
 **/.cache/
 **/.turbo/
+**/*.tsbuildinfo
 
 # Local env files
 **/.env
 **/.env.*
 !**/.env.example
+!**/scripts/cloudflare/.env.example
 
 # AWS CDK local context and synth outputs
 infra/aws/cdk.context.local.json

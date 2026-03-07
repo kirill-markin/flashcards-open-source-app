@@ -49,6 +49,7 @@ jobs:
           cache-dependency-path: |
             apps/auth/package-lock.json
             apps/backend/package-lock.json
+            apps/web/package-lock.json
             infra/aws/package-lock.json
 
       - name: Configure AWS credentials (OIDC)
@@ -61,21 +62,41 @@ jobs:
         run: |
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
+          npm ci --prefix apps/web
           npm ci --prefix infra/aws
 
       - name: CDK deploy
         working-directory: infra/aws
         run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           cat > cdk.context.local.json <<CTXEOF
           {
             "region": "${{ vars.AWS_REGION }}",
             "domainName": "${{ vars.CDK_DOMAIN_NAME }}",
             "apiCertificateArn": "${{ secrets.CDK_API_CERTIFICATE_ARN }}",
+            "authCertificateArn": "${{ secrets.CDK_AUTH_CERTIFICATE_ARN }}",
+            "webCertificateArnUsEast1": "${{ secrets.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}",
+            "githubOidcProviderArn": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com",
             "alertEmail": "${{ vars.CDK_ALERT_EMAIL }}",
             "githubRepo": "${{ vars.CDK_GITHUB_REPO }}"
           }
           CTXEOF
           npx cdk deploy --all --require-approval never
+
+      - name: Run database migrations
+        run: bash scripts/migrate-aws.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Check API health
+        run: bash scripts/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Build web app
+        run: npm run build --prefix apps/web
+
+      - name: Deploy web assets
+        run: bash scripts/deploy-web.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Check public custom domains
+        run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Migration reminder
         if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.migrations == 'true'

@@ -8,9 +8,11 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CDK_DIR="${ROOT_DIR}/infra/aws"
 
 REGION=""
+STACK_NAME="FlashcardsOpenSourceApp"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --region) REGION="$2"; shift 2 ;;
+    --stack-name) STACK_NAME="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -28,6 +30,7 @@ fi
 
 echo "=== Install dependencies ==="
 npm ci --silent --prefix "${ROOT_DIR}/apps/backend"
+npm ci --silent --prefix "${ROOT_DIR}/apps/web"
 npm ci --silent --prefix "$CDK_DIR"
 
 echo "=== CDK bootstrap ==="
@@ -37,9 +40,18 @@ npx cdk bootstrap --region "$REGION"
 echo "=== CDK deploy ==="
 npx cdk deploy --all --require-approval never
 
+echo "=== Run database migrations ==="
+bash "${ROOT_DIR}/scripts/migrate-aws.sh" --stack-name "$STACK_NAME"
+
+echo "=== Check API health ==="
+bash "${ROOT_DIR}/scripts/check-api-health.sh" --stack-name "$STACK_NAME"
+
+echo "=== Build and deploy web ==="
+npm run build --silent --prefix "${ROOT_DIR}/apps/web"
+bash "${ROOT_DIR}/scripts/deploy-web.sh" --stack-name "$STACK_NAME"
+
 echo ""
 echo "=== Bootstrap complete ==="
 echo "Next steps:"
-echo "  1. Configure DNS: bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp"
-echo "  2. Configure GitHub Actions secrets/vars"
-echo "  3. Run DB migrations against target database"
+echo "  1. Configure DNS: bash scripts/cloudflare/setup-dns.sh --stack-name ${STACK_NAME}"
+echo "  2. Configure GitHub Actions secrets/vars: bash scripts/setup-github.sh --stack-name ${STACK_NAME}"

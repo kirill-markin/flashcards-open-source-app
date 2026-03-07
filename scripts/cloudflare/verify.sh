@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Verify API DNS setup in Cloudflare.
+# Verify API/auth/web DNS setup in Cloudflare.
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/load-env.sh"
 
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ZONE_ID:-}" ]]; then
   echo "ERROR: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID" >&2
@@ -14,16 +18,25 @@ if [[ -z "$DOMAIN" ]]; then
   exit 1
 fi
 
-SUBDOMAIN="api.${DOMAIN}"
-RESPONSE=$(curl -sS "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records?type=CNAME&name=${SUBDOMAIN}" \
-  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-  -H "Content-Type: application/json")
+check_record() {
+  local fqdn="$1"
+  local response
+  local count
 
-COUNT=$(echo "$RESPONSE" | jq '.result | length')
-if [[ "$COUNT" -eq 0 ]]; then
-  echo "FAIL: no CNAME for ${SUBDOMAIN}" >&2
-  exit 1
-fi
+  response=$(curl -sS "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records?type=CNAME&name=${fqdn}" \
+    -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+    -H "Content-Type: application/json")
 
-echo "OK: CNAME exists for ${SUBDOMAIN}"
-echo "$RESPONSE" | jq '.result[0] | {name, content, proxied, ttl}'
+  count=$(echo "$response" | jq '.result | length')
+  if [[ "$count" -eq 0 ]]; then
+    echo "FAIL: no CNAME for ${fqdn}" >&2
+    exit 1
+  fi
+
+  echo "OK: CNAME exists for ${fqdn}"
+  echo "$response" | jq '.result[0] | {name, content, proxied, ttl}'
+}
+
+check_record "api.${DOMAIN}"
+check_record "auth.${DOMAIN}"
+check_record "app.${DOMAIN}"

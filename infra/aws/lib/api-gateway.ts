@@ -21,7 +21,6 @@ export interface ApiGatewayProps {
 export interface ApiGatewayResult {
   restApi: apigw.RestApi;
   backendFn: lambdaNodejs.NodejsFunction;
-  authFn: lambdaNodejs.NodejsFunction;
 }
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
@@ -37,8 +36,13 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
 };
 
 export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGatewayResult {
+  const allowedOrigins = [
+    `https://app.${props.baseDomain}`,
+    "http://localhost:3000",
+  ];
+
   const backendFn = new lambdaNodejs.NodejsFunction(scope, "BackendHandler", {
-    entry: path.join(__dirname, "../../../apps/backend/src/handler.ts"),
+    entry: path.join(__dirname, "../../../apps/backend/src/lambda.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(30),
@@ -56,45 +60,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       COGNITO_USER_POOL_ID: props.userPoolId,
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
+      BACKEND_ALLOWED_ORIGINS: allowedOrigins.join(","),
     },
   });
 
   props.appDbSecret.grantRead(backendFn);
-
-  // Session encryption key for auth service OTP cookies
-  const sessionEncryptionKey = new cdk.aws_secretsmanager.Secret(scope, "SessionEncryptionKey", {
-    secretName: "flashcards-open-source-app/session-encryption-key",
-    generateSecretString: {
-      passwordLength: 64,
-      includeSpace: false,
-      excludeUppercase: true,
-      excludePunctuation: true,
-      excludeCharacters: "ghijklmnopqrstuvwxyz",
-      requireEachIncludedType: false,
-    },
-  });
-
-  const authFn = new lambdaNodejs.NodejsFunction(scope, "AuthHandler", {
-    entry: path.join(__dirname, "../../../apps/auth/src/lambda.ts"),
-    handler: "handler",
-    runtime: lambda.Runtime.NODEJS_24_X,
-    timeout: cdk.Duration.seconds(30),
-    memorySize: 256,
-    bundling: { minify: true, sourceMap: true },
-    environment: {
-      COGNITO_CLIENT_ID: props.userPoolClientId,
-      COGNITO_REGION: cdk.Stack.of(scope).region,
-      ALLOWED_REDIRECT_URIS: `https://${props.baseDomain},https://app.${props.baseDomain}`,
-      COOKIE_DOMAIN: props.baseDomain,
-    },
-  });
-
-  sessionEncryptionKey.grantRead(authFn);
-  // Inject the secret value as SESSION_ENCRYPTION_KEY env var at deploy time
-  authFn.addEnvironment(
-    "SESSION_ENCRYPTION_KEY",
-    sessionEncryptionKey.secretValue.unsafeUnwrap(),
-  );
 
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
@@ -105,28 +75,58 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       throttlingBurstLimit: 100,
     },
     defaultCorsPreflightOptions: {
-      allowOrigins: apigw.Cors.ALL_ORIGINS,
+      allowOrigins: allowedOrigins,
       allowMethods: ["GET", "POST", "OPTIONS"],
       allowHeaders: ["content-type", "authorization"],
+      allowCredentials: true,
     },
   });
 
   const integration = new apigw.LambdaIntegration(backendFn);
+  const notFoundIntegration = new apigw.MockIntegration({
+    requestTemplates: {
+      "application/json": '{"statusCode": 404}',
+    },
+    integrationResponses: [
+      {
+        statusCode: "404",
+        responseTemplates: {
+          "application/json": '{"error":"Not found"}',
+        },
+      },
+    ],
+  });
+  const notFoundMethodOptions: apigw.MethodOptions = {
+    methodResponses: [
+      {
+        statusCode: "404",
+      },
+    ],
+  };
 
   const health = restApi.root.addResource("health");
   health.addMethod("GET", integration);
+
+  const me = restApi.root.addResource("me");
+  me.addMethod("GET", integration);
+
+  const cards = restApi.root.addResource("cards");
+  cards.addMethod("GET", integration);
+  cards.addMethod("POST", integration);
+
+  const reviewQueue = restApi.root.addResource("review-queue");
+  reviewQueue.addMethod("GET", integration);
+
+  const reviews = restApi.root.addResource("reviews");
+  reviews.addMethod("POST", integration);
 
   const sync = restApi.root.addResource("sync");
   sync.addResource("push").addMethod("POST", integration);
   sync.addResource("pull").addMethod("POST", integration);
 
-  // Auth Lambda routes under /auth/{proxy+}
-  const authIntegration = new apigw.LambdaIntegration(authFn);
-  const authResource = restApi.root.addResource("auth");
-  authResource.addProxy({
-    defaultIntegration: authIntegration,
-    anyMethod: true,
-  });
+  const legacyAuth = restApi.root.addResource("auth");
+  legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
+  legacyAuth.addResource("{proxy+}").addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
 
   if (props.apiCertificateArn) {
     const apiDomainName = `api.${props.baseDomain}`;
@@ -149,5 +149,5 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     });
   }
 
-  return { restApi, backendFn, authFn };
+  return { restApi, backendFn };
 }
