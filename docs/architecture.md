@@ -37,6 +37,7 @@ Browser auth           -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lam
 
 - Cognito User Pool with EMAIL_OTP (passwordless, Essentials tier).
 - Auth Lambda (`auth.<domain>`) handles OTP send/verify, token refresh/revoke, and the browser login page.
+- Browser login still uses one shared domain-wide session cookie so sign-in works across `auth.<domain>` and `app.<domain>` without a second login.
 - Backend Lambda verifies JWT from `Authorization: Bearer` header via `aws-jwt-verify`.
 - `AUTH_MODE=none` for local dev (no auth, `userId=local`), `AUTH_MODE=cognito` in production.
 - First authenticated request auto-provisions `user_settings` row and a default workspace.
@@ -49,3 +50,6 @@ Browser auth           -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lam
 - API custom domain is optional and configured via ACM certificate.
 - OTP session cookies are HMAC-signed (SESSION_ENCRYPTION_KEY in Secrets Manager).
 - CSRF token + 3-min TTL on OTP sessions.
+- Browser session-authenticated mutating API requests require exact allowed `Origin` (or `Referer` fallback), `X-CSRF-Token`, and reject explicit `Sec-Fetch-Site: cross-site`.
+- The browser CSRF token is derived from the current `session` JWT with a dedicated backend HMAC secret in Secrets Manager, so no SQL state is needed.
+- Host-only `__Host-` CSRF cookies are not used in v1 because `app.<domain>` is a static CloudFront/S3 SPA and `api.<domain>` is a separate origin that cannot mint an `app.<domain>` host-only cookie without adding a proxy or edge layer.

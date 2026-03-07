@@ -6,6 +6,7 @@ export interface DatabaseCredentialsSecret {
 }
 
 const secretsClient = new SecretsManagerClient({});
+let resolvedBackendCsrfSecret: string | undefined;
 
 export async function getDatabaseCredentialsSecret(secretArn: string): Promise<DatabaseCredentialsSecret> {
   const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
@@ -26,4 +27,25 @@ export async function getDatabaseCredentialsSecret(secretArn: string): Promise<D
     username: value.username,
     password: value.password,
   };
+}
+
+export async function getBackendCsrfSecret(secretArn: string): Promise<string> {
+  if (resolvedBackendCsrfSecret !== undefined) {
+    return resolvedBackendCsrfSecret;
+  }
+
+  // CSRF signing key is immutable for the lifetime of the Lambda process,
+  // so caching avoids a Secrets Manager read on every request.
+  const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
+  if (!response.SecretString) {
+    throw new Error(`Secret ${secretArn} does not contain SecretString`);
+  }
+
+  const value = response.SecretString.trim();
+  if (value === "") {
+    throw new Error(`Secret ${secretArn} must not be empty`);
+  }
+
+  resolvedBackendCsrfSecret = value;
+  return resolvedBackendCsrfSecret;
 }
