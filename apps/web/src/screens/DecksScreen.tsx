@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../appData";
 import { formatDeckFilterDefinition } from "../deckFilters";
@@ -8,11 +8,43 @@ function formatTimestamp(value: string): string {
 }
 
 export function DecksScreen(): ReactElement {
-  const { decks } = useAppData();
+  const { decks, decksState, ensureDecksLoaded, refreshDecks } = useAppData();
+
+  useEffect(() => {
+    void ensureDecksLoaded();
+  }, [ensureDecksLoaded]);
+
+  const resourceErrorMessage = decksState.status === "error" ? decksState.errorMessage : "";
+
+  if (decksState.status === "loading" && !decksState.hasLoaded) {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">Decks</h1>
+          <p className="subtitle">Loading decks…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (decksState.status === "error" && !decksState.hasLoaded) {
+    return (
+      <main className="container">
+        <section className="panel">
+          <h1 className="title">Decks</h1>
+          <p className="error-banner">{decksState.errorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void refreshDecks()}>
+            Retry
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="container">
       <section className="panel">
+        {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
             <h1 className="title">Decks</h1>
