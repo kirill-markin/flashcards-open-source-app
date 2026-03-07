@@ -2,7 +2,17 @@ import { cors } from "hono/cors";
 import { Hono, type Handler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { authenticateRequest, AuthError, type AuthTransport } from "./auth";
-import { createCard, listCards, listReviewQueue, submitReview, type CreateCardInput, type SubmitReviewInput } from "./cards";
+import {
+  createCard,
+  getCard,
+  listCards,
+  listReviewQueue,
+  submitReview,
+  updateCard,
+  type CreateCardInput,
+  type EffortLevel,
+  type UpdateCardInput,
+} from "./cards";
 import { query } from "./db";
 import { ensureWebDevice } from "./devices";
 import { HttpError } from "./errors";
@@ -15,6 +25,8 @@ import {
   type RequestAuthInputs,
 } from "./requestSecurity";
 import type { ReviewRating } from "./schedule";
+import { CHAT_MODELS } from "./chat/models";
+import type { ChatMessage, ChatStreamEvent } from "./chat/types";
 
 type RequestContext = Readonly<{
   userId: string;
@@ -23,6 +35,12 @@ type RequestContext = Readonly<{
   locale: string;
   transport: AuthTransport;
   deviceId: string | null;
+}>;
+
+type ChatRequestBody = Readonly<{
+  messages: ReadonlyArray<ChatMessage>;
+  model: string;
+  timezone: string;
 }>;
 
 function getAllowedOrigins(): Array<string> {
@@ -91,8 +109,6 @@ async function loadRequestContextFromRequest(
   const requestAuthInputs = extractRequestAuthInputs(request);
   const requestContext = await loadRequestContext(requestAuthInputs);
 
-  // Cookie-authenticated browser requests need CSRF validation, while bearer
-  // clients keep the existing API contract unchanged.
   if (requestContext.transport === "session") {
     await enforceSessionCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
   }
@@ -132,13 +148,96 @@ function expectNonEmptyString(value: unknown, fieldName: string): string {
   return trimmed;
 }
 
+function expectOptionalNonEmptyString(value: unknown, fieldName: string): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return expectNonEmptyString(value, fieldName);
+}
+
+function normalizeTags(value: unknown): ReadonlyArray<string> {
+  if (!Array.isArray(value)) {
+    throw new HttpError(400, "tags must be an array of strings");
+  }
+
+  const uniqueTags = new Set<string>();
+  for (const item of value) {
+    if (typeof item !== "string") {
+      throw new HttpError(400, "tags must be an array of strings");
+    }
+
+    const normalizedTag = item.trim();
+    if (normalizedTag !== "") {
+      uniqueTags.add(normalizedTag);
+    }
+  }
+
+  return [...uniqueTags];
+}
+
+function expectEffortLevel(value: unknown): EffortLevel {
+  if (value === "fast" || value === "medium" || value === "long") {
+    return value;
+  }
+
+  throw new HttpError(400, "effortLevel must be one of fast, medium, or long");
+}
+
 function parseCreateCardInput(value: unknown): CreateCardInput {
   const body = expectRecord(value);
 
   return {
     frontText: expectNonEmptyString(body.frontText, "frontText"),
     backText: expectNonEmptyString(body.backText, "backText"),
+    tags: normalizeTags(body.tags),
+    effortLevel: expectEffortLevel(body.effortLevel),
   };
+}
+
+function parseUpdateCardInput(value: unknown): UpdateCardInput {
+  const body = expectRecord(value);
+  const disallowedKeys = ["cardId", "dueAt", "reps", "lapses", "updatedAt", "serverVersion", "deletedAt"];
+
+  for (const key of disallowedKeys) {
+    if (key in body) {
+      throw new HttpError(400, `${key} is read-only and cannot be updated`);
+    }
+  }
+
+  const nextInput: {
+    frontText?: string;
+    backText?: string;
+    tags?: ReadonlyArray<string>;
+    effortLevel?: EffortLevel;
+  } = {};
+
+  if ("frontText" in body) {
+    nextInput.frontText = expectOptionalNonEmptyString(body.frontText, "frontText");
+  }
+
+  if ("backText" in body) {
+    nextInput.backText = expectOptionalNonEmptyString(body.backText, "backText");
+  }
+
+  if ("tags" in body) {
+    nextInput.tags = normalizeTags(body.tags);
+  }
+
+  if ("effortLevel" in body) {
+    nextInput.effortLevel = expectEffortLevel(body.effortLevel);
+  }
+
+  if (
+    nextInput.frontText === undefined &&
+    nextInput.backText === undefined &&
+    nextInput.tags === undefined &&
+    nextInput.effortLevel === undefined
+  ) {
+    throw new HttpError(400, "At least one editable field must be provided");
+  }
+
+  return nextInput;
 }
 
 function parseReviewRating(value: unknown): ReviewRating {
@@ -149,7 +248,11 @@ function parseReviewRating(value: unknown): ReviewRating {
   throw new HttpError(400, "rating must be one of 0, 1, 2, or 3");
 }
 
-function parseSubmitReviewInput(value: unknown): SubmitReviewInput {
+function parseSubmitReviewInput(value: unknown): Readonly<{
+  cardId: string;
+  rating: ReviewRating;
+  reviewedAtClient: string;
+}> {
   const body = expectRecord(value);
 
   return {
@@ -172,8 +275,99 @@ function parseLimit(value: string | undefined): number {
   return limit;
 }
 
+function parseChatMessages(value: unknown): ReadonlyArray<ChatMessage> {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new HttpError(400, "messages must be a non-empty array");
+  }
+
+  return value as ReadonlyArray<ChatMessage>;
+}
+
+function parseChatRequestBody(value: unknown): ChatRequestBody {
+  const body = expectRecord(value);
+  const model = expectNonEmptyString(body.model, "model");
+  const timezone = expectNonEmptyString(body.timezone, "timezone");
+
+  return {
+    messages: parseChatMessages(body.messages),
+    model,
+    timezone,
+  };
+}
+
 function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function createChatErrorResponse(message: string): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message })}\n\n`));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    status: 500,
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+
+async function streamChatResponse(
+  body: ChatRequestBody,
+  requestContext: RequestContext,
+): Promise<Response> {
+  const validModel = CHAT_MODELS.find((model) => model.id === body.model);
+  if (validModel === undefined) {
+    throw new HttpError(400, `Unknown model: ${body.model}`);
+  }
+
+  const envKey = validModel.vendor === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
+  const apiKey = process.env[envKey];
+  if (apiKey === undefined || apiKey === "") {
+    throw new HttpError(500, `${envKey} environment variable is not set`);
+  }
+
+  const agentModule = validModel.vendor === "anthropic"
+    ? await import("./chat/anthropic/agent")
+    : await import("./chat/openai/agent");
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const event of agentModule.streamAgentResponse({
+          messages: body.messages,
+          model: body.model,
+          workspaceId: requestContext.workspaceId,
+          timezone: body.timezone,
+        })) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          if (event.type === "done") {
+            break;
+          }
+        }
+      } catch (error) {
+        const message = getInternalErrorMessage(error);
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message } satisfies ChatStreamEvent)}\n\n`));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
 
 export function createApp(basePath: string): Hono {
@@ -181,7 +375,7 @@ export function createApp(basePath: string): Hono {
   const allowedOrigins = getAllowedOrigins();
   const routeMountPaths = getRouteMountPaths(basePath);
   const registerRoute = (
-    method: "get" | "post",
+    method: "get" | "post" | "patch",
     routePath: string,
     handler: Handler,
   ): void => {
@@ -192,7 +386,12 @@ export function createApp(basePath: string): Hono {
         continue;
       }
 
-      app.post(fullPath, handler);
+      if (method === "post") {
+        app.post(fullPath, handler);
+        continue;
+      }
+
+      app.patch(fullPath, handler);
     }
   };
 
@@ -200,7 +399,7 @@ export function createApp(basePath: string): Hono {
     "*",
     cors({
       origin: allowedOrigins,
-      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
       allowHeaders: ["content-type", "authorization", "x-csrf-token"],
       credentials: true,
     }),
@@ -263,11 +462,26 @@ export function createApp(basePath: string): Hono {
     return context.json({ items: cards });
   });
 
+  registerRoute("get", "/cards/:cardId", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const cardId = expectNonEmptyString(context.req.param("cardId"), "cardId");
+    const card = await getCard(requestContext.workspaceId, cardId);
+    return context.json({ card });
+  });
+
   registerRoute("post", "/cards", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
     const input = parseCreateCardInput(await parseJsonBody(context.req.raw));
     const card = await createCard(requestContext.workspaceId, input);
     return context.json({ card }, 201);
+  });
+
+  registerRoute("patch", "/cards/:cardId", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const cardId = expectNonEmptyString(context.req.param("cardId"), "cardId");
+    const input = parseUpdateCardInput(await parseJsonBody(context.req.raw));
+    const card = await updateCard(requestContext.workspaceId, cardId, input);
+    return context.json({ card });
   });
 
   registerRoute("get", "/review-queue", async (context) => {
@@ -286,6 +500,20 @@ export function createApp(basePath: string): Hono {
     const input = parseSubmitReviewInput(await parseJsonBody(context.req.raw));
     const result = await submitReview(requestContext.workspaceId, requestContext.deviceId!, input);
     return context.json(result);
+  });
+
+  registerRoute("post", "/chat", async (context) => {
+    try {
+      const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+      const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
+      return await streamChatResponse(body, requestContext);
+    } catch (error) {
+      if (error instanceof HttpError || error instanceof AuthError) {
+        throw error;
+      }
+
+      return createChatErrorResponse(getInternalErrorMessage(error));
+    }
   });
 
   registerRoute("post", "/sync/push", async (context) => {

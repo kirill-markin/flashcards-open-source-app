@@ -1,5 +1,11 @@
 import { getAppConfig } from "./config";
-import type { Card, SessionInfo } from "./types";
+import type {
+  Card,
+  ChatMessage,
+  CreateCardInput,
+  SessionInfo,
+  UpdateCardInput,
+} from "./types";
 
 export class ApiError extends Error {
   readonly statusCode: number;
@@ -13,11 +19,15 @@ export class ApiError extends Error {
 type JsonObject = Record<string, unknown>;
 type SessionCsrfState = "unknown" | "session" | "non-session";
 
+export type ChatRequestBody = Readonly<{
+  messages: ReadonlyArray<ChatMessage>;
+  model: string;
+  timezone: string;
+}>;
+
 let sessionCsrfToken: string | null = null;
 let sessionCsrfState: SessionCsrfState = "unknown";
 
-// The web app bootstraps session state from /me once and reuses the token for
-// all later unsafe requests sent with the shared domain session cookie.
 function setSessionCsrfToken(csrfToken: string | null, authTransport: string): void {
   sessionCsrfToken = csrfToken;
   sessionCsrfState = authTransport === "session" ? "session" : "non-session";
@@ -38,8 +48,6 @@ function createHeaders(init: RequestInit): Headers {
   }
 
   if (isUnsafeMethod(getMethod(init))) {
-    // Failing early here keeps missing session bootstrap visible instead of
-    // silently sending a mutating request without the required CSRF header.
     if (sessionCsrfState === "unknown") {
       throw new Error("Session must be loaded before sending mutating requests");
     }
@@ -80,18 +88,19 @@ async function readJsonResponse(response: Response): Promise<unknown> {
   }
 }
 
-async function request(
-  pathname: string,
-  init: RequestInit,
-): Promise<unknown> {
+async function requestResponse(pathname: string, init: RequestInit): Promise<Response> {
   const config = getAppConfig();
-  const response = await fetch(`${config.apiBaseUrl}${pathname}`, {
+  return fetch(`${config.apiBaseUrl}${pathname}`, {
     ...init,
     credentials: "include",
     headers: createHeaders(init),
   });
+}
 
+async function requestJson(pathname: string, init: RequestInit): Promise<unknown> {
+  const response = await requestResponse(pathname, init);
   const payload = await readJsonResponse(response);
+
   if (!response.ok) {
     const fallbackMessage = typeof payload === "string" ? payload : `Request failed with status ${response.status}`;
     throw new ApiError(response.status, getJsonErrorMessage(payload, fallbackMessage));
@@ -109,33 +118,45 @@ function expectObject(value: unknown): JsonObject {
 }
 
 export async function getSession(): Promise<SessionInfo> {
-  const payload = expectObject(await request("/me", { method: "GET" }));
+  const payload = expectObject(await requestJson("/me", { method: "GET" }));
   const session = payload as unknown as SessionInfo;
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   return session;
 }
 
 export async function getCards(): Promise<ReadonlyArray<Card>> {
-  const payload = expectObject(await request("/cards", { method: "GET" }));
+  const payload = expectObject(await requestJson("/cards", { method: "GET" }));
   return payload.items as ReadonlyArray<Card>;
 }
 
-export async function createCard(frontText: string, backText: string): Promise<Card> {
-  const payload = expectObject(await request("/cards", {
-    method: "POST",
-    body: JSON.stringify({ frontText, backText }),
-  }));
+export async function getCard(cardId: string): Promise<Card> {
+  const payload = expectObject(await requestJson(`/cards/${encodeURIComponent(cardId)}`, { method: "GET" }));
+  return payload.card as Card;
+}
 
+export async function createCard(input: CreateCardInput): Promise<Card> {
+  const payload = expectObject(await requestJson("/cards", {
+    method: "POST",
+    body: JSON.stringify(input),
+  }));
+  return payload.card as Card;
+}
+
+export async function updateCard(cardId: string, input: UpdateCardInput): Promise<Card> {
+  const payload = expectObject(await requestJson(`/cards/${encodeURIComponent(cardId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  }));
   return payload.card as Card;
 }
 
 export async function getReviewQueue(): Promise<ReadonlyArray<Card>> {
-  const payload = expectObject(await request("/review-queue", { method: "GET" }));
+  const payload = expectObject(await requestJson("/review-queue", { method: "GET" }));
   return payload.items as ReadonlyArray<Card>;
 }
 
 export async function submitReview(cardId: string, rating: 0 | 1 | 2 | 3): Promise<Card> {
-  const payload = expectObject(await request("/reviews", {
+  const payload = expectObject(await requestJson("/reviews", {
     method: "POST",
     body: JSON.stringify({
       cardId,
@@ -145,6 +166,14 @@ export async function submitReview(cardId: string, rating: 0 | 1 | 2 | 3): Promi
   }));
 
   return payload.card as Card;
+}
+
+export async function streamChat(body: ChatRequestBody, signal: AbortSignal): Promise<Response> {
+  return requestResponse("/chat", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
 }
 
 export function buildLoginUrl(): string {
