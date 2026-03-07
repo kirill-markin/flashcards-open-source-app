@@ -58,43 +58,6 @@ export function ReviewScreen(): ReactElement {
         </div>
 
         <div className="review-layout">
-          <div className="txn-scroll">
-            <table className="txn-table">
-              <thead>
-                <tr>
-                  <th className="txn-th">Front</th>
-                  <th className="txn-th">Tags</th>
-                  <th className="txn-th">Effort</th>
-                  <th className="txn-th">Due</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reviewQueue.map((card) => (
-                  <tr
-                    key={card.cardId}
-                    className={`txn-row review-row${selectedCard?.cardId === card.cardId ? " review-row-active" : ""}`}
-                    onClick={() => setSelectedCardId(card.cardId)}
-                  >
-                    <td className="txn-cell">
-                      <div className="cell-stack">
-                        <span className="cell-primary">{card.frontText}</span>
-                        <span className="cell-secondary">{card.backText}</span>
-                      </div>
-                    </td>
-                    <td className="txn-cell txn-cell-mono">{renderTags(card.tags)}</td>
-                    <td className="txn-cell txn-cell-mono">{card.effortLevel}</td>
-                    <td className="txn-cell txn-cell-mono">{formatTimestamp(card.dueAt)}</td>
-                  </tr>
-                ))}
-                {reviewQueue.length === 0 ? (
-                  <tr>
-                    <td className="txn-cell txn-empty" colSpan={4}>No due cards.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-
           <section className="review-pane">
             {selectedCard === null ? (
               <div className="review-empty">
@@ -151,6 +114,42 @@ export function ReviewScreen(): ReactElement {
               </>
             )}
           </section>
+
+          <div className="txn-scroll">
+            <table className="txn-table">
+              <thead>
+                <tr>
+                  <th className="txn-th">Front</th>
+                  <th className="txn-th">Tags</th>
+                  <th className="txn-th">Effort</th>
+                  <th className="txn-th">Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviewQueue.map((card) => (
+                  <tr
+                    key={card.cardId}
+                    className={`txn-row review-row${selectedCard?.cardId === card.cardId ? " review-row-active" : ""}`}
+                    onClick={() => setSelectedCardId(card.cardId)}
+                  >
+                    <td className="txn-cell">
+                      <div className="cell-stack">
+                        <span className="cell-primary">{card.frontText}</span>
+                      </div>
+                    </td>
+                    <td className="txn-cell txn-cell-mono">{renderTags(card.tags)}</td>
+                    <td className="txn-cell txn-cell-mono">{card.effortLevel}</td>
+                    <td className="txn-cell txn-cell-mono">{formatTimestamp(card.dueAt)}</td>
+                  </tr>
+                ))}
+                {reviewQueue.length === 0 ? (
+                  <tr>
+                    <td className="txn-cell txn-empty" colSpan={4}>No due cards.</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </main>
