@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -11,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 
 import type { EffortLevel } from "../types";
+import { areSameTags, CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
 
 type OverlayRect = Readonly<{
   top: number;
@@ -32,6 +34,14 @@ type EditableEffortCellProps = Readonly<{
   value: EffortLevel;
   saving: boolean;
   onCommit: (nextValue: EffortLevel) => Promise<void>;
+  cellClassName: string;
+}>;
+
+type EditableTagsCellProps = Readonly<{
+  value: ReadonlyArray<string>;
+  suggestions: ReadonlyArray<string>;
+  saving: boolean;
+  onCommit: (nextValue: ReadonlyArray<string>) => Promise<void>;
   cellClassName: string;
 }>;
 
@@ -78,6 +88,18 @@ function getSelectOverlayStyle(rect: OverlayRect): CSSProperties {
     top: Math.min(rect.top + rect.height, maxTop),
     left: Math.min(rect.left, maxLeft),
     minWidth,
+  };
+}
+
+function getTagsOverlayStyle(rect: OverlayRect): CSSProperties {
+  const width = Math.max(rect.width, 320);
+  const maxLeft = Math.max(window.innerWidth - width - 12, 12);
+  const maxTop = Math.max(window.innerHeight - 320, 12);
+
+  return {
+    top: Math.min(rect.top, maxTop),
+    left: Math.min(rect.left, maxLeft),
+    width,
   };
 }
 
@@ -356,6 +378,94 @@ export function EditableCardEffortCell(props: EditableEffortCellProps): ReactEle
               );
             })}
           </div>
+        </div>,
+        document.body,
+      )}
+    </td>
+  );
+}
+
+export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement {
+  const { value, suggestions, saving, onCommit, cellClassName } = props;
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
+  const [draftTags, setDraftTags] = useState<ReadonlyArray<string>>(value);
+  const cellRef = useRef<HTMLTableCellElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<CardTagsInputHandle | null>(null);
+
+  const handleClose = useCallback((): void => {
+    setIsOpen(false);
+    setOverlayRect(null);
+    setDraftTags(value);
+  }, [value]);
+
+  useOverlayTracking(isOpen, cellRef, setOverlayRect);
+  useOutsidePointerClose(isOpen, overlayRef, handleCommit);
+
+  useEffect(() => {
+    if (!isOpen || editorRef.current === null) {
+      return;
+    }
+
+    editorRef.current.focusInput();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+
+    setDraftTags(value);
+  }, [isOpen, value]);
+
+  function handleOpen(): void {
+    if (saving || cellRef.current === null) {
+      return;
+    }
+
+    setDraftTags(value);
+    setOverlayRect(getOverlayRect(cellRef.current));
+    setIsOpen(true);
+  }
+
+  function handleCommit(): void {
+    const nextTags = editorRef.current === null ? draftTags : editorRef.current.flushDraft();
+    setIsOpen(false);
+    setOverlayRect(null);
+
+    if (areSameTags(nextTags, value)) {
+      setDraftTags(value);
+      return;
+    }
+
+    void onCommit(nextTags);
+  }
+
+  const className = `txn-cell ${cellClassName}${saving ? " cards-cell-disabled" : " drilldown-editable"}`;
+  const overlayStyle = overlayRect === null ? null : getTagsOverlayStyle(overlayRect);
+
+  return (
+    <td ref={cellRef} className={className} onClick={saving ? undefined : handleOpen}>
+      {value.length === 0 ? <span className="tag-value-empty">—</span> : (
+        <span className="tag-value-list">
+          {value.map((tag) => (
+            <span key={tag} className="tag-chip tag-chip-readonly">
+              <span className="tag-chip-label">{tag}</span>
+            </span>
+          ))}
+        </span>
+      )}
+      {isOpen && overlayStyle !== null && createPortal(
+        <div ref={overlayRef} className="cell-select-overlay cell-tags-overlay" style={overlayStyle}>
+          <CardTagsInput
+            ref={editorRef}
+            value={draftTags}
+            suggestions={suggestions}
+            placeholder="Type and press Enter"
+            onChange={setDraftTags}
+            onEscape={handleClose}
+          />
         </div>,
         document.body,
       )}
