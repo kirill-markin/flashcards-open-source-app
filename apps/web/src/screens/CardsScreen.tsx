@@ -7,7 +7,8 @@ type SortKey = "frontText" | "backText" | "tags" | "effortLevel" | "dueAt" | "re
 type SortDirection = "asc" | "desc";
 
 type EditableTextCellProps = Readonly<{
-  value: string;
+  displayValue: string;
+  inputValue: string;
   multiline: boolean;
   saving: boolean;
   onCommit: (nextValue: string) => Promise<void>;
@@ -46,9 +47,9 @@ function compareCards(left: Card, right: Card, sortKey: SortKey, sortDirection: 
 }
 
 function EditableTextCell(props: EditableTextCellProps): ReactElement {
-  const { value, multiline, saving, onCommit } = props;
+  const { displayValue, inputValue, multiline, saving, onCommit } = props;
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [draftValue, setDraftValue] = useState<string>(value);
+  const [draftValue, setDraftValue] = useState<string>(inputValue);
 
   if (!isEditing) {
     return (
@@ -57,11 +58,11 @@ function EditableTextCell(props: EditableTextCellProps): ReactElement {
         className="table-editable"
         disabled={saving}
         onClick={() => {
-          setDraftValue(value);
+          setDraftValue(inputValue);
           setIsEditing(true);
         }}
       >
-        {value}
+        {displayValue}
       </button>
     );
   }
@@ -71,7 +72,7 @@ function EditableTextCell(props: EditableTextCellProps): ReactElement {
   async function commit(): Promise<void> {
     const trimmedDraftValue = draftValue.trim();
     setIsEditing(false);
-    if (trimmedDraftValue !== value) {
+    if (trimmedDraftValue !== inputValue.trim()) {
       await onCommit(trimmedDraftValue);
     }
   }
@@ -85,7 +86,7 @@ function EditableTextCell(props: EditableTextCellProps): ReactElement {
       onBlur={() => void commit()}
       onKeyDown={(event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (event.key === "Escape") {
-          setDraftValue(value);
+          setDraftValue(inputValue);
           setIsEditing(false);
           return;
         }
@@ -180,7 +181,7 @@ export function CardsScreen(): ReactElement {
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("reps")}>Reps</th>
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("lapses")}>Lapses</th>
                 <th className="txn-th txn-th-sortable" onClick={() => toggleSort("updatedAt")}>Updated</th>
-                <th className="txn-th">Open</th>
+                <th className="txn-th cards-open-th" />
               </tr>
             </thead>
             <tbody>
@@ -190,7 +191,8 @@ export function CardsScreen(): ReactElement {
                   <tr key={card.cardId} className="txn-row cards-row">
                     <td className="txn-cell">
                       <EditableTextCell
-                        value={card.frontText}
+                        displayValue={card.frontText}
+                        inputValue={card.frontText}
                         multiline={true}
                         saving={isSaving}
                         onCommit={(nextValue) => handleInlineSave(card, { frontText: nextValue })}
@@ -198,7 +200,8 @@ export function CardsScreen(): ReactElement {
                     </td>
                     <td className="txn-cell">
                       <EditableTextCell
-                        value={card.backText}
+                        displayValue={card.backText}
+                        inputValue={card.backText}
                         multiline={true}
                         saving={isSaving}
                         onCommit={(nextValue) => handleInlineSave(card, { backText: nextValue })}
@@ -206,7 +209,8 @@ export function CardsScreen(): ReactElement {
                     </td>
                     <td className="txn-cell txn-cell-mono">
                       <EditableTextCell
-                        value={tagsToString(card.tags) === "—" ? "" : card.tags.join(", ")}
+                        displayValue={tagsToString(card.tags)}
+                        inputValue={card.tags.join(", ")}
                         multiline={false}
                         saving={isSaving}
                         onCommit={(nextValue) => handleInlineSave(card, {
@@ -228,7 +232,7 @@ export function CardsScreen(): ReactElement {
                     <td className="txn-cell txn-cell-mono">{card.reps}</td>
                     <td className="txn-cell txn-cell-mono">{card.lapses}</td>
                     <td className="txn-cell txn-cell-mono">{formatTimestamp(card.updatedAt)}</td>
-                    <td className="txn-cell">
+                    <td className="txn-cell cards-open-cell">
                       <Link className="row-open-link" to={`/cards/${card.cardId}`}>Open</Link>
                     </td>
                   </tr>

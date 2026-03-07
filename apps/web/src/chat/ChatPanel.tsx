@@ -164,6 +164,10 @@ export function ChatPanel(props: Props): ReactElement {
   }, []);
 
   useEffect(() => {
+    setLocalWidth(chatWidth);
+  }, [chatWidth]);
+
+  useEffect(() => {
     const element = messagesRef.current;
     if (element !== null) {
       element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
