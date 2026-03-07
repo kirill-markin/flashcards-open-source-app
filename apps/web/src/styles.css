@@ -721,6 +721,42 @@ select {
   letter-spacing: 0.08em;
 }
 
+.deck-form-fieldset {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.deck-form-legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.deck-checkbox-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.deck-checkbox-option {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.deck-checkbox-option input {
+  margin: 0;
+}
+
 .form-textarea {
   min-height: 160px;
   resize: vertical;

@@ -13,6 +13,11 @@ import {
   type EffortLevel,
   type UpdateCardInput,
 } from "./cards";
+import {
+  createDeck,
+  listDecks,
+  parseCreateDeckInput,
+} from "./decks";
 import { query } from "./db";
 import { ensureWebDevice } from "./devices";
 import { HttpError } from "./errors";
@@ -462,6 +467,12 @@ export function createApp(basePath: string): Hono {
     return context.json({ items: cards });
   });
 
+  registerRoute("get", "/decks", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const decks = await listDecks(requestContext.workspaceId);
+    return context.json({ items: decks });
+  });
+
   registerRoute("get", "/cards/:cardId", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
     const cardId = expectNonEmptyString(context.req.param("cardId"), "cardId");
@@ -474,6 +485,13 @@ export function createApp(basePath: string): Hono {
     const input = parseCreateCardInput(await parseJsonBody(context.req.raw));
     const card = await createCard(requestContext.workspaceId, input);
     return context.json({ card }, 201);
+  });
+
+  registerRoute("post", "/decks", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const input = parseCreateDeckInput(await parseJsonBody(context.req.raw));
+    const deck = await createDeck(requestContext.workspaceId, input);
+    return context.json({ deck }, 201);
   });
 
   registerRoute("patch", "/cards/:cardId", async (context) => {
