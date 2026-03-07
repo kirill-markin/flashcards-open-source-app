@@ -32,3 +32,9 @@ pnpm-debug.log*
 
 # macOS
 .DS_Store
+
+# Xcode
+**/DerivedData/
+**/*.xcuserstate
+**/*.xcodeproj/xcuserdata/
+**/*.xcworkspace/xcuserdata/
