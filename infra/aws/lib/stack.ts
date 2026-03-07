@@ -23,6 +23,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const apiCertificateArn = this.node.tryGetContext("apiCertificateArn") as string | undefined;
     const authCertificateArn = this.node.tryGetContext("authCertificateArn") as string | undefined;
     const webCertificateArnUsEast1 = this.node.tryGetContext("webCertificateArnUsEast1") as string | undefined;
+    const apexRedirectCertificateArnUsEast1 = this.node.tryGetContext("apexRedirectCertificateArnUsEast1") as string | undefined;
     const githubOidcProviderArn = this.node.tryGetContext("githubOidcProviderArn") as string | undefined;
 
     const net = networking(this);
@@ -54,6 +55,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const web = webApp(this, {
       baseDomain,
       webCertificateArnUsEast1,
+      apexRedirectCertificateArnUsEast1,
     });
 
     const mon = monitoring(this, {
@@ -90,6 +92,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       webBucket: web.bucket,
       webDistribution: web.distribution,
       webCustomDomain: web.customDomain,
+      apexRedirectDistribution: web.apexRedirectDistribution,
+      apexRedirectCustomDomain: web.apexRedirectCustomDomain,
     });
   }
 }

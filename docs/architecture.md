@@ -6,11 +6,13 @@
 Mobile app (iOS first) -> Cloudflare -> api.<domain> -> API Gateway -> Lambda backend -> Postgres
 Web app                -> Cloudflare -> app.<domain> -> CloudFront -> SPA
 Browser auth           -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito (EMAIL_OTP)
+Apex fallback          -> Cloudflare -> <domain> -> CloudFront redirect -> app.<domain>
 ```
 
 ## Principles
 
 1. Separate public perimeters in v1: `app.<domain>`, `api.<domain>`, and `auth.<domain>`.
+   The apex domain is only a bootstrap redirect fallback when it is not already used by a marketing site.
 2. No background scheduling worker in v1.
 3. Postgres is the source of truth.
 4. Mobile clients are offline-first and synchronize when online.

@@ -11,6 +11,7 @@ This repository is under active development and not production-ready yet.
 - Cloudflare -> API Gateway -> Lambda backend -> Postgres
 - app.<domain> -> CloudFront -> S3 web app
 - auth.<domain> -> API Gateway -> Lambda auth service -> Cognito
+- <domain> -> redirect to app.<domain> when the apex is free during bootstrap
 - Email OTP auth via Cognito (passwordless) — auth is a separate public service, backend verifies JWT
 - No background worker for scheduling in v1
 - Card scheduling is compute-on-write in API (on review submit)
@@ -53,8 +54,10 @@ bash scripts/first-deploy.sh \
 This script:
 
 - creates/updates `infra/aws/cdk.context.local.json`
-- requests API, auth, and web ACM certificates if missing
+- requests API, auth, web, and apex-redirect ACM certificates if needed
 - bootstraps and deploys CDK
 - uploads web assets
 - configures Cloudflare DNS from local `scripts/cloudflare/.env`
 - configures GitHub Actions vars/secrets for this repo
+
+If the apex domain already points somewhere else, bootstrap leaves it untouched and only manages `app.<domain>`, `api.<domain>`, and `auth.<domain>`.
