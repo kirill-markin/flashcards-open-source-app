@@ -39,7 +39,7 @@ function AppShell(): ReactElement {
     <>
       <div className="header-sticky">
         <header className="topbar">
-          <a className="topbar-brand" href="/review">
+          <a className="topbar-brand" href="/cards">
             flashcards-open-source-app
           </a>
           <div className="topbar-actions">
@@ -67,11 +67,11 @@ function AppShell(): ReactElement {
           </div>
         </header>
         <nav className="nav">
-          <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/review">
-            Review
-          </NavLink>
           <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/cards">
             Cards
+          </NavLink>
+          <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/review">
+            Review
           </NavLink>
           <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/chat">
             AI chat
@@ -102,11 +102,11 @@ function RoutedShell(): ReactElement {
       {!isFullscreenChat && isOpen ? <ChatPanel mode="sidebar" /> : null}
       <div ref={contentRef} className="chat-main-content">
         <Routes>
-          <Route path="/" element={<Navigate replace to="/review" />} />
-          <Route path="/review" element={<ReviewScreen />} />
+          <Route path="/" element={<Navigate replace to="/cards" />} />
           <Route path="/cards" element={<CardsScreen />} />
           <Route path="/cards/new" element={<CardFormScreen />} />
           <Route path="/cards/:cardId" element={<CardFormScreen />} />
+          <Route path="/review" element={<ReviewScreen />} />
           <Route
             path="/chat"
             element={
