@@ -23,6 +23,8 @@ export interface OutputsProps {
   webBucket: s3.IBucket;
   webDistribution: cloudfront.Distribution;
   webCustomDomain: string | undefined;
+  apexRedirectDistribution: cloudfront.Distribution | undefined;
+  apexRedirectCustomDomain: string | undefined;
 }
 
 export function outputs(scope: Construct, props: OutputsProps): void {
@@ -127,6 +129,16 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     new cdk.CfnOutput(scope, "WebCustomDomainTarget", {
       value: props.webDistribution.domainName,
       description: "Create a Cloudflare CNAME for app.<domain> to this target",
+    });
+  }
+
+  if (
+    props.apexRedirectDistribution !== undefined &&
+    props.apexRedirectCustomDomain !== undefined
+  ) {
+    new cdk.CfnOutput(scope, "ApexRedirectCustomDomainTarget", {
+      value: props.apexRedirectDistribution.domainName,
+      description: "Create a Cloudflare CNAME for the apex domain to this redirect target",
     });
   }
 }

@@ -4,6 +4,7 @@
   "apiCertificateArn": "arn:aws:acm:eu-central-1:123456789012:certificate/replace-me",
   "authCertificateArn": "arn:aws:acm:eu-central-1:123456789012:certificate/replace-me",
   "webCertificateArnUsEast1": "arn:aws:acm:us-east-1:123456789012:certificate/replace-me",
+  "apexRedirectCertificateArnUsEast1": "arn:aws:acm:us-east-1:123456789012:certificate/replace-me",
   "githubOidcProviderArn": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com",
   "alertEmail": "alerts@example.com",
   "githubRepo": "kirill-markin/flashcards-open-source-app"

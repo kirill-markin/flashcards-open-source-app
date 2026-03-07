@@ -25,6 +25,7 @@ Create `infra/aws/cdk.context.local.json` from the example and fill values:
 - `apiCertificateArn` (optional, only for custom domain)
 - `authCertificateArn` (optional, only for `auth.<domain>`)
 - `webCertificateArnUsEast1` (optional, only for `app.<domain>` on CloudFront)
+- `apexRedirectCertificateArnUsEast1` (optional, only for apex -> app redirect on CloudFront)
 
 ## Deploy
 
@@ -80,4 +81,4 @@ If custom API domain is enabled (`apiCertificateArn` set), run:
 bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp
 ```
 
-This creates/updates `api.<domain>`, `auth.<domain>`, and `app.<domain>` CNAME records in Cloudflare from stack outputs when the corresponding certificates are configured.
+This creates/updates `api.<domain>`, `auth.<domain>`, and `app.<domain>` CNAME records in Cloudflare from stack outputs when the corresponding certificates are configured. If the stack exposes an apex redirect target and the apex DNS is free, the script also creates the apex CNAME for the redirect distribution. If the apex is already occupied, it prints a skip message and leaves the existing setup untouched.

@@ -46,6 +46,7 @@ The CDK stack provisions:
 - API Gateway for backend + API Gateway for auth
 - two Lambdas (backend + auth)
 - S3 bucket + CloudFront distribution for `app.<domain>`
+- optional CloudFront redirect distribution for the apex domain
 - Session encryption key in Secrets Manager
 - CloudWatch alarms + SNS topic
 - AWS Backup plan for RDS
@@ -66,9 +67,12 @@ To use custom domains:
 
 Public domains after deploy:
 
+- `https://<domain>` — redirects to `https://app.<domain>` when the apex is unused during bootstrap
 - `https://app.<domain>` — web app
 - `https://api.<domain>/v1` — backend API
 - `https://auth.<domain>` — auth UI and auth API
+
+If the apex already points to a real marketing site or any other existing DNS target, bootstrap skips the apex redirect and leaves the domain untouched.
 
 ### CI/CD
 
