@@ -89,7 +89,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     },
     defaultCorsPreflightOptions: {
       allowOrigins: allowedOrigins,
-      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
       allowHeaders: ["content-type", "authorization", "x-csrf-token"],
       allowCredentials: true,
     },
@@ -126,12 +126,22 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const cards = restApi.root.addResource("cards");
   cards.addMethod("GET", integration);
   cards.addMethod("POST", integration);
+  const cardById = cards.addResource("{cardId}");
+  cardById.addMethod("GET", integration);
+  cardById.addMethod("PATCH", integration);
+
+  const decks = restApi.root.addResource("decks");
+  decks.addMethod("GET", integration);
+  decks.addMethod("POST", integration);
 
   const reviewQueue = restApi.root.addResource("review-queue");
   reviewQueue.addMethod("GET", integration);
 
   const reviews = restApi.root.addResource("reviews");
   reviews.addMethod("POST", integration);
+
+  const chat = restApi.root.addResource("chat");
+  chat.addMethod("POST", integration);
 
   const sync = restApi.root.addResource("sync");
   sync.addResource("push").addMethod("POST", integration);
