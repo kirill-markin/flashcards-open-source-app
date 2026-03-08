@@ -112,7 +112,10 @@ export const createCardTool = tool({
     runContext?: RunContext<AgentContext>,
   ): Promise<string> => {
     const context = expectRunContext(runContext);
-    return runCreateCardTool(context.workspaceId, input, { latestUserText: context.latestUserText });
+    return runCreateCardTool(context.workspaceId, input, {
+      deviceId: context.deviceId,
+      latestUserText: context.latestUserText,
+    });
   },
 });
 
@@ -146,7 +149,10 @@ export const updateCardTool = tool({
         tags: input.tags ?? undefined,
         effortLevel: input.effortLevel ?? undefined,
       },
-      { latestUserText: context.latestUserText },
+      {
+        deviceId: context.deviceId,
+        latestUserText: context.latestUserText,
+      },
     );
   },
 });

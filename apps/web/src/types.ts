@@ -58,7 +58,12 @@ export type Card = Readonly<{
   fsrsDifficulty: number | null;
   fsrsLastReviewedAt: string | null;
   fsrsScheduledDays: number | null;
+  serverVersion: number;
+  clientUpdatedAt: string;
+  lastModifiedByDeviceId: string;
+  lastOperationId: string;
   updatedAt: string;
+  deletedAt: string | null;
 }>;
 
 // Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::WorkspaceSchedulerSettings and apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings.
@@ -69,6 +74,10 @@ export type WorkspaceSchedulerSettings = Readonly<{
   relearningStepsMinutes: ReadonlyArray<number>;
   maximumIntervalDays: number;
   enableFuzz: boolean;
+  serverVersion: number;
+  clientUpdatedAt: string;
+  lastModifiedByDeviceId: string;
+  lastOperationId: string;
   updatedAt: string;
 }>;
 
@@ -88,10 +97,16 @@ export type UpdateCardInput = Readonly<{
 
 export type Deck = Readonly<{
   deckId: string;
+  workspaceId: string;
   name: string;
   filterDefinition: DeckFilterDefinition;
   createdAt: string;
+  serverVersion: number;
+  clientUpdatedAt: string;
+  lastModifiedByDeviceId: string;
+  lastOperationId: string;
   updatedAt: string;
+  deletedAt: string | null;
 }>;
 
 export type CreateDeckInput = Readonly<{

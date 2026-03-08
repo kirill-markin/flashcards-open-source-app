@@ -48,10 +48,28 @@ export async function ensureUserAndWorkspace(userId: string): Promise<UserWorksp
     }
 
     const workspaceId = randomUUID();
+    const bootstrapDeviceId = randomUUID();
+    const bootstrapTimestamp = new Date().toISOString();
+    const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
 
     await executor.query(
-      "INSERT INTO org.workspaces (workspace_id, name) VALUES ($1, $2)",
-      [workspaceId, "My Flashcards"],
+      [
+        "INSERT INTO org.workspaces",
+        "(",
+        "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_device_id, fsrs_last_operation_id",
+        ")",
+        "VALUES ($1, $2, $3, $4, $5)",
+      ].join(" "),
+      [workspaceId, "My Flashcards", bootstrapTimestamp, bootstrapDeviceId, bootstrapOperationId],
+    );
+
+    await executor.query(
+      [
+        "INSERT INTO sync.devices",
+        "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
+        "VALUES ($1, $2, $3, 'ios', $4, now())",
+      ].join(" "),
+      [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
     );
 
     await executor.query(

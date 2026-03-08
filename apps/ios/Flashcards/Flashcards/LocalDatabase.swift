@@ -23,7 +23,7 @@ private enum SQLiteValue {
 }
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-private let localDatabaseSchemaVersion: Int = 2
+private let localDatabaseSchemaVersion: Int = 3
 // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::defaultWorkspaceSchedulerConfig.algorithm.
 private let defaultSchedulerAlgorithm: String = "fsrs-6"
 
@@ -35,6 +35,50 @@ private struct ValidatedWorkspaceSchedulerSettingsInput {
     let relearningStepsMinutes: [Int]
     let maximumIntervalDays: Int
     let enableFuzz: Bool
+}
+
+private struct CardOutboxPayload: Encodable {
+    let cardId: String
+    let frontText: String
+    let backText: String
+    let tags: [String]
+    let effortLevel: String
+    let dueAt: String?
+    let reps: Int
+    let lapses: Int
+    let fsrsCardState: String
+    let fsrsStepIndex: Int?
+    let fsrsStability: Double?
+    let fsrsDifficulty: Double?
+    let fsrsLastReviewedAt: String?
+    let fsrsScheduledDays: Int?
+    let deletedAt: String?
+}
+
+private struct DeckOutboxPayload: Encodable {
+    let deckId: String
+    let name: String
+    let filterDefinition: DeckFilterDefinition
+    let createdAt: String
+    let deletedAt: String?
+}
+
+private struct WorkspaceSchedulerSettingsOutboxPayload: Encodable {
+    let algorithm: String
+    let desiredRetention: Double
+    let learningStepsMinutes: [Int]
+    let relearningStepsMinutes: [Int]
+    let maximumIntervalDays: Int
+    let enableFuzz: Bool
+}
+
+private struct ReviewEventOutboxPayload: Encodable {
+    let reviewEventId: String
+    let cardId: String
+    let deviceId: String
+    let clientEventId: String
+    let rating: Int
+    let reviewedAtClient: String
 }
 
 final class LocalDatabase {
@@ -77,27 +121,121 @@ final class LocalDatabase {
     func saveCard(workspaceId: String, input: CardEditorInput, cardId: String?) throws {
         try validateCardInput(input: input)
 
-        let now = currentIsoTimestamp()
-        let nextServerVersion = try self.nextServerVersion()
-        let tagsData = try self.encoder.encode(input.tags)
-        guard let tagsJson = String(data: tagsData, encoding: .utf8) else {
-            throw LocalStoreError.database("Failed to encode card tags")
-        }
+        try self.inTransaction {
+            let now = currentIsoTimestamp()
+            let cloudSettings = try self.loadCloudSettings()
+            let operationId = UUID().uuidString.lowercased()
+            let tagsData = try self.encoder.encode(input.tags)
+            guard let tagsJson = String(data: tagsData, encoding: .utf8) else {
+                throw LocalStoreError.database("Failed to encode card tags")
+            }
 
-        if let cardId {
-            let updatedRows = try self.execute(
+            if let cardId {
+                let updatedRows = try self.execute(
+                    sql: """
+                    UPDATE cards
+                    SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?, server_version = NULL
+                    WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
+                    """,
+                    values: [
+                        .text(input.frontText),
+                        .text(input.backText),
+                        .text(tagsJson),
+                        .text(input.effortLevel.rawValue),
+                        .text(now),
+                        .text(cloudSettings.deviceId),
+                        .text(operationId),
+                        .text(now),
+                        .text(workspaceId),
+                        .text(cardId)
+                    ]
+                )
+
+                if updatedRows == 0 {
+                    throw LocalStoreError.notFound("Card not found")
+                }
+
+                let updatedCard = try self.loadCard(workspaceId: workspaceId, cardId: cardId)
+                try self.enqueueCardUpsertOperation(
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    clientUpdatedAt: now,
+                    card: updatedCard
+                )
+                return
+            }
+
+            let newCardId = UUID().uuidString.lowercased()
+            try self.execute(
                 sql: """
-                UPDATE cards
-                SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, updated_at = ?, server_version = ?
-                WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
+                INSERT INTO cards (
+                    card_id,
+                    workspace_id,
+                    front_text,
+                    back_text,
+                    tags_json,
+                    effort_level,
+                    due_at,
+                    reps,
+                    lapses,
+                    fsrs_card_state,
+                    fsrs_step_index,
+                    fsrs_stability,
+                    fsrs_difficulty,
+                    fsrs_last_reviewed_at,
+                    fsrs_scheduled_days,
+                    server_version,
+                    client_updated_at,
+                    last_modified_by_device_id,
+                    last_operation_id,
+                    updated_at,
+                    deleted_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
                 """,
                 values: [
+                    .text(newCardId),
+                    .text(workspaceId),
                     .text(input.frontText),
                     .text(input.backText),
                     .text(tagsJson),
                     .text(input.effortLevel.rawValue),
                     .text(now),
-                    .integer(nextServerVersion),
+                    .text(cloudSettings.deviceId),
+                    .text(operationId),
+                    .text(now)
+                ]
+            )
+
+            let newCard = try self.loadCard(workspaceId: workspaceId, cardId: newCardId)
+            try self.enqueueCardUpsertOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: operationId,
+                clientUpdatedAt: now,
+                card: newCard
+            )
+        }
+    }
+
+    func deleteCard(workspaceId: String, cardId: String) throws {
+        try self.inTransaction {
+            let now = currentIsoTimestamp()
+            let cloudSettings = try self.loadCloudSettings()
+            let operationId = UUID().uuidString.lowercased()
+            let updatedRows = try self.execute(
+                sql: """
+                UPDATE cards
+                SET deleted_at = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?, server_version = NULL
+                WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
+                """,
+                values: [
+                    .text(now),
+                    .text(now),
+                    .text(cloudSettings.deviceId),
+                    .text(operationId),
+                    .text(now),
                     .text(workspaceId),
                     .text(cardId)
                 ]
@@ -107,142 +245,150 @@ final class LocalDatabase {
                 throw LocalStoreError.notFound("Card not found")
             }
 
-            return
-        }
-
-        let newCardId = UUID().uuidString.lowercased()
-        try self.execute(
-            sql: """
-            INSERT INTO cards (
-                card_id,
-                workspace_id,
-                front_text,
-                back_text,
-                tags_json,
-                effort_level,
-                due_at,
-                reps,
-                lapses,
-                fsrs_card_state,
-                fsrs_step_index,
-                fsrs_stability,
-                fsrs_difficulty,
-                fsrs_last_reviewed_at,
-                fsrs_scheduled_days,
-                server_version,
-                updated_at,
-                deleted_at
+            let deletedCard = try self.loadCardIncludingDeleted(workspaceId: workspaceId, cardId: cardId)
+            try self.enqueueCardUpsertOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: operationId,
+                clientUpdatedAt: now,
+                card: deletedCard
             )
-            VALUES (?, ?, ?, ?, ?, ?, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, ?, NULL)
-            """,
-            values: [
-                .text(newCardId),
-                .text(workspaceId),
-                .text(input.frontText),
-                .text(input.backText),
-                .text(tagsJson),
-                .text(input.effortLevel.rawValue),
-                .integer(nextServerVersion),
-                .text(now)
-            ]
-        )
-    }
-
-    func deleteCard(workspaceId: String, cardId: String) throws {
-        let now = currentIsoTimestamp()
-        let nextServerVersion = try self.nextServerVersion()
-        let updatedRows = try self.execute(
-            sql: """
-            UPDATE cards
-            SET deleted_at = ?, updated_at = ?, server_version = ?
-            WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
-            """,
-            values: [
-                .text(now),
-                .text(now),
-                .integer(nextServerVersion),
-                .text(workspaceId),
-                .text(cardId)
-            ]
-        )
-
-        if updatedRows == 0 {
-            throw LocalStoreError.notFound("Card not found")
         }
     }
 
     func createDeck(workspaceId: String, input: DeckEditorInput) throws {
         try validateDeckInput(input: input)
 
-        let filterData = try self.encoder.encode(input.filterDefinition)
-        guard let filterJson = String(data: filterData, encoding: .utf8) else {
-            throw LocalStoreError.database("Failed to encode deck filter definition")
-        }
+        try self.inTransaction {
+            let filterData = try self.encoder.encode(input.filterDefinition)
+            guard let filterJson = String(data: filterData, encoding: .utf8) else {
+                throw LocalStoreError.database("Failed to encode deck filter definition")
+            }
 
-        let deckId = UUID().uuidString.lowercased()
-        let now = currentIsoTimestamp()
-        try self.execute(
-            sql: """
-            INSERT INTO decks (
-                deck_id,
-                workspace_id,
-                name,
-                filter_definition_json,
-                created_at,
-                updated_at
+            let cloudSettings = try self.loadCloudSettings()
+            let operationId = UUID().uuidString.lowercased()
+            let deckId = UUID().uuidString.lowercased()
+            let now = currentIsoTimestamp()
+            try self.execute(
+                sql: """
+                INSERT INTO decks (
+                    deck_id,
+                    workspace_id,
+                    name,
+                    filter_definition_json,
+                    created_at,
+                    server_version,
+                    client_updated_at,
+                    last_modified_by_device_id,
+                    last_operation_id,
+                    updated_at,
+                    deleted_at
+                )
+                VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, NULL)
+                """,
+                values: [
+                    .text(deckId),
+                    .text(workspaceId),
+                    .text(input.name),
+                    .text(filterJson),
+                    .text(now),
+                    .text(now),
+                    .text(cloudSettings.deviceId),
+                    .text(operationId),
+                    .text(now)
+                ]
             )
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            values: [
-                .text(deckId),
-                .text(workspaceId),
-                .text(input.name),
-                .text(filterJson),
-                .text(now),
-                .text(now)
-            ]
-        )
+
+            let newDeck = try self.loadDeckIncludingDeleted(workspaceId: workspaceId, deckId: deckId)
+            try self.enqueueDeckUpsertOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: operationId,
+                clientUpdatedAt: now,
+                deck: newDeck
+            )
+        }
     }
 
     func updateDeck(workspaceId: String, deckId: String, input: DeckEditorInput) throws {
         try validateDeckInput(input: input)
 
-        let filterData = try self.encoder.encode(input.filterDefinition)
-        guard let filterJson = String(data: filterData, encoding: .utf8) else {
-            throw LocalStoreError.database("Failed to encode deck filter definition")
-        }
+        try self.inTransaction {
+            let filterData = try self.encoder.encode(input.filterDefinition)
+            guard let filterJson = String(data: filterData, encoding: .utf8) else {
+                throw LocalStoreError.database("Failed to encode deck filter definition")
+            }
 
-        let updatedRows = try self.execute(
-            sql: """
-            UPDATE decks
-            SET name = ?, filter_definition_json = ?, updated_at = ?
-            WHERE workspace_id = ? AND deck_id = ?
-            """,
-            values: [
-                .text(input.name),
-                .text(filterJson),
-                .text(currentIsoTimestamp()),
-                .text(workspaceId),
-                .text(deckId)
-            ]
-        )
+            let cloudSettings = try self.loadCloudSettings()
+            let operationId = UUID().uuidString.lowercased()
+            let now = currentIsoTimestamp()
+            let updatedRows = try self.execute(
+                sql: """
+                UPDATE decks
+                SET name = ?, filter_definition_json = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?, server_version = NULL
+                WHERE workspace_id = ? AND deck_id = ? AND deleted_at IS NULL
+                """,
+                values: [
+                    .text(input.name),
+                    .text(filterJson),
+                    .text(now),
+                    .text(cloudSettings.deviceId),
+                    .text(operationId),
+                    .text(now),
+                    .text(workspaceId),
+                    .text(deckId)
+                ]
+            )
 
-        if updatedRows == 0 {
-            throw LocalStoreError.notFound("Deck not found")
+            if updatedRows == 0 {
+                throw LocalStoreError.notFound("Deck not found")
+            }
+
+            let updatedDeck = try self.loadDeckIncludingDeleted(workspaceId: workspaceId, deckId: deckId)
+            try self.enqueueDeckUpsertOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: operationId,
+                clientUpdatedAt: now,
+                deck: updatedDeck
+            )
         }
     }
 
     func deleteDeck(workspaceId: String, deckId: String) throws {
-        let deletedRows = try self.execute(
-            sql: "DELETE FROM decks WHERE workspace_id = ? AND deck_id = ?",
-            values: [
-                .text(workspaceId),
-                .text(deckId)
-            ]
-        )
+        try self.inTransaction {
+            let cloudSettings = try self.loadCloudSettings()
+            let operationId = UUID().uuidString.lowercased()
+            let now = currentIsoTimestamp()
+            let deletedRows = try self.execute(
+                sql: """
+                UPDATE decks
+                SET deleted_at = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?, server_version = NULL
+                WHERE workspace_id = ? AND deck_id = ? AND deleted_at IS NULL
+                """,
+                values: [
+                    .text(now),
+                    .text(now),
+                    .text(cloudSettings.deviceId),
+                    .text(operationId),
+                    .text(now),
+                    .text(workspaceId),
+                    .text(deckId)
+                ]
+            )
 
-        if deletedRows == 0 {
-            throw LocalStoreError.notFound("Deck not found")
+            if deletedRows == 0 {
+                throw LocalStoreError.notFound("Deck not found")
+            }
+
+            let deletedDeck = try self.loadDeckIncludingDeleted(workspaceId: workspaceId, deckId: deckId)
+            try self.enqueueDeckUpsertOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: operationId,
+                clientUpdatedAt: now,
+                deck: deletedDeck
+            )
         }
     }
 
@@ -261,6 +407,8 @@ final class LocalDatabase {
                 now: reviewedAtClient
             )
             let cloudSettings = try self.loadCloudSettings()
+            let reviewEventOperationId = UUID().uuidString.lowercased()
+            let cardOperationId = UUID().uuidString.lowercased()
             let reviewEventId = UUID().uuidString.lowercased()
             let clientEventId = UUID().uuidString.lowercased()
             let reviewedAtServer = currentIsoTimestamp()
@@ -275,9 +423,10 @@ final class LocalDatabase {
                     client_event_id,
                     rating,
                     reviewed_at_client,
-                    reviewed_at_server
+                    reviewed_at_server,
+                    server_version
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
                 """,
                 values: [
                     .text(reviewEventId),
@@ -294,7 +443,7 @@ final class LocalDatabase {
             let updatedRows = try self.execute(
                 sql: """
                 UPDATE cards
-                SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, updated_at = ?, server_version = ?
+                SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?, server_version = NULL
                 WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
                 """,
                 values: [
@@ -309,8 +458,10 @@ final class LocalDatabase {
                     .real(schedule.fsrsDifficulty),
                     .text(isoTimestamp(date: schedule.fsrsLastReviewedAt)),
                     .integer(Int64(schedule.fsrsScheduledDays)),
+                    .text(reviewSubmission.reviewedAtClient),
+                    .text(cloudSettings.deviceId),
+                    .text(cardOperationId),
                     .text(reviewedAtServer),
-                    .integer(try self.nextServerVersion()),
                     .text(workspaceId),
                     .text(reviewSubmission.cardId)
                 ]
@@ -319,6 +470,33 @@ final class LocalDatabase {
             if updatedRows == 0 {
                 throw LocalStoreError.notFound("Card not found")
             }
+
+            try self.enqueueReviewEventAppendOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: reviewEventOperationId,
+                clientUpdatedAt: reviewSubmission.reviewedAtClient,
+                reviewEvent: ReviewEvent(
+                    reviewEventId: reviewEventId,
+                    workspaceId: workspaceId,
+                    cardId: reviewSubmission.cardId,
+                    deviceId: cloudSettings.deviceId,
+                    clientEventId: clientEventId,
+                    rating: reviewSubmission.rating,
+                    reviewedAtClient: reviewSubmission.reviewedAtClient,
+                    reviewedAtServer: reviewedAtServer,
+                    serverVersion: nil
+                )
+            )
+
+            let updatedCard = try self.loadCard(workspaceId: workspaceId, cardId: reviewSubmission.cardId)
+            try self.enqueueCardUpsertOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: cardOperationId,
+                clientUpdatedAt: reviewSubmission.reviewedAtClient,
+                card: updatedCard
+            )
         }
     }
 
@@ -340,26 +518,43 @@ final class LocalDatabase {
         )
         let learningStepsJson = try self.encodeIntegerArray(validatedInput.learningStepsMinutes)
         let relearningStepsJson = try self.encodeIntegerArray(validatedInput.relearningStepsMinutes)
-        let updatedRows = try self.execute(
-            sql: """
-            UPDATE workspaces
-            SET fsrs_algorithm = ?, fsrs_desired_retention = ?, fsrs_learning_steps_minutes_json = ?, fsrs_relearning_steps_minutes_json = ?, fsrs_maximum_interval_days = ?, fsrs_enable_fuzz = ?, fsrs_updated_at = ?
-            WHERE workspace_id = ?
-            """,
-            values: [
-                .text(validatedInput.algorithm),
-                .real(validatedInput.desiredRetention),
-                .text(learningStepsJson),
-                .text(relearningStepsJson),
-                .integer(Int64(validatedInput.maximumIntervalDays)),
-                .integer(validatedInput.enableFuzz ? 1 : 0),
-                .text(currentIsoTimestamp()),
-                .text(workspaceId)
-            ]
-        )
+        try self.inTransaction {
+            let cloudSettings = try self.loadCloudSettings()
+            let operationId = UUID().uuidString.lowercased()
+            let now = currentIsoTimestamp()
+            let updatedRows = try self.execute(
+                sql: """
+                UPDATE workspaces
+                SET fsrs_algorithm = ?, fsrs_desired_retention = ?, fsrs_learning_steps_minutes_json = ?, fsrs_relearning_steps_minutes_json = ?, fsrs_maximum_interval_days = ?, fsrs_enable_fuzz = ?, fsrs_server_version = NULL, fsrs_client_updated_at = ?, fsrs_last_modified_by_device_id = ?, fsrs_last_operation_id = ?, fsrs_updated_at = ?
+                WHERE workspace_id = ?
+                """,
+                values: [
+                    .text(validatedInput.algorithm),
+                    .real(validatedInput.desiredRetention),
+                    .text(learningStepsJson),
+                    .text(relearningStepsJson),
+                    .integer(Int64(validatedInput.maximumIntervalDays)),
+                    .integer(validatedInput.enableFuzz ? 1 : 0),
+                    .text(now),
+                    .text(cloudSettings.deviceId),
+                    .text(operationId),
+                    .text(now),
+                    .text(workspaceId)
+                ]
+            )
 
-        if updatedRows == 0 {
-            throw LocalStoreError.database("Workspace row is missing")
+            if updatedRows == 0 {
+                throw LocalStoreError.database("Workspace row is missing")
+            }
+
+            let updatedSettings = try self.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
+            try self.enqueueWorkspaceSchedulerSettingsUpsertOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: operationId,
+                clientUpdatedAt: now,
+                settings: updatedSettings
+            )
         }
     }
 
@@ -444,16 +639,20 @@ final class LocalDatabase {
 
         let migrationSQL = """
         CREATE TABLE IF NOT EXISTS workspaces (
-            workspace_id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            fsrs_algorithm TEXT NOT NULL DEFAULT 'fsrs-6' CHECK (fsrs_algorithm = 'fsrs-6'),
-            fsrs_desired_retention REAL NOT NULL DEFAULT 0.9 CHECK (fsrs_desired_retention > 0 AND fsrs_desired_retention < 1),
-            fsrs_learning_steps_minutes_json TEXT NOT NULL DEFAULT '[1,10]',
-            fsrs_relearning_steps_minutes_json TEXT NOT NULL DEFAULT '[10]',
-            fsrs_maximum_interval_days INTEGER NOT NULL DEFAULT 36500 CHECK (fsrs_maximum_interval_days >= 1),
-            fsrs_enable_fuzz INTEGER NOT NULL DEFAULT 1 CHECK (fsrs_enable_fuzz IN (0, 1)),
-            fsrs_updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            workspace_id TEXT PRIMARY KEY, -- workspace identifier shared across local and server stores
+            name TEXT NOT NULL, -- human-readable workspace name shown in the UI
+            created_at TEXT NOT NULL, -- local creation timestamp for the workspace row
+            fsrs_algorithm TEXT NOT NULL DEFAULT 'fsrs-6' CHECK (fsrs_algorithm = 'fsrs-6'), -- scheduler algorithm name kept aligned with the backend contract
+            fsrs_desired_retention REAL NOT NULL DEFAULT 0.9 CHECK (fsrs_desired_retention > 0 AND fsrs_desired_retention < 1), -- desired recall probability target
+            fsrs_learning_steps_minutes_json TEXT NOT NULL DEFAULT '[1,10]', -- JSON-encoded learning steps mirrored from the backend row
+            fsrs_relearning_steps_minutes_json TEXT NOT NULL DEFAULT '[10]', -- JSON-encoded relearning steps mirrored from the backend row
+            fsrs_maximum_interval_days INTEGER NOT NULL DEFAULT 36500 CHECK (fsrs_maximum_interval_days >= 1), -- maximum interval cap mirrored from the backend row
+            fsrs_enable_fuzz INTEGER NOT NULL DEFAULT 1 CHECK (fsrs_enable_fuzz IN (0, 1)), -- whether FSRS fuzzing is enabled
+            fsrs_server_version INTEGER, -- server-assigned cursor used for incremental pull of workspace scheduler settings; NULL until the server acknowledges the local row
+            fsrs_client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced scheduler-settings winner
+            fsrs_last_modified_by_device_id TEXT NOT NULL, -- device that produced the currently winning scheduler-settings row
+            fsrs_last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
+            fsrs_updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP -- last time the local mirror row was written or merged
         );
 
         CREATE TABLE IF NOT EXISTS user_settings (
@@ -465,45 +664,77 @@ final class LocalDatabase {
         );
 
         CREATE TABLE IF NOT EXISTS cards (
-            card_id TEXT PRIMARY KEY,
-            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
-            front_text TEXT NOT NULL,
-            back_text TEXT NOT NULL,
-            tags_json TEXT NOT NULL,
-            effort_level TEXT NOT NULL CHECK (effort_level IN ('fast', 'medium', 'long')),
-            due_at TEXT,
-            reps INTEGER NOT NULL CHECK (reps >= 0),
-            lapses INTEGER NOT NULL CHECK (lapses >= 0),
-            fsrs_card_state TEXT NOT NULL CHECK (fsrs_card_state IN ('new', 'learning', 'review', 'relearning')),
-            fsrs_step_index INTEGER CHECK (fsrs_step_index IS NULL OR fsrs_step_index >= 0),
-            fsrs_stability REAL,
-            fsrs_difficulty REAL,
-            fsrs_last_reviewed_at TEXT,
-            fsrs_scheduled_days INTEGER CHECK (fsrs_scheduled_days IS NULL OR fsrs_scheduled_days >= 0),
-            server_version INTEGER NOT NULL,
-            updated_at TEXT NOT NULL,
-            deleted_at TEXT
+            card_id TEXT PRIMARY KEY, -- card identifier generated locally so the row can be created offline
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
+            front_text TEXT NOT NULL, -- prompt shown to the learner
+            back_text TEXT NOT NULL, -- answer shown after reveal
+            tags_json TEXT NOT NULL, -- JSON-encoded tag list used by local filtering and sync payload generation
+            effort_level TEXT NOT NULL CHECK (effort_level IN ('fast', 'medium', 'long')), -- effort classification mirrored from the backend card row
+            due_at TEXT, -- next scheduled review timestamp; NULL for cards that have never been scheduled
+            reps INTEGER NOT NULL CHECK (reps >= 0), -- denormalized total successful review count cached on the row
+            lapses INTEGER NOT NULL CHECK (lapses >= 0), -- denormalized lapse count cached on the row
+            fsrs_card_state TEXT NOT NULL CHECK (fsrs_card_state IN ('new', 'learning', 'review', 'relearning')), -- persisted FSRS state required for offline scheduling
+            fsrs_step_index INTEGER CHECK (fsrs_step_index IS NULL OR fsrs_step_index >= 0), -- current learning or relearning step index when applicable
+            fsrs_stability REAL, -- FSRS memory stability estimate
+            fsrs_difficulty REAL, -- FSRS difficulty estimate
+            fsrs_last_reviewed_at TEXT, -- timestamp of the most recent review incorporated into this card row
+            fsrs_scheduled_days INTEGER CHECK (fsrs_scheduled_days IS NULL OR fsrs_scheduled_days >= 0), -- interval length that produced the current due_at
+            server_version INTEGER, -- server-assigned cursor used for incremental card pull; NULL until the server acknowledges the local row
+            client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced card winner
+            last_modified_by_device_id TEXT NOT NULL, -- device that produced the currently winning card row
+            last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
+            updated_at TEXT NOT NULL, -- last time the local mirror row was written or merged
+            deleted_at TEXT -- tombstone timestamp; non-NULL means the card is deleted but must still sync
         );
 
         CREATE TABLE IF NOT EXISTS decks (
-            deck_id TEXT PRIMARY KEY,
-            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
-            name TEXT NOT NULL,
-            filter_definition_json TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
+            deck_id TEXT PRIMARY KEY, -- deck identifier generated locally so the row can be created offline
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
+            name TEXT NOT NULL, -- user-visible deck name
+            filter_definition_json TEXT NOT NULL, -- JSON-encoded deck filter definition mirrored to sync payloads
+            created_at TEXT NOT NULL, -- original deck creation timestamp that must survive later updates
+            server_version INTEGER, -- server-assigned cursor used for incremental deck pull; NULL until the server acknowledges the local row
+            client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced deck winner
+            last_modified_by_device_id TEXT NOT NULL, -- device that produced the currently winning deck row
+            last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
+            updated_at TEXT NOT NULL, -- last time the local mirror row was written or merged
+            deleted_at TEXT -- tombstone timestamp; non-NULL means the deck is deleted but must still sync
         );
 
         CREATE TABLE IF NOT EXISTS review_events (
-            review_event_id TEXT PRIMARY KEY,
-            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
-            card_id TEXT NOT NULL REFERENCES cards(card_id) ON DELETE CASCADE,
-            device_id TEXT NOT NULL,
-            client_event_id TEXT NOT NULL,
-            rating INTEGER NOT NULL CHECK (rating BETWEEN 0 AND 3),
-            reviewed_at_client TEXT NOT NULL,
-            reviewed_at_server TEXT NOT NULL,
+            review_event_id TEXT PRIMARY KEY, -- immutable review event identifier generated locally for append-only sync
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
+            card_id TEXT NOT NULL REFERENCES cards(card_id) ON DELETE CASCADE, -- card reviewed by this event
+            device_id TEXT NOT NULL, -- device that recorded the review event
+            client_event_id TEXT NOT NULL, -- client-generated review-event idempotency key reused on push retry
+            rating INTEGER NOT NULL CHECK (rating BETWEEN 0 AND 3), -- review rating from Again to Easy
+            reviewed_at_client TEXT NOT NULL, -- timestamp captured on the device when the user answered
+            reviewed_at_server TEXT NOT NULL, -- local mirror of the backend receive timestamp once synced; local writes use current device time until ack
+            server_version INTEGER, -- server-assigned cursor used for incremental review-event pull; NULL until the server acknowledges the local row
             UNIQUE (workspace_id, device_id, client_event_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS outbox (
+            operation_id TEXT PRIMARY KEY, -- unique local operation id used for idempotent sync push
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace that owns the pending sync operation
+            device_id TEXT NOT NULL, -- device that created the pending sync operation
+            entity_type TEXT NOT NULL, -- sync root targeted by the operation: card, deck, workspace_scheduler_settings, or review_event
+            entity_id TEXT NOT NULL, -- identifier of the logical sync root targeted by the operation
+            operation_type TEXT NOT NULL, -- mutation kind sent to the backend, such as upsert or append
+            payload_json TEXT NOT NULL, -- serialized entity payload that can be uploaded without rereading application tables
+            client_updated_at TEXT NOT NULL, -- client-side LWW timestamp associated with the pending operation
+            created_at TEXT NOT NULL, -- when the pending operation entered the local outbox
+            attempt_count INTEGER NOT NULL DEFAULT 0, -- retry counter for sync diagnostics and exponential backoff decisions
+            last_error TEXT -- most recent sync failure message for debugging and user-facing diagnostics
+        );
+
+        CREATE TABLE IF NOT EXISTS sync_state (
+            workspace_id TEXT PRIMARY KEY REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace scope for per-table pull cursors
+            last_cards_server_version INTEGER NOT NULL DEFAULT 0, -- highest card server cursor already pulled into the local mirror
+            last_decks_server_version INTEGER NOT NULL DEFAULT 0, -- highest deck server cursor already pulled into the local mirror
+            last_review_events_server_version INTEGER NOT NULL DEFAULT 0, -- highest review-event server cursor already pulled into the local mirror
+            last_fsrs_server_version INTEGER NOT NULL DEFAULT 0, -- highest workspace-scheduler server cursor already pulled into the local mirror
+            updated_at TEXT NOT NULL -- last time the local pull cursor state changed
         );
 
         CREATE TABLE IF NOT EXISTS app_local_settings (
@@ -531,11 +762,21 @@ final class LocalDatabase {
             ON cards(workspace_id, fsrs_last_reviewed_at DESC)
             WHERE deleted_at IS NULL;
 
-        CREATE INDEX IF NOT EXISTS idx_decks_workspace_updated_at
-            ON decks(workspace_id, updated_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_decks_workspace_server_version
+            ON decks(workspace_id, server_version);
+
+        CREATE INDEX IF NOT EXISTS idx_decks_workspace_updated_active
+            ON decks(workspace_id, updated_at DESC)
+            WHERE deleted_at IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_review_events_workspace_server_version
+            ON review_events(workspace_id, server_version);
 
         CREATE INDEX IF NOT EXISTS idx_review_events_workspace_card_time
             ON review_events(workspace_id, card_id, reviewed_at_server DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_outbox_workspace_created_at
+            ON outbox(workspace_id, created_at ASC);
         """
 
         let resultCode = sqlite3_exec(connection, migrationSQL, nil, nil, nil)
@@ -547,6 +788,39 @@ final class LocalDatabase {
     }
 
     private func ensureDefaultState() throws {
+        let appSettingsCount = try self.scalarInt(
+            sql: "SELECT COUNT(*) FROM app_local_settings",
+            values: []
+        )
+        let deviceId: String
+        if appSettingsCount == 0 {
+            deviceId = UUID().uuidString.lowercased()
+            try self.execute(
+                sql: """
+                INSERT INTO app_local_settings (
+                    settings_id,
+                    device_id,
+                    cloud_state,
+                    linked_user_id,
+                    linked_workspace_id,
+                    linked_email,
+                    onboarding_completed,
+                    updated_at
+                )
+                VALUES (1, ?, 'disconnected', NULL, NULL, NULL, 0, ?)
+                """,
+                values: [
+                    .text(deviceId),
+                    .text(currentIsoTimestamp())
+                ]
+            )
+        } else {
+            deviceId = try self.scalarText(
+                sql: "SELECT device_id FROM app_local_settings WHERE settings_id = 1",
+                values: []
+            )
+        }
+
         let workspaceCount = try self.scalarInt(
             sql: "SELECT COUNT(*) FROM workspaces",
             values: []
@@ -554,19 +828,60 @@ final class LocalDatabase {
         let workspaceId: String
 
         if workspaceCount == 0 {
+            let now = currentIsoTimestamp()
+            let operationId = UUID().uuidString.lowercased()
             workspaceId = UUID().uuidString.lowercased()
             try self.execute(
-                sql: "INSERT INTO workspaces (workspace_id, name, created_at) VALUES (?, ?, ?)",
+                sql: """
+                INSERT INTO workspaces (
+                    workspace_id,
+                    name,
+                    created_at,
+                    fsrs_client_updated_at,
+                    fsrs_last_modified_by_device_id,
+                    fsrs_last_operation_id,
+                    fsrs_updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
                 values: [
                     .text(workspaceId),
                     .text("Local Workspace"),
-                    .text(currentIsoTimestamp())
+                    .text(now),
+                    .text(now),
+                    .text(deviceId),
+                    .text(operationId),
+                    .text(now)
                 ]
             )
         } else {
             workspaceId = try self.scalarText(
                 sql: "SELECT workspace_id FROM workspaces ORDER BY created_at ASC LIMIT 1",
                 values: []
+            )
+        }
+
+        let syncStateCount = try self.scalarInt(
+            sql: "SELECT COUNT(*) FROM sync_state WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+        if syncStateCount == 0 {
+            try self.execute(
+                sql: """
+                INSERT INTO sync_state (
+                    workspace_id,
+                    last_cards_server_version,
+                    last_decks_server_version,
+                    last_review_events_server_version,
+                    last_fsrs_server_version,
+                    updated_at
+                )
+                VALUES (?, 0, 0, 0, 0, ?)
+                """,
+                values: [
+                    .text(workspaceId),
+                    .text(currentIsoTimestamp())
+                ]
             )
         }
 
@@ -585,32 +900,6 @@ final class LocalDatabase {
                     .text("local-user"),
                     .text(workspaceId),
                     .text(locale),
-                    .text(currentIsoTimestamp())
-                ]
-            )
-        }
-
-        let appSettingsCount = try self.scalarInt(
-            sql: "SELECT COUNT(*) FROM app_local_settings",
-            values: []
-        )
-        if appSettingsCount == 0 {
-            try self.execute(
-                sql: """
-                INSERT INTO app_local_settings (
-                    settings_id,
-                    device_id,
-                    cloud_state,
-                    linked_user_id,
-                    linked_workspace_id,
-                    linked_email,
-                    onboarding_completed,
-                    updated_at
-                )
-                VALUES (1, ?, 'disconnected', NULL, NULL, NULL, 0, ?)
-                """,
-                values: [
-                    .text(UUID().uuidString.lowercased()),
                     .text(currentIsoTimestamp())
                 ]
             )
@@ -679,6 +968,10 @@ final class LocalDatabase {
                 fsrs_relearning_steps_minutes_json,
                 fsrs_maximum_interval_days,
                 fsrs_enable_fuzz,
+                fsrs_server_version,
+                fsrs_client_updated_at,
+                fsrs_last_modified_by_device_id,
+                fsrs_last_operation_id,
                 fsrs_updated_at
             FROM workspaces
             WHERE workspace_id = ?
@@ -704,7 +997,11 @@ final class LocalDatabase {
                 ),
                 maximumIntervalDays: Int(Self.columnInt64(statement: statement, index: 4)),
                 enableFuzz: Self.columnInt64(statement: statement, index: 5) == 1,
-                updatedAt: Self.columnText(statement: statement, index: 6)
+                serverVersion: Self.columnOptionalInt64(statement: statement, index: 6),
+                clientUpdatedAt: Self.columnText(statement: statement, index: 7),
+                lastModifiedByDeviceId: Self.columnText(statement: statement, index: 8),
+                lastOperationId: Self.columnText(statement: statement, index: 9),
+                updatedAt: Self.columnText(statement: statement, index: 10)
             )
         }
 
@@ -735,6 +1032,9 @@ final class LocalDatabase {
                 fsrs_last_reviewed_at,
                 fsrs_scheduled_days,
                 server_version,
+                client_updated_at,
+                last_modified_by_device_id,
+                last_operation_id,
                 updated_at,
                 deleted_at
             FROM cards
@@ -771,9 +1071,12 @@ final class LocalDatabase {
                 fsrsDifficulty: Self.columnOptionalDouble(statement: statement, index: 12),
                 fsrsLastReviewedAt: Self.columnOptionalText(statement: statement, index: 13),
                 fsrsScheduledDays: Self.columnOptionalInt(statement: statement, index: 14),
-                serverVersion: Self.columnInt64(statement: statement, index: 15),
-                updatedAt: Self.columnText(statement: statement, index: 16),
-                deletedAt: Self.columnOptionalText(statement: statement, index: 17)
+                serverVersion: Self.columnOptionalInt64(statement: statement, index: 15),
+                clientUpdatedAt: Self.columnText(statement: statement, index: 16),
+                lastModifiedByDeviceId: Self.columnText(statement: statement, index: 17),
+                lastOperationId: Self.columnText(statement: statement, index: 18),
+                updatedAt: Self.columnText(statement: statement, index: 19),
+                deletedAt: Self.columnOptionalText(statement: statement, index: 20)
             )
         }
 
@@ -788,9 +1091,9 @@ final class LocalDatabase {
     private func loadDecks(workspaceId: String) throws -> [Deck] {
         try self.query(
             sql: """
-            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, updated_at
+            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, server_version, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at
             FROM decks
-            WHERE workspace_id = ?
+            WHERE workspace_id = ? AND deleted_at IS NULL
             ORDER BY updated_at DESC, created_at DESC
             """,
             values: [.text(workspaceId)]
@@ -805,7 +1108,12 @@ final class LocalDatabase {
                 name: Self.columnText(statement: statement, index: 2),
                 filterDefinition: filterDefinition,
                 createdAt: Self.columnText(statement: statement, index: 4),
-                updatedAt: Self.columnText(statement: statement, index: 5)
+                serverVersion: Self.columnOptionalInt64(statement: statement, index: 5),
+                clientUpdatedAt: Self.columnText(statement: statement, index: 6),
+                lastModifiedByDeviceId: Self.columnText(statement: statement, index: 7),
+                lastOperationId: Self.columnText(statement: statement, index: 8),
+                updatedAt: Self.columnText(statement: statement, index: 9),
+                deletedAt: Self.columnOptionalText(statement: statement, index: 10)
             )
         }
     }
@@ -863,6 +1171,9 @@ final class LocalDatabase {
                 fsrs_last_reviewed_at,
                 fsrs_scheduled_days,
                 server_version,
+                client_updated_at,
+                last_modified_by_device_id,
+                last_operation_id,
                 updated_at,
                 deleted_at
             FROM cards
@@ -902,9 +1213,12 @@ final class LocalDatabase {
                 fsrsDifficulty: Self.columnOptionalDouble(statement: statement, index: 12),
                 fsrsLastReviewedAt: Self.columnOptionalText(statement: statement, index: 13),
                 fsrsScheduledDays: Self.columnOptionalInt(statement: statement, index: 14),
-                serverVersion: Self.columnInt64(statement: statement, index: 15),
-                updatedAt: Self.columnText(statement: statement, index: 16),
-                deletedAt: Self.columnOptionalText(statement: statement, index: 17)
+                serverVersion: Self.columnOptionalInt64(statement: statement, index: 15),
+                clientUpdatedAt: Self.columnText(statement: statement, index: 16),
+                lastModifiedByDeviceId: Self.columnText(statement: statement, index: 17),
+                lastOperationId: Self.columnText(statement: statement, index: 18),
+                updatedAt: Self.columnText(statement: statement, index: 19),
+                deletedAt: Self.columnOptionalText(statement: statement, index: 20)
             )
         }
 
@@ -913,6 +1227,297 @@ final class LocalDatabase {
         }
 
         return try self.validateOrResetLoadedCard(workspaceId: workspaceId, card: card)
+    }
+
+    private func loadCardIncludingDeleted(workspaceId: String, cardId: String) throws -> Card {
+        let cards = try self.query(
+            sql: """
+            SELECT
+                card_id,
+                workspace_id,
+                front_text,
+                back_text,
+                tags_json,
+                effort_level,
+                due_at,
+                reps,
+                lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
+                server_version,
+                client_updated_at,
+                last_modified_by_device_id,
+                last_operation_id,
+                updated_at,
+                deleted_at
+            FROM cards
+            WHERE workspace_id = ? AND card_id = ?
+            LIMIT 1
+            """,
+            values: [
+                .text(workspaceId),
+                .text(cardId)
+            ]
+        ) { statement in
+            let tagsJson = Self.columnText(statement: statement, index: 4)
+            let tagsData = Data(tagsJson.utf8)
+            let tags = try self.decoder.decode([String].self, from: tagsData)
+            let rawEffortLevel = Self.columnText(statement: statement, index: 5)
+            guard let effortLevel = EffortLevel(rawValue: rawEffortLevel) else {
+                throw LocalStoreError.database("Stored card effort level is invalid: \(rawEffortLevel)")
+            }
+            let rawFsrsCardState = Self.columnText(statement: statement, index: 9)
+            guard let fsrsCardState = FsrsCardState(rawValue: rawFsrsCardState) else {
+                throw LocalStoreError.database("Stored FSRS card state is invalid: \(rawFsrsCardState)")
+            }
+
+            return Card(
+                cardId: Self.columnText(statement: statement, index: 0),
+                workspaceId: Self.columnText(statement: statement, index: 1),
+                frontText: Self.columnText(statement: statement, index: 2),
+                backText: Self.columnText(statement: statement, index: 3),
+                tags: tags,
+                effortLevel: effortLevel,
+                dueAt: Self.columnOptionalText(statement: statement, index: 6),
+                reps: Int(Self.columnInt64(statement: statement, index: 7)),
+                lapses: Int(Self.columnInt64(statement: statement, index: 8)),
+                fsrsCardState: fsrsCardState,
+                fsrsStepIndex: Self.columnOptionalInt(statement: statement, index: 10),
+                fsrsStability: Self.columnOptionalDouble(statement: statement, index: 11),
+                fsrsDifficulty: Self.columnOptionalDouble(statement: statement, index: 12),
+                fsrsLastReviewedAt: Self.columnOptionalText(statement: statement, index: 13),
+                fsrsScheduledDays: Self.columnOptionalInt(statement: statement, index: 14),
+                serverVersion: Self.columnOptionalInt64(statement: statement, index: 15),
+                clientUpdatedAt: Self.columnText(statement: statement, index: 16),
+                lastModifiedByDeviceId: Self.columnText(statement: statement, index: 17),
+                lastOperationId: Self.columnText(statement: statement, index: 18),
+                updatedAt: Self.columnText(statement: statement, index: 19),
+                deletedAt: Self.columnOptionalText(statement: statement, index: 20)
+            )
+        }
+
+        guard let card = cards.first else {
+            throw LocalStoreError.notFound("Card not found")
+        }
+
+        return card
+    }
+
+    private func loadDeckIncludingDeleted(workspaceId: String, deckId: String) throws -> Deck {
+        let decks = try self.query(
+            sql: """
+            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, server_version, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at
+            FROM decks
+            WHERE workspace_id = ? AND deck_id = ?
+            LIMIT 1
+            """,
+            values: [
+                .text(workspaceId),
+                .text(deckId)
+            ]
+        ) { statement in
+            let filterJson = Self.columnText(statement: statement, index: 3)
+            let filterData = Data(filterJson.utf8)
+            let filterDefinition = try self.decoder.decode(DeckFilterDefinition.self, from: filterData)
+
+            return Deck(
+                deckId: Self.columnText(statement: statement, index: 0),
+                workspaceId: Self.columnText(statement: statement, index: 1),
+                name: Self.columnText(statement: statement, index: 2),
+                filterDefinition: filterDefinition,
+                createdAt: Self.columnText(statement: statement, index: 4),
+                serverVersion: Self.columnOptionalInt64(statement: statement, index: 5),
+                clientUpdatedAt: Self.columnText(statement: statement, index: 6),
+                lastModifiedByDeviceId: Self.columnText(statement: statement, index: 7),
+                lastOperationId: Self.columnText(statement: statement, index: 8),
+                updatedAt: Self.columnText(statement: statement, index: 9),
+                deletedAt: Self.columnOptionalText(statement: statement, index: 10)
+            )
+        }
+
+        guard let deck = decks.first else {
+            throw LocalStoreError.notFound("Deck not found")
+        }
+
+        return deck
+    }
+
+    private func encodePayloadJson<T: Encodable>(_ payload: T) throws -> String {
+        let data = try self.encoder.encode(payload)
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw LocalStoreError.database("Failed to encode sync payload JSON")
+        }
+
+        return json
+    }
+
+    private func enqueueOutboxOperation(
+        workspaceId: String,
+        deviceId: String,
+        operationId: String,
+        entityType: String,
+        entityId: String,
+        operationType: String,
+        payloadJson: String,
+        clientUpdatedAt: String
+    ) throws {
+        try self.execute(
+            sql: """
+            INSERT INTO outbox (
+                operation_id,
+                workspace_id,
+                device_id,
+                entity_type,
+                entity_id,
+                operation_type,
+                payload_json,
+                client_updated_at,
+                created_at,
+                attempt_count,
+                last_error
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
+            """,
+            values: [
+                .text(operationId),
+                .text(workspaceId),
+                .text(deviceId),
+                .text(entityType),
+                .text(entityId),
+                .text(operationType),
+                .text(payloadJson),
+                .text(clientUpdatedAt),
+                .text(currentIsoTimestamp())
+            ]
+        )
+    }
+
+    private func enqueueCardUpsertOperation(
+        workspaceId: String,
+        deviceId: String,
+        operationId: String,
+        clientUpdatedAt: String,
+        card: Card
+    ) throws {
+        let payloadJson = try self.encodePayloadJson(
+            CardOutboxPayload(
+                cardId: card.cardId,
+                frontText: card.frontText,
+                backText: card.backText,
+                tags: card.tags,
+                effortLevel: card.effortLevel.rawValue,
+                dueAt: card.dueAt,
+                reps: card.reps,
+                lapses: card.lapses,
+                fsrsCardState: card.fsrsCardState.rawValue,
+                fsrsStepIndex: card.fsrsStepIndex,
+                fsrsStability: card.fsrsStability,
+                fsrsDifficulty: card.fsrsDifficulty,
+                fsrsLastReviewedAt: card.fsrsLastReviewedAt,
+                fsrsScheduledDays: card.fsrsScheduledDays,
+                deletedAt: card.deletedAt
+            )
+        )
+        try self.enqueueOutboxOperation(
+            workspaceId: workspaceId,
+            deviceId: deviceId,
+            operationId: operationId,
+            entityType: "card",
+            entityId: card.cardId,
+            operationType: "upsert",
+            payloadJson: payloadJson,
+            clientUpdatedAt: clientUpdatedAt
+        )
+    }
+
+    private func enqueueDeckUpsertOperation(
+        workspaceId: String,
+        deviceId: String,
+        operationId: String,
+        clientUpdatedAt: String,
+        deck: Deck
+    ) throws {
+        let payloadJson = try self.encodePayloadJson(
+            DeckOutboxPayload(
+                deckId: deck.deckId,
+                name: deck.name,
+                filterDefinition: deck.filterDefinition,
+                createdAt: deck.createdAt,
+                deletedAt: deck.deletedAt
+            )
+        )
+        try self.enqueueOutboxOperation(
+            workspaceId: workspaceId,
+            deviceId: deviceId,
+            operationId: operationId,
+            entityType: "deck",
+            entityId: deck.deckId,
+            operationType: "upsert",
+            payloadJson: payloadJson,
+            clientUpdatedAt: clientUpdatedAt
+        )
+    }
+
+    private func enqueueWorkspaceSchedulerSettingsUpsertOperation(
+        workspaceId: String,
+        deviceId: String,
+        operationId: String,
+        clientUpdatedAt: String,
+        settings: WorkspaceSchedulerSettings
+    ) throws {
+        let payloadJson = try self.encodePayloadJson(
+            WorkspaceSchedulerSettingsOutboxPayload(
+                algorithm: settings.algorithm,
+                desiredRetention: settings.desiredRetention,
+                learningStepsMinutes: settings.learningStepsMinutes,
+                relearningStepsMinutes: settings.relearningStepsMinutes,
+                maximumIntervalDays: settings.maximumIntervalDays,
+                enableFuzz: settings.enableFuzz
+            )
+        )
+        try self.enqueueOutboxOperation(
+            workspaceId: workspaceId,
+            deviceId: deviceId,
+            operationId: operationId,
+            entityType: "workspace_scheduler_settings",
+            entityId: workspaceId,
+            operationType: "upsert",
+            payloadJson: payloadJson,
+            clientUpdatedAt: clientUpdatedAt
+        )
+    }
+
+    private func enqueueReviewEventAppendOperation(
+        workspaceId: String,
+        deviceId: String,
+        operationId: String,
+        clientUpdatedAt: String,
+        reviewEvent: ReviewEvent
+    ) throws {
+        let payloadJson = try self.encodePayloadJson(
+            ReviewEventOutboxPayload(
+                reviewEventId: reviewEvent.reviewEventId,
+                cardId: reviewEvent.cardId,
+                deviceId: reviewEvent.deviceId,
+                clientEventId: reviewEvent.clientEventId,
+                rating: reviewEvent.rating.rawValue,
+                reviewedAtClient: reviewEvent.reviewedAtClient
+            )
+        )
+        try self.enqueueOutboxOperation(
+            workspaceId: workspaceId,
+            deviceId: deviceId,
+            operationId: operationId,
+            entityType: "review_event",
+            entityId: reviewEvent.reviewEventId,
+            operationType: "append",
+            payloadJson: payloadJson,
+            clientUpdatedAt: clientUpdatedAt
+        )
     }
 
     private func validateOrResetLoadedCard(workspaceId: String, card: Card) throws -> Card {
@@ -934,12 +1539,12 @@ final class LocalDatabase {
         let repairedCard = resetFsrsState(
             card: card,
             updatedAt: currentIsoTimestamp(),
-            serverVersion: try self.nextServerVersion()
+            serverVersion: card.serverVersion
         )
         let updatedRows = try self.execute(
             sql: """
             UPDATE cards
-            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, updated_at = ?, server_version = ?
+            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?, server_version = ?
             WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
             """,
             values: [
@@ -952,8 +1557,11 @@ final class LocalDatabase {
                 .null,
                 .null,
                 .null,
+                .text(repairedCard.clientUpdatedAt),
+                .text(repairedCard.lastModifiedByDeviceId),
+                .text(repairedCard.lastOperationId),
                 .text(repairedCard.updatedAt),
-                .integer(repairedCard.serverVersion),
+                repairedCard.serverVersion.map(SQLiteValue.integer) ?? .null,
                 .text(workspaceId),
                 .text(card.cardId)
             ]
@@ -964,15 +1572,6 @@ final class LocalDatabase {
         }
 
         return repairedCard
-    }
-
-    private func nextServerVersion() throws -> Int64 {
-        let maxServerVersion = try self.scalarInt(
-            sql: "SELECT COALESCE(MAX(server_version), 0) FROM cards",
-            values: []
-        )
-
-        return Int64(maxServerVersion + 1)
     }
 
     private func scalarInt(sql: String, values: [SQLiteValue]) throws -> Int {
@@ -1045,6 +1644,8 @@ final class LocalDatabase {
 
     private func resetLocalSchema() throws {
         let resetSQL = """
+        DROP TABLE IF EXISTS outbox;
+        DROP TABLE IF EXISTS sync_state;
         DROP TABLE IF EXISTS review_events;
         DROP TABLE IF EXISTS decks;
         DROP TABLE IF EXISTS cards;
@@ -1220,6 +1821,14 @@ final class LocalDatabase {
         sqlite3_column_int64(statement, index)
     }
 
+    private static func columnOptionalInt64(statement: OpaquePointer, index: Int32) -> Int64? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else {
+            return nil
+        }
+
+        return sqlite3_column_int64(statement, index)
+    }
+
     private static func columnDouble(statement: OpaquePointer, index: Int32) -> Double {
         sqlite3_column_double(statement, index)
     }
@@ -1278,7 +1887,7 @@ func invalidFsrsStateReason(card: Card) -> String? {
 }
 
 // Keep in sync with apps/backend/src/cards.ts repair semantics.
-func resetFsrsState(card: Card, updatedAt: String, serverVersion: Int64) -> Card {
+func resetFsrsState(card: Card, updatedAt: String, serverVersion: Int64?) -> Card {
     Card(
         cardId: card.cardId,
         workspaceId: card.workspaceId,
@@ -1296,6 +1905,9 @@ func resetFsrsState(card: Card, updatedAt: String, serverVersion: Int64) -> Card
         fsrsLastReviewedAt: nil,
         fsrsScheduledDays: nil,
         serverVersion: serverVersion,
+        clientUpdatedAt: card.clientUpdatedAt,
+        lastModifiedByDeviceId: card.lastModifiedByDeviceId,
+        lastOperationId: card.lastOperationId,
         updatedAt: updatedAt,
         deletedAt: card.deletedAt
     )

@@ -224,6 +224,10 @@ struct WorkspaceSchedulerSettings: Hashable {
     let relearningStepsMinutes: [Int]
     let maximumIntervalDays: Int
     let enableFuzz: Bool
+    let serverVersion: Int64?
+    let clientUpdatedAt: String
+    let lastModifiedByDeviceId: String
+    let lastOperationId: String
     let updatedAt: String
 }
 
@@ -244,7 +248,10 @@ struct Card: Identifiable, Hashable {
     let fsrsDifficulty: Double?
     let fsrsLastReviewedAt: String?
     let fsrsScheduledDays: Int?
-    let serverVersion: Int64
+    let serverVersion: Int64?
+    let clientUpdatedAt: String
+    let lastModifiedByDeviceId: String
+    let lastOperationId: String
     let updatedAt: String
     let deletedAt: String?
 
@@ -259,7 +266,12 @@ struct Deck: Identifiable, Hashable {
     let name: String
     let filterDefinition: DeckFilterDefinition
     let createdAt: String
+    let serverVersion: Int64?
+    let clientUpdatedAt: String
+    let lastModifiedByDeviceId: String
+    let lastOperationId: String
     let updatedAt: String
+    let deletedAt: String?
 
     var id: String {
         deckId
@@ -289,6 +301,7 @@ struct ReviewEvent: Identifiable, Hashable {
     let rating: ReviewRating
     let reviewedAtClient: String
     let reviewedAtServer: String
+    let serverVersion: Int64?
 
     var id: String {
         reviewEventId
