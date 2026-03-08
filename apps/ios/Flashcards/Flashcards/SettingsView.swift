@@ -34,7 +34,7 @@ struct SettingsView: View {
                     Text("\(store.homeSnapshot.totalCards)")
                 }
 
-                LabeledContent("Desks") {
+                LabeledContent("Decks") {
                     Text("\(store.homeSnapshot.deckCount)")
                 }
             }
@@ -85,7 +85,7 @@ struct SettingsView: View {
             }
 
             Section("Local data") {
-                Label("No login is required to create cards, save filters, or review.", systemImage: "internaldrive")
+                Label("No login is required to create cards, save decks, or review.", systemImage: "internaldrive")
                 Label("Future sync stays scoped to the current workspace only.", systemImage: "lock.shield")
                 Label("The schema stays close to the backend without pulling remote data by default.", systemImage: "externaldrive.badge.checkmark")
             }

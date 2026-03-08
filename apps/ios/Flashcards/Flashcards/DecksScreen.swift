@@ -23,13 +23,13 @@ struct DecksScreen: View {
             }
 
             Section {
-                Text("Desks reuse the backend deck contract: name plus filter definition.")
+                Text("Decks reuse the backend deck contract: name plus filter definition.")
                     .foregroundStyle(.secondary)
             }
 
-            Section("Desks") {
+            Section("Decks") {
                 if store.deckItems.isEmpty {
-                    Text("No desks yet.")
+                    Text("No decks yet.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(store.deckItems) { deckItem in
@@ -50,13 +50,13 @@ struct DecksScreen: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Desks")
+        .navigationTitle("Decks")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     self.beginCreating()
                 } label: {
-                    Label("New desk", systemImage: "plus")
+                    Label("New deck", systemImage: "plus")
                 }
             }
         }
@@ -183,7 +183,7 @@ private struct DeckDetailScreen: View {
 
     var body: some View {
         List {
-            Section("Filter") {
+            Section("Deck rules") {
                 SummaryRow(
                     title: "Cards",
                     value: "\(deckItem.totalCards)",
@@ -205,7 +205,7 @@ private struct DeckDetailScreen: View {
 
             Section("Matching cards") {
                 if matchingCards.isEmpty {
-                    Text("No cards match this filter.")
+                    Text("No cards match this deck.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(matchingCards) { card in
@@ -233,7 +233,7 @@ private struct DeckEditorView: View {
     var body: some View {
         Form {
             Section("Name") {
-                TextField("Filter name", text: $formState.name)
+                TextField("Deck name", text: $formState.name)
             }
 
             Section("Effort") {
@@ -296,7 +296,7 @@ private struct DeckEditorView: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("New filter")
+        .navigationTitle("New deck")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Cancel", action: onCancel)
