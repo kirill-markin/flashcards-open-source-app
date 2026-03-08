@@ -1,19 +1,15 @@
-import { streamHandle } from "hono/aws-lambda";
+import { handle } from "hono/aws-lambda";
 import { createApp } from "./app";
 
 const app = createApp("");
 
 /**
- * Uses Lambda response streaming for the whole Hono app because the `/chat`
- * route emits Server-Sent Events.
+ * Keeps the default buffered Lambda proxy behavior for the main backend
+ * routes such as `/health`, `/cards`, and `/decks`.
  *
- * `handle(app)` converts the web `Response` into the classic buffered Lambda
- * proxy result, which collapses SSE chunks into one final body and breaks the
- * browser-side event parser. `streamHandle(app)` keeps the response body as a
- * stream so API Gateway can forward chat deltas incrementally.
- *
- * The entry point stays global because Lambda cannot switch adapters per route.
- * Non-chat routes remain safe because API Gateway still uses buffered transfer
- * mode for them.
+ * Those endpoints return complete JSON payloads, so streaming would add no
+ * benefit and would make API Gateway treat every route as a streaming
+ * integration. The chat SSE path uses the sibling `lambda-stream.ts` entry
+ * point instead.
  */
-export const handler = streamHandle(app);
+export const handler = handle(app);
