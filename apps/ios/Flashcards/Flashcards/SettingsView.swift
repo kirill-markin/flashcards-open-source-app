@@ -7,6 +7,13 @@ struct SettingsView: View {
 
     var body: some View {
         List {
+            if store.globalErrorMessage.isEmpty == false {
+                Section {
+                    Text(store.globalErrorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+
             if screenErrorMessage.isEmpty == false {
                 Section {
                     Text(screenErrorMessage)
@@ -27,7 +34,7 @@ struct SettingsView: View {
                     Text("\(store.homeSnapshot.totalCards)")
                 }
 
-                LabeledContent("Saved filters") {
+                LabeledContent("Desks") {
                     Text("\(store.homeSnapshot.deckCount)")
                 }
             }
