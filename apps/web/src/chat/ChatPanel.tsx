@@ -6,9 +6,9 @@ import {
   type KeyboardEvent,
   type ReactElement,
 } from "react";
-import { streamChat, type ChatRequestBody } from "../api";
+import { sendChatDiagnostics, streamChat, type ChatRequestBody } from "../api";
 import { DEFAULT_MODEL_ID } from "../chatModels";
-import type { ChatStreamEvent, ContentPart } from "../types";
+import type { ChatDiagnosticsPayload, ChatStreamEvent, ContentPart } from "../types";
 import { useChatLayout } from "./ChatLayoutContext";
 import {
   checkFileSize,
@@ -28,6 +28,72 @@ const IMAGE_MEDIA_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "imag
 const MAX_BODY_BYTES = 90 * 1024 * 1024;
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 600;
+
+type ChatResponseMetadata = Readonly<{
+  statusCode: number | null;
+  responseRequestId: string | null;
+  responseContentType: string | null;
+  responseContentLength: string | null;
+  responseContentEncoding: string | null;
+  responseCacheControl: string | null;
+  responseAmznRequestId: string | null;
+  responseApiGatewayId: string | null;
+  responseBodyMissing: boolean;
+}>;
+
+function readResponseHeader(response: Response, headerName: string): string | null {
+  const value = response.headers.get(headerName);
+  if (value === null) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === "" ? null : trimmedValue;
+}
+
+function buildChatResponseMetadata(response: Response | null): ChatResponseMetadata {
+  if (response === null) {
+    return {
+      statusCode: null,
+      responseRequestId: null,
+      responseContentType: null,
+      responseContentLength: null,
+      responseContentEncoding: null,
+      responseCacheControl: null,
+      responseAmznRequestId: null,
+      responseApiGatewayId: null,
+      responseBodyMissing: true,
+    };
+  }
+
+  return {
+    statusCode: response.status,
+    responseRequestId: readResponseHeader(response, "x-chat-request-id"),
+    responseContentType: readResponseHeader(response, "content-type"),
+    responseContentLength: readResponseHeader(response, "content-length"),
+    responseContentEncoding: readResponseHeader(response, "content-encoding"),
+    responseCacheControl: readResponseHeader(response, "cache-control"),
+    responseAmznRequestId: readResponseHeader(response, "x-amzn-requestid"),
+    responseApiGatewayId: readResponseHeader(response, "x-amz-apigw-id"),
+    responseBodyMissing: response.body === null,
+  };
+}
+
+async function reportChatDiagnostics(payload: ChatDiagnosticsPayload): Promise<void> {
+  console.info("chat_frontend_diagnostics", payload);
+
+  try {
+    await sendChatDiagnostics(payload);
+  } catch (error) {
+    console.error("chat_frontend_diagnostics_failed", {
+      clientRequestId: payload.clientRequestId,
+      responseRequestId: payload.responseRequestId,
+      stage: payload.stage,
+      errorName: error instanceof Error ? error.name : null,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
 function buildContentParts(
   text: string,
@@ -272,69 +338,154 @@ export function ChatPanel(props: Props): ReactElement {
 
     const abortController = new AbortController();
     abortRef.current = abortController;
+    const clientRequestId = globalThis.crypto.randomUUID();
+    const requestStartedAt = Date.now();
+    let response: Response | null = null;
+    let buffer = "";
+    let chunkCount = 0;
+    let bytesReceived = 0;
+    let lineCount = 0;
+    let nonEmptyLineCount = 0;
+    let parseNullCount = 0;
+    let deltaEventCount = 0;
+    let toolCallEventCount = 0;
+    let errorEventCount = 0;
+    let doneEventCount = 0;
+    let receivedContent = false;
+    let streamEnded = false;
+    let readerMissing = false;
+    let lastEventType: string | null = null;
+
+    function reportDiagnostics(stage: ChatDiagnosticsPayload["stage"], errorName: string | null): void {
+      const responseMetadata = buildChatResponseMetadata(response);
+      const payload: ChatDiagnosticsPayload = {
+        clientRequestId,
+        responseRequestId: responseMetadata.responseRequestId,
+        model: requestBody.model,
+        stage,
+        statusCode: responseMetadata.statusCode,
+        responseContentType: responseMetadata.responseContentType,
+        responseContentLength: responseMetadata.responseContentLength,
+        responseContentEncoding: responseMetadata.responseContentEncoding,
+        responseCacheControl: responseMetadata.responseCacheControl,
+        responseAmznRequestId: responseMetadata.responseAmznRequestId,
+        responseApiGatewayId: responseMetadata.responseApiGatewayId,
+        responseBodyMissing: responseMetadata.responseBodyMissing,
+        chunkCount,
+        bytesReceived,
+        lineCount,
+        nonEmptyLineCount,
+        parseNullCount,
+        deltaEventCount,
+        toolCallEventCount,
+        errorEventCount,
+        doneEventCount,
+        receivedContent,
+        streamEnded,
+        readerMissing,
+        aborted: abortController.signal.aborted,
+        durationMs: Date.now() - requestStartedAt,
+        bufferLength: buffer.length,
+        errorName,
+        lastEventType,
+      };
+
+      void reportChatDiagnostics(payload);
+    }
+
+    function processStreamLine(line: string): string | null {
+      lineCount += 1;
+      const trimmedLine = line.trim();
+      if (trimmedLine === "") {
+        return null;
+      }
+
+      nonEmptyLineCount += 1;
+      const event = parseSSELine(trimmedLine);
+      if (event === null) {
+        parseNullCount += 1;
+        return null;
+      }
+
+      lastEventType = event.type;
+
+      if (event.type === "delta") {
+        deltaEventCount += 1;
+        receivedContent = true;
+        appendAssistantChunk(event.text);
+        return null;
+      }
+
+      if (event.type === "tool_call") {
+        toolCallEventCount += 1;
+        receivedContent = true;
+        if (event.status === "started") {
+          appendToolCall(event.name);
+        } else {
+          completeToolCall(event.name, event.input ?? null, event.output ?? null);
+        }
+
+        return null;
+      }
+
+      if (event.type === "done") {
+        doneEventCount += 1;
+        return null;
+      }
+
+      errorEventCount += 1;
+      markAssistantError(event.message);
+      return event.message;
+    }
 
     try {
-      const response = await streamChat(requestBody, abortController.signal);
+      response = await streamChat(requestBody, abortController.signal);
       if (!response.ok) {
         markAssistantError(`Error ${response.status}: ${sanitizeErrorText(response.status, await response.text())}`);
-        setIsStreaming(false);
-        abortRef.current = null;
+        reportDiagnostics("response_not_ok", null);
         return;
       }
 
       const reader = response.body?.getReader();
       if (reader === undefined) {
+        readerMissing = true;
         markAssistantError("The chat response stream is missing.");
-        setIsStreaming(false);
-        abortRef.current = null;
+        reportDiagnostics("missing_reader", null);
         return;
       }
 
       const decoder = new TextDecoder();
-      let buffer = "";
-      let receivedContent = false;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
+          streamEnded = true;
           break;
         }
 
+        chunkCount += 1;
+        bytesReceived += value.byteLength;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
 
         for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (trimmedLine === "") {
-            continue;
+          const errorMessage = processStreamLine(line);
+          if (errorMessage !== null) {
+            reportDiagnostics("stream_error_event", "stream_error_event");
+            return;
           }
+        }
+      }
 
-          const event = parseSSELine(trimmedLine);
-          if (event === null) {
-            continue;
-          }
-
-          if (event.type === "delta") {
-            receivedContent = true;
-            appendAssistantChunk(event.text);
-            continue;
-          }
-
-          if (event.type === "tool_call") {
-            receivedContent = true;
-            if (event.status === "started") {
-              appendToolCall(event.name);
-            } else {
-              completeToolCall(event.name, event.input ?? null, event.output ?? null);
-            }
-            continue;
-          }
-
-          if (event.type === "error") {
-            markAssistantError(event.message);
-            setIsStreaming(false);
-            abortRef.current = null;
+      buffer += decoder.decode();
+      if (buffer !== "") {
+        const lines = buffer.split("\n");
+        buffer = "";
+        for (const line of lines) {
+          const errorMessage = processStreamLine(line);
+          if (errorMessage !== null) {
+            reportDiagnostics("stream_error_event", "stream_error_event");
             return;
           }
         }
@@ -342,17 +493,22 @@ export function ChatPanel(props: Props): ReactElement {
 
       if (receivedContent) {
         finalizeAssistant();
+        reportDiagnostics("success", null);
       } else {
         markAssistantError("The assistant returned an empty response.");
+        reportDiagnostics("empty_response", null);
       }
     } catch (error) {
-      if (!abortController.signal.aborted) {
+      if (abortController.signal.aborted) {
+        reportDiagnostics("aborted", error instanceof Error ? error.name : null);
+      } else {
         markAssistantError(error instanceof Error ? error.message : String(error));
+        reportDiagnostics("fetch_throw", error instanceof Error ? error.name : null);
       }
+    } finally {
+      setIsStreaming(false);
+      abortRef.current = null;
     }
-
-    setIsStreaming(false);
-    abortRef.current = null;
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {

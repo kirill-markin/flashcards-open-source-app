@@ -189,6 +189,7 @@ function blockToParam(block: BetaContentBlock): BetaContentBlockParam {
 export type StreamAgentParams = Readonly<{
   messages: ReadonlyArray<ChatMessage>;
   model: string;
+  requestId: string;
   workspaceId: string;
   timezone: string;
 }>;

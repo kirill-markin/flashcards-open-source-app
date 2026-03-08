@@ -1,6 +1,7 @@
 import { getAppConfig } from "./config";
 import type {
   Card,
+  ChatDiagnosticsPayload,
   ChatMessage,
   CreateDeckInput,
   CreateCardInput,
@@ -189,6 +190,18 @@ export async function streamChat(body: ChatRequestBody, signal: AbortSignal): Pr
     body: JSON.stringify(body),
     signal,
   });
+}
+
+export async function sendChatDiagnostics(body: ChatDiagnosticsPayload): Promise<void> {
+  const response = await requestResponse("/chat/diagnostics", {
+    method: "POST",
+    body: JSON.stringify(body),
+    keepalive: true,
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, `Request failed with status ${response.status}`);
+  }
 }
 
 export function buildLoginUrl(): string {
