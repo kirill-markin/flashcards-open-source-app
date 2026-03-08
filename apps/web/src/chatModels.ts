@@ -16,4 +16,4 @@ export const CHAT_MODELS: ReadonlyArray<ChatModelDef> = [
   { id: "gpt-4.1-nano", label: "GPT-4.1 Nano", vendor: "openai" },
 ];
 
-export const DEFAULT_MODEL_ID = "claude-opus-4-6";
+export const DEFAULT_MODEL_ID = "gpt-5.2";
