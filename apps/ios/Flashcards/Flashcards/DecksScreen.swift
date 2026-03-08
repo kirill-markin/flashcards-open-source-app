@@ -1,17 +1,17 @@
 import SwiftUI
 
+private let allCardsDeckLabel: String = "All cards"
+
 struct DecksScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
 
     @State private var isEditorPresented: Bool = false
-    @State private var deckFormState: DeckFormState = DeckFormState(
-        name: "",
-        combineWith: .and,
-        selectedEffortLevels: [],
-        tagsOperator: .containsAny,
-        tags: []
-    )
+    @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var screenErrorMessage: String = ""
+
+    private var deckListEntries: [DeckScreenListItem] {
+        makeDeckScreenListItems(deckItems: store.deckItems, cards: store.cards)
+    }
 
     var body: some View {
         List {
@@ -28,22 +28,25 @@ struct DecksScreen: View {
             }
 
             Section("Decks") {
-                if store.deckItems.isEmpty {
-                    Text("No decks yet.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(store.deckItems) { deckItem in
+                ForEach(deckListEntries) { deckListEntry in
+                    if let persistedDeckId = deckListEntry.persistedDeckId {
                         NavigationLink {
-                            DeckDetailScreen(deckItem: deckItem)
+                            DeckDetailScreen(destination: deckListEntry.destination)
                         } label: {
-                            DeckListRow(deckItem: deckItem)
+                            DeckListRow(deckListEntry: deckListEntry)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
-                                self.deleteDeck(deckId: deckItem.deck.deckId)
+                                self.deleteDeck(deckId: persistedDeckId)
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                        }
+                    } else {
+                        NavigationLink {
+                            DeckDetailScreen(destination: deckListEntry.destination)
+                        } label: {
+                            DeckListRow(deckListEntry: deckListEntry)
                         }
                     }
                 }
@@ -63,6 +66,7 @@ struct DecksScreen: View {
         .sheet(isPresented: $isEditorPresented) {
             NavigationStack {
                 DeckEditorView(
+                    title: "New deck",
                     formState: $deckFormState,
                     onCancel: {
                         isEditorPresented = false
@@ -76,30 +80,14 @@ struct DecksScreen: View {
     }
 
     private func beginCreating() {
-        self.deckFormState = DeckFormState(
-            name: "",
-            combineWith: .and,
-            selectedEffortLevels: [],
-            tagsOperator: .containsAny,
-            tags: []
-        )
+        self.deckFormState = emptyDeckFormState()
         self.screenErrorMessage = ""
         self.isEditorPresented = true
     }
 
     private func saveDeck() {
         do {
-            try store.createDeck(
-                input: DeckEditorInput(
-                    name: deckFormState.name.trimmingCharacters(in: .whitespacesAndNewlines),
-                    filterDefinition: buildDeckFilterDefinition(
-                        effortLevels: deckFormState.selectedEffortLevels,
-                        combineWith: deckFormState.combineWith,
-                        tagsOperator: deckFormState.tagsOperator,
-                        tags: deckFormState.tags
-                    )
-                )
-            )
+            try store.createDeck(input: makeDeckEditorInput(formState: deckFormState))
             self.screenErrorMessage = ""
             self.isEditorPresented = false
         } catch {
@@ -141,29 +129,29 @@ private struct SummaryRow: View {
 }
 
 private struct DeckListRow: View {
-    let deckItem: DeckListItem
+    let deckListEntry: DeckScreenListItem
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(deckItem.deck.name)
+                Text(deckListEntry.title)
                     .font(.headline)
 
                 Spacer()
 
-                Text("\(deckItem.dueCards) due")
+                Text("\(deckListEntry.stats.dueCards) due")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            Text(formatDeckFilterDefinition(filterDefinition: deckItem.deck.filterDefinition))
+            Text(deckListEntry.filterSummary)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
-                Label("\(deckItem.totalCards) cards", systemImage: "square.stack.3d.up")
-                Label("\(deckItem.newCards) new", systemImage: "plus.circle")
-                Label("\(deckItem.reviewedCards) reviewed", systemImage: "checkmark.circle")
+                Label("\(deckListEntry.stats.totalCards) cards", systemImage: "square.stack.3d.up")
+                Label("\(deckListEntry.stats.newCards) new", systemImage: "plus.circle")
+                Label("\(deckListEntry.stats.reviewedCards) reviewed", systemImage: "checkmark.circle")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -172,56 +160,257 @@ private struct DeckListRow: View {
     }
 }
 
+private enum DeckScreenDestination: Hashable {
+    case allCards
+    case deck(deckId: String)
+}
+
+private struct DeckScreenListItem: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let filterSummary: String
+    let stats: DeckCardStats
+    let destination: DeckScreenDestination
+    let persistedDeckId: String?
+}
+
+private enum DeckDetailScreenState {
+    case allCards(stats: DeckCardStats, cards: [Card])
+    case deck(deckItem: DeckListItem, cards: [Card])
+
+    var title: String {
+        switch self {
+        case .allCards:
+            return allCardsDeckLabel
+        case .deck(let deckItem, _):
+            return deckItem.deck.name
+        }
+    }
+
+    var filterSummary: String {
+        switch self {
+        case .allCards:
+            return allCardsDeckLabel
+        case .deck(let deckItem, _):
+            return formatDeckFilterDefinition(filterDefinition: deckItem.deck.filterDefinition)
+        }
+    }
+
+    var stats: DeckCardStats {
+        switch self {
+        case .allCards(let stats, _):
+            return stats
+        case .deck(let deckItem, _):
+            return DeckCardStats(
+                totalCards: deckItem.totalCards,
+                dueCards: deckItem.dueCards,
+                newCards: deckItem.newCards,
+                reviewedCards: deckItem.reviewedCards
+            )
+        }
+    }
+
+    var cards: [Card] {
+        switch self {
+        case .allCards(_, let cards):
+            return cards
+        case .deck(_, let cards):
+            return cards
+        }
+    }
+
+    var emptyMessage: String {
+        switch self {
+        case .allCards:
+            return "No cards yet."
+        case .deck:
+            return "No cards match this deck."
+        }
+    }
+
+    var allowsEditing: Bool {
+        switch self {
+        case .allCards:
+            return false
+        case .deck:
+            return true
+        }
+    }
+}
+
 private struct DeckDetailScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
+    @Environment(\.dismiss) private var dismiss
 
-    let deckItem: DeckListItem
+    let destination: DeckScreenDestination
 
-    private var matchingCards: [Card] {
-        store.cardsMatchingDeck(deck: deckItem.deck)
+    @State private var isEditorPresented: Bool = false
+    @State private var deckFormState: DeckFormState = emptyDeckFormState()
+    @State private var screenErrorMessage: String = ""
+
+    private var detailState: DeckDetailScreenState? {
+        switch destination {
+        case .allCards:
+            let cards = activeCards(cards: store.cards)
+            let stats = makeDeckCardStats(cards: cards, now: Date())
+            return .allCards(stats: stats, cards: cards)
+        case .deck(let deckId):
+            guard let deckItem = store.deckItems.first(where: { deckListItem in
+                deckListItem.deck.deckId == deckId
+            }) else {
+                return nil
+            }
+
+            return .deck(deckItem: deckItem, cards: store.cardsMatchingDeck(deck: deckItem.deck))
+        }
+    }
+
+    private var currentDeckId: String? {
+        switch destination {
+        case .allCards:
+            return nil
+        case .deck(let deckId):
+            return deckId
+        }
     }
 
     var body: some View {
         List {
-            Section("Deck rules") {
-                SummaryRow(
-                    title: "Cards",
-                    value: "\(deckItem.totalCards)",
-                    symbolName: "square.stack.3d.up"
-                )
-                SummaryRow(
-                    title: "Due",
-                    value: "\(deckItem.dueCards)",
-                    symbolName: "clock.badge.checkmark"
-                )
-                SummaryRow(
-                    title: "New",
-                    value: "\(deckItem.newCards)",
-                    symbolName: "plus.circle"
-                )
-                Text(formatDeckFilterDefinition(filterDefinition: deckItem.deck.filterDefinition))
-                    .foregroundStyle(.secondary)
+            if screenErrorMessage.isEmpty == false {
+                Section {
+                    Text(screenErrorMessage)
+                        .foregroundStyle(.red)
+                }
             }
 
-            Section("Matching cards") {
-                if matchingCards.isEmpty {
-                    Text("No cards match this deck.")
+            if let detailState {
+                Section("Deck rules") {
+                    SummaryRow(
+                        title: "Cards",
+                        value: "\(detailState.stats.totalCards)",
+                        symbolName: "square.stack.3d.up"
+                    )
+                    SummaryRow(
+                        title: "Due",
+                        value: "\(detailState.stats.dueCards)",
+                        symbolName: "clock.badge.checkmark"
+                    )
+                    SummaryRow(
+                        title: "New",
+                        value: "\(detailState.stats.newCards)",
+                        symbolName: "plus.circle"
+                    )
+                    Text(detailState.filterSummary)
                         .foregroundStyle(.secondary)
-                } else {
-                    ForEach(matchingCards) { card in
-                        CardRow(card: card)
+                }
+
+                Section("Matching cards") {
+                    if detailState.cards.isEmpty {
+                        Text(detailState.emptyMessage)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(detailState.cards) { card in
+                            CardRow(card: card)
+                        }
                     }
+                }
+
+                if detailState.allowsEditing {
+                    Section {
+                        Button("Delete deck", role: .destructive) {
+                            self.deleteDeck()
+                        }
+                    }
+                }
+            } else {
+                Section {
+                    Text("Deck not found.")
+                        .foregroundStyle(.secondary)
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(deckItem.deck.name)
+        .navigationTitle(detailState?.title ?? "Deck")
+        .toolbar {
+            if detailState?.allowsEditing == true {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") {
+                        self.beginEditing()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $isEditorPresented) {
+            NavigationStack {
+                DeckEditorView(
+                    title: "Edit deck",
+                    formState: $deckFormState,
+                    onCancel: {
+                        isEditorPresented = false
+                    },
+                    onSave: {
+                        self.saveDeckChanges()
+                    }
+                )
+            }
+        }
+    }
+
+    private func beginEditing() {
+        guard let detailState else {
+            self.screenErrorMessage = "Deck not found."
+            return
+        }
+
+        switch detailState {
+        case .allCards:
+            self.screenErrorMessage = "System deck cannot be edited."
+        case .deck(let deckItem, _):
+            do {
+                self.deckFormState = try makeDeckFormState(deck: deckItem.deck)
+                self.screenErrorMessage = ""
+                self.isEditorPresented = true
+            } catch {
+                self.screenErrorMessage = localizedMessage(error: error)
+            }
+        }
+    }
+
+    private func saveDeckChanges() {
+        guard let deckId = currentDeckId else {
+            self.screenErrorMessage = "Deck not found."
+            return
+        }
+
+        do {
+            try store.updateDeck(deckId: deckId, input: makeDeckEditorInput(formState: deckFormState))
+            self.screenErrorMessage = ""
+            self.isEditorPresented = false
+        } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
+
+    private func deleteDeck() {
+        guard let deckId = currentDeckId else {
+            self.screenErrorMessage = "Deck not found."
+            return
+        }
+
+        do {
+            try store.deleteDeck(deckId: deckId)
+            self.screenErrorMessage = ""
+            dismiss()
+        } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
     }
 }
 
 private struct DeckEditorView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
+    let title: String
     @Binding var formState: DeckFormState
     let onCancel: () -> Void
     let onSave: () -> Void
@@ -296,7 +485,7 @@ private struct DeckEditorView: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("New deck")
+        .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Cancel", action: onCancel)
@@ -315,6 +504,95 @@ private struct DeckFormState {
     var selectedEffortLevels: [EffortLevel]
     var tagsOperator: DeckTagsOperator
     var tags: [String]
+}
+
+private func emptyDeckFormState() -> DeckFormState {
+    DeckFormState(
+        name: "",
+        combineWith: .and,
+        selectedEffortLevels: [],
+        tagsOperator: .containsAny,
+        tags: []
+    )
+}
+
+private func makeDeckEditorInput(formState: DeckFormState) -> DeckEditorInput {
+    DeckEditorInput(
+        name: formState.name.trimmingCharacters(in: .whitespacesAndNewlines),
+        filterDefinition: buildDeckFilterDefinition(
+            effortLevels: formState.selectedEffortLevels,
+            combineWith: formState.combineWith,
+            tagsOperator: formState.tagsOperator,
+            tags: formState.tags
+        )
+    )
+}
+
+private func makeDeckFormState(deck: Deck) throws -> DeckFormState {
+    var selectedEffortLevels: [EffortLevel] = []
+    var tagsOperator: DeckTagsOperator = .containsAny
+    var tags: [String] = []
+    var hasEffortPredicate: Bool = false
+    var hasTagsPredicate: Bool = false
+
+    for predicate in deck.filterDefinition.predicates {
+        switch predicate {
+        case .effortLevel(let values):
+            if hasEffortPredicate {
+                throw LocalStoreError.validation("Deck contains multiple effort predicates and cannot be edited")
+            }
+
+            selectedEffortLevels = values
+            hasEffortPredicate = true
+        case .tags(let nextTagsOperator, let values):
+            if hasTagsPredicate {
+                throw LocalStoreError.validation("Deck contains multiple tag predicates and cannot be edited")
+            }
+
+            tagsOperator = nextTagsOperator
+            tags = values
+            hasTagsPredicate = true
+        }
+    }
+
+    return DeckFormState(
+        name: deck.name,
+        combineWith: deck.filterDefinition.combineWith,
+        selectedEffortLevels: selectedEffortLevels,
+        tagsOperator: tagsOperator,
+        tags: tags
+    )
+}
+
+private func makeDeckScreenListItems(deckItems: [DeckListItem], cards: [Card]) -> [DeckScreenListItem] {
+    [makeAllCardsDeckScreenListItem(cards: cards)] + deckItems.map { deckItem in
+        DeckScreenListItem(
+            id: deckItem.id,
+            title: deckItem.deck.name,
+            filterSummary: formatDeckFilterDefinition(filterDefinition: deckItem.deck.filterDefinition),
+            stats: DeckCardStats(
+                totalCards: deckItem.totalCards,
+                dueCards: deckItem.dueCards,
+                newCards: deckItem.newCards,
+                reviewedCards: deckItem.reviewedCards
+            ),
+            destination: .deck(deckId: deckItem.deck.deckId),
+            persistedDeckId: deckItem.deck.deckId
+        )
+    }
+}
+
+private func makeAllCardsDeckScreenListItem(cards: [Card]) -> DeckScreenListItem {
+    let allCards = activeCards(cards: cards)
+
+    return DeckScreenListItem(
+        id: "system-all-cards",
+        title: allCardsDeckLabel,
+        filterSummary: allCardsDeckLabel,
+        stats: makeDeckCardStats(cards: allCards, now: Date()),
+        destination: .allCards,
+        persistedDeckId: nil
+    )
 }
 
 private func toggleEffortLevel(

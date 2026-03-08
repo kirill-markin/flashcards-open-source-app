@@ -263,6 +263,13 @@ struct DeckListItem: Identifiable, Hashable {
     }
 }
 
+struct DeckCardStats: Hashable {
+    let totalCards: Int
+    let dueCards: Int
+    let newCards: Int
+    let reviewedCards: Int
+}
+
 struct AppStateSnapshot: Hashable {
     let workspace: Workspace
     let userSettings: UserSettings
@@ -640,10 +647,29 @@ func sortCardsForReviewQueue(cards: [Card], now: Date) -> [Card] {
     }
 }
 
-func makeHomeSnapshot(cards: [Card], deckCount: Int, now: Date) -> HomeSnapshot {
-    let activeCards = cards.filter { card in
+func activeCards(cards: [Card]) -> [Card] {
+    cards.filter { card in
         card.deletedAt == nil
     }
+}
+
+func makeDeckCardStats(cards: [Card], now: Date) -> DeckCardStats {
+    DeckCardStats(
+        totalCards: cards.count,
+        dueCards: cards.filter { card in
+            isCardDue(card: card, now: now)
+        }.count,
+        newCards: cards.filter { card in
+            isCardNew(card: card)
+        }.count,
+        reviewedCards: cards.filter { card in
+            isCardReviewed(card: card)
+        }.count
+    )
+}
+
+func makeHomeSnapshot(cards: [Card], deckCount: Int, now: Date) -> HomeSnapshot {
+    let activeCards = activeCards(cards: cards)
 
     return HomeSnapshot(
         deckCount: deckCount,
@@ -660,24 +686,30 @@ func makeHomeSnapshot(cards: [Card], deckCount: Int, now: Date) -> HomeSnapshot 
     )
 }
 
+func matchingCardsForDeck(deck: Deck, cards: [Card]) -> [Card] {
+    activeCards(cards: cards).filter { card in
+        matchesDeckFilterDefinition(filterDefinition: deck.filterDefinition, card: card)
+    }
+}
+
+func makeDeckListItem(deck: Deck, cards: [Card], now: Date) -> DeckListItem {
+    let stats = makeDeckCardStats(cards: cards, now: now)
+
+    return DeckListItem(
+        deck: deck,
+        totalCards: stats.totalCards,
+        dueCards: stats.dueCards,
+        newCards: stats.newCards,
+        reviewedCards: stats.reviewedCards
+    )
+}
+
 func makeDeckListItems(decks: [Deck], cards: [Card], now: Date) -> [DeckListItem] {
     decks.map { deck in
-        let matchingCards = cards.filter { card in
-            card.deletedAt == nil && matchesDeckFilterDefinition(filterDefinition: deck.filterDefinition, card: card)
-        }
-
-        return DeckListItem(
+        makeDeckListItem(
             deck: deck,
-            totalCards: matchingCards.count,
-            dueCards: matchingCards.filter { card in
-                isCardDue(card: card, now: now)
-            }.count,
-            newCards: matchingCards.filter { card in
-                isCardNew(card: card)
-            }.count,
-            reviewedCards: matchingCards.filter { card in
-                isCardReviewed(card: card)
-            }.count
+            cards: matchingCardsForDeck(deck: deck, cards: cards),
+            now: now
         )
     }
 }
@@ -860,6 +892,34 @@ final class LocalDatabase {
                 .text(now)
             ]
         )
+    }
+
+    func updateDeck(workspaceId: String, deckId: String, input: DeckEditorInput) throws {
+        try validateDeckInput(input: input)
+
+        let filterData = try self.encoder.encode(input.filterDefinition)
+        guard let filterJson = String(data: filterData, encoding: .utf8) else {
+            throw LocalStoreError.database("Failed to encode deck filter definition")
+        }
+
+        let updatedRows = try self.execute(
+            sql: """
+            UPDATE decks
+            SET name = ?, filter_definition_json = ?, updated_at = ?
+            WHERE workspace_id = ? AND deck_id = ?
+            """,
+            values: [
+                .text(input.name),
+                .text(filterJson),
+                .text(currentIsoTimestamp()),
+                .text(workspaceId),
+                .text(deckId)
+            ]
+        )
+
+        if updatedRows == 0 {
+            throw LocalStoreError.notFound("Deck not found")
+        }
     }
 
     func deleteDeck(workspaceId: String, deckId: String) throws {
@@ -1641,6 +1701,18 @@ final class FlashcardsStore: ObservableObject {
         try self.reload()
     }
 
+    func updateDeck(deckId: String, input: DeckEditorInput) throws {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        try database.updateDeck(workspaceId: workspaceId, deckId: deckId, input: input)
+        try self.reload()
+    }
+
     func deleteDeck(deckId: String) throws {
         guard let database else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
@@ -1718,9 +1790,7 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func cardsMatchingDeck(deck: Deck) -> [Card] {
-        self.cards.filter { card in
-            matchesDeckFilterDefinition(filterDefinition: deck.filterDefinition, card: card)
-        }
+        matchingCardsForDeck(deck: deck, cards: self.cards)
     }
 }
 
