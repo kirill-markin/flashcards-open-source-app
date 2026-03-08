@@ -8,6 +8,8 @@ enum AppTab: Hashable {
     case settings
 }
 
+let allCardsDeckLabel: String = "All cards"
+
 enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable {
     case fast
     case medium
@@ -218,6 +220,30 @@ struct Deck: Identifiable, Hashable {
     }
 }
 
+enum ReviewFilter: Hashable, Identifiable {
+    case allCards
+    case deck(deckId: String)
+
+    var id: String {
+        switch self {
+        case .allCards:
+            return "system-all-cards"
+        case .deck(let deckId):
+            return deckId
+        }
+    }
+}
+
+private enum PersistedReviewFilterKind: String, Codable {
+    case allCards
+    case deck
+}
+
+private struct PersistedReviewFilter: Codable, Hashable {
+    let kind: PersistedReviewFilterKind
+    let deckId: String?
+}
+
 struct ReviewEvent: Identifiable, Hashable {
     let reviewEventId: String
     let workspaceId: String
@@ -331,6 +357,7 @@ private enum SQLiteValue {
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 private let goodIntervalsDays: [Int] = [1, 3, 7, 14, 30, 60]
 private let easyIntervalsDays: [Int] = [3, 7, 14, 30, 60, 90]
+private let selectedReviewFilterUserDefaultsKey: String = "selected-review-filter"
 
 func isoTimestamp(date: Date) -> String {
     let formatter = ISO8601DateFormatter()
@@ -689,6 +716,84 @@ func makeHomeSnapshot(cards: [Card], deckCount: Int, now: Date) -> HomeSnapshot 
 func matchingCardsForDeck(deck: Deck, cards: [Card]) -> [Card] {
     activeCards(cards: cards).filter { card in
         matchesDeckFilterDefinition(filterDefinition: deck.filterDefinition, card: card)
+    }
+}
+
+func resolveReviewFilter(reviewFilter: ReviewFilter, decks: [Deck]) -> ReviewFilter {
+    switch reviewFilter {
+    case .allCards:
+        return .allCards
+    case .deck(let deckId):
+        if decks.contains(where: { deck in
+            deck.deckId == deckId
+        }) {
+            return reviewFilter
+        }
+
+        return .allCards
+    }
+}
+
+func cardsMatchingReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]) -> [Card] {
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks)
+
+    switch resolvedReviewFilter {
+    case .allCards:
+        return activeCards(cards: cards)
+    case .deck(let deckId):
+        guard let deck = decks.first(where: { candidateDeck in
+            candidateDeck.deckId == deckId
+        }) else {
+            return []
+        }
+
+        return matchingCardsForDeck(deck: deck, cards: cards)
+    }
+}
+
+func reviewFilterTitle(reviewFilter: ReviewFilter, decks: [Deck]) -> String {
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks)
+
+    switch resolvedReviewFilter {
+    case .allCards:
+        return allCardsDeckLabel
+    case .deck(let deckId):
+        guard let deck = decks.first(where: { candidateDeck in
+            candidateDeck.deckId == deckId
+        }) else {
+            return allCardsDeckLabel
+        }
+
+        return deck.name
+    }
+}
+
+func makeReviewQueue(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], now: Date) -> [Card] {
+    sortCardsForReviewQueue(
+        cards: cardsMatchingReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards),
+        now: now
+    )
+}
+
+private func makePersistedReviewFilter(reviewFilter: ReviewFilter) -> PersistedReviewFilter {
+    switch reviewFilter {
+    case .allCards:
+        return PersistedReviewFilter(kind: .allCards, deckId: nil)
+    case .deck(let deckId):
+        return PersistedReviewFilter(kind: .deck, deckId: deckId)
+    }
+}
+
+private func makeReviewFilter(persistedReviewFilter: PersistedReviewFilter) throws -> ReviewFilter {
+    switch persistedReviewFilter.kind {
+    case .allCards:
+        return .allCards
+    case .deck:
+        guard let deckId = persistedReviewFilter.deckId, deckId.isEmpty == false else {
+            throw LocalStoreError.validation("Persisted review filter is missing deckId")
+        }
+
+        return .deck(deckId: deckId)
     }
 }
 
@@ -1605,19 +1710,32 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var cards: [Card]
     @Published private(set) var decks: [Deck]
     @Published private(set) var deckItems: [DeckListItem]
+    @Published private(set) var selectedReviewFilter: ReviewFilter
     @Published private(set) var reviewQueue: [Card]
     @Published private(set) var homeSnapshot: HomeSnapshot
     @Published private(set) var globalErrorMessage: String
+    @Published private(set) var selectedTab: AppTab
 
     private let database: LocalDatabase?
+    private let userDefaults: UserDefaults
+    private let encoder: JSONEncoder
+    private let decoder: JSONDecoder
 
     init() {
+        let userDefaults = UserDefaults.standard
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
         self.workspace = nil
         self.userSettings = nil
         self.cloudSettings = nil
         self.cards = []
         self.decks = []
         self.deckItems = []
+        self.selectedReviewFilter = FlashcardsStore.loadSelectedReviewFilter(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
         self.reviewQueue = []
         self.homeSnapshot = HomeSnapshot(
             deckCount: 0,
@@ -1627,6 +1745,10 @@ final class FlashcardsStore: ObservableObject {
             reviewedCount: 0
         )
         self.globalErrorMessage = ""
+        self.selectedTab = .review
+        self.userDefaults = userDefaults
+        self.encoder = encoder
+        self.decoder = decoder
 
         let database: LocalDatabase?
         do {
@@ -1660,9 +1782,27 @@ final class FlashcardsStore: ObservableObject {
         self.cards = snapshot.cards
         self.decks = snapshot.decks
         self.deckItems = makeDeckListItems(decks: snapshot.decks, cards: snapshot.cards, now: now)
-        self.reviewQueue = sortCardsForReviewQueue(cards: snapshot.cards, now: now)
+        self.refreshReviewState(now: now)
         self.homeSnapshot = makeHomeSnapshot(cards: snapshot.cards, deckCount: snapshot.decks.count, now: now)
         self.globalErrorMessage = ""
+    }
+
+    var selectedReviewFilterTitle: String {
+        reviewFilterTitle(reviewFilter: self.selectedReviewFilter, decks: self.decks)
+    }
+
+    func selectTab(tab: AppTab) {
+        self.selectedTab = tab
+    }
+
+    func selectReviewFilter(reviewFilter: ReviewFilter) {
+        self.selectedReviewFilter = reviewFilter
+        self.refreshReviewState(now: Date())
+    }
+
+    func openReview(reviewFilter: ReviewFilter) {
+        self.selectReviewFilter(reviewFilter: reviewFilter)
+        self.selectTab(tab: .review)
     }
 
     func saveCard(input: CardEditorInput, editingCardId: String?) throws {
@@ -1791,6 +1931,42 @@ final class FlashcardsStore: ObservableObject {
 
     func cardsMatchingDeck(deck: Deck) -> [Card] {
         matchingCardsForDeck(deck: deck, cards: self.cards)
+    }
+
+    private func refreshReviewState(now: Date) {
+        let resolvedReviewFilter = resolveReviewFilter(reviewFilter: self.selectedReviewFilter, decks: self.decks)
+        self.selectedReviewFilter = resolvedReviewFilter
+        self.persistSelectedReviewFilter(reviewFilter: resolvedReviewFilter)
+        self.reviewQueue = makeReviewQueue(
+            reviewFilter: resolvedReviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
+        )
+    }
+
+    private func persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
+        do {
+            let persistedReviewFilter = makePersistedReviewFilter(reviewFilter: reviewFilter)
+            let data = try self.encoder.encode(persistedReviewFilter)
+            self.userDefaults.set(data, forKey: selectedReviewFilterUserDefaultsKey)
+        } catch {
+            self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
+        }
+    }
+
+    private static func loadSelectedReviewFilter(userDefaults: UserDefaults, decoder: JSONDecoder) -> ReviewFilter {
+        guard let data = userDefaults.data(forKey: selectedReviewFilterUserDefaultsKey) else {
+            return .allCards
+        }
+
+        do {
+            let persistedReviewFilter = try decoder.decode(PersistedReviewFilter.self, from: data)
+            return try makeReviewFilter(persistedReviewFilter: persistedReviewFilter)
+        } catch {
+            userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
+            return .allCards
+        }
     }
 }
 

@@ -1,10 +1,17 @@
 import SwiftUI
 
 struct RootTabView: View {
-    @State private var selectedTab: AppTab = .review
+    @EnvironmentObject private var store: FlashcardsStore
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: Binding(
+            get: {
+                store.selectedTab
+            },
+            set: { nextTab in
+                store.selectTab(tab: nextTab)
+            }
+        )) {
             NavigationStack {
                 ReviewView()
             }

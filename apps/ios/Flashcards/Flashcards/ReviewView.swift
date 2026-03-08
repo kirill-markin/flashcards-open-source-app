@@ -6,6 +6,12 @@ struct ReviewView: View {
     @State private var isAnswerVisible: Bool = false
     @State private var screenErrorMessage: String = ""
 
+    private var reviewFilterOptions: [ReviewFilter] {
+        [.allCards] + store.decks.map { deck in
+            .deck(deckId: deck.deckId)
+        }
+    }
+
     private var currentCard: Card? {
         store.reviewQueue.first
     }
@@ -23,10 +29,41 @@ struct ReviewView: View {
             isAnswerVisible = false
         }
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                reviewFilterMenu
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Text("\(store.reviewQueue.count) due")
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var reviewFilterMenu: some View {
+        Menu {
+            ForEach(reviewFilterOptions) { reviewFilter in
+                Button {
+                    store.selectReviewFilter(reviewFilter: reviewFilter)
+                } label: {
+                    if reviewFilter == store.selectedReviewFilter {
+                        Label(
+                            reviewFilterTitle(reviewFilter: reviewFilter, decks: store.decks),
+                            systemImage: "checkmark"
+                        )
+                    } else {
+                        Text(reviewFilterTitle(reviewFilter: reviewFilter, decks: store.decks))
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(store.selectedReviewFilterTitle)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
             }
         }
     }
