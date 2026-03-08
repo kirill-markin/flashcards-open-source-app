@@ -27,6 +27,12 @@ type InputMessage =
   | { role: "user"; content: string | ReadonlyArray<UserContentPart> }
   | { role: "assistant"; content: ReadonlyArray<AssistantContentPart> };
 
+type MessageOutputContentPart =
+  | { type: "output_text"; text: string }
+  | { type: "refusal"; refusal: string }
+  | { type: "audio"; audio: string | { id: string }; format?: string | null; transcript?: string | null }
+  | { type: "image"; image: string };
+
 function buildOpenaiInstructions(timezone: string): string {
   return (
     buildSystemInstructions(timezone) +
@@ -102,6 +108,27 @@ function buildInput(messages: ReadonlyArray<ChatMessage>): ReadonlyArray<InputMe
   return result;
 }
 
+function extractMessageOutputText(
+  item: { rawItem: { content: ReadonlyArray<MessageOutputContentPart> } },
+): string {
+  return item.rawItem.content.reduce(
+    (text: string, part) => (part.type === "output_text" ? text + part.text : text),
+    "",
+  );
+}
+
+function getUnsentMessageOutputText(fullText: string, streamedText: string): string {
+  if (streamedText.length === 0) {
+    return fullText;
+  }
+
+  if (!fullText.startsWith(streamedText)) {
+    throw new Error("OpenAI message output does not match streamed text prefix");
+  }
+
+  return fullText.slice(streamedText.length);
+}
+
 export type StreamAgentParams = Readonly<{
   messages: ReadonlyArray<ChatMessage>;
   model: string;
@@ -135,11 +162,12 @@ export async function* streamAgentResponse(
 
   let activeToolName: string | null = null;
   let activeToolInput: string | null = null;
-  let emittedAssistantText = "";
+  let streamedText = "";
+  const emittedMessageOutputIds = new Set<string>();
 
   for await (const event of result) {
     if (event.type === "raw_model_stream_event" && event.data.type === "output_text_delta") {
-      emittedAssistantText += event.data.delta;
+      streamedText += event.data.delta;
       yield { type: "delta", text: event.data.delta };
       continue;
     }
@@ -149,13 +177,21 @@ export async function* streamAgentResponse(
     }
 
     if (event.name === "message_output_created" && event.item.type === "message_output_item") {
-      const remainingText = event.item.content.startsWith(emittedAssistantText)
-        ? event.item.content.slice(emittedAssistantText.length)
-        : event.item.content;
+      const messageId = event.item.rawItem.id;
+      if (messageId !== undefined && emittedMessageOutputIds.has(messageId)) {
+        continue;
+      }
 
-      if (remainingText !== "") {
-        emittedAssistantText += remainingText;
-        yield { type: "delta", text: remainingText };
+      const messageText = extractMessageOutputText(event.item);
+      const unsentText = getUnsentMessageOutputText(messageText, streamedText);
+
+      if (unsentText !== "") {
+        streamedText += unsentText;
+        yield { type: "delta", text: unsentText };
+      }
+
+      if (messageId !== undefined) {
+        emittedMessageOutputIds.add(messageId);
       }
 
       continue;

@@ -1,20 +1,10 @@
 import SwiftUI
 
 struct RootTabView: View {
-    @State private var selectedTab: AppTab = .home
+    @State private var selectedTab: AppTab = .review
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            NavigationStack {
-                HomeView(startReview: {
-                    selectedTab = .review
-                })
-            }
-            .tabItem {
-                Label("Home", systemImage: "house")
-            }
-            .tag(AppTab.home)
-
             NavigationStack {
                 ReviewView()
             }
@@ -22,6 +12,22 @@ struct RootTabView: View {
                 Label("Review", systemImage: "rectangle.on.rectangle")
             }
             .tag(AppTab.review)
+
+            NavigationStack {
+                DecksScreen()
+            }
+            .tabItem {
+                Label("Decks", systemImage: "line.3.horizontal.decrease.circle")
+            }
+            .tag(AppTab.decks)
+
+            NavigationStack {
+                CardsScreen()
+            }
+            .tabItem {
+                Label("Cards", systemImage: "rectangle.stack")
+            }
+            .tag(AppTab.cards)
 
             NavigationStack {
                 SettingsView()
