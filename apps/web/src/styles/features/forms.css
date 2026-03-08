@@ -1,0 +1,103 @@
+.card-form-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+.card-form-panel,
+.card-meta-panel {
+  border: 1px solid var(--panel-border);
+  padding: 16px;
+}
+
+.card-form-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.form-label {
+  display: grid;
+  gap: 8px;
+}
+
+.form-label span {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.deck-form-fieldset {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.deck-form-legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.deck-checkbox-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.deck-checkbox-option {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.deck-checkbox-option input {
+  margin: 0;
+}
+
+.form-textarea {
+  min-height: 160px;
+  resize: vertical;
+}
+
+.meta-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.meta-row {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(35, 35, 35, 0.12);
+}
+
+.meta-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.meta-row dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.meta-row dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+@media (max-width: 1024px) {
+  .card-form-layout {
+    grid-template-columns: 1fr;
+  }
+}

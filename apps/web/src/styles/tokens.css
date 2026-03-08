@@ -1,0 +1,9 @@
+:root {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-border: #232323;
+  --text: #000000;
+  --muted: #7d7d7d;
+  --accent: #232323;
+  --danger: #c0392b;
+}
