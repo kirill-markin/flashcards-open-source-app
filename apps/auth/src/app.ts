@@ -13,6 +13,7 @@ import loginPage from "./routes/loginPage.js";
 import refreshSession from "./routes/refreshSession.js";
 import refreshToken from "./routes/refreshToken.js";
 import revokeToken from "./routes/revokeToken.js";
+import robots from "./routes/robots.js";
 
 function getMountPaths(basePath: string): ReadonlyArray<string> {
   if (basePath === "/v1") {
@@ -24,6 +25,11 @@ function getMountPaths(basePath: string): ReadonlyArray<string> {
 
 function createMountedApp(basePath: string): Hono {
   const app = new Hono().basePath(basePath);
+
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("X-Robots-Tag", "noindex, nofollow, noarchive");
+  });
 
   // Deny cross-origin requests to API endpoints (defense-in-depth).
   app.use("/api/*", async (c, next) => {
@@ -38,6 +44,7 @@ function createMountedApp(basePath: string): Hono {
   });
 
   app.route("/", health);
+  app.route("/", robots);
   app.route("/", sendCode);
   app.route("/", verifyCode);
   app.route("/", loginPage);
