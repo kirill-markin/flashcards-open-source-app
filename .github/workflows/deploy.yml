@@ -4,7 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/**'
+      - 'apps/auth/**'
+      - 'apps/backend/**'
+      - 'apps/web/**'
       - 'db/**'
       - 'infra/**'
       - 'scripts/**'
