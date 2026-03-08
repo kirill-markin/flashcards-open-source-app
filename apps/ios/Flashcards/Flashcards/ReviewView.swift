@@ -36,6 +36,7 @@ struct ReviewView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Text("\(store.reviewQueue.count) due")
                     .font(.subheadline.monospacedDigit())
+                    .padding(.horizontal, 6)
                     .foregroundStyle(.secondary)
             }
         }
