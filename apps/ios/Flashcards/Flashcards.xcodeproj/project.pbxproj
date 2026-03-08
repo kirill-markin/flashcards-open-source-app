@@ -18,10 +18,10 @@
 
 /* Begin PBXFileReference section */
 		A10000000000000000000005 /* Flashcards.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Flashcards.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A10000000000000000000006 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000007 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Release.xcconfig; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000008 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000009 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Local.xcconfig.example; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000018 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000019 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Release.xcconfig; sourceTree = SOURCE_ROOT; };
+		A1000000000000000000001A /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = SOURCE_ROOT; };
+		A1000000000000000000001B /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Local.xcconfig.example; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000011 /* FlashcardsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashcardsApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000012 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		A10000000000000000000013 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -61,12 +61,12 @@
 		};
 		A10000000000000000000010 /* Config */ = {
 			isa = PBXGroup;
-			children = (
-				A10000000000000000000008 /* Base.xcconfig */,
-				A10000000000000000000006 /* Debug.xcconfig */,
-				A10000000000000000000007 /* Release.xcconfig */,
-				A10000000000000000000009 /* Local.xcconfig.example */,
-			);
+				children = (
+					A1000000000000000000001A /* Base.xcconfig */,
+					A10000000000000000000018 /* Debug.xcconfig */,
+					A10000000000000000000019 /* Release.xcconfig */,
+					A1000000000000000000001B /* Local.xcconfig.example */,
+				);
 			name = Config;
 			path = Config;
 			sourceTree = SOURCE_ROOT;
@@ -223,14 +223,14 @@
 		};
 		A1000000000000000000000D /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A10000000000000000000006 /* Debug.xcconfig */;
+			baseConfigurationReference = A10000000000000000000018 /* Debug.xcconfig */;
 			buildSettings = {
 			};
 			name = Debug;
 		};
 		A1000000000000000000000E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A10000000000000000000007 /* Release.xcconfig */;
+			baseConfigurationReference = A10000000000000000000019 /* Release.xcconfig */;
 			buildSettings = {
 			};
 			name = Release;
