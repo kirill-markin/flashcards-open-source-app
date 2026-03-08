@@ -25,6 +25,21 @@ export interface ApiGatewayResult {
   backendFn: lambdaNodejs.NodejsFunction;
 }
 
+interface BackendFunctionProps {
+  constructId: string;
+  entry: string;
+  vpc: ec2.Vpc;
+  lambdaSg: ec2.SecurityGroup;
+  db: rds.DatabaseInstance;
+  appDbSecret: cdk.aws_secretsmanager.Secret;
+  backendCsrfSecret: cdk.aws_secretsmanager.Secret;
+  allowedOrigins: string[];
+  userPoolId: string;
+  userPoolClientId: string;
+  openAiApiKeySecretArn: string | undefined;
+  anthropicApiKeySecretArn: string | undefined;
+}
+
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
@@ -54,6 +69,56 @@ function addLambdaSecretEnvironment(
 }
 
 /**
+ * Creates a backend Lambda with the shared network, database, auth, and model
+ * secret configuration used by both the buffered API handler and the
+ * chat-specific streaming handler.
+ */
+function createBackendFunction(scope: Construct, props: BackendFunctionProps): lambdaNodejs.NodejsFunction {
+  const fn = new lambdaNodejs.NodejsFunction(scope, props.constructId, {
+    entry: props.entry,
+    handler: "handler",
+    runtime: lambda.Runtime.NODEJS_24_X,
+    timeout: cdk.Duration.seconds(30),
+    memorySize: 256,
+    vpc: props.vpc,
+    vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+    securityGroups: [props.lambdaSg],
+    bundling: lambdaBundling,
+    environment: {
+      NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
+      DB_SECRET_ARN: props.appDbSecret.secretArn,
+      DB_HOST: props.db.dbInstanceEndpointAddress,
+      DB_NAME: "flashcards",
+      AUTH_MODE: "cognito",
+      COGNITO_USER_POOL_ID: props.userPoolId,
+      COGNITO_CLIENT_ID: props.userPoolClientId,
+      COGNITO_REGION: cdk.Stack.of(scope).region,
+      BACKEND_ALLOWED_ORIGINS: props.allowedOrigins.join(","),
+      BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
+    },
+  });
+
+  props.appDbSecret.grantRead(fn);
+  props.backendCsrfSecret.grantRead(fn);
+  addLambdaSecretEnvironment(
+    scope,
+    fn,
+    props.openAiApiKeySecretArn,
+    `${props.constructId}OpenAiApiKeySecret`,
+    "OPENAI_API_KEY",
+  );
+  addLambdaSecretEnvironment(
+    scope,
+    fn,
+    props.anthropicApiKeySecretArn,
+    `${props.constructId}AnthropicApiKeySecret`,
+    "ANTHROPIC_API_KEY",
+  );
+
+  return fn;
+}
+
+/**
  * Builds the public REST API resources that API Gateway must know about ahead
  * of time, including chat subpaths that are handled dynamically inside Hono.
  */
@@ -74,34 +139,34 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     },
   });
 
-  const backendFn = new lambdaNodejs.NodejsFunction(scope, "BackendHandler", {
+  const backendFn = createBackendFunction(scope, {
+    constructId: "BackendHandler",
     entry: path.join(__dirname, "../../../apps/backend/src/lambda.ts"),
-    handler: "handler",
-    runtime: lambda.Runtime.NODEJS_24_X,
-    timeout: cdk.Duration.seconds(30),
-    memorySize: 256,
     vpc: props.vpc,
-    vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-    securityGroups: [props.lambdaSg],
-    bundling: lambdaBundling,
-    environment: {
-      NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
-      DB_SECRET_ARN: props.appDbSecret.secretArn,
-      DB_HOST: props.db.dbInstanceEndpointAddress,
-      DB_NAME: "flashcards",
-      AUTH_MODE: "cognito",
-      COGNITO_USER_POOL_ID: props.userPoolId,
-      COGNITO_CLIENT_ID: props.userPoolClientId,
-      COGNITO_REGION: cdk.Stack.of(scope).region,
-      BACKEND_ALLOWED_ORIGINS: allowedOrigins.join(","),
-      BACKEND_CSRF_SECRET_ARN: backendCsrfSecret.secretArn,
-    },
+    lambdaSg: props.lambdaSg,
+    db: props.db,
+    appDbSecret: props.appDbSecret,
+    backendCsrfSecret,
+    allowedOrigins,
+    userPoolId: props.userPoolId,
+    userPoolClientId: props.userPoolClientId,
+    openAiApiKeySecretArn: props.openAiApiKeySecretArn,
+    anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
   });
-
-  props.appDbSecret.grantRead(backendFn);
-  backendCsrfSecret.grantRead(backendFn);
-  addLambdaSecretEnvironment(scope, backendFn, props.openAiApiKeySecretArn, "OpenAiApiKeySecret", "OPENAI_API_KEY");
-  addLambdaSecretEnvironment(scope, backendFn, props.anthropicApiKeySecretArn, "AnthropicApiKeySecret", "ANTHROPIC_API_KEY");
+  const chatStreamingFn = createBackendFunction(scope, {
+    constructId: "ChatStreamingHandler",
+    entry: path.join(__dirname, "../../../apps/backend/src/lambda-stream.ts"),
+    vpc: props.vpc,
+    lambdaSg: props.lambdaSg,
+    db: props.db,
+    appDbSecret: props.appDbSecret,
+    backendCsrfSecret,
+    allowedOrigins,
+    userPoolId: props.userPoolId,
+    userPoolClientId: props.userPoolClientId,
+    openAiApiKeySecretArn: props.openAiApiKeySecretArn,
+    anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+  });
 
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
@@ -127,18 +192,20 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const integration = new apigw.LambdaIntegration(backendFn);
 
   /**
-   * Streams the chat response through API Gateway instead of waiting for the
-   * full Lambda body.
+   * Routes `/chat` through a dedicated streaming Lambda instead of waiting for
+   * the full response body.
    *
-   * This is required for the SSE chat route because buffered transfer mode
-   * flattens all `data: ...` frames into one payload, which leaves the browser
-   * with a single unparsable line instead of incremental events.
+   * The Hono `streamHandle(app)` adapter and API Gateway response transfer mode
+   * must be used together for SSE. Applying that adapter to the main backend
+   * Lambda breaks buffered proxy routes such as `/health`, so chat keeps its
+   * own entry point while the rest of the API stays on the classic buffered
+   * Lambda integration.
    *
    * Only `/chat` uses this integration. The diagnostics endpoint stays on the
    * buffered path because it returns a normal `204` response and does not need
    * streaming semantics.
    */
-  const streamingIntegration = new apigw.LambdaIntegration(backendFn, {
+  const streamingIntegration = new apigw.LambdaIntegration(chatStreamingFn, {
     responseTransferMode: apigw.ResponseTransferMode.STREAM,
   });
   const notFoundIntegration = new apigw.MockIntegration({
