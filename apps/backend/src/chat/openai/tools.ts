@@ -24,11 +24,11 @@ export const listCardsTool = tool({
   name: "list_cards",
   description: "List cards in the current workspace.",
   parameters: z.object({
-    limit: z.number().int().min(1).max(100).optional(),
+    limit: z.number().int().min(1).max(100).nullable(),
   }),
-  execute: async (input: { limit?: number }, runContext?: RunContext<AgentContext>): Promise<string> => {
+  execute: async (input: { limit: number | null }, runContext?: RunContext<AgentContext>): Promise<string> => {
     const context = expectRunContext(runContext);
-    return runListCardsTool(context.workspaceId, input.limit);
+    return runListCardsTool(context.workspaceId, input.limit ?? undefined);
   },
 });
 
@@ -49,11 +49,14 @@ export const searchCardsTool = tool({
   description: "Search cards by front text, back text, or tags.",
   parameters: z.object({
     query: z.string().min(1),
-    limit: z.number().int().min(1).max(100).optional(),
+    limit: z.number().int().min(1).max(100).nullable(),
   }),
-  execute: async (input: { query: string; limit?: number }, runContext?: RunContext<AgentContext>): Promise<string> => {
+  execute: async (
+    input: { query: string; limit: number | null },
+    runContext?: RunContext<AgentContext>,
+  ): Promise<string> => {
     const context = expectRunContext(runContext);
-    return runSearchCardsTool(context.workspaceId, input.query, input.limit);
+    return runSearchCardsTool(context.workspaceId, input.query, input.limit ?? undefined);
   },
 });
 
@@ -61,11 +64,11 @@ export const listDueCardsTool = tool({
   name: "list_due_cards",
   description: "List cards currently due for review.",
   parameters: z.object({
-    limit: z.number().int().min(1).max(100).optional(),
+    limit: z.number().int().min(1).max(100).nullable(),
   }),
-  execute: async (input: { limit?: number }, runContext?: RunContext<AgentContext>): Promise<string> => {
+  execute: async (input: { limit: number | null }, runContext?: RunContext<AgentContext>): Promise<string> => {
     const context = expectRunContext(runContext);
-    return runListDueCardsTool(context.workspaceId, input.limit);
+    return runListDueCardsTool(context.workspaceId, input.limit ?? undefined);
   },
 });
 
@@ -73,12 +76,15 @@ export const listReviewHistoryTool = tool({
   name: "list_review_history",
   description: "List recent review events, optionally filtered by cardId.",
   parameters: z.object({
-    limit: z.number().int().min(1).max(100).optional(),
-    cardId: z.string().min(1).optional(),
+    limit: z.number().int().min(1).max(100).nullable(),
+    cardId: z.string().min(1).nullable(),
   }),
-  execute: async (input: { limit?: number; cardId?: string }, runContext?: RunContext<AgentContext>): Promise<string> => {
+  execute: async (
+    input: { limit: number | null; cardId: string | null },
+    runContext?: RunContext<AgentContext>,
+  ): Promise<string> => {
     const context = expectRunContext(runContext);
-    return runListReviewHistoryTool(context.workspaceId, input.limit, input.cardId);
+    return runListReviewHistoryTool(context.workspaceId, input.limit ?? undefined, input.cardId ?? undefined);
   },
 });
 
@@ -115,18 +121,18 @@ export const updateCardTool = tool({
   description: "Update editable card fields after explicit user confirmation.",
   parameters: z.object({
     cardId: z.string().min(1),
-    frontText: z.string().min(1).optional(),
-    backText: z.string().min(1).optional(),
-    tags: z.array(z.string()).optional(),
-    effortLevel: z.enum(["fast", "medium", "long"]).optional(),
+    frontText: z.string().min(1).nullable(),
+    backText: z.string().min(1).nullable(),
+    tags: z.array(z.string()).nullable(),
+    effortLevel: z.enum(["fast", "medium", "long"]).nullable(),
   }),
   execute: async (
     input: {
       cardId: string;
-      frontText?: string;
-      backText?: string;
-      tags?: ReadonlyArray<string>;
-      effortLevel?: "fast" | "medium" | "long";
+      frontText: string | null;
+      backText: string | null;
+      tags: ReadonlyArray<string> | null;
+      effortLevel: "fast" | "medium" | "long" | null;
     },
     runContext?: RunContext<AgentContext>,
   ): Promise<string> => {
@@ -135,10 +141,10 @@ export const updateCardTool = tool({
       context.workspaceId,
       input.cardId,
       {
-        frontText: input.frontText,
-        backText: input.backText,
-        tags: input.tags,
-        effortLevel: input.effortLevel,
+        frontText: input.frontText ?? undefined,
+        backText: input.backText ?? undefined,
+        tags: input.tags ?? undefined,
+        effortLevel: input.effortLevel ?? undefined,
       },
       { latestUserText: context.latestUserText },
     );
