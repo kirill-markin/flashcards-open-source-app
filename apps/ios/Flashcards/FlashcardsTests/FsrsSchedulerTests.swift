@@ -647,7 +647,6 @@ final class FsrsSchedulerTests: XCTestCase {
                     fsrsDifficulty: 6.4133,
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 0,
-                    serverVersion: 1,
                     clientUpdatedAt: "2026-03-08T09:00:00.000Z",
                     lastModifiedByDeviceId: "device",
                     lastOperationId: "operation",
@@ -675,7 +674,6 @@ final class FsrsSchedulerTests: XCTestCase {
                     fsrsDifficulty: 1,
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 8,
-                    serverVersion: 1,
                     clientUpdatedAt: "2026-03-08T09:00:00.000Z",
                     lastModifiedByDeviceId: "device",
                     lastOperationId: "operation",
@@ -703,7 +701,6 @@ final class FsrsSchedulerTests: XCTestCase {
                     fsrsDifficulty: 2.11810397,
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 0,
-                    serverVersion: 1,
                     clientUpdatedAt: "2026-03-08T09:00:00.000Z",
                     lastModifiedByDeviceId: "device",
                     lastOperationId: "operation",
@@ -733,15 +730,13 @@ final class FsrsSchedulerTests: XCTestCase {
                 fsrsDifficulty: 1,
                 fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                 fsrsScheduledDays: 8,
-                serverVersion: 3,
                 clientUpdatedAt: "2026-03-08T09:00:00.000Z",
                 lastModifiedByDeviceId: "device",
                 lastOperationId: "operation",
                 updatedAt: "2026-03-08T09:00:00.000Z",
                 deletedAt: nil
             ),
-            updatedAt: "2026-03-08T09:05:00.000Z",
-            serverVersion: 4
+            updatedAt: "2026-03-08T09:05:00.000Z"
         )
 
         XCTAssertNil(repairedCard.dueAt)
@@ -753,7 +748,6 @@ final class FsrsSchedulerTests: XCTestCase {
         XCTAssertNil(repairedCard.fsrsDifficulty)
         XCTAssertNil(repairedCard.fsrsLastReviewedAt)
         XCTAssertNil(repairedCard.fsrsScheduledDays)
-        XCTAssertEqual(repairedCard.serverVersion, 4)
         XCTAssertEqual(repairedCard.updatedAt, "2026-03-08T09:05:00.000Z")
     }
 
@@ -774,7 +768,6 @@ final class FsrsSchedulerTests: XCTestCase {
             fsrsDifficulty: nil,
             fsrsLastReviewedAt: nil,
             fsrsScheduledDays: nil,
-            serverVersion: 0,
             clientUpdatedAt: "2026-03-08T00:00:00.000Z",
             lastModifiedByDeviceId: "device",
             lastOperationId: "operation",
@@ -857,7 +850,6 @@ final class FsrsSchedulerTests: XCTestCase {
             relearningStepsMinutes: relearningStepsMinutes,
             maximumIntervalDays: maximumIntervalDays,
             enableFuzz: enableFuzz,
-            serverVersion: nil,
             clientUpdatedAt: "2026-03-08T00:00:00.000Z",
             lastModifiedByDeviceId: "device",
             lastOperationId: "operation",
@@ -882,7 +874,6 @@ final class FsrsSchedulerTests: XCTestCase {
             fsrsDifficulty: nil,
             fsrsLastReviewedAt: nil,
             fsrsScheduledDays: nil,
-            serverVersion: 0,
             clientUpdatedAt: "2026-03-08T00:00:00.000Z",
             lastModifiedByDeviceId: "device",
             lastOperationId: "operation",
@@ -908,7 +899,6 @@ final class FsrsSchedulerTests: XCTestCase {
             fsrsDifficulty: schedule.fsrsDifficulty,
             fsrsLastReviewedAt: isoTimestamp(date: schedule.fsrsLastReviewedAt),
             fsrsScheduledDays: schedule.fsrsScheduledDays,
-            serverVersion: card.serverVersion,
             clientUpdatedAt: card.clientUpdatedAt,
             lastModifiedByDeviceId: card.lastModifiedByDeviceId,
             lastOperationId: card.lastOperationId,

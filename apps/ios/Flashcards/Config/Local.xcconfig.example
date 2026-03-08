@@ -7,3 +7,9 @@
 
 // Uncomment if you need a personal bundle identifier for local signing.
 // APP_BUNDLE_IDENTIFIER = com.yourname.flashcards.dev
+
+// Set your personal backend/auth deployment URLs here.
+// These values stay machine-local because open-source contributors may target
+// different API and auth hosts.
+// API_BASE_URL = https://api.example.com/v1
+// AUTH_BASE_URL = https://auth.example.com
