@@ -183,6 +183,13 @@ struct ReviewView: View {
             } else {
                 Text("All due cards are cleared for now. Come back later or create more cards.")
             }
+        } actions: {
+            Button {
+                store.openCardCreation()
+            } label: {
+                Label("Create card", systemImage: "plus")
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
 

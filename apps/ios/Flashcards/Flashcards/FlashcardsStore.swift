@@ -47,6 +47,7 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var homeSnapshot: HomeSnapshot
     @Published private(set) var globalErrorMessage: String
     @Published private(set) var selectedTab: AppTab
+    @Published private(set) var cardsPresentationRequest: CardsPresentationRequest?
 
     private let database: LocalDatabase?
     private let userDefaults: UserDefaults
@@ -78,6 +79,7 @@ final class FlashcardsStore: ObservableObject {
         )
         self.globalErrorMessage = ""
         self.selectedTab = .review
+        self.cardsPresentationRequest = nil
         self.userDefaults = userDefaults
         self.encoder = encoder
         self.decoder = decoder
@@ -135,6 +137,15 @@ final class FlashcardsStore: ObservableObject {
     func openReview(reviewFilter: ReviewFilter) {
         self.selectReviewFilter(reviewFilter: reviewFilter)
         self.selectTab(tab: .review)
+    }
+
+    func openCardCreation() {
+        self.selectTab(tab: .cards)
+        self.cardsPresentationRequest = .createCard
+    }
+
+    func clearCardsPresentationRequest() {
+        self.cardsPresentationRequest = nil
     }
 
     func saveCard(input: CardEditorInput, editingCardId: String?) throws {

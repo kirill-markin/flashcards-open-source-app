@@ -7,6 +7,10 @@ enum AppTab: Hashable {
     case settings
 }
 
+enum CardsPresentationRequest: Hashable {
+    case createCard
+}
+
 let allCardsDeckLabel: String = "All cards"
 
 enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable {
