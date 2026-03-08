@@ -41,6 +41,10 @@ type ChatResponseMetadata = Readonly<{
   responseBodyMissing: boolean;
 }>;
 
+/**
+ * Normalizes exposed response headers so diagnostics can distinguish truly
+ * missing values from empty strings returned by intermediate infrastructure.
+ */
 function readResponseHeader(response: Response, headerName: string): string | null {
   const value = response.headers.get(headerName);
   if (value === null) {
@@ -51,6 +55,10 @@ function readResponseHeader(response: Response, headerName: string): string | nu
   return trimmedValue === "" ? null : trimmedValue;
 }
 
+/**
+ * Captures the subset of response metadata needed to correlate browser stream
+ * behavior with API Gateway and backend logs.
+ */
 function buildChatResponseMetadata(response: Response | null): ChatResponseMetadata {
   if (response === null) {
     return {
@@ -79,6 +87,10 @@ function buildChatResponseMetadata(response: Response | null): ChatResponseMetad
   };
 }
 
+/**
+ * Reports diagnostics both to the local console and to the backend endpoint so
+ * production-only stream failures can be compared with CloudWatch logs.
+ */
 async function reportChatDiagnostics(payload: ChatDiagnosticsPayload): Promise<void> {
   console.info("chat_frontend_diagnostics", payload);
 

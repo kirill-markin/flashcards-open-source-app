@@ -53,6 +53,10 @@ function addLambdaSecretEnvironment(
   fn.addEnvironment(environmentVariableName, secret.secretValue.unsafeUnwrap());
 }
 
+/**
+ * Builds the public REST API resources that API Gateway must know about ahead
+ * of time, including chat subpaths that are handled dynamically inside Hono.
+ */
 export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGatewayResult {
   const allowedOrigins = [
     `https://app.${props.baseDomain}`,
@@ -162,6 +166,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const chat = restApi.root.addResource("chat");
   chat.addMethod("POST", integration);
+  chat.addResource("diagnostics").addMethod("POST", integration);
 
   const sync = restApi.root.addResource("sync");
   sync.addResource("push").addMethod("POST", integration);
