@@ -6,6 +6,7 @@ import {
   normalizeIsoTimestamp,
   type LwwMetadata,
 } from "./lww";
+import { findLatestSyncChangeId, insertSyncChange } from "./syncChanges";
 import type { EffortLevel } from "./cards";
 
 type TimestampValue = Date | string;
@@ -17,7 +18,6 @@ type DeckRow = Readonly<{
   name: string;
   filter_definition: unknown;
   created_at: TimestampValue;
-  server_version: string | number;
   client_updated_at: TimestampValue;
   last_modified_by_device_id: string;
   last_operation_id: string;
@@ -51,7 +51,6 @@ export type Deck = Readonly<{
   name: string;
   filterDefinition: DeckFilterDefinition;
   createdAt: string;
-  serverVersion: number;
   clientUpdatedAt: string;
   lastModifiedByDeviceId: string;
   lastOperationId: string;
@@ -77,6 +76,7 @@ export type DeckSnapshotInput = Readonly<{
 export type DeckMutationResult = Readonly<{
   deck: Deck;
   applied: boolean;
+  changeId: number | null;
 }>;
 
 function toIsoString(value: TimestampValue): string {
@@ -85,10 +85,6 @@ function toIsoString(value: TimestampValue): string {
   }
 
   return new Date(value).toISOString();
-}
-
-function toNumber(value: string | number): number {
-  return typeof value === "number" ? value : Number.parseInt(value, 10);
 }
 
 function createRequestError(message: string): HttpError {
@@ -266,7 +262,6 @@ function mapDeck(row: DeckRow): Deck {
     name: row.name,
     filterDefinition: parseDeckFilterDefinitionWithFactory(row.filter_definition, createStoredDataError),
     createdAt: toIsoString(row.created_at),
-    serverVersion: toNumber(row.server_version),
     clientUpdatedAt: toIsoString(row.client_updated_at),
     lastModifiedByDeviceId: row.last_modified_by_device_id,
     lastOperationId: row.last_operation_id,
@@ -289,6 +284,27 @@ function toDeckLwwMetadata(deck: Deck): DeckMutationMetadata {
     lastModifiedByDeviceId: deck.lastModifiedByDeviceId,
     lastOperationId: deck.lastOperationId,
   };
+}
+
+function toDeckPayloadJson(deck: Deck): string {
+  return JSON.stringify(deck);
+}
+
+async function recordDeckSyncChange(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  deck: Deck,
+): Promise<number> {
+  return insertSyncChange(
+    executor,
+    workspaceId,
+    "deck",
+    deck.deckId,
+    "upsert",
+    deck.lastModifiedByDeviceId,
+    deck.lastOperationId,
+    toDeckPayloadJson(deck),
+  );
 }
 
 function normalizeDeckSnapshotInput(input: DeckSnapshotInput): DeckSnapshotInput {
@@ -318,7 +334,7 @@ export function parseCreateDeckInput(value: unknown): CreateDeckInput {
 export async function listDecks(workspaceId: string): Promise<ReadonlyArray<Deck>> {
   const result = await query<DeckRow>(
     [
-      "SELECT deck_id, workspace_id, name, filter_definition, created_at, server_version, client_updated_at,",
+      "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deleted_at IS NULL",
@@ -362,7 +378,7 @@ export async function upsertDeckSnapshotInExecutor(
 
   const existingResult = await executor.query<DeckRow>(
     [
-      "SELECT deck_id, workspace_id, name, filter_definition, created_at, server_version, client_updated_at,",
+      "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deck_id = $2",
@@ -377,11 +393,11 @@ export async function upsertDeckSnapshotInExecutor(
       [
         "INSERT INTO content.decks",
         "(",
-        "deck_id, workspace_id, name, filter_definition, created_at, server_version, client_updated_at,",
+        "deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
         "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
         ")",
-        "VALUES ($1, $2, $3, $4::jsonb, $5, DEFAULT, $6, $7, $8, now(), $9)",
-        "RETURNING deck_id, workspace_id, name, filter_definition, created_at, server_version, client_updated_at,",
+        "VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, now(), $9)",
+        "RETURNING deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
         "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
       ].join(" "),
       [
@@ -402,9 +418,13 @@ export async function upsertDeckSnapshotInExecutor(
       throw new Error("Deck insert did not return a row");
     }
 
+    const insertedDeck = mapDeck(insertedRow);
+    const changeId = await recordDeckSyncChange(executor, workspaceId, insertedDeck);
+
     return {
-      deck: mapDeck(insertedRow),
+      deck: insertedDeck,
       applied: true,
+      changeId,
     };
   }
 
@@ -413,6 +433,7 @@ export async function upsertDeckSnapshotInExecutor(
     return {
       deck: existingDeck,
       applied: false,
+      changeId: await findLatestSyncChangeId(executor, workspaceId, "deck", existingDeck.deckId),
     };
   }
 
@@ -420,10 +441,9 @@ export async function upsertDeckSnapshotInExecutor(
     [
       "UPDATE content.decks",
       "SET name = $1, filter_definition = $2::jsonb, created_at = $3, deleted_at = $4,",
-      "client_updated_at = $5, last_modified_by_device_id = $6, last_operation_id = $7, updated_at = now(),",
-      "server_version = nextval('content.decks_server_version_seq')",
+      "client_updated_at = $5, last_modified_by_device_id = $6, last_operation_id = $7, updated_at = now()",
       "WHERE workspace_id = $8 AND deck_id = $9",
-      "RETURNING deck_id, workspace_id, name, filter_definition, created_at, server_version, client_updated_at,",
+      "RETURNING deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
     ].join(" "),
     [
@@ -444,9 +464,13 @@ export async function upsertDeckSnapshotInExecutor(
     throw new Error("Deck update did not return a row");
   }
 
+  const updatedDeck = mapDeck(updatedRow);
+  const changeId = await recordDeckSyncChange(executor, workspaceId, updatedDeck);
+
   return {
-    deck: mapDeck(updatedRow),
+    deck: updatedDeck,
     applied: true,
+    changeId,
   };
 }
 
@@ -456,22 +480,4 @@ export async function upsertDeckSnapshot(
   metadata: DeckMutationMetadata,
 ): Promise<DeckMutationResult> {
   return transaction(async (executor) => upsertDeckSnapshotInExecutor(executor, workspaceId, input, metadata));
-}
-
-export async function listDeckChanges(
-  workspaceId: string,
-  afterServerVersion: number,
-): Promise<ReadonlyArray<Deck>> {
-  const result = await query<DeckRow>(
-    [
-      "SELECT deck_id, workspace_id, name, filter_definition, created_at, server_version, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
-      "FROM content.decks",
-      "WHERE workspace_id = $1 AND server_version > $2",
-      "ORDER BY server_version ASC",
-    ].join(" "),
-    [workspaceId, afterServerVersion],
-  );
-
-  return result.rows.map(mapDeck);
 }

@@ -7,6 +7,9 @@ import type {
   CreateCardInput,
   Deck,
   SessionInfo,
+  SyncPullResult,
+  SyncPushOperation,
+  SyncPushResult,
   UpdateCardInput,
 } from "./types";
 
@@ -182,6 +185,46 @@ export async function submitReview(cardId: string, rating: 0 | 1 | 2 | 3): Promi
   }));
 
   return payload.card as Card;
+}
+
+export async function pushSyncOperations(
+  deviceId: string,
+  platform: "web",
+  appVersion: string,
+  operations: ReadonlyArray<SyncPushOperation>,
+): Promise<SyncPushResult> {
+  const payload = expectObject(await requestJson("/sync/push", {
+    method: "POST",
+    body: JSON.stringify({
+      deviceId,
+      platform,
+      appVersion,
+      operations,
+    }),
+  }));
+
+  return payload as unknown as SyncPushResult;
+}
+
+export async function pullSyncChanges(
+  deviceId: string,
+  platform: "web",
+  appVersion: string,
+  afterChangeId: number,
+  limit: number,
+): Promise<SyncPullResult> {
+  const payload = expectObject(await requestJson("/sync/pull", {
+    method: "POST",
+    body: JSON.stringify({
+      deviceId,
+      platform,
+      appVersion,
+      afterChangeId,
+      limit,
+    }),
+  }));
+
+  return payload as unknown as SyncPullResult;
 }
 
 export async function streamChat(body: ChatRequestBody, signal: AbortSignal): Promise<Response> {

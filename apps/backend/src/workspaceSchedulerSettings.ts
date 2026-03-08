@@ -19,6 +19,7 @@ import {
   normalizeIsoTimestamp,
   type LwwMetadata,
 } from "./lww";
+import { findLatestSyncChangeId, insertSyncChange } from "./syncChanges";
 
 export type SchedulerAlgorithm = "fsrs-6";
 
@@ -32,7 +33,6 @@ export type WorkspaceSchedulerSettings = Readonly<{
   relearningStepsMinutes: ReadonlyArray<number>;
   maximumIntervalDays: number;
   enableFuzz: boolean;
-  serverVersion: number;
   clientUpdatedAt: string;
   lastModifiedByDeviceId: string;
   lastOperationId: string;
@@ -69,6 +69,7 @@ export type WorkspaceSchedulerSettingsSnapshotInput = Readonly<{
 export type WorkspaceSchedulerSettingsMutationResult = Readonly<{
   settings: WorkspaceSchedulerSettings;
   applied: boolean;
+  changeId: number | null;
 }>;
 
 type WorkspaceSchedulerSettingsRow = Readonly<{
@@ -78,7 +79,6 @@ type WorkspaceSchedulerSettingsRow = Readonly<{
   fsrs_relearning_steps_minutes: ReadonlyArray<number>;
   fsrs_maximum_interval_days: number;
   fsrs_enable_fuzz: boolean;
-  fsrs_server_version: string | number;
   fsrs_client_updated_at: Date | string;
   fsrs_last_modified_by_device_id: string;
   fsrs_last_operation_id: string;
@@ -96,10 +96,6 @@ export const defaultWorkspaceSchedulerConfig: WorkspaceSchedulerConfig = Object.
 
 function toIsoString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
-}
-
-function toNumber(value: string | number): number {
-  return typeof value === "number" ? value : Number.parseInt(value, 10);
 }
 
 // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateSchedulerStepList(values:fieldName:).
@@ -142,7 +138,6 @@ function mapWorkspaceSchedulerSettings(row: WorkspaceSchedulerSettingsRow): Work
     relearningStepsMinutes: parseSteps(row.fsrs_relearning_steps_minutes, "fsrs_relearning_steps_minutes"),
     maximumIntervalDays: row.fsrs_maximum_interval_days,
     enableFuzz: row.fsrs_enable_fuzz,
-    serverVersion: toNumber(row.fsrs_server_version),
     clientUpdatedAt: toIsoString(row.fsrs_client_updated_at),
     lastModifiedByDeviceId: row.fsrs_last_modified_by_device_id,
     lastOperationId: row.fsrs_last_operation_id,
@@ -174,6 +169,27 @@ function toWorkspaceSchedulerLwwMetadata(
     lastModifiedByDeviceId: settings.lastModifiedByDeviceId,
     lastOperationId: settings.lastOperationId,
   };
+}
+
+function toWorkspaceSchedulerPayloadJson(settings: WorkspaceSchedulerSettings): string {
+  return JSON.stringify(settings);
+}
+
+async function recordWorkspaceSchedulerSyncChange(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  settings: WorkspaceSchedulerSettings,
+): Promise<number> {
+  return insertSyncChange(
+    executor,
+    workspaceId,
+    "workspace_scheduler_settings",
+    workspaceId,
+    "upsert",
+    settings.lastModifiedByDeviceId,
+    settings.lastOperationId,
+    toWorkspaceSchedulerPayloadJson(settings),
+  );
 }
 
 function normalizeWorkspaceSchedulerMutationMetadata(
@@ -225,7 +241,7 @@ export async function getWorkspaceSchedulerSettings(
     [
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
-      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_server_version, fsrs_client_updated_at,",
+      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
       "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
@@ -250,7 +266,7 @@ export async function getWorkspaceSchedulerConfig(
     [
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
-      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_server_version, fsrs_client_updated_at,",
+      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
       "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
@@ -319,7 +335,7 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
     [
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
-      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_server_version, fsrs_client_updated_at,",
+      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
       "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
@@ -338,6 +354,7 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
     return {
       settings: existingSettings,
       applied: false,
+      changeId: await findLatestSyncChangeId(executor, workspaceId, "workspace_scheduler_settings", workspaceId),
     };
   }
 
@@ -346,12 +363,11 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
       "UPDATE org.workspaces",
       "SET fsrs_desired_retention = $1, fsrs_learning_steps_minutes = $2::jsonb, fsrs_relearning_steps_minutes = $3::jsonb,",
       "fsrs_maximum_interval_days = $4, fsrs_enable_fuzz = $5, fsrs_client_updated_at = $6,",
-      "fsrs_last_modified_by_device_id = $7, fsrs_last_operation_id = $8, fsrs_updated_at = now(),",
-      "fsrs_server_version = nextval('org.workspaces_fsrs_server_version_seq')",
+      "fsrs_last_modified_by_device_id = $7, fsrs_last_operation_id = $8, fsrs_updated_at = now()",
       "WHERE workspace_id = $9",
       "RETURNING",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
-      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_server_version, fsrs_client_updated_at,",
+      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
       "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
     ].join(" "),
     [
@@ -372,28 +388,12 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
     throw new Error("Workspace scheduler settings update did not return a row");
   }
 
+  const updatedSettings = mapWorkspaceSchedulerSettings(updatedRow);
+  const changeId = await recordWorkspaceSchedulerSyncChange(executor, workspaceId, updatedSettings);
+
   return {
-    settings: mapWorkspaceSchedulerSettings(updatedRow),
+    settings: updatedSettings,
     applied: true,
+    changeId,
   };
-}
-
-export async function listWorkspaceSchedulerSettingsChanges(
-  workspaceId: string,
-  afterServerVersion: number,
-): Promise<ReadonlyArray<WorkspaceSchedulerSettings>> {
-  const result = await query<WorkspaceSchedulerSettingsRow>(
-    [
-      "SELECT",
-      "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
-      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_server_version, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
-      "FROM org.workspaces",
-      "WHERE workspace_id = $1 AND fsrs_server_version > $2",
-      "ORDER BY fsrs_server_version ASC",
-    ].join(" "),
-    [workspaceId, afterServerVersion],
-  );
-
-  return result.rows.map(mapWorkspaceSchedulerSettings);
 }

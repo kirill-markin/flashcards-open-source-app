@@ -47,13 +47,19 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var reviewQueue: [Card]
     @Published private(set) var homeSnapshot: HomeSnapshot
     @Published private(set) var globalErrorMessage: String
+    @Published private(set) var syncStatus: SyncStatus
+    @Published private(set) var lastSuccessfulCloudSyncAt: String?
     @Published private(set) var selectedTab: AppTab
     @Published private(set) var cardsPresentationRequest: CardsPresentationRequest?
 
     private let database: LocalDatabase?
+    private let cloudSyncService: CloudSyncService?
     private let userDefaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private var activeCloudSession: CloudLinkedSession?
+    private var activeCloudSyncTask: Task<Void, Error>?
+    private var pendingCloudResync: Bool
 
     init() {
         let userDefaults = UserDefaults.standard
@@ -80,11 +86,16 @@ final class FlashcardsStore: ObservableObject {
             reviewedCount: 0
         )
         self.globalErrorMessage = ""
+        self.syncStatus = .idle
+        self.lastSuccessfulCloudSyncAt = nil
         self.selectedTab = .review
         self.cardsPresentationRequest = nil
         self.userDefaults = userDefaults
         self.encoder = encoder
         self.decoder = decoder
+        self.activeCloudSession = nil
+        self.activeCloudSyncTask = nil
+        self.pendingCloudResync = false
 
         let database: LocalDatabase?
         do {
@@ -95,6 +106,9 @@ final class FlashcardsStore: ObservableObject {
         }
 
         self.database = database
+        self.cloudSyncService = database.map { database in
+            CloudSyncService(database: database)
+        }
 
         if database != nil {
             do {
@@ -161,6 +175,7 @@ final class FlashcardsStore: ObservableObject {
 
         try database.saveCard(workspaceId: workspaceId, input: input, cardId: editingCardId)
         try self.reload()
+        self.triggerCloudSyncIfLinked()
     }
 
     func deleteCard(cardId: String) throws {
@@ -173,6 +188,7 @@ final class FlashcardsStore: ObservableObject {
 
         try database.deleteCard(workspaceId: workspaceId, cardId: cardId)
         try self.reload()
+        self.triggerCloudSyncIfLinked()
     }
 
     func createDeck(input: DeckEditorInput) throws {
@@ -185,6 +201,7 @@ final class FlashcardsStore: ObservableObject {
 
         try database.createDeck(workspaceId: workspaceId, input: input)
         try self.reload()
+        self.triggerCloudSyncIfLinked()
     }
 
     func updateDeck(deckId: String, input: DeckEditorInput) throws {
@@ -197,6 +214,7 @@ final class FlashcardsStore: ObservableObject {
 
         try database.updateDeck(workspaceId: workspaceId, deckId: deckId, input: input)
         try self.reload()
+        self.triggerCloudSyncIfLinked()
     }
 
     func deleteDeck(deckId: String) throws {
@@ -209,6 +227,7 @@ final class FlashcardsStore: ObservableObject {
 
         try database.deleteDeck(workspaceId: workspaceId, deckId: deckId)
         try self.reload()
+        self.triggerCloudSyncIfLinked()
     }
 
     func submitReview(cardId: String, rating: ReviewRating) throws {
@@ -228,6 +247,7 @@ final class FlashcardsStore: ObservableObject {
             )
         )
         try self.reload()
+        self.triggerCloudSyncIfLinked()
     }
 
     func updateSchedulerSettings(
@@ -253,6 +273,7 @@ final class FlashcardsStore: ObservableObject {
             enableFuzz: enableFuzz
         )
         try self.reload()
+        self.triggerCloudSyncIfLinked()
     }
 
     func prepareCloudLink() throws {
@@ -297,7 +318,76 @@ final class FlashcardsStore: ObservableObject {
             linkedWorkspaceId: nil,
             linkedEmail: nil
         )
+        self.activeCloudSession = nil
         try self.reload()
+    }
+
+    func completeCloudLink(apiBaseUrl: String, bearerToken: String) async throws {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let cloudSyncService else {
+            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
+        }
+        guard let localWorkspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        self.syncStatus = .syncing
+        do {
+            let linkedSession = try await cloudSyncService.fetchLinkedSession(
+                apiBaseUrl: apiBaseUrl,
+                bearerToken: bearerToken
+            )
+            let needsBootstrap = self.cloudSettings?.cloudState != .linked
+                || self.cloudSettings?.linkedWorkspaceId != linkedSession.workspaceId
+
+            try database.relinkWorkspace(localWorkspaceId: localWorkspaceId, linkedSession: linkedSession)
+            if needsBootstrap {
+                try database.bootstrapOutbox(workspaceId: linkedSession.workspaceId)
+            }
+
+            self.activeCloudSession = linkedSession
+            try self.reload()
+            try await self.runLinkedSync(linkedSession: linkedSession)
+            self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
+            self.syncStatus = .idle
+            try self.reload()
+        } catch {
+            self.syncStatus = .failed(message: localizedMessage(error: error))
+            self.globalErrorMessage = localizedMessage(error: error)
+            throw error
+        }
+    }
+
+    func syncCloudNow() async throws {
+        guard let linkedSession = self.activeCloudSession else {
+            throw LocalStoreError.uninitialized("Cloud session is unavailable")
+        }
+
+        self.syncStatus = .syncing
+        do {
+            try await self.runLinkedSync(linkedSession: linkedSession)
+            self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
+            self.syncStatus = .idle
+            try self.reload()
+        } catch {
+            self.syncStatus = .failed(message: localizedMessage(error: error))
+            self.globalErrorMessage = localizedMessage(error: error)
+            throw error
+        }
+    }
+
+    func syncCloudIfLinked() async {
+        guard self.activeCloudSession != nil else {
+            return
+        }
+
+        do {
+            try await self.syncCloudNow()
+        } catch {
+            self.globalErrorMessage = localizedMessage(error: error)
+        }
     }
 
     func cardsMatchingDeck(deck: Deck) -> [Card] {
@@ -337,6 +427,48 @@ final class FlashcardsStore: ObservableObject {
         } catch {
             userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
             return .allCards
+        }
+    }
+
+    private func triggerCloudSyncIfLinked() {
+        guard self.activeCloudSession != nil else {
+            return
+        }
+
+        Task { @MainActor in
+            await self.syncCloudIfLinked()
+        }
+    }
+
+    private func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
+        guard let cloudSyncService else {
+            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
+        }
+
+        if let activeCloudSyncTask {
+            self.pendingCloudResync = true
+            try await activeCloudSyncTask.value
+            return
+        }
+
+        while true {
+            self.pendingCloudResync = false
+            let syncTask = Task { @MainActor in
+                try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
+            }
+            self.activeCloudSyncTask = syncTask
+
+            do {
+                try await syncTask.value
+                self.activeCloudSyncTask = nil
+            } catch {
+                self.activeCloudSyncTask = nil
+                throw error
+            }
+
+            if self.pendingCloudResync == false {
+                break
+            }
         }
     }
 }
