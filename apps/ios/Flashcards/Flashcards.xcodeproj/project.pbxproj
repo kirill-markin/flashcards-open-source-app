@@ -10,10 +10,12 @@
 		B10000000000000000000011 /* FlashcardsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* FlashcardsApp.swift */; };
 		B10000000000000000000012 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* RootTabView.swift */; };
 		B10000000000000000000013 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* AppModel.swift */; };
-		B10000000000000000000014 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* HomeView.swift */; };
+		B10000000000000000000014 /* CardsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* CardsScreen.swift */; };
 		B10000000000000000000015 /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* ReviewView.swift */; };
 		B10000000000000000000016 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* SettingsView.swift */; };
 		B10000000000000000000017 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* Assets.xcassets */; };
+		B10000000000000000000018 /* DecksScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* DecksScreen.swift */; };
+		B10000000000000000000019 /* TagPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D /* TagPickerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,7 +23,7 @@
 		A10000000000000000000011 /* FlashcardsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashcardsApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000012 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		A10000000000000000000013 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
-		A10000000000000000000014 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		A10000000000000000000014 /* CardsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardsScreen.swift; sourceTree = "<group>"; };
 		A10000000000000000000015 /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
 		A10000000000000000000016 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A10000000000000000000017 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -29,6 +31,8 @@
 		A10000000000000000000019 /* Config/Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Release.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1000000000000000000001A /* Config/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1000000000000000000001B /* Config/Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Local.xcconfig.example; sourceTree = SOURCE_ROOT; };
+		A1000000000000000000001C /* DecksScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecksScreen.swift; sourceTree = "<group>"; };
+		A1000000000000000000001D /* TagPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,7 +69,9 @@
 				A10000000000000000000011 /* FlashcardsApp.swift */,
 				A10000000000000000000012 /* RootTabView.swift */,
 				A10000000000000000000013 /* AppModel.swift */,
-				A10000000000000000000014 /* HomeView.swift */,
+				A10000000000000000000014 /* CardsScreen.swift */,
+				A1000000000000000000001C /* DecksScreen.swift */,
+				A1000000000000000000001D /* TagPickerView.swift */,
 				A10000000000000000000015 /* ReviewView.swift */,
 				A10000000000000000000016 /* SettingsView.swift */,
 				A10000000000000000000017 /* Assets.xcassets */,
@@ -154,11 +160,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				B10000000000000000000013 /* AppModel.swift in Sources */,
+				B10000000000000000000014 /* CardsScreen.swift in Sources */,
+				B10000000000000000000018 /* DecksScreen.swift in Sources */,
 				B10000000000000000000011 /* FlashcardsApp.swift in Sources */,
-				B10000000000000000000014 /* HomeView.swift in Sources */,
 				B10000000000000000000015 /* ReviewView.swift in Sources */,
 				B10000000000000000000012 /* RootTabView.swift in Sources */,
 				B10000000000000000000016 /* SettingsView.swift in Sources */,
+				B10000000000000000000019 /* TagPickerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
