@@ -8,10 +8,7 @@ Open-source, offline-first flashcards platform.
 
 ## Product Direction
 
-Build a practical Anki-like alternative focused on:
-- Fast mobile UX
-- Offline-first behavior
-- Transparent open-source architecture
+Build a practical Anki-like alternative focused on fast mobile UX, offline-first behavior, and transparent open-source architecture.
 
 ## Platform Plan
 
@@ -21,14 +18,9 @@ Build a practical Anki-like alternative focused on:
 
 ## Repository Strategy
 
-Use a single monorepo for now.
+Use a single monorepo for now because it keeps shared API contracts and the data model together, makes coordinated backend/mobile changes easier, and lowers operational overhead at this stage.
 
-Reasons:
-- Shared API contracts and data model in one place
-- Easier coordinated changes across backend and mobile
-- Lower operational overhead at early stage
-
-## High-Level Architecture
+## Architecture
 
 - Source of truth: Postgres in AWS
 - Mobile local database: SQLite on device
@@ -36,73 +28,52 @@ Reasons:
 
 ## Database Decision
 
-Use Postgres as the backend primary database.
-
-Why Postgres (vs DynamoDB as primary):
-- Natural fit for relational flashcards data (workspaces, cards, review events, sync metadata)
-- Strong transactions and consistency
-- Easier evolution of schema and query patterns for scheduling, stats, and filtering
+Use Postgres as the primary backend database because flashcards data is relational (workspaces, cards, review events, sync metadata), transactions/consistency matter, and schema/query evolution for scheduling, stats, and filtering is simpler than with DynamoDB as primary.
 
 ## Offline-First Sync Rules
 
-- App reads/writes to local SQLite first
-- Local writes are queued in an `outbox`
-- On connectivity restore:
-  1. push pending operations to backend (idempotent by operation id)
-  2. pull remote changes since last sync cursor
+- Read and write locally to SQLite first.
+- Queue local writes in an `outbox`.
+- When connectivity returns:
+  1. push pending operations to the backend (idempotent by operation id)
+  2. pull remote changes since the last sync cursor
   3. apply updates locally
-  4. advance sync cursor and clear acknowledged outbox rows
+  4. advance the sync cursor and clear acknowledged outbox rows
 
 ## Data Modeling Notes
 
-- Prefer UUID/ULID identifiers to support offline entity creation
-- Include `updated_at` and `deleted_at` for sync and tombstones
-- Keep review history append-only where possible
-- Avoid hidden fallback logic in sync: either succeed or fail with explicit errors
+- Prefer UUID/ULID identifiers for offline entity creation.
+- Include `updated_at` and `deleted_at` for sync and tombstones.
+- Keep review history append-only where possible.
+- Do not hide sync failures behind fallback logic.
 
-## Initial Monorepo Shape (planned)
+## Planned Monorepo Shape
 
-```text
-apps/
-  backend/
-  ios/
-  android/
-db/
-  migrations/
-  views/
-  queries/
-infra/
-  docker/
-  aws/
-api/
-  openapi.yaml
-docs/
-scripts/
-```
+`apps/{backend,ios,android}`, `db/{migrations,views,queries}`, `infra/{docker,aws}`, `api/openapi.yaml`, `docs/`, `scripts/`
 
 ## Auth Service (`apps/auth/`)
 
 Email + OTP authentication via AWS Cognito (passwordless).
 
-- `AUTH_MODE` env var: `none` (local dev, no auth) or `cognito` (verify JWT from `Authorization: Bearer` header)
-- Auth Lambda handles auth UI/API on `auth.<domain>` (and `/v1` stage paths on execute-api)
-- Backend Lambda verifies JWTs using `aws-jwt-verify`
+- `AUTH_MODE`: `none` (local dev, no auth) or `cognito` (verify JWT from `Authorization: Bearer`)
+- Auth Lambda serves the auth UI/API on `auth.<domain>` and `/v1` execute-api stage paths
+- Backend Lambda verifies JWTs with `aws-jwt-verify`
 - Key files:
-  - `apps/auth/src/app.ts` — Hono app factory (shared between local and Lambda)
-  - `apps/auth/src/lambda.ts` — Lambda entry point
-  - `apps/auth/src/routes/` — sendCode, verifyCode, refreshToken, revokeToken, loginPage, health
-  - `apps/auth/src/server/cognitoAuth.ts` — Cognito API client
-  - `apps/backend/src/auth.ts` — JWT verification middleware
-  - `apps/backend/src/ensureUser.ts` — auto-provision user_settings + workspace on first request
-  - `infra/aws/lib/auth.ts` — CDK Cognito User Pool construct
-  - `db/migrations/0002_user_settings.sql` — user_settings table
+  - `apps/auth/src/app.ts`: shared Hono app factory
+  - `apps/auth/src/lambda.ts`: Lambda entry point
+  - `apps/auth/src/routes/`: `sendCode`, `verifyCode`, `refreshToken`, `revokeToken`, `loginPage`, `health`
+  - `apps/auth/src/server/cognitoAuth.ts`: Cognito API client
+  - `apps/backend/src/auth.ts`: JWT verification middleware
+  - `apps/backend/src/ensureUser.ts`: auto-provisions `user_settings` and `workspace` on first request
+  - `infra/aws/lib/auth.ts`: CDK Cognito User Pool construct
+  - `db/migrations/0002_user_settings.sql`: `user_settings` table
 
 ## Engineering Principles
 
-- Keep logic simple and explicit
-- Prefer pure functions for domain logic
-- Use strict typing across services
-- Keep changes minimal and scoped
-- Prioritize clear, actionable errors
+- Keep logic simple and explicit.
+- Prefer pure functions for domain logic.
+- Use strict typing across services.
+- Keep changes minimal and scoped.
+- Prioritize clear, actionable errors.
 
-Card reappearance and FSRS scheduling logic are described in `docs/fsrs-scheduling-logic.md`.
+Card reappearance and FSRS scheduling logic are documented in `docs/fsrs-scheduling-logic.md`.
