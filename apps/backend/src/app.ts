@@ -374,6 +374,10 @@ function parseChatRequestBody(value: unknown): ChatRequestBody {
   };
 }
 
+/**
+ * Restricts diagnostics logs to a known set of lifecycle stages so CloudWatch
+ * queries stay stable and client payloads remain bounded.
+ */
 function parseChatDiagnosticsStage(value: unknown): ChatDiagnosticsStage {
   if (
     value === "success" ||
@@ -390,6 +394,10 @@ function parseChatDiagnosticsStage(value: unknown): ChatDiagnosticsStage {
   throw new HttpError(400, "stage is invalid");
 }
 
+/**
+ * Accepts only scalar stream metadata from the browser and rejects any richer
+ * payload shape that could accidentally include prompts, content, or files.
+ */
 function parseChatDiagnosticsBody(value: unknown): ChatDiagnosticsBody {
   const body = expectRecord(value);
 
@@ -430,6 +438,10 @@ function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * Writes client-side stream diagnostics with the authenticated workspace
+ * context so browser failures can be correlated with backend request logs.
+ */
 function logFrontendChatDiagnostics(requestContext: RequestContext, body: ChatDiagnosticsBody): void {
   const logRecord = {
     domain: "chat",
@@ -448,6 +460,10 @@ function logFrontendChatDiagnostics(requestContext: RequestContext, body: ChatDi
   console.error(JSON.stringify(logRecord));
 }
 
+/**
+ * Keeps chat failures on the SSE transport so the frontend parser sees the
+ * same envelope shape for both model and backend exceptions.
+ */
 function createChatErrorResponse(message: string, requestId: string): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
