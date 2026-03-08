@@ -37,6 +37,7 @@ struct CardsScreen: View {
                             self.beginEditing(card: card)
                         } label: {
                             CardRow(card: card)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -147,6 +148,8 @@ struct CardRow: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 
