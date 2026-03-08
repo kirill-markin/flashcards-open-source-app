@@ -36,6 +36,12 @@ import {
   updateWorkspaceSchedulerSettings,
   type UpdateWorkspaceSchedulerSettingsInput,
 } from "./workspaceSchedulerSettings";
+import {
+  parseSyncPullInput,
+  parseSyncPushInput,
+  processSyncPull,
+  processSyncPush,
+} from "./sync";
 import { CHAT_MODELS } from "./chat/models";
 import type { ChatMessage, ChatStreamEvent } from "./chat/types";
 
@@ -168,6 +174,38 @@ async function loadRequestContextFromRequest(
   return {
     requestAuthInputs,
     requestContext,
+  };
+}
+
+async function loadMutableRequestContextFromRequest(
+  request: Request,
+  allowedOrigins: ReadonlyArray<string>,
+): Promise<Readonly<{
+  requestAuthInputs: RequestAuthInputs;
+  requestContext: RequestContext;
+}>> {
+  const requestAuthInputs = extractRequestAuthInputs(request);
+  const requestContext = await loadReviewContext(requestAuthInputs);
+
+  if (requestContext.transport === "session") {
+    await enforceSessionCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
+  }
+
+  return {
+    requestAuthInputs,
+    requestContext,
+  };
+}
+
+function makeClientMutationMetadata(deviceId: string, clientUpdatedAt: string): Readonly<{
+  clientUpdatedAt: string;
+  lastModifiedByDeviceId: string;
+  lastOperationId: string;
+}> {
+  return {
+    clientUpdatedAt,
+    lastModifiedByDeviceId: deviceId,
+    lastOperationId: randomUUID(),
   };
 }
 
@@ -327,6 +365,9 @@ function parseUpdateCardInput(value: unknown): UpdateCardInput {
     "fsrsDifficulty",
     "fsrsLastReviewedAt",
     "fsrsScheduledDays",
+    "clientUpdatedAt",
+    "lastModifiedByDeviceId",
+    "lastOperationId",
     "updatedAt",
     "serverVersion",
     "deletedAt",
@@ -579,6 +620,7 @@ async function streamChatResponse(
           model: body.model,
           requestId,
           workspaceId: requestContext.workspaceId,
+          deviceId: requestContext.deviceId!,
           timezone: body.timezone,
         })) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
@@ -712,9 +754,13 @@ export function createApp(basePath: string): Hono {
   });
 
   registerRoute("put", "/workspace/scheduler-settings", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
     const input = parseWorkspaceSchedulerSettingsInput(await parseJsonBody(context.req.raw));
-    const schedulerSettings = await updateWorkspaceSchedulerSettings(requestContext.workspaceId, input);
+    const schedulerSettings = await updateWorkspaceSchedulerSettings(
+      requestContext.workspaceId,
+      input,
+      makeClientMutationMetadata(requestContext.deviceId!, new Date().toISOString()),
+    );
     return context.json({ schedulerSettings });
   });
 
@@ -738,24 +784,37 @@ export function createApp(basePath: string): Hono {
   });
 
   registerRoute("post", "/cards", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
     const input = parseCreateCardInput(await parseJsonBody(context.req.raw));
-    const card = await createCard(requestContext.workspaceId, input);
+    const card = await createCard(
+      requestContext.workspaceId,
+      input,
+      makeClientMutationMetadata(requestContext.deviceId!, new Date().toISOString()),
+    );
     return context.json({ card }, 201);
   });
 
   registerRoute("post", "/decks", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
     const input = parseCreateDeckInput(await parseJsonBody(context.req.raw));
-    const deck = await createDeck(requestContext.workspaceId, input);
+    const deck = await createDeck(
+      requestContext.workspaceId,
+      input,
+      makeClientMutationMetadata(requestContext.deviceId!, new Date().toISOString()),
+    );
     return context.json({ deck }, 201);
   });
 
   registerRoute("patch", "/cards/:cardId", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
     const cardId = expectNonEmptyString(context.req.param("cardId"), "cardId");
     const input = parseUpdateCardInput(await parseJsonBody(context.req.raw));
-    const card = await updateCard(requestContext.workspaceId, cardId, input);
+    const card = await updateCard(
+      requestContext.workspaceId,
+      cardId,
+      input,
+      makeClientMutationMetadata(requestContext.deviceId!, new Date().toISOString()),
+    );
     return context.json({ card });
   });
 
@@ -773,7 +832,12 @@ export function createApp(basePath: string): Hono {
       await enforceSessionCsrfProtection(context.req.method, requestAuthInputs, allowedOrigins);
     }
     const input = parseSubmitReviewInput(await parseJsonBody(context.req.raw));
-    const result = await submitReview(requestContext.workspaceId, requestContext.deviceId!, input);
+    const result = await submitReview(
+      requestContext.workspaceId,
+      requestContext.deviceId!,
+      input,
+      makeClientMutationMetadata(requestContext.deviceId!, input.reviewedAtClient),
+    );
     return context.json(result);
   });
 
@@ -781,7 +845,7 @@ export function createApp(basePath: string): Hono {
     const requestId = randomUUID();
 
     try {
-      const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+      const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
       const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
       return await streamChatResponse(body, requestContext, requestId);
     } catch (error) {
@@ -801,13 +865,17 @@ export function createApp(basePath: string): Hono {
   });
 
   registerRoute("post", "/sync/push", async (context) => {
-    await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-    return context.json({ error: "Sync push is not implemented yet" }, 501);
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const input = parseSyncPushInput(await parseJsonBody(context.req.raw));
+    const result = await processSyncPush(requestContext.workspaceId, requestContext.userId, input);
+    return context.json(result);
   });
 
   registerRoute("post", "/sync/pull", async (context) => {
-    await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-    return context.json({ error: "Sync pull is not implemented yet" }, 501);
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const input = parseSyncPullInput(await parseJsonBody(context.req.raw));
+    const result = await processSyncPull(requestContext.workspaceId, requestContext.userId, input);
+    return context.json(result);
   });
 
   return app;

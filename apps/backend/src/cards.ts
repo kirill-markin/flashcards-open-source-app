@@ -12,6 +12,11 @@ import { randomUUID } from "node:crypto";
 import { query, transaction, type DatabaseExecutor } from "./db";
 import { HttpError } from "./errors";
 import {
+  incomingLwwMetadataWins,
+  normalizeIsoTimestamp,
+  type LwwMetadata,
+} from "./lww";
+import {
   computeReviewSchedule,
   type FsrsCardState,
   type ReviewRating,
@@ -38,7 +43,12 @@ type CardRow = Readonly<{
   fsrs_difficulty: number | null;
   fsrs_last_reviewed_at: TimestampValue | null;
   fsrs_scheduled_days: number | null;
+  server_version: string | number;
+  client_updated_at: TimestampValue;
+  last_modified_by_device_id: string;
+  last_operation_id: string;
   updated_at: TimestampValue;
+  deleted_at: TimestampValue | null;
 }>;
 
 type ReviewableCardRow = Readonly<{
@@ -62,6 +72,7 @@ type ReviewHistoryRow = Readonly<{
   rating: number;
   reviewed_at_client: TimestampValue;
   reviewed_at_server: TimestampValue;
+  server_version: string | number;
 }>;
 
 type DeckSummaryRow = Readonly<{
@@ -88,8 +99,15 @@ export type Card = Readonly<{
   fsrsDifficulty: number | null;
   fsrsLastReviewedAt: string | null;
   fsrsScheduledDays: number | null;
+  serverVersion: number;
+  clientUpdatedAt: string;
+  lastModifiedByDeviceId: string;
+  lastOperationId: string;
   updatedAt: string;
+  deletedAt: string | null;
 }>;
+
+export type CardMutationMetadata = LwwMetadata;
 
 export type CreateCardInput = Readonly<{
   frontText: string;
@@ -109,6 +127,8 @@ export type SubmitReviewInput = Readonly<{
   cardId: string;
   rating: ReviewRating;
   reviewedAtClient: string;
+  reviewEventId?: string;
+  clientEventId?: string;
 }>;
 
 export type ReviewResult = Readonly<{
@@ -122,6 +142,30 @@ export type ReviewHistoryItem = Readonly<{
   rating: number;
   reviewedAtClient: string;
   reviewedAtServer: string;
+  serverVersion: number;
+}>;
+
+export type CardSnapshotInput = Readonly<{
+  cardId: string;
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  effortLevel: EffortLevel;
+  dueAt: string | null;
+  reps: number;
+  lapses: number;
+  fsrsCardState: FsrsCardState;
+  fsrsStepIndex: number | null;
+  fsrsStability: number | null;
+  fsrsDifficulty: number | null;
+  fsrsLastReviewedAt: string | null;
+  fsrsScheduledDays: number | null;
+  deletedAt: string | null;
+}>;
+
+export type CardMutationResult = Readonly<{
+  card: Card;
+  applied: boolean;
 }>;
 
 export type DeckSummary = Readonly<{
@@ -152,7 +196,8 @@ type FsrsStateSnapshot = Readonly<{
 
 const CARD_COLUMNS = [
   "card_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
-  "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days, updated_at",
+  "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
+  "server_version, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
 ].join(" ");
 
 const REVIEWABLE_CARD_COLUMNS = [
@@ -186,6 +231,14 @@ function toNumber(value: string | number): number {
   return typeof value === "number" ? value : Number.parseInt(value, 10);
 }
 
+function normalizeCardMutationMetadata(metadata: CardMutationMetadata): CardMutationMetadata {
+  return {
+    clientUpdatedAt: normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt"),
+    lastModifiedByDeviceId: metadata.lastModifiedByDeviceId,
+    lastOperationId: metadata.lastOperationId,
+  };
+}
+
 function mapCard(row: CardRow): Card {
   return {
     cardId: row.card_id,
@@ -202,7 +255,12 @@ function mapCard(row: CardRow): Card {
     fsrsDifficulty: row.fsrs_difficulty,
     fsrsLastReviewedAt: row.fsrs_last_reviewed_at === null ? null : toIsoString(row.fsrs_last_reviewed_at),
     fsrsScheduledDays: row.fsrs_scheduled_days,
+    serverVersion: toNumber(row.server_version),
+    clientUpdatedAt: toIsoString(row.client_updated_at),
+    lastModifiedByDeviceId: row.last_modified_by_device_id,
+    lastOperationId: row.last_operation_id,
     updatedAt: toIsoString(row.updated_at),
+    deletedAt: row.deleted_at === null ? null : toIsoString(row.deleted_at),
   };
 }
 
@@ -213,6 +271,15 @@ function mapReviewHistoryItem(row: ReviewHistoryRow): ReviewHistoryItem {
     rating: row.rating,
     reviewedAtClient: toIsoString(row.reviewed_at_client),
     reviewedAtServer: toIsoString(row.reviewed_at_server),
+    serverVersion: toNumber(row.server_version),
+  };
+}
+
+function toCardLwwMetadata(card: Card): CardMutationMetadata {
+  return {
+    clientUpdatedAt: card.clientUpdatedAt,
+    lastModifiedByDeviceId: card.lastModifiedByDeviceId,
+    lastOperationId: card.lastOperationId,
   };
 }
 
@@ -252,6 +319,42 @@ function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
   }
 
   return { assignments, params };
+}
+
+function normalizeCardSnapshotInput(input: CardSnapshotInput): CardSnapshotInput {
+  const normalizedSnapshot: CardSnapshotInput = {
+    cardId: input.cardId,
+    frontText: input.frontText,
+    backText: input.backText,
+    tags: input.tags,
+    effortLevel: input.effortLevel,
+    dueAt: input.dueAt === null ? null : normalizeIsoTimestamp(input.dueAt, "dueAt"),
+    reps: input.reps,
+    lapses: input.lapses,
+    fsrsCardState: input.fsrsCardState,
+    fsrsStepIndex: input.fsrsStepIndex,
+    fsrsStability: input.fsrsStability,
+    fsrsDifficulty: input.fsrsDifficulty,
+    fsrsLastReviewedAt: input.fsrsLastReviewedAt === null
+      ? null
+      : normalizeIsoTimestamp(input.fsrsLastReviewedAt, "fsrsLastReviewedAt"),
+    fsrsScheduledDays: input.fsrsScheduledDays,
+    deletedAt: input.deletedAt === null ? null : normalizeIsoTimestamp(input.deletedAt, "deletedAt"),
+  };
+
+  assertConsistentFsrsState({
+    due_at: normalizedSnapshot.dueAt,
+    reps: normalizedSnapshot.reps,
+    lapses: normalizedSnapshot.lapses,
+    fsrs_card_state: normalizedSnapshot.fsrsCardState,
+    fsrs_step_index: normalizedSnapshot.fsrsStepIndex,
+    fsrs_stability: normalizedSnapshot.fsrsStability,
+    fsrs_difficulty: normalizedSnapshot.fsrsDifficulty,
+    fsrs_last_reviewed_at: normalizedSnapshot.fsrsLastReviewedAt,
+    fsrs_scheduled_days: normalizedSnapshot.fsrsScheduledDays,
+  });
+
+  return normalizedSnapshot;
 }
 
 function hasNewCardFsrsValues(card: FsrsStateSnapshot): boolean {
@@ -473,6 +576,23 @@ async function loadReviewableCardForUpdate(
   return validateOrResetReviewableCardRow(executor, workspaceId, existingCard);
 }
 
+async function loadCardRowForMutation(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  cardId: string,
+): Promise<CardRow | undefined> {
+  const result = await executor.query<CardRow>(
+    [
+      CARD_SELECT,
+      "WHERE workspace_id = $1 AND card_id = $2",
+      "FOR UPDATE",
+    ].join(" "),
+    [workspaceId, cardId],
+  );
+
+  return result.rows[0];
+}
+
 export async function listCards(workspaceId: string): Promise<ReadonlyArray<Card>> {
   return transaction(async (executor) => {
     const result = await executor.query<CardRow>(
@@ -508,23 +628,171 @@ export async function getCard(workspaceId: string, cardId: string): Promise<Card
   });
 }
 
+export async function upsertCardSnapshotInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  input: CardSnapshotInput,
+  metadata: CardMutationMetadata,
+): Promise<CardMutationResult> {
+  const normalizedInput = normalizeCardSnapshotInput(input);
+  const normalizedMetadata = normalizeCardMutationMetadata(metadata);
+
+  const existingRow = await loadCardRowForMutation(executor, workspaceId, normalizedInput.cardId);
+
+  if (existingRow === undefined) {
+    const insertResult = await executor.query<CardRow>(
+      [
+        "INSERT INTO content.cards",
+        "(",
+        "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
+        "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
+        "server_version, client_updated_at, last_modified_by_device_id, last_operation_id, deleted_at",
+        ")",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, DEFAULT, $16, $17, $18, $19)",
+        "RETURNING",
+        CARD_COLUMNS,
+      ].join(" "),
+      [
+        normalizedInput.cardId,
+        workspaceId,
+        normalizedInput.frontText,
+        normalizedInput.backText,
+        normalizedInput.tags,
+        normalizedInput.effortLevel,
+        normalizedInput.dueAt,
+        normalizedInput.reps,
+        normalizedInput.lapses,
+        normalizedInput.fsrsCardState,
+        normalizedInput.fsrsStepIndex,
+        normalizedInput.fsrsStability,
+        normalizedInput.fsrsDifficulty,
+        normalizedInput.fsrsLastReviewedAt,
+        normalizedInput.fsrsScheduledDays,
+        normalizedMetadata.clientUpdatedAt,
+        normalizedMetadata.lastModifiedByDeviceId,
+        normalizedMetadata.lastOperationId,
+        normalizedInput.deletedAt,
+      ],
+    );
+
+    const insertedRow = insertResult.rows[0];
+    if (insertedRow === undefined) {
+      throw new Error("Card insert did not return a row");
+    }
+
+    return {
+      card: mapCard(insertedRow),
+      applied: true,
+    };
+  }
+
+  const existingCard = mapCard(existingRow);
+  if (incomingLwwMetadataWins(normalizedMetadata, toCardLwwMetadata(existingCard)) === false) {
+    return {
+      card: existingCard,
+      applied: false,
+    };
+  }
+
+  const updateResult = await executor.query<CardRow>(
+    [
+      "UPDATE content.cards",
+      "SET front_text = $1, back_text = $2, tags = $3, effort_level = $4, due_at = $5, reps = $6, lapses = $7,",
+      "fsrs_card_state = $8, fsrs_step_index = $9, fsrs_stability = $10, fsrs_difficulty = $11,",
+      "fsrs_last_reviewed_at = $12, fsrs_scheduled_days = $13, deleted_at = $14, client_updated_at = $15,",
+      "last_modified_by_device_id = $16, last_operation_id = $17, updated_at = now(),",
+      "server_version = nextval('content.cards_server_version_seq')",
+      "WHERE workspace_id = $18 AND card_id = $19",
+      "RETURNING",
+      CARD_COLUMNS,
+    ].join(" "),
+    [
+      normalizedInput.frontText,
+      normalizedInput.backText,
+      normalizedInput.tags,
+      normalizedInput.effortLevel,
+      normalizedInput.dueAt,
+      normalizedInput.reps,
+      normalizedInput.lapses,
+      normalizedInput.fsrsCardState,
+      normalizedInput.fsrsStepIndex,
+      normalizedInput.fsrsStability,
+      normalizedInput.fsrsDifficulty,
+      normalizedInput.fsrsLastReviewedAt,
+      normalizedInput.fsrsScheduledDays,
+      normalizedInput.deletedAt,
+      normalizedMetadata.clientUpdatedAt,
+      normalizedMetadata.lastModifiedByDeviceId,
+      normalizedMetadata.lastOperationId,
+      workspaceId,
+      normalizedInput.cardId,
+    ],
+  );
+
+  const updatedRow = updateResult.rows[0];
+  if (updatedRow === undefined) {
+    throw new Error("Card update did not return a row");
+  }
+
+  return {
+    card: mapCard(updatedRow),
+    applied: true,
+  };
+}
+
+export async function upsertCardSnapshot(
+  workspaceId: string,
+  input: CardSnapshotInput,
+  metadata: CardMutationMetadata,
+): Promise<CardMutationResult> {
+  return transaction(async (executor) => upsertCardSnapshotInExecutor(executor, workspaceId, input, metadata));
+}
+
+export async function listCardChanges(
+  workspaceId: string,
+  afterServerVersion: number,
+): Promise<ReadonlyArray<Card>> {
+  const result = await query<CardRow>(
+    [
+      CARD_SELECT,
+      "WHERE workspace_id = $1 AND server_version > $2",
+      "ORDER BY server_version ASC",
+    ].join(" "),
+    [workspaceId, afterServerVersion],
+  );
+
+  return result.rows.map(mapCard);
+}
+
 export async function createCard(
   workspaceId: string,
   input: CreateCardInput,
+  metadata: CardMutationMetadata,
 ): Promise<Card> {
+  const normalizedMetadata = normalizeCardMutationMetadata(metadata);
   const result = await query<CardRow>(
     [
       "INSERT INTO content.cards",
       "(",
       "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at,",
-      "reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days, server_version",
+      "reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
+      "server_version, client_updated_at, last_modified_by_device_id, last_operation_id",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, DEFAULT)",
+      "VALUES ($1, $2, $3, $4, $5, $6, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, DEFAULT, $7, $8, $9)",
       "RETURNING",
-      "card_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
-      "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days, updated_at",
+      CARD_COLUMNS,
     ].join(" "),
-    [randomUUID(), workspaceId, input.frontText, input.backText, input.tags, input.effortLevel],
+    [
+      randomUUID(),
+      workspaceId,
+      input.frontText,
+      input.backText,
+      input.tags,
+      input.effortLevel,
+      normalizedMetadata.clientUpdatedAt,
+      normalizedMetadata.lastModifiedByDeviceId,
+      normalizedMetadata.lastOperationId,
+    ],
   );
 
   const row = result.rows[0];
@@ -539,23 +807,32 @@ export async function updateCard(
   workspaceId: string,
   cardId: string,
   input: UpdateCardInput,
+  metadata: CardMutationMetadata,
 ): Promise<Card> {
   const updateParts = buildCardUpdateQueryParts(input);
+  const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
   if (updateParts.assignments.length === 0) {
     throw new HttpError(400, "At least one editable field must be provided");
   }
 
-  const params = [...updateParts.params, workspaceId, cardId];
+  const params = [
+    ...updateParts.params,
+    normalizedMetadata.clientUpdatedAt,
+    normalizedMetadata.lastModifiedByDeviceId,
+    normalizedMetadata.lastOperationId,
+    workspaceId,
+    cardId,
+  ];
   const result = await query<CardRow>(
     [
       "UPDATE content.cards",
-      `SET ${updateParts.assignments.join(", ")}, updated_at = now(),`,
+      `SET ${updateParts.assignments.join(", ")}, client_updated_at = $${params.length - 4},`,
+      `last_modified_by_device_id = $${params.length - 3}, last_operation_id = $${params.length - 2}, updated_at = now(),`,
       "server_version = nextval('content.cards_server_version_seq')",
       `WHERE workspace_id = $${params.length - 1} AND card_id = $${params.length} AND deleted_at IS NULL`,
       "RETURNING",
-      "card_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
-      "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days, updated_at",
+      CARD_COLUMNS,
     ].join(" "),
     params,
   );
@@ -627,7 +904,7 @@ export async function listReviewHistory(
   const result = cardId === undefined
     ? await query<ReviewHistoryRow>(
       [
-        "SELECT review_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
+        "SELECT review_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, server_version",
         "FROM content.review_events",
         "WHERE workspace_id = $1",
         "ORDER BY reviewed_at_server DESC",
@@ -637,7 +914,7 @@ export async function listReviewHistory(
     )
     : await query<ReviewHistoryRow>(
       [
-        "SELECT review_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
+        "SELECT review_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, server_version",
         "FROM content.review_events",
         "WHERE workspace_id = $1 AND card_id = $2",
         "ORDER BY reviewed_at_server DESC",
@@ -677,12 +954,14 @@ export async function submitReview(
   workspaceId: string,
   deviceId: string,
   input: SubmitReviewInput,
+  metadata: CardMutationMetadata,
 ): Promise<ReviewResult> {
   // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::submitReview(workspaceId:reviewSubmission:).
   const reviewedAtClient = new Date(input.reviewedAtClient);
   if (Number.isNaN(reviewedAtClient.getTime())) {
     throw new HttpError(400, "reviewedAtClient must be a valid ISO timestamp");
   }
+  const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
   return transaction(async (executor) => {
     const existingCard = await loadReviewableCardForUpdate(executor, workspaceId, input.cardId);
@@ -697,15 +976,15 @@ export async function submitReview(
     await executor.query(
       [
         "INSERT INTO content.review_events",
-        "(review_event_id, workspace_id, card_id, device_id, client_event_id, rating, reviewed_at_client)",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        "(review_event_id, workspace_id, card_id, device_id, client_event_id, rating, reviewed_at_client, server_version)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, DEFAULT)",
       ].join(" "),
       [
-        randomUUID(),
+        input.reviewEventId ?? randomUUID(),
         workspaceId,
         input.cardId,
         deviceId,
-        randomUUID(),
+        input.clientEventId ?? randomUUID(),
         input.rating,
         reviewedAtClient,
       ],
@@ -715,12 +994,12 @@ export async function submitReview(
       [
         "UPDATE content.cards",
         "SET due_at = $1, reps = $2, lapses = $3, fsrs_card_state = $4, fsrs_step_index = $5,",
-        "fsrs_stability = $6, fsrs_difficulty = $7, fsrs_last_reviewed_at = $8, fsrs_scheduled_days = $9, updated_at = now(),",
+        "fsrs_stability = $6, fsrs_difficulty = $7, fsrs_last_reviewed_at = $8, fsrs_scheduled_days = $9,",
+        "client_updated_at = $10, last_modified_by_device_id = $11, last_operation_id = $12, updated_at = now(),",
         "server_version = nextval('content.cards_server_version_seq')",
-        "WHERE workspace_id = $10 AND card_id = $11",
+        "WHERE workspace_id = $13 AND card_id = $14",
         "RETURNING",
-        "card_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
-        "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days, updated_at",
+        CARD_COLUMNS,
       ].join(" "),
       [
         schedule.dueAt,
@@ -732,6 +1011,9 @@ export async function submitReview(
         schedule.fsrsDifficulty,
         schedule.fsrsLastReviewedAt,
         schedule.fsrsScheduledDays,
+        normalizedMetadata.clientUpdatedAt,
+        normalizedMetadata.lastModifiedByDeviceId,
+        normalizedMetadata.lastOperationId,
         workspaceId,
         input.cardId,
       ],

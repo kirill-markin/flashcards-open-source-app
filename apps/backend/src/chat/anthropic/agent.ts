@@ -191,6 +191,7 @@ export type StreamAgentParams = Readonly<{
   model: string;
   requestId: string;
   workspaceId: string;
+  deviceId: string;
   timezone: string;
 }>;
 
@@ -272,6 +273,7 @@ export async function* streamAgentResponse(
         block.name,
         block.input,
         params.workspaceId,
+        params.deviceId,
         latestUserText,
       );
       toolResults.push(result);

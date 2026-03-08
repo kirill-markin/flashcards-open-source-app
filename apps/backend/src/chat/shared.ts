@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   createCard,
   getCard,
@@ -17,10 +18,12 @@ const MAX_LIST_LIMIT = 100;
 
 export type AgentContext = Readonly<{
   workspaceId: string;
+  deviceId: string;
   latestUserText: string;
 }>;
 
 type WriteToolInput = Readonly<{
+  deviceId: string;
   latestUserText: string;
 }>;
 
@@ -92,6 +95,18 @@ function ensureWriteConfirmed(input: WriteToolInput): void {
   if (!isConfirmed) {
     throw new Error("Write tool blocked: latest user message is not an explicit confirmation");
   }
+}
+
+function makeWriteMetadata(deviceId: string): Readonly<{
+  clientUpdatedAt: string;
+  lastModifiedByDeviceId: string;
+  lastOperationId: string;
+}> {
+  return {
+    clientUpdatedAt: new Date().toISOString(),
+    lastModifiedByDeviceId: deviceId,
+    lastOperationId: randomUUID(),
+  };
 }
 
 function stringifyResult(value: unknown): string {
@@ -189,7 +204,7 @@ export async function runCreateCardTool(
     backText: ensureNonEmptyCardText(validatedInput.backText, "backText"),
     tags: validatedInput.tags,
     effortLevel: validatedInput.effortLevel,
-  }));
+  }, makeWriteMetadata(writeToolInput.deviceId)));
 }
 
 export async function runUpdateCardTool(
@@ -223,7 +238,7 @@ export async function runUpdateCardTool(
     nextInput.effortLevel = validatedInput.effortLevel;
   }
 
-  return stringifyResult(await updateCard(workspaceId, cardId, nextInput));
+  return stringifyResult(await updateCard(workspaceId, cardId, nextInput, makeWriteMetadata(writeToolInput.deviceId)));
 }
 
 export function extractText(content: ReadonlyArray<ContentPart>): string {

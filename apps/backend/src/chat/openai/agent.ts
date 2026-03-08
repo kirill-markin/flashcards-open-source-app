@@ -182,6 +182,7 @@ export type StreamAgentParams = Readonly<{
   model: string;
   requestId: string;
   workspaceId: string;
+  deviceId: string;
   timezone: string;
 }>;
 
@@ -204,6 +205,7 @@ export async function* streamAgentResponse(
     stream: true,
     context: {
       workspaceId: params.workspaceId,
+      deviceId: params.deviceId,
       latestUserText: getLatestUserText(params.messages),
     },
     maxTurns: 10,

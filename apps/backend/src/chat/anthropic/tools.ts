@@ -166,6 +166,7 @@ export async function executeTool(
   toolName: string,
   toolInput: unknown,
   workspaceId: string,
+  deviceId: string,
   latestUserText: string,
 ): Promise<Anthropic.ToolResultBlockParam> {
   try {
@@ -220,7 +221,10 @@ export async function executeTool(
             tags: getTagsValue(input.tags),
             effortLevel: effortLevel as "fast" | "medium" | "long",
           },
-          { latestUserText },
+          {
+            deviceId,
+            latestUserText,
+          },
         );
         break;
       }
@@ -238,7 +242,10 @@ export async function executeTool(
             tags: input.tags === undefined ? undefined : getTagsValue(input.tags),
             effortLevel: getStringValue(input.effortLevel) as "fast" | "medium" | "long" | undefined,
           },
-          { latestUserText },
+          {
+            deviceId,
+            latestUserText,
+          },
         );
         break;
       }
