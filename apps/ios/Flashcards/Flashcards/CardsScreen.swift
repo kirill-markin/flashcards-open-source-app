@@ -76,6 +76,12 @@ struct CardsScreen: View {
                 )
             }
         }
+        .onAppear {
+            self.handleCardsPresentationRequest(request: store.cardsPresentationRequest)
+        }
+        .onChange(of: store.cardsPresentationRequest) { _, request in
+            self.handleCardsPresentationRequest(request: request)
+        }
     }
 
     private func beginCreating() {
@@ -126,6 +132,18 @@ struct CardsScreen: View {
             self.screenErrorMessage = ""
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
+
+    private func handleCardsPresentationRequest(request: CardsPresentationRequest?) {
+        guard let request else {
+            return
+        }
+
+        switch request {
+        case .createCard:
+            self.beginCreating()
+            store.clearCardsPresentationRequest()
         }
     }
 }
