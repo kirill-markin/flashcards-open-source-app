@@ -2,8 +2,9 @@ import Foundation
 import SQLite3
 
 enum AppTab: Hashable {
-    case home
     case review
+    case decks
+    case cards
     case settings
 }
 

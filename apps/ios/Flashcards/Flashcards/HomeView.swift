@@ -1,98 +1,5 @@
 import SwiftUI
 
-struct HomeView: View {
-    @EnvironmentObject private var store: FlashcardsStore
-
-    let startReview: () -> Void
-
-    var body: some View {
-        List {
-            if store.globalErrorMessage.isEmpty == false {
-                Section {
-                    Text(store.globalErrorMessage)
-                        .foregroundStyle(.red)
-                }
-            }
-
-            Section {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Local-first flashcards")
-                        .font(.headline)
-
-                    Text("\(store.homeSnapshot.dueCount) cards are due now across \(store.homeSnapshot.deckCount) saved filters.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Button(action: startReview) {
-                        Label("Start review", systemImage: "play.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .padding(.vertical, 8)
-            }
-
-            Section("Today") {
-                SummaryRow(
-                    title: "Due now",
-                    value: "\(store.homeSnapshot.dueCount)",
-                    symbolName: "clock.badge.checkmark"
-                )
-
-                SummaryRow(
-                    title: "New cards",
-                    value: "\(store.homeSnapshot.newCount)",
-                    symbolName: "plus.circle"
-                )
-
-                SummaryRow(
-                    title: "Reviewed",
-                    value: "\(store.homeSnapshot.reviewedCount)",
-                    symbolName: "checkmark.circle"
-                )
-
-                SummaryRow(
-                    title: "All cards",
-                    value: "\(store.homeSnapshot.totalCards)",
-                    symbolName: "square.stack.3d.up"
-                )
-            }
-
-            Section("Library") {
-                NavigationLink {
-                    CardsScreen()
-                } label: {
-                    Label("Cards", systemImage: "rectangle.stack")
-                }
-
-                NavigationLink {
-                    DecksScreen()
-                } label: {
-                    Label("Saved filters", systemImage: "line.3.horizontal.decrease.circle")
-                }
-            }
-
-            Section("Saved filters") {
-                if store.deckItems.isEmpty {
-                    Text("No saved filters yet.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(Array(store.deckItems.prefix(3))) { deckItem in
-                        DeckListRow(deckItem: deckItem)
-                    }
-                }
-            }
-
-            Section("Local mode") {
-                Label("Everything works without login by default.", systemImage: "internaldrive")
-                Label("Cloud account and sync stay optional in Settings.", systemImage: "icloud")
-            }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Home")
-    }
-}
-
 struct CardsScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
 
@@ -245,13 +152,13 @@ struct DecksScreen: View {
             }
 
             Section {
-                Text("Saved filters reuse the backend deck contract: name plus filter definition.")
+                Text("Desks reuse the backend deck contract: name plus filter definition.")
                     .foregroundStyle(.secondary)
             }
 
-            Section("Saved filters") {
+            Section("Desks") {
                 if store.deckItems.isEmpty {
-                    Text("No saved filters yet.")
+                    Text("No desks yet.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(store.deckItems) { deckItem in
@@ -272,13 +179,13 @@ struct DecksScreen: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Saved filters")
+        .navigationTitle("Desks")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     self.beginCreating()
                 } label: {
-                    Label("New filter", systemImage: "plus")
+                    Label("New desk", systemImage: "plus")
                 }
             }
         }
@@ -613,7 +520,7 @@ private func toggleEffortLevel(
 
 #Preview {
     NavigationStack {
-        HomeView(startReview: {})
+        CardsScreen()
             .environmentObject(FlashcardsStore())
     }
 }
