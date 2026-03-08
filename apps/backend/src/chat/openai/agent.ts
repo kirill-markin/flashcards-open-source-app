@@ -135,14 +135,29 @@ export async function* streamAgentResponse(
 
   let activeToolName: string | null = null;
   let activeToolInput: string | null = null;
+  let emittedAssistantText = "";
 
   for await (const event of result) {
     if (event.type === "raw_model_stream_event" && event.data.type === "output_text_delta") {
+      emittedAssistantText += event.data.delta;
       yield { type: "delta", text: event.data.delta };
       continue;
     }
 
     if (event.type !== "run_item_stream_event") {
+      continue;
+    }
+
+    if (event.name === "message_output_created" && event.item.type === "message_output_item") {
+      const remainingText = event.item.content.startsWith(emittedAssistantText)
+        ? event.item.content.slice(emittedAssistantText.length)
+        : event.item.content;
+
+      if (remainingText !== "") {
+        emittedAssistantText += remainingText;
+        yield { type: "delta", text: remainingText };
+      }
+
       continue;
     }
 
