@@ -1,7 +1,5 @@
 import SwiftUI
 
-private let allCardsDeckLabel: String = "All cards"
-
 struct DecksScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
 
@@ -274,6 +272,15 @@ private struct DeckDetailScreen: View {
         }
     }
 
+    private var reviewFilter: ReviewFilter {
+        switch destination {
+        case .allCards:
+            return .allCards
+        case .deck(let deckId):
+            return .deck(deckId: deckId)
+        }
+    }
+
     var body: some View {
         List {
             if screenErrorMessage.isEmpty == false {
@@ -302,6 +309,14 @@ private struct DeckDetailScreen: View {
                     )
                     Text(detailState.filterSummary)
                         .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    Button {
+                        self.openReview()
+                    } label: {
+                        Label("Open review", systemImage: "rectangle.on.rectangle")
+                    }
                 }
 
                 Section("Matching cards") {
@@ -404,6 +419,10 @@ private struct DeckDetailScreen: View {
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)
         }
+    }
+
+    private func openReview() {
+        store.openReview(reviewFilter: reviewFilter)
     }
 }
 
