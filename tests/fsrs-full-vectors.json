@@ -542,7 +542,7 @@
       "lapses": 1,
       "fsrsCardState": "relearning",
       "fsrsStepIndex": 1,
-      "fsrsStability": 1.42788168,
+      "fsrsStability": 1.40438333,
       "fsrsDifficulty": 7.01519095,
       "fsrsLastReviewedAt": "2026-03-16T09:10:00.000Z",
       "fsrsScheduledDays": 0
@@ -553,7 +553,7 @@
       "lapses": 1,
       "fsrsCardState": "relearning",
       "fsrsStepIndex": 1,
-      "fsrsStability": 1.42788168,
+      "fsrsStability": 1.40438333,
       "fsrsDifficulty": 7.01519095,
       "fsrsLastReviewedAt": "2026-03-16T09:10:00.000Z",
       "fsrsScheduledDays": 0
@@ -590,7 +590,7 @@
       "lapses": 1,
       "fsrsCardState": "relearning",
       "fsrsStepIndex": 1,
-      "fsrsStability": 1.42788168,
+      "fsrsStability": 1.40438333,
       "fsrsDifficulty": 7.01519095,
       "fsrsLastReviewedAt": "2026-03-17T09:30:00.000Z",
       "fsrsScheduledDays": 0
@@ -601,7 +601,7 @@
       "lapses": 1,
       "fsrsCardState": "relearning",
       "fsrsStepIndex": 1,
-      "fsrsStability": 1.42788168,
+      "fsrsStability": 1.40438333,
       "fsrsDifficulty": 7.01519095,
       "fsrsLastReviewedAt": "2026-03-17T09:30:00.000Z",
       "fsrsScheduledDays": 0

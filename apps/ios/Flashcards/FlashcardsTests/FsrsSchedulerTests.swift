@@ -648,6 +648,9 @@ final class FsrsSchedulerTests: XCTestCase {
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 0,
                     serverVersion: 1,
+                    clientUpdatedAt: "2026-03-08T09:00:00.000Z",
+                    lastModifiedByDeviceId: "device",
+                    lastOperationId: "operation",
                     updatedAt: "2026-03-08T09:00:00.000Z",
                     deletedAt: nil
                 )
@@ -673,6 +676,9 @@ final class FsrsSchedulerTests: XCTestCase {
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 8,
                     serverVersion: 1,
+                    clientUpdatedAt: "2026-03-08T09:00:00.000Z",
+                    lastModifiedByDeviceId: "device",
+                    lastOperationId: "operation",
                     updatedAt: "2026-03-08T09:00:00.000Z",
                     deletedAt: nil
                 )
@@ -698,6 +704,9 @@ final class FsrsSchedulerTests: XCTestCase {
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 0,
                     serverVersion: 1,
+                    clientUpdatedAt: "2026-03-08T09:00:00.000Z",
+                    lastModifiedByDeviceId: "device",
+                    lastOperationId: "operation",
                     updatedAt: "2026-03-08T09:00:00.000Z",
                     deletedAt: nil
                 )
@@ -725,6 +734,9 @@ final class FsrsSchedulerTests: XCTestCase {
                 fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                 fsrsScheduledDays: 8,
                 serverVersion: 3,
+                clientUpdatedAt: "2026-03-08T09:00:00.000Z",
+                lastModifiedByDeviceId: "device",
+                lastOperationId: "operation",
                 updatedAt: "2026-03-08T09:00:00.000Z",
                 deletedAt: nil
             ),
@@ -735,7 +747,7 @@ final class FsrsSchedulerTests: XCTestCase {
         XCTAssertNil(repairedCard.dueAt)
         XCTAssertEqual(repairedCard.reps, 0)
         XCTAssertEqual(repairedCard.lapses, 0)
-        XCTAssertEqual(repairedCard.fsrsCardState, .new)
+        XCTAssertEqual(repairedCard.fsrsCardState, FsrsCardState.new)
         XCTAssertNil(repairedCard.fsrsStepIndex)
         XCTAssertNil(repairedCard.fsrsStability)
         XCTAssertNil(repairedCard.fsrsDifficulty)
@@ -763,6 +775,9 @@ final class FsrsSchedulerTests: XCTestCase {
             fsrsLastReviewedAt: nil,
             fsrsScheduledDays: nil,
             serverVersion: 0,
+            clientUpdatedAt: "2026-03-08T00:00:00.000Z",
+            lastModifiedByDeviceId: "device",
+            lastOperationId: "operation",
             updatedAt: "",
             deletedAt: nil
         )
@@ -842,6 +857,10 @@ final class FsrsSchedulerTests: XCTestCase {
             relearningStepsMinutes: relearningStepsMinutes,
             maximumIntervalDays: maximumIntervalDays,
             enableFuzz: enableFuzz,
+            serverVersion: nil,
+            clientUpdatedAt: "2026-03-08T00:00:00.000Z",
+            lastModifiedByDeviceId: "device",
+            lastOperationId: "operation",
             updatedAt: "2026-03-08T00:00:00.000Z"
         )
     }
@@ -864,6 +883,9 @@ final class FsrsSchedulerTests: XCTestCase {
             fsrsLastReviewedAt: nil,
             fsrsScheduledDays: nil,
             serverVersion: 0,
+            clientUpdatedAt: "2026-03-08T00:00:00.000Z",
+            lastModifiedByDeviceId: "device",
+            lastOperationId: "operation",
             updatedAt: "",
             deletedAt: nil
         )
@@ -887,6 +909,9 @@ final class FsrsSchedulerTests: XCTestCase {
             fsrsLastReviewedAt: isoTimestamp(date: schedule.fsrsLastReviewedAt),
             fsrsScheduledDays: schedule.fsrsScheduledDays,
             serverVersion: card.serverVersion,
+            clientUpdatedAt: card.clientUpdatedAt,
+            lastModifiedByDeviceId: card.lastModifiedByDeviceId,
+            lastOperationId: card.lastOperationId,
             updatedAt: card.updatedAt,
             deletedAt: card.deletedAt
         )

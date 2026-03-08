@@ -232,6 +232,9 @@ The implementation uses the official FSRS-6 default weights for:
 - short-term stability update
 - forgetting curve
 
+The weights remain pinned in code, but short-term weights `w17` and `w18` are clipped with the same `ts-fsrs 5.2.3` rule when `relearning_steps.length > 1`.
+That keeps multi-step relearning aligned with the official scheduler behavior even though weights are not user-editable.
+
 The implementation does not use fixed review intervals or an ease-factor model.
 Long-term intervals are derived from:
 
