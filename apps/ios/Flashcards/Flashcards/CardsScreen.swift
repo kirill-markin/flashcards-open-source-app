@@ -138,10 +138,6 @@ struct CardRow: View {
                 .font(.headline)
                 .foregroundStyle(.primary)
 
-            Text(card.backText)
-                .lineLimit(2)
-                .foregroundStyle(.secondary)
-
             HStack(spacing: 12) {
                 Label(card.effortLevel.title, systemImage: "timer")
                 Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
