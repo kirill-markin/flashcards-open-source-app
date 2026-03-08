@@ -1,5 +1,18 @@
 import Foundation
 
+/**
+ FSRS-facing Swift types mirror the backend scheduler contract and the web
+ transport types. The iOS scheduler implementation itself lives in
+ `FsrsScheduler.swift`.
+
+ Keep these FSRS-facing types aligned with:
+ - apps/backend/src/schedule.ts
+ - apps/backend/src/cards.ts
+ - apps/backend/src/workspaceSchedulerSettings.ts
+ - apps/web/src/types.ts
+ - docs/fsrs-scheduling-logic.md
+ */
+
 enum AppTab: Hashable {
     case review
     case decks
@@ -61,6 +74,18 @@ enum ReviewRating: Int, CaseIterable, Hashable, Identifiable {
         case .easy:
             return "sparkles"
         }
+    }
+}
+
+// Keep in sync with apps/backend/src/schedule.ts::FsrsCardState and apps/web/src/types.ts::FsrsCardState.
+enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable {
+    case new
+    case learning
+    case review
+    case relearning
+
+    var id: String {
+        rawValue
     }
 }
 
@@ -191,6 +216,18 @@ struct UserSettings: Hashable {
     let createdAt: String
 }
 
+// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings and apps/web/src/types.ts::WorkspaceSchedulerSettings.
+struct WorkspaceSchedulerSettings: Hashable {
+    let algorithm: String
+    let desiredRetention: Double
+    let learningStepsMinutes: [Int]
+    let relearningStepsMinutes: [Int]
+    let maximumIntervalDays: Int
+    let enableFuzz: Bool
+    let updatedAt: String
+}
+
+// Keep in sync with apps/backend/src/cards.ts::Card and apps/web/src/types.ts::Card.
 struct Card: Identifiable, Hashable {
     let cardId: String
     let workspaceId: String
@@ -201,6 +238,12 @@ struct Card: Identifiable, Hashable {
     let dueAt: String?
     let reps: Int
     let lapses: Int
+    let fsrsCardState: FsrsCardState
+    let fsrsStepIndex: Int?
+    let fsrsStability: Double?
+    let fsrsDifficulty: Double?
+    let fsrsLastReviewedAt: String?
+    let fsrsScheduledDays: Int?
     let serverVersion: Int64
     let updatedAt: String
     let deletedAt: String?
@@ -292,6 +335,7 @@ struct DeckCardStats: Hashable {
 struct AppStateSnapshot: Hashable {
     let workspace: Workspace
     let userSettings: UserSettings
+    let schedulerSettings: WorkspaceSchedulerSettings
     let cloudSettings: CloudSettings
     let cards: [Card]
     let decks: [Deck]
@@ -319,6 +363,12 @@ struct ReviewSchedule: Hashable {
     let dueAt: Date
     let reps: Int
     let lapses: Int
+    let fsrsCardState: FsrsCardState
+    let fsrsStepIndex: Int?
+    let fsrsStability: Double
+    let fsrsDifficulty: Double
+    let fsrsLastReviewedAt: Date
+    let fsrsScheduledDays: Int
 }
 
 enum LocalStoreError: LocalizedError {

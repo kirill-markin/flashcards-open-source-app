@@ -31,6 +31,11 @@ import {
   type RequestAuthInputs,
 } from "./requestSecurity";
 import type { ReviewRating } from "./schedule";
+import {
+  getWorkspaceSchedulerSettings,
+  updateWorkspaceSchedulerSettings,
+  type UpdateWorkspaceSchedulerSettingsInput,
+} from "./workspaceSchedulerSettings";
 import { CHAT_MODELS } from "./chat/models";
 import type { ChatMessage, ChatStreamEvent } from "./chat/types";
 
@@ -219,6 +224,19 @@ function expectBoolean(value: unknown, fieldName: string): boolean {
   return value;
 }
 
+function expectNumberInRange(
+  value: unknown,
+  fieldName: string,
+  minExclusive: number,
+  maxExclusive: number,
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= minExclusive || value >= maxExclusive) {
+    throw new HttpError(400, `${fieldName} must be a finite number between ${minExclusive} and ${maxExclusive}`);
+  }
+
+  return value;
+}
+
 function expectNonNegativeInteger(value: unknown, fieldName: string): number {
   if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
     throw new HttpError(400, `${fieldName} must be a non-negative integer`);
@@ -233,6 +251,28 @@ function expectNullableNonNegativeInteger(value: unknown, fieldName: string): nu
   }
 
   return expectNonNegativeInteger(value, fieldName);
+}
+
+function expectPositiveIntegerArray(value: unknown, fieldName: string): ReadonlyArray<number> {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new HttpError(400, `${fieldName} must be a non-empty array`);
+  }
+
+  const items = value.map((item) => {
+    if (typeof item !== "number" || !Number.isInteger(item) || item <= 0 || item >= 1_440) {
+      throw new HttpError(400, `${fieldName} must contain positive integer minutes under 1440`);
+    }
+
+    return item;
+  });
+
+  for (let index = 1; index < items.length; index += 1) {
+    if (items[index] <= items[index - 1]) {
+      throw new HttpError(400, `${fieldName} must be strictly increasing`);
+    }
+  }
+
+  return items;
 }
 
 function normalizeTags(value: unknown): ReadonlyArray<string> {
@@ -276,7 +316,21 @@ function parseCreateCardInput(value: unknown): CreateCardInput {
 
 function parseUpdateCardInput(value: unknown): UpdateCardInput {
   const body = expectRecord(value);
-  const disallowedKeys = ["cardId", "dueAt", "reps", "lapses", "updatedAt", "serverVersion", "deletedAt"];
+  const disallowedKeys = [
+    "cardId",
+    "dueAt",
+    "reps",
+    "lapses",
+    "fsrsCardState",
+    "fsrsStepIndex",
+    "fsrsStability",
+    "fsrsDifficulty",
+    "fsrsLastReviewedAt",
+    "fsrsScheduledDays",
+    "updatedAt",
+    "serverVersion",
+    "deletedAt",
+  ];
 
   for (const key of disallowedKeys) {
     if (key in body) {
@@ -338,6 +392,18 @@ function parseSubmitReviewInput(value: unknown): Readonly<{
     cardId: expectNonEmptyString(body.cardId, "cardId"),
     rating: parseReviewRating(body.rating),
     reviewedAtClient: expectNonEmptyString(body.reviewedAtClient, "reviewedAtClient"),
+  };
+}
+
+function parseWorkspaceSchedulerSettingsInput(value: unknown): UpdateWorkspaceSchedulerSettingsInput {
+  const body = expectRecord(value);
+
+  return {
+    desiredRetention: expectNumberInRange(body.desiredRetention, "desiredRetention", 0, 1),
+    learningStepsMinutes: expectPositiveIntegerArray(body.learningStepsMinutes, "learningStepsMinutes"),
+    relearningStepsMinutes: expectPositiveIntegerArray(body.relearningStepsMinutes, "relearningStepsMinutes"),
+    maximumIntervalDays: expectNonNegativeInteger(body.maximumIntervalDays, "maximumIntervalDays"),
+    enableFuzz: expectBoolean(body.enableFuzz, "enableFuzz"),
   };
 }
 
@@ -544,7 +610,7 @@ export function createApp(basePath: string): Hono {
   const allowedOrigins = getAllowedOrigins();
   const routeMountPaths = getRouteMountPaths(basePath);
   const registerRoute = (
-    method: "get" | "post" | "patch",
+    method: "get" | "post" | "patch" | "put",
     routePath: string,
     handler: Handler,
   ): void => {
@@ -560,6 +626,11 @@ export function createApp(basePath: string): Hono {
         continue;
       }
 
+      if (method === "put") {
+        app.put(fullPath, handler);
+        continue;
+      }
+
       app.patch(fullPath, handler);
     }
   };
@@ -568,7 +639,7 @@ export function createApp(basePath: string): Hono {
     "*",
     cors({
       origin: allowedOrigins,
-      allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
+      allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
       allowHeaders: ["content-type", "authorization", "x-csrf-token"],
       exposeHeaders: [
         "cache-control",
@@ -632,6 +703,19 @@ export function createApp(basePath: string): Hono {
         locale: requestContext.locale,
       },
     });
+  });
+
+  registerRoute("get", "/workspace/scheduler-settings", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const schedulerSettings = await getWorkspaceSchedulerSettings(requestContext.workspaceId);
+    return context.json({ schedulerSettings });
+  });
+
+  registerRoute("put", "/workspace/scheduler-settings", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const input = parseWorkspaceSchedulerSettingsInput(await parseJsonBody(context.req.raw));
+    const schedulerSettings = await updateWorkspaceSchedulerSettings(requestContext.workspaceId, input);
+    return context.json({ schedulerSettings });
   });
 
   registerRoute("get", "/cards", async (context) => {
