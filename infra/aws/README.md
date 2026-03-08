@@ -10,6 +10,7 @@ This stack deploys v1 backend infrastructure for `flashcards-open-source-app`.
 - API Gateway (REST API) for backend + API Gateway (REST API) for auth + two Lambdas (backend + auth)
 - S3 bucket + CloudFront distribution for the web app
 - Secrets Manager — DB credentials (auto-generated), app DB password, session encryption key
+- Optional Secrets Manager secrets for AI provider API keys, when configured locally before deploy
 - CloudWatch alarms + SNS notifications
 - AWS Backup plan for RDS
 - GitHub Actions OIDC deployment role
@@ -39,8 +40,12 @@ npx cdk deploy --all --require-approval never
 Or from the repo root, use the higher-level helper:
 
 ```bash
+export OPENAI_API_KEY="..."
+export ANTHROPIC_API_KEY="..."
 bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-source-app.com --alert-email alerts@example.com
 ```
+
+`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional. If you export them before running the helper, `scripts/setup-ai-secrets.sh` stores them in AWS Secrets Manager and records their ARNs in `infra/aws/cdk.context.local.json`. CDK then injects them into the backend Lambda from AWS secrets. If you skip them, the stack still deploys successfully and chat providers remain unconfigured.
 
 `scripts/bootstrap.sh` and `scripts/first-deploy.sh` now also:
 
@@ -56,7 +61,8 @@ bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-sour
 5. **Run migrations manually if needed** — `bash scripts/migrate-aws.sh`.
 6. **Check internal gateway health manually if needed** — `bash scripts/check-api-health.sh`.
 7. **Check public custom domains manually if needed** — `bash scripts/check-public-endpoints.sh`.
-8. **Configure GitHub Actions** — `bash scripts/setup-github.sh` writes the required vars/secrets for this repo using stack outputs and `cdk.context.local.json`.
+8. **Configure GitHub Actions** — `bash scripts/setup-github.sh` writes the required vars/secrets for this repo using stack outputs and `cdk.context.local.json`. For AI providers it stores only secret ARNs as GitHub variables; the provider keys themselves stay in AWS Secrets Manager.
+9. **Rotate optional AI keys later if needed** — export `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY`, then run `bash scripts/setup-ai-secrets.sh --region <aws-region>` and `bash scripts/setup-github.sh`.
 
 ## Auth flow
 

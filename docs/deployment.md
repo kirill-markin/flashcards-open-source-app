@@ -55,11 +55,15 @@ The CDK stack provisions:
 
 ```bash
 export AWS_PROFILE=flashcards-open-source-app
+export OPENAI_API_KEY="..."
+export ANTHROPIC_API_KEY="..."
 bash scripts/first-deploy.sh \
   --region eu-central-1 \
   --domain flashcards-open-source-app.com \
   --alert-email alerts@example.com
 ```
+
+`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional. When present, the deploy flow writes them to AWS Secrets Manager and stores the resulting secret ARNs in `infra/aws/cdk.context.local.json` so CDK can inject them into the backend Lambda. When absent, infrastructure still deploys and the chat endpoint remains disabled until the keys are configured later.
 
 To use custom domains:
 
@@ -77,3 +81,4 @@ If the apex already points to a real marketing site or any other existing DNS ta
 ### CI/CD
 
 GitHub Actions deploys on push to `main` using OIDC role from stack outputs.
+GitHub stores only the optional AI secret ARNs as repository variables; the actual provider keys stay in AWS Secrets Manager.

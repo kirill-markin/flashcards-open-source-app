@@ -45,19 +45,34 @@ Local URLs:
 Run one script from the repo root:
 
 ```bash
+export OPENAI_API_KEY="..."
+export ANTHROPIC_API_KEY="..."
+
 bash scripts/first-deploy.sh \
   --region eu-central-1 \
   --domain flashcards-open-source-app.com \
   --alert-email you@example.com
 ```
 
+Both AI provider variables are optional. If they are exported, the deploy flow stores them in AWS Secrets Manager, records the secret ARNs in `infra/aws/cdk.context.local.json`, and configures the backend Lambda from AWS secrets. If they are omitted, the app still deploys successfully and `/chat` will keep returning the existing "environment variable is not set" error until keys are configured later.
+
 This script:
 
 - creates/updates `infra/aws/cdk.context.local.json`
+- optionally creates/updates AWS Secrets Manager secrets for `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`
 - requests API, auth, web, and apex-redirect ACM certificates if needed
 - bootstraps and deploys CDK
 - uploads web assets
 - configures Cloudflare DNS from local `scripts/cloudflare/.env`
 - configures GitHub Actions vars/secrets for this repo
+
+To add or rotate AI provider keys later without a full first deploy:
+
+```bash
+export OPENAI_API_KEY="..."
+export ANTHROPIC_API_KEY="..."
+bash scripts/setup-ai-secrets.sh --region eu-central-1
+bash scripts/setup-github.sh
+```
 
 If the apex domain already points somewhere else, bootstrap leaves it untouched and only manages `app.<domain>`, `api.<domain>`, and `auth.<domain>`.

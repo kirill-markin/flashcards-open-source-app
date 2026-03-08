@@ -13,6 +13,16 @@ import { webApp } from "./web";
 import { migrationRunner } from "./migration-runner";
 import { authGateway } from "./auth-gateway";
 
+function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
+  const value = stack.node.tryGetContext(key);
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === "" ? undefined : trimmedValue;
+}
+
 export class FlashcardsOpenSourceAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -20,11 +30,13 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const baseDomain = this.node.tryGetContext("domainName") as string;
     const alertEmail = this.node.tryGetContext("alertEmail") as string;
     const githubRepo = this.node.tryGetContext("githubRepo") as string;
-    const apiCertificateArn = this.node.tryGetContext("apiCertificateArn") as string | undefined;
-    const authCertificateArn = this.node.tryGetContext("authCertificateArn") as string | undefined;
-    const webCertificateArnUsEast1 = this.node.tryGetContext("webCertificateArnUsEast1") as string | undefined;
-    const apexRedirectCertificateArnUsEast1 = this.node.tryGetContext("apexRedirectCertificateArnUsEast1") as string | undefined;
-    const githubOidcProviderArn = this.node.tryGetContext("githubOidcProviderArn") as string | undefined;
+    const apiCertificateArn = getOptionalContextValue(this, "apiCertificateArn");
+    const authCertificateArn = getOptionalContextValue(this, "authCertificateArn");
+    const webCertificateArnUsEast1 = getOptionalContextValue(this, "webCertificateArnUsEast1");
+    const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
+    const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
+    const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
+    const anthropicApiKeySecretArn = getOptionalContextValue(this, "anthropicApiKeySecretArn");
 
     const net = networking(this);
     const dbResult = database(this, { vpc: net.vpc, dbSg: net.dbSg });
@@ -50,6 +62,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       appDbSecret: dbResult.appDbSecret,
       baseDomain,
       apiCertificateArn,
+      openAiApiKeySecretArn,
+      anthropicApiKeySecretArn,
       userPoolId: authResult.userPool.userPoolId,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
