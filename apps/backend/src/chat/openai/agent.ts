@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Agent, run } from "@openai/agents";
 import { codeInterpreterTool, webSearchTool } from "@openai/agents-openai";
 import type {
@@ -32,6 +33,54 @@ type MessageOutputContentPart =
   | { type: "refusal"; refusal: string }
   | { type: "audio"; audio: string | { id: string }; format?: string | null; transcript?: string | null }
   | { type: "image"; image: string };
+
+type ChatLogEvent =
+  | Readonly<{
+    action: "request";
+    requestId: string;
+    model: string;
+    messageCount: number;
+    attachmentCount: number;
+  }>
+  | Readonly<{
+    action: "message_output_created";
+    requestId: string;
+    messageId: string | null;
+    messageTextLength: number;
+    unsentTextLength: number;
+    duplicate: boolean;
+  }>
+  | Readonly<{
+    action: "tool_call";
+    requestId: string;
+    tool: string;
+    status: "started" | "completed";
+  }>
+  | Readonly<{
+    action: "response";
+    requestId: string;
+    durationMs: number;
+    rawDeltaEventCount: number;
+    rawDeltaTextLength: number;
+    messageOutputEventCount: number;
+    emittedTextLength: number;
+    toolCallCount: number;
+    empty: boolean;
+  }>
+  | Readonly<{
+    action: "error";
+    requestId: string;
+    stage: "stream";
+    errorName: string;
+  }>;
+
+function logChatEvent(event: ChatLogEvent): void {
+  console.log(JSON.stringify({
+    domain: "chat",
+    vendor: "openai",
+    ...event,
+  }));
+}
 
 function buildOpenaiInstructions(timezone: string): string {
   return (
@@ -139,6 +188,7 @@ export type StreamAgentParams = Readonly<{
 export async function* streamAgentResponse(
   params: StreamAgentParams,
 ): AsyncGenerator<ChatStreamEvent> {
+  const requestId = randomUUID();
   const agent = new Agent<AgentContext>({
     name: "Flashcards Assistant",
     instructions: buildOpenaiInstructions(params.timezone),
@@ -163,67 +213,130 @@ export async function* streamAgentResponse(
   let activeToolName: string | null = null;
   let activeToolInput: string | null = null;
   let streamedText = "";
+  let rawDeltaEventCount = 0;
+  let rawDeltaTextLength = 0;
+  let messageOutputEventCount = 0;
+  let toolCallCount = 0;
   const emittedMessageOutputIds = new Set<string>();
+  const attachmentCount = params.messages.reduce(
+    (count: number, message: ChatMessage) => count + message.content.filter((part) => part.type !== "text").length,
+    0,
+  );
+  const requestStartedAt = Date.now();
 
-  for await (const event of result) {
-    if (event.type === "raw_model_stream_event" && event.data.type === "output_text_delta") {
-      streamedText += event.data.delta;
-      yield { type: "delta", text: event.data.delta };
-      continue;
-    }
+  logChatEvent({
+    action: "request",
+    requestId,
+    model: params.model,
+    messageCount: params.messages.length,
+    attachmentCount,
+  });
 
-    if (event.type !== "run_item_stream_event") {
-      continue;
-    }
-
-    if (event.name === "message_output_created" && event.item.type === "message_output_item") {
-      const messageId = event.item.rawItem.id;
-      if (messageId !== undefined && emittedMessageOutputIds.has(messageId)) {
+  try {
+    for await (const event of result) {
+      if (event.type === "raw_model_stream_event" && event.data.type === "output_text_delta") {
+        rawDeltaEventCount += 1;
+        rawDeltaTextLength += event.data.delta.length;
+        streamedText += event.data.delta;
+        yield { type: "delta", text: event.data.delta };
         continue;
       }
 
-      const messageText = extractMessageOutputText(event.item);
-      const unsentText = getUnsentMessageOutputText(messageText, streamedText);
-
-      if (unsentText !== "") {
-        streamedText += unsentText;
-        yield { type: "delta", text: unsentText };
+      if (event.type !== "run_item_stream_event") {
+        continue;
       }
 
-      if (messageId !== undefined) {
-        emittedMessageOutputIds.add(messageId);
+      if (event.name === "message_output_created" && event.item.type === "message_output_item") {
+        const messageId = event.item.rawItem.id;
+        const isDuplicate = messageId !== undefined && emittedMessageOutputIds.has(messageId);
+        if (isDuplicate) {
+          logChatEvent({
+            action: "message_output_created",
+            requestId,
+            messageId: messageId ?? null,
+            messageTextLength: 0,
+            unsentTextLength: 0,
+            duplicate: true,
+          });
+          continue;
+        }
+
+        const messageText = extractMessageOutputText(event.item);
+        const unsentText = getUnsentMessageOutputText(messageText, streamedText);
+        messageOutputEventCount += 1;
+
+        logChatEvent({
+          action: "message_output_created",
+          requestId,
+          messageId: messageId ?? null,
+          messageTextLength: messageText.length,
+          unsentTextLength: unsentText.length,
+          duplicate: false,
+        });
+
+        if (unsentText !== "") {
+          streamedText += unsentText;
+          yield { type: "delta", text: unsentText };
+        }
+
+        if (messageId !== undefined) {
+          emittedMessageOutputIds.add(messageId);
+        }
+
+        continue;
       }
 
-      continue;
-    }
+      if (event.name === "tool_called" && event.item.type === "tool_call_item") {
+        activeToolName = event.item.rawItem.type === "function_call"
+          ? event.item.rawItem.name
+          : event.item.rawItem.type;
+        activeToolInput = event.item.rawItem.type === "function_call"
+          ? (event.item.rawItem.arguments ?? null)
+          : null;
+        logChatEvent({ action: "tool_call", requestId, tool: activeToolName, status: "started" });
+        yield { type: "tool_call", name: activeToolName, status: "started" };
+        continue;
+      }
 
-    if (event.name === "tool_called" && event.item.type === "tool_call_item") {
-      activeToolName = event.item.rawItem.type === "function_call"
-        ? event.item.rawItem.name
-        : event.item.rawItem.type;
-      activeToolInput = event.item.rawItem.type === "function_call"
-        ? (event.item.rawItem.arguments ?? null)
-        : null;
-      yield { type: "tool_call", name: activeToolName, status: "started" };
-      continue;
+      if (event.name === "tool_output" && event.item.type === "tool_call_output_item") {
+        const toolName = activeToolName ?? "tool";
+        toolCallCount += 1;
+        logChatEvent({ action: "tool_call", requestId, tool: toolName, status: "completed" });
+        const toolOutput = typeof event.item.output === "string"
+          ? event.item.output
+          : JSON.stringify(event.item.output);
+        yield {
+          type: "tool_call",
+          name: toolName,
+          status: "completed",
+          input: activeToolInput ?? undefined,
+          output: toolOutput,
+        };
+        activeToolName = null;
+        activeToolInput = null;
+      }
     }
-
-    if (event.name === "tool_output" && event.item.type === "tool_call_output_item") {
-      const toolName = activeToolName ?? "tool";
-      const toolOutput = typeof event.item.output === "string"
-        ? event.item.output
-        : JSON.stringify(event.item.output);
-      yield {
-        type: "tool_call",
-        name: toolName,
-        status: "completed",
-        input: activeToolInput ?? undefined,
-        output: toolOutput,
-      };
-      activeToolName = null;
-      activeToolInput = null;
-    }
+  } catch (error) {
+    logChatEvent({
+      action: "error",
+      requestId,
+      stage: "stream",
+      errorName: error instanceof Error ? error.name : "NonError",
+    });
+    throw error;
   }
+
+  logChatEvent({
+    action: "response",
+    requestId,
+    durationMs: Date.now() - requestStartedAt,
+    rawDeltaEventCount,
+    rawDeltaTextLength,
+    messageOutputEventCount,
+    emittedTextLength: streamedText.length,
+    toolCallCount,
+    empty: streamedText.length === 0,
+  });
 
   yield { type: "done" };
 }
