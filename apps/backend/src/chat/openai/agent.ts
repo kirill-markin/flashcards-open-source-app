@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { Agent, run } from "@openai/agents";
 import { codeInterpreterTool, webSearchTool } from "@openai/agents-openai";
 import type {
@@ -181,6 +180,7 @@ function getUnsentMessageOutputText(fullText: string, streamedText: string): str
 export type StreamAgentParams = Readonly<{
   messages: ReadonlyArray<ChatMessage>;
   model: string;
+  requestId: string;
   workspaceId: string;
   timezone: string;
 }>;
@@ -188,7 +188,6 @@ export type StreamAgentParams = Readonly<{
 export async function* streamAgentResponse(
   params: StreamAgentParams,
 ): AsyncGenerator<ChatStreamEvent> {
-  const requestId = randomUUID();
   const agent = new Agent<AgentContext>({
     name: "Flashcards Assistant",
     instructions: buildOpenaiInstructions(params.timezone),
@@ -226,7 +225,7 @@ export async function* streamAgentResponse(
 
   logChatEvent({
     action: "request",
-    requestId,
+    requestId: params.requestId,
     model: params.model,
     messageCount: params.messages.length,
     attachmentCount,
@@ -252,7 +251,7 @@ export async function* streamAgentResponse(
         if (isDuplicate) {
           logChatEvent({
             action: "message_output_created",
-            requestId,
+            requestId: params.requestId,
             messageId: messageId ?? null,
             messageTextLength: 0,
             unsentTextLength: 0,
@@ -267,7 +266,7 @@ export async function* streamAgentResponse(
 
         logChatEvent({
           action: "message_output_created",
-          requestId,
+          requestId: params.requestId,
           messageId: messageId ?? null,
           messageTextLength: messageText.length,
           unsentTextLength: unsentText.length,
@@ -293,7 +292,12 @@ export async function* streamAgentResponse(
         activeToolInput = event.item.rawItem.type === "function_call"
           ? (event.item.rawItem.arguments ?? null)
           : null;
-        logChatEvent({ action: "tool_call", requestId, tool: activeToolName, status: "started" });
+        logChatEvent({
+          action: "tool_call",
+          requestId: params.requestId,
+          tool: activeToolName,
+          status: "started",
+        });
         yield { type: "tool_call", name: activeToolName, status: "started" };
         continue;
       }
@@ -301,7 +305,12 @@ export async function* streamAgentResponse(
       if (event.name === "tool_output" && event.item.type === "tool_call_output_item") {
         const toolName = activeToolName ?? "tool";
         toolCallCount += 1;
-        logChatEvent({ action: "tool_call", requestId, tool: toolName, status: "completed" });
+        logChatEvent({
+          action: "tool_call",
+          requestId: params.requestId,
+          tool: toolName,
+          status: "completed",
+        });
         const toolOutput = typeof event.item.output === "string"
           ? event.item.output
           : JSON.stringify(event.item.output);
@@ -319,7 +328,7 @@ export async function* streamAgentResponse(
   } catch (error) {
     logChatEvent({
       action: "error",
-      requestId,
+      requestId: params.requestId,
       stage: "stream",
       errorName: error instanceof Error ? error.name : "NonError",
     });
@@ -328,7 +337,7 @@ export async function* streamAgentResponse(
 
   logChatEvent({
     action: "response",
-    requestId,
+    requestId: params.requestId,
     durationMs: Date.now() - requestStartedAt,
     rawDeltaEventCount,
     rawDeltaTextLength,

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { cors } from "hono/cors";
 import { Hono, type Handler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
@@ -46,6 +47,47 @@ type ChatRequestBody = Readonly<{
   messages: ReadonlyArray<ChatMessage>;
   model: string;
   timezone: string;
+}>;
+
+type ChatDiagnosticsStage =
+  | "success"
+  | "empty_response"
+  | "response_not_ok"
+  | "missing_reader"
+  | "stream_error_event"
+  | "fetch_throw"
+  | "aborted";
+
+type ChatDiagnosticsBody = Readonly<{
+  clientRequestId: string;
+  responseRequestId: string | null;
+  model: string;
+  stage: ChatDiagnosticsStage;
+  statusCode: number | null;
+  responseContentType: string | null;
+  responseContentLength: string | null;
+  responseContentEncoding: string | null;
+  responseCacheControl: string | null;
+  responseAmznRequestId: string | null;
+  responseApiGatewayId: string | null;
+  responseBodyMissing: boolean;
+  chunkCount: number;
+  bytesReceived: number;
+  lineCount: number;
+  nonEmptyLineCount: number;
+  parseNullCount: number;
+  deltaEventCount: number;
+  toolCallEventCount: number;
+  errorEventCount: number;
+  doneEventCount: number;
+  receivedContent: boolean;
+  streamEnded: boolean;
+  readerMissing: boolean;
+  aborted: boolean;
+  durationMs: number;
+  bufferLength: number;
+  errorName: string | null;
+  lastEventType: string | null;
 }>;
 
 function getAllowedOrigins(): Array<string> {
@@ -159,6 +201,38 @@ function expectOptionalNonEmptyString(value: unknown, fieldName: string): string
   }
 
   return expectNonEmptyString(value, fieldName);
+}
+
+function expectNullableNonEmptyString(value: unknown, fieldName: string): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  return expectNonEmptyString(value, fieldName);
+}
+
+function expectBoolean(value: unknown, fieldName: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new HttpError(400, `${fieldName} must be a boolean`);
+  }
+
+  return value;
+}
+
+function expectNonNegativeInteger(value: unknown, fieldName: string): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new HttpError(400, `${fieldName} must be a non-negative integer`);
+  }
+
+  return value;
+}
+
+function expectNullableNonNegativeInteger(value: unknown, fieldName: string): number | null {
+  if (value === null) {
+    return null;
+  }
+
+  return expectNonNegativeInteger(value, fieldName);
 }
 
 function normalizeTags(value: unknown): ReadonlyArray<string> {
@@ -300,11 +374,81 @@ function parseChatRequestBody(value: unknown): ChatRequestBody {
   };
 }
 
+function parseChatDiagnosticsStage(value: unknown): ChatDiagnosticsStage {
+  if (
+    value === "success" ||
+    value === "empty_response" ||
+    value === "response_not_ok" ||
+    value === "missing_reader" ||
+    value === "stream_error_event" ||
+    value === "fetch_throw" ||
+    value === "aborted"
+  ) {
+    return value;
+  }
+
+  throw new HttpError(400, "stage is invalid");
+}
+
+function parseChatDiagnosticsBody(value: unknown): ChatDiagnosticsBody {
+  const body = expectRecord(value);
+
+  return {
+    clientRequestId: expectNonEmptyString(body.clientRequestId, "clientRequestId"),
+    responseRequestId: expectNullableNonEmptyString(body.responseRequestId, "responseRequestId"),
+    model: expectNonEmptyString(body.model, "model"),
+    stage: parseChatDiagnosticsStage(body.stage),
+    statusCode: expectNullableNonNegativeInteger(body.statusCode, "statusCode"),
+    responseContentType: expectNullableNonEmptyString(body.responseContentType, "responseContentType"),
+    responseContentLength: expectNullableNonEmptyString(body.responseContentLength, "responseContentLength"),
+    responseContentEncoding: expectNullableNonEmptyString(body.responseContentEncoding, "responseContentEncoding"),
+    responseCacheControl: expectNullableNonEmptyString(body.responseCacheControl, "responseCacheControl"),
+    responseAmznRequestId: expectNullableNonEmptyString(body.responseAmznRequestId, "responseAmznRequestId"),
+    responseApiGatewayId: expectNullableNonEmptyString(body.responseApiGatewayId, "responseApiGatewayId"),
+    responseBodyMissing: expectBoolean(body.responseBodyMissing, "responseBodyMissing"),
+    chunkCount: expectNonNegativeInteger(body.chunkCount, "chunkCount"),
+    bytesReceived: expectNonNegativeInteger(body.bytesReceived, "bytesReceived"),
+    lineCount: expectNonNegativeInteger(body.lineCount, "lineCount"),
+    nonEmptyLineCount: expectNonNegativeInteger(body.nonEmptyLineCount, "nonEmptyLineCount"),
+    parseNullCount: expectNonNegativeInteger(body.parseNullCount, "parseNullCount"),
+    deltaEventCount: expectNonNegativeInteger(body.deltaEventCount, "deltaEventCount"),
+    toolCallEventCount: expectNonNegativeInteger(body.toolCallEventCount, "toolCallEventCount"),
+    errorEventCount: expectNonNegativeInteger(body.errorEventCount, "errorEventCount"),
+    doneEventCount: expectNonNegativeInteger(body.doneEventCount, "doneEventCount"),
+    receivedContent: expectBoolean(body.receivedContent, "receivedContent"),
+    streamEnded: expectBoolean(body.streamEnded, "streamEnded"),
+    readerMissing: expectBoolean(body.readerMissing, "readerMissing"),
+    aborted: expectBoolean(body.aborted, "aborted"),
+    durationMs: expectNonNegativeInteger(body.durationMs, "durationMs"),
+    bufferLength: expectNonNegativeInteger(body.bufferLength, "bufferLength"),
+    errorName: expectNullableNonEmptyString(body.errorName, "errorName"),
+    lastEventType: expectNullableNonEmptyString(body.lastEventType, "lastEventType"),
+  };
+}
+
 function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function createChatErrorResponse(message: string): Response {
+function logFrontendChatDiagnostics(requestContext: RequestContext, body: ChatDiagnosticsBody): void {
+  const logRecord = {
+    domain: "chat",
+    vendor: "frontend",
+    action: "frontend_diagnostics",
+    workspaceId: requestContext.workspaceId,
+    transport: requestContext.transport,
+    ...body,
+  };
+
+  if (body.stage === "success") {
+    console.log(JSON.stringify(logRecord));
+    return;
+  }
+
+  console.error(JSON.stringify(logRecord));
+}
+
+function createChatErrorResponse(message: string, requestId: string): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
@@ -319,6 +463,7 @@ function createChatErrorResponse(message: string): Response {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      "X-Chat-Request-Id": requestId,
     },
   });
 }
@@ -326,6 +471,7 @@ function createChatErrorResponse(message: string): Response {
 async function streamChatResponse(
   body: ChatRequestBody,
   requestContext: RequestContext,
+  requestId: string,
 ): Promise<Response> {
   const validModel = CHAT_MODELS.find((model) => model.id === body.model);
   if (validModel === undefined) {
@@ -349,6 +495,7 @@ async function streamChatResponse(
         for await (const event of agentModule.streamAgentResponse({
           messages: body.messages,
           model: body.model,
+          requestId,
           workspaceId: requestContext.workspaceId,
           timezone: body.timezone,
         })) {
@@ -371,6 +518,7 @@ async function streamChatResponse(
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      "X-Chat-Request-Id": requestId,
     },
   });
 }
@@ -406,6 +554,15 @@ export function createApp(basePath: string): Hono {
       origin: allowedOrigins,
       allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
       allowHeaders: ["content-type", "authorization", "x-csrf-token"],
+      exposeHeaders: [
+        "cache-control",
+        "content-encoding",
+        "content-length",
+        "content-type",
+        "x-amz-apigw-id",
+        "x-amzn-requestid",
+        "x-chat-request-id",
+      ],
       credentials: true,
     }),
   );
@@ -521,17 +678,26 @@ export function createApp(basePath: string): Hono {
   });
 
   registerRoute("post", "/chat", async (context) => {
+    const requestId = randomUUID();
+
     try {
       const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
       const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
-      return await streamChatResponse(body, requestContext);
+      return await streamChatResponse(body, requestContext, requestId);
     } catch (error) {
       if (error instanceof HttpError || error instanceof AuthError) {
         throw error;
       }
 
-      return createChatErrorResponse(getInternalErrorMessage(error));
+      return createChatErrorResponse(getInternalErrorMessage(error), requestId);
     }
+  });
+
+  registerRoute("post", "/chat/diagnostics", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const body = parseChatDiagnosticsBody(await parseJsonBody(context.req.raw));
+    logFrontendChatDiagnostics(requestContext, body);
+    return new Response(null, { status: 204 });
   });
 
   registerRoute("post", "/sync/push", async (context) => {
