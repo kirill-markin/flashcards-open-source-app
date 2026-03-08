@@ -14,6 +14,36 @@ struct TagsFieldRow: View {
     }
 }
 
+private struct TagInputRow: View {
+    @FocusState.Binding var isInputFocused: Bool
+    @Binding var searchText: String
+    let onSubmit: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "tag")
+                .foregroundStyle(.secondary)
+
+            TextField("Add or filter tags", text: $searchText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .focused($isInputFocused)
+                .onSubmit(onSubmit)
+
+            if searchText.isEmpty == false {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
 private struct TagPickerRow: View {
     let title: String
     let isSelected: Bool
@@ -46,6 +76,7 @@ struct TagPickerView: View {
 
     @State private var draftTags: [String]
     @State private var searchText: String
+    @FocusState private var isInputFocused: Bool
 
     init(selectedTags: [String], suggestions: [String], onSave: @escaping ([String]) -> Void) {
         let normalizedSuggestions = normalizeTags(values: suggestions, referenceTags: [])
@@ -71,8 +102,30 @@ struct TagPickerView: View {
         )
     }
 
+    private func handleSubmit() {
+        guard let nextCreatableTag else {
+            isInputFocused = false
+            return
+        }
+
+        draftTags = toggleTagSelection(
+            selectedTags: draftTags,
+            tag: nextCreatableTag,
+            suggestions: suggestions
+        )
+        searchText = ""
+    }
+
     var body: some View {
         List {
+            Section {
+                TagInputRow(
+                    isInputFocused: $isInputFocused,
+                    searchText: $searchText,
+                    onSubmit: handleSubmit
+                )
+            }
+
             if draftTags.isEmpty == false {
                 Section("Selected") {
                     ForEach(draftTags, id: \.self) { tag in
@@ -131,7 +184,6 @@ struct TagPickerView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Tags")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "Search or create tags")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Cancel") {
