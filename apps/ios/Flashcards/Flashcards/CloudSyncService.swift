@@ -1,6 +1,6 @@
 import Foundation
 
-private enum CloudSyncError: LocalizedError {
+enum CloudSyncError: LocalizedError {
     case invalidBaseUrl(String)
     case invalidResponse(Int, String)
 
@@ -10,6 +10,15 @@ private enum CloudSyncError: LocalizedError {
             return "Cloud sync base URL is invalid: \(value)"
         case .invalidResponse(let statusCode, let body):
             return "Cloud sync request failed with status \(statusCode): \(body)"
+        }
+    }
+
+    var statusCode: Int? {
+        switch self {
+        case .invalidResponse(let statusCode, _):
+            return statusCode
+        case .invalidBaseUrl:
+            return nil
         }
     }
 }
@@ -265,10 +274,22 @@ final class CloudSyncService {
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
             throw CloudSyncError.invalidResponse(
                 httpResponse.statusCode,
-                String(data: data, encoding: .utf8) ?? "<non-utf8-body>"
+                parseCloudSyncErrorMessage(data: data)
             )
         }
 
         return try self.decoder.decode(Response.self, from: data)
     }
+}
+
+private func parseCloudSyncErrorMessage(data: Data) -> String {
+    if
+        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let message = object["error"] as? String,
+        message.isEmpty == false
+    {
+        return message
+    }
+
+    return String(data: data, encoding: .utf8) ?? "<non-utf8-body>"
 }

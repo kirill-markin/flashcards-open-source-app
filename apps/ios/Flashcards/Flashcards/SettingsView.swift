@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
     @State private var screenErrorMessage: String = ""
+    @State private var isCloudSignInPresented: Bool = false
     @State private var desiredRetentionText: String = ""
     @State private var learningStepsText: String = ""
     @State private var relearningStepsText: String = ""
@@ -47,7 +48,7 @@ struct SettingsView: View {
             Section("Cloud account") {
                 if let cloudSettings = store.cloudSettings {
                     LabeledContent("State") {
-                        Text(cloudSettings.cloudState.title)
+                        Text(displayCloudAccountStateTitle(cloudState: cloudSettings.cloudState))
                     }
 
                     LabeledContent("Device ID") {
@@ -78,17 +79,9 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
 
                     switch cloudSettings.cloudState {
-                    case .disconnected:
-                        Button("Prepare cloud link") {
-                            self.prepareCloudLink()
-                        }
-                    case .linkingReady:
-                        Button("Preview linked state") {
-                            self.previewLinkedState()
-                        }
-
-                        Button("Reset local cloud state", role: .destructive) {
-                            self.disconnectCloudAccount()
+                    case .disconnected, .linkingReady:
+                        Button("Sign in for sync") {
+                            self.isCloudSignInPresented = true
                         }
                     case .linked:
                         Button("Sync now") {
@@ -96,7 +89,11 @@ struct SettingsView: View {
                         }
                         .disabled(isSyncInFlight(status: store.syncStatus))
 
-                        Button("Disconnect cloud account", role: .destructive) {
+                        Button("Switch account") {
+                            self.isCloudSignInPresented = true
+                        }
+
+                        Button("Disconnect on this device", role: .destructive) {
                             self.disconnectCloudAccount()
                         }
                     }
@@ -172,23 +169,9 @@ struct SettingsView: View {
         .onChange(of: store.schedulerSettings) { _, newSettings in
             self.loadSchedulerDrafts(settings: newSettings)
         }
-    }
-
-    private func prepareCloudLink() {
-        do {
-            try store.prepareCloudLink()
-            self.screenErrorMessage = ""
-        } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
-        }
-    }
-
-    private func previewLinkedState() {
-        do {
-            try store.previewLinkedCloudAccount()
-            self.screenErrorMessage = ""
-        } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+        .sheet(isPresented: self.$isCloudSignInPresented) {
+            CloudSignInSheet()
+                .environmentObject(store)
         }
     }
 
@@ -262,6 +245,15 @@ private func syncStatusTitle(status: SyncStatus) -> String {
         return "Syncing"
     case .failed(let message):
         return "Failed: \(message)"
+    }
+}
+
+private func displayCloudAccountStateTitle(cloudState: CloudAccountState) -> String {
+    switch cloudState {
+    case .linked:
+        return cloudState.title
+    case .disconnected, .linkingReady:
+        return CloudAccountState.disconnected.title
     }
 }
 

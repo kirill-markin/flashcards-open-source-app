@@ -312,6 +312,27 @@ struct CloudLinkedSession: Hashable {
     let bearerToken: String
 }
 
+struct CloudServiceConfiguration: Hashable {
+    let apiBaseUrl: String
+    let authBaseUrl: String
+}
+
+struct CloudOtpChallenge: Hashable {
+    let email: String
+    let csrfToken: String
+}
+
+struct StoredCloudCredentials: Codable, Hashable {
+    let refreshToken: String
+    let idToken: String
+    let idTokenExpiresAt: String
+}
+
+struct CloudIdentityToken: Hashable {
+    let idToken: String
+    let idTokenExpiresAt: String
+}
+
 enum SyncEntityType: String, Codable, Hashable {
     case card
     case deck
