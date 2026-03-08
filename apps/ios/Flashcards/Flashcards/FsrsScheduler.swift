@@ -107,6 +107,8 @@ private let defaultWeights: [Double] = [
 
 // Keep in sync with apps/backend/src/schedule.ts::S_MIN.
 private let fsrsMinimumStability: Double = 0.001
+// Keep in sync with apps/backend/src/schedule.ts::W17_W18_CEILING.
+private let W17_W18_CEILING: Double = 2
 // Keep in sync with apps/backend/src/schedule.ts::FUZZ_RANGES.
 private let fuzzRanges: [(start: Double, end: Double, factor: Double)] = [
     (start: 2.5, end: 7.0, factor: 0.15),
@@ -409,10 +411,46 @@ private func nextForgetStability(
     return roundTo8(value: clamp(value: nextValue, min: fsrsMinimumStability, max: 36_500))
 }
 
+private struct ShortTermWeights: Hashable {
+    let w17: Double
+    let w18: Double
+}
+
+// Keep in sync with apps/backend/src/schedule.ts::getShortTermWeights(settings:).
+private func getShortTermWeights(settings: WorkspaceSchedulerSettings) -> ShortTermWeights {
+    if settings.relearningStepsMinutes.count <= 1 {
+        return ShortTermWeights(
+            w17: defaultWeights[17],
+            w18: defaultWeights[18]
+        )
+    }
+
+    let value = -(
+        Foundation.log(defaultWeights[11])
+        + Foundation.log(Foundation.pow(2, defaultWeights[13]) - 1)
+        + defaultWeights[14] * 0.3
+    ) / Double(settings.relearningStepsMinutes.count)
+    let ceiling = clamp(
+        value: roundTo8(value: value),
+        min: 0.01,
+        max: W17_W18_CEILING
+    )
+
+    return ShortTermWeights(
+        w17: clamp(value: defaultWeights[17], min: 0, max: ceiling),
+        w18: clamp(value: defaultWeights[18], min: 0, max: ceiling)
+    )
+}
+
 // Keep in sync with apps/backend/src/schedule.ts::nextShortTermStability.
-private func nextShortTermStability(stability: Double, grade: Int) -> Double {
+private func nextShortTermStability(
+    stability: Double,
+    grade: Int,
+    settings: WorkspaceSchedulerSettings
+) -> Double {
+    let shortTermWeights = getShortTermWeights(settings: settings)
     let sinc = Foundation.pow(stability, -defaultWeights[19])
-        * Foundation.exp(defaultWeights[17] * (Double(grade - 3) + defaultWeights[18]))
+        * Foundation.exp(shortTermWeights.w17 * (Double(grade - 3) + shortTermWeights.w18))
     let maskedSinc = grade >= 3 ? max(sinc, 1) : sinc
     return roundTo8(value: clamp(value: stability * maskedSinc, min: fsrsMinimumStability, max: 36_500))
 }
@@ -430,11 +468,16 @@ private func createInitialMemoryState(grade: Int) -> FsrsMemoryState {
 // Keep in sync with apps/backend/src/schedule.ts::computeNextShortTermMemoryState.
 private func computeNextShortTermMemoryState(
     memoryState: FsrsMemoryState,
-    grade: Int
+    grade: Int,
+    settings: WorkspaceSchedulerSettings
 ) -> FsrsMemoryState {
     FsrsMemoryState(
         difficulty: nextDifficulty(difficulty: memoryState.difficulty, grade: grade),
-        stability: nextShortTermStability(stability: memoryState.stability, grade: grade)
+        stability: nextShortTermStability(
+            stability: memoryState.stability,
+            grade: grade,
+            settings: settings
+        )
     )
 }
 
@@ -442,7 +485,8 @@ private func computeNextShortTermMemoryState(
 private func computeNextReviewMemoryState(
     memoryState: FsrsMemoryState,
     elapsedDays: Int,
-    grade: Int
+    grade: Int,
+    settings: WorkspaceSchedulerSettings
 ) -> FsrsMemoryState {
     let retrievability = forgettingCurve(elapsedDays: elapsedDays, stability: memoryState.stability)
     let stabilityAfterSuccess = nextRecallStability(
@@ -459,7 +503,8 @@ private func computeNextReviewMemoryState(
 
     var nextStability = stabilityAfterSuccess
     if grade == 1 {
-        let nextStabilityMin = memoryState.stability / Foundation.exp(defaultWeights[17] * defaultWeights[18])
+        let shortTermWeights = getShortTermWeights(settings: settings)
+        let nextStabilityMin = memoryState.stability / Foundation.exp(shortTermWeights.w17 * shortTermWeights.w18)
         nextStability = clamp(
             value: roundTo8(value: nextStabilityMin),
             min: fsrsMinimumStability,
@@ -825,7 +870,8 @@ func computeReviewSchedule(
     if card.fsrsCardState == .learning || card.fsrsCardState == .relearning {
         let nextMemoryState = computeNextShortTermMemoryState(
             memoryState: memoryState,
-            grade: grade
+            grade: grade,
+            settings: settings
         )
 
         return try buildShortTermSchedule(
@@ -845,22 +891,26 @@ func computeReviewSchedule(
     let nextAgainMemoryState = computeNextReviewMemoryState(
         memoryState: memoryState,
         elapsedDays: elapsedDays,
-        grade: 1
+        grade: 1,
+        settings: settings
     )
     let nextHardMemoryState = computeNextReviewMemoryState(
         memoryState: memoryState,
         elapsedDays: elapsedDays,
-        grade: 2
+        grade: 2,
+        settings: settings
     )
     let nextGoodMemoryState = computeNextReviewMemoryState(
         memoryState: memoryState,
         elapsedDays: elapsedDays,
-        grade: 3
+        grade: 3,
+        settings: settings
     )
     let nextEasyMemoryState = computeNextReviewMemoryState(
         memoryState: memoryState,
         elapsedDays: elapsedDays,
-        grade: 4
+        grade: 4,
+        settings: settings
     )
 
     if rating == .again {

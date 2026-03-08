@@ -110,6 +110,8 @@ const DEFAULT_W: ReadonlyArray<number> = Object.freeze([
 ]);
 // Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fsrsMinimumStability.
 const S_MIN = 0.001;
+// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::W17_W18_CEILING.
+const W17_W18_CEILING = 2;
 // Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::fuzzRanges.
 const FUZZ_RANGES = Object.freeze([
   { start: 2.5, end: 7.0, factor: 0.15 },
@@ -427,11 +429,43 @@ function nextForgetStability(
   ));
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextShortTermStability(stability:grade:).
-function nextShortTermStability(stability: number, grade: 1 | 2 | 3 | 4): number {
+type ShortTermWeights = Readonly<{
+  w17: number;
+  w18: number;
+}>;
+
+// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::getShortTermWeights(settings:).
+function getShortTermWeights(settings: WorkspaceSchedulerConfig): ShortTermWeights {
+  if (settings.relearningStepsMinutes.length <= 1) {
+    return {
+      w17: DEFAULT_W[17],
+      w18: DEFAULT_W[18],
+    };
+  }
+
+  const value = -(
+    Math.log(DEFAULT_W[11])
+    + Math.log(Math.pow(2, DEFAULT_W[13]) - 1)
+    + DEFAULT_W[14] * 0.3
+  ) / settings.relearningStepsMinutes.length;
+  const ceiling = clamp(roundTo8(value), 0.01, W17_W18_CEILING);
+
+  return {
+    w17: clamp(DEFAULT_W[17], 0, ceiling),
+    w18: clamp(DEFAULT_W[18], 0, ceiling),
+  };
+}
+
+// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::nextShortTermStability(stability:grade:settings:).
+function nextShortTermStability(
+  stability: number,
+  grade: 1 | 2 | 3 | 4,
+  settings: WorkspaceSchedulerConfig,
+): number {
+  const shortTermWeights = getShortTermWeights(settings);
   const sinc = (
     Math.pow(stability, -DEFAULT_W[19])
-    * Math.exp(DEFAULT_W[17] * (grade - 3 + DEFAULT_W[18]))
+    * Math.exp(shortTermWeights.w17 * (grade - 3 + shortTermWeights.w18))
   );
   const maskedSinc = grade >= 3 ? Math.max(sinc, 1) : sinc;
   return roundTo8(clamp(stability * maskedSinc, S_MIN, 36_500));
@@ -447,22 +481,24 @@ function createInitialMemoryState(grade: 1 | 2 | 3 | 4): FsrsMemoryState {
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeNextShortTermMemoryState(memoryState:grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeNextShortTermMemoryState(memoryState:grade:settings:).
 function computeNextShortTermMemoryState(
   memoryState: FsrsMemoryState,
   grade: 1 | 2 | 3 | 4,
+  settings: WorkspaceSchedulerConfig,
 ): FsrsMemoryState {
   return {
-    stability: nextShortTermStability(memoryState.stability, grade),
+    stability: nextShortTermStability(memoryState.stability, grade, settings),
     difficulty: nextDifficulty(memoryState.difficulty, grade),
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeNextReviewMemoryState(memoryState:elapsedDays:grade:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::computeNextReviewMemoryState(memoryState:elapsedDays:grade:settings:).
 function computeNextReviewMemoryState(
   memoryState: FsrsMemoryState,
   elapsedDays: number,
   grade: 1 | 2 | 3 | 4,
+  settings: WorkspaceSchedulerConfig,
 ): FsrsMemoryState {
   const retrievability = forgettingCurve(elapsedDays, memoryState.stability);
   const stabilityAfterSuccess = nextRecallStability(
@@ -479,7 +515,8 @@ function computeNextReviewMemoryState(
 
   let nextStability = stabilityAfterSuccess;
   if (grade === 1) {
-    const nextStabilityMin = memoryState.stability / Math.exp(DEFAULT_W[17] * DEFAULT_W[18]);
+    const shortTermWeights = getShortTermWeights(settings);
+    const nextStabilityMin = memoryState.stability / Math.exp(shortTermWeights.w17 * shortTermWeights.w18);
     nextStability = clamp(roundTo8(nextStabilityMin), S_MIN, stabilityAfterFailure);
   }
 
@@ -774,7 +811,7 @@ export function computeReviewSchedule(
   }
 
   if (card.fsrsCardState === "learning" || card.fsrsCardState === "relearning") {
-    const nextMemoryState = computeNextShortTermMemoryState(memoryState, grade);
+    const nextMemoryState = computeNextShortTermMemoryState(memoryState, grade, settings);
     return buildShortTermSchedule(
       card,
       nextMemoryState,
@@ -789,10 +826,10 @@ export function computeReviewSchedule(
     );
   }
 
-  const nextAgainMemoryState = computeNextReviewMemoryState(memoryState, elapsedDays, 1);
-  const nextHardMemoryState = computeNextReviewMemoryState(memoryState, elapsedDays, 2);
-  const nextGoodMemoryState = computeNextReviewMemoryState(memoryState, elapsedDays, 3);
-  const nextEasyMemoryState = computeNextReviewMemoryState(memoryState, elapsedDays, 4);
+  const nextAgainMemoryState = computeNextReviewMemoryState(memoryState, elapsedDays, 1, settings);
+  const nextHardMemoryState = computeNextReviewMemoryState(memoryState, elapsedDays, 2, settings);
+  const nextGoodMemoryState = computeNextReviewMemoryState(memoryState, elapsedDays, 3, settings);
+  const nextEasyMemoryState = computeNextReviewMemoryState(memoryState, elapsedDays, 4, settings);
 
   if (rating === 0) {
     return buildShortTermSchedule(
