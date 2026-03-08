@@ -120,6 +120,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   });
 
   const integration = new apigw.LambdaIntegration(backendFn);
+  const streamingIntegration = new apigw.LambdaIntegration(backendFn, {
+    responseTransferMode: apigw.ResponseTransferMode.STREAM,
+  });
   const notFoundIntegration = new apigw.MockIntegration({
     requestTemplates: {
       "application/json": '{"statusCode": 404}',
@@ -165,7 +168,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   reviews.addMethod("POST", integration);
 
   const chat = restApi.root.addResource("chat");
-  chat.addMethod("POST", integration);
+  chat.addMethod("POST", streamingIntegration);
   chat.addResource("diagnostics").addMethod("POST", integration);
 
   const sync = restApi.root.addResource("sync");
