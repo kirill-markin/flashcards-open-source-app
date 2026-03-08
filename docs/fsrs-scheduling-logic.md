@@ -2,165 +2,326 @@
 
 ## Scope
 
-This document describes the current FSRS-based review logic only.
-It intentionally excludes older scheduling systems.
+This document describes the current full FSRS implementation used by the backend and the iOS app.
+It is the source of truth for hidden scheduler state, workspace-level scheduler settings, and the product-specific boundaries around official FSRS behavior.
 
-## Core idea
+Reference implementation:
 
-FSRS is a memory model that predicts how likely a learner is to recall a card at a given time.
-Each review updates the card's memory state, and the next due date is chosen to match a target recall probability.
+- official open-spaced-repetition [`ts-fsrs` 5.2.3](https://github.com/open-spaced-repetition/ts-fsrs) scheduler flow mirrored by this repository
+- official FSRS algorithm notes: [`fsrs4anki` wiki, "The Algorithm"](https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm)
+- official FSRS-6 default weights
 
-The practical result is:
+Repository implementations:
 
-- `Again` means the card was not recalled.
-- `Hard` means the card was recalled, but with difficulty.
-- `Good` means the card was recalled normally.
-- `Easy` means the card was recalled with very little effort.
+- backend scheduler: `apps/backend/src/schedule.ts`
+- backend card persistence: `apps/backend/src/cards.ts`
+- backend workspace scheduler settings: `apps/backend/src/workspaceSchedulerSettings.ts`
+- iOS scheduler: `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`
+- iOS local persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
+- web FSRS type mirror only: `apps/web/src/types.ts`
+- iOS settings UI: `apps/ios/Flashcards/Flashcards/SettingsView.swift`
 
-The same four ratings are used throughout the system, but their exact timing effect depends on the card state and the learner's historical review data.
+## Mirror contract
 
-## Rating codes
+The repository has exactly two independent implementations of the FSRS scheduler algorithm:
 
-If a review log stores rating values as `0..4`, the common mapping is:
+- backend: `apps/backend/src/schedule.ts`
+- iOS: `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`
 
-- `0`: non-rating event such as manual rescheduling
-- `1`: `Again`
-- `2`: `Hard`
-- `3`: `Good`
-- `4`: `Easy`
+They are full platform-specific copies of the same algorithm and must stay behaviorally identical.
+The web app does not contain a third scheduler implementation in this repository; `apps/web/src/types.ts` only mirrors the FSRS data contract.
 
-For actual user reviews, the meaningful ratings are `1..4`.
-Value `0` is not a learner answer.
-It exists to record schedule changes that should appear in history, but should not be interpreted as memory feedback.
+Supporting mirrors around the scheduler contract:
 
-Typical examples of `0` events:
+- backend review persistence: `apps/backend/src/cards.ts`
+- iOS review persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
+- backend scheduler settings: `apps/backend/src/workspaceSchedulerSettings.ts`
+- iOS scheduler settings: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
+- shared parity vectors: `tests/fsrs-full-vectors.json`
+- backend parity tests: `apps/backend/src/schedule.test.ts`
+- iOS parity tests: `apps/ios/Flashcards/FlashcardsTests/FsrsSchedulerTests.swift`
 
-- a due date is changed manually
-- a card is moved to a different interval manually
-- a card is reset back to a new state
-- cards are rescheduled by a maintenance tool or migration
+Any scheduler change must update the backend copy, the iOS copy, this document, and the parity vectors plus both test suites in the same PR.
 
-This distinction matters because the system must not treat manual schedule changes as evidence that the learner failed or recalled the card successfully.
+Core scheduler symbol parity:
 
-## Card states
+| Backend (`apps/backend/src/schedule.ts`) | iOS (`apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`) |
+| --- | --- |
+| `ReviewableCardScheduleState` | `ReviewableCardScheduleState` |
+| `ReviewHistoryEvent` | `FsrsReviewHistoryEvent` |
+| `RebuiltCardScheduleState` | `RebuiltCardScheduleState` |
+| `FsrsMemoryState` | `FsrsMemoryState` |
+| `FuzzRange` | `FuzzRange` |
+| `LearningStepResult` | `LearningStepResult` |
+| `DEFAULT_W` / `S_MIN` / `FUZZ_RANGES` / `DECAY` / `FACTOR` | `defaultWeights` / `fsrsMinimumStability` / `fuzzRanges` / `fsrsDecay` / `fsrsFactor` |
+| `createMash` | `MashGenerator.next(data:)` with `MashGenerator` state |
+| `Alea` | `AleaGenerator` |
+| `addMinutes` / `addDays` | `FlashcardsLogic.swift` `addMinutes(date:minutes:)` / `addDays(date:days:)` |
+| `clamp`, `roundTo8`, `dateDiffInDays`, `stateRequiresMemory`, `getIntervalModifier`, `formatSeedNumber`, `mapRatingToFsrsGrade`, `getStepsForState`, `getCurrentStepIndex`, `getLearningStrategyStepIndex`, `getHardStepMinutes`, `getLearningStepResult`, `initStability`, `initDifficulty`, `meanReversion`, `linearDamping`, `nextDifficulty`, `forgettingCurve`, `nextRecallStability`, `nextForgetStability`, `nextShortTermStability`, `createInitialMemoryState`, `computeNextShortTermMemoryState`, `computeNextReviewMemoryState`, `getFuzzRange`, `getIntervalSeed`, `nextInterval`, `getMemoryState`, `buildShortTermSchedule`, `buildGraduatedReviewSchedule`, `buildReviewSuccessSchedule`, `createEmptyReviewableCardScheduleState`, `computeReviewSchedule`, `rebuildCardScheduleState` | same symbol names in Swift style |
 
-Cards usually move through three states:
+Scheduler-entrypoint parity:
 
-- `Learning`: a new or recently failed card is still in short-term training steps.
-- `Review`: the card has graduated to long-term scheduling.
-- `Relearning`: a previously graduated card failed and is temporarily back in short-term training.
+| Backend | iOS |
+| --- | --- |
+| `apps/backend/src/cards.ts::toReviewableCardScheduleState` | `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::makeReviewableCardScheduleState(card:)` |
+| `apps/backend/src/cards.ts::submitReview` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::submitReview(workspaceId:reviewSubmission:)` |
+| `apps/backend/src/workspaceSchedulerSettings.ts::parseSteps` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateSchedulerStepList(values:fieldName:)` |
+| `apps/backend/src/workspaceSchedulerSettings.ts::validateWorkspaceSchedulerSettingsInput` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateWorkspaceSchedulerSettingsInput(desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:)` |
+| `apps/backend/src/workspaceSchedulerSettings.ts::getWorkspaceSchedulerSettings` / `getWorkspaceSchedulerConfig` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:)` |
+| `apps/backend/src/workspaceSchedulerSettings.ts::updateWorkspaceSchedulerSettings` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::updateWorkspaceSchedulerSettings(workspaceId:desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:)` |
 
-## Learning and relearning
+## Rating model
 
-Short-term steps should stay under one day.
-Typical configurations use short delays such as `10m` or `30m`, or leave the step list empty and allow FSRS to control short-term scheduling directly.
+User-facing ratings remain the standard four-button FSRS answers:
 
-During learning or relearning:
+- `0`: `Again`
+- `1`: `Hard`
+- `2`: `Good`
+- `3`: `Easy`
 
-- `Again` resets progress and sends the card to the first short step, or to a very short model-chosen delay if steps are empty.
-- `Hard` keeps the card in a short interval and does not advance it aggressively.
-- `Good` advances the card through the remaining short steps and eventually graduates it to long-term review.
-- `Easy` graduates the card faster than `Good` and gives it a longer first long-term interval.
+The API and local app use those `0...3` values directly.
+Internally, the scheduler maps them to the reference FSRS grades `1...4`.
 
-## Long-term review
+## Persisted card scheduler state
 
-Once a card is in `Review`, FSRS schedules the next interval from the card's current memory state and the target retention setting.
+Each card stores both product-facing review fields and hidden FSRS state.
 
-The meaning of the buttons is:
+Visible scheduling fields:
 
-- `Again`: the card failed; interval growth is interrupted, the card may enter relearning, and the next review becomes much sooner.
-- `Hard`: the card passed, but weakly; the next interval grows less than with `Good`.
-- `Good`: the baseline successful recall; this is the normal rating for most reviews.
-- `Easy`: a stronger successful recall; the next interval grows more than with `Good`.
+- `due_at`
+- `reps`
+- `lapses`
 
-Unlike fixed-multiplier schedulers, FSRS does not rely on one static ease value to determine every future interval.
-Intervals are produced by the model from review history, memory state, and desired retention.
+Cached counter semantics:
 
-## How cards reappear
+- `reps` increments on every review, including `Again`
+- `lapses` increments only on `Again` from persisted `review` state
 
-### Worst-case path
+Hidden FSRS memory fields:
 
-If the learner repeatedly presses `Again`:
+- `fsrs_stability`
+- `fsrs_difficulty`
+- `fsrs_last_reviewed_at`
+- `fsrs_scheduled_days`
 
-- the card stays in learning or relearning
-- the next appearance stays very soon
-- long-term interval growth does not happen
-- the same card can consume a large amount of short-term workload
+Hidden FSRS workflow fields:
 
-In practice, the card may keep cycling through very short delays until it is finally recalled successfully.
+- `fsrs_card_state`
+- `fsrs_step_index`
 
-### Best-case path
+The allowed `fsrs_card_state` values are:
 
-If the learner consistently recalls the card well and mostly uses `Good` or `Easy`:
+- `new`
+- `learning`
+- `review`
+- `relearning`
 
-- the card quickly leaves short-term learning
-- stability increases after each successful review
-- the next due dates spread out rapidly
-- workload per card drops over time
+`fsrs_step_index` is the zero-based index of the currently scheduled short-term step.
+It is only persisted for cards in `learning` or `relearning`.
+It must be `NULL` for `new` and `review`.
 
-`Easy` expands intervals more aggressively than `Good`, so cards marked `Easy` can disappear for much longer periods earlier.
+Card invariants:
 
-### Typical middle path
+- untouched `new` cards have `due_at = NULL`
+- untouched `new` cards must not have persisted FSRS memory fields
+- `review` cards must have full FSRS memory state and `fsrs_step_index = NULL`
+- `learning` and `relearning` cards must have full FSRS memory state and a non-null `fsrs_step_index`
 
-In a realistic flow, most answers are `Good`, some are `Hard`, and a smaller number are `Again`.
+Runtime code must validate persisted scheduler state during normal reads and review submission.
+If a card is invalid, runtime code must log the error and reset that card to the canonical `new` scheduler state.
+The repair path must not rewrite or delete `review_events`.
+Elapsed days are computed from UTC calendar-day boundaries only.
+If `fsrs_last_reviewed_at` is later than the current review timestamp, even within the same UTC day, the scheduler must throw.
 
-That usually produces:
+## Workspace scheduler settings
 
-- steady interval growth for familiar cards
-- slower growth for borderline cards
-- occasional short-term resets for forgotten cards
-- a review load that remains concentrated around genuinely difficult material
+FSRS configuration is stored per workspace row, not per card.
+Backend persistence uses `org.workspaces.fsrs_*` columns.
+Local iOS persistence uses the SQLite `workspaces` row with matching `fsrs_*` columns, storing step arrays as JSON text.
 
-## Product interpretation
+Current typed settings:
 
-For product design, the most important behavioral rules are:
+- `algorithm`
+- `desired_retention`
+- `learning_steps_minutes`
+- `relearning_steps_minutes`
+- `maximum_interval_days`
+- `enable_fuzz`
 
-- `Again` must represent a true failure to recall.
-- `Hard` must still count as a successful recall.
-- `Good` should be treated as the default successful answer.
-- `Easy` should be reserved for cards that were clearly easier than normal.
+Current defaults:
 
-If users press `Hard` when they actually failed, the model will overestimate memory strength and schedule intervals that are too long.
-That makes answer semantics more important than any single numeric setting.
+- `algorithm = fsrs-6`
+- `desired_retention = 0.90`
+- `learning_steps_minutes = [1, 10]`
+- `relearning_steps_minutes = [10]`
+- `maximum_interval_days = 36500`
+- `enable_fuzz = true`
 
-## Summary
+Product boundary:
 
-FSRS is a model-driven scheduler:
+- FSRS weights are pinned in code and are not user-configurable in v1
+- workspace settings are forward-only
+- changing workspace settings affects future reviews only
+- existing card rows remain authoritative after a config change
+- append-only `review_events` remain history, not a guaranteed rebuild source across config edits
+- each FSRS transition uses the actual review timestamp supplied by the client (`reviewedAtClient`) rather than server processing time
 
-- repeated failures keep cards near the learner
-- repeated successful recalls push cards farther away
-- `Hard`, `Good`, and `Easy` are different strengths of success
-- the exact next interval is personalized, not fixed
+## Scheduler flow
 
-## Product simplification
+### New
 
-In this product, we simplify the domain model and do not store a persistent `learned` or `unlearned` card state.
+A `new` card has no FSRS memory state yet.
+Its first review initializes `stability` and `difficulty` with the official first-review formulas.
 
-Instead, the system relies on:
+First-review behavior:
 
-- the card itself
-- append-only review events
-- the current computed scheduling fields such as `next_due_at`
-- memory model fields required by FSRS
+- `Again`: enter `learning`, schedule the first learning step
+- `Hard`: enter `learning`, stay on the first short-term step with a hard interval
+- `Good`: enter `learning`, schedule the next learning step if one exists, otherwise graduate
+- `Easy`: skip remaining short-term steps and graduate to `review`
 
-This means a card is not treated as permanently learned.
-It is simply a card with a current review history and a current next due date.
+### Learning
 
-In practice:
+`learning` is the short-term workflow for new cards before graduation.
 
-- if a card has no review events, it is `new`
-- if `next_due_at <= now`, it is `due`
-- if `next_due_at > now`, it is `scheduled`
-- if the interval or stability is above a product-defined threshold, it may be labeled `learned` or `mature` in the UI
+Behavior:
 
-In this model, labels such as `new`, `due`, `scheduled`, `learned`, or `mature` are derived views, not core stored states.
+- `Again`: reset to the first learning step
+- `Hard`: stay in short-term flow without advancing the step index
+- `Good`: follow the official `ts-fsrs 5.2.3` learning-step resolution; after the first scheduled step, `Good` can graduate directly to `review`
+- `Easy`: graduate immediately
 
-This keeps the data model smaller and easier to reason about:
+Memory updates for `learning` remain short-term FSRS updates even if the card is answered on a later UTC day than the scheduled step.
 
-- fewer persistent state transitions
-- less risk of state drifting away from review history
-- simpler offline sync
-- cleaner product semantics
+### Review
 
-The scheduler still uses review history and memory data to compute the next due date.
-Only the product model is simplified.
+`review` is the long-term FSRS state.
+
+Behavior:
+
+- `Again`: update memory as a failure and enter `relearning`
+- `Hard`: stay in `review` with the shortest successful long-term interval
+- `Good`: stay in `review` with the baseline successful long-term interval
+- `Easy`: stay in `review` with the longest successful long-term interval
+
+Long-term intervals use the official FSRS memory update formulas plus the workspace target retention and fuzz configuration.
+Same-day `review` answers still use the review-state FSRS memory formulas with `elapsedDays = 0`; they do not switch to short-term memory updates.
+
+### Relearning
+
+`relearning` is the short-term workflow after a failed `review` card.
+
+Behavior:
+
+- `Again`: reset to the first relearning step
+- `Hard`: stay in short-term flow without advancing the step index
+- `Good`: advance to the next relearning step, or graduate back to `review` if there is no next step
+- `Easy`: graduate immediately back to `review`
+
+Memory updates for `relearning` remain short-term FSRS updates even if the card is answered on a later UTC day than the scheduled step.
+
+## FSRS math
+
+The implementation uses the official FSRS-6 default weights for:
+
+- initial difficulty
+- initial stability
+- next difficulty
+- recall stability update
+- forget stability update
+- short-term stability update
+- forgetting curve
+
+The implementation does not use fixed review intervals or an ease-factor model.
+Long-term intervals are derived from:
+
+- current `stability`
+- elapsed calendar days since `fsrs_last_reviewed_at`
+- target retention
+- maximum interval
+- deterministic fuzz with the official review-seed inputs
+
+## Fuzz
+
+Fuzz is enabled per workspace.
+
+The repository uses a deterministic fuzz rule so backend and iOS produce the same interval for the same:
+
+- review timestamp
+- post-increment `reps`
+- current FSRS memory state
+- scheduler settings
+
+Within a single review event, all rating branches use the same seed, matching `ts-fsrs 5.2.3`.
+This avoids cross-platform drift while preserving the official fuzz behavior.
+
+## Source of truth rules
+
+Runtime source of truth:
+
+- card row scheduler state
+- workspace row FSRS settings
+
+Historical source of truth:
+
+- `review_events`
+
+Allowed replay usage:
+
+- tests
+- explicit development utilities
+- controlled migrations if required in the future
+
+Disallowed runtime behavior:
+
+- automatic repair of missing FSRS state during normal reads
+- silent fallback from invalid hidden state to replayed history
+
+## Local SQLite migration policy
+
+The local iOS database uses explicit `PRAGMA user_version`.
+
+Because the temporary pre-full-FSRS schema was never committed, the app is allowed to reset local dev data when it detects an older incompatible schema.
+That reset path exists only to replace temporary development schemas with the final full-FSRS shape.
+
+## API and UI boundaries
+
+The review submission API remains unchanged:
+
+- clients still submit only `Again`, `Hard`, `Good`, or `Easy`
+- the submitted `reviewedAtClient` timestamp is the source of truth for FSRS transition timing
+
+The UI may still present derived labels such as:
+
+- `new`
+- `due`
+- `scheduled`
+- `reviewed`
+
+Those labels are derived product views.
+They are not a replacement for persisted scheduler state.
+
+## Testing strategy
+
+Parity is enforced through shared golden vectors in `tests/fsrs-full-vectors.json`.
+Those vectors must be consumed by:
+
+- backend scheduler tests
+- iOS scheduler tests
+
+Required test coverage:
+
+- first review for each rating
+- learning progression
+- short-term `Hard`
+- graduation with `Easy`
+- `Again` from `review` entering `relearning`
+- relearning progression with multiple steps
+- long-term interval growth with fuzz enabled
+- forward-only workspace config changes
+
+Any scheduler change must update:
+
+- this document
+- backend and iOS scheduler module comments
+- parity vectors

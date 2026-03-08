@@ -38,6 +38,7 @@ private func makeReviewFilter(persistedReviewFilter: PersistedReviewFilter) thro
 final class FlashcardsStore: ObservableObject {
     @Published private(set) var workspace: Workspace?
     @Published private(set) var userSettings: UserSettings?
+    @Published private(set) var schedulerSettings: WorkspaceSchedulerSettings?
     @Published private(set) var cloudSettings: CloudSettings?
     @Published private(set) var cards: [Card]
     @Published private(set) var decks: [Deck]
@@ -61,6 +62,7 @@ final class FlashcardsStore: ObservableObject {
 
         self.workspace = nil
         self.userSettings = nil
+        self.schedulerSettings = nil
         self.cloudSettings = nil
         self.cards = []
         self.decks = []
@@ -112,6 +114,7 @@ final class FlashcardsStore: ObservableObject {
         let now = Date()
         self.workspace = snapshot.workspace
         self.userSettings = snapshot.userSettings
+        self.schedulerSettings = snapshot.schedulerSettings
         self.cloudSettings = snapshot.cloudSettings
         self.cards = snapshot.cards
         self.decks = snapshot.decks
@@ -223,6 +226,31 @@ final class FlashcardsStore: ObservableObject {
                 rating: rating,
                 reviewedAtClient: currentIsoTimestamp()
             )
+        )
+        try self.reload()
+    }
+
+    func updateSchedulerSettings(
+        desiredRetention: Double,
+        learningStepsMinutes: [Int],
+        relearningStepsMinutes: [Int],
+        maximumIntervalDays: Int,
+        enableFuzz: Bool
+    ) throws {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        try database.updateWorkspaceSchedulerSettings(
+            workspaceId: workspaceId,
+            desiredRetention: desiredRetention,
+            learningStepsMinutes: learningStepsMinutes,
+            relearningStepsMinutes: relearningStepsMinutes,
+            maximumIntervalDays: maximumIntervalDays,
+            enableFuzz: enableFuzz
         )
         try self.reload()
     }

@@ -1,13 +1,41 @@
 import Foundation
 import SQLite3
 
+/**
+ Local SQLite persistence mirrors the backend FSRS schema closely enough for
+ offline-first scheduling. Hidden card scheduler state and the local
+ workspaces row are the runtime source of truth on device.
+
+ This file mirrors the backend scheduler-settings and review-persistence logic
+ in `apps/backend/src/workspaceSchedulerSettings.ts` and
+ `apps/backend/src/cards.ts`.
+ If you change scheduler-state validation or review persistence here, make the
+ same change in the backend mirror and update docs/fsrs-scheduling-logic.md.
+
+ Source-of-truth docs: docs/fsrs-scheduling-logic.md
+ */
+
 private enum SQLiteValue {
     case integer(Int64)
+    case real(Double)
     case text(String)
     case null
 }
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+private let localDatabaseSchemaVersion: Int = 2
+// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::defaultWorkspaceSchedulerConfig.algorithm.
+private let defaultSchedulerAlgorithm: String = "fsrs-6"
+
+// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerConfig and validation flow.
+private struct ValidatedWorkspaceSchedulerSettingsInput {
+    let algorithm: String
+    let desiredRetention: Double
+    let learningStepsMinutes: [Int]
+    let relearningStepsMinutes: [Int]
+    let maximumIntervalDays: Int
+    let enableFuzz: Bool
+}
 
 final class LocalDatabase {
     private let connection: OpaquePointer
@@ -31,6 +59,7 @@ final class LocalDatabase {
     func loadStateSnapshot() throws -> AppStateSnapshot {
         let workspace = try self.loadWorkspace()
         let userSettings = try self.loadUserSettings(workspaceId: workspace.workspaceId)
+        let schedulerSettings = try self.loadWorkspaceSchedulerSettings(workspaceId: workspace.workspaceId)
         let cloudSettings = try self.loadCloudSettings()
         let cards = try self.loadCards(workspaceId: workspace.workspaceId)
         let decks = try self.loadDecks(workspaceId: workspace.workspaceId)
@@ -38,6 +67,7 @@ final class LocalDatabase {
         return AppStateSnapshot(
             workspace: workspace,
             userSettings: userSettings,
+            schedulerSettings: schedulerSettings,
             cloudSettings: cloudSettings,
             cards: cards,
             decks: decks
@@ -93,11 +123,17 @@ final class LocalDatabase {
                 due_at,
                 reps,
                 lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
                 server_version,
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, ?, NULL)
             """,
             values: [
                 .text(newCardId),
@@ -106,7 +142,6 @@ final class LocalDatabase {
                 .text(input.backText),
                 .text(tagsJson),
                 .text(input.effortLevel.rawValue),
-                .text(now),
                 .integer(nextServerVersion),
                 .text(now)
             ]
@@ -211,15 +246,19 @@ final class LocalDatabase {
         }
     }
 
+    // Keep in sync with apps/backend/src/cards.ts::submitReview.
     func submitReview(workspaceId: String, reviewSubmission: ReviewSubmission) throws {
         try self.inTransaction {
             let card = try self.loadCard(workspaceId: workspaceId, cardId: reviewSubmission.cardId)
-            let now = Date()
-            let schedule = computeReviewSchedule(
-                currentReps: card.reps,
-                currentLapses: card.lapses,
+            let schedulerSettings = try self.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
+            guard let reviewedAtClient = parseIsoTimestamp(value: reviewSubmission.reviewedAtClient) else {
+                throw LocalStoreError.validation("reviewedAtClient must be a valid ISO timestamp")
+            }
+            let schedule = try computeReviewSchedule(
+                card: card,
+                settings: schedulerSettings,
                 rating: reviewSubmission.rating,
-                now: now
+                now: reviewedAtClient
             )
             let cloudSettings = try self.loadCloudSettings()
             let reviewEventId = UUID().uuidString.lowercased()
@@ -255,13 +294,21 @@ final class LocalDatabase {
             let updatedRows = try self.execute(
                 sql: """
                 UPDATE cards
-                SET due_at = ?, reps = ?, lapses = ?, updated_at = ?, server_version = ?
+                SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, updated_at = ?, server_version = ?
                 WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
                 """,
                 values: [
                     .text(isoTimestamp(date: schedule.dueAt)),
                     .integer(Int64(schedule.reps)),
                     .integer(Int64(schedule.lapses)),
+                    .text(schedule.fsrsCardState.rawValue),
+                    schedule.fsrsStepIndex.map { stepIndex in
+                        SQLiteValue.integer(Int64(stepIndex))
+                    } ?? .null,
+                    .real(schedule.fsrsStability),
+                    .real(schedule.fsrsDifficulty),
+                    .text(isoTimestamp(date: schedule.fsrsLastReviewedAt)),
+                    .integer(Int64(schedule.fsrsScheduledDays)),
                     .text(reviewedAtServer),
                     .integer(try self.nextServerVersion()),
                     .text(workspaceId),
@@ -272,6 +319,47 @@ final class LocalDatabase {
             if updatedRows == 0 {
                 throw LocalStoreError.notFound("Card not found")
             }
+        }
+    }
+
+    // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::updateWorkspaceSchedulerSettings.
+    func updateWorkspaceSchedulerSettings(
+        workspaceId: String,
+        desiredRetention: Double,
+        learningStepsMinutes: [Int],
+        relearningStepsMinutes: [Int],
+        maximumIntervalDays: Int,
+        enableFuzz: Bool
+    ) throws {
+        let validatedInput = try validateWorkspaceSchedulerSettingsInput(
+            desiredRetention: desiredRetention,
+            learningStepsMinutes: learningStepsMinutes,
+            relearningStepsMinutes: relearningStepsMinutes,
+            maximumIntervalDays: maximumIntervalDays,
+            enableFuzz: enableFuzz
+        )
+        let learningStepsJson = try self.encodeIntegerArray(validatedInput.learningStepsMinutes)
+        let relearningStepsJson = try self.encodeIntegerArray(validatedInput.relearningStepsMinutes)
+        let updatedRows = try self.execute(
+            sql: """
+            UPDATE workspaces
+            SET fsrs_algorithm = ?, fsrs_desired_retention = ?, fsrs_learning_steps_minutes_json = ?, fsrs_relearning_steps_minutes_json = ?, fsrs_maximum_interval_days = ?, fsrs_enable_fuzz = ?, fsrs_updated_at = ?
+            WHERE workspace_id = ?
+            """,
+            values: [
+                .text(validatedInput.algorithm),
+                .real(validatedInput.desiredRetention),
+                .text(learningStepsJson),
+                .text(relearningStepsJson),
+                .integer(Int64(validatedInput.maximumIntervalDays)),
+                .integer(validatedInput.enableFuzz ? 1 : 0),
+                .text(currentIsoTimestamp()),
+                .text(workspaceId)
+            ]
+        )
+
+        if updatedRows == 0 {
+            throw LocalStoreError.database("Workspace row is missing")
         }
     }
 
@@ -346,11 +434,26 @@ final class LocalDatabase {
     }
 
     private func migrate() throws {
+        let schemaVersion = try self.loadSchemaVersion()
+        let hasPreFullFsrsSchema = try self.hasPreFullFsrsSchema()
+        if schemaVersion > 0 && schemaVersion < localDatabaseSchemaVersion {
+            try self.resetLocalSchema()
+        } else if schemaVersion == 0 && hasPreFullFsrsSchema {
+            try self.resetLocalSchema()
+        }
+
         let migrationSQL = """
         CREATE TABLE IF NOT EXISTS workspaces (
             workspace_id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            fsrs_algorithm TEXT NOT NULL DEFAULT 'fsrs-6' CHECK (fsrs_algorithm = 'fsrs-6'),
+            fsrs_desired_retention REAL NOT NULL DEFAULT 0.9 CHECK (fsrs_desired_retention > 0 AND fsrs_desired_retention < 1),
+            fsrs_learning_steps_minutes_json TEXT NOT NULL DEFAULT '[1,10]',
+            fsrs_relearning_steps_minutes_json TEXT NOT NULL DEFAULT '[10]',
+            fsrs_maximum_interval_days INTEGER NOT NULL DEFAULT 36500 CHECK (fsrs_maximum_interval_days >= 1),
+            fsrs_enable_fuzz INTEGER NOT NULL DEFAULT 1 CHECK (fsrs_enable_fuzz IN (0, 1)),
+            fsrs_updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE TABLE IF NOT EXISTS user_settings (
@@ -371,6 +474,12 @@ final class LocalDatabase {
             due_at TEXT,
             reps INTEGER NOT NULL CHECK (reps >= 0),
             lapses INTEGER NOT NULL CHECK (lapses >= 0),
+            fsrs_card_state TEXT NOT NULL CHECK (fsrs_card_state IN ('new', 'learning', 'review', 'relearning')),
+            fsrs_step_index INTEGER CHECK (fsrs_step_index IS NULL OR fsrs_step_index >= 0),
+            fsrs_stability REAL,
+            fsrs_difficulty REAL,
+            fsrs_last_reviewed_at TEXT,
+            fsrs_scheduled_days INTEGER CHECK (fsrs_scheduled_days IS NULL OR fsrs_scheduled_days >= 0),
             server_version INTEGER NOT NULL,
             updated_at TEXT NOT NULL,
             deleted_at TEXT
@@ -418,6 +527,10 @@ final class LocalDatabase {
             ON cards(workspace_id, due_at)
             WHERE deleted_at IS NULL;
 
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_at
+            ON cards(workspace_id, fsrs_last_reviewed_at DESC)
+            WHERE deleted_at IS NULL;
+
         CREATE INDEX IF NOT EXISTS idx_decks_workspace_updated_at
             ON decks(workspace_id, updated_at DESC);
 
@@ -429,6 +542,8 @@ final class LocalDatabase {
         guard resultCode == SQLITE_OK else {
             throw LocalStoreError.database("Failed to run local migrations: \(self.lastErrorMessage())")
         }
+
+        try self.setSchemaVersion(version: localDatabaseSchemaVersion)
     }
 
     private func ensureDefaultState() throws {
@@ -553,8 +668,55 @@ final class LocalDatabase {
         return userSettings
     }
 
+    // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::getWorkspaceSchedulerSettings and getWorkspaceSchedulerConfig.
+    private func loadWorkspaceSchedulerSettings(workspaceId: String) throws -> WorkspaceSchedulerSettings {
+        let settings = try self.query(
+            sql: """
+            SELECT
+                fsrs_algorithm,
+                fsrs_desired_retention,
+                fsrs_learning_steps_minutes_json,
+                fsrs_relearning_steps_minutes_json,
+                fsrs_maximum_interval_days,
+                fsrs_enable_fuzz,
+                fsrs_updated_at
+            FROM workspaces
+            WHERE workspace_id = ?
+            LIMIT 1
+            """,
+            values: [.text(workspaceId)]
+        ) { statement in
+            let algorithm = Self.columnText(statement: statement, index: 0)
+            if algorithm != defaultSchedulerAlgorithm {
+                throw LocalStoreError.database("Stored scheduler algorithm is invalid: \(algorithm)")
+            }
+
+            return WorkspaceSchedulerSettings(
+                algorithm: algorithm,
+                desiredRetention: Self.columnDouble(statement: statement, index: 1),
+                learningStepsMinutes: try self.decodeIntegerArray(
+                    json: Self.columnText(statement: statement, index: 2),
+                    fieldName: "learningStepsMinutes"
+                ),
+                relearningStepsMinutes: try self.decodeIntegerArray(
+                    json: Self.columnText(statement: statement, index: 3),
+                    fieldName: "relearningStepsMinutes"
+                ),
+                maximumIntervalDays: Int(Self.columnInt64(statement: statement, index: 4)),
+                enableFuzz: Self.columnInt64(statement: statement, index: 5) == 1,
+                updatedAt: Self.columnText(statement: statement, index: 6)
+            )
+        }
+
+        guard let schedulerSettings = settings.first else {
+            throw LocalStoreError.database("Workspace row is missing")
+        }
+
+        return schedulerSettings
+    }
+
     private func loadCards(workspaceId: String) throws -> [Card] {
-        try self.query(
+        let cards = try self.query(
             sql: """
             SELECT
                 card_id,
@@ -566,6 +728,12 @@ final class LocalDatabase {
                 due_at,
                 reps,
                 lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
                 server_version,
                 updated_at,
                 deleted_at
@@ -582,6 +750,10 @@ final class LocalDatabase {
             guard let effortLevel = EffortLevel(rawValue: rawEffortLevel) else {
                 throw LocalStoreError.database("Stored card effort level is invalid: \(rawEffortLevel)")
             }
+            let rawFsrsCardState = Self.columnText(statement: statement, index: 9)
+            guard let fsrsCardState = FsrsCardState(rawValue: rawFsrsCardState) else {
+                throw LocalStoreError.database("Stored FSRS card state is invalid: \(rawFsrsCardState)")
+            }
 
             return Card(
                 cardId: Self.columnText(statement: statement, index: 0),
@@ -593,11 +765,24 @@ final class LocalDatabase {
                 dueAt: Self.columnOptionalText(statement: statement, index: 6),
                 reps: Int(Self.columnInt64(statement: statement, index: 7)),
                 lapses: Int(Self.columnInt64(statement: statement, index: 8)),
-                serverVersion: Self.columnInt64(statement: statement, index: 9),
-                updatedAt: Self.columnText(statement: statement, index: 10),
-                deletedAt: Self.columnOptionalText(statement: statement, index: 11)
+                fsrsCardState: fsrsCardState,
+                fsrsStepIndex: Self.columnOptionalInt(statement: statement, index: 10),
+                fsrsStability: Self.columnOptionalDouble(statement: statement, index: 11),
+                fsrsDifficulty: Self.columnOptionalDouble(statement: statement, index: 12),
+                fsrsLastReviewedAt: Self.columnOptionalText(statement: statement, index: 13),
+                fsrsScheduledDays: Self.columnOptionalInt(statement: statement, index: 14),
+                serverVersion: Self.columnInt64(statement: statement, index: 15),
+                updatedAt: Self.columnText(statement: statement, index: 16),
+                deletedAt: Self.columnOptionalText(statement: statement, index: 17)
             )
         }
+
+        var repairedCards: [Card] = []
+        for card in cards {
+            repairedCards.append(try self.validateOrResetLoadedCard(workspaceId: workspaceId, card: card))
+        }
+
+        return repairedCards
     }
 
     private func loadDecks(workspaceId: String) throws -> [Deck] {
@@ -671,6 +856,12 @@ final class LocalDatabase {
                 due_at,
                 reps,
                 lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
                 server_version,
                 updated_at,
                 deleted_at
@@ -690,6 +881,10 @@ final class LocalDatabase {
             guard let effortLevel = EffortLevel(rawValue: rawEffortLevel) else {
                 throw LocalStoreError.database("Stored card effort level is invalid: \(rawEffortLevel)")
             }
+            let rawFsrsCardState = Self.columnText(statement: statement, index: 9)
+            guard let fsrsCardState = FsrsCardState(rawValue: rawFsrsCardState) else {
+                throw LocalStoreError.database("Stored FSRS card state is invalid: \(rawFsrsCardState)")
+            }
 
             return Card(
                 cardId: Self.columnText(statement: statement, index: 0),
@@ -701,9 +896,15 @@ final class LocalDatabase {
                 dueAt: Self.columnOptionalText(statement: statement, index: 6),
                 reps: Int(Self.columnInt64(statement: statement, index: 7)),
                 lapses: Int(Self.columnInt64(statement: statement, index: 8)),
-                serverVersion: Self.columnInt64(statement: statement, index: 9),
-                updatedAt: Self.columnText(statement: statement, index: 10),
-                deletedAt: Self.columnOptionalText(statement: statement, index: 11)
+                fsrsCardState: fsrsCardState,
+                fsrsStepIndex: Self.columnOptionalInt(statement: statement, index: 10),
+                fsrsStability: Self.columnOptionalDouble(statement: statement, index: 11),
+                fsrsDifficulty: Self.columnOptionalDouble(statement: statement, index: 12),
+                fsrsLastReviewedAt: Self.columnOptionalText(statement: statement, index: 13),
+                fsrsScheduledDays: Self.columnOptionalInt(statement: statement, index: 14),
+                serverVersion: Self.columnInt64(statement: statement, index: 15),
+                updatedAt: Self.columnText(statement: statement, index: 16),
+                deletedAt: Self.columnOptionalText(statement: statement, index: 17)
             )
         }
 
@@ -711,7 +912,58 @@ final class LocalDatabase {
             throw LocalStoreError.notFound("Card not found")
         }
 
-        return card
+        return try self.validateOrResetLoadedCard(workspaceId: workspaceId, card: card)
+    }
+
+    private func validateOrResetLoadedCard(workspaceId: String, card: Card) throws -> Card {
+        guard let invalidReason = invalidFsrsStateReason(card: card) else {
+            return card
+        }
+
+        logFlashcardsError(
+            domain: "cards",
+            action: "reset_invalid_fsrs_state",
+            metadata: [
+                "workspaceId": workspaceId,
+                "cardId": card.cardId,
+                "reason": invalidReason,
+                "repair": "reset"
+            ]
+        )
+
+        let repairedCard = resetFsrsState(
+            card: card,
+            updatedAt: currentIsoTimestamp(),
+            serverVersion: try self.nextServerVersion()
+        )
+        let updatedRows = try self.execute(
+            sql: """
+            UPDATE cards
+            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, updated_at = ?, server_version = ?
+            WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
+            """,
+            values: [
+                .null,
+                .integer(Int64(repairedCard.reps)),
+                .integer(Int64(repairedCard.lapses)),
+                .text(repairedCard.fsrsCardState.rawValue),
+                .null,
+                .null,
+                .null,
+                .null,
+                .null,
+                .text(repairedCard.updatedAt),
+                .integer(repairedCard.serverVersion),
+                .text(workspaceId),
+                .text(card.cardId)
+            ]
+        )
+
+        if updatedRows == 0 {
+            throw LocalStoreError.notFound("Card not found")
+        }
+
+        return repairedCard
     }
 
     private func nextServerVersion() throws -> Int64 {
@@ -751,6 +1003,99 @@ final class LocalDatabase {
         }
 
         return value
+    }
+
+    private func loadSchemaVersion() throws -> Int {
+        let rows = try self.query(
+            sql: "PRAGMA user_version",
+            values: []
+        ) { statement in
+            Int(Self.columnInt64(statement: statement, index: 0))
+        }
+
+        guard let version = rows.first else {
+            throw LocalStoreError.database("Failed to read SQLite schema version")
+        }
+
+        return version
+    }
+
+    private func setSchemaVersion(version: Int) throws {
+        let resultCode = sqlite3_exec(connection, "PRAGMA user_version = \(version);", nil, nil, nil)
+        guard resultCode == SQLITE_OK else {
+            throw LocalStoreError.database("Failed to update SQLite schema version: \(self.lastErrorMessage())")
+        }
+    }
+
+    private func hasPreFullFsrsSchema() throws -> Bool {
+        if try self.tableExists(name: "cards") == false {
+            return false
+        }
+
+        if try self.columnExists(tableName: "cards", columnName: "fsrs_card_state") == false {
+            return true
+        }
+
+        if try self.columnExists(tableName: "workspaces", columnName: "fsrs_algorithm") == false {
+            return true
+        }
+
+        return try self.tableExists(name: "workspace_scheduler_settings")
+    }
+
+    private func resetLocalSchema() throws {
+        let resetSQL = """
+        DROP TABLE IF EXISTS review_events;
+        DROP TABLE IF EXISTS decks;
+        DROP TABLE IF EXISTS cards;
+        DROP TABLE IF EXISTS workspace_scheduler_settings;
+        DROP TABLE IF EXISTS user_settings;
+        DROP TABLE IF EXISTS app_local_settings;
+        DROP TABLE IF EXISTS workspaces;
+        PRAGMA user_version = 0;
+        """
+        let resultCode = sqlite3_exec(connection, resetSQL, nil, nil, nil)
+        guard resultCode == SQLITE_OK else {
+            throw LocalStoreError.database("Failed to reset local schema: \(self.lastErrorMessage())")
+        }
+    }
+
+    private func tableExists(name: String) throws -> Bool {
+        let rows = try self.query(
+            sql: "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+            values: [.text(name)]
+        ) { statement in
+            Self.columnText(statement: statement, index: 0)
+        }
+
+        return rows.isEmpty == false
+    }
+
+    private func columnExists(tableName: String, columnName: String) throws -> Bool {
+        let columns = try self.query(
+            sql: "PRAGMA table_info(\(tableName))",
+            values: []
+        ) { statement in
+            Self.columnText(statement: statement, index: 1)
+        }
+
+        return columns.contains(columnName)
+    }
+
+    private func encodeIntegerArray(_ values: [Int]) throws -> String {
+        let data = try self.encoder.encode(values)
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw LocalStoreError.database("Failed to encode integer array to JSON")
+        }
+
+        return json
+    }
+
+    private func decodeIntegerArray(json: String, fieldName: String) throws -> [Int] {
+        let data = Data(json.utf8)
+        let values = try self.decoder.decode([Int].self, from: data)
+        _ = try validateSchedulerStepList(values: values, fieldName: fieldName)
+        return values
     }
 
     @discardableResult
@@ -835,6 +1180,10 @@ final class LocalDatabase {
                 guard sqlite3_bind_int64(statement, index, integer) == SQLITE_OK else {
                     throw LocalStoreError.database("Failed to bind integer parameter at index \(offset)")
                 }
+            case .real(let real):
+                guard sqlite3_bind_double(statement, index, real) == SQLITE_OK else {
+                    throw LocalStoreError.database("Failed to bind real parameter at index \(offset)")
+                }
             case .text(let text):
                 guard sqlite3_bind_text(statement, index, text, -1, sqliteTransient) == SQLITE_OK else {
                     throw LocalStoreError.database("Failed to bind text parameter at index \(offset)")
@@ -870,6 +1219,86 @@ final class LocalDatabase {
     private static func columnInt64(statement: OpaquePointer, index: Int32) -> Int64 {
         sqlite3_column_int64(statement, index)
     }
+
+    private static func columnDouble(statement: OpaquePointer, index: Int32) -> Double {
+        sqlite3_column_double(statement, index)
+    }
+
+    private static func columnOptionalInt(statement: OpaquePointer, index: Int32) -> Int? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else {
+            return nil
+        }
+
+        return Int(self.columnInt64(statement: statement, index: index))
+    }
+
+    private static func columnOptionalDouble(statement: OpaquePointer, index: Int32) -> Double? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else {
+            return nil
+        }
+
+        return sqlite3_column_double(statement, index)
+    }
+}
+
+// Keep in sync with apps/backend/src/cards.ts::getInvalidFsrsStateReason.
+func invalidFsrsStateReason(card: Card) -> String? {
+    if card.fsrsCardState == .new {
+        if card.dueAt != nil {
+            return "New card must not persist dueAt"
+        }
+
+        if card.fsrsStepIndex != nil
+            || card.fsrsStability != nil
+            || card.fsrsDifficulty != nil
+            || card.fsrsLastReviewedAt != nil
+            || card.fsrsScheduledDays != nil {
+            return "New card has persisted FSRS state"
+        }
+
+        return nil
+    }
+
+    if card.fsrsStability == nil
+        || card.fsrsDifficulty == nil
+        || card.fsrsLastReviewedAt == nil
+        || card.fsrsScheduledDays == nil {
+        return "Persisted FSRS card state is incomplete"
+    }
+
+    if card.fsrsCardState == .review && card.fsrsStepIndex != nil {
+        return "Review card must not persist fsrsStepIndex"
+    }
+
+    if (card.fsrsCardState == .learning || card.fsrsCardState == .relearning) && card.fsrsStepIndex == nil {
+        return "Learning or relearning card is missing fsrsStepIndex"
+    }
+
+    return nil
+}
+
+// Keep in sync with apps/backend/src/cards.ts repair semantics.
+func resetFsrsState(card: Card, updatedAt: String, serverVersion: Int64) -> Card {
+    Card(
+        cardId: card.cardId,
+        workspaceId: card.workspaceId,
+        frontText: card.frontText,
+        backText: card.backText,
+        tags: card.tags,
+        effortLevel: card.effortLevel,
+        dueAt: nil,
+        reps: 0,
+        lapses: 0,
+        fsrsCardState: .new,
+        fsrsStepIndex: nil,
+        fsrsStability: nil,
+        fsrsDifficulty: nil,
+        fsrsLastReviewedAt: nil,
+        fsrsScheduledDays: nil,
+        serverVersion: serverVersion,
+        updatedAt: updatedAt,
+        deletedAt: card.deletedAt
+    )
 }
 
 private func validateCardInput(input: CardEditorInput) throws {
@@ -893,4 +1322,57 @@ private func validateDeckInput(input: DeckEditorInput) throws {
     if input.filterDefinition.version != 1 {
         throw LocalStoreError.validation("Deck filter version must be 1")
     }
+}
+
+// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::parseSteps.
+private func validateSchedulerStepList(values: [Int], fieldName: String) throws -> [Int] {
+    if values.isEmpty {
+        throw LocalStoreError.validation("\(fieldName) must not be empty")
+    }
+
+    for value in values {
+        if value <= 0 || value >= 1_440 {
+            throw LocalStoreError.validation("\(fieldName) must contain positive integer minutes under 1440")
+        }
+    }
+
+    for index in 1..<values.count {
+        if values[index] <= values[index - 1] {
+            throw LocalStoreError.validation("\(fieldName) must be strictly increasing")
+        }
+    }
+
+    return values
+}
+
+// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::validateWorkspaceSchedulerSettingsInput.
+private func validateWorkspaceSchedulerSettingsInput(
+    desiredRetention: Double,
+    learningStepsMinutes: [Int],
+    relearningStepsMinutes: [Int],
+    maximumIntervalDays: Int,
+    enableFuzz: Bool
+) throws -> ValidatedWorkspaceSchedulerSettingsInput {
+    if desiredRetention <= 0 || desiredRetention >= 1 {
+        throw LocalStoreError.validation("desiredRetention must be greater than 0 and less than 1")
+    }
+
+    if maximumIntervalDays < 1 {
+        throw LocalStoreError.validation("maximumIntervalDays must be a positive integer")
+    }
+
+    return ValidatedWorkspaceSchedulerSettingsInput(
+        algorithm: defaultSchedulerAlgorithm,
+        desiredRetention: desiredRetention,
+        learningStepsMinutes: try validateSchedulerStepList(
+            values: learningStepsMinutes,
+            fieldName: "learningStepsMinutes"
+        ),
+        relearningStepsMinutes: try validateSchedulerStepList(
+            values: relearningStepsMinutes,
+            fieldName: "relearningStepsMinutes"
+        ),
+        maximumIntervalDays: maximumIntervalDays,
+        enableFuzz: enableFuzz
+    )
 }

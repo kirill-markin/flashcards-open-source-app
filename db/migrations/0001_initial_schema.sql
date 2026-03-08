@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS content.cards (
   effort_level   TEXT        NOT NULL DEFAULT 'fast'           -- estimated time to answer; used for session planning filters in the UI
                              CHECK (effort_level IN ('fast', 'medium', 'long')),
   due_at         TIMESTAMPTZ,                                  -- when the card should be shown next according to the SRS algorithm; NULL means the card has never been reviewed
-  reps           INTEGER     NOT NULL DEFAULT 0 CHECK (reps >= 0),   -- denormalized count of successful reviews (rating >= 2); derivable from review_events, cached here for SRS performance
-  lapses         INTEGER     NOT NULL DEFAULT 0 CHECK (lapses >= 0), -- denormalized count of forgotten reviews (rating = 0); derivable from review_events, cached here for SRS performance
+  reps           INTEGER     NOT NULL DEFAULT 0 CHECK (reps >= 0),   -- denormalized count of all reviews; derivable from review_events, cached here for SRS performance
+  lapses         INTEGER     NOT NULL DEFAULT 0 CHECK (lapses >= 0), -- denormalized count of Again reviews from persisted review state; derivable from review_events plus scheduler state, cached here for SRS performance
   server_version BIGINT      NOT NULL,                         -- monotonically increasing version assigned by the server on every write; clients request cards with server_version > their last known value to get a delta
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),           -- last time this row was modified on the server
   deleted_at     TIMESTAMPTZ                                   -- soft-delete timestamp; non-NULL means the card is deleted but kept as a tombstone so clients can sync the deletion

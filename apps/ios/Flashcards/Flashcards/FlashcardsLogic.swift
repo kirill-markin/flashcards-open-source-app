@@ -1,7 +1,19 @@
 import Foundation
 
-private let goodIntervalsDays: [Int] = [1, 3, 7, 14, 30, 60]
-private let easyIntervalsDays: [Int] = [3, 7, 14, 30, 60, 90]
+func logFlashcardsError(domain: String, action: String, metadata: [String: String]) {
+    var logRecord = metadata
+    logRecord["domain"] = domain
+    logRecord["action"] = action
+
+    guard JSONSerialization.isValidJSONObject(logRecord),
+          let data = try? JSONSerialization.data(withJSONObject: logRecord, options: []),
+          let line = String(data: data, encoding: .utf8) else {
+        fputs("{\"domain\":\"ios\",\"action\":\"log_serialization_failed\"}\n", stderr)
+        return
+    }
+
+    fputs(line + "\n", stderr)
+}
 
 func isoTimestamp(date: Date) -> String {
     let formatter = ISO8601DateFormatter()
@@ -153,48 +165,8 @@ func addMinutes(date: Date, minutes: Int) -> Date {
     Date(timeInterval: TimeInterval(minutes * 60), since: date)
 }
 
-func addHours(date: Date, hours: Int) -> Date {
-    Date(timeInterval: TimeInterval(hours * 3_600), since: date)
-}
-
 func addDays(date: Date, days: Int) -> Date {
     Date(timeInterval: TimeInterval(days * 86_400), since: date)
-}
-
-func intervalDays(intervals: [Int], reps: Int) -> Int {
-    let clampedIndex = max(0, min(reps - 1, intervals.count - 1))
-    return intervals[clampedIndex]
-}
-
-func computeReviewSchedule(currentReps: Int, currentLapses: Int, rating: ReviewRating, now: Date) -> ReviewSchedule {
-    switch rating {
-    case .again:
-        return ReviewSchedule(
-            dueAt: addMinutes(date: now, minutes: 10),
-            reps: currentReps,
-            lapses: currentLapses + 1
-        )
-    case .hard:
-        return ReviewSchedule(
-            dueAt: addHours(date: now, hours: 12),
-            reps: currentReps,
-            lapses: currentLapses
-        )
-    case .good:
-        let reps = currentReps + 1
-        return ReviewSchedule(
-            dueAt: addDays(date: now, days: intervalDays(intervals: goodIntervalsDays, reps: reps)),
-            reps: reps,
-            lapses: currentLapses
-        )
-    case .easy:
-        let reps = currentReps + 1
-        return ReviewSchedule(
-            dueAt: addDays(date: now, days: intervalDays(intervals: easyIntervalsDays, reps: reps)),
-            reps: reps,
-            lapses: currentLapses
-        )
-    }
 }
 
 func isCardDue(card: Card, now: Date) -> Bool {
@@ -203,7 +175,15 @@ func isCardDue(card: Card, now: Date) -> Bool {
     }
 
     guard let dueDate = parseIsoTimestamp(value: dueAt) else {
-        return false
+        logFlashcardsError(
+            domain: "cards",
+            action: "invalid_due_at",
+            metadata: [
+                "cardId": card.cardId,
+                "dueAt": dueAt
+            ]
+        )
+        return true
     }
 
     return dueDate <= now

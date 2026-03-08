@@ -1,0 +1,658 @@
+[
+  {
+    "name": "first_again",
+    "cardId": "fixture-first-again",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 0
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-08T09:01:00.000Z",
+      "reps": 1,
+      "lapses": 0,
+      "fsrsCardState": "learning",
+      "fsrsStepIndex": 0,
+      "fsrsStability": 0.212,
+      "fsrsDifficulty": 6.4133,
+      "fsrsLastReviewedAt": "2026-03-08T09:00:00.000Z",
+      "fsrsScheduledDays": 0
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-08T09:01:00.000Z",
+      "reps": 1,
+      "lapses": 0,
+      "fsrsCardState": "learning",
+      "fsrsStepIndex": 0,
+      "fsrsStability": 0.212,
+      "fsrsDifficulty": 6.4133,
+      "fsrsLastReviewedAt": "2026-03-08T09:00:00.000Z",
+      "fsrsScheduledDays": 0
+    }
+  },
+  {
+    "name": "first_hard",
+    "cardId": "fixture-first-hard",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 1
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-08T09:06:00.000Z",
+      "reps": 1,
+      "lapses": 0,
+      "fsrsCardState": "learning",
+      "fsrsStepIndex": 0,
+      "fsrsStability": 1.2931,
+      "fsrsDifficulty": 5.11217071,
+      "fsrsLastReviewedAt": "2026-03-08T09:00:00.000Z",
+      "fsrsScheduledDays": 0
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-08T09:06:00.000Z",
+      "reps": 1,
+      "lapses": 0,
+      "fsrsCardState": "learning",
+      "fsrsStepIndex": 0,
+      "fsrsStability": 1.2931,
+      "fsrsDifficulty": 5.11217071,
+      "fsrsLastReviewedAt": "2026-03-08T09:00:00.000Z",
+      "fsrsScheduledDays": 0
+    }
+  },
+  {
+    "name": "first_good",
+    "cardId": "fixture-first-good",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 2
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-08T09:10:00.000Z",
+      "reps": 1,
+      "lapses": 0,
+      "fsrsCardState": "learning",
+      "fsrsStepIndex": 1,
+      "fsrsStability": 2.3065,
+      "fsrsDifficulty": 2.11810397,
+      "fsrsLastReviewedAt": "2026-03-08T09:00:00.000Z",
+      "fsrsScheduledDays": 0
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-08T09:10:00.000Z",
+      "reps": 1,
+      "lapses": 0,
+      "fsrsCardState": "learning",
+      "fsrsStepIndex": 1,
+      "fsrsStability": 2.3065,
+      "fsrsDifficulty": 2.11810397,
+      "fsrsLastReviewedAt": "2026-03-08T09:00:00.000Z",
+      "fsrsScheduledDays": 0
+    }
+  },
+  {
+    "name": "first_easy_graduates",
+    "cardId": "fixture-first-easy",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 3
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-16T09:00:00.000Z",
+      "reps": 1,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 8.2956,
+      "fsrsDifficulty": 1,
+      "fsrsLastReviewedAt": "2026-03-08T09:00:00.000Z",
+      "fsrsScheduledDays": 8
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-16T09:00:00.000Z",
+      "reps": 1,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 8.2956,
+      "fsrsDifficulty": 1,
+      "fsrsLastReviewedAt": "2026-03-08T09:00:00.000Z",
+      "fsrsScheduledDays": 8
+    }
+  },
+  {
+    "name": "review_same_day_again_after_first_easy",
+    "cardId": "fixture-review-same-day-again",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 3
+      },
+      {
+        "at": "2026-03-08T09:30:00.000Z",
+        "rating": 0
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-08T09:40:00.000Z",
+      "reps": 2,
+      "lapses": 1,
+      "fsrsCardState": "relearning",
+      "fsrsStepIndex": 0,
+      "fsrsStability": 1.18242352,
+      "fsrsDifficulty": 7.02698957,
+      "fsrsLastReviewedAt": "2026-03-08T09:30:00.000Z",
+      "fsrsScheduledDays": 0
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-08T09:40:00.000Z",
+      "reps": 2,
+      "lapses": 1,
+      "fsrsCardState": "relearning",
+      "fsrsStepIndex": 0,
+      "fsrsStability": 1.18242352,
+      "fsrsDifficulty": 7.02698957,
+      "fsrsLastReviewedAt": "2026-03-08T09:30:00.000Z",
+      "fsrsScheduledDays": 0
+    }
+  },
+  {
+    "name": "review_same_day_hard_after_first_easy",
+    "cardId": "fixture-review-same-day-hard",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 3
+      },
+      {
+        "at": "2026-03-08T09:30:00.000Z",
+        "rating": 1
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-15T09:30:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 8.2956,
+      "fsrsDifficulty": 4.01060897,
+      "fsrsLastReviewedAt": "2026-03-08T09:30:00.000Z",
+      "fsrsScheduledDays": 7
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-15T09:30:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 8.2956,
+      "fsrsDifficulty": 4.01060897,
+      "fsrsLastReviewedAt": "2026-03-08T09:30:00.000Z",
+      "fsrsScheduledDays": 7
+    }
+  },
+  {
+    "name": "learning_progression_good_graduates",
+    "cardId": "fixture-learning-good",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 2
+      },
+      {
+        "at": "2026-03-08T09:10:00.000Z",
+        "rating": 2
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-10T09:10:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 2.3065,
+      "fsrsDifficulty": 2.11121424,
+      "fsrsLastReviewedAt": "2026-03-08T09:10:00.000Z",
+      "fsrsScheduledDays": 2
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-10T09:10:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 2.3065,
+      "fsrsDifficulty": 2.11121424,
+      "fsrsLastReviewedAt": "2026-03-08T09:10:00.000Z",
+      "fsrsScheduledDays": 2
+    }
+  },
+  {
+    "name": "learning_again_then_good_graduates_to_review",
+    "cardId": "fixture-learning-again-good",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 0
+      },
+      {
+        "at": "2026-03-08T09:01:00.000Z",
+        "rating": 2
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-09T09:01:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 0.24668919,
+      "fsrsDifficulty": 6.40211507,
+      "fsrsLastReviewedAt": "2026-03-08T09:01:00.000Z",
+      "fsrsScheduledDays": 1
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-09T09:01:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 0.24668919,
+      "fsrsDifficulty": 6.40211507,
+      "fsrsLastReviewedAt": "2026-03-08T09:01:00.000Z",
+      "fsrsScheduledDays": 1
+    }
+  },
+  {
+    "name": "learning_hard_then_good_graduates_to_review",
+    "cardId": "fixture-learning-hard-good",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 1
+      },
+      {
+        "at": "2026-03-08T09:06:00.000Z",
+        "rating": 2
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-09T09:06:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 1.33589976,
+      "fsrsDifficulty": 5.10228691,
+      "fsrsLastReviewedAt": "2026-03-08T09:06:00.000Z",
+      "fsrsScheduledDays": 1
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-09T09:06:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 1.33589976,
+      "fsrsDifficulty": 5.10228691,
+      "fsrsLastReviewedAt": "2026-03-08T09:06:00.000Z",
+      "fsrsScheduledDays": 1
+    }
+  },
+  {
+    "name": "learning_hard_stays_short_term",
+    "cardId": "fixture-learning-hard",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 2
+      },
+      {
+        "at": "2026-03-08T09:10:00.000Z",
+        "rating": 1
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-08T09:16:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "learning",
+      "fsrsStepIndex": 1,
+      "fsrsStability": 1.33337872,
+      "fsrsDifficulty": 4.75285849,
+      "fsrsLastReviewedAt": "2026-03-08T09:10:00.000Z",
+      "fsrsScheduledDays": 0
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-08T09:16:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "learning",
+      "fsrsStepIndex": 1,
+      "fsrsStability": 1.33337872,
+      "fsrsDifficulty": 4.75285849,
+      "fsrsLastReviewedAt": "2026-03-08T09:10:00.000Z",
+      "fsrsScheduledDays": 0
+    }
+  },
+  {
+    "name": "learning_delayed_good_graduates_next_day",
+    "cardId": "fixture-learning-delayed-good",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 2
+      },
+      {
+        "at": "2026-03-09T09:30:00.000Z",
+        "rating": 2
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-11T09:30:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 2.3065,
+      "fsrsDifficulty": 2.11121424,
+      "fsrsLastReviewedAt": "2026-03-09T09:30:00.000Z",
+      "fsrsScheduledDays": 2
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-11T09:30:00.000Z",
+      "reps": 2,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 2.3065,
+      "fsrsDifficulty": 2.11121424,
+      "fsrsLastReviewedAt": "2026-03-09T09:30:00.000Z",
+      "fsrsScheduledDays": 2
+    }
+  },
+  {
+    "name": "review_again_enters_relearning",
+    "cardId": "fixture-review-again",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 3
+      },
+      {
+        "at": "2026-03-16T09:00:00.000Z",
+        "rating": 0
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-16T09:10:00.000Z",
+      "reps": 2,
+      "lapses": 1,
+      "fsrsCardState": "relearning",
+      "fsrsStepIndex": 0,
+      "fsrsStability": 1.38863246,
+      "fsrsDifficulty": 7.02698957,
+      "fsrsLastReviewedAt": "2026-03-16T09:00:00.000Z",
+      "fsrsScheduledDays": 0
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-16T09:10:00.000Z",
+      "reps": 2,
+      "lapses": 1,
+      "fsrsCardState": "relearning",
+      "fsrsStepIndex": 0,
+      "fsrsStability": 1.38863246,
+      "fsrsDifficulty": 7.02698957,
+      "fsrsLastReviewedAt": "2026-03-16T09:00:00.000Z",
+      "fsrsScheduledDays": 0
+    }
+  },
+  {
+    "name": "relearning_multi_step_progression",
+    "cardId": "fixture-relearning-multi",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10, 30],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 3
+      },
+      {
+        "at": "2026-03-16T09:00:00.000Z",
+        "rating": 0
+      },
+      {
+        "at": "2026-03-16T09:10:00.000Z",
+        "rating": 2
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-16T09:40:00.000Z",
+      "reps": 3,
+      "lapses": 1,
+      "fsrsCardState": "relearning",
+      "fsrsStepIndex": 1,
+      "fsrsStability": 1.42788168,
+      "fsrsDifficulty": 7.01519095,
+      "fsrsLastReviewedAt": "2026-03-16T09:10:00.000Z",
+      "fsrsScheduledDays": 0
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-16T09:40:00.000Z",
+      "reps": 3,
+      "lapses": 1,
+      "fsrsCardState": "relearning",
+      "fsrsStepIndex": 1,
+      "fsrsStability": 1.42788168,
+      "fsrsDifficulty": 7.01519095,
+      "fsrsLastReviewedAt": "2026-03-16T09:10:00.000Z",
+      "fsrsScheduledDays": 0
+    }
+  },
+  {
+    "name": "relearning_delayed_good_stays_short_term_next_day",
+    "cardId": "fixture-relearning-delayed-good",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10, 30],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 3
+      },
+      {
+        "at": "2026-03-16T09:00:00.000Z",
+        "rating": 0
+      },
+      {
+        "at": "2026-03-17T09:30:00.000Z",
+        "rating": 2
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-03-17T10:00:00.000Z",
+      "reps": 3,
+      "lapses": 1,
+      "fsrsCardState": "relearning",
+      "fsrsStepIndex": 1,
+      "fsrsStability": 1.42788168,
+      "fsrsDifficulty": 7.01519095,
+      "fsrsLastReviewedAt": "2026-03-17T09:30:00.000Z",
+      "fsrsScheduledDays": 0
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-03-17T10:00:00.000Z",
+      "reps": 3,
+      "lapses": 1,
+      "fsrsCardState": "relearning",
+      "fsrsStepIndex": 1,
+      "fsrsStability": 1.42788168,
+      "fsrsDifficulty": 7.01519095,
+      "fsrsLastReviewedAt": "2026-03-17T09:30:00.000Z",
+      "fsrsScheduledDays": 0
+    }
+  },
+  {
+    "name": "long_term_review_growth_with_fuzz",
+    "cardId": "fixture-long-term",
+    "settings": {
+      "algorithm": "fsrs-6",
+      "desiredRetention": 0.9,
+      "learningStepsMinutes": [1, 10],
+      "relearningStepsMinutes": [10],
+      "maximumIntervalDays": 36500,
+      "enableFuzz": true
+    },
+    "reviews": [
+      {
+        "at": "2026-03-08T09:00:00.000Z",
+        "rating": 3
+      },
+      {
+        "at": "2026-03-16T09:00:00.000Z",
+        "rating": 2
+      },
+      {
+        "at": "2026-03-27T09:00:00.000Z",
+        "rating": 3
+      }
+    ],
+    "expected": {
+      "dueAt": "2026-07-18T09:00:00.000Z",
+      "reps": 3,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 115.9094609,
+      "fsrsDifficulty": 1,
+      "fsrsLastReviewedAt": "2026-03-27T09:00:00.000Z",
+      "fsrsScheduledDays": 113
+    },
+    "rebuiltExpected": {
+      "dueAt": "2026-07-18T09:00:00.000Z",
+      "reps": 3,
+      "lapses": 0,
+      "fsrsCardState": "review",
+      "fsrsStepIndex": null,
+      "fsrsStability": 115.9094609,
+      "fsrsDifficulty": 1,
+      "fsrsLastReviewedAt": "2026-03-27T09:00:00.000Z",
+      "fsrsScheduledDays": 113
+    }
+  }
+]
