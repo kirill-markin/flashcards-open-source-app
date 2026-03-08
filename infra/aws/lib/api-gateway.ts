@@ -119,7 +119,25 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     },
   });
 
+  /**
+   * Keeps the existing buffered Lambda proxy behavior for JSON-style endpoints.
+   * Those routes only return complete payloads, so streaming would add no value
+   * and would widen the blast radius of the chat-specific transport change.
+   */
   const integration = new apigw.LambdaIntegration(backendFn);
+
+  /**
+   * Streams the chat response through API Gateway instead of waiting for the
+   * full Lambda body.
+   *
+   * This is required for the SSE chat route because buffered transfer mode
+   * flattens all `data: ...` frames into one payload, which leaves the browser
+   * with a single unparsable line instead of incremental events.
+   *
+   * Only `/chat` uses this integration. The diagnostics endpoint stays on the
+   * buffered path because it returns a normal `204` response and does not need
+   * streaming semantics.
+   */
   const streamingIntegration = new apigw.LambdaIntegration(backendFn, {
     responseTransferMode: apigw.ResponseTransferMode.STREAM,
   });
