@@ -1,21 +1,14 @@
 import SwiftUI
 
 struct RootTabView: View {
-    let decks: [DeckSummary]
-    let reviewCards: [ReviewCard]
-
     @State private var selectedTab: AppTab = .home
 
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                HomeView(
-                    decks: decks,
-                    reviewCards: reviewCards,
-                    startReview: {
-                        selectedTab = .review
-                    }
-                )
+                HomeView(startReview: {
+                    selectedTab = .review
+                })
             }
             .tabItem {
                 Label("Home", systemImage: "house")
@@ -23,7 +16,7 @@ struct RootTabView: View {
             .tag(AppTab.home)
 
             NavigationStack {
-                ReviewView(cards: reviewCards)
+                ReviewView()
             }
             .tabItem {
                 Label("Review", systemImage: "rectangle.on.rectangle")
@@ -31,7 +24,7 @@ struct RootTabView: View {
             .tag(AppTab.review)
 
             NavigationStack {
-                SettingsView(snapshot: makeHomeSnapshot(decks: decks, reviewCards: reviewCards))
+                SettingsView()
             }
             .tabItem {
                 Label("Settings", systemImage: "gearshape")
@@ -42,8 +35,6 @@ struct RootTabView: View {
 }
 
 #Preview {
-    RootTabView(
-        decks: sampleDecks(),
-        reviewCards: sampleReviewCards()
-    )
+    RootTabView()
+        .environmentObject(FlashcardsStore())
 }

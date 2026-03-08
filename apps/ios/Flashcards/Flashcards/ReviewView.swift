@@ -1,49 +1,50 @@
 import SwiftUI
 
 struct ReviewView: View {
-    let cards: [ReviewCard]
+    @EnvironmentObject private var store: FlashcardsStore
 
-    @State private var currentIndex: Int = 0
     @State private var isAnswerVisible: Bool = false
-    @State private var completedCount: Int = 0
-    @State private var lastSubmittedGrade: ReviewGrade? = nil
+    @State private var screenErrorMessage: String = ""
+
+    private var currentCard: Card? {
+        store.reviewQueue.first
+    }
 
     var body: some View {
         Group {
-            if cards.isEmpty {
-                ContentUnavailableView(
-                    "No Cards Yet",
-                    systemImage: "tray",
-                    description: Text("Add cards once the local storage layer is ready.")
-                )
-            } else if completedCount == cards.count {
-                completionView
+            if let currentCard {
+                activeCardView(card: currentCard)
             } else {
-                activeCardView
+                emptyStateView
             }
         }
         .navigationTitle("Review")
+        .onChange(of: currentCard?.cardId) { _, _ in
+            isAnswerVisible = false
+        }
         .toolbar {
-            if cards.isEmpty == false && completedCount < cards.count {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Text("\(currentIndex + 1)/\(cards.count)")
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
+            ToolbarItem(placement: .topBarTrailing) {
+                Text("\(store.reviewQueue.count) due")
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
             }
         }
     }
 
-    private var currentCard: ReviewCard {
-        cards[currentIndex]
-    }
-
-    private var activeCardView: some View {
+    private func activeCardView(card: Card) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text(currentCard.deckTitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                if screenErrorMessage.isEmpty == false {
+                    Text(screenErrorMessage)
+                        .foregroundStyle(.red)
+                }
+
+                HStack(spacing: 12) {
+                    Label(card.effortLevel.title, systemImage: "timer")
+                    Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Front")
@@ -51,7 +52,7 @@ struct ReviewView: View {
                         .textCase(.uppercase)
                         .foregroundStyle(.secondary)
 
-                    Text(currentCard.prompt)
+                    Text(card.frontText)
                         .font(.title2)
                         .fontWeight(.semibold)
                 }
@@ -66,13 +67,9 @@ struct ReviewView: View {
                             .textCase(.uppercase)
                             .foregroundStyle(.secondary)
 
-                        Text(currentCard.answer)
+                        Text(card.backText)
                             .font(.title3)
                             .fontWeight(.medium)
-
-                        Text(currentCard.note)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(24)
@@ -82,69 +79,89 @@ struct ReviewView: View {
                     )
                 }
 
+                HStack(spacing: 12) {
+                    Label("Due \(displayTimestamp(value: card.dueAt))", systemImage: "clock")
+                    Label("Reps \(card.reps)", systemImage: "arrow.clockwise")
+                    Label("Lapses \(card.lapses)", systemImage: "exclamationmark.arrow.trianglehead.counterclockwise")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
                 if isAnswerVisible {
                     VStack(spacing: 12) {
-                        ForEach(ReviewGrade.allCases) { grade in
-                            Button(action: {
-                                submitGrade(grade: grade)
-                            }) {
-                                Label(grade.rawValue, systemImage: grade.symbolName)
+                        ForEach(ReviewRating.allCases) { rating in
+                            Button {
+                                self.submitReview(cardId: card.cardId, rating: rating)
+                            } label: {
+                                Label(rating.title, systemImage: rating.symbolName)
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)
                         }
                     }
                 } else {
-                    Button(action: {
+                    Button {
                         isAnswerVisible = true
-                    }) {
+                    } label: {
                         Label("Show answer", systemImage: "eye")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                }
+
+                if store.reviewQueue.count > 1 {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Queue preview")
+                            .font(.headline)
+
+                        ForEach(Array(store.reviewQueue.dropFirst().prefix(3))) { queueCard in
+                            HStack {
+                                Text(queueCard.frontText)
+                                    .lineLimit(1)
+
+                                Spacer()
+
+                                Text(displayTimestamp(value: queueCard.dueAt))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.subheadline)
+                        }
+                    }
                 }
             }
             .padding(20)
         }
     }
 
-    private var completionView: some View {
+    private var emptyStateView: some View {
         ContentUnavailableView {
-            Label("Done for now", systemImage: "checkmark.circle")
-        } description: {
-            if let lastSubmittedGrade {
-                Text("Last card marked \(lastSubmittedGrade.rawValue.lowercased()).")
+            if store.cards.isEmpty {
+                Label("No Cards Yet", systemImage: "tray")
             } else {
-                Text("The sample session is complete.")
+                Label("Nothing Due", systemImage: "checkmark.circle")
             }
-        } actions: {
-            Button("Review again") {
-                restartSession()
+        } description: {
+            if store.cards.isEmpty {
+                Text("Create local cards first. Review will use the SQLite queue immediately.")
+            } else {
+                Text("All due cards are cleared for now. Come back later or create more cards.")
             }
-            .buttonStyle(.borderedProminent)
         }
     }
 
-    private func submitGrade(grade: ReviewGrade) {
-        lastSubmittedGrade = grade
-        completedCount += 1
-        isAnswerVisible = false
-
-        if completedCount < cards.count {
-            currentIndex += 1
+    private func submitReview(cardId: String, rating: ReviewRating) {
+        do {
+            try store.submitReview(cardId: cardId, rating: rating)
+            self.screenErrorMessage = ""
+        } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
         }
-    }
-
-    private func restartSession() {
-        currentIndex = 0
-        isAnswerVisible = false
-        completedCount = 0
-        lastSubmittedGrade = nil
     }
 }
 
 #Preview {
     NavigationStack {
-        ReviewView(cards: sampleReviewCards())
+        ReviewView()
+            .environmentObject(FlashcardsStore())
     }
 }
