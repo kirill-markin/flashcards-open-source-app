@@ -383,7 +383,9 @@ private struct CardEditorView: View {
         Form {
             Section("Text") {
                 TextField("Front", text: $formState.frontText, axis: .vertical)
+                    .lineLimit(3...)
                 TextField("Back", text: $formState.backText, axis: .vertical)
+                    .lineLimit(3...)
             }
 
             Section("Metadata") {
