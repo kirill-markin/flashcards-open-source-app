@@ -17,7 +17,7 @@ struct RootTabView: View {
                 DecksScreen()
             }
             .tabItem {
-                Label("Desks", systemImage: "line.3.horizontal.decrease.circle")
+                Label("Decks", systemImage: "line.3.horizontal.decrease.circle")
             }
             .tag(AppTab.decks)
 
