@@ -14,6 +14,8 @@ export interface ApiGatewayProps {
   appDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   apiCertificateArn: string | undefined;
+  openAiApiKeySecretArn: string | undefined;
+  anthropicApiKeySecretArn: string | undefined;
   userPoolId: string;
   userPoolClientId: string;
 }
@@ -34,6 +36,22 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     ],
   },
 };
+
+function addLambdaSecretEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  secretArn: string | undefined,
+  constructId: string,
+  environmentVariableName: string,
+): void {
+  if (secretArn === undefined || secretArn === "") {
+    return;
+  }
+
+  const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(scope, constructId, secretArn);
+  secret.grantRead(fn);
+  fn.addEnvironment(environmentVariableName, secret.secretValue.unsafeUnwrap());
+}
 
 export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGatewayResult {
   const allowedOrigins = [
@@ -78,6 +96,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   props.appDbSecret.grantRead(backendFn);
   backendCsrfSecret.grantRead(backendFn);
+  addLambdaSecretEnvironment(scope, backendFn, props.openAiApiKeySecretArn, "OpenAiApiKeySecret", "OPENAI_API_KEY");
+  addLambdaSecretEnvironment(scope, backendFn, props.anthropicApiKeySecretArn, "AnthropicApiKeySecret", "ANTHROPIC_API_KEY");
 
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",

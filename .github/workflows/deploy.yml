@@ -78,6 +78,8 @@ jobs:
             "apiCertificateArn": "${{ secrets.CDK_API_CERTIFICATE_ARN }}",
             "authCertificateArn": "${{ secrets.CDK_AUTH_CERTIFICATE_ARN }}",
             "webCertificateArnUsEast1": "${{ secrets.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}",
+            "openAiApiKeySecretArn": "${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}",
+            "anthropicApiKeySecretArn": "${{ vars.CDK_ANTHROPIC_API_KEY_SECRET_ARN }}",
             "githubOidcProviderArn": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com",
             "alertEmail": "${{ vars.CDK_ALERT_EMAIL }}",
             "githubRepo": "${{ vars.CDK_GITHUB_REPO }}"

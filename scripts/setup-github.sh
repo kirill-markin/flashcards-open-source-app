@@ -41,6 +41,26 @@ print("" if value is None else value)
 PY
 }
 
+has_variable() {
+  local variable_name="$1"
+
+  gh variable list --repo "$REPO" --json name --jq ".[] | select(.name == \"${variable_name}\") | .name" | grep -qx "$variable_name"
+}
+
+set_or_delete_variable() {
+  local variable_name="$1"
+  local variable_value="$2"
+
+  if [[ -n "$variable_value" ]]; then
+    gh variable set "$variable_name" --body "$variable_value" --repo "$REPO"
+    return
+  fi
+
+  if has_variable "$variable_name"; then
+    gh variable delete "$variable_name" --repo "$REPO"
+  fi
+}
+
 get_output() {
   aws cloudformation describe-stacks \
     --stack-name "$STACK_NAME" \
@@ -55,6 +75,8 @@ GITHUB_REPO=$(read_context githubRepo)
 API_CERT_ARN=$(read_context apiCertificateArn)
 AUTH_CERT_ARN=$(read_context authCertificateArn)
 WEB_CERT_ARN=$(read_context webCertificateArnUsEast1)
+OPENAI_SECRET_ARN=$(read_context openAiApiKeySecretArn)
+ANTHROPIC_SECRET_ARN=$(read_context anthropicApiKeySecretArn)
 DEPLOY_ROLE_ARN=$(get_output GithubDeployRoleArn)
 
 if [[ -z "$REGION" || -z "$DOMAIN_NAME" || -z "$ALERT_EMAIL" || -z "$GITHUB_REPO" ]]; then
@@ -71,6 +93,8 @@ gh variable set AWS_REGION --body "$REGION" --repo "$REPO"
 gh variable set CDK_DOMAIN_NAME --body "$DOMAIN_NAME" --repo "$REPO"
 gh variable set CDK_ALERT_EMAIL --body "$ALERT_EMAIL" --repo "$REPO"
 gh variable set CDK_GITHUB_REPO --body "$GITHUB_REPO" --repo "$REPO"
+set_or_delete_variable CDK_OPENAI_API_KEY_SECRET_ARN "$OPENAI_SECRET_ARN"
+set_or_delete_variable CDK_ANTHROPIC_API_KEY_SECRET_ARN "$ANTHROPIC_SECRET_ARN"
 
 gh secret set AWS_DEPLOY_ROLE_ARN --body "$DEPLOY_ROLE_ARN" --repo "$REPO"
 

@@ -33,6 +33,11 @@ npm ci --silent --prefix "${ROOT_DIR}/apps/backend"
 npm ci --silent --prefix "${ROOT_DIR}/apps/web"
 npm ci --silent --prefix "$CDK_DIR"
 
+echo "=== Configure optional AI secrets ==="
+bash "${ROOT_DIR}/scripts/setup-ai-secrets.sh" \
+  --context-file "${CDK_DIR}/cdk.context.local.json" \
+  --region "$REGION"
+
 echo "=== CDK bootstrap ==="
 cd "$CDK_DIR"
 npx cdk bootstrap --region "$REGION"
