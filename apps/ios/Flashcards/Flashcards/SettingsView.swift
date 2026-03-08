@@ -62,7 +62,19 @@ struct SettingsView: View {
                         }
                     }
 
-                    Text("Local mode always works. Cloud auth and sync will plug into this optional state later.")
+                    LabeledContent("Sync status") {
+                        Text(syncStatusTitle(status: store.syncStatus))
+                    }
+
+                    if let lastSuccessfulCloudSyncAt = store.lastSuccessfulCloudSyncAt {
+                        LabeledContent("Last sync") {
+                            Text(lastSuccessfulCloudSyncAt)
+                                .font(.caption.monospaced())
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    Text("Local mode always works. Once auth provides a linked cloud session, the app pushes pending writes and pulls ordered changes for the current workspace.")
                         .foregroundStyle(.secondary)
 
                     switch cloudSettings.cloudState {
@@ -79,6 +91,11 @@ struct SettingsView: View {
                             self.disconnectCloudAccount()
                         }
                     case .linked:
+                        Button("Sync now") {
+                            self.syncNow()
+                        }
+                        .disabled(isSyncInFlight(status: store.syncStatus))
+
                         Button("Disconnect cloud account", role: .destructive) {
                             self.disconnectCloudAccount()
                         }
@@ -184,6 +201,17 @@ struct SettingsView: View {
         }
     }
 
+    private func syncNow() {
+        Task { @MainActor in
+            do {
+                try await store.syncCloudNow()
+                self.screenErrorMessage = ""
+            } catch {
+                self.screenErrorMessage = localizedMessage(error: error)
+            }
+        }
+    }
+
     private func loadSchedulerDrafts(settings: WorkspaceSchedulerSettings?) {
         guard let settings else {
             return
@@ -223,6 +251,26 @@ struct SettingsView: View {
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)
         }
+    }
+}
+
+private func syncStatusTitle(status: SyncStatus) -> String {
+    switch status {
+    case .idle:
+        return "Idle"
+    case .syncing:
+        return "Syncing"
+    case .failed(let message):
+        return "Failed: \(message)"
+    }
+}
+
+private func isSyncInFlight(status: SyncStatus) -> Bool {
+    switch status {
+    case .syncing:
+        return true
+    case .idle, .failed:
+        return false
     }
 }
 

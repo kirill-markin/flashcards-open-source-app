@@ -58,7 +58,6 @@ export type Card = Readonly<{
   fsrsDifficulty: number | null;
   fsrsLastReviewedAt: string | null;
   fsrsScheduledDays: number | null;
-  serverVersion: number;
   clientUpdatedAt: string;
   lastModifiedByDeviceId: string;
   lastOperationId: string;
@@ -74,7 +73,6 @@ export type WorkspaceSchedulerSettings = Readonly<{
   relearningStepsMinutes: ReadonlyArray<number>;
   maximumIntervalDays: number;
   enableFuzz: boolean;
-  serverVersion: number;
   clientUpdatedAt: string;
   lastModifiedByDeviceId: string;
   lastOperationId: string;
@@ -101,7 +99,6 @@ export type Deck = Readonly<{
   name: string;
   filterDefinition: DeckFilterDefinition;
   createdAt: string;
-  serverVersion: number;
   clientUpdatedAt: string;
   lastModifiedByDeviceId: string;
   lastOperationId: string;
@@ -112,6 +109,136 @@ export type Deck = Readonly<{
 export type CreateDeckInput = Readonly<{
   name: string;
   filterDefinition: DeckFilterDefinition;
+}>;
+
+export type ReviewEvent = Readonly<{
+  reviewEventId: string;
+  workspaceId: string;
+  cardId: string;
+  deviceId: string;
+  clientEventId: string;
+  rating: 0 | 1 | 2 | 3;
+  reviewedAtClient: string;
+  reviewedAtServer: string;
+}>;
+
+export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "review_event";
+export type SyncAction = "upsert" | "append";
+
+export type SyncPushOperation =
+  | Readonly<{
+    operationId: string;
+    entityType: "card";
+    entityId: string;
+    action: "upsert";
+    clientUpdatedAt: string;
+    payload: Readonly<{
+      cardId: string;
+      frontText: string;
+      backText: string;
+      tags: ReadonlyArray<string>;
+      effortLevel: EffortLevel;
+      dueAt: string | null;
+      reps: number;
+      lapses: number;
+      fsrsCardState: FsrsCardState;
+      fsrsStepIndex: number | null;
+      fsrsStability: number | null;
+      fsrsDifficulty: number | null;
+      fsrsLastReviewedAt: string | null;
+      fsrsScheduledDays: number | null;
+      deletedAt: string | null;
+    }>;
+  }>
+  | Readonly<{
+    operationId: string;
+    entityType: "deck";
+    entityId: string;
+    action: "upsert";
+    clientUpdatedAt: string;
+    payload: Readonly<{
+      deckId: string;
+      name: string;
+      filterDefinition: DeckFilterDefinition;
+      createdAt: string;
+      deletedAt: string | null;
+    }>;
+  }>
+  | Readonly<{
+    operationId: string;
+    entityType: "workspace_scheduler_settings";
+    entityId: string;
+    action: "upsert";
+    clientUpdatedAt: string;
+    payload: Readonly<{
+      algorithm: "fsrs-6";
+      desiredRetention: number;
+      learningStepsMinutes: ReadonlyArray<number>;
+      relearningStepsMinutes: ReadonlyArray<number>;
+      maximumIntervalDays: number;
+      enableFuzz: boolean;
+    }>;
+  }>
+  | Readonly<{
+    operationId: string;
+    entityType: "review_event";
+    entityId: string;
+    action: "append";
+    clientUpdatedAt: string;
+    payload: Readonly<{
+      reviewEventId: string;
+      cardId: string;
+      deviceId: string;
+      clientEventId: string;
+      rating: 0 | 1 | 2 | 3;
+      reviewedAtClient: string;
+    }>;
+  }>;
+
+export type SyncPushResult = Readonly<{
+  operations: ReadonlyArray<Readonly<{
+    operationId: string;
+    entityType: SyncEntityType;
+    entityId: string;
+    status: "applied" | "ignored" | "duplicate";
+    resultingChangeId: number | null;
+  }>>;
+}>;
+
+export type SyncChange =
+  | Readonly<{
+    changeId: number;
+    entityType: "card";
+    entityId: string;
+    action: "upsert";
+    payload: Card;
+  }>
+  | Readonly<{
+    changeId: number;
+    entityType: "deck";
+    entityId: string;
+    action: "upsert";
+    payload: Deck;
+  }>
+  | Readonly<{
+    changeId: number;
+    entityType: "workspace_scheduler_settings";
+    entityId: string;
+    action: "upsert";
+    payload: WorkspaceSchedulerSettings;
+  }>
+  | Readonly<{
+    changeId: number;
+    entityType: "review_event";
+    entityId: string;
+    action: "append";
+    payload: ReviewEvent;
+  }>;
+
+export type SyncPullResult = Readonly<{
+  changes: ReadonlyArray<SyncChange>;
+  nextChangeId: number;
+  hasMore: boolean;
 }>;
 
 export type ChatRole = "user" | "assistant";

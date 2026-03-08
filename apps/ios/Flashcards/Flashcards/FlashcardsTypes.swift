@@ -40,7 +40,7 @@ enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable {
     }
 }
 
-enum ReviewRating: Int, CaseIterable, Hashable, Identifiable {
+enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable {
     case again = 0
     case hard = 1
     case good = 2
@@ -202,13 +202,13 @@ struct DeckFilterDefinition: Codable, Hashable {
     let predicates: [DeckPredicate]
 }
 
-struct Workspace: Hashable {
+struct Workspace: Codable, Hashable {
     let workspaceId: String
     let name: String
     let createdAt: String
 }
 
-struct UserSettings: Hashable {
+struct UserSettings: Codable, Hashable {
     let userId: String
     let workspaceId: String
     let email: String?
@@ -217,14 +217,13 @@ struct UserSettings: Hashable {
 }
 
 // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings and apps/web/src/types.ts::WorkspaceSchedulerSettings.
-struct WorkspaceSchedulerSettings: Hashable {
+struct WorkspaceSchedulerSettings: Codable, Hashable {
     let algorithm: String
     let desiredRetention: Double
     let learningStepsMinutes: [Int]
     let relearningStepsMinutes: [Int]
     let maximumIntervalDays: Int
     let enableFuzz: Bool
-    let serverVersion: Int64?
     let clientUpdatedAt: String
     let lastModifiedByDeviceId: String
     let lastOperationId: String
@@ -232,7 +231,7 @@ struct WorkspaceSchedulerSettings: Hashable {
 }
 
 // Keep in sync with apps/backend/src/cards.ts::Card and apps/web/src/types.ts::Card.
-struct Card: Identifiable, Hashable {
+struct Card: Codable, Identifiable, Hashable {
     let cardId: String
     let workspaceId: String
     let frontText: String
@@ -248,7 +247,6 @@ struct Card: Identifiable, Hashable {
     let fsrsDifficulty: Double?
     let fsrsLastReviewedAt: String?
     let fsrsScheduledDays: Int?
-    let serverVersion: Int64?
     let clientUpdatedAt: String
     let lastModifiedByDeviceId: String
     let lastOperationId: String
@@ -260,13 +258,12 @@ struct Card: Identifiable, Hashable {
     }
 }
 
-struct Deck: Identifiable, Hashable {
+struct Deck: Codable, Identifiable, Hashable {
     let deckId: String
     let workspaceId: String
     let name: String
     let filterDefinition: DeckFilterDefinition
     let createdAt: String
-    let serverVersion: Int64?
     let clientUpdatedAt: String
     let lastModifiedByDeviceId: String
     let lastOperationId: String
@@ -292,7 +289,7 @@ enum ReviewFilter: Hashable, Identifiable {
     }
 }
 
-struct ReviewEvent: Identifiable, Hashable {
+struct ReviewEvent: Codable, Identifiable, Hashable {
     let reviewEventId: String
     let workspaceId: String
     let cardId: String
@@ -301,14 +298,141 @@ struct ReviewEvent: Identifiable, Hashable {
     let rating: ReviewRating
     let reviewedAtClient: String
     let reviewedAtServer: String
-    let serverVersion: Int64?
 
     var id: String {
         reviewEventId
     }
 }
 
-struct CloudSettings: Hashable {
+struct CloudLinkedSession: Hashable {
+    let userId: String
+    let workspaceId: String
+    let email: String?
+    let apiBaseUrl: String
+    let bearerToken: String
+}
+
+enum SyncEntityType: String, Codable, Hashable {
+    case card
+    case deck
+    case workspaceSchedulerSettings = "workspace_scheduler_settings"
+    case reviewEvent = "review_event"
+}
+
+enum SyncAction: String, Codable, Hashable {
+    case upsert
+    case append
+}
+
+enum SyncStatus: Hashable {
+    case idle
+    case syncing
+    case failed(message: String)
+}
+
+struct CardSyncPayload: Codable, Hashable {
+    let cardId: String
+    let frontText: String
+    let backText: String
+    let tags: [String]
+    let effortLevel: String
+    let dueAt: String?
+    let reps: Int
+    let lapses: Int
+    let fsrsCardState: String
+    let fsrsStepIndex: Int?
+    let fsrsStability: Double?
+    let fsrsDifficulty: Double?
+    let fsrsLastReviewedAt: String?
+    let fsrsScheduledDays: Int?
+    let deletedAt: String?
+}
+
+struct DeckSyncPayload: Codable, Hashable {
+    let deckId: String
+    let name: String
+    let filterDefinition: DeckFilterDefinition
+    let createdAt: String
+    let deletedAt: String?
+}
+
+struct WorkspaceSchedulerSettingsSyncPayload: Codable, Hashable {
+    let algorithm: String
+    let desiredRetention: Double
+    let learningStepsMinutes: [Int]
+    let relearningStepsMinutes: [Int]
+    let maximumIntervalDays: Int
+    let enableFuzz: Bool
+}
+
+struct ReviewEventSyncPayload: Codable, Hashable {
+    let reviewEventId: String
+    let cardId: String
+    let deviceId: String
+    let clientEventId: String
+    let rating: Int
+    let reviewedAtClient: String
+}
+
+enum SyncOperationPayload: Hashable {
+    case card(CardSyncPayload)
+    case deck(DeckSyncPayload)
+    case workspaceSchedulerSettings(WorkspaceSchedulerSettingsSyncPayload)
+    case reviewEvent(ReviewEventSyncPayload)
+}
+
+struct SyncOperation: Hashable {
+    let operationId: String
+    let entityType: SyncEntityType
+    let entityId: String
+    let action: SyncAction
+    let clientUpdatedAt: String
+    let payload: SyncOperationPayload
+}
+
+struct SyncOperationResult: Codable, Hashable {
+    let operationId: String
+    let entityType: SyncEntityType
+    let entityId: String
+    let status: String
+    let resultingChangeId: Int64?
+}
+
+struct SyncPushResponse: Codable, Hashable {
+    let operations: [SyncOperationResult]
+}
+
+enum SyncChangePayload: Hashable {
+    case card(Card)
+    case deck(Deck)
+    case workspaceSchedulerSettings(WorkspaceSchedulerSettings)
+    case reviewEvent(ReviewEvent)
+}
+
+struct SyncChange: Hashable {
+    let changeId: Int64
+    let entityType: SyncEntityType
+    let entityId: String
+    let action: SyncAction
+    let payload: SyncChangePayload
+}
+
+struct SyncPullResponse: Hashable {
+    let changes: [SyncChange]
+    let nextChangeId: Int64
+    let hasMore: Bool
+}
+
+struct PersistedOutboxEntry: Hashable {
+    let operationId: String
+    let workspaceId: String
+    let createdAt: String
+    let attemptCount: Int
+    let lastError: String
+    let operation: SyncOperation
+}
+
+struct CloudSettings: Codable, Hashable {
     let deviceId: String
     let cloudState: CloudAccountState
     let linkedUserId: String?

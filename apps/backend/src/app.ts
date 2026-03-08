@@ -369,7 +369,6 @@ function parseUpdateCardInput(value: unknown): UpdateCardInput {
     "lastModifiedByDeviceId",
     "lastOperationId",
     "updatedAt",
-    "serverVersion",
     "deletedAt",
   ];
 
