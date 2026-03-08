@@ -11,5 +11,8 @@
 // Set your personal backend/auth deployment URLs here.
 // These values stay machine-local because open-source contributors may target
 // different API and auth hosts.
-// API_BASE_URL = https://api.example.com/v1
-// AUTH_BASE_URL = https://auth.example.com
+//
+// Xcode .xcconfig treats `//` as a comment, so URLs must be written as
+// `https:/$()/host` instead of literal `https://host`.
+// API_BASE_URL = https:/$()/api.example.com/v1
+// AUTH_BASE_URL = https:/$()/auth.example.com

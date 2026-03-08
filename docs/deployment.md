@@ -30,6 +30,21 @@ This starts:
 
 By default `AUTH_MODE=none` — backend accepts local requests as `userId=local`. Set `AUTH_MODE=cognito` and fill in Cognito env vars in `.env` to test real OTP auth and shared-domain cookies locally.
 
+### iOS config
+
+The iOS app reads `API_BASE_URL` and `AUTH_BASE_URL` from `apps/ios/Flashcards/Config/Local.xcconfig`.
+
+Copy `apps/ios/Flashcards/Config/Local.xcconfig.example` if needed and fill your personal hosts there.
+
+Important: Xcode `.xcconfig` treats `//` as a comment, so URL values must be written like this:
+
+```xcconfig
+API_BASE_URL = https:/$()/api.example.com/v1
+AUTH_BASE_URL = https:/$()/auth.example.com
+```
+
+Do not use literal `https://...` inside `.xcconfig`, or Xcode will truncate the value to `https:`.
+
 ### Stop
 
 ```bash
