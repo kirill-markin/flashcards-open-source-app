@@ -9,20 +9,22 @@
 /* Begin PBXBuildFile section */
 		B10000000000000000000011 /* FlashcardsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* FlashcardsApp.swift */; };
 		B10000000000000000000012 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* RootTabView.swift */; };
-		B10000000000000000000013 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* AppModel.swift */; };
 		B10000000000000000000014 /* CardsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* CardsScreen.swift */; };
 		B10000000000000000000015 /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* ReviewView.swift */; };
 		B10000000000000000000016 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* SettingsView.swift */; };
 		B10000000000000000000017 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* Assets.xcassets */; };
 		B10000000000000000000018 /* DecksScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* DecksScreen.swift */; };
 		B10000000000000000000019 /* TagPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D /* TagPickerView.swift */; };
+		B1000000000000000000001A /* FlashcardsTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001E /* FlashcardsTypes.swift */; };
+		B1000000000000000000001B /* FlashcardsLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001F /* FlashcardsLogic.swift */; };
+		B1000000000000000000001C /* LocalDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000020 /* LocalDatabase.swift */; };
+		B1000000000000000000001D /* FlashcardsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000021 /* FlashcardsStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A10000000000000000000005 /* Flashcards.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Flashcards.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000011 /* FlashcardsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashcardsApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000012 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
-		A10000000000000000000013 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		A10000000000000000000014 /* CardsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardsScreen.swift; sourceTree = "<group>"; };
 		A10000000000000000000015 /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
 		A10000000000000000000016 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -33,6 +35,10 @@
 		A1000000000000000000001B /* Config/Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Local.xcconfig.example; sourceTree = SOURCE_ROOT; };
 		A1000000000000000000001C /* DecksScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecksScreen.swift; sourceTree = "<group>"; };
 		A1000000000000000000001D /* TagPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagPickerView.swift; sourceTree = "<group>"; };
+		A1000000000000000000001E /* FlashcardsTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashcardsTypes.swift; sourceTree = "<group>"; };
+		A1000000000000000000001F /* FlashcardsLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashcardsLogic.swift; sourceTree = "<group>"; };
+		A10000000000000000000020 /* LocalDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDatabase.swift; sourceTree = "<group>"; };
+		A10000000000000000000021 /* FlashcardsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashcardsStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,7 +74,10 @@
 			children = (
 				A10000000000000000000011 /* FlashcardsApp.swift */,
 				A10000000000000000000012 /* RootTabView.swift */,
-				A10000000000000000000013 /* AppModel.swift */,
+				A1000000000000000000001E /* FlashcardsTypes.swift */,
+				A1000000000000000000001F /* FlashcardsLogic.swift */,
+				A10000000000000000000020 /* LocalDatabase.swift */,
+				A10000000000000000000021 /* FlashcardsStore.swift */,
 				A10000000000000000000014 /* CardsScreen.swift */,
 				A1000000000000000000001C /* DecksScreen.swift */,
 				A1000000000000000000001D /* TagPickerView.swift */,
@@ -159,10 +168,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B10000000000000000000013 /* AppModel.swift in Sources */,
 				B10000000000000000000014 /* CardsScreen.swift in Sources */,
 				B10000000000000000000018 /* DecksScreen.swift in Sources */,
 				B10000000000000000000011 /* FlashcardsApp.swift in Sources */,
+				B1000000000000000000001B /* FlashcardsLogic.swift in Sources */,
+				B1000000000000000000001D /* FlashcardsStore.swift in Sources */,
+				B1000000000000000000001A /* FlashcardsTypes.swift in Sources */,
+				B1000000000000000000001C /* LocalDatabase.swift in Sources */,
 				B10000000000000000000015 /* ReviewView.swift in Sources */,
 				B10000000000000000000012 /* RootTabView.swift in Sources */,
 				B10000000000000000000016 /* SettingsView.swift in Sources */,
