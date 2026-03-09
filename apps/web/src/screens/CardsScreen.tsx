@@ -99,7 +99,7 @@ export function CardsScreen(): ReactElement {
         <div className="screen-head">
           <div>
             <h1 className="title">Cards</h1>
-            <p className="subtitle">Manage the whole deck in one table.</p>
+            <p className="subtitle">Cards are the prompts and answers you review to learn and remember.</p>
           </div>
           <div className="screen-actions">
             <span className="badge">{cards.length} total</span>
