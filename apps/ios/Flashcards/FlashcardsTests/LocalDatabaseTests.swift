@@ -20,7 +20,7 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
@@ -40,7 +40,7 @@ final class LocalDatabaseTests: XCTestCase {
             return false
         })
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front 2", backText: "Back 2"),
             cardId: cardId
@@ -59,7 +59,7 @@ final class LocalDatabaseTests: XCTestCase {
             return false
         })
 
-        try database.deleteCard(workspaceId: workspaceId, cardId: cardId)
+        _ = try database.deleteCard(workspaceId: workspaceId, cardId: cardId)
 
         snapshot = try database.loadStateSnapshot()
         XCTAssertEqual(snapshot.cards.count, 0)
@@ -79,7 +79,7 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "   "),
             cardId: nil
@@ -217,7 +217,7 @@ final class LocalDatabaseTests: XCTestCase {
     func testBulkUpdateCardsRollsBackOnMissingCard() throws {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
@@ -256,7 +256,7 @@ final class LocalDatabaseTests: XCTestCase {
     func testBulkUpdateCardsAllowsClearingBackText() throws {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
@@ -281,7 +281,7 @@ final class LocalDatabaseTests: XCTestCase {
     func testBulkDeleteCardsRollsBackOnMissingCard() throws {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
@@ -306,7 +306,7 @@ final class LocalDatabaseTests: XCTestCase {
     func testBulkUpdateCardsRejectsDuplicateCardIds() throws {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
@@ -335,7 +335,7 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
 
-        try database.createDeck(
+        _ = try database.createDeck(
             workspaceId: workspaceId,
             input: self.makeDeckInput(name: "Deck 1")
         )
@@ -354,7 +354,7 @@ final class LocalDatabaseTests: XCTestCase {
             return false
         })
 
-        try database.updateDeck(
+        _ = try database.updateDeck(
             workspaceId: workspaceId,
             deckId: deckId,
             input: self.makeDeckInput(name: "Deck 2")
@@ -373,7 +373,7 @@ final class LocalDatabaseTests: XCTestCase {
             return false
         })
 
-        try database.deleteDeck(workspaceId: workspaceId, deckId: deckId)
+        _ = try database.deleteDeck(workspaceId: workspaceId, deckId: deckId)
 
         snapshot = try database.loadStateSnapshot()
         XCTAssertEqual(snapshot.decks.count, 0)
@@ -392,14 +392,14 @@ final class LocalDatabaseTests: XCTestCase {
     func testSubmitReviewUpdatesCardAndEnqueuesReviewEventAndCardOperations() throws {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
         let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
 
-        try database.submitReview(
+        _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
@@ -473,12 +473,12 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Local card", backText: "Local back"),
             cardId: nil
         )
-        try database.createDeck(
+        _ = try database.createDeck(
             workspaceId: workspaceId,
             input: self.makeDeckInput(name: "Local deck")
         )
@@ -661,13 +661,13 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
         let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
-        try database.createDeck(
+        _ = try database.createDeck(
             workspaceId: workspaceId,
             input: self.makeDeckInput(name: "Deck")
         )
@@ -679,7 +679,7 @@ final class LocalDatabaseTests: XCTestCase {
             maximumIntervalDays: 700,
             enableFuzz: true
         )
-        try database.submitReview(
+        _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
@@ -732,7 +732,7 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
@@ -793,13 +793,13 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
         let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
-        try database.submitReview(
+        _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
@@ -843,7 +843,7 @@ final class LocalDatabaseTests: XCTestCase {
         let workspaceId = snapshot.workspace.workspaceId
         let originalDeviceId = snapshot.cloudSettings.deviceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
@@ -857,7 +857,7 @@ final class LocalDatabaseTests: XCTestCase {
             maximumIntervalDays: 1200,
             enableFuzz: false
         )
-        try database.submitReview(
+        _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
@@ -905,13 +905,13 @@ final class LocalDatabaseTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
         let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
-        try database.submitReview(
+        _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,

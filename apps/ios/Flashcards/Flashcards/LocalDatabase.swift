@@ -62,10 +62,10 @@ final class LocalDatabase {
         )
     }
 
-    func saveCard(workspaceId: String, input: CardEditorInput, cardId: String?) throws {
+    func saveCard(workspaceId: String, input: CardEditorInput, cardId: String?) throws -> Card {
         try self.cardStore.validateCardInput(input: input)
 
-        try self.core.inTransaction {
+        return try self.core.inTransaction {
             let now = currentIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
@@ -84,6 +84,7 @@ final class LocalDatabase {
                 clientUpdatedAt: now,
                 card: persistedCard
             )
+            return persistedCard
         }
     }
 
@@ -123,8 +124,8 @@ final class LocalDatabase {
         }
     }
 
-    func deleteCard(workspaceId: String, cardId: String) throws {
-        try self.core.inTransaction {
+    func deleteCard(workspaceId: String, cardId: String) throws -> Card {
+        return try self.core.inTransaction {
             let now = currentIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
@@ -142,6 +143,7 @@ final class LocalDatabase {
                 clientUpdatedAt: now,
                 card: deletedCard
             )
+            return deletedCard
         }
     }
 
@@ -242,10 +244,10 @@ final class LocalDatabase {
         }
     }
 
-    func updateDeck(workspaceId: String, deckId: String, input: DeckEditorInput) throws {
+    func updateDeck(workspaceId: String, deckId: String, input: DeckEditorInput) throws -> Deck {
         try self.deckStore.validateDeckInput(input: input)
 
-        try self.core.inTransaction {
+        return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
             let now = currentIsoTimestamp()
@@ -264,11 +266,12 @@ final class LocalDatabase {
                 clientUpdatedAt: now,
                 deck: updatedDeck
             )
+            return updatedDeck
         }
     }
 
-    func deleteDeck(workspaceId: String, deckId: String) throws {
-        try self.core.inTransaction {
+    func deleteDeck(workspaceId: String, deckId: String) throws -> Deck {
+        return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
             let now = currentIsoTimestamp()
@@ -286,12 +289,13 @@ final class LocalDatabase {
                 clientUpdatedAt: now,
                 deck: deletedDeck
             )
+            return deletedDeck
         }
     }
 
     // Keep in sync with apps/backend/src/cards.ts::submitReview.
-    func submitReview(workspaceId: String, reviewSubmission: ReviewSubmission) throws {
-        try self.core.inTransaction {
+    func submitReview(workspaceId: String, reviewSubmission: ReviewSubmission) throws -> Card {
+        return try self.core.inTransaction {
             let card = try self.cardStore.loadCard(workspaceId: workspaceId, cardId: reviewSubmission.cardId)
             let schedulerSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
             guard let reviewedAtClient = parseIsoTimestamp(value: reviewSubmission.reviewedAtClient) else {
@@ -346,6 +350,7 @@ final class LocalDatabase {
                 clientUpdatedAt: reviewSubmission.reviewedAtClient,
                 card: updatedCard
             )
+            return updatedCard
         }
     }
 

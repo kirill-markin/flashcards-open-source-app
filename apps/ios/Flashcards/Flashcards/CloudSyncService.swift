@@ -318,17 +318,12 @@ private func makeSyncChange(workspaceId: String, change: RemoteSyncChangeEnvelop
     }
 }
 
-@MainActor
-final class CloudSyncService {
+final class CloudSyncService: @unchecked Sendable {
     private let database: LocalDatabase
-    private let encoder: JSONEncoder
-    private let decoder: JSONDecoder
     private let session: URLSession
 
     init(database: LocalDatabase, session: URLSession = .shared) {
         self.database = database
-        self.encoder = JSONEncoder()
-        self.decoder = JSONDecoder()
         self.session = session
     }
 
@@ -565,7 +560,7 @@ final class CloudSyncService {
         request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
 
         if let body {
-            request.httpBody = try self.encoder.encode(body)
+            request.httpBody = try JSONEncoder().encode(body)
         }
 
         let (data, response) = try await self.session.data(for: request)
@@ -588,7 +583,7 @@ final class CloudSyncService {
 
         logCloudPhase(phase: self.phase(for: path), outcome: "success")
 
-        return try self.decoder.decode(Response.self, from: data)
+        return try JSONDecoder().decode(Response.self, from: data)
     }
 
     private func phase(for path: String) -> CloudFlowPhase {
