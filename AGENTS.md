@@ -21,6 +21,7 @@ We support both the web app and the iOS app. When making changes, we try to upda
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
 Running iOS tests is a heavy operation, so do not run them automatically and only run them after the user explicitly agrees.
 If iOS tests are explicitly requested, run them only on one specific simulator image confirmed with the user or already available locally, and do not trigger extra runtime downloads automatically.
+For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.
 
 ## Repository Strategy
 
