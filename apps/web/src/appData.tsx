@@ -91,6 +91,7 @@ type AppDataContextValue = Readonly<{
   createCardItem: (input: CreateCardInput) => Promise<Card>;
   createDeckItem: (input: CreateDeckInput) => Promise<Deck>;
   updateCardItem: (cardId: string, input: UpdateCardInput) => Promise<Card>;
+  deleteCardItem: (cardId: string) => Promise<Card>;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
 }>;
 
@@ -294,6 +295,22 @@ function buildUpdatedCard(
     lastModifiedByDeviceId: deviceId,
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
+  };
+}
+
+function buildDeletedCard(
+  card: Card,
+  clientUpdatedAt: string,
+  deviceId: string,
+  operationId: string,
+): Card {
+  return {
+    ...card,
+    clientUpdatedAt,
+    lastModifiedByDeviceId: deviceId,
+    lastOperationId: operationId,
+    updatedAt: clientUpdatedAt,
+    deletedAt: clientUpdatedAt,
   };
 }
 
@@ -957,6 +974,40 @@ export function AppDataProvider(props: Props): ReactElement {
     return nextCard;
   }, [activeWorkspaceId, publishSnapshot, runSync]);
 
+  const deleteCardItem = useCallback(async function deleteCardItem(cardId: string): Promise<Card> {
+    if (activeWorkspaceId === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
+    const existingCard = snapshotRef.current.cards.find((card) => card.cardId === cardId && card.deletedAt === null);
+    if (existingCard === undefined) {
+      throw new Error("Card not found");
+    }
+
+    const clientUpdatedAt = nowIso();
+    const operationId = crypto.randomUUID().toLowerCase();
+    const deviceId = getStableDeviceId();
+    const nextCard = buildDeletedCard(existingCard, clientUpdatedAt, deviceId, operationId);
+    const nextOutboxRecord: PersistedOutboxRecord = {
+      operationId,
+      workspaceId: activeWorkspaceId,
+      createdAt: clientUpdatedAt,
+      attemptCount: 0,
+      lastError: "",
+      operation: buildCardUpsertOperation(nextCard),
+    };
+
+    await putCard(nextCard);
+    await putOutboxRecord(nextOutboxRecord);
+    publishSnapshot({
+      ...snapshotRef.current,
+      cards: upsertCard(snapshotRef.current.cards, nextCard),
+      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
+    });
+    void runSync();
+    return nextCard;
+  }, [activeWorkspaceId, publishSnapshot, runSync]);
+
   const submitReviewItem = useCallback(async function submitReviewItem(cardId: string, rating: 0 | 1 | 2 | 3): Promise<Card> {
     if (activeWorkspaceId === null) {
       throw new Error("Workspace is unavailable");
@@ -1080,6 +1131,7 @@ export function AppDataProvider(props: Props): ReactElement {
     createCardItem,
     createDeckItem,
     updateCardItem,
+    deleteCardItem,
     submitReviewItem,
   };
 
