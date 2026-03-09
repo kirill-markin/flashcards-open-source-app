@@ -286,5 +286,5 @@ protocol AIChatStreaming: Sendable {
 
 protocol AIToolExecuting {
     @MainActor
-    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String, requestId: String?) async throws -> String
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> String
 }

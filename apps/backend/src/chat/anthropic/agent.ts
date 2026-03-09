@@ -10,7 +10,6 @@ import type {
 import {
   buildSystemInstructions,
   extractText,
-  getLatestUserText,
   summarizeContent,
 } from "../shared";
 import { ANTHROPIC_FLASHCARDS_TOOLS, CODE_EXECUTION_TOOL, executeTool } from "./tools";
@@ -201,7 +200,6 @@ export async function* streamAgentResponse(
   const client = new Anthropic();
   const fileIds = await uploadFiles(client, params.messages);
   const messages = buildMessages(params.messages, fileIds);
-  const latestUserText = getLatestUserText(params.messages);
   let containerId: string | undefined;
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -274,7 +272,6 @@ export async function* streamAgentResponse(
         block.input,
         params.workspaceId,
         params.deviceId,
-        latestUserText,
       );
       toolResults.push(result);
       const toolOutput = typeof result.content === "string" ? result.content : JSON.stringify(result.content);

@@ -185,12 +185,10 @@ final class AIChatStore: ObservableObject {
                 )
             }
 
-            let latestUserText = self.latestUserText()
             for toolCallRequest in requestedToolCalls {
                 do {
                     let output = try await self.toolExecutor.execute(
                         toolCallRequest: toolCallRequest,
-                        latestUserText: latestUserText,
                         requestId: outcome.requestId
                     )
                     self.completeToolCall(toolCallId: toolCallRequest.toolCallId, output: output)
@@ -274,12 +272,6 @@ final class AIChatStore: ObservableObject {
         }
 
         return wireMessages
-    }
-
-    private func latestUserText() -> String {
-        self.messages.reversed().first(where: { message in
-            message.role == .user
-        })?.text ?? ""
     }
 
     private func appendAssistantText(text: String) {
