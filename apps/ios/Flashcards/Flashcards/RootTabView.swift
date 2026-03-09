@@ -37,6 +37,14 @@ struct RootTabView: View {
             .tag(AppTab.cards)
 
             NavigationStack {
+                AIChatView(flashcardsStore: store)
+            }
+            .tabItem {
+                Label("AI", systemImage: "sparkles.rectangle.stack")
+            }
+            .tag(AppTab.ai)
+
+            NavigationStack {
                 SettingsView()
             }
             .tabItem {

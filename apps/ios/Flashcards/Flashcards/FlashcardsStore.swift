@@ -63,11 +63,43 @@ final class FlashcardsStore: ObservableObject {
     private var activeCloudSyncTask: Task<Void, Error>?
     private var pendingCloudResync: Bool
 
-    init() {
+    convenience init() {
         let userDefaults = UserDefaults.standard
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
+        let cloudAuthService = CloudAuthService()
+        let credentialStore = CloudCredentialStore()
+        let database: LocalDatabase?
+        let initialGlobalErrorMessage: String
 
+        do {
+            database = try LocalDatabase()
+            initialGlobalErrorMessage = ""
+        } catch {
+            database = nil
+            initialGlobalErrorMessage = localizedMessage(error: error)
+        }
+
+        self.init(
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder,
+            database: database,
+            cloudAuthService: cloudAuthService,
+            credentialStore: credentialStore,
+            initialGlobalErrorMessage: initialGlobalErrorMessage
+        )
+    }
+
+    init(
+        userDefaults: UserDefaults,
+        encoder: JSONEncoder,
+        decoder: JSONDecoder,
+        database: LocalDatabase?,
+        cloudAuthService: CloudAuthService,
+        credentialStore: CloudCredentialStore,
+        initialGlobalErrorMessage: String
+    ) {
         self.workspace = nil
         self.userSettings = nil
         self.schedulerSettings = nil
@@ -87,34 +119,25 @@ final class FlashcardsStore: ObservableObject {
             newCount: 0,
             reviewedCount: 0
         )
-        self.globalErrorMessage = ""
+        self.globalErrorMessage = initialGlobalErrorMessage
         self.syncStatus = .idle
         self.lastSuccessfulCloudSyncAt = nil
         self.selectedTab = .review
         self.cardsPresentationRequest = nil
+        self.database = database
+        self.cloudAuthService = cloudAuthService
+        self.cloudSyncService = database.map { initializedDatabase in
+            CloudSyncService(database: initializedDatabase)
+        }
+        self.credentialStore = credentialStore
         self.userDefaults = userDefaults
         self.encoder = encoder
         self.decoder = decoder
-        self.cloudAuthService = CloudAuthService()
-        self.credentialStore = CloudCredentialStore()
         self.activeCloudSession = nil
         self.activeCloudSyncTask = nil
         self.pendingCloudResync = false
 
-        let database: LocalDatabase?
-        do {
-            database = try LocalDatabase()
-        } catch {
-            database = nil
-            self.globalErrorMessage = localizedMessage(error: error)
-        }
-
-        self.database = database
-        self.cloudSyncService = database.map { database in
-            CloudSyncService(database: database)
-        }
-
-        if database != nil {
+        if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
                 try self.reload()
             } catch {
@@ -406,6 +429,45 @@ final class FlashcardsStore: ObservableObject {
         } catch {
             self.globalErrorMessage = localizedMessage(error: error)
         }
+    }
+
+    func authenticatedCloudSessionForAI() async throws -> CloudLinkedSession {
+        if self.activeCloudSession == nil {
+            try await self.restoreCloudLinkFromStoredCredentials()
+        }
+
+        return try await self.withAuthenticatedCloudSession { session in
+            session
+        }
+    }
+
+    func loadAIReviewHistory(limit: Int, cardId: String?) throws -> [ReviewEvent] {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        let events = try database.loadReviewEvents(workspaceId: workspaceId)
+        let filteredEvents = cardId == nil
+            ? events
+            : events.filter { event in
+                event.cardId == cardId
+            }
+
+        return Array(filteredEvents.prefix(limit))
+    }
+
+    func loadAIOutboxEntries(limit: Int) throws -> [PersistedOutboxEntry] {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        return try database.loadOutboxEntries(workspaceId: workspaceId, limit: limit)
     }
 
     func cardsMatchingDeck(deck: Deck) -> [Card] {
