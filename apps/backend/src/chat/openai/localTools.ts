@@ -1,4 +1,5 @@
 import type { FunctionTool } from "openai/resources/responses/responses";
+import { z } from "zod";
 
 type JsonSchema = Readonly<Record<string, unknown>>;
 
@@ -22,6 +23,10 @@ function strictObjectSchema(properties: Readonly<Record<string, JsonSchema>>): R
     required: Object.keys(properties),
     additionalProperties: false,
   };
+}
+
+function strictDescription(base: string, jsonContract: string): string {
+  return `${base} Return arguments as exactly one JSON object. ${jsonContract}`;
 }
 
 const EMPTY_OBJECT_SCHEMA = strictObjectSchema({});
@@ -79,18 +84,119 @@ const BULK_CARD_ARRAY_SCHEMA = {
   maxItems: 100,
 } as const;
 
+const nullableLimitValidator = z.number().int().min(1).max(100).nullable();
+const nullableStringValidator = z.string().nullable();
+const nullableStringArrayValidator = z.array(z.string()).nullable();
+const nullableEffortLevelValidator = z.enum(["fast", "medium", "long"]).nullable();
+const nullableCombineWithValidator = z.enum(["and", "or"]).nullable();
+const nullableTagsOperatorValidator = z.enum(["containsAny", "containsAll"]).nullable();
+
+const createCardValidator = z.object({
+  frontText: z.string(),
+  backText: z.string(),
+  tags: z.array(z.string()),
+  effortLevel: z.enum(["fast", "medium", "long"]),
+}).strict();
+
+const updateCardValidator = z.object({
+  cardId: z.string(),
+  frontText: nullableStringValidator,
+  backText: nullableStringValidator,
+  tags: nullableStringArrayValidator,
+  effortLevel: nullableEffortLevelValidator,
+}).strict();
+
+export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.ZodType<unknown>>> = {
+  get_workspace_context: z.object({}).strict(),
+  list_cards: z.object({
+    limit: nullableLimitValidator,
+  }).strict(),
+  get_card: z.object({
+    cardId: z.string(),
+  }).strict(),
+  search_cards: z.object({
+    query: z.string(),
+    limit: nullableLimitValidator,
+  }).strict(),
+  list_due_cards: z.object({
+    limit: nullableLimitValidator,
+  }).strict(),
+  list_decks: z.object({}).strict(),
+  get_deck: z.object({
+    deckId: z.string(),
+  }).strict(),
+  list_review_history: z.object({
+    limit: nullableLimitValidator,
+    cardId: nullableStringValidator,
+  }).strict(),
+  get_scheduler_settings: z.object({}).strict(),
+  get_cloud_settings: z.object({}).strict(),
+  list_outbox: z.object({
+    limit: nullableLimitValidator,
+  }).strict(),
+  create_card: createCardValidator,
+  create_cards: z.object({
+    cards: z.array(createCardValidator).min(1).max(100),
+  }).strict(),
+  update_card: updateCardValidator,
+  update_cards: z.object({
+    updates: z.array(updateCardValidator).min(1).max(100),
+  }).strict(),
+  delete_card: z.object({
+    cardId: z.string(),
+  }).strict(),
+  delete_cards: z.object({
+    cardIds: z.array(z.string()).min(1).max(100),
+  }).strict(),
+  create_deck: z.object({
+    name: z.string(),
+    effortLevels: z.array(z.enum(["fast", "medium", "long"])),
+    combineWith: z.enum(["and", "or"]),
+    tagsOperator: z.enum(["containsAny", "containsAll"]),
+    tags: z.array(z.string()),
+  }).strict(),
+  update_deck: z.object({
+    deckId: z.string(),
+    name: nullableStringValidator,
+    effortLevels: z.array(z.enum(["fast", "medium", "long"])).nullable(),
+    combineWith: nullableCombineWithValidator,
+    tagsOperator: nullableTagsOperatorValidator,
+    tags: nullableStringArrayValidator,
+  }).strict(),
+  delete_deck: z.object({
+    deckId: z.string(),
+  }).strict(),
+  submit_review: z.object({
+    cardId: z.string(),
+    rating: z.enum(["again", "hard", "good", "easy"]),
+  }).strict(),
+  update_scheduler_settings: z.object({
+    desiredRetention: z.number().gt(0).lt(1),
+    learningStepsMinutes: z.array(z.number().int().min(1)),
+    relearningStepsMinutes: z.array(z.number().int().min(1)),
+    maximumIntervalDays: z.number().int().min(1),
+    enableFuzz: z.boolean(),
+  }).strict(),
+} as const;
+
 export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "get_workspace_context",
-    description: "Get workspace, cloud, scheduler, and top-level study counts from the local device database.",
+    description: strictDescription(
+      "Get workspace, cloud, scheduler, and top-level study counts from the local device database.",
+      "Use {}."
+    ),
     strict: true,
     parameters: EMPTY_OBJECT_SCHEMA,
   },
   {
     type: "function",
     name: "list_cards",
-    description: "List cards from the local device database.",
+    description: strictDescription(
+      "List cards from the local device database.",
+      "Use {\"limit\": number|null}. Include \"limit\": null when no limit is needed."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       limit: nullableSchema(LIMIT_SCHEMA),
@@ -99,7 +205,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "get_card",
-    description: "Get one card from the local device database by cardId.",
+    description: strictDescription(
+      "Get one card from the local device database by cardId.",
+      "Use {\"cardId\": string}."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       cardId: { type: "string" },
@@ -108,7 +217,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "search_cards",
-    description: "Search local cards by front text, back text, or tags.",
+    description: strictDescription(
+      "Search local cards by front text, back text, or tags.",
+      "Use {\"query\": string, \"limit\": number|null}. Include both properties every time."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       query: { type: "string" },
@@ -118,7 +230,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "list_due_cards",
-    description: "List cards currently due for review from the local device database.",
+    description: strictDescription(
+      "List cards currently due for review from the local device database.",
+      "Use {\"limit\": number|null}. Include \"limit\": null when no limit is needed."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       limit: nullableSchema(LIMIT_SCHEMA),
@@ -127,14 +242,20 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "list_decks",
-    description: "List decks from the local device database.",
+    description: strictDescription(
+      "List decks from the local device database.",
+      "Use {}."
+    ),
     strict: true,
     parameters: EMPTY_OBJECT_SCHEMA,
   },
   {
     type: "function",
     name: "get_deck",
-    description: "Get one deck from the local device database by deckId.",
+    description: strictDescription(
+      "Get one deck from the local device database by deckId.",
+      "Use {\"deckId\": string}."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       deckId: { type: "string" },
@@ -143,7 +264,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "list_review_history",
-    description: "List recent local review events, optionally filtered by cardId.",
+    description: strictDescription(
+      "List recent local review events, optionally filtered by cardId.",
+      "Use {\"limit\": number|null, \"cardId\": string|null}. Include both properties every time."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       limit: nullableSchema(LIMIT_SCHEMA),
@@ -153,21 +277,30 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "get_scheduler_settings",
-    description: "Get current workspace scheduler settings from the local device database.",
+    description: strictDescription(
+      "Get current workspace scheduler settings from the local device database.",
+      "Use {}."
+    ),
     strict: true,
     parameters: EMPTY_OBJECT_SCHEMA,
   },
   {
     type: "function",
     name: "get_cloud_settings",
-    description: "Get current cloud-link and device settings from the local device database.",
+    description: strictDescription(
+      "Get current cloud-link and device settings from the local device database.",
+      "Use {}."
+    ),
     strict: true,
     parameters: EMPTY_OBJECT_SCHEMA,
   },
   {
     type: "function",
     name: "list_outbox",
-    description: "List pending local outbox operations that have not synced yet.",
+    description: strictDescription(
+      "List pending local outbox operations that have not synced yet.",
+      "Use {\"limit\": number|null}. Include \"limit\": null when no limit is needed."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       limit: nullableSchema(LIMIT_SCHEMA),
@@ -176,14 +309,20 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "create_card",
-    description: "Create one new card locally after explicit user confirmation. Use create_cards for multiple cards.",
+    description: strictDescription(
+      "Create one new card locally after explicit user confirmation. Use create_cards for multiple cards.",
+      "Use {\"frontText\": string, \"backText\": string, \"tags\": string[], \"effortLevel\": \"fast\"|\"medium\"|\"long\"}."
+    ),
     strict: true,
     parameters: CARD_INPUT_SCHEMA,
   },
   {
     type: "function",
     name: "create_cards",
-    description: "Create multiple new cards locally after explicit user confirmation. Use only when the user clearly requested multiple cards or you already identified multiple targets.",
+    description: strictDescription(
+      "Create multiple new cards locally after explicit user confirmation. Use only when the user clearly requested multiple cards or you already identified multiple targets.",
+      "Use {\"cards\": CardInput[]} where every card object includes frontText, backText, tags, and effortLevel."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       cards: {
@@ -195,14 +334,20 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "update_card",
-    description: "Update one card locally after explicit user confirmation. Use update_cards for multiple cards.",
+    description: strictDescription(
+      "Update one card locally after explicit user confirmation. Use update_cards for multiple cards.",
+      "Use {\"cardId\": string, \"frontText\": string|null, \"backText\": string|null, \"tags\": string[]|null, \"effortLevel\": \"fast\"|\"medium\"|\"long\"|null}. Include every property. Use null for unchanged fields."
+    ),
     strict: true,
     parameters: CARD_UPDATE_SCHEMA,
   },
   {
     type: "function",
     name: "update_cards",
-    description: "Update multiple cards locally after explicit user confirmation. Use only when the user clearly requested multiple card changes or you already identified multiple targets.",
+    description: strictDescription(
+      "Update multiple cards locally after explicit user confirmation. Use only when the user clearly requested multiple card changes or you already identified multiple targets.",
+      "Use {\"updates\": UpdateCardInput[]} where every update object includes cardId, frontText, backText, tags, and effortLevel. Use null for unchanged fields."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       updates: {
@@ -214,7 +359,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "delete_card",
-    description: "Delete one card locally after explicit user confirmation. Use delete_cards for multiple cards.",
+    description: strictDescription(
+      "Delete one card locally after explicit user confirmation. Use delete_cards for multiple cards.",
+      "Use {\"cardId\": string}."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       cardId: { type: "string" },
@@ -223,7 +371,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "delete_cards",
-    description: "Delete multiple cards locally after explicit user confirmation. Use only when the user clearly requested multiple deletions or you already identified multiple targets.",
+    description: strictDescription(
+      "Delete multiple cards locally after explicit user confirmation. Use only when the user clearly requested multiple deletions or you already identified multiple targets.",
+      "Use {\"cardIds\": string[]}."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       cardIds: {
@@ -235,7 +386,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "create_deck",
-    description: "Create a new deck locally after explicit user confirmation using effort-level and tag filters.",
+    description: strictDescription(
+      "Create a new deck locally after explicit user confirmation using effort-level and tag filters.",
+      "Use {\"name\": string, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[], \"combineWith\": \"and\"|\"or\", \"tagsOperator\": \"containsAny\"|\"containsAll\", \"tags\": string[]}."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       name: { type: "string" },
@@ -254,7 +408,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "update_deck",
-    description: "Update a deck locally after explicit user confirmation using effort-level and tag filters.",
+    description: strictDescription(
+      "Update a deck locally after explicit user confirmation using effort-level and tag filters.",
+      "Use {\"deckId\": string, \"name\": string|null, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[]|null, \"combineWith\": \"and\"|\"or\"|null, \"tagsOperator\": \"containsAny\"|\"containsAll\"|null, \"tags\": string[]|null}. Include every property. Use null for unchanged fields."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       deckId: { type: "string" },
@@ -274,7 +431,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "delete_deck",
-    description: "Delete a deck locally after explicit user confirmation.",
+    description: strictDescription(
+      "Delete a deck locally after explicit user confirmation.",
+      "Use {\"deckId\": string}."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       deckId: { type: "string" },
@@ -283,7 +443,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "submit_review",
-    description: "Submit a local review rating for a card after explicit user confirmation.",
+    description: strictDescription(
+      "Submit a local review rating for a card after explicit user confirmation.",
+      "Use {\"cardId\": string, \"rating\": \"again\"|\"hard\"|\"good\"|\"easy\"}."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       cardId: { type: "string" },
@@ -293,7 +456,10 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "update_scheduler_settings",
-    description: "Update workspace scheduler settings locally after explicit user confirmation.",
+    description: strictDescription(
+      "Update workspace scheduler settings locally after explicit user confirmation.",
+      "Use {\"desiredRetention\": number, \"learningStepsMinutes\": integer[], \"relearningStepsMinutes\": integer[], \"maximumIntervalDays\": integer, \"enableFuzz\": boolean}. Include every property."
+    ),
     strict: true,
     parameters: strictObjectSchema({
       desiredRetention: {

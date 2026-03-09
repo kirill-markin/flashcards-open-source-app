@@ -74,6 +74,17 @@ struct AIToolCallRequest: Hashable {
     let input: String
 }
 
+struct AIChatRepairAttemptStatus: Hashable {
+    let message: String
+    let attempt: Int
+    let maxAttempts: Int
+    let toolName: String?
+
+    var displayText: String {
+        "\(self.message) \(self.attempt)/\(self.maxAttempts)"
+    }
+}
+
 struct AITurnStreamOutcome: Hashable {
     let awaitsToolResults: Bool
     let requestedToolCalls: [AIToolCallRequest]
@@ -82,6 +93,7 @@ struct AITurnStreamOutcome: Hashable {
 enum AIChatBackendStreamEvent: Decodable, Hashable {
     case delta(String)
     case toolCallRequest(AIToolCallRequest)
+    case repairAttempt(AIChatRepairAttemptStatus)
     case awaitToolResults
     case done
     case error(String)
@@ -93,6 +105,9 @@ enum AIChatBackendStreamEvent: Decodable, Hashable {
         case name
         case input
         case message
+        case attempt
+        case maxAttempts
+        case toolName
     }
 
     init(from decoder: Decoder) throws {
@@ -108,6 +123,15 @@ enum AIChatBackendStreamEvent: Decodable, Hashable {
                     toolCallId: try container.decode(String.self, forKey: .toolCallId),
                     name: try container.decode(String.self, forKey: .name),
                     input: try container.decode(String.self, forKey: .input)
+                )
+            )
+        case "repair_attempt":
+            self = .repairAttempt(
+                AIChatRepairAttemptStatus(
+                    message: try container.decode(String.self, forKey: .message),
+                    attempt: try container.decode(Int.self, forKey: .attempt),
+                    maxAttempts: try container.decode(Int.self, forKey: .maxAttempts),
+                    toolName: try container.decodeIfPresent(String.self, forKey: .toolName)
                 )
             )
         case "await_tool_results":
@@ -137,7 +161,8 @@ protocol AIChatStreaming: Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome
 }
 
