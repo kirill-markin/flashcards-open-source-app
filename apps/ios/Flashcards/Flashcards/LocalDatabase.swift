@@ -423,6 +423,9 @@ final class LocalDatabase {
         let pendingOperationIds = Set(pendingOperations.map { entry in
             entry.operation.operationId
         })
+        let pendingReviewEventIds = Set(pendingOperations.compactMap { entry in
+            entry.operation.entityType == .reviewEvent ? entry.operation.entityId : nil
+        })
 
         for card in try self.cardStore.loadCardsIncludingDeleted(workspaceId: workspaceId) {
             if pendingOperationIds.contains(card.lastOperationId) == false {
@@ -460,15 +463,21 @@ final class LocalDatabase {
         }
 
         for reviewEvent in try self.cardStore.loadReviewEvents(workspaceId: workspaceId) {
-            if pendingOperationIds.contains(reviewEvent.reviewEventId) == false {
-                try self.outboxStore.enqueueReviewEventAppendOperation(
-                    workspaceId: workspaceId,
-                    deviceId: cloudSettings.deviceId,
-                    operationId: reviewEvent.reviewEventId,
-                    clientUpdatedAt: reviewEvent.reviewedAtClient,
-                    reviewEvent: reviewEvent
-                )
+            if reviewEvent.deviceId != cloudSettings.deviceId {
+                continue
             }
+
+            if pendingReviewEventIds.contains(reviewEvent.reviewEventId) {
+                continue
+            }
+
+            try self.outboxStore.enqueueReviewEventAppendOperation(
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationId: reviewEvent.reviewEventId,
+                clientUpdatedAt: reviewEvent.reviewedAtClient,
+                reviewEvent: reviewEvent
+            )
         }
     }
 

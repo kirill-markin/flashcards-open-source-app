@@ -892,6 +892,7 @@ export function createApp(basePath: string): Hono<AppEnv> {
         operationsCount: input.operations.length,
         entityTypes,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        message: getInternalErrorMessage(error),
         validationIssues: summarizeValidationIssues(error),
       }, true);
       throw error;
@@ -929,6 +930,7 @@ export function createApp(basePath: string): Hono<AppEnv> {
         deviceId: input.deviceId,
         afterChangeId: input.afterChangeId,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        message: getInternalErrorMessage(error),
         validationIssues: summarizeValidationIssues(error),
       }, true);
       throw error;
