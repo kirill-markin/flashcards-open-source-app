@@ -4,7 +4,7 @@ private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
-private let reviewAnswerButtonMinHeight: CGFloat = 48
+private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 
 struct ReviewView: View {
@@ -261,16 +261,18 @@ struct ReviewView: View {
         Button {
             self.submitReview(cardId: cardId, rating: option.rating)
         } label: {
-            VStack(alignment: .center, spacing: 6) {
-                Image(systemName: option.rating.symbolName)
-                    .font(.headline)
+            VStack(alignment: .center, spacing: 4) {
+                HStack(spacing: 8) {
+                    Image(systemName: option.rating.symbolName)
+                        .font(.headline)
 
-                Text(option.rating.title)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
+                    Text(option.rating.title)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                }
 
                 Text(option.intervalDescription)
-                    .font(.caption)
+                    .font(.caption2)
                     .opacity(0.8)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, alignment: .center)
