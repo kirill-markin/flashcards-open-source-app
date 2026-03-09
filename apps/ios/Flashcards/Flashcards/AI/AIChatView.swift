@@ -6,6 +6,7 @@ struct AIChatView: View {
     @State private var isCloudSignInPresented: Bool
     @FocusState private var isComposerFocused: Bool
 
+    @MainActor
     init(flashcardsStore: FlashcardsStore) {
         self.flashcardsStore = flashcardsStore
         self.isCloudSignInPresented = false
@@ -22,17 +23,23 @@ struct AIChatView: View {
             encoder: encoder,
             decoder: decoder
         )
-        let toolExecutor = LocalAIToolExecutor(
-            flashcardsStore: flashcardsStore,
-            encoder: encoder,
-            decoder: decoder
-        )
+        let workspaceRuntime: any AIToolExecuting & AIChatSnapshotLoading
+        if let databaseURL = flashcardsStore.localDatabaseURL {
+            workspaceRuntime = LocalAIToolExecutor(
+                databaseURL: databaseURL,
+                encoder: encoder,
+                decoder: decoder
+            )
+        } else {
+            workspaceRuntime = UnavailableAIToolExecutor()
+        }
         _chatStore = StateObject(
             wrappedValue: AIChatStore(
                 flashcardsStore: flashcardsStore,
                 historyStore: historyStore,
                 chatService: chatService,
-                toolExecutor: toolExecutor
+                toolExecutor: workspaceRuntime,
+                snapshotLoader: workspaceRuntime
             )
         )
     }
@@ -135,8 +142,12 @@ struct AIChatView: View {
                         return
                     }
 
-                    withAnimation {
+                    if chatStore.isStreaming {
                         proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                    } else {
+                        withAnimation {
+                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
                     }
                 }
             }

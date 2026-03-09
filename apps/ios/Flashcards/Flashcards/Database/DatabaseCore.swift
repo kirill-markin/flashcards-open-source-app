@@ -13,6 +13,7 @@ let localDatabaseSchemaVersion: Int = 4
 let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 final class DatabaseCore {
+    let databaseURL: URL
     let connection: OpaquePointer
     let encoder: JSONEncoder
     let decoder: JSONDecoder
@@ -22,11 +23,13 @@ final class DatabaseCore {
     }
 
     init(databaseURL: URL) throws {
+        self.databaseURL = databaseURL
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
         self.connection = try Self.openConnection(databaseURL: databaseURL)
         sqlite3_busy_timeout(self.connection, 5_000)
         try self.enableForeignKeys()
+        try self.enableWriteAheadLogging()
         try self.migrate()
         try self.ensureDefaultState()
     }
@@ -228,6 +231,13 @@ final class DatabaseCore {
         let resultCode = sqlite3_exec(connection, "PRAGMA foreign_keys = ON;", nil, nil, nil)
         guard resultCode == SQLITE_OK else {
             throw LocalStoreError.database("Failed to enable SQLite foreign keys: \(self.lastErrorMessage())")
+        }
+    }
+
+    private func enableWriteAheadLogging() throws {
+        let journalMode = try self.scalarText(sql: "PRAGMA journal_mode = WAL;", values: [])
+        if journalMode.lowercased() != "wal" {
+            throw LocalStoreError.database("Failed to enable SQLite WAL mode: received \(journalMode)")
         }
     }
 

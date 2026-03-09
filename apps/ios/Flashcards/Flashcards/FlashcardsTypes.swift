@@ -13,7 +13,7 @@ import Foundation
  - docs/fsrs-scheduling-logic.md
  */
 
-enum AppTab: Hashable, CaseIterable {
+enum AppTab: Hashable, CaseIterable, Sendable {
     case review
     case decks
     case cards
@@ -21,13 +21,13 @@ enum AppTab: Hashable, CaseIterable {
     case settings
 }
 
-enum CardsPresentationRequest: Hashable {
+enum CardsPresentationRequest: Hashable, Sendable {
     case createCard
 }
 
 let allCardsDeckLabel: String = "All cards"
 
-enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable {
+enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case fast
     case medium
     case long
@@ -41,7 +41,7 @@ enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable {
     }
 }
 
-enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable {
+enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case again = 0
     case hard = 1
     case good = 2
@@ -79,7 +79,7 @@ enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable {
 }
 
 // Keep in sync with apps/backend/src/schedule.ts::FsrsCardState and apps/web/src/types.ts::FsrsCardState.
-enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable {
+enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
     case new
     case learning
     case review
@@ -90,7 +90,7 @@ enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable {
     }
 }
 
-enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable {
+enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case disconnected
     case linkingReady = "linking-ready"
     case linked
@@ -111,19 +111,19 @@ enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable {
     }
 }
 
-struct DeckFilterDefinition: Codable, Hashable {
+struct DeckFilterDefinition: Codable, Hashable, Sendable {
     let version: Int
     let effortLevels: [EffortLevel]
     let tags: [String]
 }
 
-struct Workspace: Codable, Hashable {
+struct Workspace: Codable, Hashable, Sendable {
     let workspaceId: String
     let name: String
     let createdAt: String
 }
 
-struct UserSettings: Codable, Hashable {
+struct UserSettings: Codable, Hashable, Sendable {
     let userId: String
     let workspaceId: String
     let email: String?
@@ -132,7 +132,7 @@ struct UserSettings: Codable, Hashable {
 }
 
 // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings and apps/web/src/types.ts::WorkspaceSchedulerSettings.
-struct WorkspaceSchedulerSettings: Codable, Hashable {
+struct WorkspaceSchedulerSettings: Codable, Hashable, Sendable {
     let algorithm: String
     let desiredRetention: Double
     let learningStepsMinutes: [Int]
@@ -146,7 +146,7 @@ struct WorkspaceSchedulerSettings: Codable, Hashable {
 }
 
 // Keep in sync with apps/backend/src/cards.ts::Card and apps/web/src/types.ts::Card.
-struct Card: Codable, Identifiable, Hashable {
+struct Card: Codable, Identifiable, Hashable, Sendable {
     let cardId: String
     let workspaceId: String
     let frontText: String
@@ -173,7 +173,7 @@ struct Card: Codable, Identifiable, Hashable {
     }
 }
 
-struct Deck: Codable, Identifiable, Hashable {
+struct Deck: Codable, Identifiable, Hashable, Sendable {
     let deckId: String
     let workspaceId: String
     let name: String
@@ -190,7 +190,7 @@ struct Deck: Codable, Identifiable, Hashable {
     }
 }
 
-enum ReviewFilter: Hashable, Identifiable {
+enum ReviewFilter: Hashable, Identifiable, Sendable {
     case allCards
     case deck(deckId: String)
 
@@ -204,7 +204,7 @@ enum ReviewFilter: Hashable, Identifiable {
     }
 }
 
-struct ReviewEvent: Codable, Identifiable, Hashable {
+struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
     let reviewEventId: String
     let workspaceId: String
     let cardId: String
@@ -219,7 +219,7 @@ struct ReviewEvent: Codable, Identifiable, Hashable {
     }
 }
 
-struct CloudLinkedSession: Hashable {
+struct CloudLinkedSession: Hashable, Sendable {
     let userId: String
     let workspaceId: String
     let email: String?
@@ -227,7 +227,7 @@ struct CloudLinkedSession: Hashable {
     let bearerToken: String
 }
 
-struct CloudWorkspaceSummary: Codable, Identifiable, Hashable {
+struct CloudWorkspaceSummary: Codable, Identifiable, Hashable, Sendable {
     let workspaceId: String
     let name: String
     let createdAt: String
@@ -238,7 +238,7 @@ struct CloudWorkspaceSummary: Codable, Identifiable, Hashable {
     }
 }
 
-struct CloudWorkspaceLinkContext: Hashable, Identifiable {
+struct CloudWorkspaceLinkContext: Hashable, Identifiable, Sendable {
     let userId: String
     let email: String?
     let apiBaseUrl: String
@@ -255,7 +255,7 @@ struct CloudVerifiedAuthContext: Hashable {
     let credentials: StoredCloudCredentials
 }
 
-enum CloudWorkspaceLinkSelection: Hashable {
+enum CloudWorkspaceLinkSelection: Hashable, Sendable {
     case existing(workspaceId: String)
     case createNew
 }
@@ -497,7 +497,7 @@ struct PersistedOutboxEntry: Hashable {
     let operation: SyncOperation
 }
 
-struct CloudSettings: Codable, Hashable {
+struct CloudSettings: Codable, Hashable, Sendable {
     let deviceId: String
     let cloudState: CloudAccountState
     let linkedUserId: String?
@@ -507,7 +507,7 @@ struct CloudSettings: Codable, Hashable {
     let updatedAt: String
 }
 
-struct HomeSnapshot: Codable, Hashable {
+struct HomeSnapshot: Codable, Hashable, Sendable {
     let deckCount: Int
     let totalCards: Int
     let dueCount: Int
@@ -515,7 +515,7 @@ struct HomeSnapshot: Codable, Hashable {
     let reviewedCount: Int
 }
 
-struct DeckListItem: Identifiable, Hashable {
+struct DeckListItem: Identifiable, Hashable, Sendable {
     let deck: Deck
     let totalCards: Int
     let dueCards: Int
@@ -527,14 +527,14 @@ struct DeckListItem: Identifiable, Hashable {
     }
 }
 
-struct DeckCardStats: Hashable {
+struct DeckCardStats: Hashable, Sendable {
     let totalCards: Int
     let dueCards: Int
     let newCards: Int
     let reviewedCards: Int
 }
 
-struct AppStateSnapshot: Hashable {
+struct AppStateSnapshot: Hashable, Sendable {
     let workspace: Workspace
     let userSettings: UserSettings
     let schedulerSettings: WorkspaceSchedulerSettings
@@ -543,19 +543,19 @@ struct AppStateSnapshot: Hashable {
     let decks: [Deck]
 }
 
-struct CardEditorInput: Hashable {
+struct CardEditorInput: Hashable, Sendable {
     let frontText: String
     let backText: String
     let tags: [String]
     let effortLevel: EffortLevel
 }
 
-struct CardUpdateInput: Hashable {
+struct CardUpdateInput: Hashable, Sendable {
     let cardId: String
     let input: CardEditorInput
 }
 
-struct BulkDeleteCardsResult: Hashable {
+struct BulkDeleteCardsResult: Hashable, Sendable {
     let deletedCardIds: [String]
     let deletedCount: Int
 }

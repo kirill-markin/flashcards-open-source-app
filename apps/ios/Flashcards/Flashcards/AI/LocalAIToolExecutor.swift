@@ -173,127 +173,320 @@ private enum AIReviewRating: String, Decodable {
     }
 }
 
-@MainActor
-struct LocalAIToolExecutor: AIToolExecuting {
-    private let flashcardsStore: FlashcardsStore
+actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+    private let databaseURL: URL
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private var database: LocalDatabase?
 
-    init(flashcardsStore: FlashcardsStore, encoder: JSONEncoder, decoder: JSONDecoder) {
-        self.flashcardsStore = flashcardsStore
+    init(databaseURL: URL, encoder: JSONEncoder, decoder: JSONDecoder) {
+        self.databaseURL = databaseURL
         self.encoder = encoder
         self.decoder = decoder
+        self.database = nil
     }
 
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> String {
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
         switch toolCallRequest.name {
         case "get_workspace_context":
-            return try self.encodeJSON(value: try self.makeWorkspaceContextPayload())
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: self.makeWorkspaceContextPayload(snapshot: snapshot)),
+                didMutateAppState: false
+            )
         case "list_cards":
             let input = try self.decodeInput(ListCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.encodeJSON(value: Array(self.currentActiveCards().prefix(self.normalizeLimit(input.limit))))
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: Array(self.currentActiveCards(snapshot: snapshot).prefix(self.normalizeLimit(input.limit)))),
+                didMutateAppState: false
+            )
         case "get_card":
             let input = try self.decodeInput(GetCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.encodeJSON(value: try self.findCard(cardId: input.cardId))
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: try self.findCard(snapshot: snapshot, cardId: input.cardId)),
+                didMutateAppState: false
+            )
         case "search_cards":
             let input = try self.decodeInput(SearchCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.encodeJSON(value: try self.searchCards(query: input.query, limit: self.normalizeLimit(input.limit)))
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: try self.searchCards(snapshot: snapshot, query: input.query, limit: self.normalizeLimit(input.limit))),
+                didMutateAppState: false
+            )
         case "list_due_cards":
             let input = try self.decodeInput(ListDueCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.encodeJSON(value: Array(self.dueCards().prefix(self.normalizeLimit(input.limit))))
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: Array(self.dueCards(snapshot: snapshot).prefix(self.normalizeLimit(input.limit)))),
+                didMutateAppState: false
+            )
         case "list_decks":
-            return try self.encodeJSON(value: self.activeDecks())
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: self.activeDecks(snapshot: snapshot)),
+                didMutateAppState: false
+            )
         case "get_deck":
             let input = try self.decodeInput(GetDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.encodeJSON(value: try self.findDeck(deckId: input.deckId))
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: try self.findDeck(snapshot: snapshot, deckId: input.deckId)),
+                didMutateAppState: false
+            )
         case "list_review_history":
             let input = try self.decodeInput(ListReviewHistoryToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.encodeJSON(value: try self.flashcardsStore.loadAIReviewHistory(limit: self.normalizeLimit(input.limit), cardId: input.cardId))
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(
+                    value: try self.loadReviewHistory(
+                        workspaceId: snapshot.workspace.workspaceId,
+                        limit: self.normalizeLimit(input.limit),
+                        cardId: input.cardId
+                    )
+                ),
+                didMutateAppState: false
+            )
         case "get_scheduler_settings":
-            guard let schedulerSettings = self.flashcardsStore.schedulerSettings else {
-                throw AIToolExecutionError.missingWorkspace
-            }
-            return try self.encodeJSON(value: schedulerSettings)
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: snapshot.schedulerSettings),
+                didMutateAppState: false
+            )
         case "get_cloud_settings":
-            guard let cloudSettings = self.flashcardsStore.cloudSettings else {
-                throw AIToolExecutionError.missingWorkspace
-            }
-            return try self.encodeJSON(value: cloudSettings)
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: snapshot.cloudSettings),
+                didMutateAppState: false
+            )
         case "list_outbox":
             let input = try self.decodeInput(ListOutboxToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.encodeJSON(value: try self.makeOutboxPayload(limit: self.normalizeLimit(input.limit)))
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(
+                    value: try self.makeOutboxPayload(
+                        workspaceId: snapshot.workspace.workspaceId,
+                        limit: self.normalizeLimit(input.limit)
+                    )
+                ),
+                didMutateAppState: false
+            )
         case "create_card":
             let input = try self.decodeInput(CreateCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.createCard(input: input)
+            let snapshot = try self.loadSnapshotNow()
+            let createdCards = try self.databaseInstance().createCards(
+                workspaceId: snapshot.workspace.workspaceId,
+                inputs: [
+                    CardEditorInput(
+                        frontText: input.frontText,
+                        backText: input.backText,
+                        tags: input.tags,
+                        effortLevel: input.effortLevel
+                    )
+                ]
+            )
+            guard let createdCard = createdCards.first else {
+                throw LocalStoreError.database("Created card could not be loaded")
+            }
+            return AIToolExecutionResult(output: try self.encodeJSON(value: createdCard), didMutateAppState: true)
         case "create_cards":
             let input = try self.decodeInput(CreateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.createCards(input: input)
+            try self.validateCardBatchCount(count: input.cards.count)
+            let snapshot = try self.loadSnapshotNow()
+            let createdCards = try self.databaseInstance().createCards(
+                workspaceId: snapshot.workspace.workspaceId,
+                inputs: input.cards.map { item in
+                    CardEditorInput(
+                        frontText: item.frontText,
+                        backText: item.backText,
+                        tags: item.tags,
+                        effortLevel: item.effortLevel
+                    )
+                }
+            )
+            return AIToolExecutionResult(output: try self.encodeJSON(value: createdCards), didMutateAppState: true)
         case "update_card":
             let input = try self.decodeInput(UpdateCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.updateCard(input: input)
+            let snapshot = try self.loadSnapshotNow()
+            let existingCard = try self.findCard(snapshot: snapshot, cardId: input.cardId)
+            let updatedCards = try self.databaseInstance().updateCards(
+                workspaceId: snapshot.workspace.workspaceId,
+                updates: [
+                    CardUpdateInput(
+                        cardId: input.cardId,
+                        input: CardEditorInput(
+                            frontText: input.frontText ?? existingCard.frontText,
+                            backText: input.backText ?? existingCard.backText,
+                            tags: input.tags ?? existingCard.tags,
+                            effortLevel: input.effortLevel ?? existingCard.effortLevel
+                        )
+                    )
+                ]
+            )
+            guard let updatedCard = updatedCards.first else {
+                throw LocalStoreError.database("Updated card could not be loaded")
+            }
+            return AIToolExecutionResult(output: try self.encodeJSON(value: updatedCard), didMutateAppState: true)
         case "update_cards":
             let input = try self.decodeInput(UpdateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.updateCards(input: input)
+            try self.validateCardBatchCount(count: input.updates.count)
+            try self.validateUniqueCardIds(cardIds: input.updates.map(\.cardId))
+            let snapshot = try self.loadSnapshotNow()
+            let updates = try input.updates.map { update in
+                let existingCard = try self.findCard(snapshot: snapshot, cardId: update.cardId)
+                return CardUpdateInput(
+                    cardId: update.cardId,
+                    input: CardEditorInput(
+                        frontText: update.frontText ?? existingCard.frontText,
+                        backText: update.backText ?? existingCard.backText,
+                        tags: update.tags ?? existingCard.tags,
+                        effortLevel: update.effortLevel ?? existingCard.effortLevel
+                    )
+                )
+            }
+            let updatedCards = try self.databaseInstance().updateCards(
+                workspaceId: snapshot.workspace.workspaceId,
+                updates: updates
+            )
+            return AIToolExecutionResult(output: try self.encodeJSON(value: updatedCards), didMutateAppState: true)
         case "delete_card":
             let input = try self.decodeInput(DeleteCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.flashcardsStore.deleteCard(cardId: input.cardId)
-            return try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted card \(input.cardId)"))
+            let snapshot = try self.loadSnapshotNow()
+            try self.databaseInstance().deleteCard(workspaceId: snapshot.workspace.workspaceId, cardId: input.cardId)
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted card \(input.cardId)")),
+                didMutateAppState: true
+            )
         case "delete_cards":
             let input = try self.decodeInput(DeleteCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.deleteCards(input: input)
+            try self.validateCardBatchCount(count: input.cardIds.count)
+            try self.validateUniqueCardIds(cardIds: input.cardIds)
+            let snapshot = try self.loadSnapshotNow()
+            let result = try self.databaseInstance().deleteCards(
+                workspaceId: snapshot.workspace.workspaceId,
+                cardIds: input.cardIds
+            )
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(
+                    value: AIBulkDeleteCardsPayload(
+                        ok: true,
+                        deletedCardIds: result.deletedCardIds,
+                        deletedCount: result.deletedCount
+                    )
+                ),
+                didMutateAppState: true
+            )
         case "create_deck":
             let input = try self.decodeInput(CreateDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.createDeck(input: input)
+            let snapshot = try self.loadSnapshotNow()
+            let createdDeck = try self.databaseInstance().createDeck(
+                workspaceId: snapshot.workspace.workspaceId,
+                input: DeckEditorInput(
+                    name: input.name,
+                    filterDefinition: buildDeckFilterDefinition(
+                        effortLevels: input.effortLevels,
+                        tags: input.tags
+                    )
+                )
+            )
+            return AIToolExecutionResult(output: try self.encodeJSON(value: createdDeck), didMutateAppState: true)
         case "update_deck":
             let input = try self.decodeInput(UpdateDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            return try self.updateDeck(input: input)
+            let snapshot = try self.loadSnapshotNow()
+            let existingDeck = try self.findDeck(snapshot: snapshot, deckId: input.deckId)
+            let deckFilterState = self.extractDeckFilterState(deck: existingDeck)
+            try self.databaseInstance().updateDeck(
+                workspaceId: snapshot.workspace.workspaceId,
+                deckId: input.deckId,
+                input: DeckEditorInput(
+                    name: input.name ?? existingDeck.name,
+                    filterDefinition: buildDeckFilterDefinition(
+                        effortLevels: input.effortLevels ?? deckFilterState.effortLevels,
+                        tags: input.tags ?? deckFilterState.tags
+                    )
+                )
+            )
+            let refreshedSnapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: try self.findDeck(snapshot: refreshedSnapshot, deckId: input.deckId)),
+                didMutateAppState: true
+            )
         case "delete_deck":
             let input = try self.decodeInput(DeleteDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.flashcardsStore.deleteDeck(deckId: input.deckId)
-            return try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted deck \(input.deckId)"))
+            let snapshot = try self.loadSnapshotNow()
+            try self.databaseInstance().deleteDeck(workspaceId: snapshot.workspace.workspaceId, deckId: input.deckId)
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted deck \(input.deckId)")),
+                didMutateAppState: true
+            )
         case "submit_review":
             let input = try self.decodeInput(SubmitReviewToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.flashcardsStore.submitReview(cardId: input.cardId, rating: input.rating.reviewRating)
-            return try self.encodeJSON(value: try self.findCard(cardId: input.cardId))
+            let snapshot = try self.loadSnapshotNow()
+            try self.databaseInstance().submitReview(
+                workspaceId: snapshot.workspace.workspaceId,
+                reviewSubmission: ReviewSubmission(
+                    cardId: input.cardId,
+                    rating: input.rating.reviewRating,
+                    reviewedAtClient: currentIsoTimestamp()
+                )
+            )
+            let refreshedSnapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: try self.findCard(snapshot: refreshedSnapshot, cardId: input.cardId)),
+                didMutateAppState: true
+            )
         case "update_scheduler_settings":
             let input = try self.decodeInput(UpdateSchedulerSettingsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.flashcardsStore.updateSchedulerSettings(
+            let snapshot = try self.loadSnapshotNow()
+            try self.databaseInstance().updateWorkspaceSchedulerSettings(
+                workspaceId: snapshot.workspace.workspaceId,
                 desiredRetention: input.desiredRetention,
                 learningStepsMinutes: input.learningStepsMinutes,
                 relearningStepsMinutes: input.relearningStepsMinutes,
                 maximumIntervalDays: input.maximumIntervalDays,
                 enableFuzz: input.enableFuzz
             )
-            guard let schedulerSettings = self.flashcardsStore.schedulerSettings else {
-                throw AIToolExecutionError.missingWorkspace
-            }
-            return try self.encodeJSON(value: schedulerSettings)
+            let refreshedSnapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: refreshedSnapshot.schedulerSettings),
+                didMutateAppState: true
+            )
         default:
             throw AIToolExecutionError.unsupportedTool(toolCallRequest.name)
         }
     }
 
-    private func makeWorkspaceContextPayload() throws -> AIWorkspaceContextPayload {
-        guard
-            let workspace = self.flashcardsStore.workspace,
-            let userSettings = self.flashcardsStore.userSettings,
-            let schedulerSettings = self.flashcardsStore.schedulerSettings,
-            let cloudSettings = self.flashcardsStore.cloudSettings
-        else {
-            throw AIToolExecutionError.missingWorkspace
+    func loadSnapshot() async throws -> AppStateSnapshot {
+        try self.loadSnapshotNow()
+    }
+
+    private func databaseInstance() throws -> LocalDatabase {
+        if let database = self.database {
+            return database
         }
 
-        return AIWorkspaceContextPayload(
-            workspace: workspace,
-            userSettings: userSettings,
-            schedulerSettings: schedulerSettings,
-            cloudSettings: cloudSettings,
-            homeSnapshot: self.flashcardsStore.homeSnapshot
+        let database = try LocalDatabase(databaseURL: self.databaseURL)
+        self.database = database
+        return database
+    }
+
+    private func loadSnapshotNow() throws -> AppStateSnapshot {
+        try self.databaseInstance().loadStateSnapshot()
+    }
+
+    private func makeWorkspaceContextPayload(snapshot: AppStateSnapshot) -> AIWorkspaceContextPayload {
+        AIWorkspaceContextPayload(
+            workspace: snapshot.workspace,
+            userSettings: snapshot.userSettings,
+            schedulerSettings: snapshot.schedulerSettings,
+            cloudSettings: snapshot.cloudSettings,
+            homeSnapshot: makeHomeSnapshot(cards: snapshot.cards, deckCount: snapshot.decks.count, now: Date())
         )
     }
 
-    private func makeOutboxPayload(limit: Int) throws -> [AIOutboxEntryPayload] {
-        try self.flashcardsStore.loadAIOutboxEntries(limit: limit).map { entry in
+    private func makeOutboxPayload(workspaceId: String, limit: Int) throws -> [AIOutboxEntryPayload] {
+        try self.databaseInstance().loadOutboxEntries(workspaceId: workspaceId, limit: limit).map { entry in
             AIOutboxEntryPayload(
                 operationId: entry.operationId,
                 workspaceId: entry.workspaceId,
@@ -309,152 +502,33 @@ struct LocalAIToolExecutor: AIToolExecuting {
         }
     }
 
-    private func createCard(input: CreateCardToolInput) throws -> String {
-        let beforeIds = Set(self.flashcardsStore.cards.map { card in
-            card.cardId
-        })
-        try self.flashcardsStore.saveCard(
-            input: CardEditorInput(
-                frontText: input.frontText,
-                backText: input.backText,
-                tags: input.tags,
-                effortLevel: input.effortLevel
-            ),
-            editingCardId: nil
-        )
+    private func loadReviewHistory(workspaceId: String, limit: Int, cardId: String?) throws -> [ReviewEvent] {
+        let events = try self.databaseInstance().loadReviewEvents(workspaceId: workspaceId)
+        let filteredEvents = cardId == nil
+            ? events
+            : events.filter { event in
+                event.cardId == cardId
+            }
 
-        guard let createdCard = self.flashcardsStore.cards.first(where: { card in
-            beforeIds.contains(card.cardId) == false
-        }) else {
-            throw LocalStoreError.database("Created card could not be loaded")
-        }
-
-        return try self.encodeJSON(value: createdCard)
+        return Array(filteredEvents.prefix(limit))
     }
 
-    private func createCards(input: CreateCardsToolInput) throws -> String {
-        try self.validateCardBatchCount(count: input.cards.count)
-        let createdCards = try self.flashcardsStore.createCards(inputs: input.cards.map { item in
-            CardEditorInput(
-                frontText: item.frontText,
-                backText: item.backText,
-                tags: item.tags,
-                effortLevel: item.effortLevel
-            )
-        })
-
-        return try self.encodeJSON(value: createdCards)
+    private func currentActiveCards(snapshot: AppStateSnapshot) -> [Card] {
+        activeCards(cards: snapshot.cards)
     }
 
-    private func updateCard(input: UpdateCardToolInput) throws -> String {
-        let existingCard = try self.findCard(cardId: input.cardId)
-        try self.flashcardsStore.saveCard(
-            input: CardEditorInput(
-                frontText: input.frontText ?? existingCard.frontText,
-                backText: input.backText ?? existingCard.backText,
-                tags: input.tags ?? existingCard.tags,
-                effortLevel: input.effortLevel ?? existingCard.effortLevel
-            ),
-            editingCardId: input.cardId
-        )
-
-        return try self.encodeJSON(value: try self.findCard(cardId: input.cardId))
-    }
-
-    private func updateCards(input: UpdateCardsToolInput) throws -> String {
-        try self.validateCardBatchCount(count: input.updates.count)
-        try self.validateUniqueCardIds(cardIds: input.updates.map { update in
-            update.cardId
-        })
-
-        let updates = try input.updates.map { update in
-            let existingCard = try self.findCard(cardId: update.cardId)
-            return CardUpdateInput(
-                cardId: update.cardId,
-                input: CardEditorInput(
-                    frontText: update.frontText ?? existingCard.frontText,
-                    backText: update.backText ?? existingCard.backText,
-                    tags: update.tags ?? existingCard.tags,
-                    effortLevel: update.effortLevel ?? existingCard.effortLevel
-                )
-            )
-        }
-        let updatedCards = try self.flashcardsStore.updateCards(updates: updates)
-
-        return try self.encodeJSON(value: updatedCards)
-    }
-
-    private func createDeck(input: CreateDeckToolInput) throws -> String {
-        let beforeIds = Set(self.flashcardsStore.decks.map { deck in
-            deck.deckId
-        })
-        try self.flashcardsStore.createDeck(
-            input: DeckEditorInput(
-                name: input.name,
-                filterDefinition: buildDeckFilterDefinition(
-                    effortLevels: input.effortLevels,
-                    tags: input.tags
-                )
-            )
-        )
-
-        guard let createdDeck = self.flashcardsStore.decks.first(where: { deck in
-            beforeIds.contains(deck.deckId) == false
-        }) else {
-            throw LocalStoreError.database("Created deck could not be loaded")
-        }
-
-        return try self.encodeJSON(value: createdDeck)
-    }
-
-    private func updateDeck(input: UpdateDeckToolInput) throws -> String {
-        let existingDeck = try self.findDeck(deckId: input.deckId)
-        let currentDeckFilterState = self.extractDeckFilterState(deck: existingDeck)
-
-        try self.flashcardsStore.updateDeck(
-            deckId: input.deckId,
-            input: DeckEditorInput(
-                name: input.name ?? existingDeck.name,
-                filterDefinition: buildDeckFilterDefinition(
-                    effortLevels: input.effortLevels ?? currentDeckFilterState.effortLevels,
-                    tags: input.tags ?? currentDeckFilterState.tags
-                )
-            )
-        )
-
-        return try self.encodeJSON(value: try self.findDeck(deckId: input.deckId))
-    }
-
-    private func deleteCards(input: DeleteCardsToolInput) throws -> String {
-        try self.validateCardBatchCount(count: input.cardIds.count)
-        try self.validateUniqueCardIds(cardIds: input.cardIds)
-        let result = try self.flashcardsStore.deleteCards(cardIds: input.cardIds)
-
-        return try self.encodeJSON(
-            value: AIBulkDeleteCardsPayload(
-                ok: true,
-                deletedCardIds: result.deletedCardIds,
-                deletedCount: result.deletedCount
-            )
-        )
-    }
-
-    private func currentActiveCards() -> [Card] {
-        Flashcards.activeCards(cards: self.flashcardsStore.cards)
-    }
-
-    private func activeDecks() -> [Deck] {
-        self.flashcardsStore.decks.filter { deck in
+    private func activeDecks(snapshot: AppStateSnapshot) -> [Deck] {
+        snapshot.decks.filter { deck in
             deck.deletedAt == nil
         }
     }
 
-    private func dueCards() -> [Card] {
-        sortCardsForReviewQueue(cards: self.currentActiveCards(), now: Date())
+    private func dueCards(snapshot: AppStateSnapshot) -> [Card] {
+        sortCardsForReviewQueue(cards: self.currentActiveCards(snapshot: snapshot), now: Date())
     }
 
-    private func findCard(cardId: String) throws -> Card {
-        guard let card = self.flashcardsStore.cards.first(where: { item in
+    private func findCard(snapshot: AppStateSnapshot, cardId: String) throws -> Card {
+        guard let card = snapshot.cards.first(where: { item in
             item.cardId == cardId && item.deletedAt == nil
         }) else {
             throw LocalStoreError.notFound("Card not found")
@@ -463,8 +537,8 @@ struct LocalAIToolExecutor: AIToolExecuting {
         return card
     }
 
-    private func findDeck(deckId: String) throws -> Deck {
-        guard let deck = self.flashcardsStore.decks.first(where: { item in
+    private func findDeck(snapshot: AppStateSnapshot, deckId: String) throws -> Deck {
+        guard let deck = snapshot.decks.first(where: { item in
             item.deckId == deckId && item.deletedAt == nil
         }) else {
             throw LocalStoreError.notFound("Deck not found")
@@ -473,13 +547,13 @@ struct LocalAIToolExecutor: AIToolExecuting {
         return deck
     }
 
-    private func searchCards(query: String, limit: Int) throws -> [Card] {
+    private func searchCards(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Card] {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if normalizedQuery.isEmpty {
             throw LocalStoreError.validation("query must not be empty")
         }
 
-        return Array(self.currentActiveCards().filter { card in
+        return Array(self.currentActiveCards(snapshot: snapshot).filter { card in
             card.frontText.lowercased().contains(normalizedQuery)
                 || card.backText.lowercased().contains(normalizedQuery)
                 || card.tags.contains(where: { tag in
@@ -489,7 +563,7 @@ struct LocalAIToolExecutor: AIToolExecuting {
     }
 
     private func extractDeckFilterState(deck: Deck) -> (effortLevels: [EffortLevel], tags: [String]) {
-        return (
+        (
             effortLevels: deck.filterDefinition.effortLevels,
             tags: deck.filterDefinition.tags
         )
@@ -574,5 +648,15 @@ struct LocalAIToolExecutor: AIToolExecuting {
         }
 
         return json
+    }
+}
+
+actor UnavailableAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
+        throw LocalStoreError.uninitialized("Local database is unavailable")
+    }
+
+    func loadSnapshot() async throws -> AppStateSnapshot {
+        throw LocalStoreError.uninitialized("Local database is unavailable")
     }
 }
