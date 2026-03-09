@@ -5,6 +5,7 @@
  * basePath: "/" for local dev, "/v1" for Lambda execute-api stage paths.
  * Custom-domain auth traffic arrives without a stage prefix.
  */
+import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import health from "./routes/health.js";
 import sendCode from "./routes/sendCode.js";
@@ -14,6 +15,8 @@ import refreshSession from "./routes/refreshSession.js";
 import refreshToken from "./routes/refreshToken.js";
 import revokeToken from "./routes/revokeToken.js";
 import robots from "./routes/robots.js";
+import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
+import { log } from "./server/logger.js";
 
 function getMountPaths(basePath: string): ReadonlyArray<string> {
   if (basePath === "/v1") {
@@ -23,10 +26,13 @@ function getMountPaths(basePath: string): ReadonlyArray<string> {
   return [basePath];
 }
 
-function createMountedApp(basePath: string): Hono {
-  const app = new Hono().basePath(basePath);
+function createMountedApp(basePath: string): Hono<AuthAppEnv> {
+  const app = new Hono<AuthAppEnv>().basePath(basePath);
 
   app.use("*", async (c, next) => {
+    const requestId = randomUUID();
+    c.set("requestId", requestId);
+    c.header("X-Request-Id", requestId);
     await next();
     c.header("X-Robots-Tag", "noindex, nofollow, noarchive");
   });
@@ -43,6 +49,25 @@ function createMountedApp(basePath: string): Hono {
     await next();
   });
 
+  app.onError((error, c) => {
+    const requestId = getRequestId(c);
+    log({
+      domain: "auth",
+      action: "request_error",
+      requestId,
+      route: c.req.path,
+      statusCode: 500,
+      code: "INTERNAL_ERROR",
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    if (c.req.path.startsWith("/api/")) {
+      return jsonAuthError(c, 500, "INTERNAL_ERROR", "Authentication failed. Try again.");
+    }
+
+    return c.text(`Request failed. Reference: ${requestId}`, 500);
+  });
+
   app.route("/", health);
   app.route("/", robots);
   app.route("/", sendCode);
@@ -55,13 +80,13 @@ function createMountedApp(basePath: string): Hono {
   return app;
 }
 
-export function createApp(basePath: string): Hono {
+export function createApp(basePath: string): Hono<AuthAppEnv> {
   const mountPaths = getMountPaths(basePath);
   if (mountPaths.length === 1) {
     return createMountedApp(mountPaths[0]);
   }
 
-  const app = new Hono();
+  const app = new Hono<AuthAppEnv>();
   for (const mountPath of mountPaths) {
     app.route("/", createMountedApp(mountPath));
   }

@@ -29,6 +29,12 @@ import type {
 import { CHAT_MODELS } from "./chat/models";
 import type { ChatMessage, ChatStreamEvent } from "./chat/types";
 
+type AppEnv = {
+  Variables: {
+    requestId: string;
+  };
+};
+
 type RequestContext = Readonly<{
   userId: string;
   workspaceId: string;
@@ -355,6 +361,50 @@ function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function logRequestError(
+  requestId: string,
+  path: string,
+  method: string,
+  error: AuthError | HttpError | unknown,
+): void {
+  const baseRecord = {
+    domain: "backend",
+    action: "request_error",
+    requestId,
+    path,
+    method,
+  };
+
+  if (error instanceof AuthError) {
+    console.error(JSON.stringify({
+      ...baseRecord,
+      errorClass: "AuthError",
+      statusCode: error.statusCode,
+      code: "AUTH_UNAUTHORIZED",
+    }));
+    return;
+  }
+
+  if (error instanceof HttpError) {
+    console.error(JSON.stringify({
+      ...baseRecord,
+      errorClass: "HttpError",
+      statusCode: error.statusCode,
+      code: error.code,
+      details: error.details,
+    }));
+    return;
+  }
+
+  console.error(JSON.stringify({
+    ...baseRecord,
+    errorClass: error instanceof Error ? error.name : "UnknownError",
+    statusCode: 500,
+    code: "INTERNAL_ERROR",
+    message: getInternalErrorMessage(error),
+  }));
+}
+
 /**
  * Writes client-side stream diagnostics with the authenticated workspace
  * context so browser failures can be correlated with backend request logs.
@@ -505,8 +555,8 @@ export async function streamLocalChatResponse(
   });
 }
 
-export function createApp(basePath: string): Hono {
-  const app = new Hono();
+export function createApp(basePath: string): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
   const allowedOrigins = getAllowedOrigins();
   const routeMountPaths = getRouteMountPaths(basePath);
   const registerRoute = (
@@ -537,6 +587,12 @@ export function createApp(basePath: string): Hono {
 
   app.use(
     "*",
+    async (context, next) => {
+      const requestId = randomUUID();
+      context.set("requestId", requestId);
+      context.header("X-Request-Id", requestId);
+      await next();
+    },
     cors({
       origin: allowedOrigins,
       allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
@@ -546,6 +602,7 @@ export function createApp(basePath: string): Hono {
         "content-encoding",
         "content-length",
         "content-type",
+        "x-request-id",
         "x-amz-apigw-id",
         "x-amzn-requestid",
         "x-chat-request-id",
@@ -555,26 +612,33 @@ export function createApp(basePath: string): Hono {
   );
 
   app.onError((error, context) => {
+    const requestId = context.get("requestId");
+    logRequestError(requestId, context.req.path, context.req.method, error);
+
     if (error instanceof AuthError) {
       context.status(error.statusCode as ContentfulStatusCode);
-      return context.json({ error: error.message });
+      return context.json({
+        error: "Authentication failed. Sign in again.",
+        requestId,
+        code: "AUTH_UNAUTHORIZED",
+      });
     }
 
     if (error instanceof HttpError) {
       context.status(error.statusCode as ContentfulStatusCode);
-      return context.json({ error: error.message });
+      return context.json({
+        error: error.message,
+        requestId,
+        code: error.code,
+      });
     }
 
-    console.error(JSON.stringify({
-      domain: "backend",
-      action: "request_error",
-      message: getInternalErrorMessage(error),
-      path: context.req.path,
-      method: context.req.method,
-    }));
-
     context.status(500);
-    return context.json({ error: getInternalErrorMessage(error) });
+    return context.json({
+      error: "Request failed. Try again.",
+      requestId,
+      code: "INTERNAL_ERROR",
+    });
   });
 
   registerRoute("get", "/health", async (context) => {

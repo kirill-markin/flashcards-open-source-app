@@ -20,6 +20,7 @@ import {
   applyWorkspaceSchedulerSettingsSnapshotInExecutor,
   type WorkspaceSchedulerSettings,
 } from "./workspaceSchedulerSettings";
+import type { HttpErrorDetails, ValidationIssueSummary } from "./errors";
 
 type TimestampValue = Date | string;
 
@@ -249,6 +250,22 @@ function toValidationMessage(error: z.ZodError): string {
   return error.issues.map((issue) => issue.message).join("; ");
 }
 
+function summarizeValidationIssue(issue: z.core.$ZodIssue): ValidationIssueSummary {
+  const path = issue.path.length > 0 ? issue.path.join(".") : "<root>";
+
+  return {
+    path,
+    code: issue.code,
+    message: issue.message,
+  };
+}
+
+function summarizeValidationDetails(error: z.ZodError): HttpErrorDetails {
+  return {
+    validationIssues: error.issues.map(summarizeValidationIssue),
+  };
+}
+
 function parseChangeRow(row: ChangeFeedRow): SyncChange {
   const changeId = toNumber(row.change_id);
   if (changeId === null) {
@@ -444,7 +461,12 @@ export function parseSyncPushInput(value: unknown): SyncPushInput {
     return parsedInput.data;
   }
 
-  throw new HttpError(400, toValidationMessage(parsedInput.error));
+  throw new HttpError(
+    400,
+    "Cloud sync failed. Try again.",
+    "SYNC_INVALID_INPUT",
+    summarizeValidationDetails(parsedInput.error),
+  );
 }
 
 export function parseSyncPullInput(value: unknown): SyncPullInput {
@@ -453,7 +475,12 @@ export function parseSyncPullInput(value: unknown): SyncPullInput {
     return parsedInput.data;
   }
 
-  throw new HttpError(400, toValidationMessage(parsedInput.error));
+  throw new HttpError(
+    400,
+    "Cloud sync failed. Try again.",
+    "SYNC_INVALID_INPUT",
+    summarizeValidationDetails(parsedInput.error),
+  );
 }
 
 export async function processSyncPush(

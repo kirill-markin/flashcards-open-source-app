@@ -14,10 +14,11 @@ import { randomBytes, randomInt } from "node:crypto";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { initiateEmailOtp } from "../server/cognitoAuth.js";
+import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
 import { sign } from "../server/crypto.js";
 import { log, maskEmail } from "../server/logger.js";
 
-const app = new Hono();
+const app = new Hono<AuthAppEnv>();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -34,25 +35,34 @@ app.post("/api/send-code", async (c) => {
   try {
     body = await c.req.json<{ email?: string }>();
   } catch {
-    return c.json({ error: "Invalid request body" }, 400);
+    return jsonAuthError(c, 400, "INVALID_REQUEST", "Invalid request.");
   }
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 
   if (!EMAIL_RE.test(email) || email.length > 256) {
-    return c.json({ error: "Invalid email" }, 400);
+    return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
   }
 
+  const requestId = getRequestId(c);
   let session: string;
   try {
     const [result] = await Promise.all([initiateEmailOtp(email), jitterDelay()]);
     session = result.session;
   } catch (err) {
-    log({ domain: "auth", action: "send_code_error", error: err instanceof Error ? err.message : String(err) });
-    return c.json({ error: "Failed to send code — please try again" }, 500);
+    log({
+      domain: "auth",
+      action: "send_code_error",
+      requestId,
+      route: c.req.path,
+      statusCode: 500,
+      code: "OTP_SEND_FAILED",
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return jsonAuthError(c, 500, "OTP_SEND_FAILED", "Could not send a code. Try again.");
   }
 
-  log({ domain: "auth", action: "send_code", maskedEmail: maskEmail(email) });
+  log({ domain: "auth", action: "send_code", requestId, route: c.req.path, maskedEmail: maskEmail(email) });
 
   const csrfToken = randomBytes(32).toString("hex");
 

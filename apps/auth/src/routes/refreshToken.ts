@@ -4,25 +4,27 @@
  * and returns new id/access tokens.
  */
 import { Hono } from "hono";
+import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
 import { refreshTokens } from "../server/cognitoAuth.js";
 import { log } from "../server/logger.js";
 
-const app = new Hono();
+const app = new Hono<AuthAppEnv>();
 
 app.post("/api/refresh-token", async (c) => {
   let body: { refreshToken?: string };
   try {
     body = await c.req.json<{ refreshToken?: string }>();
   } catch {
-    return c.json({ error: "Invalid request body" }, 400);
+    return jsonAuthError(c, 400, "INVALID_REQUEST", "Invalid request.");
   }
 
   const refreshToken = typeof body.refreshToken === "string" ? body.refreshToken : "";
 
   if (refreshToken === "") {
-    return c.json({ error: "refreshToken is required" }, 400);
+    return jsonAuthError(c, 400, "REFRESH_TOKEN_MISSING", "Sign in again.");
   }
 
+  const requestId = getRequestId(c);
   try {
     const tokens = await refreshTokens(refreshToken);
     return c.json({
@@ -32,8 +34,16 @@ app.post("/api/refresh-token", async (c) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log({ domain: "auth", action: "refresh_token_error", error: message });
-    return c.json({ error: "Token refresh failed — please sign in again" }, 401);
+    log({
+      domain: "auth",
+      action: "refresh_token_error",
+      requestId,
+      route: c.req.path,
+      statusCode: 401,
+      code: "REFRESH_TOKEN_FAILED",
+      error: message,
+    });
+    return jsonAuthError(c, 401, "REFRESH_TOKEN_FAILED", "Sign in again.");
   }
 });
 
