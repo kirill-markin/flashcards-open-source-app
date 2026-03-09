@@ -593,7 +593,6 @@ export function AppDataProvider(props: Props): ReactElement {
       await ensureWorkspaceCache(currentSession.workspaceId);
       await hydrateCache();
       setSessionLoadState("ready");
-      void runSync();
     } catch (error) {
       if (error instanceof ApiError && error.statusCode === 401) {
         setSessionLoadState("redirecting");
@@ -608,11 +607,19 @@ export function AppDataProvider(props: Props): ReactElement {
       setDecksState((currentState) => createErrorResourceState(currentState, nextErrorMessage));
       setReviewQueueState((currentState) => createErrorResourceState(currentState, nextErrorMessage));
     }
-  }, [hydrateCache, runSync]);
+  }, [hydrateCache]);
 
   useEffect(() => {
     void initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    if (sessionLoadState !== "ready" || session === null) {
+      return;
+    }
+
+    void runSync();
+  }, [runSync, session, sessionLoadState]);
 
   useEffect(() => {
     if (sessionLoadState !== "ready") {
