@@ -13,10 +13,11 @@ import Foundation
  - docs/fsrs-scheduling-logic.md
  */
 
-enum AppTab: Hashable {
+enum AppTab: Hashable, CaseIterable {
     case review
     case decks
     case cards
+    case ai
     case settings
 }
 
@@ -463,7 +464,7 @@ struct CloudSettings: Codable, Hashable {
     let updatedAt: String
 }
 
-struct HomeSnapshot: Hashable {
+struct HomeSnapshot: Codable, Hashable {
     let deckCount: Int
     let totalCards: Int
     let dueCount: Int
