@@ -3,7 +3,7 @@ import Foundation
 private let aiChatHistoryStorageKey: String = "ai-chat-history"
 private let aiChatMaxMessages: Int = 200
 
-final class AIChatHistoryStore: AIChatHistoryStoring {
+final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     private let userDefaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
@@ -32,7 +32,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring {
         }
     }
 
-    func saveState(state: AIChatPersistedState) {
+    func saveState(state: AIChatPersistedState) async {
         let trimmedState = AIChatPersistedState(
             messages: Array(state.messages.suffix(aiChatMaxMessages)),
             selectedModelId: state.selectedModelId
@@ -46,7 +46,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring {
         }
     }
 
-    func clearState() {
+    func clearState() async {
         self.userDefaults.removeObject(forKey: aiChatHistoryStorageKey)
     }
 }

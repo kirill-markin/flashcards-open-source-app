@@ -12,19 +12,28 @@ final class AIChatStore: ObservableObject {
     private let flashcardsStore: FlashcardsStore
     private let historyStore: any AIChatHistoryStoring
     private let chatService: any AIChatStreaming
-    private let toolExecutor: any AIToolExecuting
+    private let runtime: AIChatSessionRuntime
     private var activeSendTask: Task<Void, Never>?
+    private var activeConversationId: String?
 
     init(
         flashcardsStore: FlashcardsStore,
         historyStore: any AIChatHistoryStoring,
         chatService: any AIChatStreaming,
-        toolExecutor: any AIToolExecuting
+        toolExecutor: any AIToolExecuting,
+        snapshotLoader: any AIChatSnapshotLoading
     ) {
         self.flashcardsStore = flashcardsStore
         self.historyStore = historyStore
         self.chatService = chatService
-        self.toolExecutor = toolExecutor
+        self.runtime = AIChatSessionRuntime(
+            historyStore: historyStore,
+            chatService: chatService,
+            toolExecutor: toolExecutor,
+            snapshotLoader: snapshotLoader,
+            streamFlushInterval: 0.1,
+            historyCheckpointInterval: 2.0
+        )
 
         let persistedState = historyStore.loadState()
         self.inputText = ""
@@ -33,6 +42,7 @@ final class AIChatStore: ObservableObject {
         self.isStreaming = false
         self.errorMessage = ""
         self.repairStatus = nil
+        self.activeConversationId = nil
     }
 
     var isModelLocked: Bool {
@@ -51,7 +61,10 @@ final class AIChatStore: ObservableObject {
         }
 
         self.selectedModelId = modelId
-        self.persistState()
+        let state = self.currentPersistedState()
+        Task {
+            await self.historyStore.saveState(state: state)
+        }
     }
 
     func clearHistory() {
@@ -59,7 +72,10 @@ final class AIChatStore: ObservableObject {
         self.messages = []
         self.errorMessage = ""
         self.repairStatus = nil
-        self.historyStore.clearState()
+        self.activeConversationId = nil
+        Task {
+            await self.historyStore.clearState()
+        }
     }
 
     func cancelStreaming() {
@@ -108,170 +124,85 @@ final class AIChatStore: ObservableObject {
         )
         self.inputText = ""
         self.isStreaming = true
-        self.persistState()
 
-        let task = Task { @MainActor in
+        let conversationId = UUID().uuidString.lowercased()
+        self.activeConversationId = conversationId
+
+        let initialState = self.currentPersistedState()
+        let task = Task {
             var diagnosticsSession: CloudLinkedSession?
             do {
                 let session = try await self.flashcardsStore.authenticatedCloudSessionForAI()
                 diagnosticsSession = session
-                try await self.runConversation(session: session)
-                if Task.isCancelled == false {
-                    self.repairStatus = nil
-                    self.isStreaming = false
-                    self.activeSendTask = nil
-                    self.persistState()
-                }
-            } catch is CancellationError {
-                self.repairStatus = nil
-                self.isStreaming = false
-                self.activeSendTask = nil
-            } catch {
-                let diagnosticsBody = self.makeFailureReportBody(error: error)
-                self.repairStatus = nil
-                self.markAssistantError(message: localizedMessage(error: error))
-                if let diagnosticsBody, let diagnosticsSession {
+                let result = await self.runtime.run(
+                    session: session,
+                    initialState: initialState,
+                    eventHandler: { [weak self] event in
+                        await self?.handleRuntimeEvent(event, conversationId: conversationId)
+                    }
+                )
+                if let diagnosticsBody = result.failureReportBody, let diagnosticsSession {
                     Task {
                         await self.chatService.reportFailureDiagnostics(session: diagnosticsSession, body: diagnosticsBody)
                     }
                 }
+            } catch is CancellationError {
+            } catch {
+                self.markAssistantError(message: localizedMessage(error: error))
+                self.repairStatus = nil
                 self.isStreaming = false
-                self.activeSendTask = nil
-                self.persistState()
+                let state = self.currentPersistedState()
+                Task {
+                    await self.historyStore.saveState(state: state)
+                }
             }
+
+            if self.activeConversationId == conversationId {
+                self.isStreaming = false
+                self.activeConversationId = nil
+            }
+            self.activeSendTask = nil
         }
 
         self.activeSendTask = task
-    }
-
-    private func runConversation(session: CloudLinkedSession) async throws {
-        while true {
-            let request = self.makeRequestBody()
-            let outcome = try await self.chatService.streamTurn(
-                session: session,
-                request: request,
-                onDelta: { [weak self] text in
-                    await self?.appendAssistantText(text: text)
-                },
-                onToolCallRequest: { [weak self] toolCallRequest in
-                    await self?.appendToolCallRequest(toolCallRequest: toolCallRequest)
-                },
-                onRepairAttempt: { [weak self] status in
-                    await self?.setRepairStatus(status: status)
-                }
-            )
-            if outcome.awaitsToolResults == false {
-                self.repairStatus = nil
-                return
-            }
-
-            let requestedToolCalls = outcome.requestedToolCalls
-            if requestedToolCalls.isEmpty {
-                throw AIChatServiceError.invalidStreamContract(
-                    "The assistant requested tool results without any tool calls.",
-                    AIChatFailureDiagnostics(
-                        clientRequestId: UUID().uuidString.lowercased(),
-                        backendRequestId: outcome.requestId,
-                        stage: .backendErrorEvent,
-                        errorKind: .invalidStreamContract,
-                        statusCode: nil,
-                        eventType: "await_tool_results",
-                        toolName: nil,
-                        toolCallId: nil,
-                        lineNumber: nil,
-                        rawSnippet: nil,
-                        decoderSummary: "await_tool_results without tool_call_request"
-                    )
-                )
-            }
-
-            for toolCallRequest in requestedToolCalls {
-                do {
-                    let output = try await self.toolExecutor.execute(
-                        toolCallRequest: toolCallRequest,
-                        requestId: outcome.requestId
-                    )
-                    self.completeToolCall(toolCallId: toolCallRequest.toolCallId, output: output)
-                    self.persistState()
-                } catch {
-                    let errorText = localizedMessage(error: error)
-                    self.completeToolCall(toolCallId: toolCallRequest.toolCallId, output: errorText)
-                    self.persistState()
-                    throw error
-                }
-            }
-        }
     }
 
     private func trimmedInputText() -> String {
         self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func persistState() {
-        self.historyStore.saveState(
-            state: AIChatPersistedState(messages: self.messages, selectedModelId: self.selectedModelId)
-        )
+    private func currentPersistedState() -> AIChatPersistedState {
+        AIChatPersistedState(messages: self.messages, selectedModelId: self.selectedModelId)
     }
 
-    private func makeRequestBody() -> AILocalChatRequestBody {
-        AILocalChatRequestBody(
-            messages: self.messages.flatMap { message in
-                self.makeWireMessages(message: message)
-            },
-            model: self.selectedModelId,
-            timezone: TimeZone.current.identifier
-        )
-    }
-
-    private func makeWireMessages(message: AIChatMessage) -> [AILocalChatWireMessage] {
-        if message.role == .user {
-            return [
-                AILocalChatWireMessage(
-                    role: "user",
-                    content: message.text,
-                    toolCalls: nil,
-                    toolCallId: nil,
-                    name: nil,
-                    output: nil
-                )
-            ]
+    private func handleRuntimeEvent(_ event: AIChatRuntimeEvent, conversationId: String) async {
+        if let activeConversationId = self.activeConversationId, activeConversationId != conversationId {
+            return
         }
 
-        var wireMessages: [AILocalChatWireMessage] = [
-            AILocalChatWireMessage(
-                role: "assistant",
-                content: message.text,
-                toolCalls: message.toolCalls.map { toolCall in
-                    AILocalAssistantToolCall(
-                        toolCallId: toolCall.id,
-                        name: toolCall.name,
-                        input: toolCall.input
-                    )
-                },
-                toolCallId: nil,
-                name: nil,
-                output: nil
-            )
-        ]
-
-        for toolCall in message.toolCalls {
-            guard let output = toolCall.output else {
-                continue
+        switch event {
+        case .appendAssistantText(let text):
+            self.appendAssistantText(text: text)
+        case .appendToolCallRequest(let toolCallRequest):
+            self.appendToolCallRequest(toolCallRequest: toolCallRequest)
+        case .completeToolCall(let toolCallId, let output):
+            self.completeToolCall(toolCallId: toolCallId, output: output)
+        case .setRepairStatus(let status):
+            self.repairStatus = status
+        case .applySnapshot(let snapshot):
+            self.flashcardsStore.applyExternalSnapshot(snapshot: snapshot)
+        case .finish:
+            self.repairStatus = nil
+            if self.activeConversationId == conversationId {
+                self.isStreaming = false
             }
-
-            wireMessages.append(
-                AILocalChatWireMessage(
-                    role: "tool",
-                    content: nil,
-                    toolCalls: nil,
-                    toolCallId: toolCall.id,
-                    name: toolCall.name,
-                    output: output
-                )
-            )
+        case .fail(let message):
+            self.repairStatus = nil
+            self.markAssistantError(message: message)
+            if self.activeConversationId == conversationId {
+                self.isStreaming = false
+            }
         }
-
-        return wireMessages
     }
 
     private func appendAssistantText(text: String) {
@@ -291,7 +222,6 @@ final class AIChatStore: ObservableObject {
             timestamp: lastMessage.timestamp,
             isError: lastMessage.isError
         )
-        self.persistState()
     }
 
     private func appendToolCallRequest(toolCallRequest: AIToolCallRequest) {
@@ -320,7 +250,6 @@ final class AIChatStore: ObservableObject {
             timestamp: lastMessage.timestamp,
             isError: lastMessage.isError
         )
-        self.persistState()
     }
 
     private func completeToolCall(toolCallId: String, output: String) {
@@ -353,58 +282,6 @@ final class AIChatStore: ObservableObject {
             toolCalls: updatedToolCalls,
             timestamp: lastMessage.timestamp,
             isError: lastMessage.isError
-        )
-    }
-
-    private func setRepairStatus(status: AIChatRepairAttemptStatus) {
-        self.repairStatus = status
-    }
-
-    private func makeFailureReportBody(error: Error) -> AIChatFailureReportBody? {
-        let diagnostics: AIChatFailureDiagnostics
-
-        if let diagnosticError = error as? any AIChatFailureDiagnosticProviding {
-            diagnostics = diagnosticError.diagnostics
-        } else if let toolError = error as? AIToolExecutionError, case .invalidToolInput(
-            let requestId,
-            let toolName,
-            let toolCallId,
-            _,
-            let decoderSummary,
-            let rawInputSnippet
-        ) = toolError {
-            diagnostics = AIChatFailureDiagnostics(
-                clientRequestId: toolCallId,
-                backendRequestId: requestId,
-                stage: .toolInputDecode,
-                errorKind: .invalidToolInput,
-                statusCode: nil,
-                eventType: "tool_call_request",
-                toolName: toolName,
-                toolCallId: toolCallId,
-                lineNumber: nil,
-                rawSnippet: rawInputSnippet,
-                decoderSummary: decoderSummary
-            )
-        } else {
-            return nil
-        }
-        return AIChatFailureReportBody(
-            clientRequestId: diagnostics.clientRequestId,
-            backendRequestId: diagnostics.backendRequestId,
-            stage: diagnostics.stage.rawValue,
-            errorKind: diagnostics.errorKind.rawValue,
-            statusCode: diagnostics.statusCode,
-            eventType: diagnostics.eventType,
-            toolName: diagnostics.toolName,
-            toolCallId: diagnostics.toolCallId,
-            lineNumber: diagnostics.lineNumber,
-            rawSnippet: diagnostics.rawSnippet,
-            decoderSummary: diagnostics.decoderSummary,
-            selectedModel: self.selectedModelId,
-            messageCount: self.makeRequestBody().messages.count,
-            appVersion: aiChatAppVersion(),
-            devicePlatform: "ios"
         )
     }
 

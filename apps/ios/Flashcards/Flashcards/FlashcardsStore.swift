@@ -154,17 +154,16 @@ final class FlashcardsStore: ObservableObject {
         }
 
         let snapshot = try database.loadStateSnapshot()
-        let now = Date()
-        self.workspace = snapshot.workspace
-        self.userSettings = snapshot.userSettings
-        self.schedulerSettings = snapshot.schedulerSettings
-        self.cloudSettings = snapshot.cloudSettings
-        self.cards = snapshot.cards
-        self.decks = snapshot.decks
-        self.deckItems = makeDeckListItems(decks: snapshot.decks, cards: snapshot.cards, now: now)
-        self.refreshReviewState(now: now)
-        self.homeSnapshot = makeHomeSnapshot(cards: snapshot.cards, deckCount: snapshot.decks.count, now: now)
-        self.globalErrorMessage = ""
+        self.applyLoadedSnapshot(snapshot: snapshot, now: Date())
+    }
+
+    var localDatabaseURL: URL? {
+        self.database?.databaseURL
+    }
+
+    func applyExternalSnapshot(snapshot: AppStateSnapshot) {
+        self.applyLoadedSnapshot(snapshot: snapshot, now: Date())
+        self.triggerCloudSyncIfLinked()
     }
 
     var selectedReviewFilterTitle: String {
@@ -274,7 +273,7 @@ final class FlashcardsStore: ObservableObject {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
-        try database.createDeck(workspaceId: workspaceId, input: input)
+        _ = try database.createDeck(workspaceId: workspaceId, input: input)
         try self.reload()
         self.triggerCloudSyncIfLinked()
     }
@@ -600,6 +599,19 @@ final class FlashcardsStore: ObservableObject {
         }
 
         return try database.loadOutboxEntries(workspaceId: workspaceId, limit: limit)
+    }
+
+    private func applyLoadedSnapshot(snapshot: AppStateSnapshot, now: Date) {
+        self.workspace = snapshot.workspace
+        self.userSettings = snapshot.userSettings
+        self.schedulerSettings = snapshot.schedulerSettings
+        self.cloudSettings = snapshot.cloudSettings
+        self.cards = snapshot.cards
+        self.decks = snapshot.decks
+        self.deckItems = makeDeckListItems(decks: snapshot.decks, cards: snapshot.cards, now: now)
+        self.refreshReviewState(now: now)
+        self.homeSnapshot = makeHomeSnapshot(cards: snapshot.cards, deckCount: snapshot.decks.count, now: now)
+        self.globalErrorMessage = ""
     }
 
     func cardsMatchingDeck(deck: Deck) -> [Card] {

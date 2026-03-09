@@ -14,6 +14,7 @@ import Foundation
  Source-of-truth docs: docs/fsrs-scheduling-logic.md
  */
 final class LocalDatabase {
+    let databaseURL: URL
     private let core: DatabaseCore
     private let cardStore: CardStore
     private let deckStore: DeckStore
@@ -23,6 +24,7 @@ final class LocalDatabase {
 
     init() throws {
         let core = try DatabaseCore()
+        self.databaseURL = core.databaseURL
         self.core = core
         self.cardStore = CardStore(core: core)
         self.deckStore = DeckStore(core: core)
@@ -33,6 +35,7 @@ final class LocalDatabase {
 
     init(databaseURL: URL) throws {
         let core = try DatabaseCore(databaseURL: databaseURL)
+        self.databaseURL = core.databaseURL
         self.core = core
         self.cardStore = CardStore(core: core)
         self.deckStore = DeckStore(core: core)
@@ -214,10 +217,10 @@ final class LocalDatabase {
         }
     }
 
-    func createDeck(workspaceId: String, input: DeckEditorInput) throws {
+    func createDeck(workspaceId: String, input: DeckEditorInput) throws -> Deck {
         try self.deckStore.validateDeckInput(input: input)
 
-        try self.core.inTransaction {
+        return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
             let now = currentIsoTimestamp()
@@ -235,6 +238,7 @@ final class LocalDatabase {
                 clientUpdatedAt: now,
                 deck: newDeck
             )
+            return newDeck
         }
     }
 
@@ -425,6 +429,10 @@ final class LocalDatabase {
 
     func loadReviewEvents(workspaceId: String) throws -> [ReviewEvent] {
         try self.cardStore.loadReviewEvents(workspaceId: workspaceId)
+    }
+
+    func loadJournalMode() throws -> String {
+        try self.core.scalarText(sql: "PRAGMA journal_mode;", values: [])
     }
 
     func bootstrapOutbox(workspaceId: String) throws {

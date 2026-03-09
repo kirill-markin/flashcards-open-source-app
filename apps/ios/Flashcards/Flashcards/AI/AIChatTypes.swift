@@ -37,7 +37,7 @@ func aiChatDecoderSummary(error: Error) -> String {
     return localizedMessage(error: error)
 }
 
-struct AIChatModelDef: Hashable, Identifiable {
+struct AIChatModelDef: Hashable, Identifiable, Sendable {
     let id: String
     let label: String
 
@@ -50,17 +50,17 @@ struct AIChatModelDef: Hashable, Identifiable {
     ]
 }
 
-enum AIChatRole: String, Codable, Hashable {
+enum AIChatRole: String, Codable, Hashable, Sendable {
     case user
     case assistant
 }
 
-enum AIChatToolCallStatus: String, Codable, Hashable {
+enum AIChatToolCallStatus: String, Codable, Hashable, Sendable {
     case requested
     case completed
 }
 
-struct AIChatToolCall: Codable, Hashable, Identifiable {
+struct AIChatToolCall: Codable, Hashable, Identifiable, Sendable {
     let id: String
     let name: String
     let status: AIChatToolCallStatus
@@ -68,7 +68,7 @@ struct AIChatToolCall: Codable, Hashable, Identifiable {
     let output: String?
 }
 
-struct AIChatMessage: Codable, Hashable, Identifiable {
+struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
     let id: String
     let role: AIChatRole
     let text: String
@@ -77,18 +77,18 @@ struct AIChatMessage: Codable, Hashable, Identifiable {
     let isError: Bool
 }
 
-struct AIChatPersistedState: Codable, Hashable {
+struct AIChatPersistedState: Codable, Hashable, Sendable {
     let messages: [AIChatMessage]
     let selectedModelId: String
 }
 
-struct AILocalAssistantToolCall: Codable, Hashable {
+struct AILocalAssistantToolCall: Codable, Hashable, Sendable {
     let toolCallId: String
     let name: String
     let input: String
 }
 
-struct AILocalChatWireMessage: Codable, Hashable {
+struct AILocalChatWireMessage: Codable, Hashable, Sendable {
     let role: String
     let content: String?
     let toolCalls: [AILocalAssistantToolCall]?
@@ -97,7 +97,7 @@ struct AILocalChatWireMessage: Codable, Hashable {
     let output: String?
 }
 
-struct AILocalChatRequestBody: Codable, Hashable {
+struct AILocalChatRequestBody: Codable, Hashable, Sendable {
     let messages: [AILocalChatWireMessage]
     let model: String
     let timezone: String
@@ -109,7 +109,7 @@ struct AIToolCallRequest: Hashable {
     let input: String
 }
 
-enum AIChatFailureStage: String, Codable, Hashable {
+enum AIChatFailureStage: String, Codable, Hashable, Sendable {
     case requestBuild = "request_build"
     case invalidHttpResponse = "invalid_http_response"
     case httpResponseBody = "http_response_body"
@@ -122,7 +122,7 @@ enum AIChatFailureStage: String, Codable, Hashable {
     case toolInputDecode = "tool_input_decode"
 }
 
-enum AIChatFailureKind: String, Codable, Hashable {
+enum AIChatFailureKind: String, Codable, Hashable, Sendable {
     case invalidBaseUrl = "invalid_base_url"
     case invalidStreamResponse = "invalid_stream_response"
     case invalidHttpResponse = "invalid_http_response"
@@ -133,7 +133,7 @@ enum AIChatFailureKind: String, Codable, Hashable {
     case invalidToolInput = "invalid_tool_input"
 }
 
-struct AIChatFailureDiagnostics: Codable, Hashable {
+struct AIChatFailureDiagnostics: Codable, Hashable, Sendable {
     let clientRequestId: String
     let backendRequestId: String?
     let stage: AIChatFailureStage
@@ -147,7 +147,7 @@ struct AIChatFailureDiagnostics: Codable, Hashable {
     let decoderSummary: String?
 }
 
-struct AIChatFailureReportBody: Codable, Hashable {
+struct AIChatFailureReportBody: Codable, Hashable, Sendable {
     let clientRequestId: String
     let backendRequestId: String?
     let stage: String
@@ -169,7 +169,7 @@ protocol AIChatFailureDiagnosticProviding: Error {
     var diagnostics: AIChatFailureDiagnostics { get }
 }
 
-struct AIChatRepairAttemptStatus: Hashable {
+struct AIChatRepairAttemptStatus: Hashable, Sendable {
     let message: String
     let attempt: Int
     let maxAttempts: Int
@@ -180,20 +180,20 @@ struct AIChatRepairAttemptStatus: Hashable {
     }
 }
 
-struct AITurnStreamOutcome: Hashable {
+struct AITurnStreamOutcome: Hashable, Sendable {
     let awaitsToolResults: Bool
     let requestedToolCalls: [AIToolCallRequest]
     let requestId: String?
 }
 
-struct AIChatBackendError: Decodable, Hashable {
+struct AIChatBackendError: Decodable, Hashable, Sendable {
     let message: String
     let code: String
     let stage: String
     let requestId: String
 }
 
-enum AIChatBackendStreamEvent: Decodable, Hashable {
+enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
     case delta(String)
     case toolCallRequest(AIToolCallRequest)
     case repairAttempt(AIChatRepairAttemptStatus)
@@ -263,10 +263,29 @@ enum AIChatBackendStreamEvent: Decodable, Hashable {
     }
 }
 
-protocol AIChatHistoryStoring {
+enum AIChatRuntimeEvent: Sendable {
+    case appendAssistantText(String)
+    case appendToolCallRequest(AIToolCallRequest)
+    case completeToolCall(toolCallId: String, output: String)
+    case setRepairStatus(AIChatRepairAttemptStatus?)
+    case applySnapshot(AppStateSnapshot)
+    case finish
+    case fail(String)
+}
+
+struct AIToolExecutionResult: Sendable {
+    let output: String
+    let didMutateAppState: Bool
+}
+
+struct AIChatRuntimeResult: Sendable {
+    let failureReportBody: AIChatFailureReportBody?
+}
+
+protocol AIChatHistoryStoring: Sendable {
     func loadState() -> AIChatPersistedState
-    func saveState(state: AIChatPersistedState)
-    func clearState()
+    func saveState(state: AIChatPersistedState) async
+    func clearState() async
 }
 
 protocol AIChatStreaming: Sendable {
@@ -284,7 +303,10 @@ protocol AIChatStreaming: Sendable {
     ) async
 }
 
-protocol AIToolExecuting {
-    @MainActor
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> String
+protocol AIToolExecuting: Sendable {
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult
+}
+
+protocol AIChatSnapshotLoading: Sendable {
+    func loadSnapshot() async throws -> AppStateSnapshot
 }

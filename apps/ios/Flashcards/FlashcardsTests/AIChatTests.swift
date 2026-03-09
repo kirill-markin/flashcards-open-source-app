@@ -2,22 +2,25 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-private final class InMemoryHistoryStore: AIChatHistoryStoring {
+private final class InMemoryHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     var savedState: AIChatPersistedState
+    private(set) var saveCallCount: Int
 
     init(savedState: AIChatPersistedState) {
         self.savedState = savedState
+        self.saveCallCount = 0
     }
 
     func loadState() -> AIChatPersistedState {
         self.savedState
     }
 
-    func saveState(state: AIChatPersistedState) {
+    func saveState(state: AIChatPersistedState) async {
         self.savedState = state
+        self.saveCallCount += 1
     }
 
-    func clearState() {
+    func clearState() async {
         self.savedState = AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
     }
 }
@@ -41,7 +44,7 @@ private final class FailingChatService: AIChatStreaming, @unchecked Sendable {
     }
 }
 
-private struct ThrowingChatService: AIChatStreaming {
+private struct ThrowingChatService: AIChatStreaming, @unchecked Sendable {
     let error: Error
 
     func streamTurn(
@@ -61,7 +64,7 @@ private struct ThrowingChatService: AIChatStreaming {
     }
 }
 
-private struct RepairingChatService: AIChatStreaming {
+private struct RepairingChatService: AIChatStreaming, @unchecked Sendable {
     let terminalError: Error?
 
     func streamTurn(
@@ -102,10 +105,76 @@ private struct RepairingChatService: AIChatStreaming {
     }
 }
 
-private struct FailingToolExecutor: AIToolExecuting {
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> String {
+private struct FailingToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
         XCTFail("execute should not be called in this test")
-        return ""
+        return AIToolExecutionResult(output: "", didMutateAppState: false)
+    }
+
+    func loadSnapshot() async throws -> AppStateSnapshot {
+        XCTFail("loadSnapshot should not be called in this test")
+        throw LocalStoreError.uninitialized("Snapshot should not be requested")
+    }
+}
+
+private struct BurstChatService: AIChatStreaming {
+    let deltas: [String]
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        for delta in self.deltas {
+            await onDelta(delta)
+        }
+
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-burst")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+}
+
+private actor MutatingChatService: AIChatStreaming {
+    private var callCount: Int = 0
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        self.callCount += 1
+
+        if self.callCount == 1 {
+            let toolCallRequest = AIToolCallRequest(
+                toolCallId: "tool-create-card",
+                name: "create_card",
+                input: "{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}"
+            )
+            await onToolCallRequest(toolCallRequest)
+            return AITurnStreamOutcome(
+                awaitsToolResults: true,
+                requestedToolCalls: [toolCallRequest],
+                requestId: "request-create"
+            )
+        }
+
+        await onDelta("Saved")
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-done")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
     }
 }
 
@@ -155,7 +224,7 @@ final class AIChatTests: XCTestCase {
         XCTAssertEqual(AppTab.allCases, [.review, .decks, .cards, .ai, .settings])
     }
 
-    func testHistoryStorePersistsMessagesAndModel() throws {
+    func testHistoryStorePersistsMessagesAndModel() async throws {
         let suiteName = "ai-chat-tests-\(UUID().uuidString)"
         let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         userDefaults.removePersistentDomain(forName: suiteName)
@@ -174,7 +243,7 @@ final class AIChatTests: XCTestCase {
             isError: false
         )
 
-        store.saveState(
+        await store.saveState(
             state: AIChatPersistedState(
                 messages: [message],
                 selectedModelId: "gpt-5.2"
@@ -250,13 +319,14 @@ final class AIChatTests: XCTestCase {
     @MainActor
     func testLocalToolExecutorReadsWorkspaceContextAndCreatesConfirmedCard() async throws {
         let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
         let executor = LocalAIToolExecutor(
-            flashcardsStore: flashcardsStore,
+            databaseURL: databaseURL,
             encoder: JSONEncoder(),
             decoder: JSONDecoder()
         )
 
-        let workspaceContextJson = try await executor.execute(
+        let workspaceContextResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-1",
                 name: "get_workspace_context",
@@ -265,12 +335,12 @@ final class AIChatTests: XCTestCase {
             requestId: "request-1"
         )
         let workspaceContext = try XCTUnwrap(
-            try JSONSerialization.jsonObject(with: Data(workspaceContextJson.utf8)) as? [String: Any]
+            try JSONSerialization.jsonObject(with: Data(workspaceContextResult.output.utf8)) as? [String: Any]
         )
         let workspace = try XCTUnwrap(workspaceContext["workspace"] as? [String: Any])
         XCTAssertEqual(workspace["name"] as? String, "Local Workspace")
 
-        let createdCardJson = try await executor.execute(
+        let createdCardResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-2",
                 name: "create_card",
@@ -278,21 +348,23 @@ final class AIChatTests: XCTestCase {
             ),
             requestId: "request-1"
         )
-        let createdCard = try JSONDecoder().decode(Card.self, from: Data(createdCardJson.utf8))
+        let createdCard = try JSONDecoder().decode(Card.self, from: Data(createdCardResult.output.utf8))
         XCTAssertEqual(createdCard.frontText, "Front")
-        XCTAssertEqual(flashcardsStore.cards.count, 1)
+        let snapshot = try await executor.loadSnapshot()
+        XCTAssertEqual(snapshot.cards.count, 1)
     }
 
     @MainActor
     func testLocalToolExecutorCreatesCardsWithoutConfirmationText() async throws {
         let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
         let executor = LocalAIToolExecutor(
-            flashcardsStore: flashcardsStore,
+            databaseURL: databaseURL,
             encoder: JSONEncoder(),
             decoder: JSONDecoder()
         )
 
-        let createdCardsJson = try await executor.execute(
+        let createdCardsResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-bulk-create",
                 name: "create_cards",
@@ -305,16 +377,18 @@ final class AIChatTests: XCTestCase {
             ),
             requestId: "request-1"
         )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsJson.utf8))
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
         XCTAssertEqual(createdCards.count, 2)
-        XCTAssertEqual(flashcardsStore.cards.count, 2)
+        let snapshot = try await executor.loadSnapshot()
+        XCTAssertEqual(snapshot.cards.count, 2)
     }
 
     @MainActor
     func testLocalToolExecutorWrapsInvalidInputWithDiagnostics() async throws {
         let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
         let executor = LocalAIToolExecutor(
-            flashcardsStore: flashcardsStore,
+            databaseURL: databaseURL,
             encoder: JSONEncoder(),
             decoder: JSONDecoder()
         )
@@ -345,13 +419,14 @@ final class AIChatTests: XCTestCase {
     @MainActor
     func testLocalToolExecutorCreatesUpdatesAndDeletesCardsInBulk() async throws {
         let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
         let executor = LocalAIToolExecutor(
-            flashcardsStore: flashcardsStore,
+            databaseURL: databaseURL,
             encoder: JSONEncoder(),
             decoder: JSONDecoder()
         )
 
-        let createdCardsJson = try await executor.execute(
+        let createdCardsResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-create-cards",
                 name: "create_cards",
@@ -364,11 +439,11 @@ final class AIChatTests: XCTestCase {
             ),
             requestId: "request-1"
         )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsJson.utf8))
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
         XCTAssertEqual(createdCards.count, 2)
-        XCTAssertEqual(flashcardsStore.cards.count, 2)
+        XCTAssertTrue(createdCardsResult.didMutateAppState)
 
-        let updatedCardsJson = try await executor.execute(
+        let updatedCardsResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-update-cards",
                 name: "update_cards",
@@ -381,7 +456,7 @@ final class AIChatTests: XCTestCase {
             ),
             requestId: "request-1"
         )
-        let updatedCards = try JSONDecoder().decode([Card].self, from: Data(updatedCardsJson.utf8))
+        let updatedCards = try JSONDecoder().decode([Card].self, from: Data(updatedCardsResult.output.utf8))
         XCTAssertEqual(updatedCards.count, 2)
         XCTAssertEqual(
             Set(updatedCards.map { card in
@@ -398,7 +473,7 @@ final class AIChatTests: XCTestCase {
             card.cardId == createdCards[1].cardId && card.tags == ["tag-c", "tag-d"] && card.effortLevel == .long
         })
 
-        let deletedCardsJson = try await executor.execute(
+        let deletedCardsResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-delete-cards",
                 name: "delete_cards",
@@ -408,23 +483,26 @@ final class AIChatTests: XCTestCase {
             ),
             requestId: "request-1"
         )
-        let deletedCardsPayload = try JSONDecoder().decode(BulkDeleteCardsPayload.self, from: Data(deletedCardsJson.utf8))
+        let deletedCardsPayload = try JSONDecoder().decode(BulkDeleteCardsPayload.self, from: Data(deletedCardsResult.output.utf8))
         XCTAssertTrue(deletedCardsPayload.ok)
         XCTAssertEqual(deletedCardsPayload.deletedCount, 2)
         XCTAssertEqual(Set(deletedCardsPayload.deletedCardIds), Set(createdCards.map(\.cardId)))
-        XCTAssertEqual(flashcardsStore.cards.count, 0)
+        let snapshot = try await executor.loadSnapshot()
+        XCTAssertEqual(snapshot.cards.count, 0)
     }
 
     @MainActor
     func testAIChatStoreBlocksSendWhenCloudIsNotLinked() throws {
         let flashcardsStore = try self.makeStore()
+        let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
                 savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
             ),
             chatService: FailingChatService(),
-            toolExecutor: FailingToolExecutor()
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -437,19 +515,21 @@ final class AIChatTests: XCTestCase {
     @MainActor
     func testAIChatStoreShowsStreamFailureOnlyInsideAssistantMessage() async throws {
         let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
                 savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
             ),
             chatService: ThrowingChatService(error: StubLocalizedError(message: "Chat failed")),
-            toolExecutor: FailingToolExecutor()
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
         chatStore.sendMessage()
 
-        try await self.waitForChatState(chatStore: chatStore)
+        try await self.waitForChatCompletion(chatStore: chatStore)
 
         XCTAssertEqual(chatStore.errorMessage, "")
         XCTAssertEqual(chatStore.messages.count, 2)
@@ -463,19 +543,21 @@ final class AIChatTests: XCTestCase {
     @MainActor
     func testAIChatStoreClearsRepairStatusAfterSuccessfulTurn() async throws {
         let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
                 savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
             ),
             chatService: RepairingChatService(terminalError: nil),
-            toolExecutor: FailingToolExecutor()
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
         chatStore.sendMessage()
 
-        try await self.waitForChatState(chatStore: chatStore)
+        try await self.waitForChatCompletion(chatStore: chatStore)
 
         XCTAssertNil(chatStore.repairStatus)
         XCTAssertEqual(chatStore.messages.count, 2)
@@ -485,23 +567,139 @@ final class AIChatTests: XCTestCase {
     @MainActor
     func testAIChatStoreClearsRepairStatusAfterTerminalFailure() async throws {
         let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
                 savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
             ),
             chatService: RepairingChatService(terminalError: StubLocalizedError(message: "Still invalid")),
-            toolExecutor: FailingToolExecutor()
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
         chatStore.sendMessage()
 
-        try await self.waitForChatState(chatStore: chatStore)
+        try await self.waitForChatCompletion(chatStore: chatStore)
 
         XCTAssertNil(chatStore.repairStatus)
         XCTAssertEqual(chatStore.messages[1].isError, true)
         XCTAssertEqual(chatStore.messages[1].text, "Checking\n\nStill invalid")
+    }
+
+    @MainActor
+    func testAIChatStoreDoesNotPersistHistoryOnEveryStreamToken() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let historyStore = InMemoryHistoryStore(
+            savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+        )
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: historyStore,
+            chatService: BurstChatService(deltas: Array(repeating: "A", count: 20)),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        XCTAssertEqual(chatStore.messages[1].text, String(repeating: "A", count: 20))
+        XCTAssertLessThan(historyStore.saveCallCount, 20)
+    }
+
+    @MainActor
+    func testAIChatStoreAppliesSnapshotAfterChatMutation() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let workspaceRuntime = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: MutatingChatService(),
+            toolExecutor: workspaceRuntime,
+            snapshotLoader: workspaceRuntime
+        )
+
+        chatStore.inputText = "create a card"
+        chatStore.sendMessage()
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        XCTAssertEqual(flashcardsStore.cards.count, 1)
+        XCTAssertEqual(flashcardsStore.cards.first?.frontText, "Front")
+        XCTAssertEqual(chatStore.messages[1].text, "Saved")
+        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .completed)
+    }
+
+    @MainActor
+    func testLocalToolExecutorReadsLatestCommittedStateBetweenCalls() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let initialListResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-list-initial",
+                name: "list_cards",
+                input: "{}"
+            ),
+            requestId: "request-list"
+        )
+        let initialCards = try JSONDecoder().decode([Card].self, from: Data(initialListResult.output.utf8))
+        XCTAssertEqual(initialCards.count, 0)
+
+        try flashcardsStore.saveCard(
+            input: CardEditorInput(
+                frontText: "Fresh Front",
+                backText: "Fresh Back",
+                tags: ["fresh"],
+                effortLevel: .medium
+            ),
+            editingCardId: nil
+        )
+
+        let updatedListResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-list-updated",
+                name: "list_cards",
+                input: "{}"
+            ),
+            requestId: "request-list"
+        )
+        let updatedCards = try JSONDecoder().decode([Card].self, from: Data(updatedListResult.output.utf8))
+        XCTAssertEqual(updatedCards.count, 1)
+        XCTAssertEqual(updatedCards.first?.frontText, "Fresh Front")
+    }
+
+    func testLocalDatabaseEnablesWALForConcurrentConnections() throws {
+        let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
+        self.addTeardownBlock {
+            try? FileManager.default.removeItem(at: databaseDirectory)
+        }
+
+        let databaseURL = databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
+        let primary = try LocalDatabase(databaseURL: databaseURL)
+        let secondary = try LocalDatabase(databaseURL: databaseURL)
+
+        XCTAssertEqual(try primary.loadJournalMode().lowercased(), "wal")
+        XCTAssertEqual(try secondary.loadJournalMode().lowercased(), "wal")
     }
 
     func testAIChatServiceFormatsApiErrorsWithRequestId() async throws {
@@ -719,16 +917,16 @@ final class AIChatTests: XCTestCase {
     }
 
     @MainActor
-    private func waitForChatState(chatStore: AIChatStore) async throws {
+    private func waitForChatCompletion(chatStore: AIChatStore) async throws {
         for _ in 0..<50 {
-            if chatStore.isStreaming == false && chatStore.messages.last?.isError == true {
+            if chatStore.isStreaming == false {
                 return
             }
 
             try await Task.sleep(nanoseconds: 20_000_000)
         }
 
-        XCTFail("Timed out waiting for chat store to finish streaming")
+        XCTFail("Timed out waiting for chat completion")
     }
 
     private func makeSession() -> URLSession {
