@@ -160,8 +160,8 @@ export function ReviewScreen(): ReactElement {
           <section className="review-pane">
             {selectedCard === null ? (
               <div className="review-empty">
-                <h2 className="panel-subtitle">Nothing to review</h2>
-                <p className="subtitle">Create more cards or come back when the queue is due again.</p>
+                <h2 className="panel-subtitle">Nothing to review right now</h2>
+                <p className="subtitle">You're all caught up, or you haven't added any cards yet. Add cards or come back later.</p>
               </div>
             ) : (
               <>
@@ -252,7 +252,7 @@ export function ReviewScreen(): ReactElement {
                 })}
                 {queueCards.length === 0 ? (
                   <tr>
-                    <td className="txn-cell txn-empty" colSpan={4}>No cards yet.</td>
+                    <td className="txn-cell txn-empty" colSpan={4}>No cards to review right now.</td>
                   </tr>
                 ) : null}
               </tbody>

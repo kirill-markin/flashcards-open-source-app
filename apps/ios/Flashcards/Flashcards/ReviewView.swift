@@ -180,9 +180,9 @@ struct ReviewView: View {
             }
         } description: {
             if store.cards.isEmpty {
-                Text("Create local cards first. Review will use the SQLite queue immediately.")
+                Text("You haven't created any cards yet. Add your first card to start studying.")
             } else {
-                Text("All due cards are cleared for now. Come back later or create more cards.")
+                Text("You're all caught up for now. Come back later or add more cards.")
             }
         } actions: {
             Button {

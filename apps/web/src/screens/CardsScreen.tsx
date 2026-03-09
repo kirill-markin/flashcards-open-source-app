@@ -168,7 +168,7 @@ export function CardsScreen(): ReactElement {
               })}
               {sortedCards.length === 0 ? (
                 <tr>
-                  <td className="txn-cell txn-empty" colSpan={9}>No cards yet.</td>
+                  <td className="txn-cell txn-empty" colSpan={9}>You haven't created any cards yet.</td>
                 </tr>
               ) : null}
             </tbody>
