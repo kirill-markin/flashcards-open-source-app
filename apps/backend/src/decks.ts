@@ -27,22 +27,10 @@ type DeckRow = Readonly<{
 
 type RecordValue = Record<string, unknown>;
 
-export type DeckPredicate =
-  | Readonly<{
-    field: "effortLevel";
-    operator: "in";
-    values: ReadonlyArray<EffortLevel>;
-  }>
-  | Readonly<{
-    field: "tags";
-    operator: "containsAny" | "containsAll";
-    values: ReadonlyArray<string>;
-  }>;
-
 export type DeckFilterDefinition = Readonly<{
-  version: 1;
-  combineWith: "and" | "or";
-  predicates: ReadonlyArray<DeckPredicate>;
+  version: 2;
+  effortLevels: ReadonlyArray<EffortLevel>;
+  tags: ReadonlyArray<string>;
 }>;
 
 export type Deck = Readonly<{
@@ -91,10 +79,6 @@ function createRequestError(message: string): HttpError {
   return new HttpError(400, message);
 }
 
-function createStoredDataError(message: string): Error {
-  return new Error(`Stored deck filter definition is invalid: ${message}`);
-}
-
 function throwError(errorFactory: ErrorFactory, message: string): never {
   throw errorFactory(message);
 }
@@ -141,7 +125,7 @@ function expectNonEmptyString(
   return trimmedValue;
 }
 
-function normalizeEffortLevels(
+function normalizeDeckEffortLevels(
   value: unknown,
   fieldName: string,
   errorFactory: ErrorFactory,
@@ -159,14 +143,10 @@ function normalizeEffortLevels(
     uniqueValues.add(item);
   }
 
-  if (uniqueValues.size === 0) {
-    return throwError(errorFactory, `${fieldName} must contain at least one value`);
-  }
-
   return [...uniqueValues];
 }
 
-function normalizeTagValues(
+function normalizeDeckTags(
   value: unknown,
   fieldName: string,
   errorFactory: ErrorFactory,
@@ -182,51 +162,14 @@ function normalizeTagValues(
     }
 
     const normalizedTag = item.trim();
-    if (normalizedTag !== "") {
-      uniqueTags.add(normalizedTag);
+    if (normalizedTag === "") {
+      throwError(errorFactory, `${fieldName} must contain only non-empty tags`);
     }
-  }
 
-  if (uniqueTags.size === 0) {
-    return throwError(errorFactory, `${fieldName} must contain at least one tag`);
+    uniqueTags.add(normalizedTag);
   }
 
   return [...uniqueTags];
-}
-
-function parseDeckPredicateWithFactory(
-  value: unknown,
-  errorFactory: ErrorFactory,
-): DeckPredicate {
-  const record = expectRecord(value, "deck predicate", errorFactory);
-  expectOnlyAllowedKeys(record, ["field", "operator", "values"], "deck predicate", errorFactory);
-
-  const field = expectNonEmptyString(record.field, "deck predicate field", errorFactory);
-  if (field === "effortLevel") {
-    if (record.operator !== "in") {
-      throwError(errorFactory, "effortLevel predicate operator must be in");
-    }
-
-    return {
-      field: "effortLevel",
-      operator: "in",
-      values: normalizeEffortLevels(record.values, "deck predicate values", errorFactory),
-    };
-  }
-
-  if (field === "tags") {
-    if (record.operator !== "containsAny" && record.operator !== "containsAll") {
-      throwError(errorFactory, "tags predicate operator must be containsAny or containsAll");
-    }
-
-    return {
-      field: "tags",
-      operator: record.operator,
-      values: normalizeTagValues(record.values, "deck predicate values", errorFactory),
-    };
-  }
-
-  return throwError(errorFactory, `deck predicate field is not supported: ${field}`);
 }
 
 function parseDeckFilterDefinitionWithFactory(
@@ -234,24 +177,16 @@ function parseDeckFilterDefinitionWithFactory(
   errorFactory: ErrorFactory,
 ): DeckFilterDefinition {
   const record = expectRecord(value, "filterDefinition", errorFactory);
-  expectOnlyAllowedKeys(record, ["version", "combineWith", "predicates"], "filterDefinition", errorFactory);
+  expectOnlyAllowedKeys(record, ["version", "effortLevels", "tags"], "filterDefinition", errorFactory);
 
-  if (record.version !== 1) {
-    throwError(errorFactory, "filterDefinition version must be 1");
-  }
-
-  if (record.combineWith !== "and" && record.combineWith !== "or") {
-    throwError(errorFactory, "filterDefinition combineWith must be 'and' or 'or'");
-  }
-
-  if (!Array.isArray(record.predicates)) {
-    throwError(errorFactory, "filterDefinition predicates must be an array");
+  if (record.version !== 2) {
+    throwError(errorFactory, "filterDefinition version must be 2");
   }
 
   return {
-    version: 1,
-    combineWith: record.combineWith,
-    predicates: record.predicates.map((predicate) => parseDeckPredicateWithFactory(predicate, errorFactory)),
+    version: 2,
+    effortLevels: normalizeDeckEffortLevels(record.effortLevels, "filterDefinition effortLevels", errorFactory),
+    tags: normalizeDeckTags(record.tags, "filterDefinition tags", errorFactory),
   };
 }
 
@@ -260,7 +195,10 @@ function mapDeck(row: DeckRow): Deck {
     deckId: row.deck_id,
     workspaceId: row.workspace_id,
     name: row.name,
-    filterDefinition: parseDeckFilterDefinitionWithFactory(row.filter_definition, createStoredDataError),
+    filterDefinition: parseDeckFilterDefinitionWithFactory(
+      row.filter_definition,
+      (message) => new Error(`Stored deck filter definition is invalid: ${message}`),
+    ),
     createdAt: toIsoString(row.created_at),
     clientUpdatedAt: toIsoString(row.client_updated_at),
     lastModifiedByDeviceId: row.last_modified_by_device_id,

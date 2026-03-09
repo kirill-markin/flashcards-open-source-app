@@ -96,8 +96,6 @@ private struct DeleteCardsToolInput: Decodable {
 private struct CreateDeckToolInput: Decodable {
     let name: String
     let effortLevels: [EffortLevel]
-    let combineWith: DeckCombineOperator
-    let tagsOperator: DeckTagsOperator
     let tags: [String]
 }
 
@@ -105,8 +103,6 @@ private struct UpdateDeckToolInput: Decodable {
     let deckId: String
     let name: String?
     let effortLevels: [EffortLevel]?
-    let combineWith: DeckCombineOperator?
-    let tagsOperator: DeckTagsOperator?
     let tags: [String]?
 }
 
@@ -397,8 +393,6 @@ struct LocalAIToolExecutor: AIToolExecuting {
                 name: input.name,
                 filterDefinition: buildDeckFilterDefinition(
                     effortLevels: input.effortLevels,
-                    combineWith: input.combineWith,
-                    tagsOperator: input.tagsOperator,
                     tags: input.tags
                 )
             )
@@ -423,8 +417,6 @@ struct LocalAIToolExecutor: AIToolExecuting {
                 name: input.name ?? existingDeck.name,
                 filterDefinition: buildDeckFilterDefinition(
                     effortLevels: input.effortLevels ?? currentDeckFilterState.effortLevels,
-                    combineWith: input.combineWith ?? currentDeckFilterState.combineWith,
-                    tagsOperator: input.tagsOperator ?? currentDeckFilterState.tagsOperator,
                     tags: input.tags ?? currentDeckFilterState.tags
                 )
             )
@@ -496,26 +488,10 @@ struct LocalAIToolExecutor: AIToolExecuting {
         }.prefix(limit))
     }
 
-    private func extractDeckFilterState(deck: Deck) -> (effortLevels: [EffortLevel], combineWith: DeckCombineOperator, tagsOperator: DeckTagsOperator, tags: [String]) {
-        var effortLevels: [EffortLevel] = []
-        var tagsOperator: DeckTagsOperator = .containsAny
-        var tags: [String] = []
-
-        for predicate in deck.filterDefinition.predicates {
-            switch predicate {
-            case .effortLevel(let values):
-                effortLevels = values
-            case .tags(let operatorName, let values):
-                tagsOperator = operatorName
-                tags = values
-            }
-        }
-
+    private func extractDeckFilterState(deck: Deck) -> (effortLevels: [EffortLevel], tags: [String]) {
         return (
-            effortLevels: effortLevels,
-            combineWith: deck.filterDefinition.combineWith,
-            tagsOperator: tagsOperator,
-            tags: tags
+            effortLevels: deck.filterDefinition.effortLevels,
+            tags: deck.filterDefinition.tags
         )
     }
 

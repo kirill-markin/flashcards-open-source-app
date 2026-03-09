@@ -176,7 +176,7 @@ export function buildLocalSystemInstructions(timezone: string): string {
     "- search_cards => {\"query\": \"grammar\", \"limit\": null}",
     "- list_review_history => {\"limit\": 20, \"cardId\": null}",
     "- update_card => {\"cardId\": \"card_123\", \"frontText\": null, \"backText\": \"Updated back\", \"tags\": null, \"effortLevel\": null}",
-    "- update_deck => {\"deckId\": \"deck_123\", \"name\": null, \"effortLevels\": [\"fast\", \"medium\"], \"combineWith\": \"and\", \"tagsOperator\": \"containsAny\", \"tags\": [\"grammar\"]}",
+    "- update_deck => {\"deckId\": \"deck_123\", \"name\": null, \"effortLevels\": [\"fast\", \"medium\"], \"tags\": [\"grammar\"]}",
     "",
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
     formatDatetime(timezone),

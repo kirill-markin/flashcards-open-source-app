@@ -465,12 +465,6 @@ private struct DeckEditorView: View {
             }
 
             Section("Tags") {
-                Picker("Operator", selection: $formState.tagsOperator) {
-                    ForEach(DeckTagsOperator.allCases) { tagsOperator in
-                        Text(tagsOperator.title).tag(tagsOperator)
-                    }
-                }
-
                 NavigationLink {
                     TagPickerView(
                         selectedTags: formState.tags,
@@ -482,21 +476,11 @@ private struct DeckEditorView: View {
                 } label: {
                     TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
                 }
-            }
-
-            Section("Combine predicates") {
-                Picker("Combine with", selection: $formState.combineWith) {
-                    ForEach(DeckCombineOperator.allCases) { combineOperator in
-                        Text(combineOperator.title).tag(combineOperator)
-                    }
-                }
 
                 Text(
                     formatDeckFilterDefinition(
                         filterDefinition: buildDeckFilterDefinition(
                             effortLevels: formState.selectedEffortLevels,
-                            combineWith: formState.combineWith,
-                            tagsOperator: formState.tagsOperator,
                             tags: formState.tags
                         )
                     )
@@ -519,18 +503,14 @@ private struct DeckEditorView: View {
 
 private struct DeckFormState {
     var name: String
-    var combineWith: DeckCombineOperator
     var selectedEffortLevels: [EffortLevel]
-    var tagsOperator: DeckTagsOperator
     var tags: [String]
 }
 
 private func emptyDeckFormState() -> DeckFormState {
     DeckFormState(
         name: "",
-        combineWith: .and,
         selectedEffortLevels: [],
-        tagsOperator: .containsAny,
         tags: []
     )
 }
@@ -540,46 +520,16 @@ private func makeDeckEditorInput(formState: DeckFormState) -> DeckEditorInput {
         name: formState.name.trimmingCharacters(in: .whitespacesAndNewlines),
         filterDefinition: buildDeckFilterDefinition(
             effortLevels: formState.selectedEffortLevels,
-            combineWith: formState.combineWith,
-            tagsOperator: formState.tagsOperator,
             tags: formState.tags
         )
     )
 }
 
 private func makeDeckFormState(deck: Deck) throws -> DeckFormState {
-    var selectedEffortLevels: [EffortLevel] = []
-    var tagsOperator: DeckTagsOperator = .containsAny
-    var tags: [String] = []
-    var hasEffortPredicate: Bool = false
-    var hasTagsPredicate: Bool = false
-
-    for predicate in deck.filterDefinition.predicates {
-        switch predicate {
-        case .effortLevel(let values):
-            if hasEffortPredicate {
-                throw LocalStoreError.validation("Deck contains multiple effort predicates and cannot be edited")
-            }
-
-            selectedEffortLevels = values
-            hasEffortPredicate = true
-        case .tags(let nextTagsOperator, let values):
-            if hasTagsPredicate {
-                throw LocalStoreError.validation("Deck contains multiple tag predicates and cannot be edited")
-            }
-
-            tagsOperator = nextTagsOperator
-            tags = values
-            hasTagsPredicate = true
-        }
-    }
-
     return DeckFormState(
         name: deck.name,
-        combineWith: deck.filterDefinition.combineWith,
-        selectedEffortLevels: selectedEffortLevels,
-        tagsOperator: tagsOperator,
-        tags: tags
+        selectedEffortLevels: deck.filterDefinition.effortLevels,
+        tags: deck.filterDefinition.tags
     )
 }
 

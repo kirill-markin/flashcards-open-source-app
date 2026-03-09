@@ -47,16 +47,6 @@ const REVIEW_RATING_SCHEMA = {
   enum: ["again", "hard", "good", "easy"],
 } as const;
 
-const COMBINE_WITH_SCHEMA = {
-  type: "string",
-  enum: ["and", "or"],
-} as const;
-
-const TAGS_OPERATOR_SCHEMA = {
-  type: "string",
-  enum: ["containsAny", "containsAll"],
-} as const;
-
 const CARD_INPUT_SCHEMA = strictObjectSchema({
   frontText: { type: "string" },
   backText: { type: "string" },
@@ -88,8 +78,6 @@ const nullableLimitValidator = z.number().int().min(1).max(100).nullable();
 const nullableStringValidator = z.string().nullable();
 const nullableStringArrayValidator = z.array(z.string()).nullable();
 const nullableEffortLevelValidator = z.enum(["fast", "medium", "long"]).nullable();
-const nullableCombineWithValidator = z.enum(["and", "or"]).nullable();
-const nullableTagsOperatorValidator = z.enum(["containsAny", "containsAll"]).nullable();
 
 const createCardValidator = z.object({
   frontText: z.string(),
@@ -151,16 +139,12 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
   create_deck: z.object({
     name: z.string(),
     effortLevels: z.array(z.enum(["fast", "medium", "long"])),
-    combineWith: z.enum(["and", "or"]),
-    tagsOperator: z.enum(["containsAny", "containsAll"]),
     tags: z.array(z.string()),
   }).strict(),
   update_deck: z.object({
     deckId: z.string(),
     name: nullableStringValidator,
     effortLevels: z.array(z.enum(["fast", "medium", "long"])).nullable(),
-    combineWith: nullableCombineWithValidator,
-    tagsOperator: nullableTagsOperatorValidator,
     tags: nullableStringArrayValidator,
   }).strict(),
   delete_deck: z.object({
@@ -388,7 +372,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     name: "create_deck",
     description: strictDescription(
       "Create a new deck locally using effort-level and tag filters.",
-      "Use {\"name\": string, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[], \"combineWith\": \"and\"|\"or\", \"tagsOperator\": \"containsAny\"|\"containsAll\", \"tags\": string[]}."
+      "Use {\"name\": string, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[], \"tags\": string[]}."
     ),
     strict: true,
     parameters: strictObjectSchema({
@@ -397,8 +381,6 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
         type: "array",
         items: EFFORT_LEVEL_SCHEMA,
       },
-      combineWith: COMBINE_WITH_SCHEMA,
-      tagsOperator: TAGS_OPERATOR_SCHEMA,
       tags: {
         type: "array",
         items: { type: "string" },
@@ -410,7 +392,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     name: "update_deck",
     description: strictDescription(
       "Update a deck locally using effort-level and tag filters.",
-      "Use {\"deckId\": string, \"name\": string|null, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[]|null, \"combineWith\": \"and\"|\"or\"|null, \"tagsOperator\": \"containsAny\"|\"containsAll\"|null, \"tags\": string[]|null}. Include every property. Use null for unchanged fields."
+      "Use {\"deckId\": string, \"name\": string|null, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[]|null, \"tags\": string[]|null}. Include every property. Use null for unchanged fields."
     ),
     strict: true,
     parameters: strictObjectSchema({
@@ -420,8 +402,6 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
         type: "array",
         items: EFFORT_LEVEL_SCHEMA,
       }),
-      combineWith: nullableSchema(COMBINE_WITH_SCHEMA),
-      tagsOperator: nullableSchema(TAGS_OPERATOR_SCHEMA),
       tags: nullableSchema({
         type: "array",
         items: { type: "string" },
