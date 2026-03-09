@@ -1,6 +1,6 @@
 import Foundation
 
-enum CloudConfigurationError: LocalizedError {
+enum CloudConfigurationError: LocalizedError, Equatable {
     case missingValue(String)
     case invalidUrl(String, String)
 
