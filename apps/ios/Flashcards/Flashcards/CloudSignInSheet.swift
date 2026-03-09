@@ -1,102 +1,89 @@
 import SwiftUI
 import UIKit
 
+private struct CloudOtpSheetState: Identifiable, Hashable {
+    let id: String
+    let challenge: CloudOtpChallenge
+
+    init(challenge: CloudOtpChallenge) {
+        self.id = UUID().uuidString
+        self.challenge = challenge
+    }
+}
+
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FlashcardsStore
 
     @State private var email: String = ""
-    @State private var code: String = ""
-    @State private var challenge: CloudOtpChallenge?
+    @State private var otpSheetState: CloudOtpSheetState?
+    @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
     @State private var errorMessage: String = ""
     @State private var isSendingCode: Bool = false
-    @State private var isVerifyingCode: Bool = false
-
-    private var isBusy: Bool {
-        self.isSendingCode || self.isVerifyingCode
-    }
 
     var body: some View {
         NavigationStack {
             Form {
                 if self.errorMessage.isEmpty == false {
                     Section {
-                        Text(self.errorMessage)
-                            .foregroundStyle(.red)
+                        CopyableErrorMessageView(message: self.errorMessage)
                     }
                 }
 
                 Section("Cloud sync") {
-                    Text("Sign in with email and a one-time code. Existing and new accounts use the same flow.")
+                    Text("Sign in with email and continue through the code and workspace steps. Local data stays on this device until you choose a cloud workspace.")
                         .foregroundStyle(.secondary)
                 }
 
-                if let challenge = self.challenge {
-                    self.codeSection(challenge: challenge)
-                } else {
-                    self.emailSection
+                Section("Email") {
+                    CloudEmailTextField(text: self.$email)
+
+                    Button("Send code") {
+                        self.sendCode()
+                    }
+                    .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
                 }
             }
-            .navigationTitle(self.challenge == nil ? "Sign in" : "Verify code")
+            .navigationTitle("Sign in")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") {
                         self.dismiss()
                     }
-                    .disabled(self.isBusy)
+                    .disabled(self.isSendingCode)
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private var emailSection: some View {
-        Section("Email") {
-            CloudEmailTextField(text: self.$email)
-
-            Button("Send code") {
-                self.sendCode()
+            .sheet(item: self.$otpSheetState) { otpState in
+                CloudOtpVerificationSheet(
+                    challenge: otpState.challenge,
+                    onPrepared: { linkContext in
+                        self.otpSheetState = nil
+                        self.workspaceLinkContext = linkContext
+                        self.errorMessage = ""
+                    },
+                    onReturnToEmail: { message in
+                        self.otpSheetState = nil
+                        self.workspaceLinkContext = nil
+                        self.errorMessage = message
+                    }
+                )
+                .environmentObject(self.store)
             }
-            .disabled(self.isBusy || isValidCloudEmail(self.email) == false)
-        }
-    }
-
-    @ViewBuilder
-    private func codeSection(challenge: CloudOtpChallenge) -> some View {
-        Section("Email") {
-            Text(challenge.email)
-                .textSelection(.enabled)
-        }
-
-        Section("One-time code") {
-            Text("Enter the 8-digit code from your email.")
-                .foregroundStyle(.secondary)
-
-            TextField("12345678", text: self.$code)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-
-            Button("Verify and sync") {
-                self.verifyCode(challenge: challenge)
+            .sheet(item: self.$workspaceLinkContext) { linkContext in
+                CloudWorkspaceSelectionSheet(
+                    linkContext: linkContext,
+                    onLinked: {
+                        self.workspaceLinkContext = nil
+                        self.errorMessage = ""
+                        self.dismiss()
+                    },
+                    onCancelled: {
+                        self.workspaceLinkContext = nil
+                    }
+                )
+                .environmentObject(self.store)
             }
-            .disabled(self.isBusy || normalizedOtpCode(self.code).isEmpty)
-        }
-
-        Section {
-            Button("Resend code") {
-                self.sendCode()
-            }
-            .disabled(self.isBusy)
-
-            Button("Use different email") {
-                self.challenge = nil
-                self.code = ""
-                self.errorMessage = ""
-            }
-            .disabled(self.isBusy)
         }
     }
 
@@ -105,8 +92,8 @@ struct CloudSignInSheet: View {
             self.errorMessage = "Enter a valid email address"
             return
         }
-        let nextEmail = normalizedCloudEmail(self.email)
 
+        let nextEmail = normalizedCloudEmail(self.email)
         Task { @MainActor in
             self.isSendingCode = true
             defer {
@@ -116,16 +103,69 @@ struct CloudSignInSheet: View {
             do {
                 let nextChallenge = try await self.store.sendCloudSignInCode(email: nextEmail)
                 self.email = nextChallenge.email
-                self.challenge = nextChallenge
-                self.code = ""
                 self.errorMessage = ""
+                self.otpSheetState = CloudOtpSheetState(challenge: nextChallenge)
             } catch {
                 self.errorMessage = localizedMessage(error: error)
             }
         }
     }
+}
 
-    private func verifyCode(challenge: CloudOtpChallenge) {
+private struct CloudOtpVerificationSheet: View {
+    @EnvironmentObject private var store: FlashcardsStore
+
+    let challenge: CloudOtpChallenge
+    let onPrepared: (CloudWorkspaceLinkContext) -> Void
+    let onReturnToEmail: (String) -> Void
+
+    @State private var code: String = ""
+    @State private var errorMessage: String = ""
+    @State private var isVerifyingCode: Bool = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if self.errorMessage.isEmpty == false {
+                    Section {
+                        CopyableErrorMessageView(message: self.errorMessage)
+                    }
+                }
+
+                Section("Email") {
+                    Text(self.challenge.email)
+                        .textSelection(.enabled)
+                }
+
+                Section("One-time code") {
+                    Text("Enter the 8-digit code from your email.")
+                        .foregroundStyle(.secondary)
+
+                    TextField("12345678", text: self.$code)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.numberPad)
+                        .textContentType(.oneTimeCode)
+
+                    Button("Continue") {
+                        self.verifyCode()
+                    }
+                    .disabled(self.isVerifyingCode || normalizedOtpCode(self.code).isEmpty)
+                }
+
+                Section {
+                    Button("Use different email") {
+                        self.onReturnToEmail("")
+                    }
+                    .disabled(self.isVerifyingCode)
+                }
+            }
+            .navigationTitle("Verify code")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func verifyCode() {
         let nextCode = normalizedOtpCode(self.code)
         guard nextCode.isEmpty == false else {
             self.errorMessage = "Code is required"
@@ -139,18 +179,119 @@ struct CloudSignInSheet: View {
             }
 
             do {
-                try await self.store.verifyCloudSignIn(
-                    challenge: challenge,
+                let linkContext = try await self.store.verifyCloudSignIn(
+                    challenge: self.challenge,
                     code: nextCode
                 )
                 self.errorMessage = ""
-                self.dismiss()
+                self.onPrepared(linkContext)
             } catch {
+                let message = localizedMessage(error: error)
                 if shouldResetOtpFlow(error: error) {
-                    self.challenge = nil
-                    self.code = ""
+                    self.onReturnToEmail(message)
+                    return
                 }
 
+                self.errorMessage = message
+            }
+        }
+    }
+}
+
+private struct CloudWorkspaceSelectionSheet: View {
+    @EnvironmentObject private var store: FlashcardsStore
+
+    let linkContext: CloudWorkspaceLinkContext
+    let onLinked: () -> Void
+    let onCancelled: () -> Void
+
+    @State private var errorMessage: String = ""
+    @State private var isLinking: Bool = false
+
+    private var createButtonTitle: String {
+        if self.store.workspace?.name.isEmpty == false {
+            return "Create new workspace from \"\(self.store.workspace?.name ?? "")\""
+        }
+
+        return "Create new workspace"
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if self.errorMessage.isEmpty == false {
+                    Section {
+                        CopyableErrorMessageView(message: self.errorMessage)
+                    }
+                }
+
+                Section("Workspace") {
+                    Text("Choose which cloud workspace should be linked to the local data on this device.")
+                        .foregroundStyle(.secondary)
+                }
+
+                if self.linkContext.workspaces.isEmpty == false {
+                    Section("Available workspaces") {
+                        ForEach(self.linkContext.workspaces) { workspace in
+                            Button {
+                                self.completeLink(selection: .existing(workspaceId: workspace.workspaceId))
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(workspace.name)
+                                        Text(workspace.createdAt)
+                                            .font(.caption.monospaced())
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    if workspace.isSelected {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .disabled(self.isLinking)
+                        }
+                    }
+                }
+
+                Section {
+                    Button(self.createButtonTitle) {
+                        self.completeLink(selection: .createNew)
+                    }
+                    .disabled(self.isLinking)
+                }
+            }
+            .navigationTitle("Choose workspace")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        self.onCancelled()
+                    }
+                    .disabled(self.isLinking)
+                }
+            }
+        }
+    }
+
+    private func completeLink(selection: CloudWorkspaceLinkSelection) {
+        Task { @MainActor in
+            self.isLinking = true
+            defer {
+                self.isLinking = false
+            }
+
+            do {
+                try await self.store.completeCloudLink(
+                    linkContext: self.linkContext,
+                    selection: selection
+                )
+                self.errorMessage = ""
+                self.onLinked()
+            } catch {
                 self.errorMessage = localizedMessage(error: error)
             }
         }

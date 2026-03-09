@@ -26,14 +26,32 @@ enum CloudSyncError: LocalizedError {
     }
 }
 
+struct CloudAccountSnapshot: Hashable {
+    let userId: String
+    let email: String?
+    let workspaces: [CloudWorkspaceSummary]
+}
+
 private struct MeResponse: Decodable {
     struct Profile: Decodable {
         let email: String?
     }
 
     let userId: String
-    let workspaceId: String
+    let selectedWorkspaceId: String?
     let profile: Profile
+}
+
+private struct WorkspacesResponse: Decodable {
+    let workspaces: [CloudWorkspaceSummary]
+}
+
+private struct WorkspaceEnvelope: Decodable {
+    let workspace: CloudWorkspaceSummary
+}
+
+private struct CreateWorkspaceRequest: Encodable {
+    let name: String
 }
 
 private struct PushRequest: Encodable {
@@ -84,18 +102,76 @@ private struct SyncOperationEnvelope: Encodable {
     }
 }
 
-private struct PullResponseEnvelope: Decodable {
-    let changes: [SyncChangeEnvelope]
-    let nextChangeId: Int64
-    let hasMore: Bool
+private struct RemoteCardChangePayload: Decodable {
+    let cardId: String
+    let frontText: String
+    let backText: String
+    let tags: [String]
+    let effortLevel: EffortLevel
+    let dueAt: String?
+    let reps: Int
+    let lapses: Int
+    let fsrsCardState: FsrsCardState
+    let fsrsStepIndex: Int?
+    let fsrsStability: Double?
+    let fsrsDifficulty: Double?
+    let fsrsLastReviewedAt: String?
+    let fsrsScheduledDays: Int?
+    let clientUpdatedAt: String
+    let lastModifiedByDeviceId: String
+    let lastOperationId: String
+    let updatedAt: String
+    let deletedAt: String?
 }
 
-private struct SyncChangeEnvelope: Decodable {
+private struct RemoteDeckChangePayload: Decodable {
+    let deckId: String
+    let name: String
+    let filterDefinition: DeckFilterDefinition
+    let createdAt: String
+    let clientUpdatedAt: String
+    let lastModifiedByDeviceId: String
+    let lastOperationId: String
+    let updatedAt: String
+    let deletedAt: String?
+}
+
+private struct RemoteWorkspaceSchedulerSettingsChangePayload: Decodable {
+    let algorithm: String
+    let desiredRetention: Double
+    let learningStepsMinutes: [Int]
+    let relearningStepsMinutes: [Int]
+    let maximumIntervalDays: Int
+    let enableFuzz: Bool
+    let clientUpdatedAt: String
+    let lastModifiedByDeviceId: String
+    let lastOperationId: String
+    let updatedAt: String
+}
+
+private struct RemoteReviewEventChangePayload: Decodable {
+    let reviewEventId: String
+    let cardId: String
+    let deviceId: String
+    let clientEventId: String
+    let rating: ReviewRating
+    let reviewedAtClient: String
+    let reviewedAtServer: String
+}
+
+private enum RemoteSyncChangePayload {
+    case card(RemoteCardChangePayload)
+    case deck(RemoteDeckChangePayload)
+    case workspaceSchedulerSettings(RemoteWorkspaceSchedulerSettingsChangePayload)
+    case reviewEvent(RemoteReviewEventChangePayload)
+}
+
+private struct RemoteSyncChangeEnvelope: Decodable {
     let changeId: Int64
     let entityType: SyncEntityType
     let entityId: String
     let action: SyncAction
-    let payload: SyncChangePayload
+    let payload: RemoteSyncChangePayload
 
     enum CodingKeys: String, CodingKey {
         case changeId
@@ -114,16 +190,131 @@ private struct SyncChangeEnvelope: Decodable {
 
         switch self.entityType {
         case .card:
-            self.payload = .card(try container.decode(Card.self, forKey: .payload))
+            self.payload = .card(try container.decode(RemoteCardChangePayload.self, forKey: .payload))
         case .deck:
-            self.payload = .deck(try container.decode(Deck.self, forKey: .payload))
+            self.payload = .deck(try container.decode(RemoteDeckChangePayload.self, forKey: .payload))
         case .workspaceSchedulerSettings:
             self.payload = .workspaceSchedulerSettings(
-                try container.decode(WorkspaceSchedulerSettings.self, forKey: .payload)
+                try container.decode(RemoteWorkspaceSchedulerSettingsChangePayload.self, forKey: .payload)
             )
         case .reviewEvent:
-            self.payload = .reviewEvent(try container.decode(ReviewEvent.self, forKey: .payload))
+            self.payload = .reviewEvent(
+                try container.decode(RemoteReviewEventChangePayload.self, forKey: .payload)
+            )
         }
+    }
+}
+
+private struct RemotePullResponseEnvelope: Decodable {
+    let changes: [RemoteSyncChangeEnvelope]
+    let nextChangeId: Int64
+    let hasMore: Bool
+}
+
+private func makeCard(workspaceId: String, payload: RemoteCardChangePayload) -> Card {
+    Card(
+        cardId: payload.cardId,
+        workspaceId: workspaceId,
+        frontText: payload.frontText,
+        backText: payload.backText,
+        tags: payload.tags,
+        effortLevel: payload.effortLevel,
+        dueAt: payload.dueAt,
+        reps: payload.reps,
+        lapses: payload.lapses,
+        fsrsCardState: payload.fsrsCardState,
+        fsrsStepIndex: payload.fsrsStepIndex,
+        fsrsStability: payload.fsrsStability,
+        fsrsDifficulty: payload.fsrsDifficulty,
+        fsrsLastReviewedAt: payload.fsrsLastReviewedAt,
+        fsrsScheduledDays: payload.fsrsScheduledDays,
+        clientUpdatedAt: payload.clientUpdatedAt,
+        lastModifiedByDeviceId: payload.lastModifiedByDeviceId,
+        lastOperationId: payload.lastOperationId,
+        updatedAt: payload.updatedAt,
+        deletedAt: payload.deletedAt
+    )
+}
+
+private func makeDeck(workspaceId: String, payload: RemoteDeckChangePayload) -> Deck {
+    Deck(
+        deckId: payload.deckId,
+        workspaceId: workspaceId,
+        name: payload.name,
+        filterDefinition: payload.filterDefinition,
+        createdAt: payload.createdAt,
+        clientUpdatedAt: payload.clientUpdatedAt,
+        lastModifiedByDeviceId: payload.lastModifiedByDeviceId,
+        lastOperationId: payload.lastOperationId,
+        updatedAt: payload.updatedAt,
+        deletedAt: payload.deletedAt
+    )
+}
+
+private func makeWorkspaceSchedulerSettings(
+    payload: RemoteWorkspaceSchedulerSettingsChangePayload
+) -> WorkspaceSchedulerSettings {
+    WorkspaceSchedulerSettings(
+        algorithm: payload.algorithm,
+        desiredRetention: payload.desiredRetention,
+        learningStepsMinutes: payload.learningStepsMinutes,
+        relearningStepsMinutes: payload.relearningStepsMinutes,
+        maximumIntervalDays: payload.maximumIntervalDays,
+        enableFuzz: payload.enableFuzz,
+        clientUpdatedAt: payload.clientUpdatedAt,
+        lastModifiedByDeviceId: payload.lastModifiedByDeviceId,
+        lastOperationId: payload.lastOperationId,
+        updatedAt: payload.updatedAt
+    )
+}
+
+private func makeReviewEvent(workspaceId: String, payload: RemoteReviewEventChangePayload) -> ReviewEvent {
+    ReviewEvent(
+        reviewEventId: payload.reviewEventId,
+        workspaceId: workspaceId,
+        cardId: payload.cardId,
+        deviceId: payload.deviceId,
+        clientEventId: payload.clientEventId,
+        rating: payload.rating,
+        reviewedAtClient: payload.reviewedAtClient,
+        reviewedAtServer: payload.reviewedAtServer
+    )
+}
+
+private func makeSyncChange(workspaceId: String, change: RemoteSyncChangeEnvelope) -> SyncChange {
+    switch change.payload {
+    case .card(let payload):
+        return SyncChange(
+            changeId: change.changeId,
+            entityType: change.entityType,
+            entityId: change.entityId,
+            action: change.action,
+            payload: .card(makeCard(workspaceId: workspaceId, payload: payload))
+        )
+    case .deck(let payload):
+        return SyncChange(
+            changeId: change.changeId,
+            entityType: change.entityType,
+            entityId: change.entityId,
+            action: change.action,
+            payload: .deck(makeDeck(workspaceId: workspaceId, payload: payload))
+        )
+    case .workspaceSchedulerSettings(let payload):
+        return SyncChange(
+            changeId: change.changeId,
+            entityType: change.entityType,
+            entityId: change.entityId,
+            action: change.action,
+            payload: .workspaceSchedulerSettings(makeWorkspaceSchedulerSettings(payload: payload))
+        )
+    case .reviewEvent(let payload):
+        return SyncChange(
+            changeId: change.changeId,
+            entityType: change.entityType,
+            entityId: change.entityId,
+            action: change.action,
+            payload: .reviewEvent(makeReviewEvent(workspaceId: workspaceId, payload: payload))
+        )
     }
 }
 
@@ -141,27 +332,69 @@ final class CloudSyncService {
         self.session = session
     }
 
-    func fetchLinkedSession(apiBaseUrl: String, bearerToken: String) async throws -> CloudLinkedSession {
-        let response: MeResponse = try await self.request(
+    func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
+        async let meResponseTask: MeResponse = self.request(
             apiBaseUrl: apiBaseUrl,
             bearerToken: bearerToken,
             path: "/me",
             method: "GET",
             body: Optional<String>.none
         )
-
-        return CloudLinkedSession(
-            userId: response.userId,
-            workspaceId: response.workspaceId,
-            email: response.profile.email,
+        async let workspacesResponseTask: WorkspacesResponse = self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken
+            bearerToken: bearerToken,
+            path: "/workspaces",
+            method: "GET",
+            body: Optional<String>.none
         )
+
+        let meResponse = try await meResponseTask
+        let workspacesResponse = try await workspacesResponseTask
+        let selectedWorkspaceId = meResponse.selectedWorkspaceId
+        let workspaces = workspacesResponse.workspaces.map { workspace in
+            CloudWorkspaceSummary(
+                workspaceId: workspace.workspaceId,
+                name: workspace.name,
+                createdAt: workspace.createdAt,
+                isSelected: workspace.workspaceId == selectedWorkspaceId
+            )
+        }
+
+        return CloudAccountSnapshot(
+            userId: meResponse.userId,
+            email: meResponse.profile.email,
+            workspaces: workspaces
+        )
+    }
+
+    func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
+        let response: WorkspaceEnvelope = try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/workspaces",
+            method: "POST",
+            body: CreateWorkspaceRequest(name: name)
+        )
+
+        return response.workspace
+    }
+
+    func selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String) async throws -> CloudWorkspaceSummary {
+        let response: WorkspaceEnvelope = try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/workspaces/\(workspaceId)/select",
+            method: "POST",
+            body: Optional<String>.none
+        )
+
+        return response.workspace
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
         let cloudSettings = try self.database.loadStateSnapshot().cloudSettings
         let workspaceId = linkedSession.workspaceId
+        let syncBasePath = "/workspaces/\(workspaceId)/sync"
 
         while true {
             let outboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
@@ -173,7 +406,7 @@ final class CloudSyncService {
                 let pushResponse: SyncPushResponse = try await self.request(
                     apiBaseUrl: linkedSession.apiBaseUrl,
                     bearerToken: linkedSession.bearerToken,
-                    path: "/sync/push",
+                    path: "\(syncBasePath)/push",
                     method: "POST",
                     body: PushRequest(
                         deviceId: cloudSettings.deviceId,
@@ -203,10 +436,10 @@ final class CloudSyncService {
 
         var afterChangeId = try self.database.loadLastAppliedChangeId(workspaceId: workspaceId)
         while true {
-            let pullEnvelope: PullResponseEnvelope = try await self.request(
+            let pullEnvelope: RemotePullResponseEnvelope = try await self.request(
                 apiBaseUrl: linkedSession.apiBaseUrl,
                 bearerToken: linkedSession.bearerToken,
-                path: "/sync/pull",
+                path: "\(syncBasePath)/pull",
                 method: "POST",
                 body: PullRequest(
                     deviceId: cloudSettings.deviceId,
@@ -220,13 +453,7 @@ final class CloudSyncService {
             for change in pullEnvelope.changes {
                 try self.database.applySyncChange(
                     workspaceId: workspaceId,
-                    change: SyncChange(
-                        changeId: change.changeId,
-                        entityType: change.entityType,
-                        entityId: change.entityId,
-                        action: change.action,
-                        payload: change.payload
-                    )
+                    change: makeSyncChange(workspaceId: workspaceId, change: change)
                 )
             }
 

@@ -6,7 +6,7 @@ import { authenticateRequest, AuthError, type AuthTransport } from "./auth";
 import { query } from "./db";
 import { ensureSyncDevice } from "./devices";
 import { HttpError } from "./errors";
-import { ensureUserAndWorkspace } from "./ensureUser";
+import { ensureUserProfile } from "./ensureUser";
 import {
   enforceSessionCsrfProtection,
   extractRequestAuthInputs,
@@ -20,6 +20,12 @@ import {
   processSyncPull,
   processSyncPush,
 } from "./sync";
+import {
+  assertUserHasWorkspaceAccess,
+  createWorkspaceForUser,
+  listUserWorkspaces,
+  selectWorkspaceForUser,
+} from "./workspaces";
 import type {
   LocalAssistantToolCall,
   LocalChatMessage,
@@ -37,7 +43,7 @@ type AppEnv = {
 
 type RequestContext = Readonly<{
   userId: string;
-  workspaceId: string;
+  selectedWorkspaceId: string | null;
   email: string | null;
   locale: string;
   transport: AuthTransport;
@@ -110,13 +116,13 @@ function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
 
 async function loadRequestContext(requestAuthInputs: RequestAuthInputs): Promise<RequestContext> {
   const auth = await authenticateRequest(toAuthRequest(requestAuthInputs));
-  const userWorkspace = await ensureUserAndWorkspace(auth.userId);
+  const userProfile = await ensureUserProfile(auth.userId);
 
   return {
-    userId: userWorkspace.userId,
-    workspaceId: userWorkspace.workspaceId,
-    email: userWorkspace.email,
-    locale: userWorkspace.locale,
+    userId: userProfile.userId,
+    selectedWorkspaceId: userProfile.selectedWorkspaceId,
+    email: userProfile.email,
+    locale: userProfile.locale,
     transport: auth.transport,
   };
 }
@@ -200,6 +206,31 @@ function expectNullableNonNegativeInteger(value: unknown, fieldName: string): nu
   }
 
   return expectNonNegativeInteger(value, fieldName);
+}
+
+function parseWorkspaceIdParam(value: string | undefined): string {
+  if (value === undefined) {
+    throw new HttpError(400, "workspaceId is required", "WORKSPACE_ID_REQUIRED");
+  }
+
+  const trimmedValue = value.trim();
+  if (trimmedValue === "") {
+    throw new HttpError(400, "workspaceId must not be empty", "WORKSPACE_ID_INVALID");
+  }
+
+  return trimmedValue;
+}
+
+function requireSelectedWorkspaceId(requestContext: RequestContext): string {
+  if (requestContext.selectedWorkspaceId === null) {
+    throw new HttpError(
+      409,
+      "Select a workspace before using this endpoint",
+      "WORKSPACE_SELECTION_REQUIRED",
+    );
+  }
+
+  return requestContext.selectedWorkspaceId;
 }
 
 function parseChatMessages(value: unknown): ReadonlyArray<ChatMessage> {
@@ -406,7 +437,7 @@ function logRequestError(
 }
 
 /**
- * Writes client-side stream diagnostics with the authenticated workspace
+ * Writes client-side stream diagnostics with the current selected workspace
  * context so browser failures can be correlated with backend request logs.
  */
 function logFrontendChatDiagnostics(requestContext: RequestContext, body: ChatDiagnosticsBody): void {
@@ -414,7 +445,7 @@ function logFrontendChatDiagnostics(requestContext: RequestContext, body: ChatDi
     domain: "chat",
     vendor: "frontend",
     action: "frontend_diagnostics",
-    workspaceId: requestContext.workspaceId,
+    workspaceId: requestContext.selectedWorkspaceId,
     transport: requestContext.transport,
     ...body,
   };
@@ -657,7 +688,7 @@ export function createApp(basePath: string): Hono<AppEnv> {
     );
     return context.json({
       userId: requestContext.userId,
-      workspaceId: requestContext.workspaceId,
+      selectedWorkspaceId: requestContext.selectedWorkspaceId,
       authTransport: requestContext.transport,
       csrfToken: requestContext.transport === "session" && requestAuthInputs.sessionToken !== undefined
         ? await getSessionCsrfToken(requestAuthInputs.sessionToken)
@@ -669,20 +700,44 @@ export function createApp(basePath: string): Hono<AppEnv> {
     });
   });
 
+  registerRoute("get", "/workspaces", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const workspaces = await listUserWorkspaces(requestContext.userId);
+    return context.json({ workspaces });
+  });
+
+  registerRoute("post", "/workspaces", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+    const workspace = await createWorkspaceForUser(
+      requestContext.userId,
+      expectNonEmptyString(body.name, "name"),
+    );
+    return context.json({ workspace }, 201);
+  });
+
+  registerRoute("post", "/workspaces/:workspaceId/select", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const workspace = await selectWorkspaceForUser(requestContext.userId, workspaceId);
+    return context.json({ workspace });
+  });
+
   registerRoute("post", "/chat", async (context) => {
     const requestId = randomUUID();
 
     try {
       const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
       const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
+      const workspaceId = requireSelectedWorkspaceId(requestContext);
       await ensureSyncDevice(
-        requestContext.workspaceId,
+        workspaceId,
         requestContext.userId,
         body.deviceId,
         "web",
         body.appVersion,
       );
-      return await streamChatResponse(body, requestContext.workspaceId, requestId);
+      return await streamChatResponse(body, workspaceId, requestId);
     } catch (error) {
       if (error instanceof HttpError || error instanceof AuthError) {
         throw error;
@@ -715,17 +770,21 @@ export function createApp(basePath: string): Hono<AppEnv> {
     return new Response(null, { status: 204 });
   });
 
-  registerRoute("post", "/sync/push", async (context) => {
+  registerRoute("post", "/workspaces/:workspaceId/sync/push", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
     const input = parseSyncPushInput(await parseJsonBody(context.req.raw));
-    const result = await processSyncPush(requestContext.workspaceId, requestContext.userId, input);
+    const result = await processSyncPush(workspaceId, requestContext.userId, input);
     return context.json(result);
   });
 
-  registerRoute("post", "/sync/pull", async (context) => {
+  registerRoute("post", "/workspaces/:workspaceId/sync/pull", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
     const input = parseSyncPullInput(await parseJsonBody(context.req.raw));
-    const result = await processSyncPull(requestContext.workspaceId, requestContext.userId, input);
+    const result = await processSyncPull(workspaceId, requestContext.userId, input);
     return context.json(result);
   });
 

@@ -20,17 +20,17 @@ export async function ensureSyncDevice(
       "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
       "VALUES ($1, $2, $3, $4, $5, now())",
       "ON CONFLICT (device_id) DO UPDATE",
-      "SET app_version = EXCLUDED.app_version,",
+      "SET workspace_id = EXCLUDED.workspace_id,",
+      "user_id = EXCLUDED.user_id,",
+      "app_version = EXCLUDED.app_version,",
       "last_seen_at = now()",
-      "WHERE sync.devices.workspace_id = EXCLUDED.workspace_id",
-      "AND sync.devices.user_id = EXCLUDED.user_id",
-      "AND sync.devices.platform = EXCLUDED.platform",
+      "WHERE sync.devices.platform = EXCLUDED.platform",
       "RETURNING device_id",
     ].join(" "),
     [deviceId, workspaceId, userId, platform, appVersion],
   );
 
   if (result.rows.length !== 1) {
-    throw new HttpError(409, "deviceId is already registered with a different workspace, user, or platform");
+    throw new HttpError(409, "deviceId is already registered with a different platform");
   }
 }
