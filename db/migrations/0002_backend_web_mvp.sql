@@ -23,7 +23,5 @@ ALTER TABLE sync.devices
 ALTER TABLE sync.devices
   ADD CONSTRAINT devices_platform_check
   CHECK (platform IN ('ios', 'android', 'web'));
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_devices_workspace_user_web
-  ON sync.devices(workspace_id, user_id)
-  WHERE platform = 'web';
+-- Web sync clients now own their own stable browser-local device ids.
+-- Multiple web devices per (workspace_id, user_id) must remain allowed.
