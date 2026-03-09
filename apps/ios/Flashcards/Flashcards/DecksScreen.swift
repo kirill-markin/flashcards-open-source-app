@@ -21,7 +21,7 @@ struct DecksScreen: View {
             }
 
             Section {
-                Text("Decks reuse the backend deck contract: name plus filter definition.")
+                Text("Decks group related cards so you can study a topic together.")
                     .foregroundStyle(.secondary)
             }
 

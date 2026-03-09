@@ -48,7 +48,7 @@ export function DecksScreen(): ReactElement {
         <div className="screen-head">
           <div>
             <h1 className="title">Decks</h1>
-            <p className="subtitle">Saved filter sets over the full cards table.</p>
+            <p className="subtitle">Decks group related cards so you can study a topic together.</p>
           </div>
           <div className="screen-actions">
             <span className="badge">{decks.length} total</span>

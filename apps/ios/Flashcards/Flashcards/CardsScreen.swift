@@ -23,7 +23,7 @@ struct CardsScreen: View {
             }
 
             Section {
-                Text("Cards are stored locally in SQLite with backend-shaped fields.")
+                Text("Cards are the prompts and answers you review to learn and remember.")
                     .foregroundStyle(.secondary)
             }
 
