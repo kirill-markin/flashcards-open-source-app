@@ -120,7 +120,7 @@ struct ReviewView: View {
                 HStack(spacing: 12) {
                     Label("Due \(displayTimestamp(value: card.dueAt))", systemImage: "clock")
                     Label("Reps \(card.reps)", systemImage: "arrow.clockwise")
-                    Label("Lapses \(card.lapses)", systemImage: "exclamationmark.arrow.trianglehead.counterclockwise")
+                    Label("Lapses \(card.lapses)", systemImage: "exclamationmark.circle")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
