@@ -4,6 +4,7 @@ struct AIChatView: View {
     @ObservedObject private var flashcardsStore: FlashcardsStore
     @StateObject private var chatStore: AIChatStore
     @State private var isCloudSignInPresented: Bool
+    @FocusState private var isComposerFocused: Bool
 
     init(flashcardsStore: FlashcardsStore) {
         self.flashcardsStore = flashcardsStore
@@ -91,6 +92,10 @@ struct AIChatView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                self.isComposerFocused = false
+            }
 
             Divider()
 
@@ -118,6 +123,10 @@ struct AIChatView: View {
                     .padding(16)
                 }
                 .background(Color(.systemGroupedBackground))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    self.isComposerFocused = false
+                }
                 .onChange(of: chatStore.messages) { _, messages in
                     guard let lastMessage = messages.last else {
                         return
@@ -157,6 +166,7 @@ struct AIChatView: View {
 
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: self.$chatStore.inputText)
+                        .focused(self.$isComposerFocused)
                         .frame(minHeight: 88, maxHeight: 140)
                         .padding(4)
                         .overlay(
