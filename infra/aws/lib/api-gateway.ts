@@ -78,7 +78,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     entry: props.entry,
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
-    timeout: cdk.Duration.seconds(30),
+    timeout: cdk.Duration.minutes(15),
     memorySize: 256,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
@@ -206,6 +206,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
    * streaming semantics.
    */
   const streamingIntegration = new apigw.LambdaIntegration(chatStreamingFn, {
+    timeout: cdk.Duration.minutes(15),
     responseTransferMode: apigw.ResponseTransferMode.STREAM,
   });
   const notFoundIntegration = new apigw.MockIntegration({
