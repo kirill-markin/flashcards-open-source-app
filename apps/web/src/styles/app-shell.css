@@ -28,24 +28,16 @@
   gap: 8px;
   justify-content: flex-end;
   align-items: center;
+  flex-wrap: wrap;
 }
 
-.account-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid var(--panel-border);
-  background: var(--bg);
+.topbar-account {
   color: var(--muted);
-  cursor: pointer;
+  font-size: 13px;
 }
 
-.account-button:hover {
-  color: var(--text);
-  border-color: var(--text);
+.topbar-signout {
+  text-decoration: none;
 }
 
 .nav {

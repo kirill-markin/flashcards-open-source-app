@@ -14,6 +14,7 @@ import loginPage from "./routes/loginPage.js";
 import refreshSession from "./routes/refreshSession.js";
 import refreshToken from "./routes/refreshToken.js";
 import revokeToken from "./routes/revokeToken.js";
+import logoutPage from "./routes/logoutPage.js";
 import robots from "./routes/robots.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
 import { log } from "./server/logger.js";
@@ -76,6 +77,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", refreshSession);
   app.route("/", refreshToken);
   app.route("/", revokeToken);
+  app.route("/", logoutPage);
 
   return app;
 }

@@ -7,6 +7,7 @@ import type {
   SyncPullResult,
   SyncPushOperation,
   SyncPushResult,
+  WorkspaceSummary,
 } from "./types";
 
 export class ApiError extends Error {
@@ -17,6 +18,14 @@ export class ApiError extends Error {
     this.statusCode = statusCode;
   }
 }
+
+type WorkspaceEnvelope = Readonly<{
+  workspace: WorkspaceSummary;
+}>;
+
+type WorkspacesEnvelope = Readonly<{
+  workspaces: ReadonlyArray<WorkspaceSummary>;
+}>;
 
 type JsonObject = Record<string, unknown>;
 type SessionCsrfState = "unknown" | "session" | "non-session";
@@ -128,13 +137,34 @@ export async function getSession(): Promise<SessionInfo> {
   return session;
 }
 
+export async function listWorkspaces(): Promise<ReadonlyArray<WorkspaceSummary>> {
+  const payload = expectObject(await requestJson("/workspaces", { method: "GET" })) as unknown as WorkspacesEnvelope;
+  return payload.workspaces;
+}
+
+export async function createWorkspace(name: string): Promise<WorkspaceSummary> {
+  const payload = expectObject(await requestJson("/workspaces", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  })) as unknown as WorkspaceEnvelope;
+  return payload.workspace;
+}
+
+export async function selectWorkspace(workspaceId: string): Promise<WorkspaceSummary> {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/select`, {
+    method: "POST",
+  })) as unknown as WorkspaceEnvelope;
+  return payload.workspace;
+}
+
 export async function pushSyncOperations(
+  workspaceId: string,
   deviceId: string,
   platform: "web",
   appVersion: string,
   operations: ReadonlyArray<SyncPushOperation>,
 ): Promise<SyncPushResult> {
-  const payload = expectObject(await requestJson("/sync/push", {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/push`, {
     method: "POST",
     body: JSON.stringify({
       deviceId,
@@ -148,13 +178,14 @@ export async function pushSyncOperations(
 }
 
 export async function pullSyncChanges(
+  workspaceId: string,
   deviceId: string,
   platform: "web",
   appVersion: string,
   afterChangeId: number,
   limit: number,
 ): Promise<SyncPullResult> {
-  const payload = expectObject(await requestJson("/sync/pull", {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/pull`, {
     method: "POST",
     body: JSON.stringify({
       deviceId,
@@ -206,4 +237,10 @@ export function buildLoginUrl(): string {
   const config = getAppConfig();
   const redirectUri = `${config.appBaseUrl}/`;
   return `${config.authBaseUrl}/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
+}
+
+export function buildLogoutUrl(): string {
+  const config = getAppConfig();
+  const redirectUri = `${config.appBaseUrl}/`;
+  return `${config.authBaseUrl}/logout?redirect_uri=${encodeURIComponent(redirectUri)}`;
 }

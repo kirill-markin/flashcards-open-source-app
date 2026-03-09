@@ -8,10 +8,20 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { ApiError, buildLoginUrl, getSession, pullSyncChanges, pushSyncOperations } from "./api";
+import {
+  ApiError,
+  buildLoginUrl,
+  createWorkspace,
+  getSession,
+  listWorkspaces,
+  pullSyncChanges,
+  pushSyncOperations,
+  selectWorkspace,
+} from "./api";
 import { getStableDeviceId, webAppVersion } from "./clientIdentity";
 import {
-  ensureWorkspaceCache,
+  clearWebSyncCache,
+  relinkWorkspaceCache,
   deleteOutboxRecord,
   listOutboxRecords,
   loadWebSyncCache,
@@ -33,6 +43,7 @@ import type {
   SyncChange,
   SyncPushOperation,
   UpdateCardInput,
+  WorkspaceSummary,
   WorkspaceSchedulerSettings,
 } from "./types";
 import {
@@ -41,7 +52,7 @@ import {
   type ReviewableCardScheduleState,
 } from "../../backend/src/schedule";
 
-type SessionLoadState = "loading" | "ready" | "redirecting" | "error";
+type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error";
 type ResourceLoadStatus = "idle" | "loading" | "ready" | "error";
 
 export type ResourceState<Item> = Readonly<{
@@ -55,6 +66,9 @@ type AppDataContextValue = Readonly<{
   sessionLoadState: SessionLoadState;
   sessionErrorMessage: string;
   session: SessionInfo | null;
+  activeWorkspace: WorkspaceSummary | null;
+  availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
+  isChoosingWorkspace: boolean;
   workspaceSettings: WorkspaceSchedulerSettings | null;
   cardsState: ResourceState<Card>;
   decksState: ResourceState<Deck>;
@@ -65,6 +79,7 @@ type AppDataContextValue = Readonly<{
   errorMessage: string;
   setErrorMessage: (message: string) => void;
   initialize: () => Promise<void>;
+  chooseWorkspace: (workspaceId: string) => Promise<void>;
   ensureCardsLoaded: () => Promise<void>;
   ensureDecksLoaded: () => Promise<void>;
   ensureReviewQueueLoaded: () => Promise<void>;
@@ -90,6 +105,7 @@ type MutableSnapshot = {
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 const syncPageSize = 200;
+const defaultWorkspaceName = "My Flashcards";
 
 function createIdleResourceState<Item>(): ResourceState<Item> {
   return {
@@ -129,6 +145,18 @@ function createErrorResourceState<Item>(currentState: ResourceState<Item>, error
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function consumeLoggedOutMarker(): boolean {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("logged_out") !== "1") {
+    return false;
+  }
+
+  url.searchParams.delete("logged_out");
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, document.title, nextUrl);
+  return true;
 }
 
 function nowIso(): string {
@@ -200,6 +228,16 @@ function upsertDeck(decks: ReadonlyArray<Deck>, nextDeck: Deck): Array<Deck> {
 function upsertReviewEvent(reviewEvents: ReadonlyArray<ReviewEvent>, nextReviewEvent: ReviewEvent): Array<ReviewEvent> {
   const nextReviewEvents = reviewEvents.filter((reviewEvent) => reviewEvent.reviewEventId !== nextReviewEvent.reviewEventId);
   return [nextReviewEvent, ...nextReviewEvents];
+}
+
+function markSelectedWorkspaces(
+  workspaces: ReadonlyArray<WorkspaceSummary>,
+  selectedWorkspaceId: string,
+): Array<WorkspaceSummary> {
+  return workspaces.map((workspace) => ({
+    ...workspace,
+    isSelected: workspace.workspaceId === selectedWorkspaceId,
+  }));
 }
 
 function buildInitialCard(
@@ -356,6 +394,9 @@ export function AppDataProvider(props: Props): ReactElement {
   const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>("loading");
   const [sessionErrorMessage, setSessionErrorMessage] = useState<string>("");
   const [session, setSession] = useState<SessionInfo | null>(null);
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(null);
+  const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>([]);
+  const [isChoosingWorkspace, setIsChoosingWorkspace] = useState<boolean>(false);
   const [cardsState, setCardsState] = useState<ResourceState<Card>>(createIdleResourceState<Card>());
   const [decksState, setDecksState] = useState<ResourceState<Deck>>(createIdleResourceState<Deck>());
   const [reviewQueueState, setReviewQueueState] = useState<ResourceState<Card>>(createIdleResourceState<Card>());
@@ -395,6 +436,57 @@ export function AppDataProvider(props: Props): ReactElement {
       lastAppliedChangeId: cache.lastAppliedChangeId,
     });
   }, [publishSnapshot]);
+
+  const activateWorkspace = useCallback(async function activateWorkspace(
+    currentSession: SessionInfo,
+    currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
+    workspace: WorkspaceSummary,
+  ): Promise<void> {
+    await relinkWorkspaceCache(workspace.workspaceId);
+    await hydrateCache();
+
+    const nextWorkspaces = markSelectedWorkspaces(currentWorkspaces, workspace.workspaceId);
+    setAvailableWorkspaces(nextWorkspaces);
+    setActiveWorkspace({
+      ...workspace,
+      isSelected: true,
+    });
+    setSession({
+      ...currentSession,
+      selectedWorkspaceId: workspace.workspaceId,
+    });
+    setSessionLoadState("ready");
+    setSessionErrorMessage("");
+    setErrorMessage("");
+  }, [hydrateCache]);
+
+  const resolveInitialWorkspace = useCallback(async function resolveInitialWorkspace(
+    currentSession: SessionInfo,
+  ): Promise<void> {
+    const workspaces = await listWorkspaces();
+
+    if (workspaces.length === 0) {
+      // The web app does not persist a local workspace name, so use the same
+      // predictable default label for the first explicit remote workspace.
+      const createdWorkspace = await createWorkspace(defaultWorkspaceName);
+      await activateWorkspace(currentSession, [createdWorkspace], createdWorkspace);
+      return;
+    }
+
+    if (workspaces.length === 1) {
+      const onlyWorkspace = workspaces[0];
+      const selectedWorkspace = currentSession.selectedWorkspaceId === onlyWorkspace.workspaceId
+        ? onlyWorkspace
+        : await selectWorkspace(onlyWorkspace.workspaceId);
+      await activateWorkspace(currentSession, [selectedWorkspace], selectedWorkspace);
+      return;
+    }
+
+    setAvailableWorkspaces(workspaces);
+    setActiveWorkspace(null);
+    setSession(currentSession);
+    setSessionLoadState("selecting_workspace");
+  }, [activateWorkspace]);
 
   const applySyncChange = useCallback(async function applySyncChange(change: SyncChange): Promise<void> {
     const currentSnapshot = snapshotRef.current;
@@ -488,11 +580,11 @@ export function AppDataProvider(props: Props): ReactElement {
   }, [publishSnapshot]);
 
   const runSync = useCallback(async function runSync(): Promise<void> {
-    if (session === null) {
+    if (session === null || activeWorkspace === null) {
       return;
     }
 
-    const workspaceId = session.workspaceId;
+    const workspaceId = activeWorkspace.workspaceId;
 
     const activeSync = syncPromiseRef.current;
     if (activeSync !== null) {
@@ -513,6 +605,7 @@ export function AppDataProvider(props: Props): ReactElement {
           const batch = snapshotRef.current.outbox.slice(0, 100);
           try {
             const pushResult = await pushSyncOperations(
+              workspaceId,
               deviceId,
               "web",
               webAppVersion,
@@ -545,7 +638,14 @@ export function AppDataProvider(props: Props): ReactElement {
 
         let afterChangeId = snapshotRef.current.lastAppliedChangeId;
         while (true) {
-          const pullResult = await pullSyncChanges(deviceId, "web", webAppVersion, afterChangeId, syncPageSize);
+          const pullResult = await pullSyncChanges(
+            workspaceId,
+            deviceId,
+            "web",
+            webAppVersion,
+            afterChangeId,
+            syncPageSize,
+          );
           for (const change of pullResult.changes) {
             await applySyncChange(change);
           }
@@ -578,22 +678,25 @@ export function AppDataProvider(props: Props): ReactElement {
 
     syncPromiseRef.current = syncTask;
     return syncTask;
-  }, [applySyncChange, session]);
+  }, [activeWorkspace, applySyncChange, session]);
 
   const initialize = useCallback(async function initialize(): Promise<void> {
     setSessionLoadState("loading");
     setSessionErrorMessage("");
     setErrorMessage("");
+    setActiveWorkspace(null);
+    setAvailableWorkspaces([]);
     setCardsState((currentState) => createLoadingResourceState(currentState));
     setDecksState((currentState) => createLoadingResourceState(currentState));
     setReviewQueueState((currentState) => createLoadingResourceState(currentState));
 
     try {
+      if (consumeLoggedOutMarker()) {
+        await clearWebSyncCache();
+      }
+
       const currentSession = await getSession();
-      setSession(currentSession);
-      await ensureWorkspaceCache(currentSession.workspaceId);
-      await hydrateCache();
-      setSessionLoadState("ready");
+      await resolveInitialWorkspace(currentSession);
     } catch (error) {
       if (error instanceof ApiError && error.statusCode === 401) {
         setSessionLoadState("redirecting");
@@ -608,7 +711,24 @@ export function AppDataProvider(props: Props): ReactElement {
       setDecksState((currentState) => createErrorResourceState(currentState, nextErrorMessage));
       setReviewQueueState((currentState) => createErrorResourceState(currentState, nextErrorMessage));
     }
-  }, [hydrateCache]);
+  }, [resolveInitialWorkspace]);
+
+  const chooseWorkspace = useCallback(async function chooseWorkspace(workspaceId: string): Promise<void> {
+    if (session === null) {
+      throw new Error("Session is unavailable");
+    }
+
+    setIsChoosingWorkspace(true);
+    try {
+      const selectedWorkspace = await selectWorkspace(workspaceId);
+      await activateWorkspace(session, availableWorkspaces, selectedWorkspace);
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsChoosingWorkspace(false);
+    }
+  }, [activateWorkspace, availableWorkspaces, session]);
 
   useEffect(() => {
     void initialize();
@@ -707,14 +827,20 @@ export function AppDataProvider(props: Props): ReactElement {
     return syncedCard;
   }, [runSync]);
 
+  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+
   const createCardItem = useCallback(async function createCardItem(input: CreateCardInput): Promise<Card> {
+    if (activeWorkspaceId === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = getStableDeviceId();
     const nextCard = buildInitialCard(input, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
-      workspaceId: session?.workspaceId ?? "",
+      workspaceId: activeWorkspaceId,
       createdAt: clientUpdatedAt,
       attemptCount: 0,
       lastError: "",
@@ -730,19 +856,23 @@ export function AppDataProvider(props: Props): ReactElement {
     });
     void runSync();
     return nextCard;
-  }, [publishSnapshot, runSync, session?.workspaceId]);
+  }, [activeWorkspaceId, publishSnapshot, runSync]);
 
   const createDeckItem = useCallback(async function createDeckItem(input: CreateDeckInput): Promise<Deck> {
+    if (activeWorkspaceId === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = getStableDeviceId();
     const nextDeck = {
       ...buildDeck(input, clientUpdatedAt, deviceId, operationId),
-      workspaceId: session?.workspaceId ?? "",
+      workspaceId: activeWorkspaceId,
     };
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
-      workspaceId: session?.workspaceId ?? "",
+      workspaceId: activeWorkspaceId,
       createdAt: clientUpdatedAt,
       attemptCount: 0,
       lastError: "",
@@ -758,9 +888,13 @@ export function AppDataProvider(props: Props): ReactElement {
     });
     void runSync();
     return nextDeck;
-  }, [publishSnapshot, runSync, session?.workspaceId]);
+  }, [activeWorkspaceId, publishSnapshot, runSync]);
 
   const updateCardItem = useCallback(async function updateCardItem(cardId: string, input: UpdateCardInput): Promise<Card> {
+    if (activeWorkspaceId === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
     const existingCard = snapshotRef.current.cards.find((card) => card.cardId === cardId && card.deletedAt === null);
     if (existingCard === undefined) {
       throw new Error("Card not found");
@@ -772,7 +906,7 @@ export function AppDataProvider(props: Props): ReactElement {
     const nextCard = buildUpdatedCard(existingCard, input, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
-      workspaceId: session?.workspaceId ?? "",
+      workspaceId: activeWorkspaceId,
       createdAt: clientUpdatedAt,
       attemptCount: 0,
       lastError: "",
@@ -788,9 +922,13 @@ export function AppDataProvider(props: Props): ReactElement {
     });
     void runSync();
     return nextCard;
-  }, [publishSnapshot, runSync, session?.workspaceId]);
+  }, [activeWorkspaceId, publishSnapshot, runSync]);
 
   const submitReviewItem = useCallback(async function submitReviewItem(cardId: string, rating: 0 | 1 | 2 | 3): Promise<Card> {
+    if (activeWorkspaceId === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
     const existingCard = snapshotRef.current.cards.find((card) => card.cardId === cardId && card.deletedAt === null);
     if (existingCard === undefined) {
       throw new Error("Card not found");
@@ -839,7 +977,7 @@ export function AppDataProvider(props: Props): ReactElement {
 
     const nextReviewEvent: ReviewEvent = {
       reviewEventId,
-      workspaceId: session?.workspaceId ?? "",
+      workspaceId: activeWorkspaceId,
       cardId,
       deviceId,
       clientEventId,
@@ -850,7 +988,7 @@ export function AppDataProvider(props: Props): ReactElement {
 
     const reviewEventOutboxRecord: PersistedOutboxRecord = {
       operationId: reviewEventId,
-      workspaceId: session?.workspaceId ?? "",
+      workspaceId: activeWorkspaceId,
       createdAt: reviewedAtClient,
       attemptCount: 0,
       lastError: "",
@@ -859,7 +997,7 @@ export function AppDataProvider(props: Props): ReactElement {
 
     const cardOutboxRecord: PersistedOutboxRecord = {
       operationId: cardOperationId,
-      workspaceId: session?.workspaceId ?? "",
+      workspaceId: activeWorkspaceId,
       createdAt: reviewedAtClient,
       attemptCount: 0,
       lastError: "",
@@ -878,12 +1016,15 @@ export function AppDataProvider(props: Props): ReactElement {
     });
     void runSync();
     return nextCard;
-  }, [publishSnapshot, runSync, session?.workspaceId]);
+  }, [activeWorkspaceId, publishSnapshot, runSync]);
 
   const value: AppDataContextValue = {
     sessionLoadState,
     sessionErrorMessage,
     session,
+    activeWorkspace,
+    availableWorkspaces,
+    isChoosingWorkspace,
     workspaceSettings: snapshotRef.current.workspaceSettings,
     cardsState,
     decksState,
@@ -894,6 +1035,7 @@ export function AppDataProvider(props: Props): ReactElement {
     errorMessage,
     setErrorMessage,
     initialize,
+    chooseWorkspace,
     ensureCardsLoaded,
     ensureDecksLoaded,
     ensureReviewQueueLoaded,
