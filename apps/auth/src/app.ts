@@ -6,7 +6,7 @@
  * Custom-domain auth traffic arrives without a stage prefix.
  */
 import { randomUUID } from "node:crypto";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import health from "./routes/health.js";
 import sendCode from "./routes/sendCode.js";
 import verifyCode from "./routes/verifyCode.js";
@@ -27,8 +27,42 @@ function getMountPaths(basePath: string): ReadonlyArray<string> {
   return [basePath];
 }
 
+function getAllowedApiOrigins(): ReadonlyArray<string> {
+  const value = process.env.ALLOWED_REDIRECT_URIS;
+  if (value === undefined || value.trim() === "") {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin !== "");
+}
+
+function appendVaryHeader(currentValue: string | undefined, value: string): string {
+  if (currentValue === undefined || currentValue === "") {
+    return value;
+  }
+
+  const parts = currentValue.split(",").map((part) => part.trim());
+  if (parts.includes(value)) {
+    return currentValue;
+  }
+
+  return `${currentValue}, ${value}`;
+}
+
+function setApiCorsHeaders(c: Context<AuthAppEnv>, origin: string): void {
+  c.header("Access-Control-Allow-Origin", origin);
+  c.header("Access-Control-Allow-Credentials", "true");
+  c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "content-type, authorization, x-csrf-token");
+  c.header("Vary", appendVaryHeader(c.res.headers.get("Vary") ?? undefined, "Origin"));
+}
+
 function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   const app = new Hono<AuthAppEnv>().basePath(basePath);
+  const allowedApiOrigins = getAllowedApiOrigins();
 
   app.use("*", async (c, next) => {
     const requestId = randomUUID();
@@ -40,11 +74,27 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
 
   // Deny cross-origin requests to API endpoints (defense-in-depth).
   app.use("/api/*", async (c, next) => {
-    if (c.req.method === "OPTIONS") {
-      return new Response(null, { status: 204 });
+    const origin = c.req.header("origin");
+    if (origin !== undefined) {
+      if (!allowedApiOrigins.includes(origin)) {
+        return c.json({ error: "Origin is not allowed" }, 403);
+      }
+      setApiCorsHeaders(c, origin);
     }
+
+    if (c.req.method === "OPTIONS") {
+      return c.body(null, 204);
+    }
+
     const secFetchSite = c.req.header("sec-fetch-site");
-    if (secFetchSite !== undefined && secFetchSite !== "same-origin" && secFetchSite !== "none") {
+    // `app.<domain>` refreshes the browser session through `auth.<domain>`,
+    // which is cross-origin but still same-site and protected by browser cookies.
+    if (
+      secFetchSite !== undefined
+      && secFetchSite !== "same-origin"
+      && secFetchSite !== "same-site"
+      && secFetchSite !== "none"
+    ) {
       return c.json({ error: "Cross-origin requests not allowed" }, 403);
     }
     await next();
