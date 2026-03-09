@@ -10,15 +10,13 @@ struct SettingsView: View {
         List {
             if store.globalErrorMessage.isEmpty == false {
                 Section {
-                    Text(store.globalErrorMessage)
-                        .foregroundStyle(.red)
+                    CopyableErrorMessageView(message: store.globalErrorMessage)
                 }
             }
 
             if screenErrorMessage.isEmpty == false {
                 Section {
-                    Text(screenErrorMessage)
-                        .foregroundStyle(.red)
+                    CopyableErrorMessageView(message: screenErrorMessage)
                 }
             }
 

@@ -313,6 +313,34 @@ struct CloudLinkedSession: Hashable {
     let bearerToken: String
 }
 
+struct CloudWorkspaceSummary: Codable, Identifiable, Hashable {
+    let workspaceId: String
+    let name: String
+    let createdAt: String
+    let isSelected: Bool
+
+    var id: String {
+        workspaceId
+    }
+}
+
+struct CloudWorkspaceLinkContext: Hashable, Identifiable {
+    let userId: String
+    let email: String?
+    let apiBaseUrl: String
+    let credentials: StoredCloudCredentials
+    let workspaces: [CloudWorkspaceSummary]
+
+    var id: String {
+        userId
+    }
+}
+
+enum CloudWorkspaceLinkSelection: Hashable {
+    case existing(workspaceId: String)
+    case createNew
+}
+
 struct CloudServiceConfiguration: Hashable {
     let apiBaseUrl: String
     let authBaseUrl: String

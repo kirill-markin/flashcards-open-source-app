@@ -355,18 +355,70 @@ final class FlashcardsStore: ObservableObject {
         return challenge
     }
 
-    func verifyCloudSignIn(challenge: CloudOtpChallenge, code: String) async throws {
+    func verifyCloudSignIn(challenge: CloudOtpChallenge, code: String) async throws -> CloudWorkspaceLinkContext {
+        guard let cloudSyncService else {
+            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
+        }
+
         let configuration = try loadCloudServiceConfiguration()
         let credentials = try await self.cloudAuthService.verifyCode(
             challenge: challenge,
             code: code,
             authBaseUrl: configuration.authBaseUrl
         )
-
-        try self.credentialStore.saveCredentials(credentials: credentials)
-        try await self.completeCloudLink(
+        let account = try await cloudSyncService.fetchCloudAccount(
             apiBaseUrl: configuration.apiBaseUrl,
             bearerToken: credentials.idToken
+        )
+
+        self.globalErrorMessage = ""
+        return CloudWorkspaceLinkContext(
+            userId: account.userId,
+            email: account.email,
+            apiBaseUrl: configuration.apiBaseUrl,
+            credentials: credentials,
+            workspaces: account.workspaces
+        )
+    }
+
+    func completeCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ) async throws {
+        guard let cloudSyncService else {
+            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
+        }
+        guard let workspace else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        let linkedWorkspace: CloudWorkspaceSummary
+        switch selection {
+        case .existing(let workspaceId):
+            // Workspace choice is explicit now so future device-side workspace
+            // switching can reuse the same linking surface.
+            linkedWorkspace = try await cloudSyncService.selectWorkspace(
+                apiBaseUrl: linkContext.apiBaseUrl,
+                bearerToken: linkContext.credentials.idToken,
+                workspaceId: workspaceId
+            )
+        case .createNew:
+            linkedWorkspace = try await cloudSyncService.createWorkspace(
+                apiBaseUrl: linkContext.apiBaseUrl,
+                bearerToken: linkContext.credentials.idToken,
+                name: workspace.name
+            )
+        }
+
+        try self.credentialStore.saveCredentials(credentials: linkContext.credentials)
+        try await self.finishCloudLink(
+            linkedSession: CloudLinkedSession(
+                userId: linkContext.userId,
+                workspaceId: linkedWorkspace.workspaceId,
+                email: linkContext.email,
+                apiBaseUrl: linkContext.apiBaseUrl,
+                bearerToken: linkContext.credentials.idToken
+            )
         )
         self.globalErrorMessage = ""
     }
@@ -391,12 +443,9 @@ final class FlashcardsStore: ObservableObject {
         try self.reload()
     }
 
-    func completeCloudLink(apiBaseUrl: String, bearerToken: String) async throws {
+    private func finishCloudLink(linkedSession: CloudLinkedSession) async throws {
         guard let database else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let cloudSyncService else {
-            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
         }
         guard let localWorkspaceId = self.workspace?.workspaceId else {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
@@ -404,10 +453,6 @@ final class FlashcardsStore: ObservableObject {
 
         self.syncStatus = .syncing
         do {
-            let linkedSession = try await cloudSyncService.fetchLinkedSession(
-                apiBaseUrl: apiBaseUrl,
-                bearerToken: bearerToken
-            )
             let needsBootstrap = self.cloudSettings?.cloudState != .linked
                 || self.cloudSettings?.linkedWorkspaceId != linkedSession.workspaceId
 
@@ -597,9 +642,11 @@ final class FlashcardsStore: ObservableObject {
 
         do {
             let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
-            try await self.completeCloudLink(
-                apiBaseUrl: configuration.apiBaseUrl,
-                bearerToken: credentials.idToken
+            try await self.finishCloudLink(
+                linkedSession: try self.storedLinkedSession(
+                    apiBaseUrl: configuration.apiBaseUrl,
+                    bearerToken: credentials.idToken
+                )
             )
             return
         } catch {
@@ -610,9 +657,11 @@ final class FlashcardsStore: ObservableObject {
 
         do {
             let refreshedCredentials = try await self.refreshCloudCredentials(forceRefresh: true)
-            try await self.completeCloudLink(
-                apiBaseUrl: configuration.apiBaseUrl,
-                bearerToken: refreshedCredentials.idToken
+            try await self.finishCloudLink(
+                linkedSession: try self.storedLinkedSession(
+                    apiBaseUrl: configuration.apiBaseUrl,
+                    bearerToken: refreshedCredentials.idToken
+                )
             )
         } catch {
             if self.isCloudAuthorizationError(error) {
@@ -663,6 +712,31 @@ final class FlashcardsStore: ObservableObject {
         )
         self.activeCloudSession = nextSession
         return nextSession
+    }
+
+    private func storedLinkedSession(apiBaseUrl: String, bearerToken: String) throws -> CloudLinkedSession {
+        guard let cloudSettings else {
+            throw LocalStoreError.uninitialized("Cloud settings are unavailable")
+        }
+        guard cloudSettings.cloudState == .linked else {
+            throw LocalStoreError.uninitialized("Cloud account is not linked")
+        }
+        guard let linkedUserId = cloudSettings.linkedUserId, linkedUserId.isEmpty == false else {
+            throw LocalStoreError.uninitialized("Linked user is unavailable")
+        }
+        guard let linkedWorkspaceId = cloudSettings.linkedWorkspaceId, linkedWorkspaceId.isEmpty == false else {
+            throw LocalStoreError.uninitialized("Linked workspace is unavailable")
+        }
+
+        let linkedSession = CloudLinkedSession(
+            userId: linkedUserId,
+            workspaceId: linkedWorkspaceId,
+            email: cloudSettings.linkedEmail,
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken
+        )
+        self.activeCloudSession = linkedSession
+        return linkedSession
     }
 
     private func isCloudAuthorizationError(_ error: Error) -> Bool {
