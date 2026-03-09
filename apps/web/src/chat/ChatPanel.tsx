@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
   type ReactElement,
 } from "react";
-import { sendChatDiagnostics, streamChat, type ChatRequestBody } from "../api";
+import { createChatRequestBody, sendChatDiagnostics, streamChat, type ChatRequestBody } from "../api";
 import { DEFAULT_MODEL_ID } from "../chatModels";
 import type { ChatDiagnosticsPayload, ChatStreamEvent, ContentPart } from "../types";
 import { useChatLayout } from "./ChatLayoutContext";
@@ -336,11 +336,11 @@ export function ChatPanel(props: Props): ReactElement {
       { role: "user" as const, content: contentParts },
     ];
 
-    const requestBody: ChatRequestBody = {
-      model: selectedModel,
-      messages: allMessages,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    };
+    const requestBody: ChatRequestBody = createChatRequestBody(
+      allMessages,
+      selectedModel,
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+    );
 
     if (JSON.stringify(requestBody).length > MAX_BODY_BYTES) {
       markAssistantError("Request is too large for the chat endpoint.");

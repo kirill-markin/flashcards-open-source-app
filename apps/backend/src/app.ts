@@ -3,24 +3,8 @@ import { cors } from "hono/cors";
 import { Hono, type Handler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { authenticateRequest, AuthError, type AuthTransport } from "./auth";
-import {
-  createCard,
-  getCard,
-  listCards,
-  listReviewQueue,
-  submitReview,
-  updateCard,
-  type CreateCardInput,
-  type EffortLevel,
-  type UpdateCardInput,
-} from "./cards";
-import {
-  createDeck,
-  listDecks,
-  parseCreateDeckInput,
-} from "./decks";
 import { query } from "./db";
-import { ensureWebDevice } from "./devices";
+import { ensureSyncDevice } from "./devices";
 import { HttpError } from "./errors";
 import { ensureUserAndWorkspace } from "./ensureUser";
 import {
@@ -30,24 +14,12 @@ import {
   toAuthRequest,
   type RequestAuthInputs,
 } from "./requestSecurity";
-import type { ReviewRating } from "./schedule";
-import {
-  getWorkspaceSchedulerSettings,
-  updateWorkspaceSchedulerSettings,
-  type UpdateWorkspaceSchedulerSettingsInput,
-} from "./workspaceSchedulerSettings";
 import {
   parseSyncPullInput,
   parseSyncPushInput,
   processSyncPull,
   processSyncPush,
 } from "./sync";
-import type {
-  LocalAssistantToolCall,
-  LocalChatMessage,
-  LocalChatRequestBody,
-  LocalChatStreamEvent,
-} from "./chat/localTypes";
 import { CHAT_MODELS } from "./chat/models";
 import type { ChatMessage, ChatStreamEvent } from "./chat/types";
 
@@ -57,13 +29,14 @@ type RequestContext = Readonly<{
   email: string | null;
   locale: string;
   transport: AuthTransport;
-  deviceId: string | null;
 }>;
 
 type ChatRequestBody = Readonly<{
   messages: ReadonlyArray<ChatMessage>;
   model: string;
   timezone: string;
+  deviceId: string;
+  appVersion: string;
 }>;
 
 type ChatDiagnosticsStage =
@@ -127,39 +100,12 @@ async function loadRequestContext(requestAuthInputs: RequestAuthInputs): Promise
   const auth = await authenticateRequest(toAuthRequest(requestAuthInputs));
   const userWorkspace = await ensureUserAndWorkspace(auth.userId);
 
-  if (auth.transport === "session") {
-    const device = await ensureWebDevice(userWorkspace.workspaceId, userWorkspace.userId);
-    return {
-      userId: userWorkspace.userId,
-      workspaceId: userWorkspace.workspaceId,
-      email: userWorkspace.email,
-      locale: userWorkspace.locale,
-      transport: auth.transport,
-      deviceId: device.deviceId,
-    };
-  }
-
   return {
     userId: userWorkspace.userId,
     workspaceId: userWorkspace.workspaceId,
     email: userWorkspace.email,
     locale: userWorkspace.locale,
     transport: auth.transport,
-    deviceId: null,
-  };
-}
-
-async function loadReviewContext(requestAuthInputs: RequestAuthInputs): Promise<RequestContext> {
-  const requestContext = await loadRequestContext(requestAuthInputs);
-
-  if (requestContext.deviceId !== null) {
-    return requestContext;
-  }
-
-  const device = await ensureWebDevice(requestContext.workspaceId, requestContext.userId);
-  return {
-    ...requestContext,
-    deviceId: device.deviceId,
   };
 }
 
@@ -180,38 +126,6 @@ async function loadRequestContextFromRequest(
   return {
     requestAuthInputs,
     requestContext,
-  };
-}
-
-async function loadMutableRequestContextFromRequest(
-  request: Request,
-  allowedOrigins: ReadonlyArray<string>,
-): Promise<Readonly<{
-  requestAuthInputs: RequestAuthInputs;
-  requestContext: RequestContext;
-}>> {
-  const requestAuthInputs = extractRequestAuthInputs(request);
-  const requestContext = await loadReviewContext(requestAuthInputs);
-
-  if (requestContext.transport === "session") {
-    await enforceSessionCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
-  }
-
-  return {
-    requestAuthInputs,
-    requestContext,
-  };
-}
-
-function makeClientMutationMetadata(deviceId: string, clientUpdatedAt: string): Readonly<{
-  clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
-  lastOperationId: string;
-}> {
-  return {
-    clientUpdatedAt,
-    lastModifiedByDeviceId: deviceId,
-    lastOperationId: randomUUID(),
   };
 }
 
@@ -244,14 +158,6 @@ function expectNonEmptyString(value: unknown, fieldName: string): string {
   return trimmed;
 }
 
-function expectOptionalNonEmptyString(value: unknown, fieldName: string): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  return expectNonEmptyString(value, fieldName);
-}
-
 function expectNullableNonEmptyString(value: unknown, fieldName: string): string | null {
   if (value === null) {
     return null;
@@ -263,19 +169,6 @@ function expectNullableNonEmptyString(value: unknown, fieldName: string): string
 function expectBoolean(value: unknown, fieldName: string): boolean {
   if (typeof value !== "boolean") {
     throw new HttpError(400, `${fieldName} must be a boolean`);
-  }
-
-  return value;
-}
-
-function expectNumberInRange(
-  value: unknown,
-  fieldName: string,
-  minExclusive: number,
-  maxExclusive: number,
-): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= minExclusive || value >= maxExclusive) {
-    throw new HttpError(400, `${fieldName} must be a finite number between ${minExclusive} and ${maxExclusive}`);
   }
 
   return value;
@@ -297,175 +190,6 @@ function expectNullableNonNegativeInteger(value: unknown, fieldName: string): nu
   return expectNonNegativeInteger(value, fieldName);
 }
 
-function expectPositiveIntegerArray(value: unknown, fieldName: string): ReadonlyArray<number> {
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new HttpError(400, `${fieldName} must be a non-empty array`);
-  }
-
-  const items = value.map((item) => {
-    if (typeof item !== "number" || !Number.isInteger(item) || item <= 0 || item >= 1_440) {
-      throw new HttpError(400, `${fieldName} must contain positive integer minutes under 1440`);
-    }
-
-    return item;
-  });
-
-  for (let index = 1; index < items.length; index += 1) {
-    if (items[index] <= items[index - 1]) {
-      throw new HttpError(400, `${fieldName} must be strictly increasing`);
-    }
-  }
-
-  return items;
-}
-
-function normalizeTags(value: unknown): ReadonlyArray<string> {
-  if (!Array.isArray(value)) {
-    throw new HttpError(400, "tags must be an array of strings");
-  }
-
-  const uniqueTags = new Set<string>();
-  for (const item of value) {
-    if (typeof item !== "string") {
-      throw new HttpError(400, "tags must be an array of strings");
-    }
-
-    const normalizedTag = item.trim();
-    if (normalizedTag !== "") {
-      uniqueTags.add(normalizedTag);
-    }
-  }
-
-  return [...uniqueTags];
-}
-
-function expectEffortLevel(value: unknown): EffortLevel {
-  if (value === "fast" || value === "medium" || value === "long") {
-    return value;
-  }
-
-  throw new HttpError(400, "effortLevel must be one of fast, medium, or long");
-}
-
-function parseCreateCardInput(value: unknown): CreateCardInput {
-  const body = expectRecord(value);
-
-  return {
-    frontText: expectNonEmptyString(body.frontText, "frontText"),
-    backText: expectNonEmptyString(body.backText, "backText"),
-    tags: normalizeTags(body.tags),
-    effortLevel: expectEffortLevel(body.effortLevel),
-  };
-}
-
-function parseUpdateCardInput(value: unknown): UpdateCardInput {
-  const body = expectRecord(value);
-  const disallowedKeys = [
-    "cardId",
-    "dueAt",
-    "reps",
-    "lapses",
-    "fsrsCardState",
-    "fsrsStepIndex",
-    "fsrsStability",
-    "fsrsDifficulty",
-    "fsrsLastReviewedAt",
-    "fsrsScheduledDays",
-    "clientUpdatedAt",
-    "lastModifiedByDeviceId",
-    "lastOperationId",
-    "updatedAt",
-    "deletedAt",
-  ];
-
-  for (const key of disallowedKeys) {
-    if (key in body) {
-      throw new HttpError(400, `${key} is read-only and cannot be updated`);
-    }
-  }
-
-  const nextInput: {
-    frontText?: string;
-    backText?: string;
-    tags?: ReadonlyArray<string>;
-    effortLevel?: EffortLevel;
-  } = {};
-
-  if ("frontText" in body) {
-    nextInput.frontText = expectOptionalNonEmptyString(body.frontText, "frontText");
-  }
-
-  if ("backText" in body) {
-    nextInput.backText = expectOptionalNonEmptyString(body.backText, "backText");
-  }
-
-  if ("tags" in body) {
-    nextInput.tags = normalizeTags(body.tags);
-  }
-
-  if ("effortLevel" in body) {
-    nextInput.effortLevel = expectEffortLevel(body.effortLevel);
-  }
-
-  if (
-    nextInput.frontText === undefined &&
-    nextInput.backText === undefined &&
-    nextInput.tags === undefined &&
-    nextInput.effortLevel === undefined
-  ) {
-    throw new HttpError(400, "At least one editable field must be provided");
-  }
-
-  return nextInput;
-}
-
-function parseReviewRating(value: unknown): ReviewRating {
-  if (value === 0 || value === 1 || value === 2 || value === 3) {
-    return value;
-  }
-
-  throw new HttpError(400, "rating must be one of 0, 1, 2, or 3");
-}
-
-function parseSubmitReviewInput(value: unknown): Readonly<{
-  cardId: string;
-  rating: ReviewRating;
-  reviewedAtClient: string;
-}> {
-  const body = expectRecord(value);
-
-  return {
-    cardId: expectNonEmptyString(body.cardId, "cardId"),
-    rating: parseReviewRating(body.rating),
-    reviewedAtClient: expectNonEmptyString(body.reviewedAtClient, "reviewedAtClient"),
-  };
-}
-
-function parseWorkspaceSchedulerSettingsInput(value: unknown): UpdateWorkspaceSchedulerSettingsInput {
-  const body = expectRecord(value);
-
-  return {
-    desiredRetention: expectNumberInRange(body.desiredRetention, "desiredRetention", 0, 1),
-    learningStepsMinutes: expectPositiveIntegerArray(body.learningStepsMinutes, "learningStepsMinutes"),
-    relearningStepsMinutes: expectPositiveIntegerArray(body.relearningStepsMinutes, "relearningStepsMinutes"),
-    maximumIntervalDays: expectNonNegativeInteger(body.maximumIntervalDays, "maximumIntervalDays"),
-    enableFuzz: expectBoolean(body.enableFuzz, "enableFuzz"),
-  };
-}
-
-function parseLimit(value: string | undefined): number {
-  if (value === undefined) {
-    return 20;
-  }
-
-  const limit = Number.parseInt(value, 10);
-  if (!Number.isFinite(limit) || limit < 1 || limit > 100) {
-    throw new HttpError(400, "limit must be an integer between 1 and 100");
-  }
-
-  return limit;
-}
-
 function parseChatMessages(value: unknown): ReadonlyArray<ChatMessage> {
   if (!Array.isArray(value) || value.length === 0) {
     throw new HttpError(400, "messages must be a non-empty array");
@@ -483,81 +207,13 @@ function parseChatRequestBody(value: unknown): ChatRequestBody {
     messages: parseChatMessages(body.messages),
     model,
     timezone,
+    deviceId: expectNonEmptyString(body.deviceId, "deviceId"),
+    appVersion: expectNonEmptyString(body.appVersion, "appVersion"),
   };
 }
 
-function parseLocalAssistantToolCall(value: unknown): LocalAssistantToolCall {
-  const body = expectRecord(value);
 
-  return {
-    toolCallId: expectNonEmptyString(body.toolCallId, "toolCallId"),
-    name: expectNonEmptyString(body.name, "name"),
-    input: expectNonEmptyString(body.input, "input"),
-  };
-}
 
-function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage> {
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new HttpError(400, "messages must be a non-empty array");
-  }
-
-  return value.map((messageValue, index) => {
-    const body = expectRecord(messageValue);
-    const role = expectNonEmptyString(body.role, `messages[${index}].role`);
-
-    if (role === "user") {
-      return {
-        role: "user",
-        content: expectNonEmptyString(body.content, `messages[${index}].content`),
-      };
-    }
-
-    if (role === "assistant") {
-      const toolCallsValue = body.toolCalls;
-      const toolCalls = toolCallsValue === undefined
-        ? []
-        : Array.isArray(toolCallsValue)
-        ? toolCallsValue.map(parseLocalAssistantToolCall)
-        : (() => {
-          throw new HttpError(400, `messages[${index}].toolCalls must be an array`);
-        })();
-
-      return {
-        role: "assistant",
-        content: typeof body.content === "string" ? body.content : "",
-        toolCalls,
-      };
-    }
-
-    if (role === "tool") {
-      const outputValue = body.output;
-      if (typeof outputValue !== "string") {
-        throw new HttpError(400, `messages[${index}].output must be a string`);
-      }
-
-      return {
-        role: "tool",
-        toolCallId: expectNonEmptyString(body.toolCallId, `messages[${index}].toolCallId`),
-        name: expectNonEmptyString(body.name, `messages[${index}].name`),
-        output: outputValue,
-      };
-    }
-
-    throw new HttpError(400, `messages[${index}].role is invalid`);
-  });
-}
-
-function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody {
-  const body = expectRecord(value);
-  const model = expectNonEmptyString(body.model, "model");
-  const timezone = expectNonEmptyString(body.timezone, "timezone");
-
-  return {
-    messages: parseLocalChatMessages(body.messages),
-    model,
-    timezone,
-  };
-}
 
 /**
  * Restricts diagnostics logs to a known set of lifecycle stages so CloudWatch
@@ -671,7 +327,7 @@ function createChatErrorResponse(message: string, requestId: string): Response {
 
 async function streamChatResponse(
   body: ChatRequestBody,
-  requestContext: RequestContext,
+  workspaceId: string,
   requestId: string,
 ): Promise<Response> {
   const validModel = CHAT_MODELS.find((model) => model.id === body.model);
@@ -697,8 +353,8 @@ async function streamChatResponse(
           messages: body.messages,
           model: body.model,
           requestId,
-          workspaceId: requestContext.workspaceId,
-          deviceId: requestContext.deviceId!,
+          workspaceId,
+          deviceId: body.deviceId,
           timezone: body.timezone,
         })) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
@@ -725,53 +381,6 @@ async function streamChatResponse(
   });
 }
 
-export async function streamLocalChatResponse(
-  body: LocalChatRequestBody,
-  requestId: string,
-): Promise<Response> {
-  const validModel = CHAT_MODELS.find((model) => model.id === body.model && model.vendor === "openai");
-  if (validModel === undefined) {
-    throw new HttpError(400, `Unknown local chat model: ${body.model}`);
-  }
-
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (apiKey === undefined || apiKey === "") {
-    throw new HttpError(500, "OPENAI_API_KEY environment variable is not set");
-  }
-
-  const agentModule = await import("./chat/openai/localAgent");
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const event of agentModule.streamLocalTurn({
-          messages: body.messages,
-          model: body.model,
-          timezone: body.timezone,
-        })) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-          if (event.type === "done" || event.type === "await_tool_results") {
-            break;
-          }
-        }
-      } catch (error) {
-        const message = getInternalErrorMessage(error);
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message } satisfies LocalChatStreamEvent)}\n\n`));
-      } finally {
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      "X-Chat-Request-Id": requestId,
-    },
-  });
-}
 
 export function createApp(basePath: string): Hono {
   const app = new Hono();
@@ -873,107 +482,20 @@ export function createApp(basePath: string): Hono {
     });
   });
 
-  registerRoute("get", "/workspace/scheduler-settings", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const schedulerSettings = await getWorkspaceSchedulerSettings(requestContext.workspaceId);
-    return context.json({ schedulerSettings });
-  });
-
-  registerRoute("put", "/workspace/scheduler-settings", async (context) => {
-    const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const input = parseWorkspaceSchedulerSettingsInput(await parseJsonBody(context.req.raw));
-    const schedulerSettings = await updateWorkspaceSchedulerSettings(
-      requestContext.workspaceId,
-      input,
-      makeClientMutationMetadata(requestContext.deviceId!, new Date().toISOString()),
-    );
-    return context.json({ schedulerSettings });
-  });
-
-  registerRoute("get", "/cards", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const cards = await listCards(requestContext.workspaceId);
-    return context.json({ items: cards });
-  });
-
-  registerRoute("get", "/decks", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const decks = await listDecks(requestContext.workspaceId);
-    return context.json({ items: decks });
-  });
-
-  registerRoute("get", "/cards/:cardId", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const cardId = expectNonEmptyString(context.req.param("cardId"), "cardId");
-    const card = await getCard(requestContext.workspaceId, cardId);
-    return context.json({ card });
-  });
-
-  registerRoute("post", "/cards", async (context) => {
-    const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const input = parseCreateCardInput(await parseJsonBody(context.req.raw));
-    const card = await createCard(
-      requestContext.workspaceId,
-      input,
-      makeClientMutationMetadata(requestContext.deviceId!, new Date().toISOString()),
-    );
-    return context.json({ card }, 201);
-  });
-
-  registerRoute("post", "/decks", async (context) => {
-    const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const input = parseCreateDeckInput(await parseJsonBody(context.req.raw));
-    const deck = await createDeck(
-      requestContext.workspaceId,
-      input,
-      makeClientMutationMetadata(requestContext.deviceId!, new Date().toISOString()),
-    );
-    return context.json({ deck }, 201);
-  });
-
-  registerRoute("patch", "/cards/:cardId", async (context) => {
-    const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const cardId = expectNonEmptyString(context.req.param("cardId"), "cardId");
-    const input = parseUpdateCardInput(await parseJsonBody(context.req.raw));
-    const card = await updateCard(
-      requestContext.workspaceId,
-      cardId,
-      input,
-      makeClientMutationMetadata(requestContext.deviceId!, new Date().toISOString()),
-    );
-    return context.json({ card });
-  });
-
-  registerRoute("get", "/review-queue", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const limit = parseLimit(context.req.query("limit"));
-    const cards = await listReviewQueue(requestContext.workspaceId, limit);
-    return context.json({ items: cards });
-  });
-
-  registerRoute("post", "/reviews", async (context) => {
-    const requestAuthInputs = extractRequestAuthInputs(context.req.raw);
-    const requestContext = await loadReviewContext(requestAuthInputs);
-    if (requestContext.transport === "session") {
-      await enforceSessionCsrfProtection(context.req.method, requestAuthInputs, allowedOrigins);
-    }
-    const input = parseSubmitReviewInput(await parseJsonBody(context.req.raw));
-    const result = await submitReview(
-      requestContext.workspaceId,
-      requestContext.deviceId!,
-      input,
-      makeClientMutationMetadata(requestContext.deviceId!, input.reviewedAtClient),
-    );
-    return context.json(result);
-  });
-
   registerRoute("post", "/chat", async (context) => {
     const requestId = randomUUID();
 
     try {
-      const { requestContext } = await loadMutableRequestContextFromRequest(context.req.raw, allowedOrigins);
+      const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
       const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
-      return await streamChatResponse(body, requestContext, requestId);
+      await ensureSyncDevice(
+        requestContext.workspaceId,
+        requestContext.userId,
+        body.deviceId,
+        "web",
+        body.appVersion,
+      );
+      return await streamChatResponse(body, requestContext.workspaceId, requestId);
     } catch (error) {
       if (error instanceof HttpError || error instanceof AuthError) {
         throw error;
@@ -983,21 +505,6 @@ export function createApp(basePath: string): Hono {
     }
   });
 
-  registerRoute("post", "/chat/local-turn", async (context) => {
-    const requestId = randomUUID();
-
-    try {
-      await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-      const body = parseLocalChatRequestBody(await parseJsonBody(context.req.raw));
-      return await streamLocalChatResponse(body, requestId);
-    } catch (error) {
-      if (error instanceof HttpError || error instanceof AuthError) {
-        throw error;
-      }
-
-      return createChatErrorResponse(getInternalErrorMessage(error), requestId);
-    }
-  });
 
   registerRoute("post", "/chat/diagnostics", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
