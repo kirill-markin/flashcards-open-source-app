@@ -9,13 +9,13 @@ import {
   type ReactNode,
 } from "react";
 import {
-  ApiError,
-  buildLoginUrl,
   createWorkspace as createWorkspaceRequest,
   getSession,
+  isAuthRedirectError,
   listWorkspaces,
   pullSyncChanges,
   pushSyncOperations,
+  revalidateSession as revalidateSessionRequest,
   selectWorkspace,
 } from "./api";
 import { getStableDeviceId, webAppVersion } from "./clientIdentity";
@@ -689,6 +689,10 @@ export function AppDataProvider(props: Props): ReactElement {
 
         setErrorMessage("");
       } catch (error) {
+        if (isAuthRedirectError(error)) {
+          throw error;
+        }
+
         setErrorMessage(getErrorMessage(error));
         throw error;
       } finally {
@@ -723,9 +727,8 @@ export function AppDataProvider(props: Props): ReactElement {
       const currentSession = await getSession();
       await resolveInitialWorkspace(currentSession);
     } catch (error) {
-      if (error instanceof ApiError && error.statusCode === 401) {
+      if (isAuthRedirectError(error)) {
         setSessionLoadState("redirecting");
-        window.location.href = buildLoginUrl();
         return;
       }
 
@@ -749,6 +752,10 @@ export function AppDataProvider(props: Props): ReactElement {
       await activateWorkspace(session, availableWorkspaces, selectedWorkspace);
       setErrorMessage("");
     } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
       setErrorMessage(getErrorMessage(error));
     } finally {
       setIsChoosingWorkspace(false);
@@ -772,6 +779,10 @@ export function AppDataProvider(props: Props): ReactElement {
       await activateWorkspace(session, nextWorkspaces, createdWorkspace);
       setErrorMessage("");
     } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
       const nextErrorMessage = getErrorMessage(error);
       setErrorMessage(nextErrorMessage);
       throw error;
@@ -792,8 +803,33 @@ export function AppDataProvider(props: Props): ReactElement {
     void runSync();
   }, [runSync, session, sessionLoadState]);
 
-  useEffect(() => {
+  /**
+   * Revalidates the browser session when the tab resumes so background sync
+   * never keeps using an expired cookie/CSRF pair after a long idle period.
+   */
+  const revalidateActiveSession = useCallback(async function revalidateActiveSession(): Promise<boolean> {
     if (sessionLoadState !== "ready") {
+      return false;
+    }
+
+    try {
+      const currentSession = await revalidateSessionRequest();
+      setSession(currentSession);
+      setSessionErrorMessage("");
+      setErrorMessage("");
+      return true;
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return false;
+      }
+
+      setErrorMessage(getErrorMessage(error));
+      throw error;
+    }
+  }, [sessionLoadState]);
+
+  useEffect(() => {
+    if (sessionLoadState !== "ready" || session === null) {
       return;
     }
 
@@ -803,16 +839,33 @@ export function AppDataProvider(props: Props): ReactElement {
       }
     }, 60_000);
 
+    const handleResume = (): void => {
+      void (async (): Promise<void> => {
+        const isSessionValid = await revalidateActiveSession();
+        if (isSessionValid) {
+          await runSync();
+        }
+      })();
+    };
+
     const handleFocus = (): void => {
-      void runSync();
+      handleResume();
+    };
+
+    const handleVisibilityChange = (): void => {
+      if (document.visibilityState === "visible") {
+        handleResume();
+      }
     };
 
     window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [runSync, sessionLoadState]);
+  }, [revalidateActiveSession, runSync, session, sessionLoadState]);
 
   const ensureCardsLoaded = useCallback(async function ensureCardsLoaded(): Promise<void> {
     if (cardsState.hasLoaded === false) {
@@ -838,6 +891,10 @@ export function AppDataProvider(props: Props): ReactElement {
       await runSync();
       publishSnapshot(snapshotRef.current);
     } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
       setCardsState((currentState) => createErrorResourceState(currentState, getErrorMessage(error)));
     }
   }, [publishSnapshot, runSync]);
@@ -848,6 +905,10 @@ export function AppDataProvider(props: Props): ReactElement {
       await runSync();
       publishSnapshot(snapshotRef.current);
     } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
       setDecksState((currentState) => createErrorResourceState(currentState, getErrorMessage(error)));
     }
   }, [publishSnapshot, runSync]);
@@ -858,6 +919,10 @@ export function AppDataProvider(props: Props): ReactElement {
       await runSync();
       publishSnapshot(snapshotRef.current);
     } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
       setReviewQueueState((currentState) => createErrorResourceState(currentState, getErrorMessage(error)));
     }
   }, [publishSnapshot, runSync]);
