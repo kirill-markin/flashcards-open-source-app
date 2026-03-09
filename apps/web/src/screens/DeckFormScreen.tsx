@@ -42,6 +42,9 @@ export function DeckFormScreen(): ReactElement {
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
   const tagSuggestions = getTagSuggestionsFromCards(cards);
   const filterDefinition = buildDeckFilterDefinition(formState.effortLevels, formState.tagsOperator, formState.tags);
+  const nameFieldId = "deck-name";
+  const tagsOperatorFieldId = "deck-tags-operator";
+  const tagsFieldId = "deck-tags-input";
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setIsLoading(true);
@@ -132,9 +135,11 @@ export function DeckFormScreen(): ReactElement {
 
         <div className="card-form-layout">
           <section className="card-form-panel">
-            <label className="form-label">
+            <label className="form-label" htmlFor={nameFieldId}>
               <span>Name</span>
               <input
+                id={nameFieldId}
+                name="name"
                 className="settings-input"
                 value={formState.name}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => updateField("name", event.target.value)}
@@ -147,6 +152,8 @@ export function DeckFormScreen(): ReactElement {
                 {EFFORT_LEVELS.map((effortLevel) => (
                   <label key={effortLevel} className="deck-checkbox-option">
                     <input
+                      id={`deck-effort-${effortLevel}`}
+                      name="effortLevels"
                       type="checkbox"
                       checked={formState.effortLevels.includes(effortLevel)}
                       onChange={() => updateField("effortLevels", toggleEffortLevel(formState.effortLevels, effortLevel))}
@@ -157,9 +164,11 @@ export function DeckFormScreen(): ReactElement {
               </div>
             </fieldset>
 
-            <label className="form-label">
+            <label className="form-label" htmlFor={tagsOperatorFieldId}>
               <span>Tags operator</span>
               <select
+                id={tagsOperatorFieldId}
+                name="tagsOperator"
                 className="settings-select"
                 value={formState.tagsOperator}
                 onChange={(event) => updateField("tagsOperator", event.target.value as DeckTagsOperator)}
@@ -170,10 +179,14 @@ export function DeckFormScreen(): ReactElement {
             </label>
 
             <div className="form-label">
-              <span>Tags</span>
+              <label htmlFor={tagsFieldId}>
+                <span>Tags</span>
+              </label>
               <CardFormTagsField
                 value={formState.tags}
                 suggestions={tagSuggestions}
+                inputId={tagsFieldId}
+                inputName="tags"
                 onChange={(nextValue) => updateField("tags", nextValue)}
                 disabled={isSaving}
               />

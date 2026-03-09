@@ -20,6 +20,8 @@ type OverlayRect = Readonly<{
 type CardFormTagsFieldProps = Readonly<{
   value: ReadonlyArray<string>;
   suggestions: ReadonlyArray<string>;
+  inputId?: string;
+  inputName?: string;
   onChange: (nextValue: ReadonlyArray<string>) => void;
   disabled: boolean;
 }>;
@@ -105,7 +107,7 @@ function useOutsidePointerClose(
 }
 
 export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
-  const { value, suggestions, onChange, disabled } = props;
+  const { value, suggestions, inputId, inputName, onChange, disabled } = props;
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
   const [draftTags, setDraftTags] = useState<ReadonlyArray<string>>(value);
@@ -181,6 +183,8 @@ export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
             value={draftTags}
             suggestions={suggestions}
             placeholder="Type and press Enter"
+            inputId={inputId}
+            inputName={inputName}
             onChange={setDraftTags}
             onEscape={handleCancel}
           />

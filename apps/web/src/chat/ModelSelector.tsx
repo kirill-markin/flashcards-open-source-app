@@ -24,6 +24,7 @@ export function ModelSelector(props: Props): ReactElement {
 
   return (
     <select
+      name="chatModel"
       className="chat-model-select"
       value={value}
       onChange={(event) => onChange(event.target.value)}

@@ -49,6 +49,10 @@ export function CardFormScreen(): ReactElement {
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
   const isCreateMode = cardId === undefined;
   const tagSuggestions = getTagSuggestionsFromCards(cards);
+  const frontFieldId = "card-front-text";
+  const backFieldId = "card-back-text";
+  const tagsFieldId = "card-tags-input";
+  const effortFieldId = "card-effort-level";
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setScreenErrorMessage("");
@@ -174,9 +178,11 @@ export function CardFormScreen(): ReactElement {
 
         <div className="card-form-layout">
           <section className="card-form-panel">
-            <label className="form-label">
+            <label className="form-label" htmlFor={frontFieldId}>
               <span>Front</span>
               <textarea
+                id={frontFieldId}
+                name="frontText"
                 className="settings-input form-textarea"
                 rows={7}
                 value={formState.frontText}
@@ -184,9 +190,11 @@ export function CardFormScreen(): ReactElement {
               />
             </label>
 
-            <label className="form-label">
+            <label className="form-label" htmlFor={backFieldId}>
               <span>Back</span>
               <textarea
+                id={backFieldId}
+                name="backText"
                 className="settings-input form-textarea"
                 rows={9}
                 value={formState.backText}
@@ -195,18 +203,24 @@ export function CardFormScreen(): ReactElement {
             </label>
 
             <div className="form-label">
-              <span>Tags</span>
+              <label htmlFor={tagsFieldId}>
+                <span>Tags</span>
+              </label>
               <CardFormTagsField
                 value={formState.tags}
                 suggestions={tagSuggestions}
+                inputId={tagsFieldId}
+                inputName="tags"
                 onChange={(nextValue) => updateField("tags", nextValue)}
                 disabled={isSaving}
               />
             </div>
 
-            <label className="form-label">
+            <label className="form-label" htmlFor={effortFieldId}>
               <span>Effort</span>
               <select
+                id={effortFieldId}
+                name="effortLevel"
                 className="settings-select"
                 value={formState.effortLevel}
                 onChange={(event) => updateField("effortLevel", event.target.value as EffortLevel)}
