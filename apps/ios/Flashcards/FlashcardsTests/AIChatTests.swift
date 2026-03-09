@@ -34,10 +34,31 @@ private final class FailingChatService: AIChatStreaming, @unchecked Sendable {
     }
 }
 
+private struct ThrowingChatService: AIChatStreaming {
+    let error: Error
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        throw self.error
+    }
+}
+
 private struct FailingToolExecutor: AIToolExecuting {
     func execute(toolCallRequest: AIToolCallRequest, latestUserText: String) async throws -> String {
         XCTFail("execute should not be called in this test")
         return ""
+    }
+}
+
+private struct StubLocalizedError: LocalizedError {
+    let message: String
+
+    var errorDescription: String? {
+        self.message
     }
 }
 
@@ -48,6 +69,21 @@ private struct BulkDeleteCardsPayload: Decodable {
 }
 
 final class AIChatTests: XCTestCase {
+    override class func setUp() {
+        super.setUp()
+        URLProtocol.registerClass(AIChatMockUrlProtocol.self)
+    }
+
+    override class func tearDown() {
+        URLProtocol.unregisterClass(AIChatMockUrlProtocol.self)
+        super.tearDown()
+    }
+
+    override func tearDown() {
+        AIChatMockUrlProtocol.requestHandler = nil
+        super.tearDown()
+    }
+
     func testAppTabOrderPlacesAIBeforeSettings() {
         XCTAssertEqual(AppTab.allCases, [.review, .decks, .cards, .ai, .settings])
     }
@@ -279,6 +315,91 @@ final class AIChatTests: XCTestCase {
     }
 
     @MainActor
+    func testAIChatStoreShowsStreamFailureOnlyInsideAssistantMessage() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: ThrowingChatService(error: StubLocalizedError(message: "Chat failed")),
+            toolExecutor: FailingToolExecutor()
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatState(chatStore: chatStore)
+
+        XCTAssertEqual(chatStore.errorMessage, "")
+        XCTAssertEqual(chatStore.messages.count, 2)
+        XCTAssertEqual(chatStore.messages[0].role, .user)
+        XCTAssertEqual(chatStore.messages[0].text, "hello")
+        XCTAssertEqual(chatStore.messages[1].role, .assistant)
+        XCTAssertEqual(chatStore.messages[1].text, "Chat failed")
+        XCTAssertEqual(chatStore.messages[1].isError, true)
+    }
+
+    func testAIChatServiceFormatsApiErrorsWithRequestId() async throws {
+        AIChatMockUrlProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/local-turn")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
+
+            let response = HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 403,
+                httpVersion: nil,
+                headerFields: [
+                    "Content-Type": "application/json",
+                    "X-Request-Id": "request-123"
+                ]
+            )!
+            let data = """
+            {"error":"Authentication failed. Sign in again.","requestId":"request-123","code":"AUTH_UNAUTHORIZED"}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = AIChatService(
+            session: self.makeSession(),
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        do {
+            _ = try await service.streamTurn(
+                session: CloudLinkedSession(
+                    userId: "user-1",
+                    workspaceId: "workspace-1",
+                    email: "user@example.com",
+                    apiBaseUrl: "https://api.example.com",
+                    bearerToken: "test-token"
+                ),
+                request: AILocalChatRequestBody(
+                    messages: [AILocalChatWireMessage(
+                        role: "user",
+                        content: "hello",
+                        toolCalls: nil,
+                        toolCallId: nil,
+                        name: nil,
+                        output: nil
+                    )],
+                    model: aiChatDefaultModelId,
+                    timezone: "Europe/Madrid"
+                ),
+                onDelta: { _ in },
+                onToolCallRequest: { _ in }
+            )
+            XCTFail("Expected invalid response error")
+        } catch let error as AIChatServiceError {
+            XCTAssertEqual(
+                error.errorDescription,
+                "AI chat request failed with status 403: Authentication failed. Sign in again. Reference: request-123"
+            )
+        }
+    }
+
+    @MainActor
     private func makeStore() throws -> FlashcardsStore {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
@@ -310,4 +431,105 @@ final class AIChatTests: XCTestCase {
             initialGlobalErrorMessage: ""
         )
     }
+
+    @MainActor
+    private func makeLinkedStore() throws -> FlashcardsStore {
+        let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
+        self.addTeardownBlock {
+            try? FileManager.default.removeItem(at: databaseDirectory)
+        }
+
+        let suiteName = "flashcards-linked-store-tests-\(UUID().uuidString)"
+        let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        userDefaults.removePersistentDomain(forName: suiteName)
+        self.addTeardownBlock {
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        let database = try LocalDatabase(
+            databaseURL: databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
+        )
+        try database.updateCloudSettings(
+            cloudState: .linked,
+            linkedUserId: "user-1",
+            linkedWorkspaceId: "workspace-1",
+            linkedEmail: "user@example.com"
+        )
+
+        let credentialStore = CloudCredentialStore(
+            encoder: encoder,
+            decoder: decoder,
+            service: "tests-\(UUID().uuidString)",
+            account: "linked"
+        )
+        try credentialStore.saveCredentials(
+            credentials: StoredCloudCredentials(
+                refreshToken: "refresh-token",
+                idToken: "id-token",
+                idTokenExpiresAt: isoTimestamp(date: Date().addingTimeInterval(3600))
+            )
+        )
+
+        return FlashcardsStore(
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder,
+            database: database,
+            cloudAuthService: CloudAuthService(),
+            credentialStore: credentialStore,
+            initialGlobalErrorMessage: ""
+        )
+    }
+
+    @MainActor
+    private func waitForChatState(chatStore: AIChatStore) async throws {
+        for _ in 0..<50 {
+            if chatStore.isStreaming == false && chatStore.messages.last?.isError == true {
+                return
+            }
+
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTFail("Timed out waiting for chat store to finish streaming")
+    }
+
+    private func makeSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [AIChatMockUrlProtocol.self]
+        return URLSession(configuration: configuration)
+    }
+}
+
+private final class AIChatMockUrlProtocol: URLProtocol {
+    nonisolated(unsafe) static var requestHandler: (@Sendable (URLRequest) throws -> (HTTPURLResponse, Data))?
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        true
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        guard let handler = AIChatMockUrlProtocol.requestHandler else {
+            XCTFail("AIChatMockUrlProtocol.requestHandler is not set")
+            return
+        }
+
+        do {
+            let (response, data) = try handler(self.request)
+            self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            self.client?.urlProtocol(self, didLoad: data)
+            self.client?.urlProtocolDidFinishLoading(self)
+        } catch {
+            self.client?.urlProtocol(self, didFailWithError: error)
+        }
+    }
+
+    override func stopLoading() {}
 }
