@@ -34,6 +34,30 @@ private func makeReviewFilter(persistedReviewFilter: PersistedReviewFilter) thro
     }
 }
 
+private func applyingCardMutation(cards: [Card], card: Card) -> [Card] {
+    let remainingCards = cards.filter { existingCard in
+        existingCard.cardId != card.cardId
+    }
+
+    if card.deletedAt != nil {
+        return remainingCards
+    }
+
+    return [card] + remainingCards
+}
+
+private func applyingDeckMutation(decks: [Deck], deck: Deck) -> [Deck] {
+    let remainingDecks = decks.filter { existingDeck in
+        existingDeck.deckId != deck.deckId
+    }
+
+    if deck.deletedAt != nil {
+        return remainingDecks
+    }
+
+    return [deck] + remainingDecks
+}
+
 @MainActor
 final class FlashcardsStore: ObservableObject {
     @Published private(set) var workspace: Workspace?
@@ -205,8 +229,8 @@ final class FlashcardsStore: ObservableObject {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
-        try database.saveCard(workspaceId: workspaceId, input: input, cardId: editingCardId)
-        try self.reload()
+        let persistedCard = try database.saveCard(workspaceId: workspaceId, input: input, cardId: editingCardId)
+        self.applyCardMutation(card: persistedCard, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -232,8 +256,8 @@ final class FlashcardsStore: ObservableObject {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
-        try database.deleteCard(workspaceId: workspaceId, cardId: cardId)
-        try self.reload()
+        let deletedCard = try database.deleteCard(workspaceId: workspaceId, cardId: cardId)
+        self.applyCardMutation(card: deletedCard, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -273,8 +297,8 @@ final class FlashcardsStore: ObservableObject {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
-        _ = try database.createDeck(workspaceId: workspaceId, input: input)
-        try self.reload()
+        let createdDeck = try database.createDeck(workspaceId: workspaceId, input: input)
+        self.applyDeckMutation(deck: createdDeck, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -286,8 +310,8 @@ final class FlashcardsStore: ObservableObject {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
-        try database.updateDeck(workspaceId: workspaceId, deckId: deckId, input: input)
-        try self.reload()
+        let updatedDeck = try database.updateDeck(workspaceId: workspaceId, deckId: deckId, input: input)
+        self.applyDeckMutation(deck: updatedDeck, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -299,8 +323,8 @@ final class FlashcardsStore: ObservableObject {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
-        try database.deleteDeck(workspaceId: workspaceId, deckId: deckId)
-        try self.reload()
+        let deletedDeck = try database.deleteDeck(workspaceId: workspaceId, deckId: deckId)
+        self.applyDeckMutation(deck: deletedDeck, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -312,7 +336,7 @@ final class FlashcardsStore: ObservableObject {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
-        try database.submitReview(
+        let updatedCard = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
@@ -320,7 +344,7 @@ final class FlashcardsStore: ObservableObject {
                 reviewedAtClient: currentIsoTimestamp()
             )
         )
-        try self.reload()
+        self.applyCardMutation(card: updatedCard, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -606,12 +630,7 @@ final class FlashcardsStore: ObservableObject {
         self.userSettings = snapshot.userSettings
         self.schedulerSettings = snapshot.schedulerSettings
         self.cloudSettings = snapshot.cloudSettings
-        self.cards = snapshot.cards
-        self.decks = snapshot.decks
-        self.deckItems = makeDeckListItems(decks: snapshot.decks, cards: snapshot.cards, now: now)
-        self.refreshReviewState(now: now)
-        self.homeSnapshot = makeHomeSnapshot(cards: snapshot.cards, deckCount: snapshot.decks.count, now: now)
-        self.globalErrorMessage = ""
+        self.applyLocalState(cards: snapshot.cards, decks: snapshot.decks, now: now)
     }
 
     func cardsMatchingDeck(deck: Deck) -> [Card] {
@@ -634,6 +653,31 @@ final class FlashcardsStore: ObservableObject {
             cards: self.cards,
             now: now
         )
+    }
+
+    private func applyCardMutation(card: Card, now: Date) {
+        self.applyLocalState(
+            cards: applyingCardMutation(cards: self.cards, card: card),
+            decks: self.decks,
+            now: now
+        )
+    }
+
+    private func applyDeckMutation(deck: Deck, now: Date) {
+        self.applyLocalState(
+            cards: self.cards,
+            decks: applyingDeckMutation(decks: self.decks, deck: deck),
+            now: now
+        )
+    }
+
+    private func applyLocalState(cards: [Card], decks: [Deck], now: Date) {
+        self.cards = cards
+        self.decks = decks
+        self.deckItems = makeDeckListItems(decks: decks, cards: cards, now: now)
+        self.refreshReviewState(now: now)
+        self.homeSnapshot = makeHomeSnapshot(cards: cards, deckCount: decks.count, now: now)
+        self.globalErrorMessage = ""
     }
 
     private func persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
@@ -827,7 +871,7 @@ final class FlashcardsStore: ObservableObject {
 
         while true {
             self.pendingCloudResync = false
-            let syncTask = Task { @MainActor in
+            let syncTask = Task {
                 try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
             }
             self.activeCloudSyncTask = syncTask

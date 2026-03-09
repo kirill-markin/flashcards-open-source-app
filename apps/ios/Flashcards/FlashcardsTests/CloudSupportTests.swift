@@ -121,13 +121,13 @@ final class CloudSupportTests: XCTestCase {
         let snapshot = try database.loadStateSnapshot()
         let workspaceId = snapshot.workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
         let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
-        try database.submitReview(
+        _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
@@ -228,13 +228,13 @@ final class CloudSupportTests: XCTestCase {
         let snapshot = try database.loadStateSnapshot()
         let workspaceId = snapshot.workspace.workspaceId
 
-        try database.saveCard(
+        _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
         let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
-        try database.submitReview(
+        _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
@@ -286,6 +286,75 @@ final class CloudSupportTests: XCTestCase {
         XCTAssertEqual(requestPaths, ["/v1/workspaces/\(workspaceId)/sync/pull"])
         XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).count, 0)
         XCTAssertEqual(try database.loadReviewEvents(workspaceId: workspaceId).count, 1)
+    }
+
+    func testRunLinkedSyncCanExecuteOffMainActor() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        let snapshot = try database.loadStateSnapshot()
+        let workspaceId = snapshot.workspace.workspaceId
+
+        _ = try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+
+            if url.path.hasSuffix("/sync/push") {
+                let bodyData = try XCTUnwrap(request.httpBody)
+                let bodyObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+                let operations = try XCTUnwrap(bodyObject["operations"] as? [[String: Any]])
+                let results = operations.compactMap { operation -> [String: Any]? in
+                    guard
+                        let operationId = operation["operationId"] as? String,
+                        let entityType = operation["entityType"] as? String,
+                        let entityId = operation["entityId"] as? String
+                    else {
+                        return nil
+                    }
+
+                    return [
+                        "operationId": operationId,
+                        "entityType": entityType,
+                        "entityId": entityId,
+                        "status": "applied",
+                        "resultingChangeId": 1
+                    ]
+                }
+
+                let data = try JSONSerialization.data(withJSONObject: ["operations": results])
+                return (response, data)
+            }
+
+            let data = """
+            {"changes":[],"nextChangeId":0,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+
+        try await Task.detached {
+            try await service.runLinkedSync(
+                linkedSession: CloudLinkedSession(
+                    userId: "user-id",
+                    workspaceId: workspaceId,
+                    email: "user@example.com",
+                    apiBaseUrl: "https://api.example.com/v1",
+                    bearerToken: "id-token"
+                )
+            )
+        }.value
+
+        XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).count, 0)
     }
 
     private func makeBundle(infoDictionary: [String: String]) throws -> Bundle {
