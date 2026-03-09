@@ -1,46 +1,51 @@
 .card-form-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+  gap: 18px;
 }
 
 .card-form-panel,
 .card-meta-panel {
-  border: 1px solid var(--panel-border);
-  padding: 16px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
 }
 
-.card-form-panel {
-  display: grid;
-  gap: 14px;
+.card-meta-panel {
+  padding: 24px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-soft);
 }
 
 .form-label {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
 .form-label span {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-tertiary);
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .deck-form-fieldset {
   display: grid;
-  gap: 10px;
+  gap: 14px;
   margin: 0;
-  padding: 0;
-  border: none;
+  border: 1px solid var(--panel-border);
 }
 
 .deck-form-legend {
   padding: 0;
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-tertiary);
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .deck-checkbox-list {
@@ -53,32 +58,40 @@
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  padding: 8px 10px;
+  min-height: 42px;
+  padding: 0 14px;
   border: 1px solid var(--panel-border);
-  background: var(--bg);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
+  color: var(--text-secondary);
 }
 
 .deck-checkbox-option input {
   margin: 0;
+  accent-color: var(--accent);
 }
 
 .form-textarea {
-  min-height: 160px;
+  min-height: 180px;
   resize: vertical;
 }
 
 .meta-list {
   display: grid;
-  gap: 10px;
+  gap: 0;
   margin: 0;
 }
 
 .meta-row {
   display: grid;
-  gap: 4px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(35, 35, 35, 0.12);
+  gap: 6px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.meta-row:first-child {
+  padding-top: 0;
 }
 
 .meta-row:last-child {
@@ -87,13 +100,18 @@
 }
 
 .meta-row dt {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .meta-row dd {
   margin: 0;
   word-break: break-word;
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 @media (max-width: 1024px) {

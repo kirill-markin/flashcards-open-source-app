@@ -63,7 +63,7 @@ export function CardFormFields(props: Props): ReactElement {
   return (
     <div className="card-form-layout">
       <section className="card-form-panel">
-        <label className="form-label" htmlFor={frontFieldId}>
+        <label className="form-label content-card content-card-section" htmlFor={frontFieldId}>
           <span>Front</span>
           <textarea
             id={frontFieldId}
@@ -75,7 +75,7 @@ export function CardFormFields(props: Props): ReactElement {
           />
         </label>
 
-        <label className="form-label" htmlFor={backFieldId}>
+        <label className="form-label content-card content-card-section" htmlFor={backFieldId}>
           <span>Back</span>
           <textarea
             id={backFieldId}
@@ -87,7 +87,7 @@ export function CardFormFields(props: Props): ReactElement {
           />
         </label>
 
-        <div className="form-label">
+        <div className="form-label content-card content-card-section">
           <label htmlFor={tagsFieldId}>
             <span>Tags</span>
           </label>
@@ -101,7 +101,7 @@ export function CardFormFields(props: Props): ReactElement {
           />
         </div>
 
-        <label className="form-label" htmlFor={effortFieldId}>
+        <label className="form-label content-card content-card-section" htmlFor={effortFieldId}>
           <span>Effort</span>
           <select
             id={effortFieldId}
@@ -122,23 +122,23 @@ export function CardFormFields(props: Props): ReactElement {
         <dl className="meta-list">
           <div className="meta-row">
             <dt>Card ID</dt>
-            <dd>{currentCard?.cardId ?? "new"}</dd>
+            <dd className="meta-value-mono">{currentCard?.cardId ?? "new"}</dd>
           </div>
           <div className="meta-row">
             <dt>Due</dt>
-            <dd>{formatTimestamp(currentCard?.dueAt ?? null)}</dd>
+            <dd className="meta-value-mono">{formatTimestamp(currentCard?.dueAt ?? null)}</dd>
           </div>
           <div className="meta-row">
             <dt>Reps</dt>
-            <dd>{currentCard?.reps ?? 0}</dd>
+            <dd className="meta-value-mono">{currentCard?.reps ?? 0}</dd>
           </div>
           <div className="meta-row">
             <dt>Lapses</dt>
-            <dd>{currentCard?.lapses ?? 0}</dd>
+            <dd className="meta-value-mono">{currentCard?.lapses ?? 0}</dd>
           </div>
           <div className="meta-row">
             <dt>Updated</dt>
-            <dd>{formatTimestamp(currentCard?.updatedAt ?? null)}</dd>
+            <dd className="meta-value-mono">{formatTimestamp(currentCard?.updatedAt ?? null)}</dd>
           </div>
         </dl>
       </aside>

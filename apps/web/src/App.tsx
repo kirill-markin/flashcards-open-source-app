@@ -28,7 +28,7 @@ function AppShell(): ReactElement {
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (
       <main className="page-state">
-        <section className="panel panel-center">
+        <section className="panel panel-center state-panel">
           <p className="subtitle">{sessionLoadState === "redirecting" ? "Redirecting to login…" : "Loading…"}</p>
         </section>
       </main>
@@ -38,7 +38,7 @@ function AppShell(): ReactElement {
   if (sessionLoadState === "error") {
     return (
       <main className="page-state">
-        <section className="panel panel-center">
+        <section className="panel panel-center state-panel">
           <h1 className="title">Flashcards</h1>
           <p className="error-banner">{sessionErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void initialize()}>
@@ -52,7 +52,7 @@ function AppShell(): ReactElement {
   if (sessionLoadState === "selecting_workspace") {
     return (
       <main className="page-state">
-        <section className="panel panel-center workspace-modal">
+        <section className="panel panel-center workspace-modal state-panel">
           <h1 className="title">Choose workspace</h1>
           <p className="subtitle">
             Select which existing workspace should receive the local browser data from this device.
@@ -78,42 +78,52 @@ function AppShell(): ReactElement {
   }
 
   return (
-    <>
+    <div className="app-shell">
       <div className="header-sticky">
-        <header className="topbar">
-          <a className="topbar-brand" href="/cards">
-            <span className="brand-full">flashcards-open-source-app</span>
-            <span className="brand-short">flashcards</span>
-          </a>
-          <div className="topbar-actions">
-            <AccountMenu
-              workspaces={availableWorkspaces}
-              currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
-              isBusy={isChoosingWorkspace}
-              logoutUrl={buildLogoutUrl()}
-              onSelectWorkspace={chooseWorkspace}
-              onCreateWorkspace={createWorkspace}
-            />
+        <header className="topbar-shell">
+          <div className="topbar">
+            <div className="topbar-brand-block">
+              <a className="topbar-brand" href="/cards">
+                <span className="brand-full">flashcards-open-source-app</span>
+                <span className="brand-short">flashcards</span>
+              </a>
+              <p className="topbar-workspace">{activeWorkspace?.name ?? "Workspace unavailable"}</p>
+            </div>
+            <nav className="nav" aria-label="Primary">
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/cards">
+                Cards
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/decks">
+                Decks
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/review">
+                Review
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/chat">
+                AI chat
+              </NavLink>
+            </nav>
+            <div className="topbar-actions">
+              <AccountMenu
+                workspaces={availableWorkspaces}
+                currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
+                currentWorkspaceName={activeWorkspace?.name ?? "Workspace"}
+                isBusy={isChoosingWorkspace}
+                logoutUrl={buildLogoutUrl()}
+                onSelectWorkspace={chooseWorkspace}
+                onCreateWorkspace={createWorkspace}
+              />
+            </div>
           </div>
         </header>
-        <nav className="nav">
-          <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/cards">
-            Cards
-          </NavLink>
-          <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/decks">
-            Decks
-          </NavLink>
-          <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/review">
-            Review
-          </NavLink>
-          <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/chat">
-            AI chat
-          </NavLink>
-        </nav>
       </div>
-      {errorMessage !== "" ? <div className="global-error">{errorMessage}</div> : null}
+      {errorMessage !== "" ? (
+        <div className="global-error-wrap">
+          <div className="global-error">{errorMessage}</div>
+        </div>
+      ) : null}
       <RoutedShell />
-    </>
+    </div>
   );
 }
 

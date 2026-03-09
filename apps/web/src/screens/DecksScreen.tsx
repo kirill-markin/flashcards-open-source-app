@@ -56,35 +56,26 @@ export function DecksScreen(): ReactElement {
           </div>
         </div>
 
-        <div className="txn-scroll">
-          <table className="txn-table">
-            <thead>
-              <tr>
-                <th className="txn-th">Name</th>
-                <th className="txn-th">Filters</th>
-                <th className="txn-th">Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {decks.map((deck) => (
-                <tr key={deck.deckId} className="txn-row">
-                  <td className="txn-cell">{deck.name}</td>
-                  <td className="txn-cell">
-                    <div className="cell-stack">
-                      <span className="cell-primary">{formatDeckFilterDefinition(deck.filterDefinition)}</span>
-                    </div>
-                  </td>
-                  <td className="txn-cell txn-cell-mono">{formatTimestamp(deck.updatedAt)}</td>
-                </tr>
-              ))}
-              {decks.length === 0 ? (
-                <tr>
-                  <td className="txn-cell txn-empty" colSpan={3}>You haven't created any decks yet.</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+        {decks.length === 0 ? (
+          <section className="content-card deck-card-empty">
+            <p className="subtitle">You haven't created any decks yet.</p>
+          </section>
+        ) : (
+          <div className="deck-list">
+            {decks.map((deck) => (
+              <article key={deck.deckId} className="deck-card">
+                <div className="deck-card-head">
+                  <h2 className="deck-card-title">{deck.name}</h2>
+                </div>
+                <p className="deck-card-summary">{formatDeckFilterDefinition(deck.filterDefinition)}</p>
+                <div className="deck-card-meta">
+                  <span className="deck-card-meta-label">Updated</span>
+                  <span className="txn-cell-mono">{formatTimestamp(deck.updatedAt)}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );
