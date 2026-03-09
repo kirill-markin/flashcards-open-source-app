@@ -132,7 +132,7 @@ export function DeckFormScreen(): ReactElement {
 
         <div className="card-form-layout">
           <section className="card-form-panel">
-            <label className="form-label" htmlFor={nameFieldId}>
+            <label className="form-label content-card content-card-section" htmlFor={nameFieldId}>
               <span>Name</span>
               <input
                 id={nameFieldId}
@@ -143,7 +143,7 @@ export function DeckFormScreen(): ReactElement {
               />
             </label>
 
-            <fieldset className="deck-form-fieldset">
+            <fieldset className="deck-form-fieldset content-card content-card-section">
               <legend className="deck-form-legend">Effort</legend>
               <div className="deck-checkbox-list">
                 {EFFORT_LEVELS.map((effortLevel) => (
@@ -161,7 +161,7 @@ export function DeckFormScreen(): ReactElement {
               </div>
             </fieldset>
 
-            <div className="form-label">
+            <div className="form-label content-card content-card-section">
               <label htmlFor={tagsFieldId}>
                 <span>Tags</span>
               </label>

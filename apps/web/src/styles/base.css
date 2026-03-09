@@ -14,13 +14,28 @@ body,
   height: 100%;
 }
 
+html {
+  background:
+    radial-gradient(circle at top, rgba(196, 75, 45, 0.12), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.05), transparent 26%),
+    var(--bg);
+}
+
 body {
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    "SF Pro Text",
+    system-ui,
+    sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -40,4 +55,9 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+::selection {
+  background: rgba(196, 75, 45, 0.34);
+  color: var(--text);
 }

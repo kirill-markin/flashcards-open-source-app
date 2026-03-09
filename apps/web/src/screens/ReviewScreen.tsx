@@ -337,25 +337,19 @@ export function ReviewScreen(): ReactElement {
                     Edit
                   </button>
                 </div>
-                <div className="review-card-surface">
-                  <div className="review-label">Front</div>
-                  <div className="review-front">{selectedCard.frontText}</div>
-                </div>
-
-                {isAnswerVisible ? (
-                  <div className="review-card-surface review-card-answer">
-                    <div className="review-label">Back</div>
-                    <div className="review-back">{selectedCard.backText === "" ? EMPTY_BACK_TEXT_PLACEHOLDER : selectedCard.backText}</div>
+                <div className="review-card-stack">
+                  <div className="review-card-surface">
+                    <div className="review-label">Front</div>
+                    <div className="review-front">{selectedCard.frontText}</div>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="primary-btn"
-                    onClick={() => setIsAnswerVisible(true)}
-                  >
-                    Reveal answer
-                  </button>
-                )}
+
+                  {isAnswerVisible ? (
+                    <div className="review-card-surface review-card-answer">
+                      <div className="review-label">Back</div>
+                      <div className="review-back">{selectedCard.backText === "" ? EMPTY_BACK_TEXT_PLACEHOLDER : selectedCard.backText}</div>
+                    </div>
+                  ) : null}
+                </div>
 
                 <div className="review-meta">
                   <span>Due {formatTimestamp(selectedCard.dueAt)}</span>
@@ -363,74 +357,77 @@ export function ReviewScreen(): ReactElement {
                   <span>Lapses {selectedCard.lapses}</span>
                 </div>
 
-                {isAnswerVisible ? (
-                  reviewButtonErrorMessage !== "" ? (
-                    <p className="error-banner">{reviewButtonErrorMessage}</p>
+                <div className="review-actions-dock">
+                  {isAnswerVisible ? (
+                    reviewButtonErrorMessage !== "" ? (
+                      <p className="error-banner">{reviewButtonErrorMessage}</p>
+                    ) : (
+                      <div className="rating-bar">
+                        {reviewButtonOptions.map((option) => (
+                          <button
+                            key={option.rating}
+                            type="button"
+                            className="rating-btn"
+                            disabled={isSubmitting}
+                            onClick={() => void handleReview(selectedCard, option.rating)}
+                          >
+                            <span className="rating-btn-title">{option.title}</span>
+                            <span className="rating-btn-subtitle">{option.intervalDescription}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )
                   ) : (
-                    <div className="rating-bar">
-                      {reviewButtonOptions.map((option) => (
-                        <button
-                          key={option.rating}
-                          type="button"
-                          className="rating-btn"
-                          disabled={isSubmitting}
-                          onClick={() => void handleReview(selectedCard, option.rating)}
-                        >
-                          <span className="rating-btn-title">{option.title}</span>
-                          <span className="rating-btn-subtitle">{option.intervalDescription}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )
-                ) : null}
+                    <button
+                      type="button"
+                      className="primary-btn review-reveal-btn"
+                      onClick={() => setIsAnswerVisible(true)}
+                    >
+                      Reveal answer
+                    </button>
+                  )}
+                </div>
               </>
             )}
           </section>
 
-          <div className="txn-scroll">
-            <table className="txn-table">
-              <thead>
-                <tr>
-                  <th className="txn-th">Front</th>
-                  <th className="txn-th">Tags</th>
-                  <th className="txn-th">Effort</th>
-                  <th className="txn-th">Due</th>
-                </tr>
-              </thead>
-              <tbody>
+          <aside className="review-queue-panel">
+            <div className="review-queue-head">
+              <h2 className="panel-subtitle">Queue</h2>
+              <span className="review-queue-caption">{queueCards.length} cards</span>
+            </div>
+            {queueCards.length === 0 ? (
+              <p className="subtitle">No cards to review right now.</p>
+            ) : (
+              <div className="review-queue-list">
                 {queueCards.map((card) => {
                   const isDue = isCardDue(card, nowTimestamp);
 
                   return (
-                    <tr
+                    <button
                       key={card.cardId}
-                      className={`txn-row${isDue ? " review-row" : " review-row-upcoming"}${selectedCard?.cardId === card.cardId ? " review-row-active" : ""}`}
+                      type="button"
+                      className={`review-queue-card${isDue ? "" : " review-queue-card-upcoming"}${selectedCard?.cardId === card.cardId ? " review-queue-card-active" : ""}`}
                       onClick={() => {
                         if (isDue) {
                           setSelectedCardId(card.cardId);
                         }
                       }}
+                      disabled={!isDue}
                     >
-                      <td className="txn-cell">
-                        <div className="cell-stack">
-                          <span className="cell-primary">{card.frontText}</span>
-                          {isDue ? null : <span className="cell-secondary">Upcoming</span>}
-                        </div>
-                      </td>
-                      <td className="txn-cell txn-cell-mono">{renderTags(card.tags)}</td>
-                      <td className="txn-cell txn-cell-mono">{card.effortLevel}</td>
-                      <td className="txn-cell txn-cell-mono">{formatTimestamp(card.dueAt)}</td>
-                    </tr>
+                      <span className="review-queue-card-title">{card.frontText}</span>
+                      <span className="review-queue-card-tags">{renderTags(card.tags)}</span>
+                      <span className="review-queue-card-meta">
+                        <span>{card.effortLevel}</span>
+                        <span>{formatTimestamp(card.dueAt)}</span>
+                        {isDue ? null : <span>Upcoming</span>}
+                      </span>
+                    </button>
                   );
                 })}
-                {queueCards.length === 0 ? (
-                  <tr>
-                    <td className="txn-cell txn-empty" colSpan={4}>No cards to review right now.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            )}
+          </aside>
         </div>
       </section>
 

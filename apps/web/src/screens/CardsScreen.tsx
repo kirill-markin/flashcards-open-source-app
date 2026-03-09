@@ -8,6 +8,20 @@ import type { Card, UpdateCardInput } from "../types";
 type SortKey = "frontText" | "backText" | "tags" | "effortLevel" | "dueAt" | "reps" | "lapses" | "updatedAt";
 type SortDirection = "asc" | "desc";
 
+const SORT_OPTIONS: ReadonlyArray<Readonly<{
+  key: SortKey;
+  label: string;
+}>> = [
+  { key: "updatedAt", label: "Updated" },
+  { key: "dueAt", label: "Due" },
+  { key: "frontText", label: "Front" },
+  { key: "backText", label: "Back" },
+  { key: "tags", label: "Tags" },
+  { key: "effortLevel", label: "Effort" },
+  { key: "reps", label: "Reps" },
+  { key: "lapses", label: "Lapses" },
+];
+
 function formatTimestamp(value: string | null): string {
   if (value === null) {
     return "new";
@@ -107,7 +121,25 @@ export function CardsScreen(): ReactElement {
           </div>
         </div>
 
-        <div className="txn-scroll">
+        <div className="cards-sort-bar" aria-label="Card sorting">
+          {SORT_OPTIONS.map((option) => {
+            const isActive = option.key === sortKey;
+
+            return (
+              <button
+                key={option.key}
+                type="button"
+                className={`sort-chip${isActive ? " sort-chip-active" : ""}`}
+                onClick={() => toggleSort(option.key)}
+              >
+                {option.label}
+                {isActive ? <span className="sort-chip-direction">{sortDirection === "asc" ? "↑" : "↓"}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="txn-scroll cards-scroll">
           <table className="txn-table cards-table">
             <thead>
               <tr>
