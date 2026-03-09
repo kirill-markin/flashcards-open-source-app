@@ -2,23 +2,43 @@ import Foundation
 
 enum CloudAuthError: LocalizedError {
     case invalidBaseUrl(String)
-    case invalidResponse(Int, String)
+    case invalidResponse(CloudApiErrorDetails, Int)
     case invalidResponseBody(String)
 
     var errorDescription: String? {
         switch self {
-        case .invalidBaseUrl(let value):
-            return "Cloud auth base URL is invalid: \(value)"
-        case .invalidResponse(let statusCode, let message):
-            return "Cloud auth request failed with status \(statusCode): \(message)"
-        case .invalidResponseBody(let message):
-            return "Cloud auth response is invalid: \(message)"
+        case .invalidBaseUrl:
+            return "Cloud sign-in is unavailable. Check the app configuration."
+        case .invalidResponse(let details, _):
+            switch details.code {
+            case "OTP_SESSION_EXPIRED":
+                return "Code expired. Request a new one."
+            case "OTP_CODE_INVALID":
+                return "Code is invalid. Try again."
+            case "OTP_SEND_FAILED":
+                return appendCloudRequestReference(
+                    message: "Could not send a code. Try again.",
+                    requestId: details.requestId
+                )
+            case "OTP_VERIFY_FAILED":
+                return appendCloudRequestReference(
+                    message: "Could not verify the code. Try again.",
+                    requestId: details.requestId
+                )
+            default:
+                return appendCloudRequestReference(
+                    message: "Cloud sign-in failed. Try again.",
+                    requestId: details.requestId
+                )
+            }
+        case .invalidResponseBody:
+            return "Cloud sign-in failed. Try again."
         }
     }
 
     var statusCode: Int? {
         switch self {
-        case .invalidResponse(let statusCode, _):
+        case .invalidResponse(_, let statusCode):
             return statusCode
         case .invalidBaseUrl, .invalidResponseBody:
             return nil
@@ -195,24 +215,11 @@ final class CloudAuthService {
         }
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            throw CloudAuthError.invalidResponse(
-                httpResponse.statusCode,
-                parseCloudHttpErrorMessage(data: data, fallback: "<non-utf8-body>")
-            )
+            let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
+            let errorDetails = parseCloudApiErrorDetails(data: data, requestId: requestId)
+            throw CloudAuthError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
 
         return try self.decoder.decode(Response.self, from: data)
     }
-}
-
-private func parseCloudHttpErrorMessage(data: Data, fallback: String) -> String {
-    if
-        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let message = object["error"] as? String,
-        message.isEmpty == false
-    {
-        return message
-    }
-
-    return String(data: data, encoding: .utf8) ?? fallback
 }

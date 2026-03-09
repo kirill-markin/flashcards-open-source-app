@@ -2,20 +2,23 @@ import Foundation
 
 enum CloudSyncError: LocalizedError {
     case invalidBaseUrl(String)
-    case invalidResponse(Int, String)
+    case invalidResponse(CloudApiErrorDetails, Int)
 
     var errorDescription: String? {
         switch self {
-        case .invalidBaseUrl(let value):
-            return "Cloud sync base URL is invalid: \(value)"
-        case .invalidResponse(let statusCode, let body):
-            return "Cloud sync request failed with status \(statusCode): \(body)"
+        case .invalidBaseUrl:
+            return "Cloud sync is unavailable. Check the app configuration."
+        case .invalidResponse(let details, _):
+            return appendCloudRequestReference(
+                message: "Cloud sync failed. Try again.",
+                requestId: details.requestId
+            )
         }
     }
 
     var statusCode: Int? {
         switch self {
-        case .invalidResponse(let statusCode, _):
+        case .invalidResponse(_, let statusCode):
             return statusCode
         case .invalidBaseUrl:
             return nil
@@ -272,24 +275,11 @@ final class CloudSyncService {
         }
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            throw CloudSyncError.invalidResponse(
-                httpResponse.statusCode,
-                parseCloudSyncErrorMessage(data: data)
-            )
+            let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
+            let errorDetails = parseCloudApiErrorDetails(data: data, requestId: requestId)
+            throw CloudSyncError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
 
         return try self.decoder.decode(Response.self, from: data)
     }
-}
-
-private func parseCloudSyncErrorMessage(data: Data) -> String {
-    if
-        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let message = object["error"] as? String,
-        message.isEmpty == false
-    {
-        return message
-    }
-
-    return String(data: data, encoding: .utf8) ?? "<non-utf8-body>"
 }
