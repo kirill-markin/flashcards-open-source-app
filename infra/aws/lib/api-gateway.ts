@@ -192,18 +192,18 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const integration = new apigw.LambdaIntegration(backendFn);
 
   /**
-   * Routes `/chat` through a dedicated streaming Lambda instead of waiting for
-   * the full response body.
+   * Routes the SSE chat endpoints through a dedicated streaming Lambda instead
+   * of waiting for the full response body.
    *
    * The Hono `streamHandle(app)` adapter and API Gateway response transfer mode
    * must be used together for SSE. Applying that adapter to the main backend
-   * Lambda breaks buffered proxy routes such as `/health`, so chat keeps its
-   * own entry point while the rest of the API stays on the classic buffered
-   * Lambda integration.
+   * Lambda breaks buffered proxy routes such as `/health`, so the streaming
+   * chat paths keep their own entry point while the rest of the API stays on
+   * the classic buffered Lambda integration.
    *
-   * Only `/chat` uses this integration. The diagnostics endpoint stays on the
-   * buffered path because it returns a normal `204` response and does not need
-   * streaming semantics.
+   * Only `/chat` and `/chat/local-turn` use this integration. The diagnostics
+   * endpoint stays on the buffered path because it returns a normal `204`
+   * response and does not need streaming semantics.
    */
   const streamingIntegration = new apigw.LambdaIntegration(chatStreamingFn, {
     timeout: cdk.Duration.minutes(15),
@@ -255,6 +255,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const chat = restApi.root.addResource("chat");
   chat.addMethod("POST", streamingIntegration);
+  chat.addResource("local-turn").addMethod("POST", streamingIntegration);
   chat.addResource("diagnostics").addMethod("POST", integration);
 
   const workspaces = restApi.root.addResource("workspaces");

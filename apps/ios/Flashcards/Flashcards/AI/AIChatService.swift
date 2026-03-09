@@ -2,7 +2,7 @@ import Foundation
 
 enum AIChatServiceError: LocalizedError {
     case invalidBaseUrl(String)
-    case invalidResponse(Int, String)
+    case invalidResponse(String)
     case invalidStreamResponse
     case remoteError(String)
 
@@ -10,8 +10,8 @@ enum AIChatServiceError: LocalizedError {
         switch self {
         case .invalidBaseUrl(let value):
             return "AI chat base URL is invalid: \(value)"
-        case .invalidResponse(let statusCode, let body):
-            return "AI chat request failed with status \(statusCode): \(body)"
+        case .invalidResponse(let message):
+            return message
         case .invalidStreamResponse:
             return "AI chat did not receive an HTTP response"
         case .remoteError(let message):
@@ -93,7 +93,13 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
             let body = try await self.readBody(bytes: bytes)
-            throw AIChatServiceError.invalidResponse(httpResponse.statusCode, body)
+            throw AIChatServiceError.invalidResponse(
+                makeRequestFailureMessage(
+                    statusCode: httpResponse.statusCode,
+                    body: body,
+                    requestId: httpResponse.value(forHTTPHeaderField: "X-Request-Id")
+                )
+            )
         }
 
         var parser = AIChatSSEParser(decoder: self.decoder)
@@ -155,4 +161,10 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
 
         return String(data: data, encoding: .utf8) ?? "<non-utf8-body>"
     }
+}
+
+private func makeRequestFailureMessage(statusCode: Int, body: String, requestId: String?) -> String {
+    let errorDetails = parseCloudApiErrorDetails(data: Data(body.utf8), requestId: requestId)
+    let baseMessage = appendCloudRequestReference(message: errorDetails.message, requestId: errorDetails.requestId)
+    return "AI chat request failed with status \(statusCode): \(baseMessage)"
 }

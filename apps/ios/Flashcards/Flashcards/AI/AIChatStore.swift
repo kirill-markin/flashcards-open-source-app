@@ -352,7 +352,5 @@ final class AIChatStore: ObservableObject {
                 )
             )
         }
-
-        self.errorMessage = message
     }
 }
