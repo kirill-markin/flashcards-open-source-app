@@ -116,6 +116,7 @@ export function FileAttachment(props: Props): ReactElement {
     <>
       <input
         ref={inputRef}
+        name="chatAttachments"
         type="file"
         accept={ACCEPTED_TYPES}
         multiple

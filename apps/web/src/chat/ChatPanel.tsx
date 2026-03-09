@@ -644,6 +644,7 @@ export function ChatPanel(props: Props): ReactElement {
         ) : null}
 
         <textarea
+          name="chatMessage"
           className="chat-textarea"
           placeholder="Ask about cards, review history, or attach notes..."
           value={inputText}

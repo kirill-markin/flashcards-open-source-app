@@ -231,6 +231,7 @@ export function EditableCardTextCell(props: EditableTextCellProps): ReactElement
         multiline ? (
           <textarea
             ref={textareaRef}
+            name="card-cell-textarea"
             className="cell-editor-overlay cell-editor-overlay-multiline"
             value={draftValue}
             style={overlayStyle}
@@ -241,6 +242,7 @@ export function EditableCardTextCell(props: EditableTextCellProps): ReactElement
         ) : (
           <input
             ref={inputRef}
+            name="card-cell-input"
             className="cell-editor-overlay"
             type="text"
             value={draftValue}
@@ -343,6 +345,7 @@ export function EditableCardEffortCell(props: EditableEffortCellProps): ReactEle
         <div ref={overlayRef} className="cell-select-overlay" style={overlayStyle}>
           <input
             ref={searchRef}
+            name="card-effort-search"
             className="cell-select-search"
             type="text"
             value={searchValue}
@@ -463,6 +466,7 @@ export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement
             value={draftTags}
             suggestions={suggestions}
             placeholder="Type and press Enter"
+            inputName="card-tags-editor"
             onChange={setDraftTags}
             onEscape={handleClose}
           />

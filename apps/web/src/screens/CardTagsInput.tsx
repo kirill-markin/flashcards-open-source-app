@@ -22,6 +22,8 @@ type CardTagsInputProps = Readonly<{
   value: ReadonlyArray<string>;
   suggestions: ReadonlyArray<string>;
   placeholder: string;
+  inputId?: string;
+  inputName?: string;
   onChange: (nextValue: ReadonlyArray<string>) => void;
   onEscape?: () => void;
 }>;
@@ -153,7 +155,7 @@ export function CardTagsValue(props: CardTagsValueProps): ReactElement {
 }
 
 export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>(function CardTagsInput(props, ref) {
-  const { value, suggestions, placeholder, onChange, onEscape } = props;
+  const { value, suggestions, placeholder, inputId, inputName, onChange, onEscape } = props;
   const [selectedTags, setSelectedTags] = useState<ReadonlyArray<string>>(value);
   const [draftValue, setDraftValue] = useState<string>("");
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
@@ -329,6 +331,8 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
         ))}
         <input
           ref={inputRef}
+          id={inputId}
+          name={inputName}
           className="tag-input-field"
           type="text"
           value={draftValue}
