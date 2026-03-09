@@ -1,18 +1,18 @@
 .card-form-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
-  gap: 18px;
+  gap: 14px;
 }
 
 .card-form-panel,
 .card-meta-panel {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   align-content: start;
 }
 
 .card-meta-panel {
-  padding: 24px;
+  padding: 18px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   background: var(--surface-elevated);
@@ -21,7 +21,7 @@
 
 .form-label {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .form-label span {
@@ -34,7 +34,7 @@
 
 .deck-form-fieldset {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   margin: 0;
   border: 1px solid var(--panel-border);
 }
@@ -50,7 +50,7 @@
 
 .deck-checkbox-list {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -58,8 +58,8 @@
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  min-height: 42px;
-  padding: 0 14px;
+  min-height: 36px;
+  padding: 0 12px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.04);
@@ -73,7 +73,7 @@
 }
 
 .form-textarea {
-  min-height: 180px;
+  min-height: 152px;
   resize: vertical;
 }
 
@@ -86,7 +86,7 @@
 .meta-row {
   display: grid;
   gap: 6px;
-  padding: 16px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--divider);
 }
 

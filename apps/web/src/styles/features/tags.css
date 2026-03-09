@@ -1,16 +1,16 @@
 .tag-input {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .tag-input-surface {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  min-height: 56px;
-  padding: 10px;
+  min-height: 46px;
+  padding: 8px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.04);
@@ -38,7 +38,7 @@
 .tag-value-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .tag-value-empty {
@@ -50,8 +50,8 @@
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  min-height: 32px;
-  padding: 0 10px;
+  min-height: 28px;
+  padding: 0 8px;
   border: 1px solid rgba(196, 75, 45, 0.24);
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
@@ -91,7 +91,7 @@
 }
 
 .tag-suggestions-head {
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--divider);
   color: var(--text-tertiary);
   font-size: 11px;
@@ -102,7 +102,7 @@
 .tag-suggestions-list {
   max-height: 220px;
   overflow-y: auto;
-  padding: 8px;
+  padding: 6px;
 }
 
 .tag-suggestions-empty {
@@ -115,7 +115,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -138,7 +138,7 @@
 
 .cell-tags-overlay {
   max-height: none;
-  padding: 12px;
+  padding: 10px;
 }
 
 .cards-tag-cell {
@@ -149,7 +149,7 @@
 .card-form-tags-trigger {
   display: flex;
   align-items: flex-start;
-  min-height: 56px;
+  min-height: 46px;
   cursor: pointer;
 }
 

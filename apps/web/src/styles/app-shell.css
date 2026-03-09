@@ -10,7 +10,7 @@
   top: 0;
   z-index: 50;
   flex-shrink: 0;
-  padding: 20px 34px 0;
+  padding: 18px 34px 0;
   background:
     linear-gradient(180deg, rgba(5, 5, 5, 0.96), rgba(5, 5, 5, 0.72) 80%, transparent);
   backdrop-filter: var(--blur);
@@ -19,7 +19,7 @@
 .topbar-shell {
   width: min(100%, var(--shell-width));
   margin: 0 auto;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -29,7 +29,7 @@
 .topbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
 }
 
@@ -245,7 +245,7 @@
 }
 
 .global-error {
-  padding: 16px 20px;
+  padding: 13px 16px;
   border: 1px solid rgba(255, 77, 87, 0.26);
   border-radius: var(--radius-md);
   color: #ffd6d9;
@@ -258,7 +258,7 @@
   width: min(100%, var(--content-width));
   min-width: 0;
   margin: 0 auto;
-  padding: 24px 34px 40px;
+  padding: 20px 34px 36px;
 }
 
 .page-state {
