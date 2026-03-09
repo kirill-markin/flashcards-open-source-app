@@ -13,8 +13,11 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 ## Platform Plan
 
 - Backend: AWS
+- Web app: supported
 - iOS app: Swift (priority)
 - Android app: planned later
+
+We support both the web app and the iOS app. When making changes, we try to update both versions.
 
 ## Repository Strategy
 
@@ -76,5 +79,7 @@ Email + OTP authentication via AWS Cognito (passwordless).
 - Keep changes minimal and scoped.
 - Always mention the schema explicitly in migrations.
 - Prioritize clear, actionable errors.
+
+We do not support backward compatibility. Instead, we migrate old data and aim to keep only one correct solution working, avoiding the accumulation of legacy behavior.
 
 Card reappearance and FSRS scheduling logic are documented in `docs/fsrs-scheduling-logic.md`.
