@@ -311,6 +311,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A10000000000000000000018 /* Config/Debug.xcconfig */;
 			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/Info.plist;
 			};
 			name = Debug;
 		};
@@ -318,6 +320,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A10000000000000000000019 /* Config/Release.xcconfig */;
 			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/Info.plist;
 			};
 			name = Release;
 		};
