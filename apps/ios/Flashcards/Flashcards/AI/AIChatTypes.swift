@@ -4,7 +4,8 @@ let aiChatDefaultModelId: String = "gpt-5.4"
 
 func aiChatAppVersion() -> String {
     let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-    return shortVersion ?? "0.1.0"
+    let trimmedVersion = shortVersion?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    return trimmedVersion.isEmpty ? "0.1.0" : trimmedVersion
 }
 
 func aiChatTruncatedSnippet(_ value: String) -> String {

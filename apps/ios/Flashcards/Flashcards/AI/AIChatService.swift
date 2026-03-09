@@ -251,78 +251,47 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         var awaitsToolResults = false
         var requestedToolCalls: [AIToolCallRequest] = []
 
-        for try await line in bytes.lines {
-            if let event = try parser.pushLine(String(line)) {
-                switch event {
-                case .delta(let text):
-                    await onDelta(text)
-                case .toolCallRequest(let toolCallRequest):
-                    requestedToolCalls.append(toolCallRequest)
-                    await onToolCallRequest(toolCallRequest)
-                case .repairAttempt(let status):
-                    await onRepairAttempt(status)
-                case .awaitToolResults:
-                    awaitsToolResults = true
-                case .done:
-                    return AITurnStreamOutcome(
-                        awaitsToolResults: false,
-                        requestedToolCalls: requestedToolCalls,
-                        requestId: backendRequestId
-                    )
-                case .error(let backendError):
-                    let diagnostics = AIChatFailureDiagnostics(
-                        clientRequestId: clientRequestId,
-                        backendRequestId: backendError.requestId,
-                        stage: .backendErrorEvent,
-                        errorKind: .backendErrorEvent,
-                        statusCode: nil,
-                        eventType: "error",
-                        toolName: nil,
-                        toolCallId: nil,
-                        lineNumber: nil,
-                        rawSnippet: nil,
-                        decoderSummary: "backend_code=\(backendError.code)"
-                    )
-                    logAIChatFailure(diagnostics: diagnostics, summary: backendError.message)
-                    throw AIChatServiceError.backendError(backendError, diagnostics)
-                }
+        let streamCompleted = try await consumeSSEBytes(bytes: bytes) { line in
+            guard let event = try parser.pushLine(line) else {
+                return false
             }
+
+            return try await processStreamEvent(
+                event: event,
+                clientRequestId: clientRequestId,
+                requestedToolCalls: &requestedToolCalls,
+                awaitsToolResults: &awaitsToolResults,
+                onDelta: onDelta,
+                onToolCallRequest: onToolCallRequest,
+                onRepairAttempt: onRepairAttempt
+            )
+        }
+
+        if streamCompleted {
+            return AITurnStreamOutcome(
+                awaitsToolResults: false,
+                requestedToolCalls: requestedToolCalls,
+                requestId: backendRequestId
+            )
         }
 
         let trailingEvents = try parser.finish()
         for event in trailingEvents {
-            switch event {
-            case .delta(let text):
-                await onDelta(text)
-            case .toolCallRequest(let toolCallRequest):
-                requestedToolCalls.append(toolCallRequest)
-                await onToolCallRequest(toolCallRequest)
-            case .repairAttempt(let status):
-                await onRepairAttempt(status)
-            case .awaitToolResults:
-                awaitsToolResults = true
-            case .done:
+            let streamCompleted = try await processStreamEvent(
+                event: event,
+                clientRequestId: clientRequestId,
+                requestedToolCalls: &requestedToolCalls,
+                awaitsToolResults: &awaitsToolResults,
+                onDelta: onDelta,
+                onToolCallRequest: onToolCallRequest,
+                onRepairAttempt: onRepairAttempt
+            )
+            if streamCompleted {
                 return AITurnStreamOutcome(
                     awaitsToolResults: false,
                     requestedToolCalls: requestedToolCalls,
                     requestId: backendRequestId
                 )
-            case .error(let backendError):
-                let diagnostics = AIChatFailureDiagnostics(
-                    clientRequestId: clientRequestId,
-                    backendRequestId: backendError.requestId,
-                    stage: .backendErrorEvent,
-                    errorKind: .backendErrorEvent,
-                    statusCode: nil,
-                    eventType: "error",
-                    toolName: nil,
-                    toolCallId: nil,
-                    lineNumber: nil,
-                    rawSnippet: nil,
-                    decoderSummary: "backend_code=\(backendError.code)"
-                )
-                logAIChatFailure(diagnostics: diagnostics, summary: backendError.message)
-                throw AIChatServiceError.backendError(backendError, diagnostics)
             }
         }
 
@@ -415,6 +384,93 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         }
 
         return String(data: data, encoding: .utf8) ?? "<non-utf8-body>"
+    }
+}
+
+private func consumeSSEBytes(
+    bytes: URLSession.AsyncBytes,
+    onLine: (String) async throws -> Bool
+) async throws -> Bool {
+    var lineBuffer = Data()
+    var previousWasCarriageReturn = false
+
+    for try await byte in bytes {
+        if byte == UInt8(ascii: "\n") {
+            if previousWasCarriageReturn {
+                previousWasCarriageReturn = false
+                continue
+            }
+
+            let line = String(decoding: lineBuffer, as: UTF8.self)
+            lineBuffer.removeAll(keepingCapacity: true)
+            if try await onLine(line) {
+                return true
+            }
+            continue
+        }
+
+        if byte == UInt8(ascii: "\r") {
+            let line = String(decoding: lineBuffer, as: UTF8.self)
+            lineBuffer.removeAll(keepingCapacity: true)
+            previousWasCarriageReturn = true
+            if try await onLine(line) {
+                return true
+            }
+            continue
+        }
+
+        previousWasCarriageReturn = false
+        lineBuffer.append(byte)
+    }
+
+    if lineBuffer.isEmpty == false {
+        return try await onLine(String(decoding: lineBuffer, as: UTF8.self))
+    }
+
+    return false
+}
+
+private func processStreamEvent(
+    event: AIChatBackendStreamEvent,
+    clientRequestId: String,
+    requestedToolCalls: inout [AIToolCallRequest],
+    awaitsToolResults: inout Bool,
+    onDelta: @escaping @Sendable (String) async -> Void,
+    onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+    onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+) async throws -> Bool {
+    switch event {
+    case .delta(let text):
+        await onDelta(text)
+        return false
+    case .toolCallRequest(let toolCallRequest):
+        requestedToolCalls.append(toolCallRequest)
+        await onToolCallRequest(toolCallRequest)
+        return false
+    case .repairAttempt(let status):
+        await onRepairAttempt(status)
+        return false
+    case .awaitToolResults:
+        awaitsToolResults = true
+        return false
+    case .done:
+        return true
+    case .error(let backendError):
+        let diagnostics = AIChatFailureDiagnostics(
+            clientRequestId: clientRequestId,
+            backendRequestId: backendError.requestId,
+            stage: .backendErrorEvent,
+            errorKind: .backendErrorEvent,
+            statusCode: nil,
+            eventType: "error",
+            toolName: nil,
+            toolCallId: nil,
+            lineNumber: nil,
+            rawSnippet: nil,
+            decoderSummary: "backend_code=\(backendError.code)"
+        )
+        logAIChatFailure(diagnostics: diagnostics, summary: backendError.message)
+        throw AIChatServiceError.backendError(backendError, diagnostics)
     }
 }
 
