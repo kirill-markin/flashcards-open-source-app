@@ -27,6 +27,62 @@ type OtpPayload = Readonly<{
   t: number;   // timestamp
 }>;
 
+type VerifyFailureResult = Readonly<{
+  code: "OTP_SESSION_EXPIRED" | "OTP_CHALLENGE_CONSUMED" | "OTP_CODE_INVALID" | "OTP_VERIFY_FAILED";
+  publicMessage: string;
+  reasonCategory: string;
+}>;
+
+function classifyVerifyFailure(error: unknown): VerifyFailureResult {
+  const message = error instanceof Error ? error.message : String(error);
+  const cognitoType = error instanceof Error && "cognitoType" in error && typeof error.cognitoType === "string"
+    ? error.cognitoType
+    : "";
+  const normalizedMessage = message.toLowerCase();
+  const normalizedType = cognitoType.toLowerCase();
+
+  if (
+    normalizedMessage.includes("session can only be used once")
+    || normalizedMessage.includes("invalid session for the user")
+  ) {
+    return {
+      code: "OTP_CHALLENGE_CONSUMED",
+      publicMessage: "Code already used. Request a new one.",
+      reasonCategory: "challenge_consumed",
+    };
+  }
+
+  if (
+    normalizedType.includes("expired")
+    || normalizedMessage.includes("expired")
+    || normalizedMessage.includes("session expired")
+  ) {
+    return {
+      code: "OTP_SESSION_EXPIRED",
+      publicMessage: "Code expired. Request a new one.",
+      reasonCategory: "expired",
+    };
+  }
+
+  if (
+    normalizedType.includes("codemismatch")
+    || normalizedMessage.includes("code mismatch")
+    || normalizedMessage.includes("invalid code")
+  ) {
+    return {
+      code: "OTP_CODE_INVALID",
+      publicMessage: "Enter a valid 8-digit code.",
+      reasonCategory: "invalid_code",
+    };
+  }
+
+  return {
+    code: "OTP_VERIFY_FAILED",
+    publicMessage: "Could not verify the code. Try again.",
+    reasonCategory: "provider_error",
+  };
+}
+
 app.post("/api/verify-code", async (c) => {
   let body: { code?: string; csrfToken?: string; otpSessionToken?: string };
   try {
@@ -77,6 +133,7 @@ app.post("/api/verify-code", async (c) => {
   try {
     tokens = await verifyEmailOtp(payload.e, code, payload.s);
   } catch (err) {
+    const failure = classifyVerifyFailure(err);
     const message = err instanceof Error ? err.message : String(err);
     log({
       domain: "auth",
@@ -84,10 +141,11 @@ app.post("/api/verify-code", async (c) => {
       requestId,
       route: c.req.path,
       statusCode: 400,
-      code: "OTP_VERIFY_FAILED",
+      code: failure.code,
+      reasonCategory: failure.reasonCategory,
       error: message,
     });
-    return jsonAuthError(c, 400, "OTP_VERIFY_FAILED", "Could not verify the code. Try again.");
+    return jsonAuthError(c, 400, failure.code, failure.publicMessage);
   }
 
   // Shared session cookies are visible on app.* and auth.* subdomains.

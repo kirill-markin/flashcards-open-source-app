@@ -333,6 +333,7 @@ final class CloudSyncService {
     }
 
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
+        logCloudPhase(phase: .workspaceList, outcome: "start")
         async let meResponseTask: MeResponse = self.request(
             apiBaseUrl: apiBaseUrl,
             bearerToken: bearerToken,
@@ -360,14 +361,21 @@ final class CloudSyncService {
             )
         }
 
-        return CloudAccountSnapshot(
+        let snapshot = CloudAccountSnapshot(
             userId: meResponse.userId,
             email: meResponse.profile.email,
             workspaces: workspaces
         )
+        logCloudPhase(
+            phase: .workspaceList,
+            outcome: "success",
+            changesCount: workspaces.count
+        )
+        return snapshot
     }
 
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
+        logCloudPhase(phase: .workspaceCreate, outcome: "start", selection: "create_new")
         let response: WorkspaceEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
             bearerToken: bearerToken,
@@ -376,10 +384,22 @@ final class CloudSyncService {
             body: CreateWorkspaceRequest(name: name)
         )
 
+        logCloudPhase(
+            phase: .workspaceCreate,
+            outcome: "success",
+            workspaceId: response.workspace.workspaceId,
+            selection: "create_new"
+        )
         return response.workspace
     }
 
     func selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String) async throws -> CloudWorkspaceSummary {
+        logCloudPhase(
+            phase: .workspaceSelect,
+            outcome: "start",
+            workspaceId: workspaceId,
+            selection: "existing"
+        )
         let response: WorkspaceEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
             bearerToken: bearerToken,
@@ -388,6 +408,12 @@ final class CloudSyncService {
             body: Optional<String>.none
         )
 
+        logCloudPhase(
+            phase: .workspaceSelect,
+            outcome: "success",
+            workspaceId: response.workspace.workspaceId,
+            selection: "existing"
+        )
         return response.workspace
     }
 
@@ -403,6 +429,13 @@ final class CloudSyncService {
             }
 
             do {
+                logCloudPhase(
+                    phase: .initialPush,
+                    outcome: "start",
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationsCount: outboxEntries.count
+                )
                 let pushResponse: SyncPushResponse = try await self.request(
                     apiBaseUrl: linkedSession.apiBaseUrl,
                     bearerToken: linkedSession.bearerToken,
@@ -423,6 +456,13 @@ final class CloudSyncService {
                         result.operationId
                     }
                 )
+                logCloudPhase(
+                    phase: .initialPush,
+                    outcome: "success",
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationsCount: pushResponse.operations.count
+                )
             } catch {
                 try self.database.markOutboxEntriesFailed(
                     operationIds: outboxEntries.map { entry in
@@ -430,12 +470,26 @@ final class CloudSyncService {
                     },
                     message: error.localizedDescription
                 )
+                logCloudPhase(
+                    phase: .initialPush,
+                    outcome: "failure",
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationsCount: outboxEntries.count,
+                    errorMessage: localizedMessage(error: error)
+                )
                 throw error
             }
         }
 
         var afterChangeId = try self.database.loadLastAppliedChangeId(workspaceId: workspaceId)
         while true {
+            logCloudPhase(
+                phase: .initialPull,
+                outcome: "start",
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId
+            )
             let pullEnvelope: RemotePullResponseEnvelope = try await self.request(
                 apiBaseUrl: linkedSession.apiBaseUrl,
                 bearerToken: linkedSession.bearerToken,
@@ -459,6 +513,13 @@ final class CloudSyncService {
 
             afterChangeId = pullEnvelope.nextChangeId
             try self.database.setLastAppliedChangeId(workspaceId: workspaceId, changeId: afterChangeId)
+            logCloudPhase(
+                phase: .initialPull,
+                outcome: "success",
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                changesCount: pullEnvelope.changes.count
+            )
 
             if pullEnvelope.hasMore == false {
                 break
@@ -504,9 +565,38 @@ final class CloudSyncService {
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
             let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
             let errorDetails = parseCloudApiErrorDetails(data: data, requestId: requestId)
+            logCloudPhase(
+                phase: self.phase(for: path),
+                outcome: "failure",
+                requestId: errorDetails.requestId,
+                code: errorDetails.code,
+                statusCode: httpResponse.statusCode
+            )
             throw CloudSyncError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
 
+        logCloudPhase(phase: self.phase(for: path), outcome: "success")
+
         return try self.decoder.decode(Response.self, from: data)
+    }
+
+    private func phase(for path: String) -> CloudFlowPhase {
+        if path == "/workspaces" {
+            return .workspaceCreate
+        }
+
+        if path.hasPrefix("/workspaces/") && path.hasSuffix("/select") {
+            return .workspaceSelect
+        }
+
+        if path.hasSuffix("/sync/push") {
+            return .initialPush
+        }
+
+        if path.hasSuffix("/sync/pull") {
+            return .initialPull
+        }
+
+        return .workspaceList
     }
 }

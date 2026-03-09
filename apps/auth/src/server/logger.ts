@@ -20,6 +20,7 @@ type LogEvent = Readonly<{
   route?: string;
   statusCode?: number;
   code?: string;
+  reasonCategory?: string;
   maskedEmail?: string;
   error?: string;
 }>;

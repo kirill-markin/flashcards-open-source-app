@@ -436,6 +436,30 @@ function logRequestError(
   }));
 }
 
+function logCloudRouteEvent(
+  action: string,
+  payload: Record<string, unknown>,
+  isError: boolean,
+): void {
+  const logger = isError ? console.error : console.log;
+  logger(JSON.stringify({
+    domain: "backend",
+    action,
+    ...payload,
+  }));
+}
+
+function summarizeValidationIssues(error: HttpError | unknown): ReadonlyArray<Readonly<{ path: string; code: string }>> {
+  if (!(error instanceof HttpError) || error.details === null) {
+    return [];
+  }
+
+  return error.details.validationIssues.map((issue) => ({
+    path: issue.path,
+    code: issue.code,
+  }));
+}
+
 /**
  * Writes client-side stream diagnostics with the current selected workspace
  * context so browser failures can be correlated with backend request logs.
@@ -702,25 +726,91 @@ export function createApp(basePath: string): Hono<AppEnv> {
 
   registerRoute("get", "/workspaces", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
-    const workspaces = await listUserWorkspaces(requestContext.userId);
-    return context.json({ workspaces });
+    const requestId = context.get("requestId");
+
+    try {
+      const workspaces = await listUserWorkspaces(requestContext.userId);
+      logCloudRouteEvent("workspaces_list", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        selectedWorkspaceId: requestContext.selectedWorkspaceId,
+        workspacesCount: workspaces.length,
+      }, false);
+      return context.json({ workspaces });
+    } catch (error) {
+      logCloudRouteEvent("workspaces_list_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        selectedWorkspaceId: requestContext.selectedWorkspaceId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
   });
 
   registerRoute("post", "/workspaces", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const requestId = context.get("requestId");
     const body = expectRecord(await parseJsonBody(context.req.raw));
-    const workspace = await createWorkspaceForUser(
-      requestContext.userId,
-      expectNonEmptyString(body.name, "name"),
-    );
-    return context.json({ workspace }, 201);
+
+    try {
+      const workspace = await createWorkspaceForUser(
+        requestContext.userId,
+        expectNonEmptyString(body.name, "name"),
+      );
+      logCloudRouteEvent("workspace_create", {
+        requestId,
+        route: context.req.path,
+        statusCode: 201,
+        userId: requestContext.userId,
+        workspaceId: workspace.workspaceId,
+      }, false);
+      return context.json({ workspace }, 201);
+    } catch (error) {
+      logCloudRouteEvent("workspace_create_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
   });
 
   registerRoute("post", "/workspaces/:workspaceId/select", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-    const workspace = await selectWorkspaceForUser(requestContext.userId, workspaceId);
-    return context.json({ workspace });
+    const requestId = context.get("requestId");
+
+    try {
+      const workspace = await selectWorkspaceForUser(requestContext.userId, workspaceId);
+      logCloudRouteEvent("workspace_select", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+      }, false);
+      return context.json({ workspace });
+    } catch (error) {
+      logCloudRouteEvent("workspace_select_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
   });
 
   registerRoute("post", "/chat", async (context) => {
@@ -775,8 +865,37 @@ export function createApp(basePath: string): Hono<AppEnv> {
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
     const input = parseSyncPushInput(await parseJsonBody(context.req.raw));
-    const result = await processSyncPush(workspaceId, requestContext.userId, input);
-    return context.json(result);
+    const requestId = context.get("requestId");
+    const entityTypes = [...new Set(input.operations.map((operation) => operation.entityType))];
+
+    try {
+      const result = await processSyncPush(workspaceId, requestContext.userId, input);
+      logCloudRouteEvent("sync_push", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+        deviceId: input.deviceId,
+        operationsCount: input.operations.length,
+        entityTypes,
+      }, false);
+      return context.json(result);
+    } catch (error) {
+      logCloudRouteEvent("sync_push_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        deviceId: input.deviceId,
+        operationsCount: input.operations.length,
+        entityTypes,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
   });
 
   registerRoute("post", "/workspaces/:workspaceId/sync/pull", async (context) => {
@@ -784,8 +903,36 @@ export function createApp(basePath: string): Hono<AppEnv> {
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
     const input = parseSyncPullInput(await parseJsonBody(context.req.raw));
-    const result = await processSyncPull(workspaceId, requestContext.userId, input);
-    return context.json(result);
+    const requestId = context.get("requestId");
+
+    try {
+      const result = await processSyncPull(workspaceId, requestContext.userId, input);
+      logCloudRouteEvent("sync_pull", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+        deviceId: input.deviceId,
+        afterChangeId: input.afterChangeId,
+        nextChangeId: result.nextChangeId,
+        changesCount: result.changes.length,
+      }, false);
+      return context.json(result);
+    } catch (error) {
+      logCloudRouteEvent("sync_pull_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        deviceId: input.deviceId,
+        afterChangeId: input.afterChangeId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
   });
 
   return app;

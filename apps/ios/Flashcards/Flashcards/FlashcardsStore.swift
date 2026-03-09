@@ -355,28 +355,37 @@ final class FlashcardsStore: ObservableObject {
         return challenge
     }
 
-    func verifyCloudSignIn(challenge: CloudOtpChallenge, code: String) async throws -> CloudWorkspaceLinkContext {
-        guard let cloudSyncService else {
-            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
-        }
-
+    func verifyCloudOtp(challenge: CloudOtpChallenge, code: String) async throws -> CloudVerifiedAuthContext {
         let configuration = try loadCloudServiceConfiguration()
         let credentials = try await self.cloudAuthService.verifyCode(
             challenge: challenge,
             code: code,
             authBaseUrl: configuration.authBaseUrl
         )
-        let account = try await cloudSyncService.fetchCloudAccount(
+
+        self.globalErrorMessage = ""
+        return CloudVerifiedAuthContext(
             apiBaseUrl: configuration.apiBaseUrl,
-            bearerToken: credentials.idToken
+            credentials: credentials
+        )
+    }
+
+    func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) async throws -> CloudWorkspaceLinkContext {
+        guard let cloudSyncService else {
+            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
+        }
+
+        let account = try await cloudSyncService.fetchCloudAccount(
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            bearerToken: verifiedContext.credentials.idToken
         )
 
         self.globalErrorMessage = ""
         return CloudWorkspaceLinkContext(
             userId: account.userId,
             email: account.email,
-            apiBaseUrl: configuration.apiBaseUrl,
-            credentials: credentials,
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            credentials: verifiedContext.credentials,
             workspaces: account.workspaces
         )
     }
@@ -397,12 +406,23 @@ final class FlashcardsStore: ObservableObject {
         case .existing(let workspaceId):
             // Workspace choice is explicit now so future device-side workspace
             // switching can reuse the same linking surface.
+            logCloudPhase(
+                phase: .workspaceSelect,
+                outcome: "start",
+                workspaceId: workspaceId,
+                selection: "existing"
+            )
             linkedWorkspace = try await cloudSyncService.selectWorkspace(
                 apiBaseUrl: linkContext.apiBaseUrl,
                 bearerToken: linkContext.credentials.idToken,
                 workspaceId: workspaceId
             )
         case .createNew:
+            logCloudPhase(
+                phase: .workspaceCreate,
+                outcome: "start",
+                selection: "create_new"
+            )
             linkedWorkspace = try await cloudSyncService.createWorkspace(
                 apiBaseUrl: linkContext.apiBaseUrl,
                 bearerToken: linkContext.credentials.idToken,
@@ -456,6 +476,12 @@ final class FlashcardsStore: ObservableObject {
             let needsBootstrap = self.cloudSettings?.cloudState != .linked
                 || self.cloudSettings?.linkedWorkspaceId != linkedSession.workspaceId
 
+            logCloudPhase(
+                phase: .linkLocalWorkspace,
+                outcome: "start",
+                workspaceId: linkedSession.workspaceId,
+                deviceId: self.cloudSettings?.deviceId
+            )
             try database.relinkWorkspace(localWorkspaceId: localWorkspaceId, linkedSession: linkedSession)
             if needsBootstrap {
                 try database.bootstrapOutbox(workspaceId: linkedSession.workspaceId)
@@ -467,8 +493,21 @@ final class FlashcardsStore: ObservableObject {
             self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
             self.syncStatus = .idle
             self.globalErrorMessage = ""
+            logCloudPhase(
+                phase: .linkedSync,
+                outcome: "success",
+                workspaceId: linkedSession.workspaceId,
+                deviceId: self.cloudSettings?.deviceId
+            )
             try self.reload()
         } catch {
+            logCloudPhase(
+                phase: .linkedSync,
+                outcome: "failure",
+                workspaceId: linkedSession.workspaceId,
+                deviceId: self.cloudSettings?.deviceId,
+                errorMessage: localizedMessage(error: error)
+            )
             self.syncStatus = .failed(message: localizedMessage(error: error))
             self.globalErrorMessage = localizedMessage(error: error)
             throw error
