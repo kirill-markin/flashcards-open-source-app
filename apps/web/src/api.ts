@@ -56,7 +56,8 @@ function getMethod(init: RequestInit): string {
 
 function createHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
-  if (!headers.has("Content-Type")) {
+
+  if (init.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -103,11 +104,18 @@ async function readJsonResponse(response: Response): Promise<unknown> {
 
 async function requestResponse(pathname: string, init: RequestInit): Promise<Response> {
   const config = getAppConfig();
-  return fetch(`${config.apiBaseUrl}${pathname}`, {
-    ...init,
-    credentials: "include",
-    headers: createHeaders(init),
-  });
+  try {
+    return await fetch(`${config.apiBaseUrl}${pathname}`, {
+      ...init,
+      credentials: "include",
+      headers: createHeaders(init),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `The API is unavailable or not deployed yet. Try again. (${pathname}; ${message})`,
+    );
+  }
 }
 
 async function requestJson(pathname: string, init: RequestInit): Promise<unknown> {

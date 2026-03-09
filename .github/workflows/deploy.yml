@@ -93,6 +93,9 @@ jobs:
       - name: Check API health
         run: bash scripts/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
 
+      - name: Check public API routes
+        run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
+
       - name: Build web app
         run: npm run build --prefix apps/web
 
