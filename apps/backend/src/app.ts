@@ -20,6 +20,12 @@ import {
   processSyncPull,
   processSyncPush,
 } from "./sync";
+import type {
+  LocalAssistantToolCall,
+  LocalChatMessage,
+  LocalChatRequestBody,
+  LocalChatStreamEvent,
+} from "./chat/localTypes";
 import { CHAT_MODELS } from "./chat/models";
 import type { ChatMessage, ChatStreamEvent } from "./chat/types";
 
@@ -212,8 +218,78 @@ function parseChatRequestBody(value: unknown): ChatRequestBody {
   };
 }
 
+function parseLocalAssistantToolCall(value: unknown): LocalAssistantToolCall {
+  const body = expectRecord(value);
 
+  return {
+    toolCallId: expectNonEmptyString(body.toolCallId, "toolCallId"),
+    name: expectNonEmptyString(body.name, "name"),
+    input: expectNonEmptyString(body.input, "input"),
+  };
+}
 
+function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage> {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new HttpError(400, "messages must be a non-empty array");
+  }
+
+  return value.map((messageValue, index) => {
+    const body = expectRecord(messageValue);
+    const role = expectNonEmptyString(body.role, `messages[${index}].role`);
+
+    if (role === "user") {
+      return {
+        role: "user",
+        content: expectNonEmptyString(body.content, `messages[${index}].content`),
+      };
+    }
+
+    if (role === "assistant") {
+      const toolCallsValue = body.toolCalls;
+      const toolCalls = toolCallsValue === undefined
+        ? []
+        : Array.isArray(toolCallsValue)
+        ? toolCallsValue.map(parseLocalAssistantToolCall)
+        : (() => {
+          throw new HttpError(400, `messages[${index}].toolCalls must be an array`);
+        })();
+
+      return {
+        role: "assistant",
+        content: typeof body.content === "string" ? body.content : "",
+        toolCalls,
+      };
+    }
+
+    if (role === "tool") {
+      const outputValue = body.output;
+      if (typeof outputValue !== "string") {
+        throw new HttpError(400, `messages[${index}].output must be a string`);
+      }
+
+      return {
+        role: "tool",
+        toolCallId: expectNonEmptyString(body.toolCallId, `messages[${index}].toolCallId`),
+        name: expectNonEmptyString(body.name, `messages[${index}].name`),
+        output: outputValue,
+      };
+    }
+
+    throw new HttpError(400, `messages[${index}].role is invalid`);
+  });
+}
+
+function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody {
+  const body = expectRecord(value);
+  const model = expectNonEmptyString(body.model, "model");
+  const timezone = expectNonEmptyString(body.timezone, "timezone");
+
+  return {
+    messages: parseLocalChatMessages(body.messages),
+    model,
+    timezone,
+  };
+}
 
 /**
  * Restricts diagnostics logs to a known set of lifecycle stages so CloudWatch
@@ -381,6 +457,53 @@ async function streamChatResponse(
   });
 }
 
+export async function streamLocalChatResponse(
+  body: LocalChatRequestBody,
+  requestId: string,
+): Promise<Response> {
+  const validModel = CHAT_MODELS.find((model) => model.id === body.model && model.vendor === "openai");
+  if (validModel === undefined) {
+    throw new HttpError(400, `Unknown local chat model: ${body.model}`);
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (apiKey === undefined || apiKey === "") {
+    throw new HttpError(500, "OPENAI_API_KEY environment variable is not set");
+  }
+
+  const agentModule = await import("./chat/openai/localAgent");
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const event of agentModule.streamLocalTurn({
+          messages: body.messages,
+          model: body.model,
+          timezone: body.timezone,
+        })) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          if (event.type === "done" || event.type === "await_tool_results") {
+            break;
+          }
+        }
+      } catch (error) {
+        const message = getInternalErrorMessage(error);
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message } satisfies LocalChatStreamEvent)}\n\n`));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Chat-Request-Id": requestId,
+    },
+  });
+}
 
 export function createApp(basePath: string): Hono {
   const app = new Hono();
@@ -505,6 +628,21 @@ export function createApp(basePath: string): Hono {
     }
   });
 
+  registerRoute("post", "/chat/local-turn", async (context) => {
+    const requestId = randomUUID();
+
+    try {
+      await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+      const body = parseLocalChatRequestBody(await parseJsonBody(context.req.raw));
+      return await streamLocalChatResponse(body, requestId);
+    } catch (error) {
+      if (error instanceof HttpError || error instanceof AuthError) {
+        throw error;
+      }
+
+      return createChatErrorResponse(getInternalErrorMessage(error), requestId);
+    }
+  });
 
   registerRoute("post", "/chat/diagnostics", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
