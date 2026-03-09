@@ -78,7 +78,8 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
         var urlRequest = URLRequest(url: try self.makeURL(apiBaseUrl: session.apiBaseUrl, path: "/chat/local-turn"))
         urlRequest.httpMethod = "POST"
@@ -114,6 +115,8 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 case .toolCallRequest(let toolCallRequest):
                     requestedToolCalls.append(toolCallRequest)
                     await onToolCallRequest(toolCallRequest)
+                case .repairAttempt(let status):
+                    await onRepairAttempt(status)
                 case .awaitToolResults:
                     awaitsToolResults = true
                 case .done:
@@ -132,6 +135,8 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
             case .toolCallRequest(let toolCallRequest):
                 requestedToolCalls.append(toolCallRequest)
                 await onToolCallRequest(toolCallRequest)
+            case .repairAttempt(let status):
+                await onRepairAttempt(status)
             case .awaitToolResults:
                 awaitsToolResults = true
             case .done:

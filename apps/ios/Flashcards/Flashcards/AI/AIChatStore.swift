@@ -7,6 +7,7 @@ final class AIChatStore: ObservableObject {
     @Published private(set) var selectedModelId: String
     @Published private(set) var isStreaming: Bool
     @Published private(set) var errorMessage: String
+    @Published private(set) var repairStatus: AIChatRepairAttemptStatus?
 
     private let flashcardsStore: FlashcardsStore
     private let historyStore: any AIChatHistoryStoring
@@ -31,6 +32,7 @@ final class AIChatStore: ObservableObject {
         self.selectedModelId = persistedState.selectedModelId
         self.isStreaming = false
         self.errorMessage = ""
+        self.repairStatus = nil
     }
 
     var isModelLocked: Bool {
@@ -56,6 +58,7 @@ final class AIChatStore: ObservableObject {
         self.cancelStreaming()
         self.messages = []
         self.errorMessage = ""
+        self.repairStatus = nil
         self.historyStore.clearState()
     }
 
@@ -63,6 +66,7 @@ final class AIChatStore: ObservableObject {
         self.activeSendTask?.cancel()
         self.activeSendTask = nil
         self.isStreaming = false
+        self.repairStatus = nil
     }
 
     func sendMessage() {
@@ -81,6 +85,7 @@ final class AIChatStore: ObservableObject {
         }
 
         self.errorMessage = ""
+        self.repairStatus = nil
         self.messages.append(
             AIChatMessage(
                 id: UUID().uuidString.lowercased(),
@@ -110,14 +115,17 @@ final class AIChatStore: ObservableObject {
                 let session = try await self.flashcardsStore.authenticatedCloudSessionForAI()
                 try await self.runConversation(session: session)
                 if Task.isCancelled == false {
+                    self.repairStatus = nil
                     self.isStreaming = false
                     self.activeSendTask = nil
                     self.persistState()
                 }
             } catch is CancellationError {
+                self.repairStatus = nil
                 self.isStreaming = false
                 self.activeSendTask = nil
             } catch {
+                self.repairStatus = nil
                 self.markAssistantError(message: localizedMessage(error: error))
                 self.isStreaming = false
                 self.activeSendTask = nil
@@ -139,10 +147,14 @@ final class AIChatStore: ObservableObject {
                 },
                 onToolCallRequest: { [weak self] toolCallRequest in
                     await self?.appendToolCallRequest(toolCallRequest: toolCallRequest)
+                },
+                onRepairAttempt: { [weak self] status in
+                    await self?.setRepairStatus(status: status)
                 }
             )
 
             if outcome.awaitsToolResults == false {
+                self.repairStatus = nil
                 return
             }
 
@@ -275,6 +287,7 @@ final class AIChatStore: ObservableObject {
             return
         }
 
+        self.repairStatus = nil
         let lastMessage = self.messages[lastIndex]
         self.messages[lastIndex] = AIChatMessage(
             id: lastMessage.id,
@@ -326,6 +339,10 @@ final class AIChatStore: ObservableObject {
             timestamp: lastMessage.timestamp,
             isError: lastMessage.isError
         )
+    }
+
+    private func setRepairStatus(status: AIChatRepairAttemptStatus) {
+        self.repairStatus = status
     }
 
     private func markAssistantError(message: String) {

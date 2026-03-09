@@ -116,7 +116,10 @@ struct AIChatView: View {
                         }
 
                         ForEach(chatStore.messages) { message in
-                            self.messageRow(message: message)
+                            self.messageRow(
+                                message: message,
+                                repairStatus: self.repairStatus(for: message)
+                            )
                                 .id(message.id)
                         }
                     }
@@ -209,7 +212,19 @@ struct AIChatView: View {
         })?.label ?? chatStore.selectedModelId
     }
 
-    private func messageRow(message: AIChatMessage) -> some View {
+    private func repairStatus(for message: AIChatMessage) -> AIChatRepairAttemptStatus? {
+        guard message.role == .assistant else {
+            return nil
+        }
+
+        guard chatStore.messages.last?.id == message.id else {
+            return nil
+        }
+
+        return chatStore.repairStatus
+    }
+
+    private func messageRow(message: AIChatMessage, repairStatus: AIChatRepairAttemptStatus?) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(message.role == .user ? "You" : "Assistant")
                 .font(.caption.weight(.semibold))
@@ -218,6 +233,16 @@ struct AIChatView: View {
             if message.text.isEmpty == false {
                 Text(message.text)
                     .textSelection(.enabled)
+            }
+
+            if let repairStatus {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text(repairStatus.displayText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             ForEach(message.toolCalls) { toolCall in

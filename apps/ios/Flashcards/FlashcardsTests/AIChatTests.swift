@@ -27,7 +27,8 @@ private final class FailingChatService: AIChatStreaming, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
         XCTFail("streamTurn should not be called in this test")
         return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [])
@@ -41,9 +42,45 @@ private struct ThrowingChatService: AIChatStreaming {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
         throw self.error
+    }
+}
+
+private struct RepairingChatService: AIChatStreaming {
+    let terminalError: Error?
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        await onDelta("Checking")
+        await onRepairAttempt(
+            AIChatRepairAttemptStatus(
+                message: "Assistant is correcting list_cards.",
+                attempt: 1,
+                maxAttempts: 3,
+                toolName: "list_cards"
+            )
+        )
+
+        if let terminalError {
+            throw terminalError
+        }
+
+        await onToolCallRequest(
+            AIToolCallRequest(
+                toolCallId: "call-1",
+                name: "list_cards",
+                input: "{\"limit\":null}"
+            )
+        )
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [])
     }
 }
 
@@ -130,6 +167,18 @@ final class AIChatTests: XCTestCase {
         XCTAssertEqual(
             try parser.pushLine(""),
             .toolCallRequest(AIToolCallRequest(toolCallId: "call-1", name: "list_cards", input: "{}"))
+        )
+        XCTAssertEqual(try parser.pushLine("data: {\"type\":\"repair_attempt\",\"message\":\"Assistant is correcting list_cards.\",\"attempt\":1,\"maxAttempts\":3,\"toolName\":\"list_cards\"}"), nil)
+        XCTAssertEqual(
+            try parser.pushLine(""),
+            .repairAttempt(
+                AIChatRepairAttemptStatus(
+                    message: "Assistant is correcting list_cards.",
+                    attempt: 1,
+                    maxAttempts: 3,
+                    toolName: "list_cards"
+                )
+            )
         )
         XCTAssertEqual(try parser.pushLine("data: {\"type\":\"await_tool_results\"}"), nil)
         XCTAssertEqual(try parser.pushLine(""), .awaitToolResults)
@@ -340,6 +389,50 @@ final class AIChatTests: XCTestCase {
         XCTAssertEqual(chatStore.messages[1].isError, true)
     }
 
+    @MainActor
+    func testAIChatStoreClearsRepairStatusAfterSuccessfulTurn() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: RepairingChatService(terminalError: nil),
+            toolExecutor: FailingToolExecutor()
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatState(chatStore: chatStore)
+
+        XCTAssertNil(chatStore.repairStatus)
+        XCTAssertEqual(chatStore.messages.count, 2)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
+    }
+
+    @MainActor
+    func testAIChatStoreClearsRepairStatusAfterTerminalFailure() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: RepairingChatService(terminalError: StubLocalizedError(message: "Still invalid")),
+            toolExecutor: FailingToolExecutor()
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatState(chatStore: chatStore)
+
+        XCTAssertNil(chatStore.repairStatus)
+        XCTAssertEqual(chatStore.messages[1].isError, true)
+        XCTAssertEqual(chatStore.messages[1].text, "Checking\n\nStill invalid")
+    }
+
     func testAIChatServiceFormatsApiErrorsWithRequestId() async throws {
         AIChatMockUrlProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/local-turn")
@@ -388,7 +481,8 @@ final class AIChatTests: XCTestCase {
                     timezone: "Europe/Madrid"
                 ),
                 onDelta: { _ in },
-                onToolCallRequest: { _ in }
+                onToolCallRequest: { _ in },
+                onRepairAttempt: { _ in }
             )
             XCTFail("Expected invalid response error")
         } catch let error as AIChatServiceError {
