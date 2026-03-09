@@ -4,6 +4,7 @@ struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
     @State private var isAnswerVisible: Bool = false
+    @State private var isQueuePreviewPresented: Bool = false
     @State private var screenErrorMessage: String = ""
 
     private var reviewFilterOptions: [ReviewFilter] {
@@ -34,10 +35,26 @@ struct ReviewView: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Text("\(store.reviewQueue.count) due")
-                    .font(.subheadline.monospacedDigit())
-                    .padding(.horizontal, 6)
-                    .foregroundStyle(.secondary)
+                Button {
+                    self.isQueuePreviewPresented = true
+                } label: {
+                    Text("\(store.reviewQueue.count) / \(store.reviewTotalCount)")
+                        .font(.subheadline.monospacedDigit())
+                        .padding(.horizontal, 6)
+                        .foregroundStyle(.secondary)
+                }
+                .disabled(store.reviewTotalCount == 0)
+                .accessibilityLabel("Review queue \(store.reviewQueue.count) active of \(store.reviewTotalCount) total")
+            }
+        }
+        .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
+            NavigationStack {
+                ReviewQueuePreviewScreen(
+                    title: store.selectedReviewFilterTitle,
+                    cards: store.reviewTimeline,
+                    activeCount: store.reviewQueue.count,
+                    currentCardId: currentCard?.cardId
+                )
             }
         }
     }
@@ -166,26 +183,6 @@ struct ReviewView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-
-                if store.reviewQueue.count > 1 {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Queue preview")
-                            .font(.headline)
-
-                        ForEach(Array(store.reviewQueue.dropFirst().prefix(3))) { queueCard in
-                            HStack {
-                                Text(queueCard.frontText)
-                                    .lineLimit(1)
-
-                                Spacer()
-
-                                Text(displayTimestamp(value: queueCard.dueAt))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .font(.subheadline)
-                        }
-                    }
-                }
             }
             .padding(20)
         }
@@ -233,6 +230,228 @@ struct ReviewView: View {
         } catch {
             return ([], localizedMessage(error: error))
         }
+    }
+}
+
+private struct ReviewQueuePreviewScreen: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let title: String
+    let cards: [Card]
+    let activeCount: Int
+    let currentCardId: String?
+
+    private var previewItems: [ReviewQueuePreviewItem] {
+        let cardItems = cards.map { card in
+            ReviewQueuePreviewItem.card(card)
+        }
+
+        guard activeCount < cards.count else {
+            return cardItems
+        }
+
+        let prefixItems = Array(cardItems.prefix(activeCount))
+        let suffixItems = Array(cardItems.dropFirst(activeCount))
+        return prefixItems + [.separator] + suffixItems
+    }
+
+    var body: some View {
+        ScrollView {
+            if previewItems.isEmpty {
+                ContentUnavailableView(
+                    "No Matching Cards",
+                    systemImage: "tray",
+                    description: Text("This review filter does not include any cards yet.")
+                )
+                .padding(.top, 120)
+            } else {
+                IncrementalItemsView(
+                    items: previewItems,
+                    initialCount: 50,
+                    pageSize: 50
+                ) { item in
+                    switch item {
+                    case .separator:
+                        ReviewQueueSectionSeparator()
+                    case .card(let card):
+                        ReviewQueuePreviewCardRow(
+                            card: card,
+                            isCurrent: card.cardId == currentCardId
+                        )
+                    }
+                }
+                .padding(20)
+            }
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Close") {
+                    self.dismiss()
+                }
+            }
+        }
+    }
+}
+
+private enum ReviewQueuePreviewItem: Identifiable, Hashable {
+    case card(Card)
+    case separator
+
+    var id: String {
+        switch self {
+        case .card(let card):
+            return card.cardId
+        case .separator:
+            return "review-queue-separator"
+        }
+    }
+}
+
+private struct ReviewQueuePreviewCardRow: View {
+    let card: Card
+    let isCurrent: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(card.frontText)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if isCurrent {
+                    Text("Current")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tint)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.accentColor.opacity(0.14))
+                        )
+                }
+            }
+
+            Text(card.backText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack(spacing: 12) {
+                Label(displayTimestamp(value: card.dueAt), systemImage: "clock")
+                Label(card.effortLevel.title, systemImage: "timer")
+                Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    isCurrent ? Color.accentColor.opacity(0.35) : Color.clear,
+                    lineWidth: 1
+                )
+        }
+    }
+}
+
+private struct ReviewQueueSectionSeparator: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.35))
+                .frame(height: 1)
+
+            Text("Later")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Rectangle()
+                .fill(Color.secondary.opacity(0.35))
+                .frame(height: 1)
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+struct IncrementalItemsView<Items: RandomAccessCollection, Content: View>: View where Items.Element: Identifiable, Items.Element.ID: Hashable {
+    let items: Items
+    let initialCount: Int
+    let pageSize: Int
+    let content: (Items.Element) -> Content
+
+    @State private var visibleCount: Int
+
+    init(
+        items: Items,
+        initialCount: Int,
+        pageSize: Int,
+        @ViewBuilder content: @escaping (Items.Element) -> Content
+    ) {
+        precondition(initialCount > 0, "IncrementalItemsView initialCount must be greater than zero")
+        precondition(pageSize > 0, "IncrementalItemsView pageSize must be greater than zero")
+
+        self.items = items
+        self.initialCount = initialCount
+        self.pageSize = pageSize
+        self.content = content
+        self._visibleCount = State(
+            initialValue: initialIncrementalVisibleCount(totalCount: items.count, initialCount: initialCount)
+        )
+    }
+
+    private var visibleItems: [Items.Element] {
+        Array(self.items.prefix(self.visibleCount))
+    }
+
+    var body: some View {
+        LazyVStack(alignment: .leading, spacing: 12) {
+            ForEach(self.visibleItems) { item in
+                self.content(item)
+                    .onAppear {
+                        self.loadMoreIfNeeded(itemId: item.id)
+                    }
+            }
+        }
+        .onChange(of: self.items.count) { _, nextCount in
+            let initialVisibleCount = initialIncrementalVisibleCount(
+                totalCount: nextCount,
+                initialCount: self.initialCount
+            )
+
+            if nextCount == 0 {
+                self.visibleCount = 0
+                return
+            }
+
+            self.visibleCount = min(max(self.visibleCount, initialVisibleCount), nextCount)
+        }
+    }
+
+    private func loadMoreIfNeeded(itemId: Items.Element.ID) {
+        guard let lastVisibleItemId = self.visibleItems.last?.id else {
+            return
+        }
+        guard itemId == lastVisibleItemId else {
+            return
+        }
+        guard self.visibleCount < self.items.count else {
+            return
+        }
+
+        self.visibleCount = nextIncrementalVisibleCount(
+            currentVisibleCount: self.visibleCount,
+            totalCount: self.items.count,
+            pageSize: self.pageSize
+        )
     }
 }
 

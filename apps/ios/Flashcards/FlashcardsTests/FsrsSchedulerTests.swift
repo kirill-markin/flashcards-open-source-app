@@ -778,6 +778,157 @@ final class FsrsSchedulerTests: XCTestCase {
         XCTAssertTrue(isCardDue(card: card, now: Date()))
     }
 
+    func testMakeReviewTimelineForAllCardsReturnsActiveAndTotalCounts() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let cards = [
+            Self.makeTestCard(
+                cardId: "active-new",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: nil,
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            Self.makeTestCard(
+                cardId: "active-due",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:30:00.000Z",
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            ),
+            Self.makeTestCard(
+                cardId: "future",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T10:00:00.000Z",
+                updatedAt: "2026-03-09T06:00:00.000Z"
+            ),
+            Self.makeTestCard(
+                cardId: "malformed",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "not-an-iso-date",
+                updatedAt: "2026-03-09T05:00:00.000Z"
+            )
+        ]
+
+        let reviewQueue = makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now)
+        let reviewTimeline = makeReviewTimeline(reviewFilter: .allCards, decks: [], cards: cards, now: now)
+
+        XCTAssertEqual(reviewQueue.count, 3)
+        XCTAssertEqual(reviewTimeline.count, 4)
+        XCTAssertEqual(Array(reviewTimeline.prefix(reviewQueue.count)).map(\.cardId), reviewQueue.map(\.cardId))
+    }
+
+    func testMakeReviewTimelineForDeckFilterReturnsMatchingActiveAndTotalCounts() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let decks = [
+            Self.makeDeck(
+                deckId: "biology",
+                name: "Biology",
+                filterDefinition: buildDeckFilterDefinition(
+                    effortLevels: [],
+                    combineWith: .and,
+                    tagsOperator: .containsAny,
+                    tags: ["bio"]
+                )
+            )
+        ]
+        let cards = [
+            Self.makeTestCard(
+                cardId: "matching-active",
+                tags: ["bio"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:00:00.000Z",
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            Self.makeTestCard(
+                cardId: "matching-future",
+                tags: ["bio"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T11:00:00.000Z",
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            ),
+            Self.makeTestCard(
+                cardId: "other-active",
+                tags: ["math"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T07:30:00.000Z",
+                updatedAt: "2026-03-09T06:00:00.000Z"
+            )
+        ]
+
+        let reviewQueue = makeReviewQueue(
+            reviewFilter: .deck(deckId: "biology"),
+            decks: decks,
+            cards: cards,
+            now: now
+        )
+        let reviewTimeline = makeReviewTimeline(
+            reviewFilter: .deck(deckId: "biology"),
+            decks: decks,
+            cards: cards,
+            now: now
+        )
+
+        XCTAssertEqual(reviewQueue.map(\.cardId), ["matching-active"])
+        XCTAssertEqual(reviewTimeline.map(\.cardId), ["matching-active", "matching-future"])
+    }
+
+    func testMakeReviewTimelineAppendsFutureCardsSortedByDueAtAndUpdatedAt() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let cards = [
+            Self.makeTestCard(
+                cardId: "current",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:00:00.000Z",
+                updatedAt: "2026-03-09T08:30:00.000Z"
+            ),
+            Self.makeTestCard(
+                cardId: "future-early",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T10:00:00.000Z",
+                updatedAt: "2026-03-09T06:00:00.000Z"
+            ),
+            Self.makeTestCard(
+                cardId: "future-tie-newer",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T11:00:00.000Z",
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            Self.makeTestCard(
+                cardId: "future-tie-older",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T11:00:00.000Z",
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            )
+        ]
+
+        let reviewQueue = makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now)
+        let reviewTimeline = makeReviewTimeline(reviewFilter: .allCards, decks: [], cards: cards, now: now)
+
+        XCTAssertEqual(reviewQueue.map(\.cardId), ["current"])
+        XCTAssertEqual(
+            reviewTimeline.map(\.cardId),
+            ["current", "future-early", "future-tie-newer", "future-tie-older"]
+        )
+    }
+
+    func testInitialIncrementalVisibleCountShowsFirstPage() {
+        XCTAssertEqual(initialIncrementalVisibleCount(totalCount: 120, initialCount: 50), 50)
+    }
+
+    func testNextIncrementalVisibleCountLoadsNextPage() {
+        XCTAssertEqual(nextIncrementalVisibleCount(currentVisibleCount: 50, totalCount: 120, pageSize: 50), 100)
+    }
+
+    func testNextIncrementalVisibleCountDoesNotExceedTotalCount() {
+        XCTAssertEqual(nextIncrementalVisibleCount(currentVisibleCount: 100, totalCount: 120, pageSize: 50), 120)
+    }
+
     func testReviewAnswerPresentationOrderIsInvertedForDisplay() {
         XCTAssertEqual(reviewAnswerPresentationOrder, [.easy, .good, .hard, .again])
     }
@@ -937,6 +1088,56 @@ final class FsrsSchedulerTests: XCTestCase {
             lastModifiedByDeviceId: "device",
             lastOperationId: "operation",
             updatedAt: "",
+            deletedAt: nil
+        )
+    }
+
+    private static func makeTestCard(
+        cardId: String,
+        tags: [String],
+        effortLevel: EffortLevel,
+        dueAt: String?,
+        updatedAt: String
+    ) -> Card {
+        Card(
+            cardId: cardId,
+            workspaceId: "test-workspace",
+            frontText: "Front \(cardId)",
+            backText: "Back \(cardId)",
+            tags: tags,
+            effortLevel: effortLevel,
+            dueAt: dueAt,
+            reps: 0,
+            lapses: 0,
+            fsrsCardState: .new,
+            fsrsStepIndex: nil,
+            fsrsStability: nil,
+            fsrsDifficulty: nil,
+            fsrsLastReviewedAt: nil,
+            fsrsScheduledDays: nil,
+            clientUpdatedAt: updatedAt,
+            lastModifiedByDeviceId: "device",
+            lastOperationId: "operation",
+            updatedAt: updatedAt,
+            deletedAt: nil
+        )
+    }
+
+    private static func makeDeck(
+        deckId: String,
+        name: String,
+        filterDefinition: DeckFilterDefinition
+    ) -> Deck {
+        Deck(
+            deckId: deckId,
+            workspaceId: "test-workspace",
+            name: name,
+            filterDefinition: filterDefinition,
+            createdAt: "2026-03-08T00:00:00.000Z",
+            clientUpdatedAt: "2026-03-08T00:00:00.000Z",
+            lastModifiedByDeviceId: "device",
+            lastOperationId: "operation",
+            updatedAt: "2026-03-08T00:00:00.000Z",
             deletedAt: nil
         )
     }

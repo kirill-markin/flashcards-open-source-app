@@ -299,6 +299,28 @@ func sortCardsForReviewQueue(cards: [Card], now: Date) -> [Card] {
     }
 }
 
+func sortCardsForReviewTimeline(cards: [Card], now: Date) -> [Card] {
+    let activeQueue = sortCardsForReviewQueue(cards: cards, now: now)
+    let futureCards = cards.filter { card in
+        card.deletedAt == nil && isCardDue(card: card, now: now) == false
+    }.sorted { leftCard, rightCard in
+        guard let leftDueDate = leftCard.dueAt.flatMap(parseIsoTimestamp) else {
+            preconditionFailure("Future review card is missing a valid dueAt value")
+        }
+        guard let rightDueDate = rightCard.dueAt.flatMap(parseIsoTimestamp) else {
+            preconditionFailure("Future review card is missing a valid dueAt value")
+        }
+
+        if leftDueDate != rightDueDate {
+            return leftDueDate < rightDueDate
+        }
+
+        return leftCard.updatedAt > rightCard.updatedAt
+    }
+
+    return activeQueue + futureCards
+}
+
 func activeCards(cards: [Card]) -> [Card] {
     cards.filter { card in
         card.deletedAt == nil
@@ -398,6 +420,23 @@ func makeReviewQueue(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], n
         cards: cardsMatchingReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards),
         now: now
     )
+}
+
+func makeReviewTimeline(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], now: Date) -> [Card] {
+    sortCardsForReviewTimeline(
+        cards: cardsMatchingReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards),
+        now: now
+    )
+}
+
+func initialIncrementalVisibleCount(totalCount: Int, initialCount: Int) -> Int {
+    precondition(initialCount > 0, "Incremental list initialCount must be greater than zero")
+    return min(totalCount, initialCount)
+}
+
+func nextIncrementalVisibleCount(currentVisibleCount: Int, totalCount: Int, pageSize: Int) -> Int {
+    precondition(pageSize > 0, "Incremental list pageSize must be greater than zero")
+    return min(totalCount, currentVisibleCount + pageSize)
 }
 
 func makeDeckListItem(deck: Deck, cards: [Card], now: Date) -> DeckListItem {
