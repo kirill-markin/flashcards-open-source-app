@@ -220,9 +220,9 @@ private enum DeckDetailScreenState {
     var emptyMessage: String {
         switch self {
         case .allCards:
-            return "No cards yet."
+            return "You haven't created any cards yet."
         case .deck:
-            return "No cards match this deck."
+            return "This deck doesn't have any matching cards yet."
         }
     }
 

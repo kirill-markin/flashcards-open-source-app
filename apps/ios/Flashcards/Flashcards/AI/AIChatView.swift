@@ -66,7 +66,7 @@ struct AIChatView: View {
             Image(systemName: "sparkles.rectangle.stack")
                 .font(.system(size: 44))
                 .foregroundStyle(.secondary)
-            Text("AI chat uses the linked cloud account for the model and your local SQLite database for tool reads and writes.")
+            Text("Sign in to use AI. It can help you explore your cards, spot weak areas, and draft changes before you save them.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 24)

@@ -79,7 +79,7 @@ export function DecksScreen(): ReactElement {
               ))}
               {decks.length === 0 ? (
                 <tr>
-                  <td className="txn-cell txn-empty" colSpan={3}>No decks yet.</td>
+                  <td className="txn-cell txn-empty" colSpan={3}>You haven't created any decks yet.</td>
                 </tr>
               ) : null}
             </tbody>

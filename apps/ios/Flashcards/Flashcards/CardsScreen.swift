@@ -29,7 +29,7 @@ struct CardsScreen: View {
 
             Section("Cards") {
                 if store.cards.isEmpty {
-                    Text("No cards yet.")
+                    Text("You haven't created any cards yet.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(store.cards) { card in
