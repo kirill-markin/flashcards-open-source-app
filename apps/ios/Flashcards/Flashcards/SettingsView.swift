@@ -5,11 +5,6 @@ struct SettingsView: View {
 
     @State private var screenErrorMessage: String = ""
     @State private var isCloudSignInPresented: Bool = false
-    @State private var desiredRetentionText: String = ""
-    @State private var learningStepsText: String = ""
-    @State private var relearningStepsText: String = ""
-    @State private var maximumIntervalDaysText: String = ""
-    @State private var enableFuzz: Bool = true
 
     var body: some View {
         List {
@@ -105,29 +100,19 @@ struct SettingsView: View {
 
             Section("Scheduler") {
                 if let schedulerSettings = store.schedulerSettings {
-                    LabeledContent("Algorithm") {
-                        Text(schedulerSettings.algorithm.uppercased())
-                    }
-
-                    TextField("Desired retention", text: self.$desiredRetentionText)
-                        .keyboardType(.decimalPad)
-
-                    TextField("Learning steps (minutes)", text: self.$learningStepsText)
-                        .textInputAutocapitalization(.never)
-
-                    TextField("Relearning steps (minutes)", text: self.$relearningStepsText)
-                        .textInputAutocapitalization(.never)
-
-                    TextField("Maximum interval (days)", text: self.$maximumIntervalDaysText)
-                        .keyboardType(.numberPad)
-
-                    Toggle("Enable fuzz", isOn: self.$enableFuzz)
-
-                    Button("Save scheduler settings") {
-                        self.saveSchedulerSettings()
+                    NavigationLink {
+                        SchedulerSettingsDetailView()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Scheduler settings")
+                            Text("\(schedulerSettings.algorithm.uppercased()) - Retention \(formatSchedulerRetentionValue(value: schedulerSettings.desiredRetention))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     Text("These settings affect future scheduling only. Existing card state remains authoritative.")
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
 
                     LabeledContent("Updated") {
@@ -163,12 +148,6 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
-        .onAppear {
-            self.loadSchedulerDrafts(settings: store.schedulerSettings)
-        }
-        .onChange(of: store.schedulerSettings) { _, newSettings in
-            self.loadSchedulerDrafts(settings: newSettings)
-        }
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet()
                 .environmentObject(store)
@@ -192,47 +171,6 @@ struct SettingsView: View {
             } catch {
                 self.screenErrorMessage = localizedMessage(error: error)
             }
-        }
-    }
-
-    private func loadSchedulerDrafts(settings: WorkspaceSchedulerSettings?) {
-        guard let settings else {
-            return
-        }
-
-        self.desiredRetentionText = formatRetentionValue(settings.desiredRetention)
-        self.learningStepsText = formatStepList(settings.learningStepsMinutes)
-        self.relearningStepsText = formatStepList(settings.relearningStepsMinutes)
-        self.maximumIntervalDaysText = String(settings.maximumIntervalDays)
-        self.enableFuzz = settings.enableFuzz
-    }
-
-    private func saveSchedulerSettings() {
-        do {
-            let desiredRetention = try parseDesiredRetention(text: self.desiredRetentionText)
-            let learningStepsMinutes = try parseSchedulerStepList(
-                text: self.learningStepsText,
-                fieldName: "Learning steps"
-            )
-            let relearningStepsMinutes = try parseSchedulerStepList(
-                text: self.relearningStepsText,
-                fieldName: "Relearning steps"
-            )
-            let maximumIntervalDays = try parsePositiveInteger(
-                text: self.maximumIntervalDaysText,
-                fieldName: "Maximum interval"
-            )
-
-            try store.updateSchedulerSettings(
-                desiredRetention: desiredRetention,
-                learningStepsMinutes: learningStepsMinutes,
-                relearningStepsMinutes: relearningStepsMinutes,
-                maximumIntervalDays: maximumIntervalDays,
-                enableFuzz: self.enableFuzz
-            )
-            self.screenErrorMessage = ""
-        } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
         }
     }
 }
@@ -263,57 +201,6 @@ private func isSyncInFlight(status: SyncStatus) -> Bool {
         return true
     case .idle, .failed:
         return false
-    }
-}
-
-private func formatStepList(_ values: [Int]) -> String {
-    values.map(String.init).joined(separator: ", ")
-}
-
-private func formatRetentionValue(_ value: Double) -> String {
-    String(format: "%.2f", value)
-}
-
-private func parseDesiredRetention(text: String) throws -> Double {
-    let normalizedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        .replacingOccurrences(of: ",", with: ".")
-
-    guard let value = Double(normalizedText) else {
-        throw LocalStoreError.validation("Desired retention must be a decimal number")
-    }
-
-    return value
-}
-
-private func parsePositiveInteger(text: String, fieldName: String) throws -> Int {
-    let normalizedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard let value = Int(normalizedText), value > 0 else {
-        throw LocalStoreError.validation("\(fieldName) must be a positive integer")
-    }
-
-    return value
-}
-
-private func parseSchedulerStepList(text: String, fieldName: String) throws -> [Int] {
-    let parts = text
-        .split(separator: ",")
-        .map { value in
-            value.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        .filter { value in
-            value.isEmpty == false
-        }
-
-    if parts.isEmpty {
-        throw LocalStoreError.validation("\(fieldName) must not be empty")
-    }
-
-    return try parts.map { value in
-        guard let step = Int(value) else {
-            throw LocalStoreError.validation("\(fieldName) must contain integers")
-        }
-
-        return step
     }
 }
 

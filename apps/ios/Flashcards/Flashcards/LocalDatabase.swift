@@ -25,7 +25,7 @@ private enum SQLiteValue {
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 private let localDatabaseSchemaVersion: Int = 4
 // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::defaultWorkspaceSchedulerConfig.algorithm.
-private let defaultSchedulerAlgorithm: String = "fsrs-6"
+private let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 // Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerConfig and validation flow.
 private struct ValidatedWorkspaceSchedulerSettingsInput {
@@ -946,17 +946,18 @@ final class LocalDatabase {
             try self.resetLocalSchema()
         }
 
+        let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
         let migrationSQL = """
         CREATE TABLE IF NOT EXISTS workspaces (
             workspace_id TEXT PRIMARY KEY, -- workspace identifier shared across local and server stores
             name TEXT NOT NULL, -- human-readable workspace name shown in the UI
             created_at TEXT NOT NULL, -- local creation timestamp for the workspace row
-            fsrs_algorithm TEXT NOT NULL DEFAULT 'fsrs-6' CHECK (fsrs_algorithm = 'fsrs-6'), -- scheduler algorithm name kept aligned with the backend contract
-            fsrs_desired_retention REAL NOT NULL DEFAULT 0.9 CHECK (fsrs_desired_retention > 0 AND fsrs_desired_retention < 1), -- desired recall probability target
-            fsrs_learning_steps_minutes_json TEXT NOT NULL DEFAULT '[1,10]', -- JSON-encoded learning steps mirrored from the backend row
-            fsrs_relearning_steps_minutes_json TEXT NOT NULL DEFAULT '[10]', -- JSON-encoded relearning steps mirrored from the backend row
-            fsrs_maximum_interval_days INTEGER NOT NULL DEFAULT 36500 CHECK (fsrs_maximum_interval_days >= 1), -- maximum interval cap mirrored from the backend row
-            fsrs_enable_fuzz INTEGER NOT NULL DEFAULT 1 CHECK (fsrs_enable_fuzz IN (0, 1)), -- whether FSRS fuzzing is enabled
+            fsrs_algorithm TEXT NOT NULL DEFAULT '\(defaultSchedulerSettingsConfig.algorithm)' CHECK (fsrs_algorithm = '\(defaultSchedulerSettingsConfig.algorithm)'), -- scheduler algorithm name kept aligned with the backend contract
+            fsrs_desired_retention REAL NOT NULL DEFAULT \(defaultSchedulerSettingsConfig.desiredRetention) CHECK (fsrs_desired_retention > 0 AND fsrs_desired_retention < 1), -- desired recall probability target
+            fsrs_learning_steps_minutes_json TEXT NOT NULL DEFAULT '\(defaultSchedulerSettingsConfig.learningStepsMinutesJson)', -- JSON-encoded learning steps mirrored from the backend row
+            fsrs_relearning_steps_minutes_json TEXT NOT NULL DEFAULT '\(defaultSchedulerSettingsConfig.relearningStepsMinutesJson)', -- JSON-encoded relearning steps mirrored from the backend row
+            fsrs_maximum_interval_days INTEGER NOT NULL DEFAULT \(defaultSchedulerSettingsConfig.maximumIntervalDays) CHECK (fsrs_maximum_interval_days >= 1), -- maximum interval cap mirrored from the backend row
+            fsrs_enable_fuzz INTEGER NOT NULL DEFAULT \(defaultEnableFuzzValue) CHECK (fsrs_enable_fuzz IN (0, 1)), -- whether FSRS fuzzing is enabled
             fsrs_client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced scheduler-settings winner
             fsrs_last_modified_by_device_id TEXT NOT NULL, -- device that produced the currently winning scheduler-settings row
             fsrs_last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
