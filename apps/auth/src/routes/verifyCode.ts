@@ -27,7 +27,18 @@ type OtpPayload = Readonly<{
 }>;
 
 app.post("/api/verify-code", async (c) => {
-  const signedSession = getCookie(c, "otp_session") ?? "";
+  let body: { code?: string; csrfToken?: string; otpSessionToken?: string };
+  try {
+    body = await c.req.json<{ code?: string; csrfToken?: string; otpSessionToken?: string }>();
+  } catch {
+    return c.json({ error: "Invalid request body" }, 400);
+  }
+
+  // Prefer the explicit body token for native clients. Browser flow still falls
+  // back to the existing httpOnly cookie without changing its behavior.
+  const signedSession = typeof body.otpSessionToken === "string" && body.otpSessionToken.length > 0
+    ? body.otpSessionToken
+    : (getCookie(c, "otp_session") ?? "");
 
   if (signedSession === "") {
     return c.json({ error: "Session expired — request a new code" }, 400);
@@ -41,16 +52,8 @@ app.post("/api/verify-code", async (c) => {
     return c.json({ error: "Session expired — request a new code" }, 400);
   }
 
-  // Check TTL
   if (Date.now() - payload.t > OTP_TTL_MS) {
     return c.json({ error: "Session expired — request a new code" }, 400);
-  }
-
-  let body: { code?: string; csrfToken?: string };
-  try {
-    body = await c.req.json<{ code?: string; csrfToken?: string }>();
-  } catch {
-    return c.json({ error: "Invalid request body" }, 400);
   }
 
   // Constant-time CSRF token comparison

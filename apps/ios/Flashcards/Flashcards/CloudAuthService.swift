@@ -33,11 +33,17 @@ private struct SendCodeRequest: Encodable {
 private struct SendCodeResponse: Decodable {
     let ok: Bool
     let csrfToken: String?
+    // Native clients cannot safely depend on browser-style cookie replay across
+    // OTP requests, so the signed OTP session is returned explicitly as well.
+    let otpSessionToken: String?
 }
 
 private struct VerifyCodeRequest: Encodable {
     let code: String
     let csrfToken: String
+    // iOS sends the signed OTP session back in the body instead of relying on
+    // cookie persistence between send-code and verify-code.
+    let otpSessionToken: String
 }
 
 private struct VerifyCodeResponse: Decodable {
@@ -102,8 +108,15 @@ final class CloudAuthService {
         guard let csrfToken = response.csrfToken, csrfToken.isEmpty == false else {
             throw CloudAuthError.invalidResponseBody("send-code did not return csrfToken")
         }
+        guard let otpSessionToken = response.otpSessionToken, otpSessionToken.isEmpty == false else {
+            throw CloudAuthError.invalidResponseBody("send-code did not return otpSessionToken")
+        }
 
-        return CloudOtpChallenge(email: normalizedEmail, csrfToken: csrfToken)
+        return CloudOtpChallenge(
+            email: normalizedEmail,
+            csrfToken: csrfToken,
+            otpSessionToken: otpSessionToken
+        )
     }
 
     func verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
@@ -114,7 +127,8 @@ final class CloudAuthService {
             method: "POST",
             body: VerifyCodeRequest(
                 code: normalizedCode,
-                csrfToken: challenge.csrfToken
+                csrfToken: challenge.csrfToken,
+                otpSessionToken: challenge.otpSessionToken
             )
         )
 
