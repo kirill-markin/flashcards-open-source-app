@@ -9,12 +9,13 @@
 import { timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import { deleteCookie, getCookie } from "hono/cookie";
+import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
 import { verifyEmailOtp } from "../server/cognitoAuth.js";
 import { setBrowserSessionCookies } from "../server/browserSession.js";
 import { verify } from "../server/crypto.js";
 import { log } from "../server/logger.js";
 
-const app = new Hono();
+const app = new Hono<AuthAppEnv>();
 
 const CODE_RE = /^\d{8}$/;
 const OTP_TTL_MS = 180_000; // 3 minutes
@@ -31,7 +32,7 @@ app.post("/api/verify-code", async (c) => {
   try {
     body = await c.req.json<{ code?: string; csrfToken?: string; otpSessionToken?: string }>();
   } catch {
-    return c.json({ error: "Invalid request body" }, 400);
+    return jsonAuthError(c, 400, "INVALID_REQUEST", "Invalid request.");
   }
 
   // Prefer the explicit body token for native clients. Browser flow still falls
@@ -41,7 +42,7 @@ app.post("/api/verify-code", async (c) => {
     : (getCookie(c, "otp_session") ?? "");
 
   if (signedSession === "") {
-    return c.json({ error: "Session expired — request a new code" }, 400);
+    return jsonAuthError(c, 400, "OTP_SESSION_EXPIRED", "Code expired. Request a new one.");
   }
 
   let payload: OtpPayload;
@@ -49,11 +50,11 @@ app.post("/api/verify-code", async (c) => {
     const verified = verify(signedSession);
     payload = JSON.parse(verified) as OtpPayload;
   } catch {
-    return c.json({ error: "Session expired — request a new code" }, 400);
+    return jsonAuthError(c, 400, "OTP_SESSION_EXPIRED", "Code expired. Request a new one.");
   }
 
   if (Date.now() - payload.t > OTP_TTL_MS) {
-    return c.json({ error: "Session expired — request a new code" }, 400);
+    return jsonAuthError(c, 400, "OTP_SESSION_EXPIRED", "Code expired. Request a new one.");
   }
 
   // Constant-time CSRF token comparison
@@ -62,22 +63,31 @@ app.post("/api/verify-code", async (c) => {
     csrfToken.length === payload.csrf.length &&
     timingSafeEqual(Buffer.from(csrfToken), Buffer.from(payload.csrf));
   if (!csrfMatch) {
-    return c.json({ error: "Session expired — request a new code" }, 400);
+    return jsonAuthError(c, 400, "OTP_SESSION_EXPIRED", "Code expired. Request a new one.");
   }
 
   const code = typeof body.code === "string" ? body.code.trim() : "";
 
   if (!CODE_RE.test(code)) {
-    return c.json({ error: "Enter an 8-digit code" }, 400);
+    return jsonAuthError(c, 400, "OTP_CODE_INVALID", "Enter a valid 8-digit code.");
   }
 
+  const requestId = getRequestId(c);
   let tokens: Awaited<ReturnType<typeof verifyEmailOtp>>;
   try {
     tokens = await verifyEmailOtp(payload.e, code, payload.s);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log({ domain: "auth", action: "verify_code_error", error: message });
-    return c.json({ error: "Verification failed — please try again" }, 400);
+    log({
+      domain: "auth",
+      action: "verify_code_error",
+      requestId,
+      route: c.req.path,
+      statusCode: 400,
+      code: "OTP_VERIFY_FAILED",
+      error: message,
+    });
+    return jsonAuthError(c, 400, "OTP_VERIFY_FAILED", "Could not verify the code. Try again.");
   }
 
   // Shared session cookies are visible on app.* and auth.* subdomains.

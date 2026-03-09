@@ -1,18 +1,28 @@
 /**
  * Structured logger for auth service.
  */
-type AuthEvent =
-  | Readonly<{ domain: "auth"; action: "send_code"; maskedEmail: string }>
-  | Readonly<{ domain: "auth"; action: "send_code_error"; error: string }>
-  | Readonly<{ domain: "auth"; action: "verify_code"; maskedEmail: string }>
-  | Readonly<{ domain: "auth"; action: "verify_code_error"; error: string }>
-  | Readonly<{ domain: "auth"; action: "refresh_token" }>
-  | Readonly<{ domain: "auth"; action: "refresh_token_error"; error: string }>
-  | Readonly<{ domain: "auth"; action: "revoke_token" }>
-  | Readonly<{ domain: "auth"; action: "revoke_token_error"; error: string }>
-  | Readonly<{ domain: "auth"; action: "error"; error: string }>;
+type AuthAction =
+  | "send_code"
+  | "send_code_error"
+  | "verify_code"
+  | "verify_code_error"
+  | "refresh_token"
+  | "refresh_token_error"
+  | "revoke_token"
+  | "revoke_token_error"
+  | "request_error"
+  | "error";
 
-type LogEvent = AuthEvent;
+type LogEvent = Readonly<{
+  domain: "auth";
+  action: AuthAction;
+  requestId?: string;
+  route?: string;
+  statusCode?: number;
+  code?: string;
+  maskedEmail?: string;
+  error?: string;
+}>;
 
 export const maskEmail = (email: string): string => {
   const [local, domain] = email.split("@");
