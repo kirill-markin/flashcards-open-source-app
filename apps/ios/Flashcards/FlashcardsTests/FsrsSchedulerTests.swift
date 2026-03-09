@@ -827,8 +827,6 @@ final class FsrsSchedulerTests: XCTestCase {
                 name: "Biology",
                 filterDefinition: buildDeckFilterDefinition(
                     effortLevels: [],
-                    combineWith: .and,
-                    tagsOperator: .containsAny,
                     tags: ["bio"]
                 )
             )

@@ -13,22 +13,10 @@ export type EffortLevel = "fast" | "medium" | "long";
 // Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::FsrsCardState and apps/backend/src/schedule.ts::FsrsCardState.
 export type FsrsCardState = "new" | "learning" | "review" | "relearning";
 
-export type DeckPredicate =
-  | Readonly<{
-    field: "effortLevel";
-    operator: "in";
-    values: ReadonlyArray<EffortLevel>;
-  }>
-  | Readonly<{
-    field: "tags";
-    operator: "containsAny" | "containsAll";
-    values: ReadonlyArray<string>;
-  }>;
-
 export type DeckFilterDefinition = Readonly<{
-  version: 1;
-  combineWith: "and" | "or";
-  predicates: ReadonlyArray<DeckPredicate>;
+  version: 2;
+  effortLevels: ReadonlyArray<EffortLevel>;
+  tags: ReadonlyArray<string>;
 }>;
 
 export type SessionInfo = Readonly<{

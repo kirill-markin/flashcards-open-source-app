@@ -198,84 +198,47 @@ func isCardReviewed(card: Card) -> Bool {
     card.reps > 0 || card.lapses > 0
 }
 
-func evaluateDeckPredicate(predicate: DeckPredicate, card: Card) -> Bool {
-    switch predicate {
-    case .effortLevel(let values):
-        return values.contains(card.effortLevel)
-    case .tags(let operatorName, let values):
-        let cardTags = Set(card.tags)
-        let predicateTags = Set(values)
-
-        switch operatorName {
-        case .containsAny:
-            return predicateTags.isDisjoint(with: cardTags) == false
-        case .containsAll:
-            return predicateTags.isSubset(of: cardTags)
-        }
-    }
-}
-
 func matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card) -> Bool {
-    if filterDefinition.predicates.isEmpty {
+    if filterDefinition.effortLevels.isEmpty == false && filterDefinition.effortLevels.contains(card.effortLevel) == false {
+        return false
+    }
+
+    if filterDefinition.tags.isEmpty {
         return true
     }
 
-    let evaluations = filterDefinition.predicates.map { predicate in
-        evaluateDeckPredicate(predicate: predicate, card: card)
-    }
-
-    switch filterDefinition.combineWith {
-    case .and:
-        return evaluations.allSatisfy { value in
-            value
-        }
-    case .or:
-        return evaluations.contains(true)
-    }
-}
-
-func formatDeckPredicate(predicate: DeckPredicate) -> String {
-    switch predicate {
-    case .effortLevel(let values):
-        return "effort in \(values.map { value in value.rawValue }.joined(separator: ", "))"
-    case .tags(let operatorName, let values):
-        let operatorLabel = operatorName == .containsAll ? "contains all" : "contains any"
-        return "tags \(operatorLabel) \(values.joined(separator: ", "))"
-    }
-}
-
-func formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition) -> String {
-    if filterDefinition.predicates.isEmpty {
-        return "All cards"
-    }
-
-    let joinLabel = filterDefinition.combineWith == .or ? " OR " : " AND "
-    return filterDefinition.predicates.map { predicate in
-        formatDeckPredicate(predicate: predicate)
-    }.joined(separator: joinLabel)
+    let cardTags = Set(card.tags)
+    let filterTags = Set(filterDefinition.tags)
+    return filterTags.isSubset(of: cardTags)
 }
 
 func buildDeckFilterDefinition(
     effortLevels: [EffortLevel],
-    combineWith: DeckCombineOperator,
-    tagsOperator: DeckTagsOperator,
     tags: [String]
 ) -> DeckFilterDefinition {
-    var predicates: [DeckPredicate] = []
-
-    if effortLevels.isEmpty == false {
-        predicates.append(.effortLevel(values: effortLevels))
-    }
-
-    if tags.isEmpty == false {
-        predicates.append(.tags(operatorName: tagsOperator, values: tags))
-    }
-
     return DeckFilterDefinition(
-        version: 1,
-        combineWith: combineWith,
-        predicates: predicates
+        version: 2,
+        effortLevels: effortLevels,
+        tags: tags
     )
+}
+
+func formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition) -> String {
+    var parts: [String] = []
+
+    if filterDefinition.effortLevels.isEmpty == false {
+        parts.append("effort in \(filterDefinition.effortLevels.map { value in value.rawValue }.joined(separator: ", "))")
+    }
+
+    if filterDefinition.tags.isEmpty == false {
+        parts.append("tags contain \(filterDefinition.tags.joined(separator: ", "))")
+    }
+
+    if parts.isEmpty {
+        return "All cards"
+    }
+
+    return parts.joined(separator: " AND ")
 }
 
 func sortCardsForReviewQueue(cards: [Card], now: Date) -> [Card] {

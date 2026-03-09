@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAppData } from "../appData";
-import { buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition, type DeckTagsOperator } from "../deckFilters";
+import { buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition } from "../deckFilters";
 import { CardFormTagsField } from "./CardFormTagsField";
 import { getTagSuggestionsFromCards } from "./CardTagsInput";
 import type { EffortLevel } from "../types";
@@ -9,7 +9,6 @@ import type { EffortLevel } from "../types";
 type FormState = Readonly<{
   name: string;
   effortLevels: ReadonlyArray<EffortLevel>;
-  tagsOperator: DeckTagsOperator;
   tags: ReadonlyArray<string>;
 }>;
 
@@ -17,7 +16,6 @@ function createInitialFormState(): FormState {
   return {
     name: "",
     effortLevels: [],
-    tagsOperator: "containsAny",
     tags: [],
   };
 }
@@ -41,9 +39,8 @@ export function DeckFormScreen(): ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
   const tagSuggestions = getTagSuggestionsFromCards(cards);
-  const filterDefinition = buildDeckFilterDefinition(formState.effortLevels, formState.tagsOperator, formState.tags);
+  const filterDefinition = buildDeckFilterDefinition(formState.effortLevels, formState.tags);
   const nameFieldId = "deck-name";
-  const tagsOperatorFieldId = "deck-tags-operator";
   const tagsFieldId = "deck-tags-input";
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
@@ -164,20 +161,6 @@ export function DeckFormScreen(): ReactElement {
               </div>
             </fieldset>
 
-            <label className="form-label" htmlFor={tagsOperatorFieldId}>
-              <span>Tags operator</span>
-              <select
-                id={tagsOperatorFieldId}
-                name="tagsOperator"
-                className="settings-select"
-                value={formState.tagsOperator}
-                onChange={(event) => updateField("tagsOperator", event.target.value as DeckTagsOperator)}
-              >
-                <option value="containsAny">contains any</option>
-                <option value="containsAll">contains all</option>
-              </select>
-            </label>
-
             <div className="form-label">
               <label htmlFor={tagsFieldId}>
                 <span>Tags</span>
@@ -205,12 +188,8 @@ export function DeckFormScreen(): ReactElement {
                 <dd>{formatDeckFilterDefinition(filterDefinition)}</dd>
               </div>
               <div className="meta-row">
-                <dt>Combine with</dt>
-                <dd>{filterDefinition.combineWith}</dd>
-              </div>
-              <div className="meta-row">
-                <dt>Predicates</dt>
-                <dd>{filterDefinition.predicates.length}</dd>
+                <dt>Conditions</dt>
+                <dd>{Number(filterDefinition.effortLevels.length > 0) + Number(filterDefinition.tags.length > 0)}</dd>
               </div>
             </dl>
           </aside>

@@ -90,37 +90,6 @@ enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable {
     }
 }
 
-enum DeckCombineOperator: String, CaseIterable, Codable, Hashable, Identifiable {
-    case and
-    case or
-
-    var id: String {
-        rawValue
-    }
-
-    var title: String {
-        rawValue.uppercased()
-    }
-}
-
-enum DeckTagsOperator: String, CaseIterable, Codable, Hashable, Identifiable {
-    case containsAny
-    case containsAll
-
-    var id: String {
-        rawValue
-    }
-
-    var title: String {
-        switch self {
-        case .containsAny:
-            return "Contains any"
-        case .containsAll:
-            return "Contains all"
-        }
-    }
-}
-
 enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable {
     case disconnected
     case linkingReady = "linking-ready"
@@ -142,65 +111,10 @@ enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable {
     }
 }
 
-enum DeckPredicate: Codable, Hashable {
-    case effortLevel(values: [EffortLevel])
-    case tags(operatorName: DeckTagsOperator, values: [String])
-
-    private enum CodingKeys: String, CodingKey {
-        case field
-        case `operator`
-        case values
-    }
-
-    private enum FieldValue: String, Codable {
-        case effortLevel
-        case tags
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let field = try container.decode(FieldValue.self, forKey: .field)
-
-        switch field {
-        case .effortLevel:
-            let operatorValue = try container.decode(String.self, forKey: .operator)
-            guard operatorValue == "in" else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .operator,
-                    in: container,
-                    debugDescription: "effortLevel predicate operator must be in"
-                )
-            }
-
-            let values = try container.decode([EffortLevel].self, forKey: .values)
-            self = .effortLevel(values: values)
-        case .tags:
-            let operatorName = try container.decode(DeckTagsOperator.self, forKey: .operator)
-            let values = try container.decode([String].self, forKey: .values)
-            self = .tags(operatorName: operatorName, values: values)
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-
-        switch self {
-        case .effortLevel(let values):
-            try container.encode(FieldValue.effortLevel, forKey: .field)
-            try container.encode("in", forKey: .operator)
-            try container.encode(values, forKey: .values)
-        case .tags(let operatorName, let values):
-            try container.encode(FieldValue.tags, forKey: .field)
-            try container.encode(operatorName, forKey: .operator)
-            try container.encode(values, forKey: .values)
-        }
-    }
-}
-
 struct DeckFilterDefinition: Codable, Hashable {
     let version: Int
-    let combineWith: DeckCombineOperator
-    let predicates: [DeckPredicate]
+    let effortLevels: [EffortLevel]
+    let tags: [String]
 }
 
 struct Workspace: Codable, Hashable {

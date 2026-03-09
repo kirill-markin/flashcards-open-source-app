@@ -8,8 +8,8 @@ struct DeckStore {
             throw LocalStoreError.validation("Deck name must not be empty")
         }
 
-        if input.filterDefinition.version != 1 {
-            throw LocalStoreError.validation("Deck filter version must be 1")
+        if input.filterDefinition.version != 2 {
+            throw LocalStoreError.validation("Deck filter version must be 2")
         }
     }
 

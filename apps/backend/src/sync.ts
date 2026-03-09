@@ -44,23 +44,10 @@ const fsrsCardStateSchema = z.enum(["new", "learning", "review", "relearning"]);
 const reviewRatingSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 const platformSchema = z.enum(["ios", "android", "web"]);
 
-const deckPredicateSchema = z.discriminatedUnion("field", [
-  z.object({
-    field: z.literal("effortLevel"),
-    operator: z.literal("in"),
-    values: z.array(effortLevelSchema).min(1),
-  }),
-  z.object({
-    field: z.literal("tags"),
-    operator: z.union([z.literal("containsAny"), z.literal("containsAll")]),
-    values: z.array(z.string()).min(1),
-  }),
-]);
-
 const deckFilterDefinitionSchema = z.object({
-  version: z.literal(1),
-  combineWith: z.union([z.literal("and"), z.literal("or")]),
-  predicates: z.array(deckPredicateSchema),
+  version: z.literal(2),
+  effortLevels: z.array(effortLevelSchema),
+  tags: z.array(z.string()),
 });
 
 const cardSnapshotSchema = z.object({

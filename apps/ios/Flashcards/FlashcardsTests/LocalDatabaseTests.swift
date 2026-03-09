@@ -918,8 +918,6 @@ final class LocalDatabaseTests: XCTestCase {
             name: name,
             filterDefinition: buildDeckFilterDefinition(
                 effortLevels: [.medium],
-                combineWith: .and,
-                tagsOperator: .containsAny,
                 tags: ["tag-a"]
             )
         )
