@@ -221,5 +221,5 @@ COMMENT ON COLUMN sync.changes.recorded_at IS 'Server timestamp when this change
 
 COMMENT ON COLUMN sync.applied_operations.resulting_change_id IS 'Change feed checkpoint produced by the applied or ignored operation. NULL means the operation lost LWW before creating a new feed entry.';
 
-COMMENT ON INDEX idx_sync_changes_workspace_change_id IS 'Supports ordered incremental pull by workspace and change checkpoint.';
-COMMENT ON INDEX idx_sync_changes_workspace_entity_latest IS 'Supports finding the latest feed checkpoint for a specific sync root when an incoming operation loses LWW or dedupes.';
+COMMENT ON INDEX sync.idx_sync_changes_workspace_change_id IS 'Supports ordered incremental pull by workspace and change checkpoint.';
+COMMENT ON INDEX sync.idx_sync_changes_workspace_entity_latest IS 'Supports finding the latest feed checkpoint for a specific sync root when an incoming operation loses LWW or dedupes.';

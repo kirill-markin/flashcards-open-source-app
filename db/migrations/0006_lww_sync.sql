@@ -280,7 +280,7 @@ COMMENT ON SEQUENCE content.decks_server_version_seq IS 'Generates monotonic ser
 COMMENT ON SEQUENCE content.review_events_server_version_seq IS 'Generates monotonic server cursors for append-only review-event delta pull.';
 COMMENT ON SEQUENCE org.workspaces_fsrs_server_version_seq IS 'Generates monotonic server cursors for workspace scheduler settings delta pull.';
 
-COMMENT ON INDEX idx_decks_workspace_server_version IS 'Supports incremental deck pull by workspace and server cursor.';
-COMMENT ON INDEX idx_decks_workspace_updated_active IS 'Supports active deck listing ordered by the latest server-side write time.';
-COMMENT ON INDEX idx_review_events_workspace_server_version IS 'Supports incremental review-event pull by workspace and server cursor.';
-COMMENT ON INDEX idx_workspaces_fsrs_server_version IS 'Supports incremental workspace scheduler settings pull by workspace and server cursor.';
+COMMENT ON INDEX content.idx_decks_workspace_server_version IS 'Supports incremental deck pull by workspace and server cursor.';
+COMMENT ON INDEX content.idx_decks_workspace_updated_active IS 'Supports active deck listing ordered by the latest server-side write time.';
+COMMENT ON INDEX content.idx_review_events_workspace_server_version IS 'Supports incremental review-event pull by workspace and server cursor.';
+COMMENT ON INDEX org.idx_workspaces_fsrs_server_version IS 'Supports incremental workspace scheduler settings pull by workspace and server cursor.';
