@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError, buildLoginUrl, getSession, pullSyncChanges, pushSyncOperations } from "./api";
+import { getStableDeviceId, webAppVersion } from "./clientIdentity";
 import {
   ensureWorkspaceCache,
   deleteOutboxRecord,
@@ -87,8 +88,6 @@ type MutableSnapshot = {
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
-const deviceIdStorageKey = "flashcards-sync-device-id";
-const appVersion = import.meta.env.VITE_APP_VERSION ?? "web-dev";
 const syncPageSize = 200;
 
 function createIdleResourceState<Item>(): ResourceState<Item> {
@@ -129,17 +128,6 @@ function createErrorResourceState<Item>(currentState: ResourceState<Item>, error
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function getStableDeviceId(): string {
-  const existingDeviceId = window.localStorage.getItem(deviceIdStorageKey);
-  if (existingDeviceId !== null && existingDeviceId !== "") {
-    return existingDeviceId;
-  }
-
-  const nextDeviceId = crypto.randomUUID().toLowerCase();
-  window.localStorage.setItem(deviceIdStorageKey, nextDeviceId);
-  return nextDeviceId;
 }
 
 function nowIso(): string {
@@ -526,7 +514,7 @@ export function AppDataProvider(props: Props): ReactElement {
             const pushResult = await pushSyncOperations(
               deviceId,
               "web",
-              appVersion,
+              webAppVersion,
               batch.map((record) => record.operation),
             );
 
@@ -556,7 +544,7 @@ export function AppDataProvider(props: Props): ReactElement {
 
         let afterChangeId = snapshotRef.current.lastAppliedChangeId;
         while (true) {
-          const pullResult = await pullSyncChanges(deviceId, "web", appVersion, afterChangeId, syncPageSize);
+          const pullResult = await pullSyncChanges(deviceId, "web", webAppVersion, afterChangeId, syncPageSize);
           for (const change of pullResult.changes) {
             await applySyncChange(change);
           }

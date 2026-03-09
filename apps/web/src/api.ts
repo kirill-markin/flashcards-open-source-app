@@ -1,16 +1,12 @@
 import { getAppConfig } from "./config";
+import { getStableDeviceId, webAppVersion } from "./clientIdentity";
 import type {
-  Card,
   ChatDiagnosticsPayload,
   ChatMessage,
-  CreateDeckInput,
-  CreateCardInput,
-  Deck,
   SessionInfo,
   SyncPullResult,
   SyncPushOperation,
   SyncPushResult,
-  UpdateCardInput,
 } from "./types";
 
 export class ApiError extends Error {
@@ -29,6 +25,8 @@ export type ChatRequestBody = Readonly<{
   messages: ReadonlyArray<ChatMessage>;
   model: string;
   timezone: string;
+  deviceId: string;
+  appVersion: string;
 }>;
 
 let sessionCsrfToken: string | null = null;
@@ -130,63 +128,6 @@ export async function getSession(): Promise<SessionInfo> {
   return session;
 }
 
-export async function getCards(): Promise<ReadonlyArray<Card>> {
-  const payload = expectObject(await requestJson("/cards", { method: "GET" }));
-  return payload.items as ReadonlyArray<Card>;
-}
-
-export async function getDecks(): Promise<ReadonlyArray<Deck>> {
-  const payload = expectObject(await requestJson("/decks", { method: "GET" }));
-  return payload.items as ReadonlyArray<Deck>;
-}
-
-export async function getCard(cardId: string): Promise<Card> {
-  const payload = expectObject(await requestJson(`/cards/${encodeURIComponent(cardId)}`, { method: "GET" }));
-  return payload.card as Card;
-}
-
-export async function createCard(input: CreateCardInput): Promise<Card> {
-  const payload = expectObject(await requestJson("/cards", {
-    method: "POST",
-    body: JSON.stringify(input),
-  }));
-  return payload.card as Card;
-}
-
-export async function createDeck(input: CreateDeckInput): Promise<Deck> {
-  const payload = expectObject(await requestJson("/decks", {
-    method: "POST",
-    body: JSON.stringify(input),
-  }));
-  return payload.deck as Deck;
-}
-
-export async function updateCard(cardId: string, input: UpdateCardInput): Promise<Card> {
-  const payload = expectObject(await requestJson(`/cards/${encodeURIComponent(cardId)}`, {
-    method: "PATCH",
-    body: JSON.stringify(input),
-  }));
-  return payload.card as Card;
-}
-
-export async function getReviewQueue(): Promise<ReadonlyArray<Card>> {
-  const payload = expectObject(await requestJson("/review-queue", { method: "GET" }));
-  return payload.items as ReadonlyArray<Card>;
-}
-
-export async function submitReview(cardId: string, rating: 0 | 1 | 2 | 3): Promise<Card> {
-  const payload = expectObject(await requestJson("/reviews", {
-    method: "POST",
-    body: JSON.stringify({
-      cardId,
-      rating,
-      reviewedAtClient: new Date().toISOString(),
-    }),
-  }));
-
-  return payload.card as Card;
-}
-
 export async function pushSyncOperations(
   deviceId: string,
   platform: "web",
@@ -233,6 +174,20 @@ export async function streamChat(body: ChatRequestBody, signal: AbortSignal): Pr
     body: JSON.stringify(body),
     signal,
   });
+}
+
+export function createChatRequestBody(
+  messages: ReadonlyArray<ChatMessage>,
+  model: string,
+  timezone: string,
+): ChatRequestBody {
+  return {
+    messages,
+    model,
+    timezone,
+    deviceId: getStableDeviceId(),
+    appVersion: webAppVersion,
+  };
 }
 
 export async function sendChatDiagnostics(body: ChatDiagnosticsPayload): Promise<void> {
