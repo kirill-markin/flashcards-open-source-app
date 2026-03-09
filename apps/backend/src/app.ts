@@ -98,6 +98,24 @@ type ChatDiagnosticsBody = Readonly<{
   lastEventType: string | null;
 }>;
 
+type LocalChatDiagnosticsBody = Readonly<{
+  clientRequestId: string;
+  backendRequestId: string | null;
+  stage: string;
+  errorKind: string;
+  statusCode: number | null;
+  eventType: string | null;
+  toolName: string | null;
+  toolCallId: string | null;
+  lineNumber: number | null;
+  rawSnippet: string | null;
+  decoderSummary: string | null;
+  selectedModel: string;
+  messageCount: number;
+  appVersion: string;
+  devicePlatform: string;
+}>;
+
 type ChatStreamCompletion = "done" | "error" | "aborted" | "timeout";
 
 type IntervalHandle = ReturnType<typeof globalThis.setInterval>;
@@ -421,6 +439,28 @@ function parseChatDiagnosticsBody(value: unknown): ChatDiagnosticsBody {
   };
 }
 
+export function parseLocalChatDiagnosticsBody(value: unknown): LocalChatDiagnosticsBody {
+  const body = expectRecord(value);
+
+  return {
+    clientRequestId: expectNonEmptyString(body.clientRequestId, "clientRequestId"),
+    backendRequestId: expectNullableNonEmptyString(body.backendRequestId, "backendRequestId"),
+    stage: expectNonEmptyString(body.stage, "stage"),
+    errorKind: expectNonEmptyString(body.errorKind, "errorKind"),
+    statusCode: expectNullableNonNegativeInteger(body.statusCode, "statusCode"),
+    eventType: expectNullableNonEmptyString(body.eventType, "eventType"),
+    toolName: expectNullableNonEmptyString(body.toolName, "toolName"),
+    toolCallId: expectNullableNonEmptyString(body.toolCallId, "toolCallId"),
+    lineNumber: expectNullableNonNegativeInteger(body.lineNumber, "lineNumber"),
+    rawSnippet: expectNullableNonEmptyString(body.rawSnippet, "rawSnippet"),
+    decoderSummary: expectNullableNonEmptyString(body.decoderSummary, "decoderSummary"),
+    selectedModel: expectNonEmptyString(body.selectedModel, "selectedModel"),
+    messageCount: expectNonNegativeInteger(body.messageCount, "messageCount"),
+    appVersion: expectNonEmptyString(body.appVersion, "appVersion"),
+    devicePlatform: expectNonEmptyString(body.devicePlatform, "devicePlatform"),
+  };
+}
+
 function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -555,6 +595,36 @@ function logFrontendChatDiagnostics(requestContext: RequestContext, body: ChatDi
   console.error(JSON.stringify(logRecord));
 }
 
+function logLocalChatDiagnostics(requestContext: RequestContext, body: LocalChatDiagnosticsBody): void {
+  console.error(JSON.stringify({
+    domain: "chat",
+    vendor: "ios_client",
+    action: "local_chat_diagnostics",
+    workspaceId: requestContext.selectedWorkspaceId,
+    transport: requestContext.transport,
+    userId: requestContext.userId,
+    ...body,
+  }));
+}
+
+function logLocalChatTerminalError(
+  requestId: string,
+  code: string,
+  stage: string,
+  message: string,
+): void {
+  console.error(JSON.stringify({
+    domain: "chat",
+    vendor: "openai",
+    mode: "local_ios",
+    action: "terminal_error_emitted",
+    requestId,
+    code,
+    stage,
+    message,
+  }));
+}
+
 /**
  * Keeps chat failures on the SSE transport so the frontend parser sees the
  * same envelope shape for both model and backend exceptions.
@@ -564,6 +634,78 @@ function createChatErrorResponse(message: string, requestId: string): Response {
   const stream = new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message })}\n\n`));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    status: 500,
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Chat-Request-Id": requestId,
+    },
+  });
+}
+
+export function createLocalChatErrorEvent(
+  message: string,
+  requestId: string,
+  code: string,
+  stage: string,
+): Extract<LocalChatStreamEvent, { type: "error" }> {
+  return {
+    type: "error",
+    message,
+    code,
+    stage,
+    requestId,
+  };
+}
+
+function createLocalChatErrorEventFromError(
+  error: unknown,
+  requestId: string,
+  fallbackCode: string,
+  fallbackStage: string,
+): Extract<LocalChatStreamEvent, { type: "error" }> {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    "stage" in error &&
+    typeof error.code === "string" &&
+    typeof error.stage === "string"
+  ) {
+    return createLocalChatErrorEvent(
+      getInternalErrorMessage(error),
+      requestId,
+      error.code,
+      error.stage,
+    );
+  }
+
+  return createLocalChatErrorEvent(
+    getInternalErrorMessage(error),
+    requestId,
+    fallbackCode,
+    fallbackStage,
+  );
+}
+
+function createLocalChatErrorResponse(
+  message: string,
+  requestId: string,
+  code: string,
+  stage: string,
+): Response {
+  const errorEvent = createLocalChatErrorEvent(message, requestId, code, stage);
+  logLocalChatTerminalError(requestId, code, stage, message);
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent)}\n\n`));
       controller.close();
     },
   });
@@ -781,6 +923,7 @@ export async function streamLocalChatResponse(
           messages: body.messages,
           model: body.model,
           timezone: body.timezone,
+          requestId,
         })) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
           if (event.type === "done" || event.type === "await_tool_results") {
@@ -788,8 +931,14 @@ export async function streamLocalChatResponse(
           }
         }
       } catch (error) {
-        const message = getInternalErrorMessage(error);
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message } satisfies LocalChatStreamEvent)}\n\n`));
+        const errorEvent = createLocalChatErrorEventFromError(
+          error,
+          requestId,
+          "LOCAL_CHAT_STREAM_FAILED",
+          "stream_local_turn",
+        );
+        logLocalChatTerminalError(requestId, errorEvent.code, errorEvent.stage, errorEvent.message);
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent satisfies LocalChatStreamEvent)}\n\n`));
       } finally {
         controller.close();
       }
@@ -1045,8 +1194,20 @@ export function createApp(basePath: string): Hono<AppEnv> {
         throw error;
       }
 
-      return createChatErrorResponse(getInternalErrorMessage(error), requestId);
+      return createLocalChatErrorResponse(
+        getInternalErrorMessage(error),
+        requestId,
+        "LOCAL_CHAT_REQUEST_FAILED",
+        "local_turn_request",
+      );
     }
+  });
+
+  registerRoute("post", "/chat/local-turn/diagnostics", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, allowedOrigins);
+    const body = parseLocalChatDiagnosticsBody(await parseJsonBody(context.req.raw));
+    logLocalChatDiagnostics(requestContext, body);
+    return new Response(null, { status: 204 });
   });
 
   registerRoute("post", "/chat/diagnostics", async (context) => {

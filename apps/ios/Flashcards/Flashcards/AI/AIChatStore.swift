@@ -111,8 +111,10 @@ final class AIChatStore: ObservableObject {
         self.persistState()
 
         let task = Task { @MainActor in
+            var diagnosticsSession: CloudLinkedSession?
             do {
                 let session = try await self.flashcardsStore.authenticatedCloudSessionForAI()
+                diagnosticsSession = session
                 try await self.runConversation(session: session)
                 if Task.isCancelled == false {
                     self.repairStatus = nil
@@ -125,8 +127,14 @@ final class AIChatStore: ObservableObject {
                 self.isStreaming = false
                 self.activeSendTask = nil
             } catch {
+                let diagnosticsBody = self.makeFailureReportBody(error: error)
                 self.repairStatus = nil
                 self.markAssistantError(message: localizedMessage(error: error))
+                if let diagnosticsBody, let diagnosticsSession {
+                    Task {
+                        await self.chatService.reportFailureDiagnostics(session: diagnosticsSession, body: diagnosticsBody)
+                    }
+                }
                 self.isStreaming = false
                 self.activeSendTask = nil
                 self.persistState()
@@ -152,7 +160,6 @@ final class AIChatStore: ObservableObject {
                     await self?.setRepairStatus(status: status)
                 }
             )
-
             if outcome.awaitsToolResults == false {
                 self.repairStatus = nil
                 return
@@ -160,7 +167,22 @@ final class AIChatStore: ObservableObject {
 
             let requestedToolCalls = outcome.requestedToolCalls
             if requestedToolCalls.isEmpty {
-                throw AIChatServiceError.remoteError("The assistant requested tool results without any tool calls.")
+                throw AIChatServiceError.invalidStreamContract(
+                    "The assistant requested tool results without any tool calls.",
+                    AIChatFailureDiagnostics(
+                        clientRequestId: UUID().uuidString.lowercased(),
+                        backendRequestId: outcome.requestId,
+                        stage: .backendErrorEvent,
+                        errorKind: .invalidStreamContract,
+                        statusCode: nil,
+                        eventType: "await_tool_results",
+                        toolName: nil,
+                        toolCallId: nil,
+                        lineNumber: nil,
+                        rawSnippet: nil,
+                        decoderSummary: "await_tool_results without tool_call_request"
+                    )
+                )
             }
 
             let latestUserText = self.latestUserText()
@@ -168,7 +190,8 @@ final class AIChatStore: ObservableObject {
                 do {
                     let output = try await self.toolExecutor.execute(
                         toolCallRequest: toolCallRequest,
-                        latestUserText: latestUserText
+                        latestUserText: latestUserText,
+                        requestId: outcome.requestId
                     )
                     self.completeToolCall(toolCallId: toolCallRequest.toolCallId, output: output)
                     self.persistState()
@@ -343,6 +366,54 @@ final class AIChatStore: ObservableObject {
 
     private func setRepairStatus(status: AIChatRepairAttemptStatus) {
         self.repairStatus = status
+    }
+
+    private func makeFailureReportBody(error: Error) -> AIChatFailureReportBody? {
+        let diagnostics: AIChatFailureDiagnostics
+
+        if let diagnosticError = error as? any AIChatFailureDiagnosticProviding {
+            diagnostics = diagnosticError.diagnostics
+        } else if let toolError = error as? AIToolExecutionError, case .invalidToolInput(
+            let requestId,
+            let toolName,
+            let toolCallId,
+            _,
+            let decoderSummary,
+            let rawInputSnippet
+        ) = toolError {
+            diagnostics = AIChatFailureDiagnostics(
+                clientRequestId: toolCallId,
+                backendRequestId: requestId,
+                stage: .toolInputDecode,
+                errorKind: .invalidToolInput,
+                statusCode: nil,
+                eventType: "tool_call_request",
+                toolName: toolName,
+                toolCallId: toolCallId,
+                lineNumber: nil,
+                rawSnippet: rawInputSnippet,
+                decoderSummary: decoderSummary
+            )
+        } else {
+            return nil
+        }
+        return AIChatFailureReportBody(
+            clientRequestId: diagnostics.clientRequestId,
+            backendRequestId: diagnostics.backendRequestId,
+            stage: diagnostics.stage.rawValue,
+            errorKind: diagnostics.errorKind.rawValue,
+            statusCode: diagnostics.statusCode,
+            eventType: diagnostics.eventType,
+            toolName: diagnostics.toolName,
+            toolCallId: diagnostics.toolCallId,
+            lineNumber: diagnostics.lineNumber,
+            rawSnippet: diagnostics.rawSnippet,
+            decoderSummary: diagnostics.decoderSummary,
+            selectedModel: self.selectedModelId,
+            messageCount: self.makeRequestBody().messages.count,
+            appVersion: aiChatAppVersion(),
+            devicePlatform: "ios"
+        )
     }
 
     private func markAssistantError(message: String) {

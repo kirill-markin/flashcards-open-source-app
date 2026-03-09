@@ -41,11 +41,26 @@ type OpenAIResponsesClient = Readonly<{
 type LocalChatLogEvent =
   | Readonly<{
     action: "request";
+    requestId: string;
     model: string;
     messageCount: number;
   }>
   | Readonly<{
+    action: "stream_opened";
+    requestId: string;
+    model: string;
+    attempt: number;
+  }>
+  | Readonly<{
+    action: "tool_call_validated";
+    requestId: string;
+    model: string;
+    toolName: string;
+    toolCallId: string;
+  }>
+  | Readonly<{
     action: "repair_attempt";
+    requestId: string;
     model: string;
     attempt: number;
     maxAttempts: number;
@@ -54,8 +69,17 @@ type LocalChatLogEvent =
   }>
   | Readonly<{
     action: "repair_exhausted";
+    requestId: string;
     model: string;
     toolName: string | null;
+  }>
+  | Readonly<{
+    action: "stream_closed";
+    requestId: string;
+    model: string;
+    attempt: number;
+    deltaCount: number;
+    toolCallCount: number;
   }>;
 
 type RepairPromptState = Readonly<{
@@ -73,6 +97,7 @@ export type StreamLocalTurnParams = Readonly<{
   messages: ReadonlyArray<LocalChatMessage>;
   model: string;
   timezone: string;
+  requestId: string;
 }>;
 
 class RepairableToolCallError extends Error {
@@ -85,6 +110,17 @@ class RepairableToolCallError extends Error {
     this.toolName = toolName;
     this.repairPrompt = repairPrompt;
     this.rawDetails = rawDetails;
+  }
+}
+
+export class LocalChatRuntimeError extends Error {
+  readonly code: string;
+  readonly stage: string;
+
+  constructor(message: string, code: string, stage: string) {
+    super(message);
+    this.code = code;
+    this.stage = stage;
   }
 }
 
@@ -306,18 +342,28 @@ function validateToolArguments(
 
 function normalizeToolCall(
   toolCall: ResponseFunctionToolCall,
+  params: Readonly<{ requestId: string; model: string }>,
 ): ValidatedToolCall {
+  const normalizedInput = validateToolArguments(toolCall.name, toolCall.arguments);
+  logLocalChatEvent({
+    action: "tool_call_validated",
+    requestId: params.requestId,
+    model: params.model,
+    toolName: toolCall.name,
+    toolCallId: toolCall.call_id,
+  });
   return {
     toolCallId: toolCall.call_id,
     name: toolCall.name,
-    input: validateToolArguments(toolCall.name, toolCall.arguments),
+    input: normalizedInput,
   };
 }
 
 function normalizeToolCalls(
   toolCalls: ReadonlyArray<ResponseFunctionToolCall>,
+  params: Readonly<{ requestId: string; model: string }>,
 ): ReadonlyArray<LocalAssistantToolCall> {
-  return toolCalls.map(normalizeToolCall);
+  return toolCalls.map((toolCall) => normalizeToolCall(toolCall, params));
 }
 
 function makeRepairStatusEvent(
@@ -347,14 +393,22 @@ export async function* streamLocalAgentTurn(
 ): AsyncGenerator<LocalChatStreamEvent> {
   logLocalChatEvent({
     action: "request",
+    requestId: params.requestId,
     model: params.model,
     messageCount: params.messages.length,
   });
 
   let repairState: RepairPromptState | null = null;
   let streamedAssistantText = "";
+  let deltaCount = 0;
 
   for (let repairAttempt = 0; repairAttempt <= MAX_TOOL_REPAIR_ATTEMPTS; repairAttempt++) {
+    logLocalChatEvent({
+      action: "stream_opened",
+      requestId: params.requestId,
+      model: params.model,
+      attempt: repairAttempt + 1,
+    });
     const stream = client.responses.stream({
       model: params.model,
       instructions: buildLocalSystemInstructions(params.timezone),
@@ -365,6 +419,7 @@ export async function* streamLocalAgentTurn(
 
     for await (const event of stream) {
       if (event.type === "response.output_text.delta" && event.delta !== undefined) {
+        deltaCount += 1;
         streamedAssistantText += event.delta;
         yield { type: "delta", text: event.delta };
       }
@@ -374,12 +429,31 @@ export async function* streamLocalAgentTurn(
     const toolCalls = finalResponse.output.filter(isFunctionToolCall);
 
     if (toolCalls.length === 0) {
+      logLocalChatEvent({
+        action: "stream_closed",
+        requestId: params.requestId,
+        model: params.model,
+        attempt: repairAttempt + 1,
+        deltaCount,
+        toolCallCount: 0,
+      });
       yield { type: "done" };
       return;
     }
 
     try {
-      const normalizedToolCalls = normalizeToolCalls(toolCalls);
+      const normalizedToolCalls = normalizeToolCalls(toolCalls, {
+        requestId: params.requestId,
+        model: params.model,
+      });
+      logLocalChatEvent({
+        action: "stream_closed",
+        requestId: params.requestId,
+        model: params.model,
+        attempt: repairAttempt + 1,
+        deltaCount,
+        toolCallCount: normalizedToolCalls.length,
+      });
 
       for (const toolCall of normalizedToolCalls) {
         yield {
@@ -400,15 +474,21 @@ export async function* streamLocalAgentTurn(
       if (repairAttempt >= MAX_TOOL_REPAIR_ATTEMPTS) {
         logLocalChatEvent({
           action: "repair_exhausted",
+          requestId: params.requestId,
           model: params.model,
           toolName: error.toolName,
         });
-        throw new Error("Assistant could not prepare a valid tool call. Try again.");
+        throw new LocalChatRuntimeError(
+          "Assistant could not prepare a valid tool call. Try again.",
+          "LOCAL_TOOL_CALL_INVALID",
+          "tool_call_validation",
+        );
       }
 
       const nextAttempt = repairAttempt + 1;
       logLocalChatEvent({
         action: "repair_attempt",
+        requestId: params.requestId,
         model: params.model,
         attempt: nextAttempt,
         maxAttempts: MAX_TOOL_REPAIR_ATTEMPTS,
@@ -423,7 +503,11 @@ export async function* streamLocalAgentTurn(
     }
   }
 
-  throw new Error("Assistant could not prepare a valid tool call. Try again.");
+  throw new LocalChatRuntimeError(
+    "Assistant could not prepare a valid tool call. Try again.",
+    "LOCAL_TOOL_CALL_INVALID",
+    "tool_call_validation",
+  );
 }
 
 export async function* streamLocalTurn(

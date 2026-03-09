@@ -255,7 +255,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const chat = restApi.root.addResource("chat");
   chat.addMethod("POST", streamingIntegration);
-  chat.addResource("local-turn").addMethod("POST", streamingIntegration);
+  const localTurn = chat.addResource("local-turn");
+  localTurn.addMethod("POST", streamingIntegration);
+  localTurn.addResource("diagnostics").addMethod("POST", integration);
   chat.addResource("diagnostics").addMethod("POST", integration);
 
   const workspaces = restApi.root.addResource("workspaces");

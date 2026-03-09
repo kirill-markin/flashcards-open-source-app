@@ -31,7 +31,13 @@ private final class FailingChatService: AIChatStreaming, @unchecked Sendable {
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
         XCTFail("streamTurn should not be called in this test")
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [])
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: nil)
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
     }
 }
 
@@ -46,6 +52,12 @@ private struct ThrowingChatService: AIChatStreaming {
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
         throw self.error
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
     }
 }
 
@@ -80,12 +92,18 @@ private struct RepairingChatService: AIChatStreaming {
                 input: "{\"limit\":null}"
             )
         )
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [])
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-123")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
     }
 }
 
 private struct FailingToolExecutor: AIToolExecuting {
-    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String) async throws -> String {
+    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String, requestId: String?) async throws -> String {
         XCTFail("execute should not be called in this test")
         return ""
     }
@@ -159,7 +177,7 @@ final class AIChatTests: XCTestCase {
     }
 
     func testSSEParserParsesAllSupportedEventTypes() throws {
-        var parser = AIChatSSEParser(decoder: JSONDecoder())
+        var parser = AIChatSSEParser(decoder: JSONDecoder(), clientRequestId: "client-1", backendRequestId: "backend-1")
         XCTAssertEqual(try parser.pushLine("data: {\"type\":\"delta\",\"text\":\"Hi\"}"), nil)
 
         XCTAssertEqual(try parser.pushLine(""), .delta("Hi"))
@@ -184,8 +202,37 @@ final class AIChatTests: XCTestCase {
         XCTAssertEqual(try parser.pushLine(""), .awaitToolResults)
         XCTAssertEqual(try parser.pushLine("data: {\"type\":\"done\"}"), nil)
         XCTAssertEqual(try parser.pushLine(""), .done)
-        XCTAssertEqual(try parser.pushLine("data: {\"type\":\"error\",\"message\":\"boom\"}"), nil)
-        XCTAssertEqual(try parser.pushLine(""), .error("boom"))
+        XCTAssertEqual(try parser.pushLine("data: {\"type\":\"error\",\"message\":\"boom\",\"code\":\"LOCAL_CHAT_STREAM_FAILED\",\"stage\":\"stream_local_turn\",\"requestId\":\"backend-1\"}"), nil)
+        XCTAssertEqual(
+            try parser.pushLine(""),
+            .error(
+                AIChatBackendError(
+                    message: "boom",
+                    code: "LOCAL_CHAT_STREAM_FAILED",
+                    stage: "stream_local_turn",
+                    requestId: "backend-1"
+                )
+            )
+        )
+    }
+
+    func testSSEParserClassifiesMultipleJSONObjectsAsFramingError() {
+        var parser = AIChatSSEParser(decoder: JSONDecoder(), clientRequestId: "client-1", backendRequestId: "backend-1")
+
+        XCTAssertNoThrow(try parser.pushLine("data: {\"type\":\"delta\",\"text\":\"Hi\"}"))
+        XCTAssertNoThrow(try parser.pushLine("data: {\"type\":\"done\"}"))
+
+        XCTAssertThrowsError(try parser.pushLine("")) { error in
+            guard case .invalidSSEFraming(let diagnostics) = error as? AIChatServiceError else {
+                return XCTFail("Expected invalidSSEFraming, received \(error)")
+            }
+
+            XCTAssertEqual(diagnostics.clientRequestId, "client-1")
+            XCTAssertEqual(diagnostics.backendRequestId, "backend-1")
+            XCTAssertEqual(diagnostics.errorKind, .invalidSSEFraming)
+            XCTAssertEqual(diagnostics.stage, .finishingEvent)
+            XCTAssertEqual(diagnostics.eventType, "delta")
+        }
     }
 
     @MainActor
@@ -203,7 +250,8 @@ final class AIChatTests: XCTestCase {
                 name: "get_workspace_context",
                 input: "{}"
             ),
-            latestUserText: "show me the current workspace"
+            latestUserText: "show me the current workspace",
+            requestId: "request-1"
         )
         let workspaceContext = try XCTUnwrap(
             try JSONSerialization.jsonObject(with: Data(workspaceContextJson.utf8)) as? [String: Any]
@@ -218,7 +266,8 @@ final class AIChatTests: XCTestCase {
                     name: "create_card",
                     input: "{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}"
                 ),
-                latestUserText: "please create a card"
+                latestUserText: "please create a card",
+                requestId: "request-1"
             )
             XCTFail("Expected write confirmation error")
         } catch let error as AIToolExecutionError {
@@ -233,7 +282,8 @@ final class AIChatTests: XCTestCase {
                 name: "create_card",
                 input: "{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}"
             ),
-            latestUserText: "yes, do it"
+            latestUserText: "yes, do it",
+            requestId: "request-1"
         )
         let createdCard = try JSONDecoder().decode(Card.self, from: Data(createdCardJson.utf8))
         XCTAssertEqual(createdCard.frontText, "Front")
@@ -261,13 +311,47 @@ final class AIChatTests: XCTestCase {
                     ]}
                     """
                 ),
-                latestUserText: "please create these cards"
+                latestUserText: "please create these cards",
+                requestId: "request-1"
             )
             XCTFail("Expected write confirmation error")
         } catch let error as AIToolExecutionError {
             guard case .writeConfirmationRequired = error else {
                 return XCTFail("Expected write confirmation error, received \(error.localizedDescription)")
             }
+        }
+    }
+
+    @MainActor
+    func testLocalToolExecutorWrapsInvalidInputWithDiagnostics() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = LocalAIToolExecutor(
+            flashcardsStore: flashcardsStore,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        do {
+            _ = try await executor.execute(
+                toolCallRequest: AIToolCallRequest(
+                    toolCallId: "call-invalid",
+                    name: "list_cards",
+                    input: "{\"limit\":5}\n{\"limit\":10}"
+                ),
+                latestUserText: "show cards",
+                requestId: "request-123"
+            )
+            XCTFail("Expected invalid tool input error")
+        } catch let error as AIToolExecutionError {
+            guard case .invalidToolInput(let requestId, let toolName, let toolCallId, _, let decoderSummary, let rawInputSnippet) = error else {
+                return XCTFail("Expected invalidToolInput, received \(error.localizedDescription)")
+            }
+
+            XCTAssertEqual(requestId, "request-123")
+            XCTAssertEqual(toolName, "list_cards")
+            XCTAssertEqual(toolCallId, "call-invalid")
+            XCTAssertFalse(decoderSummary.isEmpty)
+            XCTAssertEqual(rawInputSnippet, "{\"limit\":5}\n{\"limit\":10}")
         }
     }
 
@@ -291,7 +375,8 @@ final class AIChatTests: XCTestCase {
                 ]}
                 """
             ),
-            latestUserText: "yes, do it"
+            latestUserText: "yes, do it",
+            requestId: "request-1"
         )
         let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsJson.utf8))
         XCTAssertEqual(createdCards.count, 2)
@@ -308,7 +393,8 @@ final class AIChatTests: XCTestCase {
                 ]}
                 """
             ),
-            latestUserText: "yes, apply these changes"
+            latestUserText: "yes, apply these changes",
+            requestId: "request-1"
         )
         let updatedCards = try JSONDecoder().decode([Card].self, from: Data(updatedCardsJson.utf8))
         XCTAssertEqual(updatedCards.count, 2)
@@ -335,7 +421,8 @@ final class AIChatTests: XCTestCase {
                 {"cardIds":["\(createdCards[0].cardId)","\(createdCards[1].cardId)"]}
                 """
             ),
-            latestUserText: "yes, proceed"
+            latestUserText: "yes, proceed",
+            requestId: "request-1"
         )
         let deletedCardsPayload = try JSONDecoder().decode(BulkDeleteCardsPayload.self, from: Data(deletedCardsJson.utf8))
         XCTAssertTrue(deletedCardsPayload.ok)
@@ -488,7 +575,11 @@ final class AIChatTests: XCTestCase {
         } catch let error as AIChatServiceError {
             XCTAssertEqual(
                 error.errorDescription,
-                "AI chat request failed with status 403: Authentication failed. Sign in again. Reference: request-123"
+                """
+                AI chat request failed with status 403: Authentication failed. Sign in again. Reference: request-123
+                Request: request-123
+                Stage: response_not_ok
+                """
             )
         }
     }

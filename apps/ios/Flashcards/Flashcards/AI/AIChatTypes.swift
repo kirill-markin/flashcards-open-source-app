@@ -2,6 +2,40 @@ import Foundation
 
 let aiChatDefaultModelId: String = "gpt-5.4"
 
+func aiChatAppVersion() -> String {
+    let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+    return shortVersion ?? "0.1.0"
+}
+
+func aiChatTruncatedSnippet(_ value: String) -> String {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmed.count <= 240 {
+        return trimmed
+    }
+
+    let endIndex = trimmed.index(trimmed.startIndex, offsetBy: 240)
+    return String(trimmed[..<endIndex]) + "..."
+}
+
+func aiChatDecoderSummary(error: Error) -> String {
+    if let decodingError = error as? DecodingError {
+        switch decodingError {
+        case .dataCorrupted(let context):
+            return context.debugDescription
+        case .keyNotFound(let key, let context):
+            return "missing key \(key.stringValue): \(context.debugDescription)"
+        case .typeMismatch(let type, let context):
+            return "type mismatch \(type): \(context.debugDescription)"
+        case .valueNotFound(let type, let context):
+            return "missing value \(type): \(context.debugDescription)"
+        @unknown default:
+            return String(describing: decodingError)
+        }
+    }
+
+    return localizedMessage(error: error)
+}
+
 struct AIChatModelDef: Hashable, Identifiable {
     let id: String
     let label: String
@@ -74,6 +108,66 @@ struct AIToolCallRequest: Hashable {
     let input: String
 }
 
+enum AIChatFailureStage: String, Codable, Hashable {
+    case requestBuild = "request_build"
+    case invalidHttpResponse = "invalid_http_response"
+    case httpResponseBody = "http_response_body"
+    case responseNotOk = "response_not_ok"
+    case readingLine = "reading_line"
+    case finishingEvent = "finishing_event"
+    case decodingEventJSON = "decoding_event_json"
+    case processingTrailingEvent = "processing_trailing_event"
+    case backendErrorEvent = "backend_error_event"
+    case toolInputDecode = "tool_input_decode"
+}
+
+enum AIChatFailureKind: String, Codable, Hashable {
+    case invalidBaseUrl = "invalid_base_url"
+    case invalidStreamResponse = "invalid_stream_response"
+    case invalidHttpResponse = "invalid_http_response"
+    case invalidSSEFraming = "invalid_sse_framing"
+    case invalidSSEEventJSON = "invalid_sse_event_json"
+    case invalidStreamContract = "invalid_stream_contract"
+    case backendErrorEvent = "backend_error_event"
+    case invalidToolInput = "invalid_tool_input"
+}
+
+struct AIChatFailureDiagnostics: Codable, Hashable {
+    let clientRequestId: String
+    let backendRequestId: String?
+    let stage: AIChatFailureStage
+    let errorKind: AIChatFailureKind
+    let statusCode: Int?
+    let eventType: String?
+    let toolName: String?
+    let toolCallId: String?
+    let lineNumber: Int?
+    let rawSnippet: String?
+    let decoderSummary: String?
+}
+
+struct AIChatFailureReportBody: Codable, Hashable {
+    let clientRequestId: String
+    let backendRequestId: String?
+    let stage: String
+    let errorKind: String
+    let statusCode: Int?
+    let eventType: String?
+    let toolName: String?
+    let toolCallId: String?
+    let lineNumber: Int?
+    let rawSnippet: String?
+    let decoderSummary: String?
+    let selectedModel: String
+    let messageCount: Int
+    let appVersion: String
+    let devicePlatform: String
+}
+
+protocol AIChatFailureDiagnosticProviding: Error {
+    var diagnostics: AIChatFailureDiagnostics { get }
+}
+
 struct AIChatRepairAttemptStatus: Hashable {
     let message: String
     let attempt: Int
@@ -88,6 +182,14 @@ struct AIChatRepairAttemptStatus: Hashable {
 struct AITurnStreamOutcome: Hashable {
     let awaitsToolResults: Bool
     let requestedToolCalls: [AIToolCallRequest]
+    let requestId: String?
+}
+
+struct AIChatBackendError: Decodable, Hashable {
+    let message: String
+    let code: String
+    let stage: String
+    let requestId: String
 }
 
 enum AIChatBackendStreamEvent: Decodable, Hashable {
@@ -96,7 +198,7 @@ enum AIChatBackendStreamEvent: Decodable, Hashable {
     case repairAttempt(AIChatRepairAttemptStatus)
     case awaitToolResults
     case done
-    case error(String)
+    case error(AIChatBackendError)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -108,6 +210,9 @@ enum AIChatBackendStreamEvent: Decodable, Hashable {
         case attempt
         case maxAttempts
         case toolName
+        case code
+        case stage
+        case requestId
     }
 
     init(from decoder: Decoder) throws {
@@ -139,7 +244,14 @@ enum AIChatBackendStreamEvent: Decodable, Hashable {
         case "done":
             self = .done
         case "error":
-            self = .error(try container.decode(String.self, forKey: .message))
+            self = .error(
+                AIChatBackendError(
+                    message: try container.decode(String.self, forKey: .message),
+                    code: try container.decode(String.self, forKey: .code),
+                    stage: try container.decode(String.self, forKey: .stage),
+                    requestId: try container.decode(String.self, forKey: .requestId)
+                )
+            )
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
@@ -164,9 +276,14 @@ protocol AIChatStreaming: Sendable {
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async
 }
 
 protocol AIToolExecuting {
     @MainActor
-    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String) async throws -> String
+    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String, requestId: String?) async throws -> String
 }
