@@ -13,6 +13,8 @@ enum CloudAuthError: LocalizedError {
             switch details.code {
             case "OTP_SESSION_EXPIRED":
                 return "Code expired. Request a new one."
+            case "OTP_CHALLENGE_CONSUMED":
+                return "Code already used. Request a new one."
             case "OTP_CODE_INVALID":
                 return "Code is invalid. Try again."
             case "OTP_SEND_FAILED":
@@ -115,6 +117,7 @@ final class CloudAuthService {
         self.resetChallengeSession()
 
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        logCloudPhase(phase: .authSendCode, outcome: "start")
         let response: SendCodeResponse = try await self.request(
             authBaseUrl: authBaseUrl,
             path: "/api/send-code",
@@ -141,6 +144,7 @@ final class CloudAuthService {
 
     func verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
         let normalizedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        logCloudPhase(phase: .authVerifyCode, outcome: "start")
         let response: VerifyCodeResponse = try await self.request(
             authBaseUrl: authBaseUrl,
             path: "/api/verify-code",
@@ -217,8 +221,19 @@ final class CloudAuthService {
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
             let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
             let errorDetails = parseCloudApiErrorDetails(data: data, requestId: requestId)
+            let phase: CloudFlowPhase = path == "/api/send-code" ? .authSendCode : .authVerifyCode
+            logCloudPhase(
+                phase: phase,
+                outcome: "failure",
+                requestId: errorDetails.requestId,
+                code: errorDetails.code,
+                statusCode: httpResponse.statusCode
+            )
             throw CloudAuthError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
+
+        let phase: CloudFlowPhase = path == "/api/send-code" ? .authSendCode : .authVerifyCode
+        logCloudPhase(phase: phase, outcome: "success")
 
         return try self.decoder.decode(Response.self, from: data)
     }

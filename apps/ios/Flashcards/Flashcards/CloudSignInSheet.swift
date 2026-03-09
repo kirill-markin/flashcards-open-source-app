@@ -11,6 +11,26 @@ private struct CloudOtpSheetState: Identifiable, Hashable {
     }
 }
 
+private enum CloudPostAuthRetryAction: Hashable {
+    case prepareLink(verifiedContext: CloudVerifiedAuthContext)
+    case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
+    case syncOnly
+}
+
+private struct CloudPostAuthFailureState: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let message: String
+    let retryAction: CloudPostAuthRetryAction
+
+    init(title: String, message: String, retryAction: CloudPostAuthRetryAction) {
+        self.id = UUID().uuidString
+        self.title = title
+        self.message = message
+        self.retryAction = retryAction
+    }
+}
+
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FlashcardsStore
@@ -18,6 +38,7 @@ struct CloudSignInSheet: View {
     @State private var email: String = ""
     @State private var otpSheetState: CloudOtpSheetState?
     @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
+    @State private var postAuthFailureState: CloudPostAuthFailureState?
     @State private var errorMessage: String = ""
     @State private var isSendingCode: Bool = false
     @State private var isAutoLinkingWorkspace: Bool = false
@@ -58,12 +79,13 @@ struct CloudSignInSheet: View {
             .sheet(item: self.$otpSheetState) { otpState in
                 CloudOtpVerificationSheet(
                     challenge: otpState.challenge,
-                    onPrepared: { linkContext in
-                        self.handlePreparedLinkContext(linkContext)
+                    onVerified: { verifiedContext in
+                        self.handleVerifiedAuthContext(verifiedContext)
                     },
                     onReturnToEmail: { message in
                         self.otpSheetState = nil
                         self.workspaceLinkContext = nil
+                        self.postAuthFailureState = nil
                         self.errorMessage = message
                     }
                 )
@@ -74,11 +96,42 @@ struct CloudSignInSheet: View {
                     linkContext: linkContext,
                     onLinked: {
                         self.workspaceLinkContext = nil
+                        self.postAuthFailureState = nil
                         self.errorMessage = ""
                         self.dismiss()
                     },
+                    onLinkFailed: { selection, message in
+                        self.workspaceLinkContext = nil
+                        let retryAction: CloudPostAuthRetryAction = self.store.cloudSettings?.cloudState == .linked
+                            ? .syncOnly
+                            : .completeLink(linkContext: linkContext, selection: selection)
+                        let title = self.store.cloudSettings?.cloudState == .linked
+                            ? "Signed in, but initial sync failed."
+                            : "Signed in, but cloud setup failed."
+                        self.presentPostAuthFailure(
+                            title: title,
+                            message: message,
+                            retryAction: retryAction
+                        )
+                    },
                     onCancelled: {
                         self.workspaceLinkContext = nil
+                    }
+                )
+                .environmentObject(self.store)
+            }
+            .sheet(item: self.$postAuthFailureState) { failureState in
+                CloudPostAuthFailureSheet(
+                    state: failureState,
+                    onRetry: {
+                        self.retryPostAuthFailure(failureState)
+                    },
+                    onClose: {
+                        self.postAuthFailureState = nil
+                        self.dismiss()
+                    },
+                    onDisconnect: {
+                        self.disconnectAndDismiss()
                     }
                 )
                 .environmentObject(self.store)
@@ -111,7 +164,6 @@ struct CloudSignInSheet: View {
     }
 
     private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
-        self.otpSheetState = nil
         self.errorMessage = ""
 
         if linkContext.workspaces.isEmpty == false {
@@ -119,6 +171,33 @@ struct CloudSignInSheet: View {
             return
         }
 
+        self.completeLink(linkContext: linkContext, selection: .createNew)
+    }
+
+    private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
+        self.otpSheetState = nil
+        self.workspaceLinkContext = nil
+        self.errorMessage = ""
+        self.prepareCloudLink(verifiedContext: verifiedContext)
+    }
+
+    private func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) {
+        Task { @MainActor in
+            do {
+                let linkContext = try await self.store.prepareCloudLink(verifiedContext: verifiedContext)
+                self.postAuthFailureState = nil
+                self.handlePreparedLinkContext(linkContext)
+            } catch {
+                self.presentPostAuthFailure(
+                    title: "Signed in, but cloud setup failed.",
+                    message: localizedMessage(error: error),
+                    retryAction: .prepareLink(verifiedContext: verifiedContext)
+                )
+            }
+        }
+    }
+
+    private func completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection) {
         Task { @MainActor in
             self.isAutoLinkingWorkspace = true
             defer {
@@ -128,26 +207,106 @@ struct CloudSignInSheet: View {
             do {
                 try await self.store.completeCloudLink(
                     linkContext: linkContext,
-                    selection: .createNew
+                    selection: selection
                 )
+                self.postAuthFailureState = nil
                 self.dismiss()
             } catch {
-                self.errorMessage = localizedMessage(error: error)
+                let retryAction: CloudPostAuthRetryAction = self.store.cloudSettings?.cloudState == .linked
+                    ? .syncOnly
+                    : .completeLink(linkContext: linkContext, selection: selection)
+                let title = self.store.cloudSettings?.cloudState == .linked
+                    ? "Signed in, but initial sync failed."
+                    : "Signed in, but cloud setup failed."
+                self.workspaceLinkContext = nil
+                self.presentPostAuthFailure(
+                    title: title,
+                    message: localizedMessage(error: error),
+                    retryAction: retryAction
+                )
             }
         }
+    }
+
+    private func retryPostAuthFailure(_ failureState: CloudPostAuthFailureState) {
+        self.postAuthFailureState = nil
+
+        switch failureState.retryAction {
+        case .prepareLink(let verifiedContext):
+            self.prepareCloudLink(verifiedContext: verifiedContext)
+        case .completeLink(let linkContext, let selection):
+            self.completeLink(linkContext: linkContext, selection: selection)
+        case .syncOnly:
+            Task { @MainActor in
+                do {
+                    try await self.store.syncCloudNow()
+                    self.dismiss()
+                } catch {
+                    self.presentPostAuthFailure(
+                        title: "Signed in, but initial sync failed.",
+                        message: localizedMessage(error: error),
+                        retryAction: .syncOnly
+                    )
+                }
+            }
+        }
+    }
+
+    private func presentPostAuthFailure(
+        title: String,
+        message: String,
+        retryAction: CloudPostAuthRetryAction
+    ) {
+        self.errorMessage = ""
+        self.postAuthFailureState = CloudPostAuthFailureState(
+            title: title,
+            message: message,
+            retryAction: retryAction
+        )
+    }
+
+    private func disconnectAndDismiss() {
+        do {
+            try self.store.disconnectCloudAccount()
+        } catch {
+            self.errorMessage = localizedMessage(error: error)
+        }
+
+        self.postAuthFailureState = nil
+        self.workspaceLinkContext = nil
+        self.otpSheetState = nil
+        self.dismiss()
     }
 }
 
 private struct CloudOtpVerificationSheet: View {
     @EnvironmentObject private var store: FlashcardsStore
 
-    let challenge: CloudOtpChallenge
-    let onPrepared: (CloudWorkspaceLinkContext) -> Void
+    let onVerified: (CloudVerifiedAuthContext) -> Void
     let onReturnToEmail: (String) -> Void
 
+    @State private var currentChallenge: CloudOtpChallenge
     @State private var code: String = ""
     @State private var errorMessage: String = ""
     @State private var isVerifyingCode: Bool = false
+    @State private var isSendingCode: Bool = false
+    @State private var challengeState: OtpChallengeState = .active
+
+    private enum OtpChallengeState: Hashable {
+        case active
+        case consumed
+        case expired
+    }
+
+    init(
+        challenge: CloudOtpChallenge,
+        onVerified: @escaping (CloudVerifiedAuthContext) -> Void,
+        onReturnToEmail: @escaping (String) -> Void
+    ) {
+        self.onVerified = onVerified
+        self.onReturnToEmail = onReturnToEmail
+        self._currentChallenge = State(initialValue: challenge)
+    }
 
     var body: some View {
         NavigationStack {
@@ -159,35 +318,53 @@ private struct CloudOtpVerificationSheet: View {
                 }
 
                 Section("Email") {
-                    Text(self.challenge.email)
+                    Text(self.currentChallenge.email)
                         .textSelection(.enabled)
                 }
 
                 Section("One-time code") {
-                    Text("Enter the 8-digit code from your email.")
+                    Text(self.challengePrompt)
                         .foregroundStyle(.secondary)
 
-                    TextField("12345678", text: self.$code)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.numberPad)
-                        .textContentType(.oneTimeCode)
+                    if self.challengeState == .active {
+                        TextField("12345678", text: self.$code)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.numberPad)
+                            .textContentType(.oneTimeCode)
 
-                    Button("Continue") {
-                        self.verifyCode()
+                        Button("Continue") {
+                            self.verifyCode()
+                        }
+                        .disabled(self.isVerifyingCode || self.isSendingCode || normalizedOtpCode(self.code).isEmpty)
+                    } else {
+                        Button("Resend code") {
+                            self.resendCode()
+                        }
+                        .disabled(self.isSendingCode || self.isVerifyingCode)
                     }
-                    .disabled(self.isVerifyingCode || normalizedOtpCode(self.code).isEmpty)
                 }
 
                 Section {
                     Button("Use different email") {
                         self.onReturnToEmail("")
                     }
-                    .disabled(self.isVerifyingCode)
+                    .disabled(self.isVerifyingCode || self.isSendingCode)
                 }
             }
             .navigationTitle("Verify code")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private var challengePrompt: String {
+        switch self.challengeState {
+        case .active:
+            return "Enter the 8-digit code from your email."
+        case .consumed:
+            return "This code was already used. Request a new code to continue."
+        case .expired:
+            return "This code expired. Request a new code to continue."
         }
     }
 
@@ -205,21 +382,59 @@ private struct CloudOtpVerificationSheet: View {
             }
 
             do {
-                let linkContext = try await self.store.verifyCloudSignIn(
-                    challenge: self.challenge,
+                let verifiedContext = try await self.store.verifyCloudOtp(
+                    challenge: self.currentChallenge,
                     code: nextCode
                 )
+                self.code = ""
+                self.challengeState = .consumed
                 self.errorMessage = ""
-                self.onPrepared(linkContext)
+                self.onVerified(verifiedContext)
             } catch {
                 let message = localizedMessage(error: error)
-                if shouldResetOtpFlow(error: error) {
-                    self.onReturnToEmail(message)
-                    return
-                }
-
+                self.applyOtpErrorState(error: error)
                 self.errorMessage = message
             }
+        }
+    }
+
+    private func resendCode() {
+        Task { @MainActor in
+            self.isSendingCode = true
+            defer {
+                self.isSendingCode = false
+            }
+
+            do {
+                let nextChallenge = try await self.store.sendCloudSignInCode(email: self.currentChallenge.email)
+                self.currentChallenge = nextChallenge
+                self.code = ""
+                self.errorMessage = ""
+                self.challengeState = .active
+            } catch {
+                self.errorMessage = localizedMessage(error: error)
+            }
+        }
+    }
+
+    private func applyOtpErrorState(error: Error) {
+        guard let authError = error as? CloudAuthError else {
+            return
+        }
+
+        switch authError {
+        case .invalidResponse(let details, _):
+            if details.code == "OTP_SESSION_EXPIRED" {
+                self.code = ""
+                self.challengeState = .expired
+            }
+
+            if details.code == "OTP_CHALLENGE_CONSUMED" {
+                self.code = ""
+                self.challengeState = .consumed
+            }
+        case .invalidBaseUrl, .invalidResponseBody:
+            return
         }
     }
 }
@@ -229,9 +444,9 @@ private struct CloudWorkspaceSelectionSheet: View {
 
     let linkContext: CloudWorkspaceLinkContext
     let onLinked: () -> Void
+    let onLinkFailed: (CloudWorkspaceLinkSelection, String) -> Void
     let onCancelled: () -> Void
 
-    @State private var errorMessage: String = ""
     @State private var isLinking: Bool = false
 
     private var createButtonTitle: String {
@@ -245,12 +460,6 @@ private struct CloudWorkspaceSelectionSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                if self.errorMessage.isEmpty == false {
-                    Section {
-                        CopyableErrorMessageView(message: self.errorMessage)
-                    }
-                }
-
                 Section("Workspace") {
                     Text("Choose which cloud workspace should be linked to the local data on this device.")
                         .foregroundStyle(.secondary)
@@ -315,11 +524,53 @@ private struct CloudWorkspaceSelectionSheet: View {
                     linkContext: self.linkContext,
                     selection: selection
                 )
-                self.errorMessage = ""
                 self.onLinked()
             } catch {
-                self.errorMessage = localizedMessage(error: error)
+                self.onLinkFailed(selection, localizedMessage(error: error))
             }
+        }
+    }
+}
+
+private struct CloudPostAuthFailureSheet: View {
+    @EnvironmentObject private var store: FlashcardsStore
+
+    let state: CloudPostAuthFailureState
+    let onRetry: () -> Void
+    let onClose: () -> Void
+    let onDisconnect: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    CopyableErrorMessageView(message: self.state.message)
+                }
+
+                Section("Cloud account") {
+                    Text(self.state.title)
+                        .font(.headline)
+                    Text("Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish.")
+                        .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    Button("Retry") {
+                        self.onRetry()
+                    }
+                    .disabled(isCloudSignInSyncInFlight(status: self.store.syncStatus))
+
+                    Button("Close") {
+                        self.onClose()
+                    }
+
+                    Button("Disconnect account", role: .destructive) {
+                        self.onDisconnect()
+                    }
+                }
+            }
+            .navigationTitle("Cloud sync")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -339,15 +590,11 @@ private func normalizedOtpCode(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
-private func shouldResetOtpFlow(error: Error) -> Bool {
-    guard let authError = error as? CloudAuthError else {
-        return false
-    }
-
-    switch authError {
-    case .invalidResponse(let details, _):
-        return details.code == "OTP_SESSION_EXPIRED"
-    case .invalidBaseUrl, .invalidResponseBody:
+private func isCloudSignInSyncInFlight(status: SyncStatus) -> Bool {
+    switch status {
+    case .syncing:
+        return true
+    case .idle, .failed:
         return false
     }
 }

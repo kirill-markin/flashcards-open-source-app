@@ -336,6 +336,11 @@ struct CloudWorkspaceLinkContext: Hashable, Identifiable {
     }
 }
 
+struct CloudVerifiedAuthContext: Hashable {
+    let apiBaseUrl: String
+    let credentials: StoredCloudCredentials
+}
+
 enum CloudWorkspaceLinkSelection: Hashable {
     case existing(workspaceId: String)
     case createNew
