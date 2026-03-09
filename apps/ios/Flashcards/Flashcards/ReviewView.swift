@@ -10,8 +10,17 @@ private let showAnswerButtonMinHeight: CGFloat = (reviewAnswerButtonMinHeight * 
 struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
+    @State private var selectedCardId: String = ""
     @State private var isAnswerVisible: Bool = false
     @State private var isQueuePreviewPresented: Bool = false
+    @State private var isEditorPresented: Bool = false
+    @State private var editingCardId: String? = nil
+    @State private var cardFormState: CardFormState = CardFormState(
+        frontText: "",
+        backText: "",
+        tags: [],
+        effortLevel: .fast
+    )
     @State private var screenErrorMessage: String = ""
 
     private var reviewFilterOptions: [ReviewFilter] {
@@ -21,7 +30,13 @@ struct ReviewView: View {
     }
 
     private var currentCard: Card? {
-        store.reviewQueue.first
+        if let selectedCard = store.reviewQueue.first(where: { card in
+            card.cardId == self.selectedCardId
+        }) {
+            return selectedCard
+        }
+
+        return store.reviewQueue.first
     }
 
     var body: some View {
@@ -33,8 +48,14 @@ struct ReviewView: View {
             }
         }
         .navigationTitle("Review")
+        .onAppear {
+            self.syncSelectedCardId()
+        }
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
+        }
+        .onChange(of: store.reviewQueue) { _, _ in
+            self.syncSelectedCardId()
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -61,6 +82,25 @@ struct ReviewView: View {
                     cards: store.reviewTimeline,
                     activeCount: store.reviewQueue.count,
                     currentCardId: currentCard?.cardId
+                )
+            }
+        }
+        .sheet(isPresented: self.$isEditorPresented) {
+            NavigationStack {
+                CardEditorScreen(
+                    title: "Edit card",
+                    isEditing: true,
+                    errorMessage: screenErrorMessage,
+                    formState: self.$cardFormState,
+                    onCancel: {
+                        self.isEditorPresented = false
+                    },
+                    onSave: {
+                        self.saveEditedCard()
+                    },
+                    onDelete: {
+                        self.deleteEditingCard()
+                    }
                 )
             }
         }
@@ -110,9 +150,21 @@ struct ReviewView: View {
                     .foregroundStyle(.red)
             }
 
-            HStack(spacing: 12) {
-                Label(card.effortLevel.title, systemImage: "timer")
-                Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
+            HStack(alignment: .top, spacing: 12) {
+                HStack(spacing: 12) {
+                    Label(card.effortLevel.title, systemImage: "timer")
+                    Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
+                }
+
+                Spacer(minLength: 12)
+
+                Button {
+                    self.beginEditing(card: card)
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.headline)
+                }
+                .accessibilityLabel("Edit card")
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
@@ -258,6 +310,75 @@ struct ReviewView: View {
         } catch {
             return localizedMessage(error: error)
         }
+    }
+
+    private func beginEditing(card: Card) {
+        self.selectedCardId = card.cardId
+        self.editingCardId = card.cardId
+        self.cardFormState = CardFormState(
+            frontText: card.frontText,
+            backText: card.backText,
+            tags: card.tags,
+            effortLevel: card.effortLevel
+        )
+        self.screenErrorMessage = ""
+        self.isEditorPresented = true
+    }
+
+    private func saveEditedCard() {
+        guard let editingCardId else {
+            self.screenErrorMessage = "Card not found."
+            return
+        }
+
+        do {
+            try store.saveCard(
+                input: CardEditorInput(
+                    frontText: cardFormState.frontText.trimmingCharacters(in: .whitespacesAndNewlines),
+                    backText: cardFormState.backText.trimmingCharacters(in: .whitespacesAndNewlines),
+                    tags: cardFormState.tags,
+                    effortLevel: cardFormState.effortLevel
+                ),
+                editingCardId: editingCardId
+            )
+            self.selectedCardId = editingCardId
+            self.screenErrorMessage = ""
+            self.isEditorPresented = false
+        } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
+
+    private func deleteEditingCard() {
+        guard let editingCardId else {
+            self.screenErrorMessage = "Card not found."
+            return
+        }
+
+        do {
+            try store.deleteCard(cardId: editingCardId)
+            self.screenErrorMessage = ""
+            self.isEditorPresented = false
+            self.editingCardId = nil
+            self.syncSelectedCardId()
+        } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
+
+    private func syncSelectedCardId() {
+        guard store.reviewQueue.isEmpty == false else {
+            self.selectedCardId = ""
+            return
+        }
+
+        if store.reviewQueue.contains(where: { card in
+            card.cardId == self.selectedCardId
+        }) {
+            return
+        }
+
+        self.selectedCardId = store.reviewQueue[0].cardId
     }
 
     private func resolvedReviewAnswerGridOptions(card: Card) throws -> ReviewAnswerGridOptions {
