@@ -45,6 +45,7 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var deckItems: [DeckListItem]
     @Published private(set) var selectedReviewFilter: ReviewFilter
     @Published private(set) var reviewQueue: [Card]
+    @Published private(set) var reviewTimeline: [Card]
     @Published private(set) var homeSnapshot: HomeSnapshot
     @Published private(set) var globalErrorMessage: String
     @Published private(set) var syncStatus: SyncStatus
@@ -112,6 +113,7 @@ final class FlashcardsStore: ObservableObject {
             decoder: decoder
         )
         self.reviewQueue = []
+        self.reviewTimeline = []
         self.homeSnapshot = HomeSnapshot(
             deckCount: 0,
             totalCards: 0,
@@ -167,6 +169,10 @@ final class FlashcardsStore: ObservableObject {
 
     var selectedReviewFilterTitle: String {
         reviewFilterTitle(reviewFilter: self.selectedReviewFilter, decks: self.decks)
+    }
+
+    var reviewTotalCount: Int {
+        self.reviewTimeline.count
     }
 
     func selectTab(tab: AppTab) {
@@ -605,6 +611,12 @@ final class FlashcardsStore: ObservableObject {
         self.selectedReviewFilter = resolvedReviewFilter
         self.persistSelectedReviewFilter(reviewFilter: resolvedReviewFilter)
         self.reviewQueue = makeReviewQueue(
+            reviewFilter: resolvedReviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
+        )
+        self.reviewTimeline = makeReviewTimeline(
             reviewFilter: resolvedReviewFilter,
             decks: self.decks,
             cards: self.cards,
