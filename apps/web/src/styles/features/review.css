@@ -75,17 +75,32 @@
 }
 
 .rating-bar {
-  display: flex;
+  display: grid;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .rating-btn {
-  min-width: 52px;
-  min-height: 40px;
+  width: 100%;
+  min-height: 56px;
   border: 1px solid var(--panel-border);
   background: var(--bg);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.rating-btn-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.rating-btn-subtitle {
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .rating-btn:disabled {

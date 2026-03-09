@@ -55,6 +55,7 @@ type AppDataContextValue = Readonly<{
   sessionLoadState: SessionLoadState;
   sessionErrorMessage: string;
   session: SessionInfo | null;
+  workspaceSettings: WorkspaceSchedulerSettings | null;
   cardsState: ResourceState<Card>;
   decksState: ResourceState<Deck>;
   reviewQueueState: ResourceState<Card>;
@@ -883,6 +884,7 @@ export function AppDataProvider(props: Props): ReactElement {
     sessionLoadState,
     sessionErrorMessage,
     session,
+    workspaceSettings: snapshotRef.current.workspaceSettings,
     cardsState,
     decksState,
     reviewQueueState,

@@ -126,15 +126,35 @@ struct ReviewView: View {
                 .foregroundStyle(.secondary)
 
                 if isAnswerVisible {
-                    VStack(spacing: 12) {
-                        ForEach(ReviewRating.allCases) { rating in
-                            Button {
-                                self.submitReview(cardId: card.cardId, rating: rating)
-                            } label: {
-                                Label(rating.title, systemImage: rating.symbolName)
-                                    .frame(maxWidth: .infinity)
+                    let reviewAnswerOptionsState = self.loadReviewAnswerOptions(card: card)
+
+                    if let message = reviewAnswerOptionsState.errorMessage {
+                        Text(message)
+                            .foregroundStyle(.red)
+                    } else {
+                        VStack(spacing: 12) {
+                            ForEach(reviewAnswerOptionsState.options) { option in
+                                Button {
+                                    self.submitReview(cardId: card.cardId, rating: option.rating)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: option.rating.symbolName)
+                                            .font(.title3)
+
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(option.rating.title)
+                                                .fontWeight(.semibold)
+                                            Text(option.intervalDescription)
+                                                .font(.caption)
+                                                .opacity(0.8)
+                                        }
+
+                                        Spacer()
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.borderedProminent)
                             }
-                            .buttonStyle(.borderedProminent)
                         }
                     }
                 } else {
@@ -200,6 +220,18 @@ struct ReviewView: View {
             self.screenErrorMessage = ""
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
+
+    private func loadReviewAnswerOptions(card: Card) -> (options: [ReviewAnswerOption], errorMessage: String?) {
+        guard let schedulerSettings = store.schedulerSettings else {
+            return ([], "Scheduler settings are unavailable")
+        }
+
+        do {
+            return (try makeReviewAnswerOptions(card: card, schedulerSettings: schedulerSettings, now: Date()), nil)
+        } catch {
+            return ([], localizedMessage(error: error))
         }
     }
 }
