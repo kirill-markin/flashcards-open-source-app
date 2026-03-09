@@ -161,8 +161,8 @@ struct ReviewView: View {
                 Button {
                     self.beginEditing(card: card)
                 } label: {
-                    Image(systemName: "pencil")
-                        .font(.headline)
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.title3)
                 }
                 .accessibilityLabel("Edit card")
             }
