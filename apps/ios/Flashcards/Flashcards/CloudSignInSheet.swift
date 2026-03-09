@@ -178,8 +178,8 @@ private func shouldResetOtpFlow(error: Error) -> Bool {
     }
 
     switch authError {
-    case .invalidResponse(_, let message):
-        return message.contains("Session expired")
+    case .invalidResponse(let details, _):
+        return details.code == "OTP_SESSION_EXPIRED"
     case .invalidBaseUrl, .invalidResponseBody:
         return false
     }

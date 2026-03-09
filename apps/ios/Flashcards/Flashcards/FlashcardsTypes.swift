@@ -369,6 +369,79 @@ struct CardSyncPayload: Codable, Hashable {
     let fsrsLastReviewedAt: String?
     let fsrsScheduledDays: Int?
     let deletedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case cardId
+        case frontText
+        case backText
+        case tags
+        case effortLevel
+        case dueAt
+        case reps
+        case lapses
+        case fsrsCardState
+        case fsrsStepIndex
+        case fsrsStability
+        case fsrsDifficulty
+        case fsrsLastReviewedAt
+        case fsrsScheduledDays
+        case deletedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.cardId, forKey: .cardId)
+        try container.encode(self.frontText, forKey: .frontText)
+        try container.encode(self.backText, forKey: .backText)
+        try container.encode(self.tags, forKey: .tags)
+        try container.encode(self.effortLevel, forKey: .effortLevel)
+
+        if let dueAt = self.dueAt {
+            try container.encode(dueAt, forKey: .dueAt)
+        } else {
+            try container.encodeNil(forKey: .dueAt)
+        }
+
+        try container.encode(self.reps, forKey: .reps)
+        try container.encode(self.lapses, forKey: .lapses)
+        try container.encode(self.fsrsCardState, forKey: .fsrsCardState)
+
+        if let fsrsStepIndex = self.fsrsStepIndex {
+            try container.encode(fsrsStepIndex, forKey: .fsrsStepIndex)
+        } else {
+            try container.encodeNil(forKey: .fsrsStepIndex)
+        }
+
+        if let fsrsStability = self.fsrsStability {
+            try container.encode(fsrsStability, forKey: .fsrsStability)
+        } else {
+            try container.encodeNil(forKey: .fsrsStability)
+        }
+
+        if let fsrsDifficulty = self.fsrsDifficulty {
+            try container.encode(fsrsDifficulty, forKey: .fsrsDifficulty)
+        } else {
+            try container.encodeNil(forKey: .fsrsDifficulty)
+        }
+
+        if let fsrsLastReviewedAt = self.fsrsLastReviewedAt {
+            try container.encode(fsrsLastReviewedAt, forKey: .fsrsLastReviewedAt)
+        } else {
+            try container.encodeNil(forKey: .fsrsLastReviewedAt)
+        }
+
+        if let fsrsScheduledDays = self.fsrsScheduledDays {
+            try container.encode(fsrsScheduledDays, forKey: .fsrsScheduledDays)
+        } else {
+            try container.encodeNil(forKey: .fsrsScheduledDays)
+        }
+
+        if let deletedAt = self.deletedAt {
+            try container.encode(deletedAt, forKey: .deletedAt)
+        } else {
+            try container.encodeNil(forKey: .deletedAt)
+        }
+    }
 }
 
 struct DeckSyncPayload: Codable, Hashable {
@@ -377,6 +450,28 @@ struct DeckSyncPayload: Codable, Hashable {
     let filterDefinition: DeckFilterDefinition
     let createdAt: String
     let deletedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case deckId
+        case name
+        case filterDefinition
+        case createdAt
+        case deletedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.deckId, forKey: .deckId)
+        try container.encode(self.name, forKey: .name)
+        try container.encode(self.filterDefinition, forKey: .filterDefinition)
+        try container.encode(self.createdAt, forKey: .createdAt)
+
+        if let deletedAt = self.deletedAt {
+            try container.encode(deletedAt, forKey: .deletedAt)
+        } else {
+            try container.encodeNil(forKey: .deletedAt)
+        }
+    }
 }
 
 struct WorkspaceSchedulerSettingsSyncPayload: Codable, Hashable {
