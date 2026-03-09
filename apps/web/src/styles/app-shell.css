@@ -10,7 +10,7 @@
   top: 0;
   z-index: 50;
   flex-shrink: 0;
-  padding: 20px 20px 0;
+  padding: 20px 34px 0;
   background:
     linear-gradient(180deg, rgba(5, 5, 5, 0.96), rgba(5, 5, 5, 0.72) 80%, transparent);
   backdrop-filter: var(--blur);
@@ -19,7 +19,7 @@
 .topbar-shell {
   width: min(100%, var(--shell-width));
   margin: 0 auto;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -29,7 +29,7 @@
 .topbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 18px;
+  gap: 16px;
   align-items: center;
 }
 
@@ -241,7 +241,7 @@
 .global-error-wrap {
   width: min(100%, var(--shell-width));
   margin: 0 auto;
-  padding: 14px 20px 0;
+  padding: 14px 34px 0;
 }
 
 .global-error {
@@ -258,13 +258,13 @@
   width: min(100%, var(--content-width));
   min-width: 0;
   margin: 0 auto;
-  padding: 28px 20px 40px;
+  padding: 24px 34px 40px;
 }
 
 .page-state {
   width: min(100%, var(--content-width));
   margin: 0 auto;
-  padding: 88px 20px 40px;
+  padding: 88px 34px 40px;
 }
 
 .state-panel {
@@ -288,7 +288,7 @@
 
 @media (max-width: 768px) {
   .header-sticky {
-    padding: 14px 14px 0;
+    padding: 14px 18px 0;
   }
 
   .topbar-shell,

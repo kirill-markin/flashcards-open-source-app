@@ -15,7 +15,7 @@
 .panel {
   display: grid;
   gap: 24px;
-  padding: 30px;
+  padding: 24px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   background: var(--panel);
@@ -28,7 +28,7 @@
 }
 
 .content-card {
-  padding: 22px 24px;
+  padding: 18px 20px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   background: var(--surface-elevated);
@@ -39,7 +39,7 @@
 }
 
 .content-card-section {
-  padding: 20px 22px;
+  padding: 16px 18px;
 }
 
 .title {
@@ -70,19 +70,19 @@
 .screen-head {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
   align-items: flex-end;
 }
 
 .screen-head > div:first-child {
   display: grid;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
 .screen-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
@@ -93,8 +93,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
-  padding: 0 24px;
+  min-height: 50px;
+  padding: 0 20px;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   font-size: 16px;
@@ -143,7 +143,7 @@
 
 .error-banner {
   margin: 0;
-  padding: 16px 18px;
+  padding: 13px 16px;
   border: 1px solid rgba(255, 77, 87, 0.26);
   border-radius: var(--radius-sm);
   background: rgba(112, 20, 28, 0.38);
@@ -159,7 +159,7 @@
 .txn-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 14px;
+  border-spacing: 0 10px;
   font-size: 14px;
   line-height: 1.45;
 }
@@ -206,7 +206,7 @@
 }
 
 .txn-cell {
-  padding: 18px;
+  padding: 14px;
   vertical-align: top;
   color: var(--text);
 }
@@ -225,7 +225,7 @@
 
 .cell-stack {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .cell-primary {
@@ -240,8 +240,8 @@
 .settings-input,
 .settings-select {
   width: 100%;
-  min-height: 56px;
-  padding: 14px 16px;
+  min-height: 50px;
+  padding: 12px 14px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.04);
@@ -299,13 +299,13 @@
 
 @media (max-width: 768px) {
   .panel {
-    padding: 22px;
+    padding: 18px;
     border-radius: var(--radius-md);
   }
 
   .content-card,
   .content-card-section {
-    padding: 18px;
+    padding: 15px;
   }
 
   .title {
