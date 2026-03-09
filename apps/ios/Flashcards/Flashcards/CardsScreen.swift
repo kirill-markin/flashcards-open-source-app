@@ -32,6 +32,7 @@ struct CardsScreen: View {
                     Text("You haven't created any cards yet.")
                         .foregroundStyle(.secondary)
                 } else {
+                    // TODO: Replace this with IncrementalItemsView when the cards list is upgraded for large collections.
                     ForEach(store.cards) { card in
                         Button {
                             self.beginEditing(card: card)
@@ -66,12 +67,16 @@ struct CardsScreen: View {
             NavigationStack {
                 CardEditorView(
                     title: editingCardId == nil ? "New card" : "Edit card",
+                    isEditing: editingCardId != nil,
                     formState: $cardFormState,
                     onCancel: {
                         isEditorPresented = false
                     },
                     onSave: {
                         self.saveCard()
+                    },
+                    onDelete: {
+                        self.deleteEditingCard()
                     }
                 )
             }
@@ -135,6 +140,22 @@ struct CardsScreen: View {
         }
     }
 
+    private func deleteEditingCard() {
+        guard let editingCardId else {
+            self.screenErrorMessage = "Card not found."
+            return
+        }
+
+        do {
+            try store.deleteCard(cardId: editingCardId)
+            self.screenErrorMessage = ""
+            self.isEditorPresented = false
+            self.editingCardId = nil
+        } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
+
     private func handleCardsPresentationRequest(request: CardsPresentationRequest?) {
         guard let request else {
             return
@@ -173,11 +194,14 @@ struct CardRow: View {
 
 private struct CardEditorView: View {
     @EnvironmentObject private var store: FlashcardsStore
+    @State private var isDeleteConfirmationPresented: Bool = false
 
     let title: String
+    let isEditing: Bool
     @Binding var formState: CardFormState
     let onCancel: () -> Void
     let onSave: () -> Void
+    let onDelete: () -> Void
 
     private var availableTagSuggestions: [String] {
         tagSuggestions(cards: store.cards)
@@ -211,8 +235,22 @@ private struct CardEditorView: View {
                     TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
                 }
             }
+
+            if isEditing {
+                Section("Actions") {
+                    Button("Delete card", role: .destructive) {
+                        self.isDeleteConfirmationPresented = true
+                    }
+                }
+            }
         }
         .navigationTitle(title)
+        .alert("Delete this card?", isPresented: self.$isDeleteConfirmationPresented) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive, action: onDelete)
+        } message: {
+            Text("Deleting removes this card from the local list and from the next sync.")
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Cancel", action: onCancel)
