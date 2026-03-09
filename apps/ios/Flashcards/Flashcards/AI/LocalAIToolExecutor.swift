@@ -4,6 +4,14 @@ enum AIToolExecutionError: LocalizedError {
     case unsupportedTool(String)
     case missingWorkspace
     case writeConfirmationRequired
+    case invalidToolInput(
+        requestId: String?,
+        toolName: String,
+        toolCallId: String,
+        expectedInputType: String,
+        decoderSummary: String,
+        rawInputSnippet: String
+    )
 
     var errorDescription: String? {
         switch self {
@@ -13,6 +21,14 @@ enum AIToolExecutionError: LocalizedError {
             return "Workspace is unavailable"
         case .writeConfirmationRequired:
             return "Write tool blocked: latest user message is not an explicit confirmation"
+        case .invalidToolInput(let requestId, let toolName, let toolCallId, _, _, _):
+            let reference = requestId?.isEmpty == false ? requestId ?? toolCallId : toolCallId
+            return [
+                "AI tool input was invalid.",
+                "Reference: \(reference)",
+                "Stage: \(AIChatFailureStage.toolInputDecode.rawValue)",
+                "Tool: \(toolName)",
+            ].joined(separator: "\n")
         }
     }
 }
@@ -186,29 +202,29 @@ struct LocalAIToolExecutor: AIToolExecuting {
         self.decoder = decoder
     }
 
-    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String) async throws -> String {
+    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String, requestId: String?) async throws -> String {
         switch toolCallRequest.name {
         case "get_workspace_context":
             return try self.encodeJSON(value: try self.makeWorkspaceContextPayload())
         case "list_cards":
-            let input = try self.decodeInput(ListCardsToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(ListCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.encodeJSON(value: Array(self.currentActiveCards().prefix(self.normalizeLimit(input.limit))))
         case "get_card":
-            let input = try self.decodeInput(GetCardToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(GetCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.encodeJSON(value: try self.findCard(cardId: input.cardId))
         case "search_cards":
-            let input = try self.decodeInput(SearchCardsToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(SearchCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.encodeJSON(value: try self.searchCards(query: input.query, limit: self.normalizeLimit(input.limit)))
         case "list_due_cards":
-            let input = try self.decodeInput(ListDueCardsToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(ListDueCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.encodeJSON(value: Array(self.dueCards().prefix(self.normalizeLimit(input.limit))))
         case "list_decks":
             return try self.encodeJSON(value: self.activeDecks())
         case "get_deck":
-            let input = try self.decodeInput(GetDeckToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(GetDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.encodeJSON(value: try self.findDeck(deckId: input.deckId))
         case "list_review_history":
-            let input = try self.decodeInput(ListReviewHistoryToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(ListReviewHistoryToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.encodeJSON(value: try self.flashcardsStore.loadAIReviewHistory(limit: self.normalizeLimit(input.limit), cardId: input.cardId))
         case "get_scheduler_settings":
             guard let schedulerSettings = self.flashcardsStore.schedulerSettings else {
@@ -221,54 +237,54 @@ struct LocalAIToolExecutor: AIToolExecuting {
             }
             return try self.encodeJSON(value: cloudSettings)
         case "list_outbox":
-            let input = try self.decodeInput(ListOutboxToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(ListOutboxToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.encodeJSON(value: try self.makeOutboxPayload(limit: self.normalizeLimit(input.limit)))
         case "create_card":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(CreateCardToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(CreateCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.createCard(input: input)
         case "create_cards":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(CreateCardsToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(CreateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.createCards(input: input)
         case "update_card":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(UpdateCardToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(UpdateCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.updateCard(input: input)
         case "update_cards":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(UpdateCardsToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(UpdateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.updateCards(input: input)
         case "delete_card":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(DeleteCardToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(DeleteCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.flashcardsStore.deleteCard(cardId: input.cardId)
             return try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted card \(input.cardId)"))
         case "delete_cards":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(DeleteCardsToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(DeleteCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.deleteCards(input: input)
         case "create_deck":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(CreateDeckToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(CreateDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.createDeck(input: input)
         case "update_deck":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(UpdateDeckToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(UpdateDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.updateDeck(input: input)
         case "delete_deck":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(DeleteDeckToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(DeleteDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.flashcardsStore.deleteDeck(deckId: input.deckId)
             return try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted deck \(input.deckId)"))
         case "submit_review":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(SubmitReviewToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(SubmitReviewToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.flashcardsStore.submitReview(cardId: input.cardId, rating: input.rating.reviewRating)
             return try self.encodeJSON(value: try self.findCard(cardId: input.cardId))
         case "update_scheduler_settings":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
-            let input = try self.decodeInput(UpdateSchedulerSettingsToolInput.self, toolCallRequest.input)
+            let input = try self.decodeInput(UpdateSchedulerSettingsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.flashcardsStore.updateSchedulerSettings(
                 desiredRetention: input.desiredRetention,
                 learningStepsMinutes: input.learningStepsMinutes,
@@ -580,9 +596,38 @@ struct LocalAIToolExecutor: AIToolExecuting {
         }
     }
 
-    private func decodeInput<Input: Decodable>(_ type: Input.Type, _ json: String) throws -> Input {
-        let data = Data(json.utf8)
-        return try self.decoder.decode(type, from: data)
+    private func decodeInput<Input: Decodable>(
+        _ type: Input.Type,
+        toolCallRequest: AIToolCallRequest,
+        requestId: String?
+    ) throws -> Input {
+        let data = Data(toolCallRequest.input.utf8)
+        do {
+            return try self.decoder.decode(type, from: data)
+        } catch {
+            let summary = aiChatDecoderSummary(error: error)
+            let rawInputSnippet = aiChatTruncatedSnippet(toolCallRequest.input)
+            logFlashcardsError(
+                domain: "chat",
+                action: "local_tool_input_decode_failed",
+                metadata: [
+                    "requestId": requestId ?? "-",
+                    "toolName": toolCallRequest.name,
+                    "toolCallId": toolCallRequest.toolCallId,
+                    "expectedInputType": String(describing: type),
+                    "decoderSummary": summary,
+                    "rawInputSnippet": rawInputSnippet,
+                ]
+            )
+            throw AIToolExecutionError.invalidToolInput(
+                requestId: requestId,
+                toolName: toolCallRequest.name,
+                toolCallId: toolCallRequest.toolCallId,
+                expectedInputType: String(describing: type),
+                decoderSummary: summary,
+                rawInputSnippet: rawInputSnippet
+            )
+        }
     }
 
     private func encodeJSON<Value: Encodable>(value: Value) throws -> String {

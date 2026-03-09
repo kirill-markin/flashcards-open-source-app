@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { HttpError } from "./errors";
-import { streamLocalChatResponse } from "./app";
+import { createLocalChatErrorEvent, parseLocalChatDiagnosticsBody, streamLocalChatResponse } from "./app";
 import {
   buildLocalSystemInstructions,
+  LocalChatRuntimeError,
   isSupportedLocalChatModel,
   streamLocalAgentTurn,
 } from "./chat/openai/localAgent";
@@ -124,6 +125,7 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
     messages: [{ role: "user", content: "hi" }],
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
+    requestId: "request-1",
   }, client));
 
   assert.deepEqual(events, [
@@ -173,6 +175,7 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
     messages: [{ role: "user", content: "list my cards" }],
     model: "gpt-4.1-mini",
     timezone: "Europe/Madrid",
+    requestId: "request-2",
   }, client));
 
   assert.deepEqual(events, [
@@ -234,6 +237,7 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
     messages: [{ role: "user", content: "list my cards" }],
     model: "gpt-5.4",
     timezone: "Europe/Madrid",
+    requestId: "request-3",
   }, client));
 
   assert.deepEqual(events, [
@@ -287,9 +291,10 @@ test("streamLocalAgentTurn stops after three repair attempts", async () => {
         messages: [{ role: "user", content: "list my cards" }],
         model: "gpt-5.4",
         timezone: "Europe/Madrid",
+        requestId: "request-4",
       }, client));
     },
-    (error: unknown) => error instanceof Error && error.message === "Assistant could not prepare a valid tool call. Try again.",
+    (error: unknown) => error instanceof LocalChatRuntimeError && error.code === "LOCAL_TOOL_CALL_INVALID" && error.stage === "tool_call_validation",
   );
 
   assert.equal(capturedBodies.length, 4);
@@ -309,4 +314,41 @@ test("streamLocalChatResponse rejects unknown local model", async () => {
     },
     (error: unknown) => error instanceof HttpError && error.statusCode === 400,
   );
+});
+
+test("createLocalChatErrorEvent includes machine-readable diagnostics fields", () => {
+  assert.deepEqual(
+    createLocalChatErrorEvent("boom", "request-123", "LOCAL_CHAT_STREAM_FAILED", "stream_local_turn"),
+    {
+      type: "error",
+      message: "boom",
+      code: "LOCAL_CHAT_STREAM_FAILED",
+      stage: "stream_local_turn",
+      requestId: "request-123",
+    },
+  );
+});
+
+test("parseLocalChatDiagnosticsBody accepts the local iOS diagnostics payload", () => {
+  const body = parseLocalChatDiagnosticsBody({
+    clientRequestId: "client-1",
+    backendRequestId: "backend-1",
+    stage: "decoding_event_json",
+    errorKind: "invalid_sse_event_json",
+    statusCode: null,
+    eventType: "tool_call_request",
+    toolName: "list_cards",
+    toolCallId: "call-1",
+    lineNumber: 12,
+    rawSnippet: "{\"type\":\"tool_call_request\"}",
+    decoderSummary: "Unexpected character '{'",
+    selectedModel: "gpt-5.4",
+    messageCount: 2,
+    appVersion: "0.1.0",
+    devicePlatform: "ios",
+  });
+
+  assert.equal(body.clientRequestId, "client-1");
+  assert.equal(body.backendRequestId, "backend-1");
+  assert.equal(body.errorKind, "invalid_sse_event_json");
 });

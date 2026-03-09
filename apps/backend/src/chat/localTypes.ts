@@ -39,4 +39,10 @@ export type LocalChatStreamEvent =
   }>
   | Readonly<{ type: "await_tool_results" }>
   | Readonly<{ type: "done" }>
-  | Readonly<{ type: "error"; message: string }>;
+  | Readonly<{
+    type: "error";
+    message: string;
+    code: string;
+    stage: string;
+    requestId: string;
+  }>;
