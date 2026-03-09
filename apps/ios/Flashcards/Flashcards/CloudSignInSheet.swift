@@ -52,15 +52,20 @@ struct CloudSignInSheet: View {
     @ViewBuilder
     private var emailSection: some View {
         Section("Email") {
-            TextField("you@example.com", text: self.$email)
+            TextField(
+                "Email",
+                text: self.$email,
+                prompt: Text("you@example.com").foregroundStyle(.secondary)
+            )
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.emailAddress)
+                .textContentType(.emailAddress)
 
             Button("Send code") {
                 self.sendCode()
             }
-            .disabled(self.isBusy || normalizedEmail(self.email).isEmpty)
+            .disabled(self.isBusy || isValidCloudEmail(self.email) == false)
         }
     }
 
@@ -102,11 +107,11 @@ struct CloudSignInSheet: View {
     }
 
     private func sendCode() {
-        let nextEmail = normalizedEmail(self.email)
-        guard nextEmail.isEmpty == false else {
-            self.errorMessage = "Email is required"
+        guard isValidCloudEmail(self.email) else {
+            self.errorMessage = "Enter a valid email address"
             return
         }
+        let nextEmail = normalizedCloudEmail(self.email)
 
         Task { @MainActor in
             self.isSendingCode = true
@@ -158,8 +163,15 @@ struct CloudSignInSheet: View {
     }
 }
 
-private func normalizedEmail(_ value: String) -> String {
+private let cloudEmailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+
+func normalizedCloudEmail(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+}
+
+func isValidCloudEmail(_ value: String) -> Bool {
+    let normalizedValue = normalizedCloudEmail(value)
+    return normalizedValue.range(of: cloudEmailPattern, options: .regularExpression) != nil
 }
 
 private func normalizedOtpCode(_ value: String) -> String {
