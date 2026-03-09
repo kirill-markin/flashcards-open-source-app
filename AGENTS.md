@@ -74,6 +74,7 @@ Email + OTP authentication via AWS Cognito (passwordless).
 - Prefer pure functions for domain logic.
 - Use strict typing across services.
 - Keep changes minimal and scoped.
+- Always mention the schema explicitly in migrations.
 - Prioritize clear, actionable errors.
 
 Card reappearance and FSRS scheduling logic are documented in `docs/fsrs-scheduling-logic.md`.
