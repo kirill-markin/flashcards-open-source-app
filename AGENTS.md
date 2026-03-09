@@ -77,6 +77,7 @@ Email + OTP authentication via AWS Cognito (passwordless).
 - Prefer pure functions for domain logic.
 - Use strict typing across services.
 - Keep changes minimal and scoped.
+- In the iOS app, every user tap should trigger immediate Apple-standard UI feedback, with background loading shown in place or on the next surface, failed actions restoring the previous state, and successful actions clearly exposing the next step.
 - Always mention the schema explicitly in migrations.
 - Prioritize clear, actionable errors.
 
