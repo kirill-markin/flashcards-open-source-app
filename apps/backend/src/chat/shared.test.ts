@@ -22,7 +22,7 @@ test("runCreateCardTool succeeds without confirmation text and normalizes input"
     assert.equal(workspaceId, "workspace-1");
     assert.deepEqual(input, {
       frontText: "Front",
-      backText: "Back",
+      backText: "",
       tags: ["tag-a"],
       effortLevel: "medium",
     });
@@ -57,7 +57,7 @@ test("runCreateCardTool succeeds without confirmation text and normalizes input"
     "workspace-1",
     {
       frontText: " Front ",
-      backText: " Back ",
+      backText: "   ",
       tags: [" tag-a ", "", "tag-a"],
       effortLevel: "medium",
     },
@@ -68,6 +68,7 @@ test("runCreateCardTool succeeds without confirmation text and normalizes input"
 
   assert.equal(createCardMock.mock.callCount(), 1);
   assert.equal(JSON.parse(result).frontText, "Front");
+  assert.equal(JSON.parse(result).backText, "");
 });
 
 test("runUpdateCardTool succeeds without confirmation text and trims provided fields", async () => {
@@ -81,6 +82,7 @@ test("runUpdateCardTool succeeds without confirmation text and trims provided fi
     assert.equal(cardId, "card-1");
     assert.deepEqual(input, {
       frontText: "Updated front",
+      backText: "",
       tags: ["tag-b"],
     });
     assert.equal(metadata.lastModifiedByDeviceId, "device-1");
@@ -113,7 +115,7 @@ test("runUpdateCardTool succeeds without confirmation text and trims provided fi
     "card-1",
     {
       frontText: " Updated front ",
-      backText: undefined,
+      backText: "  ",
       tags: [" tag-b ", "", "tag-b"],
       effortLevel: undefined,
     },
@@ -124,4 +126,22 @@ test("runUpdateCardTool succeeds without confirmation text and trims provided fi
 
   assert.equal(updateCardMock.mock.callCount(), 1);
   assert.equal(JSON.parse(result).cardId, "card-1");
+});
+
+test("runCreateCardTool rejects empty frontText after trimming", async () => {
+  await assert.rejects(
+    runCreateCardTool(
+      "workspace-1",
+      {
+        frontText: "  ",
+        backText: "",
+        tags: [],
+        effortLevel: "fast",
+      },
+      {
+        deviceId: "device-1",
+      },
+    ),
+    /frontText must not be empty/,
+  );
 });

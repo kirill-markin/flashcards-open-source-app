@@ -13,6 +13,8 @@ type ReviewButtonOption = Readonly<{
   intervalDescription: string;
 }>;
 
+const EMPTY_BACK_TEXT_PLACEHOLDER = "No back text";
+
 const reviewAnswerOptions: ReadonlyArray<Readonly<{
   title: string;
   rating: ReviewRating;
@@ -343,7 +345,7 @@ export function ReviewScreen(): ReactElement {
                 {isAnswerVisible ? (
                   <div className="review-card-surface review-card-answer">
                     <div className="review-label">Back</div>
-                    <div className="review-back">{selectedCard.backText}</div>
+                    <div className="review-back">{selectedCard.backText === "" ? EMPTY_BACK_TEXT_PLACEHOLDER : selectedCard.backText}</div>
                   </div>
                 ) : (
                   <button

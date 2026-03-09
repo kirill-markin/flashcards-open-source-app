@@ -53,7 +53,7 @@ const deckFilterDefinitionSchema = z.object({
 const cardSnapshotSchema = z.object({
   cardId: z.string().min(1),
   frontText: z.string().min(1),
-  backText: z.string().min(1),
+  backText: z.string(),
   tags: z.array(z.string()),
   effortLevel: effortLevelSchema,
   dueAt: z.string().datetime().nullable(),

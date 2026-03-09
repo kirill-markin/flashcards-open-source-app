@@ -75,6 +75,21 @@ final class LocalDatabaseTests: XCTestCase {
         })
     }
 
+    func testSaveCardAllowsEmptyBackText() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "   "),
+            cardId: nil
+        )
+
+        let card = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        XCTAssertEqual(card.frontText, "Front")
+        XCTAssertEqual(card.backText, "")
+    }
+
     func testBulkCardCreateUpdateDeleteEnqueuesOutboxOperations() throws {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
@@ -160,6 +175,24 @@ final class LocalDatabaseTests: XCTestCase {
         )
     }
 
+    func testBulkCreateCardsAllowsEmptyBackText() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+
+        let createdCards = try database.createCards(
+            workspaceId: workspaceId,
+            inputs: [
+                self.makeCardInput(frontText: "Front 1", backText: ""),
+                self.makeCardInput(frontText: "Front 2", backText: "Back 2")
+            ]
+        )
+
+        XCTAssertEqual(createdCards.count, 2)
+        XCTAssertTrue(createdCards.contains { card in
+            card.frontText == "Front 1" && card.backText.isEmpty
+        })
+    }
+
     func testBulkCreateCardsRollsBackOnInvalidInput() throws {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
@@ -218,6 +251,31 @@ final class LocalDatabaseTests: XCTestCase {
         XCTAssertEqual(snapshot.cards.count, 1)
         XCTAssertEqual(snapshot.cards.first?.frontText, "Front 1")
         XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 1)
+    }
+
+    func testBulkUpdateCardsAllowsClearingBackText() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
+            cardId: nil
+        )
+        let existingCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+
+        let updatedCards = try database.updateCards(
+            workspaceId: workspaceId,
+            updates: [
+                CardUpdateInput(
+                    cardId: existingCard.cardId,
+                    input: self.makeCardInput(frontText: existingCard.frontText, backText: "  ")
+                )
+            ]
+        )
+
+        XCTAssertEqual(updatedCards.count, 1)
+        XCTAssertEqual(updatedCards[0].backText, "")
+        XCTAssertEqual(try database.loadStateSnapshot().cards.first?.backText, "")
     }
 
     func testBulkDeleteCardsRollsBackOnMissingCard() throws {
