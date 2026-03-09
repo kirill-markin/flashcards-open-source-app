@@ -31,17 +31,29 @@ private struct CloudPostAuthFailureState: Identifiable, Hashable {
     }
 }
 
+private struct CloudPostAuthLoadingState: Identifiable, Hashable {
+    let id: String
+    let verifiedContext: CloudVerifiedAuthContext
+
+    init(verifiedContext: CloudVerifiedAuthContext) {
+        self.id = UUID().uuidString
+        self.verifiedContext = verifiedContext
+    }
+}
+
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FlashcardsStore
 
     @State private var email: String = ""
     @State private var otpSheetState: CloudOtpSheetState?
+    @State private var postAuthLoadingState: CloudPostAuthLoadingState?
     @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
     @State private var postAuthFailureState: CloudPostAuthFailureState?
     @State private var errorMessage: String = ""
     @State private var isSendingCode: Bool = false
     @State private var isAutoLinkingWorkspace: Bool = false
+    @State private var isDisconnectConfirmationPresented: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -82,14 +94,20 @@ struct CloudSignInSheet: View {
                     onVerified: { verifiedContext in
                         self.handleVerifiedAuthContext(verifiedContext)
                     },
-                    onReturnToEmail: { message in
+                    onReturnToEmail: {
                         self.otpSheetState = nil
+                        self.postAuthLoadingState = nil
                         self.workspaceLinkContext = nil
                         self.postAuthFailureState = nil
-                        self.errorMessage = message
                     }
                 )
                 .environmentObject(self.store)
+            }
+            .sheet(item: self.$postAuthLoadingState) { loadingState in
+                CloudPostAuthLoadingSheet()
+                    .task(id: loadingState.id) {
+                        self.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
+                    }
             }
             .sheet(item: self.$workspaceLinkContext) { linkContext in
                 CloudWorkspaceSelectionSheet(
@@ -131,10 +149,18 @@ struct CloudSignInSheet: View {
                         self.dismiss()
                     },
                     onDisconnect: {
-                        self.disconnectAndDismiss()
+                        self.isDisconnectConfirmationPresented = true
                     }
                 )
                 .environmentObject(self.store)
+            }
+            .alert("Disconnect this device?", isPresented: self.$isDisconnectConfirmationPresented) {
+                Button("Cancel", role: .cancel) {}
+                Button("Disconnect", role: .destructive) {
+                    self.disconnectAndDismiss()
+                }
+            } message: {
+                Text("This device will stop syncing with the current cloud account until you sign in again.")
             }
         }
     }
@@ -165,6 +191,7 @@ struct CloudSignInSheet: View {
 
     private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
         self.errorMessage = ""
+        self.postAuthLoadingState = nil
 
         if linkContext.workspaces.isEmpty == false {
             self.workspaceLinkContext = linkContext
@@ -176,9 +203,9 @@ struct CloudSignInSheet: View {
 
     private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
         self.otpSheetState = nil
+        self.postAuthLoadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
         self.workspaceLinkContext = nil
         self.errorMessage = ""
-        self.prepareCloudLink(verifiedContext: verifiedContext)
     }
 
     private func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) {
@@ -188,6 +215,7 @@ struct CloudSignInSheet: View {
                 self.postAuthFailureState = nil
                 self.handlePreparedLinkContext(linkContext)
             } catch {
+                self.postAuthLoadingState = nil
                 self.presentPostAuthFailure(
                     title: "Signed in, but cloud setup failed.",
                     message: localizedMessage(error: error),
@@ -205,6 +233,7 @@ struct CloudSignInSheet: View {
             }
 
             do {
+                self.postAuthLoadingState = nil
                 try await self.store.completeCloudLink(
                     linkContext: linkContext,
                     selection: selection
@@ -218,6 +247,7 @@ struct CloudSignInSheet: View {
                 let title = self.store.cloudSettings?.cloudState == .linked
                     ? "Signed in, but initial sync failed."
                     : "Signed in, but cloud setup failed."
+                self.postAuthLoadingState = nil
                 self.workspaceLinkContext = nil
                 self.presentPostAuthFailure(
                     title: title,
@@ -258,6 +288,7 @@ struct CloudSignInSheet: View {
         retryAction: CloudPostAuthRetryAction
     ) {
         self.errorMessage = ""
+        self.postAuthLoadingState = nil
         self.postAuthFailureState = CloudPostAuthFailureState(
             title: title,
             message: message,
@@ -272,6 +303,7 @@ struct CloudSignInSheet: View {
             self.errorMessage = localizedMessage(error: error)
         }
 
+        self.postAuthLoadingState = nil
         self.postAuthFailureState = nil
         self.workspaceLinkContext = nil
         self.otpSheetState = nil
@@ -283,7 +315,7 @@ private struct CloudOtpVerificationSheet: View {
     @EnvironmentObject private var store: FlashcardsStore
 
     let onVerified: (CloudVerifiedAuthContext) -> Void
-    let onReturnToEmail: (String) -> Void
+    let onReturnToEmail: () -> Void
 
     @State private var currentChallenge: CloudOtpChallenge
     @State private var code: String = ""
@@ -301,7 +333,7 @@ private struct CloudOtpVerificationSheet: View {
     init(
         challenge: CloudOtpChallenge,
         onVerified: @escaping (CloudVerifiedAuthContext) -> Void,
-        onReturnToEmail: @escaping (String) -> Void
+        onReturnToEmail: @escaping () -> Void
     ) {
         self.onVerified = onVerified
         self.onReturnToEmail = onReturnToEmail
@@ -345,15 +377,17 @@ private struct CloudOtpVerificationSheet: View {
                     }
                 }
 
-                Section {
-                    Button("Use different email") {
-                        self.onReturnToEmail("")
+            }
+            .navigationTitle("Verify code")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Back") {
+                        self.onReturnToEmail()
                     }
                     .disabled(self.isVerifyingCode || self.isSendingCode)
                 }
             }
-            .navigationTitle("Verify code")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
@@ -567,6 +601,32 @@ private struct CloudPostAuthFailureSheet: View {
                     Button("Disconnect account", role: .destructive) {
                         self.onDisconnect()
                     }
+                }
+            }
+            .navigationTitle("Cloud sync")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+private struct CloudPostAuthLoadingSheet: View {
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Cloud sync") {
+                    Text("Loading workspaces…")
+                        .font(.headline)
+
+                    Text("Your sign-in succeeded. The app is now loading the cloud workspace step.")
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
                 }
             }
             .navigationTitle("Cloud sync")

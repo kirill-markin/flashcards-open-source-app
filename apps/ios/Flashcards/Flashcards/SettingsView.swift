@@ -5,6 +5,7 @@ struct SettingsView: View {
 
     @State private var screenErrorMessage: String = ""
     @State private var isCloudSignInPresented: Bool = false
+    @State private var isDisconnectConfirmationPresented: Bool = false
 
     var body: some View {
         List {
@@ -87,7 +88,7 @@ struct SettingsView: View {
                         }
 
                         Button("Disconnect on this device", role: .destructive) {
-                            self.disconnectCloudAccount()
+                            self.isDisconnectConfirmationPresented = true
                         }
                     }
                 } else {
@@ -149,6 +150,14 @@ struct SettingsView: View {
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet()
                 .environmentObject(store)
+        }
+        .alert("Disconnect this device?", isPresented: self.$isDisconnectConfirmationPresented) {
+            Button("Cancel", role: .cancel) {}
+            Button("Disconnect", role: .destructive) {
+                self.disconnectCloudAccount()
+            }
+        } message: {
+            Text("This device will stop syncing with the current cloud account until you sign in again.")
         }
     }
 
