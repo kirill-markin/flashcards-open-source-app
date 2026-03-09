@@ -75,6 +75,204 @@ final class LocalDatabaseTests: XCTestCase {
         })
     }
 
+    func testBulkCardCreateUpdateDeleteEnqueuesOutboxOperations() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+
+        let createdCards = try database.createCards(
+            workspaceId: workspaceId,
+            inputs: [
+                self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
+                self.makeCardInput(frontText: "Front 2", backText: "Back 2")
+            ]
+        )
+
+        var snapshot = try database.loadStateSnapshot()
+        XCTAssertEqual(createdCards.count, 2)
+        XCTAssertEqual(snapshot.cards.count, 2)
+
+        var outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
+        XCTAssertEqual(outboxEntries.count, 2)
+        XCTAssertEqual(
+            outboxEntries.filter { entry in
+                entry.operation.entityType == .card
+            }.count,
+            2
+        )
+
+        let updatedCards = try database.updateCards(
+            workspaceId: workspaceId,
+            updates: [
+                CardUpdateInput(
+                    cardId: createdCards[0].cardId,
+                    input: CardEditorInput(
+                        frontText: "Updated Front 1",
+                        backText: createdCards[0].backText,
+                        tags: createdCards[0].tags,
+                        effortLevel: createdCards[0].effortLevel
+                    )
+                ),
+                CardUpdateInput(
+                    cardId: createdCards[1].cardId,
+                    input: CardEditorInput(
+                        frontText: createdCards[1].frontText,
+                        backText: "Updated Back 2",
+                        tags: ["tag-b"],
+                        effortLevel: .long
+                    )
+                )
+            ]
+        )
+
+        snapshot = try database.loadStateSnapshot()
+        XCTAssertEqual(updatedCards.count, 2)
+        XCTAssertTrue(snapshot.cards.contains { card in
+            card.cardId == createdCards[0].cardId && card.frontText == "Updated Front 1"
+        })
+        XCTAssertTrue(snapshot.cards.contains { card in
+            card.cardId == createdCards[1].cardId && card.backText == "Updated Back 2" && card.effortLevel == .long
+        })
+
+        outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
+        XCTAssertEqual(outboxEntries.count, 4)
+
+        let deleteResult = try database.deleteCards(
+            workspaceId: workspaceId,
+            cardIds: createdCards.map(\.cardId)
+        )
+
+        snapshot = try database.loadStateSnapshot()
+        XCTAssertEqual(deleteResult.deletedCount, 2)
+        XCTAssertEqual(Set(deleteResult.deletedCardIds), Set(createdCards.map(\.cardId)))
+        XCTAssertEqual(snapshot.cards.count, 0)
+
+        outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
+        XCTAssertEqual(outboxEntries.count, 6)
+        XCTAssertEqual(
+            outboxEntries.filter { entry in
+                if case .card(let payload) = entry.operation.payload {
+                    return payload.deletedAt != nil
+                }
+
+                return false
+            }.count,
+            2
+        )
+    }
+
+    func testBulkCreateCardsRollsBackOnInvalidInput() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+
+        XCTAssertThrowsError(
+            try database.createCards(
+                workspaceId: workspaceId,
+                inputs: [
+                    self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
+                    self.makeCardInput(frontText: " ", backText: "Back 2")
+                ]
+            )
+        ) { error in
+            XCTAssertEqual(localizedMessage(error: error), "Card front text must not be empty")
+        }
+
+        let snapshot = try database.loadStateSnapshot()
+        XCTAssertEqual(snapshot.cards.count, 0)
+        XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 0)
+    }
+
+    func testBulkUpdateCardsRollsBackOnMissingCard() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
+            cardId: nil
+        )
+        let existingCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+
+        XCTAssertThrowsError(
+            try database.updateCards(
+                workspaceId: workspaceId,
+                updates: [
+                    CardUpdateInput(
+                        cardId: existingCard.cardId,
+                        input: CardEditorInput(
+                            frontText: "Changed Front",
+                            backText: existingCard.backText,
+                            tags: existingCard.tags,
+                            effortLevel: existingCard.effortLevel
+                        )
+                    ),
+                    CardUpdateInput(
+                        cardId: "missing-card-id",
+                        input: self.makeCardInput(frontText: "Front 2", backText: "Back 2")
+                    )
+                ]
+            )
+        ) { error in
+            XCTAssertEqual(localizedMessage(error: error), "Card not found")
+        }
+
+        let snapshot = try database.loadStateSnapshot()
+        XCTAssertEqual(snapshot.cards.count, 1)
+        XCTAssertEqual(snapshot.cards.first?.frontText, "Front 1")
+        XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 1)
+    }
+
+    func testBulkDeleteCardsRollsBackOnMissingCard() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
+            cardId: nil
+        )
+        let existingCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+
+        XCTAssertThrowsError(
+            try database.deleteCards(
+                workspaceId: workspaceId,
+                cardIds: [existingCard.cardId, "missing-card-id"]
+            )
+        ) { error in
+            XCTAssertEqual(localizedMessage(error: error), "Card not found")
+        }
+
+        let snapshot = try database.loadStateSnapshot()
+        XCTAssertEqual(snapshot.cards.count, 1)
+        XCTAssertEqual(snapshot.cards.first?.cardId, existingCard.cardId)
+        XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 1)
+    }
+
+    func testBulkUpdateCardsRejectsDuplicateCardIds() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front 1", backText: "Back 1"),
+            cardId: nil
+        )
+        let existingCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+
+        XCTAssertThrowsError(
+            try database.updateCards(
+                workspaceId: workspaceId,
+                updates: [
+                    CardUpdateInput(cardId: existingCard.cardId, input: self.makeCardInput(frontText: "Front 2", backText: "Back 2")),
+                    CardUpdateInput(cardId: existingCard.cardId, input: self.makeCardInput(frontText: "Front 3", backText: "Back 3"))
+                ]
+            )
+        ) { error in
+            XCTAssertEqual(localizedMessage(error: error), "Card batch must not contain duplicate cardId values")
+        }
+
+        let snapshot = try database.loadStateSnapshot()
+        XCTAssertEqual(snapshot.cards.count, 1)
+        XCTAssertEqual(snapshot.cards.first?.frontText, "Front 1")
+        XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 1)
+    }
+
     func testDeckCreateUpdateDeleteEnqueuesOutboxOperations() throws {
         let database = try self.makeDatabase()
         let workspaceId = try database.loadStateSnapshot().workspace.workspaceId

@@ -84,6 +84,42 @@ final class LocalDatabase {
         }
     }
 
+    func createCards(workspaceId: String, inputs: [CardEditorInput]) throws -> [Card] {
+        try self.validateCardBatchCount(count: inputs.count)
+        for input in inputs {
+            try self.cardStore.validateCardInput(input: input)
+        }
+
+        return try self.core.inTransaction {
+            let now = currentIsoTimestamp()
+            let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
+            var createdCards: [Card] = []
+            createdCards.reserveCapacity(inputs.count)
+
+            for input in inputs {
+                let operationId = UUID().uuidString.lowercased()
+                let persistedCard = try self.cardStore.saveCard(
+                    workspaceId: workspaceId,
+                    input: input,
+                    cardId: nil,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    now: now
+                )
+                try self.outboxStore.enqueueCardUpsertOperation(
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    clientUpdatedAt: now,
+                    card: persistedCard
+                )
+                createdCards.append(persistedCard)
+            }
+
+            return createdCards
+        }
+    }
+
     func deleteCard(workspaceId: String, cardId: String) throws {
         try self.core.inTransaction {
             let now = currentIsoTimestamp()
@@ -102,6 +138,78 @@ final class LocalDatabase {
                 operationId: operationId,
                 clientUpdatedAt: now,
                 card: deletedCard
+            )
+        }
+    }
+
+    func updateCards(workspaceId: String, updates: [CardUpdateInput]) throws -> [Card] {
+        try self.validateCardBatchCount(count: updates.count)
+        try self.validateUniqueCardIds(cardIds: updates.map { update in
+            update.cardId
+        })
+        for update in updates {
+            try self.cardStore.validateCardInput(input: update.input)
+        }
+
+        return try self.core.inTransaction {
+            let now = currentIsoTimestamp()
+            let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
+            var updatedCards: [Card] = []
+            updatedCards.reserveCapacity(updates.count)
+
+            for update in updates {
+                let operationId = UUID().uuidString.lowercased()
+                let persistedCard = try self.cardStore.saveCard(
+                    workspaceId: workspaceId,
+                    input: update.input,
+                    cardId: update.cardId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    now: now
+                )
+                try self.outboxStore.enqueueCardUpsertOperation(
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    clientUpdatedAt: now,
+                    card: persistedCard
+                )
+                updatedCards.append(persistedCard)
+            }
+
+            return updatedCards
+        }
+    }
+
+    func deleteCards(workspaceId: String, cardIds: [String]) throws -> BulkDeleteCardsResult {
+        try self.validateCardBatchCount(count: cardIds.count)
+        try self.validateUniqueCardIds(cardIds: cardIds)
+
+        return try self.core.inTransaction {
+            let now = currentIsoTimestamp()
+            let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
+
+            for cardId in cardIds {
+                let operationId = UUID().uuidString.lowercased()
+                let deletedCard = try self.cardStore.deleteCard(
+                    workspaceId: workspaceId,
+                    cardId: cardId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    now: now
+                )
+                try self.outboxStore.enqueueCardUpsertOperation(
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    clientUpdatedAt: now,
+                    card: deletedCard
+                )
+            }
+
+            return BulkDeleteCardsResult(
+                deletedCardIds: cardIds,
+                deletedCount: cardIds.count
             )
         }
     }
@@ -463,6 +571,23 @@ final class LocalDatabase {
     func applySyncChange(workspaceId: String, change: SyncChange) throws {
         try self.core.inTransaction {
             try self.syncApplier.applySyncChange(workspaceId: workspaceId, change: change)
+        }
+    }
+
+    private func validateCardBatchCount(count: Int) throws {
+        if count < 1 {
+            throw LocalStoreError.validation("Card batch must contain at least one item")
+        }
+
+        if count > 100 {
+            throw LocalStoreError.validation("Card batch must contain at most 100 items")
+        }
+    }
+
+    private func validateUniqueCardIds(cardIds: [String]) throws {
+        let uniqueCardIds = Set(cardIds)
+        if uniqueCardIds.count != cardIds.count {
+            throw LocalStoreError.validation("Card batch must not contain duplicate cardId values")
         }
     }
 }

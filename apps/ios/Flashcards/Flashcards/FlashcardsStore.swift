@@ -205,6 +205,20 @@ final class FlashcardsStore: ObservableObject {
         self.triggerCloudSyncIfLinked()
     }
 
+    func createCards(inputs: [CardEditorInput]) throws -> [Card] {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        let createdCards = try database.createCards(workspaceId: workspaceId, inputs: inputs)
+        try self.reload()
+        self.triggerCloudSyncIfLinked()
+        return createdCards
+    }
+
     func deleteCard(cardId: String) throws {
         guard let database else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
@@ -216,6 +230,34 @@ final class FlashcardsStore: ObservableObject {
         try database.deleteCard(workspaceId: workspaceId, cardId: cardId)
         try self.reload()
         self.triggerCloudSyncIfLinked()
+    }
+
+    func updateCards(updates: [CardUpdateInput]) throws -> [Card] {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        let updatedCards = try database.updateCards(workspaceId: workspaceId, updates: updates)
+        try self.reload()
+        self.triggerCloudSyncIfLinked()
+        return updatedCards
+    }
+
+    func deleteCards(cardIds: [String]) throws -> BulkDeleteCardsResult {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        let result = try database.deleteCards(workspaceId: workspaceId, cardIds: cardIds)
+        try self.reload()
+        self.triggerCloudSyncIfLinked()
+        return result
     }
 
     func createDeck(input: DeckEditorInput) throws {

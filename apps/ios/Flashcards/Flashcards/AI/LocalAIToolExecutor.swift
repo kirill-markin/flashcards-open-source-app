@@ -43,11 +43,21 @@ private struct AISuccessPayload: Encodable {
     let message: String
 }
 
+private struct AIBulkDeleteCardsPayload: Encodable {
+    let ok: Bool
+    let deletedCardIds: [String]
+    let deletedCount: Int
+}
+
 private struct CreateCardToolInput: Decodable {
     let frontText: String
     let backText: String
     let tags: [String]
     let effortLevel: EffortLevel
+}
+
+private struct CreateCardsToolInput: Decodable {
+    let cards: [CreateCardToolInput]
 }
 
 private struct UpdateCardToolInput: Decodable {
@@ -58,8 +68,16 @@ private struct UpdateCardToolInput: Decodable {
     let effortLevel: EffortLevel?
 }
 
+private struct UpdateCardsToolInput: Decodable {
+    let updates: [UpdateCardToolInput]
+}
+
 private struct DeleteCardToolInput: Decodable {
     let cardId: String
+}
+
+private struct DeleteCardsToolInput: Decodable {
+    let cardIds: [String]
 }
 
 private struct CreateDeckToolInput: Decodable {
@@ -209,15 +227,27 @@ struct LocalAIToolExecutor: AIToolExecuting {
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(CreateCardToolInput.self, toolCallRequest.input)
             return try self.createCard(input: input)
+        case "create_cards":
+            try self.ensureWriteConfirmed(latestUserText: latestUserText)
+            let input = try self.decodeInput(CreateCardsToolInput.self, toolCallRequest.input)
+            return try self.createCards(input: input)
         case "update_card":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(UpdateCardToolInput.self, toolCallRequest.input)
             return try self.updateCard(input: input)
+        case "update_cards":
+            try self.ensureWriteConfirmed(latestUserText: latestUserText)
+            let input = try self.decodeInput(UpdateCardsToolInput.self, toolCallRequest.input)
+            return try self.updateCards(input: input)
         case "delete_card":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(DeleteCardToolInput.self, toolCallRequest.input)
             try self.flashcardsStore.deleteCard(cardId: input.cardId)
             return try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted card \(input.cardId)"))
+        case "delete_cards":
+            try self.ensureWriteConfirmed(latestUserText: latestUserText)
+            let input = try self.decodeInput(DeleteCardsToolInput.self, toolCallRequest.input)
+            return try self.deleteCards(input: input)
         case "create_deck":
             try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(CreateDeckToolInput.self, toolCallRequest.input)
@@ -314,6 +344,20 @@ struct LocalAIToolExecutor: AIToolExecuting {
         return try self.encodeJSON(value: createdCard)
     }
 
+    private func createCards(input: CreateCardsToolInput) throws -> String {
+        try self.validateCardBatchCount(count: input.cards.count)
+        let createdCards = try self.flashcardsStore.createCards(inputs: input.cards.map { item in
+            CardEditorInput(
+                frontText: item.frontText,
+                backText: item.backText,
+                tags: item.tags,
+                effortLevel: item.effortLevel
+            )
+        })
+
+        return try self.encodeJSON(value: createdCards)
+    }
+
     private func updateCard(input: UpdateCardToolInput) throws -> String {
         let existingCard = try self.findCard(cardId: input.cardId)
         try self.flashcardsStore.saveCard(
@@ -327,6 +371,29 @@ struct LocalAIToolExecutor: AIToolExecuting {
         )
 
         return try self.encodeJSON(value: try self.findCard(cardId: input.cardId))
+    }
+
+    private func updateCards(input: UpdateCardsToolInput) throws -> String {
+        try self.validateCardBatchCount(count: input.updates.count)
+        try self.validateUniqueCardIds(cardIds: input.updates.map { update in
+            update.cardId
+        })
+
+        let updates = try input.updates.map { update in
+            let existingCard = try self.findCard(cardId: update.cardId)
+            return CardUpdateInput(
+                cardId: update.cardId,
+                input: CardEditorInput(
+                    frontText: update.frontText ?? existingCard.frontText,
+                    backText: update.backText ?? existingCard.backText,
+                    tags: update.tags ?? existingCard.tags,
+                    effortLevel: update.effortLevel ?? existingCard.effortLevel
+                )
+            )
+        }
+        let updatedCards = try self.flashcardsStore.updateCards(updates: updates)
+
+        return try self.encodeJSON(value: updatedCards)
     }
 
     private func createDeck(input: CreateDeckToolInput) throws -> String {
@@ -372,6 +439,20 @@ struct LocalAIToolExecutor: AIToolExecuting {
         )
 
         return try self.encodeJSON(value: try self.findDeck(deckId: input.deckId))
+    }
+
+    private func deleteCards(input: DeleteCardsToolInput) throws -> String {
+        try self.validateCardBatchCount(count: input.cardIds.count)
+        try self.validateUniqueCardIds(cardIds: input.cardIds)
+        let result = try self.flashcardsStore.deleteCards(cardIds: input.cardIds)
+
+        return try self.encodeJSON(
+            value: AIBulkDeleteCardsPayload(
+                ok: true,
+                deletedCardIds: result.deletedCardIds,
+                deletedCount: result.deletedCount
+            )
+        )
     }
 
     private func currentActiveCards() -> [Card] {
@@ -480,6 +561,23 @@ struct LocalAIToolExecutor: AIToolExecuting {
         }
 
         return min(max(limit, 1), 100)
+    }
+
+    private func validateCardBatchCount(count: Int) throws {
+        if count < 1 {
+            throw LocalStoreError.validation("Card batch must contain at least one item")
+        }
+
+        if count > 100 {
+            throw LocalStoreError.validation("Card batch must contain at most 100 items")
+        }
+    }
+
+    private func validateUniqueCardIds(cardIds: [String]) throws {
+        let uniqueCardIds = Set(cardIds)
+        if uniqueCardIds.count != cardIds.count {
+            throw LocalStoreError.validation("Card batch must not contain duplicate cardId values")
+        }
     }
 
     private func decodeInput<Input: Decodable>(_ type: Input.Type, _ json: String) throws -> Input {

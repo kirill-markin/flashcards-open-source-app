@@ -32,6 +32,43 @@ const TAGS_OPERATOR_SCHEMA = {
   enum: ["containsAny", "containsAll"],
 } as const;
 
+const CARD_INPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    frontText: { type: "string" },
+    backText: { type: "string" },
+    tags: {
+      type: "array",
+      items: { type: "string" },
+    },
+    effortLevel: EFFORT_LEVEL_SCHEMA,
+  },
+  required: ["frontText", "backText", "tags", "effortLevel"],
+  additionalProperties: false,
+} as const;
+
+const CARD_UPDATE_SCHEMA = {
+  type: "object",
+  properties: {
+    cardId: { type: "string" },
+    frontText: { type: "string" },
+    backText: { type: "string" },
+    tags: {
+      type: "array",
+      items: { type: "string" },
+    },
+    effortLevel: EFFORT_LEVEL_SCHEMA,
+  },
+  required: ["cardId"],
+  additionalProperties: false,
+} as const;
+
+const BULK_CARD_ARRAY_SCHEMA = {
+  type: "array",
+  minItems: 1,
+  maxItems: 100,
+} as const;
+
 export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
@@ -160,39 +197,60 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   {
     type: "function",
     name: "create_card",
-    description: "Create a new card locally after explicit user confirmation.",
+    description: "Create one new card locally after explicit user confirmation. Use create_cards for multiple cards.",
+    strict: true,
+    parameters: CARD_INPUT_SCHEMA,
+  },
+  {
+    type: "function",
+    name: "create_cards",
+    description: "Create multiple new cards locally after explicit user confirmation. Use only when the user clearly requested multiple cards or you already identified multiple targets.",
     strict: true,
     parameters: {
       type: "object",
       properties: {
-        frontText: { type: "string" },
-        backText: { type: "string" },
-        tags: {
-          type: "array",
-          items: { type: "string" },
+        cards: {
+          ...BULK_CARD_ARRAY_SCHEMA,
+          items: CARD_INPUT_SCHEMA,
         },
-        effortLevel: EFFORT_LEVEL_SCHEMA,
       },
-      required: ["frontText", "backText", "tags", "effortLevel"],
+      required: ["cards"],
       additionalProperties: false,
     },
   },
   {
     type: "function",
     name: "update_card",
-    description: "Update editable card fields locally after explicit user confirmation.",
+    description: "Update one card locally after explicit user confirmation. Use update_cards for multiple cards.",
+    strict: true,
+    parameters: CARD_UPDATE_SCHEMA,
+  },
+  {
+    type: "function",
+    name: "update_cards",
+    description: "Update multiple cards locally after explicit user confirmation. Use only when the user clearly requested multiple card changes or you already identified multiple targets.",
+    strict: true,
+    parameters: {
+      type: "object",
+      properties: {
+        updates: {
+          ...BULK_CARD_ARRAY_SCHEMA,
+          items: CARD_UPDATE_SCHEMA,
+        },
+      },
+      required: ["updates"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "delete_card",
+    description: "Delete one card locally after explicit user confirmation. Use delete_cards for multiple cards.",
     strict: true,
     parameters: {
       type: "object",
       properties: {
         cardId: { type: "string" },
-        frontText: { type: "string" },
-        backText: { type: "string" },
-        tags: {
-          type: "array",
-          items: { type: "string" },
-        },
-        effortLevel: EFFORT_LEVEL_SCHEMA,
       },
       required: ["cardId"],
       additionalProperties: false,
@@ -200,15 +258,18 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   },
   {
     type: "function",
-    name: "delete_card",
-    description: "Delete a card locally after explicit user confirmation.",
+    name: "delete_cards",
+    description: "Delete multiple cards locally after explicit user confirmation. Use only when the user clearly requested multiple deletions or you already identified multiple targets.",
     strict: true,
     parameters: {
       type: "object",
       properties: {
-        cardId: { type: "string" },
+        cardIds: {
+          ...BULK_CARD_ARRAY_SCHEMA,
+          items: { type: "string" },
+        },
       },
-      required: ["cardId"],
+      required: ["cardIds"],
       additionalProperties: false,
     },
   },
