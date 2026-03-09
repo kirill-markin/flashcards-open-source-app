@@ -41,6 +41,12 @@ private struct FailingToolExecutor: AIToolExecuting {
     }
 }
 
+private struct BulkDeleteCardsPayload: Decodable {
+    let ok: Bool
+    let deletedCardIds: [String]
+    let deletedCount: Int
+}
+
 final class AIChatTests: XCTestCase {
     func testAppTabOrderPlacesAIBeforeSettings() {
         XCTAssertEqual(AppTab.allCases, [.review, .decks, .cards, .ai, .settings])
@@ -147,6 +153,110 @@ final class AIChatTests: XCTestCase {
         let createdCard = try JSONDecoder().decode(Card.self, from: Data(createdCardJson.utf8))
         XCTAssertEqual(createdCard.frontText, "Front")
         XCTAssertEqual(flashcardsStore.cards.count, 1)
+    }
+
+    @MainActor
+    func testLocalToolExecutorRejectsBulkCreateWithoutConfirmation() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = LocalAIToolExecutor(
+            flashcardsStore: flashcardsStore,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        do {
+            _ = try await executor.execute(
+                toolCallRequest: AIToolCallRequest(
+                    toolCallId: "call-bulk-create",
+                    name: "create_cards",
+                    input: """
+                    {"cards":[
+                        {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
+                        {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
+                    ]}
+                    """
+                ),
+                latestUserText: "please create these cards"
+            )
+            XCTFail("Expected write confirmation error")
+        } catch let error as AIToolExecutionError {
+            guard case .writeConfirmationRequired = error else {
+                return XCTFail("Expected write confirmation error, received \(error.localizedDescription)")
+            }
+        }
+    }
+
+    @MainActor
+    func testLocalToolExecutorCreatesUpdatesAndDeletesCardsInBulk() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = LocalAIToolExecutor(
+            flashcardsStore: flashcardsStore,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let createdCardsJson = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-create-cards",
+                name: "create_cards",
+                input: """
+                {"cards":[
+                    {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
+                    {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
+                ]}
+                """
+            ),
+            latestUserText: "yes, do it"
+        )
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsJson.utf8))
+        XCTAssertEqual(createdCards.count, 2)
+        XCTAssertEqual(flashcardsStore.cards.count, 2)
+
+        let updatedCardsJson = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-update-cards",
+                name: "update_cards",
+                input: """
+                {"updates":[
+                    {"cardId":"\(createdCards[0].cardId)","frontText":"Updated Front 1"},
+                    {"cardId":"\(createdCards[1].cardId)","tags":["tag-c","tag-d"],"effortLevel":"long"}
+                ]}
+                """
+            ),
+            latestUserText: "yes, apply these changes"
+        )
+        let updatedCards = try JSONDecoder().decode([Card].self, from: Data(updatedCardsJson.utf8))
+        XCTAssertEqual(updatedCards.count, 2)
+        XCTAssertEqual(
+            Set(updatedCards.map { card in
+                card.cardId
+            }),
+            Set(createdCards.map { card in
+                card.cardId
+            })
+        )
+        XCTAssertTrue(updatedCards.contains { card in
+            card.cardId == createdCards[0].cardId && card.frontText == "Updated Front 1"
+        })
+        XCTAssertTrue(updatedCards.contains { card in
+            card.cardId == createdCards[1].cardId && card.tags == ["tag-c", "tag-d"] && card.effortLevel == .long
+        })
+
+        let deletedCardsJson = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-delete-cards",
+                name: "delete_cards",
+                input: """
+                {"cardIds":["\(createdCards[0].cardId)","\(createdCards[1].cardId)"]}
+                """
+            ),
+            latestUserText: "yes, proceed"
+        )
+        let deletedCardsPayload = try JSONDecoder().decode(BulkDeleteCardsPayload.self, from: Data(deletedCardsJson.utf8))
+        XCTAssertTrue(deletedCardsPayload.ok)
+        XCTAssertEqual(deletedCardsPayload.deletedCount, 2)
+        XCTAssertEqual(Set(deletedCardsPayload.deletedCardIds), Set(createdCards.map(\.cardId)))
+        XCTAssertEqual(flashcardsStore.cards.count, 0)
     }
 
     @MainActor

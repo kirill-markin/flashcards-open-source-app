@@ -507,6 +507,16 @@ struct CardEditorInput: Hashable {
     let effortLevel: EffortLevel
 }
 
+struct CardUpdateInput: Hashable {
+    let cardId: String
+    let input: CardEditorInput
+}
+
+struct BulkDeleteCardsResult: Hashable {
+    let deletedCardIds: [String]
+    let deletedCount: Int
+}
+
 struct DeckEditorInput: Hashable {
     let name: String
     let filterDefinition: DeckFilterDefinition
