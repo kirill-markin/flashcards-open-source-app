@@ -1,11 +1,11 @@
 import SwiftUI
 
 private let reviewBottomBarHorizontalPadding: CGFloat = 20
-private let reviewBottomBarTopPadding: CGFloat = 16
-private let reviewBottomBarBottomPadding: CGFloat = 12
-private let reviewBottomBarButtonSpacing: CGFloat = 12
-private let reviewAnswerButtonMinHeight: CGFloat = 64
-private let showAnswerButtonMinHeight: CGFloat = (reviewAnswerButtonMinHeight * 2) + reviewBottomBarButtonSpacing
+private let reviewBottomBarTopPadding: CGFloat = 8
+private let reviewBottomBarBottomPadding: CGFloat = 8
+private let reviewBottomBarButtonSpacing: CGFloat = 10
+private let reviewAnswerButtonMinHeight: CGFloat = 48
+private let showAnswerButtonMinHeight: CGFloat = 56
 
 struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
@@ -261,25 +261,21 @@ struct ReviewView: View {
         Button {
             self.submitReview(cardId: cardId, rating: option.rating)
         } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Image(systemName: option.rating.symbolName)
-                        .font(.headline)
+            VStack(alignment: .center, spacing: 6) {
+                Image(systemName: option.rating.symbolName)
+                    .font(.headline)
 
-                    Text(option.rating.title)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-
-                    Spacer(minLength: 0)
-                }
+                Text(option.rating.title)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
 
                 Text(option.intervalDescription)
                     .font(.caption)
                     .opacity(0.8)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
-            .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .center)
         }
         .buttonStyle(.borderedProminent)
     }
