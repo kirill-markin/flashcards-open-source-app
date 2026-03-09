@@ -61,10 +61,21 @@ async function applyPendingMigrations(
 
     const sql = await readSqlFile(directoryPath, fileName);
     try {
+      await client.query("BEGIN");
       await client.query(sql);
       await client.query("INSERT INTO schema_migrations (filename) VALUES ($1)", [fileName]);
+      await client.query("COMMIT");
       appliedMigrations.push(fileName);
     } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        const rollbackMessage =
+          rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+        throw new Error(
+          `Failed to rollback migration ${fileName}: ${rollbackMessage}`,
+        );
+      }
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to apply migration ${fileName}: ${message}`);
     }
