@@ -33,13 +33,20 @@ export type DeckFilterDefinition = Readonly<{
 
 export type SessionInfo = Readonly<{
   userId: string;
-  workspaceId: string;
+  selectedWorkspaceId: string | null;
   authTransport: string;
   csrfToken: string | null;
   profile: Readonly<{
     email: string | null;
     locale: string;
   }>;
+}>;
+
+export type WorkspaceSummary = Readonly<{
+  workspaceId: string;
+  name: string;
+  createdAt: string;
+  isSelected: boolean;
 }>;
 
 // Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::Card and apps/backend/src/cards.ts::Card.

@@ -178,26 +178,76 @@ export async function loadWebSyncCache(): Promise<WebSyncCache> {
   };
 }
 
-export async function ensureWorkspaceCache(workspaceId: string): Promise<void> {
+export async function relinkWorkspaceCache(workspaceId: string): Promise<void> {
+  const cache = await loadWebSyncCache();
+  if (cache.workspaceId === workspaceId) {
+    return;
+  }
+
   const database = await openDatabase();
-  const syncState = await getFromStore<SyncStateRecord>(database, "meta", "sync_state");
+  await runReadwrite(
+    database,
+    ["cards", "decks", "reviewEvents", "workspaceSettings", "outbox", "meta"],
+    (transaction) => {
+      const cardsStore = transaction.objectStore("cards");
+      const decksStore = transaction.objectStore("decks");
+      const reviewEventsStore = transaction.objectStore("reviewEvents");
+      const workspaceSettingsStore = transaction.objectStore("workspaceSettings");
+      const outboxStore = transaction.objectStore("outbox");
+      const metaStore = transaction.objectStore("meta");
 
-  if (syncState === undefined) {
-    await runReadwrite(database, ["meta"], (transaction) => transaction.objectStore("meta").put({
-      key: "sync_state",
-      workspaceId,
-      lastAppliedChangeId: 0,
-      updatedAt: new Date().toISOString(),
-    } satisfies SyncStateRecord));
-    database.close();
-    return;
-  }
+      cardsStore.clear();
+      decksStore.clear();
+      reviewEventsStore.clear();
+      workspaceSettingsStore.clear();
+      outboxStore.clear();
 
-  if (syncState.workspaceId === workspaceId) {
-    database.close();
-    return;
-  }
+      for (const card of cache.cards) {
+        cardsStore.put(card);
+      }
 
+      for (const deck of cache.decks) {
+        decksStore.put({
+          ...deck,
+          workspaceId,
+        } satisfies Deck);
+      }
+
+      for (const reviewEvent of cache.reviewEvents) {
+        reviewEventsStore.put({
+          ...reviewEvent,
+          workspaceId,
+        } satisfies ReviewEvent);
+      }
+
+      if (cache.workspaceSettings !== null) {
+        workspaceSettingsStore.put({
+          id: "workspace",
+          settings: cache.workspaceSettings,
+        } satisfies WorkspaceSettingsRecord);
+      }
+
+      for (const record of cache.outbox) {
+        outboxStore.put({
+          ...record,
+          workspaceId,
+        } satisfies PersistedOutboxRecord);
+      }
+
+      metaStore.put({
+        key: "sync_state",
+        workspaceId,
+        lastAppliedChangeId: 0,
+        updatedAt: new Date().toISOString(),
+      } satisfies SyncStateRecord);
+      return null;
+    },
+  );
+  database.close();
+}
+
+export async function clearWebSyncCache(): Promise<void> {
+  const database = await openDatabase();
   await runReadwrite(
     database,
     ["cards", "decks", "reviewEvents", "workspaceSettings", "outbox", "meta"],
@@ -207,16 +257,10 @@ export async function ensureWorkspaceCache(workspaceId: string): Promise<void> {
       transaction.objectStore("reviewEvents").clear();
       transaction.objectStore("workspaceSettings").clear();
       transaction.objectStore("outbox").clear();
-      transaction.objectStore("meta").put({
-        key: "sync_state",
-        workspaceId,
-        lastAppliedChangeId: 0,
-        updatedAt: new Date().toISOString(),
-      } satisfies SyncStateRecord);
+      transaction.objectStore("meta").clear();
       return null;
     },
   );
-
   database.close();
 }
 

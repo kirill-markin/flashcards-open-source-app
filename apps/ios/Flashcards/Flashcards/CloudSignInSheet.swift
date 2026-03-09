@@ -20,6 +20,7 @@ struct CloudSignInSheet: View {
     @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
     @State private var errorMessage: String = ""
     @State private var isSendingCode: Bool = false
+    @State private var isAutoLinkingWorkspace: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -51,16 +52,14 @@ struct CloudSignInSheet: View {
                     Button("Close") {
                         self.dismiss()
                     }
-                    .disabled(self.isSendingCode)
+                    .disabled(self.isSendingCode || self.isAutoLinkingWorkspace)
                 }
             }
             .sheet(item: self.$otpSheetState) { otpState in
                 CloudOtpVerificationSheet(
                     challenge: otpState.challenge,
                     onPrepared: { linkContext in
-                        self.otpSheetState = nil
-                        self.workspaceLinkContext = linkContext
-                        self.errorMessage = ""
+                        self.handlePreparedLinkContext(linkContext)
                     },
                     onReturnToEmail: { message in
                         self.otpSheetState = nil
@@ -105,6 +104,33 @@ struct CloudSignInSheet: View {
                 self.email = nextChallenge.email
                 self.errorMessage = ""
                 self.otpSheetState = CloudOtpSheetState(challenge: nextChallenge)
+            } catch {
+                self.errorMessage = localizedMessage(error: error)
+            }
+        }
+    }
+
+    private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
+        self.otpSheetState = nil
+        self.errorMessage = ""
+
+        if linkContext.workspaces.isEmpty == false {
+            self.workspaceLinkContext = linkContext
+            return
+        }
+
+        Task { @MainActor in
+            self.isAutoLinkingWorkspace = true
+            defer {
+                self.isAutoLinkingWorkspace = false
+            }
+
+            do {
+                try await self.store.completeCloudLink(
+                    linkContext: linkContext,
+                    selection: .createNew
+                )
+                self.dismiss()
             } catch {
                 self.errorMessage = localizedMessage(error: error)
             }

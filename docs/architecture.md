@@ -20,9 +20,10 @@ Apex fallback          -> Cloudflare -> <domain> -> CloudFront redirect -> app.<
 ## Data flow
 
 1. Mobile app writes locally (SQLite).
-2. App sends batched sync operations to `/v1/sync/push`.
-3. App fetches remote updates via `/v1/sync/pull`.
-4. API updates scheduling fields on review submit (compute-on-write).
+2. App selects an explicit workspace.
+3. App sends batched sync operations to `/v1/workspaces/:workspaceId/sync/push`.
+4. App fetches remote updates via `/v1/workspaces/:workspaceId/sync/pull`.
+5. API updates scheduling fields on review submit (compute-on-write).
 
 ## Core schema (v1)
 
@@ -42,7 +43,7 @@ Apex fallback          -> Cloudflare -> <domain> -> CloudFront redirect -> app.<
 - Browser login still uses one shared domain-wide session cookie so sign-in works across `auth.<domain>` and `app.<domain>` without a second login.
 - Backend Lambda verifies JWT from `Authorization: Bearer` header via `aws-jwt-verify`.
 - `AUTH_MODE=none` for local dev (no auth, `userId=local`), `AUTH_MODE=cognito` in production.
-- First authenticated request auto-provisions `user_settings` row and a default workspace.
+- First authenticated request auto-provisions only the `user_settings` row. Workspace creation and selection are explicit.
 
 ## Security
 

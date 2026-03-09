@@ -2,7 +2,8 @@
  * Auth service entry point (local development / Docker).
  *
  * Standalone Hono service for email OTP authentication via Cognito.
- * Handles login page, OTP send/verify, token refresh/revoke.
+ * Handles login page, OTP send/verify, browser session logout, and mobile
+ * token refresh/revoke.
  * Runs on its own port, separate from the backend Lambda.
  */
 import { serve } from "@hono/node-server";

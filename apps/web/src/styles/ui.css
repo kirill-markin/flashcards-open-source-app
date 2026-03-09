@@ -178,6 +178,36 @@
   padding: 8px 10px;
 }
 
+.workspace-modal {
+  display: grid;
+  gap: 16px;
+}
+
+.workspace-choice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-choice-btn {
+  width: 100%;
+  justify-content: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+}
+
+.workspace-choice-name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.workspace-choice-meta {
+  color: var(--muted);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 @media (max-width: 768px) {
   .screen-head {
     flex-direction: column;

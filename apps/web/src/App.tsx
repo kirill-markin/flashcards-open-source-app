@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactElement } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppDataProvider, useAppData } from "./appData";
+import { buildLogoutUrl } from "./api";
 import { ChatPanel } from "./chat/ChatPanel";
 import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatToggle } from "./chat/ChatToggle";
@@ -11,7 +12,17 @@ import { DecksScreen } from "./screens/DecksScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 
 function AppShell(): ReactElement {
-  const { sessionLoadState, sessionErrorMessage, session, errorMessage, initialize } = useAppData();
+  const {
+    sessionLoadState,
+    sessionErrorMessage,
+    session,
+    activeWorkspace,
+    availableWorkspaces,
+    isChoosingWorkspace,
+    errorMessage,
+    initialize,
+    chooseWorkspace,
+  } = useAppData();
 
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (
@@ -37,6 +48,34 @@ function AppShell(): ReactElement {
     );
   }
 
+  if (sessionLoadState === "selecting_workspace") {
+    return (
+      <main className="page-state">
+        <section className="panel panel-center workspace-modal">
+          <h1 className="title">Choose workspace</h1>
+          <p className="subtitle">
+            Select which existing workspace should receive the local browser data from this device.
+          </p>
+          <div className="workspace-choice-list">
+            {availableWorkspaces.map((workspace) => (
+              <button
+                key={workspace.workspaceId}
+                className="ghost-btn workspace-choice-btn"
+                type="button"
+                onClick={() => void chooseWorkspace(workspace.workspaceId)}
+                disabled={isChoosingWorkspace}
+              >
+                <span className="workspace-choice-name">{workspace.name}</span>
+                <span className="workspace-choice-meta">{workspace.createdAt}</span>
+              </button>
+            ))}
+          </div>
+          {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <>
       <div className="header-sticky">
@@ -45,27 +84,11 @@ function AppShell(): ReactElement {
             flashcards-open-source-app
           </a>
           <div className="topbar-actions">
-            <button
-              type="button"
-              className="account-button"
-              aria-label="Account"
-              title={session?.profile.email ?? session?.userId ?? "Account"}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M20 21a8 8 0 0 0-16 0" />
-              </svg>
-            </button>
+            {activeWorkspace !== null ? <span className="badge">{activeWorkspace.name}</span> : null}
+            <span className="topbar-account">{session?.profile.email ?? session?.userId ?? "Account"}</span>
+            <a className="ghost-btn topbar-signout" href={buildLogoutUrl()}>
+              Sign out
+            </a>
           </div>
         </header>
         <nav className="nav">
