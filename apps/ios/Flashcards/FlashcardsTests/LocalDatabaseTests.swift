@@ -670,6 +670,115 @@ final class LocalDatabaseTests: XCTestCase {
         XCTAssertEqual(recreatedEntries.count, 4)
     }
 
+    func testBootstrapOutboxSkipsReviewEventsFromAnotherDevice() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+
+        let localCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let remoteReviewEvent = ReviewEvent(
+            reviewEventId: "remote-review-event",
+            workspaceId: workspaceId,
+            cardId: localCard.cardId,
+            deviceId: "remote-device",
+            clientEventId: "remote-client-event",
+            rating: .good,
+            reviewedAtClient: "2026-03-09T01:00:00.000Z",
+            reviewedAtServer: "2026-03-09T01:00:01.000Z"
+        )
+        try database.applySyncChange(
+            workspaceId: workspaceId,
+            change: SyncChange(
+                changeId: 1,
+                entityType: .reviewEvent,
+                entityId: remoteReviewEvent.reviewEventId,
+                action: .append,
+                payload: .reviewEvent(remoteReviewEvent)
+            )
+        )
+
+        let existingEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        try database.deleteOutboxEntries(operationIds: existingEntries.map { entry in
+            entry.operationId
+        })
+
+        try database.bootstrapOutbox(workspaceId: workspaceId)
+
+        let recreatedEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        XCTAssertEqual(recreatedEntries.count, 2)
+        XCTAssertEqual(
+            recreatedEntries.filter { entry in
+                entry.operation.entityType == .card
+            }.count,
+            1
+        )
+        XCTAssertEqual(
+            recreatedEntries.filter { entry in
+                entry.operation.entityType == .workspaceSchedulerSettings
+            }.count,
+            1
+        )
+        XCTAssertEqual(
+            recreatedEntries.filter { entry in
+                entry.operation.entityType == .reviewEvent
+            }.count,
+            0
+        )
+    }
+
+    func testBootstrapOutboxDoesNotDuplicatePendingLocalReviewEvent() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        try database.submitReview(
+            workspaceId: workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: cardId,
+                rating: .good,
+                reviewedAtClient: "2026-03-08T10:00:00.000Z"
+            )
+        )
+
+        let existingEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        try database.deleteOutboxEntries(operationIds: existingEntries.compactMap { entry in
+            entry.operation.entityType == .reviewEvent ? nil : entry.operationId
+        })
+
+        try database.bootstrapOutbox(workspaceId: workspaceId)
+
+        let recreatedEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        XCTAssertEqual(recreatedEntries.count, 3)
+        XCTAssertEqual(
+            recreatedEntries.filter { entry in
+                entry.operation.entityType == .card
+            }.count,
+            1
+        )
+        XCTAssertEqual(
+            recreatedEntries.filter { entry in
+                entry.operation.entityType == .workspaceSchedulerSettings
+            }.count,
+            1
+        )
+        XCTAssertEqual(
+            recreatedEntries.filter { entry in
+                entry.operation.entityType == .reviewEvent
+            }.count,
+            1
+        )
+    }
+
     private func makeDatabase() throws -> LocalDatabase {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)

@@ -3,11 +3,21 @@ import UIKit
 
 private struct CloudOtpSheetState: Identifiable, Hashable {
     let id: String
-    let challenge: CloudOtpChallenge
+    let email: String
+    let challenge: CloudOtpChallenge?
 
-    init(challenge: CloudOtpChallenge) {
-        self.id = UUID().uuidString
+    init(email: String, challenge: CloudOtpChallenge?) {
+        self.init(id: UUID().uuidString, email: email, challenge: challenge)
+    }
+
+    private init(id: String, email: String, challenge: CloudOtpChallenge?) {
+        self.id = id
+        self.email = email
         self.challenge = challenge
+    }
+
+    func withChallenge(_ challenge: CloudOtpChallenge) -> CloudOtpSheetState {
+        CloudOtpSheetState(id: self.id, email: challenge.email, challenge: challenge)
     }
 }
 
@@ -90,7 +100,7 @@ struct CloudSignInSheet: View {
             }
             .sheet(item: self.$otpSheetState) { otpState in
                 CloudOtpVerificationSheet(
-                    challenge: otpState.challenge,
+                    otpSheetState: self.$otpSheetState,
                     onVerified: { verifiedContext in
                         self.handleVerifiedAuthContext(verifiedContext)
                     },
@@ -172,6 +182,11 @@ struct CloudSignInSheet: View {
         }
 
         let nextEmail = normalizedCloudEmail(self.email)
+        let nextOtpSheetState = CloudOtpSheetState(email: nextEmail, challenge: nil)
+        self.email = nextEmail
+        self.errorMessage = ""
+        self.otpSheetState = nextOtpSheetState
+
         Task { @MainActor in
             self.isSendingCode = true
             defer {
@@ -180,10 +195,16 @@ struct CloudSignInSheet: View {
 
             do {
                 let nextChallenge = try await self.store.sendCloudSignInCode(email: nextEmail)
+                guard self.otpSheetState?.id == nextOtpSheetState.id else {
+                    return
+                }
+
                 self.email = nextChallenge.email
-                self.errorMessage = ""
-                self.otpSheetState = CloudOtpSheetState(challenge: nextChallenge)
+                self.otpSheetState = nextOtpSheetState.withChallenge(nextChallenge)
             } catch {
+                if self.otpSheetState?.id == nextOtpSheetState.id {
+                    self.otpSheetState = nil
+                }
                 self.errorMessage = localizedMessage(error: error)
             }
         }
@@ -314,10 +335,10 @@ struct CloudSignInSheet: View {
 private struct CloudOtpVerificationSheet: View {
     @EnvironmentObject private var store: FlashcardsStore
 
+    @Binding var otpSheetState: CloudOtpSheetState?
     let onVerified: (CloudVerifiedAuthContext) -> Void
     let onReturnToEmail: () -> Void
 
-    @State private var currentChallenge: CloudOtpChallenge
     @State private var code: String = ""
     @State private var errorMessage: String = ""
     @State private var isVerifyingCode: Bool = false
@@ -331,13 +352,13 @@ private struct CloudOtpVerificationSheet: View {
     }
 
     init(
-        challenge: CloudOtpChallenge,
+        otpSheetState: Binding<CloudOtpSheetState?>,
         onVerified: @escaping (CloudVerifiedAuthContext) -> Void,
         onReturnToEmail: @escaping () -> Void
     ) {
+        self._otpSheetState = otpSheetState
         self.onVerified = onVerified
         self.onReturnToEmail = onReturnToEmail
-        self._currentChallenge = State(initialValue: challenge)
     }
 
     var body: some View {
@@ -350,30 +371,43 @@ private struct CloudOtpVerificationSheet: View {
                 }
 
                 Section("Email") {
-                    Text(self.currentChallenge.email)
+                    Text(self.currentEmail)
                         .textSelection(.enabled)
                 }
 
                 Section("One-time code") {
-                    Text(self.challengePrompt)
-                        .foregroundStyle(.secondary)
+                    if self.currentChallenge == nil {
+                        Text("Sending the code…")
+                            .foregroundStyle(.secondary)
 
-                    if self.challengeState == .active {
-                        TextField("12345678", text: self.$code)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .keyboardType(.numberPad)
-                            .textContentType(.oneTimeCode)
-
-                        Button("Continue") {
-                            self.verifyCode()
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                            Spacer()
                         }
-                        .disabled(self.isVerifyingCode || self.isSendingCode || normalizedOtpCode(self.code).isEmpty)
+                        .padding(.vertical, 8)
                     } else {
-                        Button("Resend code") {
-                            self.resendCode()
+                        Text(self.challengePrompt)
+                            .foregroundStyle(.secondary)
+
+                        if self.challengeState == .active {
+                            TextField("12345678", text: self.$code)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .keyboardType(.numberPad)
+                                .textContentType(.oneTimeCode)
+
+                            Button("Continue") {
+                                self.verifyCode()
+                            }
+                            .disabled(self.isVerifyingCode || self.isSendingCode || normalizedOtpCode(self.code).isEmpty)
+                        } else {
+                            Button("Resend code") {
+                                self.resendCode()
+                            }
+                            .disabled(self.isSendingCode || self.isVerifyingCode)
                         }
-                        .disabled(self.isSendingCode || self.isVerifyingCode)
                     }
                 }
 
@@ -385,10 +419,18 @@ private struct CloudOtpVerificationSheet: View {
                     Button("Back") {
                         self.onReturnToEmail()
                     }
-                    .disabled(self.isVerifyingCode || self.isSendingCode)
+                    .disabled(self.isVerifyingCode || self.isSendingCode || self.currentChallenge == nil)
                 }
             }
         }
+    }
+
+    private var currentEmail: String {
+        self.currentChallenge?.email ?? self.otpSheetState?.email ?? ""
+    }
+
+    private var currentChallenge: CloudOtpChallenge? {
+        self.otpSheetState?.challenge
     }
 
     private var challengePrompt: String {
@@ -408,6 +450,10 @@ private struct CloudOtpVerificationSheet: View {
             self.errorMessage = "Code is required"
             return
         }
+        guard let currentChallenge = self.currentChallenge else {
+            self.errorMessage = "Code is still loading"
+            return
+        }
 
         Task { @MainActor in
             self.isVerifyingCode = true
@@ -417,7 +463,7 @@ private struct CloudOtpVerificationSheet: View {
 
             do {
                 let verifiedContext = try await self.store.verifyCloudOtp(
-                    challenge: self.currentChallenge,
+                    challenge: currentChallenge,
                     code: nextCode
                 )
                 self.code = ""
@@ -433,6 +479,7 @@ private struct CloudOtpVerificationSheet: View {
     }
 
     private func resendCode() {
+        let currentEmail = self.currentEmail
         Task { @MainActor in
             self.isSendingCode = true
             defer {
@@ -440,8 +487,8 @@ private struct CloudOtpVerificationSheet: View {
             }
 
             do {
-                let nextChallenge = try await self.store.sendCloudSignInCode(email: self.currentChallenge.email)
-                self.currentChallenge = nextChallenge
+                let nextChallenge = try await self.store.sendCloudSignInCode(email: currentEmail)
+                self.otpSheetState = self.otpSheetState?.withChallenge(nextChallenge)
                 self.code = ""
                 self.errorMessage = ""
                 self.challengeState = .active
