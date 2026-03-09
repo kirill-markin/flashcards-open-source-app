@@ -2,6 +2,25 @@
 -- This migration removes per-table server cursors and replaces them with one
 -- append-only change feed ordered by sync.changes.change_id.
 
+-- Backfilled JSON payloads must use canonical UTC ISO timestamps because the
+-- sync API validates and replays them as API-facing values, not raw Postgres
+-- timestamp literals.
+CREATE FUNCTION pg_temp.to_canonical_jsonb_timestamp(value TIMESTAMPTZ)
+RETURNS JSONB
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+  SELECT CASE
+    WHEN value IS NULL THEN 'null'::jsonb
+    ELSE to_jsonb(
+      to_char(
+        date_trunc('milliseconds', value AT TIME ZONE 'UTC'),
+        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+      )
+    )
+  END
+$$;
+
 -- Store all sync-visible mutations in one ordered feed so clients can advance a
 -- single workspace checkpoint instead of tracking one cursor per table.
 CREATE TABLE IF NOT EXISTS sync.changes (
@@ -49,20 +68,20 @@ SELECT
     'backText', cards.back_text,
     'tags', cards.tags,
     'effortLevel', cards.effort_level,
-    'dueAt', cards.due_at,
+    'dueAt', pg_temp.to_canonical_jsonb_timestamp(cards.due_at),
     'reps', cards.reps,
     'lapses', cards.lapses,
     'fsrsCardState', cards.fsrs_card_state,
     'fsrsStepIndex', cards.fsrs_step_index,
     'fsrsStability', cards.fsrs_stability,
     'fsrsDifficulty', cards.fsrs_difficulty,
-    'fsrsLastReviewedAt', cards.fsrs_last_reviewed_at,
+    'fsrsLastReviewedAt', pg_temp.to_canonical_jsonb_timestamp(cards.fsrs_last_reviewed_at),
     'fsrsScheduledDays', cards.fsrs_scheduled_days,
-    'clientUpdatedAt', cards.client_updated_at,
+    'clientUpdatedAt', pg_temp.to_canonical_jsonb_timestamp(cards.client_updated_at),
     'lastModifiedByDeviceId', cards.last_modified_by_device_id::text,
     'lastOperationId', cards.last_operation_id,
-    'updatedAt', cards.updated_at,
-    'deletedAt', cards.deleted_at
+    'updatedAt', pg_temp.to_canonical_jsonb_timestamp(cards.updated_at),
+    'deletedAt', pg_temp.to_canonical_jsonb_timestamp(cards.deleted_at)
   ),
   cards.updated_at
 FROM content.cards AS cards;
@@ -91,12 +110,12 @@ SELECT
     'workspaceId', decks.workspace_id::text,
     'name', decks.name,
     'filterDefinition', decks.filter_definition,
-    'createdAt', decks.created_at,
-    'clientUpdatedAt', decks.client_updated_at,
+    'createdAt', pg_temp.to_canonical_jsonb_timestamp(decks.created_at),
+    'clientUpdatedAt', pg_temp.to_canonical_jsonb_timestamp(decks.client_updated_at),
     'lastModifiedByDeviceId', decks.last_modified_by_device_id::text,
     'lastOperationId', decks.last_operation_id,
-    'updatedAt', decks.updated_at,
-    'deletedAt', decks.deleted_at
+    'updatedAt', pg_temp.to_canonical_jsonb_timestamp(decks.updated_at),
+    'deletedAt', pg_temp.to_canonical_jsonb_timestamp(decks.deleted_at)
   ),
   decks.updated_at
 FROM content.decks AS decks;
@@ -127,10 +146,10 @@ SELECT
     'relearningStepsMinutes', workspaces.fsrs_relearning_steps_minutes,
     'maximumIntervalDays', workspaces.fsrs_maximum_interval_days,
     'enableFuzz', workspaces.fsrs_enable_fuzz,
-    'clientUpdatedAt', workspaces.fsrs_client_updated_at,
+    'clientUpdatedAt', pg_temp.to_canonical_jsonb_timestamp(workspaces.fsrs_client_updated_at),
     'lastModifiedByDeviceId', workspaces.fsrs_last_modified_by_device_id::text,
     'lastOperationId', workspaces.fsrs_last_operation_id,
-    'updatedAt', workspaces.fsrs_updated_at
+    'updatedAt', pg_temp.to_canonical_jsonb_timestamp(workspaces.fsrs_updated_at)
   ),
   workspaces.fsrs_updated_at
 FROM org.workspaces AS workspaces;
@@ -161,8 +180,8 @@ SELECT
     'deviceId', review_events.device_id::text,
     'clientEventId', review_events.client_event_id,
     'rating', review_events.rating,
-    'reviewedAtClient', review_events.reviewed_at_client,
-    'reviewedAtServer', review_events.reviewed_at_server
+    'reviewedAtClient', pg_temp.to_canonical_jsonb_timestamp(review_events.reviewed_at_client),
+    'reviewedAtServer', pg_temp.to_canonical_jsonb_timestamp(review_events.reviewed_at_server)
   ),
   review_events.reviewed_at_server
 FROM content.review_events AS review_events;
