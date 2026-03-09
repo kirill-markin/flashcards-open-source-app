@@ -1,3 +1,12 @@
+.cards-panel {
+  padding-inline-end: 0;
+}
+
+.cards-screen-head,
+.cards-panel > .error-banner {
+  padding-inline-end: 16px;
+}
+
 .cards-table .row-open-link {
   opacity: 0;
   pointer-events: none;
@@ -14,13 +23,13 @@
 }
 
 .cards-table {
-  width: auto;
-  min-width: 0;
+  width: 100%;
+  min-width: 100%;
 }
 
 .cards-table .txn-th,
 .cards-table .txn-cell {
-  padding-inline-end: 28px;
+  padding-inline-end: 18px;
 }
 
 .cards-table .txn-th:last-child,

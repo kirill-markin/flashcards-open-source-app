@@ -70,7 +70,7 @@ export function CardsScreen(): ReactElement {
   if (cardsState.status === "loading" && !cardsState.hasLoaded) {
     return (
       <main className="container">
-        <section className="panel">
+        <section className="panel cards-panel">
           <h1 className="title">Cards</h1>
           <p className="subtitle">Loading cards…</p>
         </section>
@@ -81,7 +81,7 @@ export function CardsScreen(): ReactElement {
   if (cardsState.status === "error" && !cardsState.hasLoaded) {
     return (
       <main className="container">
-        <section className="panel">
+        <section className="panel cards-panel">
           <h1 className="title">Cards</h1>
           <p className="error-banner">{cardsState.errorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void refreshCards()}>
@@ -94,9 +94,9 @@ export function CardsScreen(): ReactElement {
 
   return (
     <main className="container">
-      <section className="panel">
+      <section className="panel cards-panel">
         {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
-        <div className="screen-head">
+        <div className="screen-head cards-screen-head">
           <div>
             <h1 className="title">Cards</h1>
             <p className="subtitle">Cards are the prompts and answers you review to learn and remember.</p>

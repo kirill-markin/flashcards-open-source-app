@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactElement } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { AccountMenu } from "./AccountMenu";
 import { AppDataProvider, useAppData } from "./appData";
 import { buildLogoutUrl } from "./api";
 import { ChatPanel } from "./chat/ChatPanel";
@@ -15,13 +16,13 @@ function AppShell(): ReactElement {
   const {
     sessionLoadState,
     sessionErrorMessage,
-    session,
     activeWorkspace,
     availableWorkspaces,
     isChoosingWorkspace,
     errorMessage,
     initialize,
     chooseWorkspace,
+    createWorkspace,
   } = useAppData();
 
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
@@ -81,14 +82,18 @@ function AppShell(): ReactElement {
       <div className="header-sticky">
         <header className="topbar">
           <a className="topbar-brand" href="/cards">
-            flashcards-open-source-app
+            <span className="brand-full">flashcards-open-source-app</span>
+            <span className="brand-short">flashcards</span>
           </a>
           <div className="topbar-actions">
-            {activeWorkspace !== null ? <span className="badge">{activeWorkspace.name}</span> : null}
-            <span className="topbar-account">{session?.profile.email ?? session?.userId ?? "Account"}</span>
-            <a className="ghost-btn topbar-signout" href={buildLogoutUrl()}>
-              Sign out
-            </a>
+            <AccountMenu
+              workspaces={availableWorkspaces}
+              currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
+              isBusy={isChoosingWorkspace}
+              logoutUrl={buildLogoutUrl()}
+              onSelectWorkspace={chooseWorkspace}
+              onCreateWorkspace={createWorkspace}
+            />
           </div>
         </header>
         <nav className="nav">
