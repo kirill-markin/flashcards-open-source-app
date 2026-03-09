@@ -129,6 +129,10 @@ function ensureNonEmptyCardText(value: string, fieldName: string): string {
   return trimmedValue;
 }
 
+function normalizeCardBackText(value: string): string {
+  return value.trim();
+}
+
 export async function runListCardsTool(workspaceId: string, limit: number | undefined): Promise<string> {
   const items = await cardsApi.listCards(workspaceId);
   return stringifyResult(items.slice(0, normalizeLimit(limit)));
@@ -176,7 +180,7 @@ export async function runCreateCardTool(
 
   return stringifyResult(await cardsApi.createCard(workspaceId, {
     frontText: ensureNonEmptyCardText(validatedInput.frontText, "frontText"),
-    backText: ensureNonEmptyCardText(validatedInput.backText, "backText"),
+    backText: normalizeCardBackText(validatedInput.backText),
     tags: validatedInput.tags,
     effortLevel: validatedInput.effortLevel,
   }, makeWriteMetadata(writeToolInput.deviceId)));
@@ -201,7 +205,7 @@ export async function runUpdateCardTool(
   }
 
   if (validatedInput.backText !== undefined) {
-    nextInput.backText = ensureNonEmptyCardText(validatedInput.backText, "backText");
+    nextInput.backText = normalizeCardBackText(validatedInput.backText);
   }
 
   if (validatedInput.tags !== undefined) {

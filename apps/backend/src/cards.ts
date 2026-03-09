@@ -332,6 +332,37 @@ function mapDeckSummary(row: DeckSummaryRow): DeckSummary {
   };
 }
 
+function normalizeRequiredCardText(value: string, fieldName: string): string {
+  const normalizedValue = value.trim();
+  if (normalizedValue === "") {
+    throw new HttpError(400, `${fieldName} must not be empty`);
+  }
+
+  return normalizedValue;
+}
+
+function normalizeOptionalCardText(value: string): string {
+  return value.trim();
+}
+
+function normalizeCreateCardInput(input: CreateCardInput): CreateCardInput {
+  return {
+    frontText: normalizeRequiredCardText(input.frontText, "frontText"),
+    backText: normalizeOptionalCardText(input.backText),
+    tags: input.tags,
+    effortLevel: input.effortLevel,
+  };
+}
+
+function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInput {
+  return {
+    frontText: input.frontText === undefined ? undefined : normalizeRequiredCardText(input.frontText, "frontText"),
+    backText: input.backText === undefined ? undefined : normalizeOptionalCardText(input.backText),
+    tags: input.tags,
+    effortLevel: input.effortLevel,
+  };
+}
+
 function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
   const assignments: Array<string> = [];
   const params: Array<string | ReadonlyArray<string>> = [];
@@ -362,8 +393,8 @@ function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
 function normalizeCardSnapshotInput(input: CardSnapshotInput): CardSnapshotInput {
   const normalizedSnapshot: CardSnapshotInput = {
     cardId: input.cardId,
-    frontText: input.frontText,
-    backText: input.backText,
+    frontText: normalizeRequiredCardText(input.frontText, "frontText"),
+    backText: normalizeOptionalCardText(input.backText),
     tags: input.tags,
     effortLevel: input.effortLevel,
     dueAt: input.dueAt === null ? null : normalizeIsoTimestamp(input.dueAt, "dueAt"),
@@ -799,6 +830,7 @@ export async function createCard(
   input: CreateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
+  const normalizedInput = normalizeCreateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
   return transaction(async (executor) => {
     const result = await executor.query<CardRow>(
@@ -816,10 +848,10 @@ export async function createCard(
       [
         randomUUID(),
         workspaceId,
-        input.frontText,
-        input.backText,
-        input.tags,
-        input.effortLevel,
+        normalizedInput.frontText,
+        normalizedInput.backText,
+        normalizedInput.tags,
+        normalizedInput.effortLevel,
         normalizedMetadata.clientUpdatedAt,
         normalizedMetadata.lastModifiedByDeviceId,
         normalizedMetadata.lastOperationId,
@@ -843,7 +875,8 @@ export async function updateCard(
   input: UpdateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  const updateParts = buildCardUpdateQueryParts(input);
+  const normalizedInput = normalizeUpdateCardInput(input);
+  const updateParts = buildCardUpdateQueryParts(normalizedInput);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
   if (updateParts.assignments.length === 0) {

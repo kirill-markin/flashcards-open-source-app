@@ -278,6 +278,37 @@ function buildInitialCard(
   };
 }
 
+function normalizeRequiredCardText(value: string): string {
+  const normalizedValue = value.trim();
+  if (normalizedValue === "") {
+    throw new Error("Card front text must not be empty");
+  }
+
+  return normalizedValue;
+}
+
+function normalizeOptionalCardText(value: string): string {
+  return value.trim();
+}
+
+function normalizeCreateCardInput(input: CreateCardInput): CreateCardInput {
+  return {
+    frontText: normalizeRequiredCardText(input.frontText),
+    backText: normalizeOptionalCardText(input.backText),
+    tags: input.tags,
+    effortLevel: input.effortLevel,
+  };
+}
+
+function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInput {
+  return {
+    frontText: input.frontText === undefined ? undefined : normalizeRequiredCardText(input.frontText),
+    backText: input.backText === undefined ? undefined : normalizeOptionalCardText(input.backText),
+    tags: input.tags,
+    effortLevel: input.effortLevel,
+  };
+}
+
 function buildUpdatedCard(
   card: Card,
   input: UpdateCardInput,
@@ -949,10 +980,11 @@ export function AppDataProvider(props: Props): ReactElement {
       throw new Error("Workspace is unavailable");
     }
 
+    const normalizedInput = normalizeCreateCardInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = getStableDeviceId();
-    const nextCard = buildInitialCard(input, clientUpdatedAt, deviceId, operationId);
+    const nextCard = buildInitialCard(normalizedInput, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
@@ -1015,10 +1047,11 @@ export function AppDataProvider(props: Props): ReactElement {
       throw new Error("Card not found");
     }
 
+    const normalizedInput = normalizeUpdateCardInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = getStableDeviceId();
-    const nextCard = buildUpdatedCard(existingCard, input, clientUpdatedAt, deviceId, operationId);
+    const nextCard = buildUpdatedCard(existingCard, normalizedInput, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,

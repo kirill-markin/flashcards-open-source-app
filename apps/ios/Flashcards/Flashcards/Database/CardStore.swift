@@ -5,14 +5,9 @@ struct CardStore {
 
     func validateCardInput(input: CardEditorInput) throws {
         let frontText = input.frontText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let backText = input.backText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if frontText.isEmpty {
             throw LocalStoreError.validation("Card front text must not be empty")
-        }
-
-        if backText.isEmpty {
-            throw LocalStoreError.validation("Card back text must not be empty")
         }
     }
 
@@ -252,7 +247,13 @@ struct CardStore {
         operationId: String,
         now: String
     ) throws -> Card {
-        let tagsJson = try self.core.encodeJsonString(value: input.tags)
+        let normalizedInput = CardEditorInput(
+            frontText: input.frontText.trimmingCharacters(in: .whitespacesAndNewlines),
+            backText: input.backText.trimmingCharacters(in: .whitespacesAndNewlines),
+            tags: input.tags,
+            effortLevel: input.effortLevel
+        )
+        let tagsJson = try self.core.encodeJsonString(value: normalizedInput.tags)
 
         if let cardId {
             let updatedRows = try self.core.execute(
@@ -262,10 +263,10 @@ struct CardStore {
                 WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
                 """,
                 values: [
-                    .text(input.frontText),
-                    .text(input.backText),
+                    .text(normalizedInput.frontText),
+                    .text(normalizedInput.backText),
                     .text(tagsJson),
-                    .text(input.effortLevel.rawValue),
+                    .text(normalizedInput.effortLevel.rawValue),
                     .text(now),
                     .text(deviceId),
                     .text(operationId),
@@ -312,10 +313,10 @@ struct CardStore {
             values: [
                 .text(newCardId),
                 .text(workspaceId),
-                .text(input.frontText),
-                .text(input.backText),
+                .text(normalizedInput.frontText),
+                .text(normalizedInput.backText),
                 .text(tagsJson),
-                .text(input.effortLevel.rawValue),
+                .text(normalizedInput.effortLevel.rawValue),
                 .text(now),
                 .text(deviceId),
                 .text(operationId),

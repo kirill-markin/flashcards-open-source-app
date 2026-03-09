@@ -6,6 +6,7 @@ private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
+private let emptyBackTextPlaceholder: String = "No back text"
 
 struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
@@ -190,7 +191,7 @@ struct ReviewView: View {
                         .textCase(.uppercase)
                         .foregroundStyle(.secondary)
 
-                    Text(card.backText)
+                    Text(card.backText.isEmpty ? emptyBackTextPlaceholder : card.backText)
                         .font(.title3)
                         .fontWeight(.medium)
                 }

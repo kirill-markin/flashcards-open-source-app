@@ -103,7 +103,7 @@ export const createCardTool = tool({
   description: "Create a new card.",
   parameters: z.object({
     frontText: z.string().min(1),
-    backText: z.string().min(1),
+    backText: z.string(),
     tags: z.array(z.string()),
     effortLevel: z.enum(["fast", "medium", "long"]),
   }),
@@ -124,7 +124,7 @@ export const updateCardTool = tool({
   parameters: z.object({
     cardId: z.string().min(1),
     frontText: z.string().min(1).nullable(),
-    backText: z.string().min(1).nullable(),
+    backText: z.string().nullable(),
     tags: z.array(z.string()).nullable(),
     effortLevel: z.enum(["fast", "medium", "long"]).nullable(),
   }),
