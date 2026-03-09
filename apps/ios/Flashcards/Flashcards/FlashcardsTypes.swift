@@ -321,6 +321,7 @@ struct CloudServiceConfiguration: Hashable {
 struct CloudOtpChallenge: Hashable {
     let email: String
     let csrfToken: String
+    let otpSessionToken: String
 }
 
 struct StoredCloudCredentials: Codable, Hashable {

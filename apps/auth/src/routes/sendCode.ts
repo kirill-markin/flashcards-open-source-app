@@ -73,7 +73,10 @@ app.post("/api/send-code", async (c) => {
     sameSite: "Strict",
   });
 
-  return c.json({ ok: true, csrfToken });
+  // Browser login keeps using the httpOnly cookie, but native clients need the
+  // same signed OTP session in the response body because they should not depend
+  // on browser-cookie behavior to complete verify-code.
+  return c.json({ ok: true, csrfToken, otpSessionToken: signed });
 });
 
 export default app;

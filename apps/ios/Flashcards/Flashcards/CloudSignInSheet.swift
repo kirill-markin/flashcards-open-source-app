@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -52,15 +53,7 @@ struct CloudSignInSheet: View {
     @ViewBuilder
     private var emailSection: some View {
         Section("Email") {
-            TextField(
-                "Email",
-                text: self.$email,
-                prompt: Text("you@example.com").foregroundStyle(.secondary)
-            )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.emailAddress)
-                .textContentType(.emailAddress)
+            CloudEmailTextField(text: self.$email)
 
             Button("Send code") {
                 self.sendCode()
@@ -84,6 +77,7 @@ struct CloudSignInSheet: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
 
             Button("Verify and sync") {
                 self.verifyCode(challenge: challenge)
@@ -188,6 +182,63 @@ private func shouldResetOtpFlow(error: Error) -> Bool {
         return message.contains("Session expired")
     case .invalidBaseUrl, .invalidResponseBody:
         return false
+    }
+}
+
+private struct CloudEmailTextField: UIViewRepresentable {
+    @Binding var text: String
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: self.$text)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField(frame: .zero)
+        textField.delegate = context.coordinator
+        textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
+        // SwiftUI prompt styling inside Form kept inheriting tint, so use UITextField
+        // to get the standard iOS placeholder color and behavior reliably.
+        textField.placeholder = "you@example.com"
+        textField.attributedPlaceholder = NSAttributedString(
+            string: "you@example.com",
+            attributes: [.foregroundColor: UIColor.placeholderText]
+        )
+        textField.keyboardType = .emailAddress
+        textField.textContentType = .emailAddress
+        textField.autocapitalizationType = .none
+        textField.autocorrectionType = .no
+        textField.clearButtonMode = .whileEditing
+        textField.returnKeyType = .done
+        textField.borderStyle = .none
+        textField.backgroundColor = .clear
+        textField.textColor = .label
+        textField.adjustsFontForContentSizeCategory = true
+        textField.font = UIFont.preferredFont(forTextStyle: .body)
+        return textField
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.text != self.text {
+            uiView.text = self.text
+        }
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        private let text: Binding<String>
+
+        init(text: Binding<String>) {
+            self.text = text
+        }
+
+        @objc
+        func textDidChange(_ textField: UITextField) {
+            self.text.wrappedValue = textField.text ?? ""
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
+            return true
+        }
     }
 }
 
