@@ -17,10 +17,18 @@ This repository is under active development and not production-ready yet.
 - Card scheduling is compute-on-write in API (on review submit)
 - Card queue is filter-on-read (`due_at <= now()`)
 
-## Planned clients
+## Card scheduling
 
-- Minimal web MVP for first launch
-- iOS app in Swift (next)
+- Review scheduling uses FSRS-6 with pinned default weights
+- The full scheduler is implemented in backend and iOS and must stay behaviorally identical
+- The web app mirrors the scheduler data contract and review flow, but does not contain a third FSRS implementation
+- Cards appear in review when they are due: `due_at <= now()`
+- Detailed scheduling rules live in [`docs/fsrs-scheduling-logic.md`](docs/fsrs-scheduling-logic.md)
+
+## Clients
+
+- Web app in `apps/web` for cards, decks, review, and AI chat
+- iOS app in `apps/ios` with local SQLite, offline-first review flow, and FSRS parity with backend
 - Android app later
 
 ## Local run
