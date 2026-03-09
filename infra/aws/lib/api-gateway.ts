@@ -256,9 +256,16 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   chat.addMethod("POST", streamingIntegration);
   chat.addResource("diagnostics").addMethod("POST", integration);
 
-  const sync = restApi.root.addResource("sync");
-  sync.addResource("push").addMethod("POST", integration);
-  sync.addResource("pull").addMethod("POST", integration);
+  const workspaces = restApi.root.addResource("workspaces");
+  workspaces.addMethod("GET", integration);
+  workspaces.addMethod("POST", integration);
+
+  const workspaceById = workspaces.addResource("{workspaceId}");
+  workspaceById.addResource("select").addMethod("POST", integration);
+
+  const workspaceSync = workspaceById.addResource("sync");
+  workspaceSync.addResource("push").addMethod("POST", integration);
+  workspaceSync.addResource("pull").addMethod("POST", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);

@@ -94,6 +94,28 @@ curl_with_dns_resolution_and_headers() {
   curl -sS --resolve "${host}:443:${resolved_ip}" -D "$headers_file" -o "$response_file" -w "%{http_code}" "$url"
 }
 
+get_header_value() {
+  local headers_file="$1"
+  local header_name="$2"
+
+  python3 - "$headers_file" "$header_name" <<'PY'
+import sys
+
+headers_path = sys.argv[1]
+header_name = sys.argv[2].lower()
+
+with open(headers_path, "r", encoding="utf-8", errors="replace") as handle:
+    for raw_line in handle:
+        line = raw_line.rstrip("\r\n")
+        if ":" not in line:
+            continue
+        name, value = line.split(":", 1)
+        if name.lower() == header_name:
+            print(value.strip())
+            break
+PY
+}
+
 check_url() {
   local url="$1"
   local expected_status="$2"
@@ -142,6 +164,115 @@ check_url_not_ok() {
   fi
 
   echo "Public endpoint absence check passed: ${description} (${url}) returned ${http_status}"
+}
+
+check_api_json_endpoint() {
+  local url="$1"
+  local origin="$2"
+  local description="$3"
+  local response_file
+  local headers_file
+  local http_status
+  local content_type
+  local allow_origin
+  local request_id
+
+  response_file=$(mktemp)
+  headers_file=$(mktemp)
+  trap 'rm -f "$response_file" "$headers_file"' RETURN
+
+  http_status=$(curl -sS -D "$headers_file" -o "$response_file" \
+    -H "Origin: ${origin}" \
+    "$url" \
+    -w "%{http_code}")
+
+  content_type=$(get_header_value "$headers_file" "content-type")
+  allow_origin=$(get_header_value "$headers_file" "access-control-allow-origin")
+  request_id=$(get_header_value "$headers_file" "x-request-id")
+
+  if [[ "$http_status" != "200" && "$http_status" != "401" ]]; then
+    echo "ERROR: ${description} returned unexpected status ${http_status}: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$content_type" != application/json* ]]; then
+    echo "ERROR: ${description} did not return JSON content: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$allow_origin" != "$origin" ]]; then
+    echo "ERROR: ${description} did not return the expected CORS origin header: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ -z "$request_id" ]]; then
+    echo "ERROR: ${description} did not return X-Request-Id: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if grep -qi 'MissingAuthenticationToken' "$response_file"; then
+    echo "ERROR: ${description} still points at an API Gateway tombstone route: ${url}" >&2
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  echo "Public API route check passed: ${description} (${url}) returned ${http_status}"
+}
+
+check_api_preflight() {
+  local url="$1"
+  local origin="$2"
+  local method="$3"
+  local request_headers="$4"
+  local description="$5"
+  local response_file
+  local headers_file
+  local http_status
+  local allow_origin
+
+  response_file=$(mktemp)
+  headers_file=$(mktemp)
+  trap 'rm -f "$response_file" "$headers_file"' RETURN
+
+  http_status=$(curl -sS -D "$headers_file" -o "$response_file" \
+    -X OPTIONS \
+    -H "Origin: ${origin}" \
+    -H "Access-Control-Request-Method: ${method}" \
+    -H "Access-Control-Request-Headers: ${request_headers}" \
+    "$url" \
+    -w "%{http_code}")
+
+  allow_origin=$(get_header_value "$headers_file" "access-control-allow-origin")
+
+  if [[ "$http_status" != "200" && "$http_status" != "204" ]]; then
+    echo "ERROR: ${description} preflight returned unexpected status ${http_status}: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$allow_origin" != "$origin" ]]; then
+    echo "ERROR: ${description} preflight did not return the expected CORS origin header: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if grep -qi 'MissingAuthenticationToken' "$response_file"; then
+    echo "ERROR: ${description} preflight still points at an API Gateway tombstone route: ${url}" >&2
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  echo "Public API preflight check passed: ${description} (${url}) returned ${http_status}"
 }
 
 check_redirect_url() {
@@ -200,10 +331,16 @@ if [[ -z "$AUTH_PUBLIC_BASE" || "$AUTH_PUBLIC_BASE" == "None" ]]; then
   exit 1
 fi
 
+WORKSPACES_URL="${API_PUBLIC_BASE%/}/workspaces"
+ME_URL="${API_PUBLIC_BASE%/}/me"
+
 check_url "${API_PUBLIC_BASE}/health" "200" "public API health"
 check_url "${AUTH_PUBLIC_BASE}/health" "200" "public auth health"
 check_url "${WEB_PUBLIC_BASE}" "200" "public web root"
 check_url "${API_PUBLIC_BASE}/auth/health" "404" "legacy public auth tombstone"
+check_api_json_endpoint "$ME_URL" "$WEB_PUBLIC_BASE" "public API session endpoint"
+check_api_json_endpoint "$WORKSPACES_URL" "$WEB_PUBLIC_BASE" "public API workspaces endpoint"
+check_api_preflight "$WORKSPACES_URL" "$WEB_PUBLIC_BASE" "GET" "content-type" "public API workspaces endpoint"
 
 if [[ -n "$APEX_REDIRECT_TARGET" && "$APEX_REDIRECT_TARGET" != "None" && -n "$BASE_DOMAIN" && "$BASE_DOMAIN" != "None" ]]; then
   check_redirect_url "https://${BASE_DOMAIN}" "308" "https://app.${BASE_DOMAIN}/" "public apex redirect"
