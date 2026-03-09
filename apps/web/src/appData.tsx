@@ -11,7 +11,7 @@ import {
 import {
   ApiError,
   buildLoginUrl,
-  createWorkspace,
+  createWorkspace as createWorkspaceRequest,
   getSession,
   listWorkspaces,
   pullSyncChanges,
@@ -80,6 +80,7 @@ type AppDataContextValue = Readonly<{
   setErrorMessage: (message: string) => void;
   initialize: () => Promise<void>;
   chooseWorkspace: (workspaceId: string) => Promise<void>;
+  createWorkspace: (name: string) => Promise<void>;
   ensureCardsLoaded: () => Promise<void>;
   ensureDecksLoaded: () => Promise<void>;
   ensureReviewQueueLoaded: () => Promise<void>;
@@ -238,6 +239,13 @@ function markSelectedWorkspaces(
     ...workspace,
     isSelected: workspace.workspaceId === selectedWorkspaceId,
   }));
+}
+
+function upsertWorkspaceSummary(
+  workspaces: ReadonlyArray<WorkspaceSummary>,
+  workspace: WorkspaceSummary,
+): Array<WorkspaceSummary> {
+  return [...workspaces.filter((item) => item.workspaceId !== workspace.workspaceId), workspace];
 }
 
 function buildInitialCard(
@@ -468,7 +476,7 @@ export function AppDataProvider(props: Props): ReactElement {
     if (workspaces.length === 0) {
       // The web app does not persist a local workspace name, so use the same
       // predictable default label for the first explicit remote workspace.
-      const createdWorkspace = await createWorkspace(defaultWorkspaceName);
+      const createdWorkspace = await createWorkspaceRequest(defaultWorkspaceName);
       await activateWorkspace(currentSession, [createdWorkspace], createdWorkspace);
       return;
     }
@@ -725,6 +733,31 @@ export function AppDataProvider(props: Props): ReactElement {
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsChoosingWorkspace(false);
+    }
+  }, [activateWorkspace, availableWorkspaces, session]);
+
+  const createWorkspace = useCallback(async function createWorkspace(name: string): Promise<void> {
+    if (session === null) {
+      throw new Error("Session is unavailable");
+    }
+
+    const trimmedName = name.trim();
+    if (trimmedName === "") {
+      throw new Error("Workspace name is required");
+    }
+
+    setIsChoosingWorkspace(true);
+    try {
+      const createdWorkspace = await createWorkspaceRequest(trimmedName);
+      const nextWorkspaces = upsertWorkspaceSummary(availableWorkspaces, createdWorkspace);
+      await activateWorkspace(session, nextWorkspaces, createdWorkspace);
+      setErrorMessage("");
+    } catch (error) {
+      const nextErrorMessage = getErrorMessage(error);
+      setErrorMessage(nextErrorMessage);
+      throw error;
     } finally {
       setIsChoosingWorkspace(false);
     }
@@ -1036,6 +1069,7 @@ export function AppDataProvider(props: Props): ReactElement {
     setErrorMessage,
     initialize,
     chooseWorkspace,
+    createWorkspace,
     ensureCardsLoaded,
     ensureDecksLoaded,
     ensureReviewQueueLoaded,

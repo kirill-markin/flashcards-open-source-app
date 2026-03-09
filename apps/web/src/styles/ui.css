@@ -65,7 +65,10 @@
   min-height: 36px;
   padding: 8px 12px;
   border: 1px solid var(--panel-border);
+  font-size: 12px;
+  font-family: inherit;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .primary-btn {
@@ -116,7 +119,7 @@
 
 .txn-th {
   padding: 6px 10px;
-  text-align: left;
+  text-align: start;
   font-weight: 650;
   border-bottom: 1px solid var(--panel-border);
 }
