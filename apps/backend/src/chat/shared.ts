@@ -1,41 +1,29 @@
 import { randomUUID } from "node:crypto";
-import {
-  createCard,
-  getCard,
-  listCards,
-  listReviewHistory,
-  listReviewQueue,
-  searchCards,
-  summarizeDeckState,
-  updateCard,
-  type CreateCardInput,
-  type EffortLevel,
-  type UpdateCardInput,
-} from "../cards";
+import * as cards from "../cards";
+import type { CreateCardInput, EffortLevel, UpdateCardInput } from "../cards";
 import type { ChatMessage, ContentPart } from "./types";
 
 const MAX_LIST_LIMIT = 100;
 
+export const cardsApi = {
+  createCard: cards.createCard,
+  getCard: cards.getCard,
+  listCards: cards.listCards,
+  listReviewHistory: cards.listReviewHistory,
+  listReviewQueue: cards.listReviewQueue,
+  searchCards: cards.searchCards,
+  summarizeDeckState: cards.summarizeDeckState,
+  updateCard: cards.updateCard,
+} as const;
+
 export type AgentContext = Readonly<{
   workspaceId: string;
   deviceId: string;
-  latestUserText: string;
 }>;
 
 type WriteToolInput = Readonly<{
   deviceId: string;
-  latestUserText: string;
 }>;
-
-const CONFIRMATION_PATTERNS: ReadonlyArray<RegExp> = [
-  /\bconfirm\b/i,
-  /\bapproved?\b/i,
-  /\byes\b/i,
-  /\bgo ahead\b/i,
-  /\bdo it\b/i,
-  /\bapply (it|this|changes?)\b/i,
-  /\bproceed\b/i,
-];
 
 function formatDatetime(timezone: string): string {
   const now = new Date();
@@ -83,18 +71,6 @@ function normalizeLimit(limit: number | undefined): number {
   }
 
   return limit;
-}
-
-function ensureWriteConfirmed(input: WriteToolInput): void {
-  const latestUserText = input.latestUserText.trim();
-  if (latestUserText === "") {
-    throw new Error("Write tool requires an explicit user confirmation message");
-  }
-
-  const isConfirmed = CONFIRMATION_PATTERNS.some((pattern) => pattern.test(latestUserText));
-  if (!isConfirmed) {
-    throw new Error("Write tool blocked: latest user message is not an explicit confirmation");
-  }
 }
 
 function makeWriteMetadata(deviceId: string): Readonly<{
@@ -154,12 +130,12 @@ function ensureNonEmptyCardText(value: string, fieldName: string): string {
 }
 
 export async function runListCardsTool(workspaceId: string, limit: number | undefined): Promise<string> {
-  const items = await listCards(workspaceId);
+  const items = await cardsApi.listCards(workspaceId);
   return stringifyResult(items.slice(0, normalizeLimit(limit)));
 }
 
 export async function runGetCardTool(workspaceId: string, cardId: string): Promise<string> {
-  return stringifyResult(await getCard(workspaceId, cardId));
+  return stringifyResult(await cardsApi.getCard(workspaceId, cardId));
 }
 
 export async function runSearchCardsTool(
@@ -172,11 +148,11 @@ export async function runSearchCardsTool(
     throw new Error("query must not be empty");
   }
 
-  return stringifyResult(await searchCards(workspaceId, queryText, normalizeLimit(limit)));
+  return stringifyResult(await cardsApi.searchCards(workspaceId, queryText, normalizeLimit(limit)));
 }
 
 export async function runListDueCardsTool(workspaceId: string, limit: number | undefined): Promise<string> {
-  return stringifyResult(await listReviewQueue(workspaceId, normalizeLimit(limit)));
+  return stringifyResult(await cardsApi.listReviewQueue(workspaceId, normalizeLimit(limit)));
 }
 
 export async function runListReviewHistoryTool(
@@ -184,11 +160,11 @@ export async function runListReviewHistoryTool(
   limit: number | undefined,
   cardId?: string,
 ): Promise<string> {
-  return stringifyResult(await listReviewHistory(workspaceId, normalizeLimit(limit), cardId));
+  return stringifyResult(await cardsApi.listReviewHistory(workspaceId, normalizeLimit(limit), cardId));
 }
 
 export async function runSummarizeDeckStateTool(workspaceId: string): Promise<string> {
-  return stringifyResult(await summarizeDeckState(workspaceId));
+  return stringifyResult(await cardsApi.summarizeDeckState(workspaceId));
 }
 
 export async function runCreateCardTool(
@@ -196,10 +172,9 @@ export async function runCreateCardTool(
   input: CreateCardInput,
   writeToolInput: WriteToolInput,
 ): Promise<string> {
-  ensureWriteConfirmed(writeToolInput);
   const validatedInput = validateCreateInput(input);
 
-  return stringifyResult(await createCard(workspaceId, {
+  return stringifyResult(await cardsApi.createCard(workspaceId, {
     frontText: ensureNonEmptyCardText(validatedInput.frontText, "frontText"),
     backText: ensureNonEmptyCardText(validatedInput.backText, "backText"),
     tags: validatedInput.tags,
@@ -213,7 +188,6 @@ export async function runUpdateCardTool(
   input: UpdateCardInput,
   writeToolInput: WriteToolInput,
 ): Promise<string> {
-  ensureWriteConfirmed(writeToolInput);
   const validatedInput = validateUpdateInput(input);
   const nextInput: {
     frontText?: string;
@@ -238,7 +212,7 @@ export async function runUpdateCardTool(
     nextInput.effortLevel = validatedInput.effortLevel;
   }
 
-  return stringifyResult(await updateCard(workspaceId, cardId, nextInput, makeWriteMetadata(writeToolInput.deviceId)));
+  return stringifyResult(await cardsApi.updateCard(workspaceId, cardId, nextInput, makeWriteMetadata(writeToolInput.deviceId)));
 }
 
 export function extractText(content: ReadonlyArray<ContentPart>): string {

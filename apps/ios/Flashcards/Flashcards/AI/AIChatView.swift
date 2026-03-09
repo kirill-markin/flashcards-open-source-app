@@ -108,7 +108,7 @@ struct AIChatView: View {
                                     .font(.headline)
                                 Text("Summarize weak areas from my due cards.")
                                 Text("Find cards tagged with grammar and suggest cleanup.")
-                                Text("Propose a new deck filter, then wait for confirmation before changing it.")
+                                Text("Propose a new deck filter and explain the exact change.")
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(16)

@@ -103,7 +103,7 @@ private struct RepairingChatService: AIChatStreaming {
 }
 
 private struct FailingToolExecutor: AIToolExecuting {
-    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String, requestId: String?) async throws -> String {
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> String {
         XCTFail("execute should not be called in this test")
         return ""
     }
@@ -262,7 +262,6 @@ final class AIChatTests: XCTestCase {
                 name: "get_workspace_context",
                 input: "{}"
             ),
-            latestUserText: "show me the current workspace",
             requestId: "request-1"
         )
         let workspaceContext = try XCTUnwrap(
@@ -271,30 +270,12 @@ final class AIChatTests: XCTestCase {
         let workspace = try XCTUnwrap(workspaceContext["workspace"] as? [String: Any])
         XCTAssertEqual(workspace["name"] as? String, "Local Workspace")
 
-        do {
-            _ = try await executor.execute(
-                toolCallRequest: AIToolCallRequest(
-                    toolCallId: "call-2",
-                    name: "create_card",
-                    input: "{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}"
-                ),
-                latestUserText: "please create a card",
-                requestId: "request-1"
-            )
-            XCTFail("Expected write confirmation error")
-        } catch let error as AIToolExecutionError {
-            guard case .writeConfirmationRequired = error else {
-                return XCTFail("Expected write confirmation error, received \(error.localizedDescription)")
-            }
-        }
-
         let createdCardJson = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-3",
+                toolCallId: "call-2",
                 name: "create_card",
                 input: "{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}"
             ),
-            latestUserText: "yes, do it",
             requestId: "request-1"
         )
         let createdCard = try JSONDecoder().decode(Card.self, from: Data(createdCardJson.utf8))
@@ -303,7 +284,7 @@ final class AIChatTests: XCTestCase {
     }
 
     @MainActor
-    func testLocalToolExecutorRejectsBulkCreateWithoutConfirmation() async throws {
+    func testLocalToolExecutorCreatesCardsWithoutConfirmationText() async throws {
         let flashcardsStore = try self.makeStore()
         let executor = LocalAIToolExecutor(
             flashcardsStore: flashcardsStore,
@@ -311,27 +292,22 @@ final class AIChatTests: XCTestCase {
             decoder: JSONDecoder()
         )
 
-        do {
-            _ = try await executor.execute(
-                toolCallRequest: AIToolCallRequest(
-                    toolCallId: "call-bulk-create",
-                    name: "create_cards",
-                    input: """
-                    {"cards":[
-                        {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
-                        {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
-                    ]}
-                    """
-                ),
-                latestUserText: "please create these cards",
-                requestId: "request-1"
-            )
-            XCTFail("Expected write confirmation error")
-        } catch let error as AIToolExecutionError {
-            guard case .writeConfirmationRequired = error else {
-                return XCTFail("Expected write confirmation error, received \(error.localizedDescription)")
-            }
-        }
+        let createdCardsJson = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-bulk-create",
+                name: "create_cards",
+                input: """
+                {"cards":[
+                    {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
+                    {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
+                ]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsJson.utf8))
+        XCTAssertEqual(createdCards.count, 2)
+        XCTAssertEqual(flashcardsStore.cards.count, 2)
     }
 
     @MainActor
@@ -350,7 +326,6 @@ final class AIChatTests: XCTestCase {
                     name: "list_cards",
                     input: "{\"limit\":5}\n{\"limit\":10}"
                 ),
-                latestUserText: "show cards",
                 requestId: "request-123"
             )
             XCTFail("Expected invalid tool input error")
@@ -387,7 +362,6 @@ final class AIChatTests: XCTestCase {
                 ]}
                 """
             ),
-            latestUserText: "yes, do it",
             requestId: "request-1"
         )
         let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsJson.utf8))
@@ -405,7 +379,6 @@ final class AIChatTests: XCTestCase {
                 ]}
                 """
             ),
-            latestUserText: "yes, apply these changes",
             requestId: "request-1"
         )
         let updatedCards = try JSONDecoder().decode([Card].self, from: Data(updatedCardsJson.utf8))
@@ -433,7 +406,6 @@ final class AIChatTests: XCTestCase {
                 {"cardIds":["\(createdCards[0].cardId)","\(createdCards[1].cardId)"]}
                 """
             ),
-            latestUserText: "yes, proceed",
             requestId: "request-1"
         )
         let deletedCardsPayload = try JSONDecoder().decode(BulkDeleteCardsPayload.self, from: Data(deletedCardsJson.utf8))

@@ -310,7 +310,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "create_card",
     description: strictDescription(
-      "Create one new card locally after explicit user confirmation. Use create_cards for multiple cards.",
+      "Create one new card locally. Use create_cards for multiple cards.",
       "Use {\"frontText\": string, \"backText\": string, \"tags\": string[], \"effortLevel\": \"fast\"|\"medium\"|\"long\"}."
     ),
     strict: true,
@@ -320,7 +320,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "create_cards",
     description: strictDescription(
-      "Create multiple new cards locally after explicit user confirmation. Use only when the user clearly requested multiple cards or you already identified multiple targets.",
+      "Create multiple new cards locally. Use only when the user clearly requested multiple cards or you already identified multiple targets.",
       "Use {\"cards\": CardInput[]} where every card object includes frontText, backText, tags, and effortLevel."
     ),
     strict: true,
@@ -335,7 +335,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "update_card",
     description: strictDescription(
-      "Update one card locally after explicit user confirmation. Use update_cards for multiple cards.",
+      "Update one card locally. Use update_cards for multiple cards.",
       "Use {\"cardId\": string, \"frontText\": string|null, \"backText\": string|null, \"tags\": string[]|null, \"effortLevel\": \"fast\"|\"medium\"|\"long\"|null}. Include every property. Use null for unchanged fields."
     ),
     strict: true,
@@ -345,7 +345,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "update_cards",
     description: strictDescription(
-      "Update multiple cards locally after explicit user confirmation. Use only when the user clearly requested multiple card changes or you already identified multiple targets.",
+      "Update multiple cards locally. Use only when the user clearly requested multiple card changes or you already identified multiple targets.",
       "Use {\"updates\": UpdateCardInput[]} where every update object includes cardId, frontText, backText, tags, and effortLevel. Use null for unchanged fields."
     ),
     strict: true,
@@ -360,7 +360,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "delete_card",
     description: strictDescription(
-      "Delete one card locally after explicit user confirmation. Use delete_cards for multiple cards.",
+      "Delete one card locally. Use delete_cards for multiple cards.",
       "Use {\"cardId\": string}."
     ),
     strict: true,
@@ -372,7 +372,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "delete_cards",
     description: strictDescription(
-      "Delete multiple cards locally after explicit user confirmation. Use only when the user clearly requested multiple deletions or you already identified multiple targets.",
+      "Delete multiple cards locally. Use only when the user clearly requested multiple deletions or you already identified multiple targets.",
       "Use {\"cardIds\": string[]}."
     ),
     strict: true,
@@ -387,7 +387,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "create_deck",
     description: strictDescription(
-      "Create a new deck locally after explicit user confirmation using effort-level and tag filters.",
+      "Create a new deck locally using effort-level and tag filters.",
       "Use {\"name\": string, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[], \"combineWith\": \"and\"|\"or\", \"tagsOperator\": \"containsAny\"|\"containsAll\", \"tags\": string[]}."
     ),
     strict: true,
@@ -409,7 +409,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "update_deck",
     description: strictDescription(
-      "Update a deck locally after explicit user confirmation using effort-level and tag filters.",
+      "Update a deck locally using effort-level and tag filters.",
       "Use {\"deckId\": string, \"name\": string|null, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[]|null, \"combineWith\": \"and\"|\"or\"|null, \"tagsOperator\": \"containsAny\"|\"containsAll\"|null, \"tags\": string[]|null}. Include every property. Use null for unchanged fields."
     ),
     strict: true,
@@ -432,7 +432,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "delete_deck",
     description: strictDescription(
-      "Delete a deck locally after explicit user confirmation.",
+      "Delete a deck locally.",
       "Use {\"deckId\": string}."
     ),
     strict: true,
@@ -444,7 +444,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "submit_review",
     description: strictDescription(
-      "Submit a local review rating for a card after explicit user confirmation.",
+      "Submit a local review rating for a card.",
       "Use {\"cardId\": string, \"rating\": \"again\"|\"hard\"|\"good\"|\"easy\"}."
     ),
     strict: true,
@@ -457,7 +457,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "update_scheduler_settings",
     description: strictDescription(
-      "Update workspace scheduler settings locally after explicit user confirmation.",
+      "Update workspace scheduler settings locally.",
       "Use {\"desiredRetention\": number, \"learningStepsMinutes\": integer[], \"relearningStepsMinutes\": integer[], \"maximumIntervalDays\": integer, \"enableFuzz\": boolean}. Include every property."
     ),
     strict: true,

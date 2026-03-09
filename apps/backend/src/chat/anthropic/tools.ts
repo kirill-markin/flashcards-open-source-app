@@ -85,7 +85,7 @@ const SUMMARIZE_DECK_STATE_TOOL: Anthropic.Tool = {
 
 const CREATE_CARD_TOOL: Anthropic.Tool = {
   name: "create_card",
-  description: "Create a new card after explicit user confirmation.",
+  description: "Create a new card.",
   input_schema: {
     type: "object",
     properties: {
@@ -106,7 +106,7 @@ const CREATE_CARD_TOOL: Anthropic.Tool = {
 
 const UPDATE_CARD_TOOL: Anthropic.Tool = {
   name: "update_card",
-  description: "Update editable card fields after explicit user confirmation.",
+  description: "Update editable card fields.",
   input_schema: {
     type: "object",
     properties: {
@@ -167,7 +167,6 @@ export async function executeTool(
   toolInput: unknown,
   workspaceId: string,
   deviceId: string,
-  latestUserText: string,
 ): Promise<Anthropic.ToolResultBlockParam> {
   try {
     const input = typeof toolInput === "object" && toolInput !== null ? toolInput as Record<string, unknown> : {};
@@ -223,7 +222,6 @@ export async function executeTool(
           },
           {
             deviceId,
-            latestUserText,
           },
         );
         break;
@@ -244,7 +242,6 @@ export async function executeTool(
           },
           {
             deviceId,
-            latestUserText,
           },
         );
         break;

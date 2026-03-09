@@ -100,7 +100,7 @@ export const summarizeDeckStateTool = tool({
 
 export const createCardTool = tool({
   name: "create_card",
-  description: "Create a new card after explicit user confirmation.",
+  description: "Create a new card.",
   parameters: z.object({
     frontText: z.string().min(1),
     backText: z.string().min(1),
@@ -114,14 +114,13 @@ export const createCardTool = tool({
     const context = expectRunContext(runContext);
     return runCreateCardTool(context.workspaceId, input, {
       deviceId: context.deviceId,
-      latestUserText: context.latestUserText,
     });
   },
 });
 
 export const updateCardTool = tool({
   name: "update_card",
-  description: "Update editable card fields after explicit user confirmation.",
+  description: "Update editable card fields.",
   parameters: z.object({
     cardId: z.string().min(1),
     frontText: z.string().min(1).nullable(),
@@ -151,7 +150,6 @@ export const updateCardTool = tool({
       },
       {
         deviceId: context.deviceId,
-        latestUserText: context.latestUserText,
       },
     );
   },

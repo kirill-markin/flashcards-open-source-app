@@ -3,7 +3,6 @@ import Foundation
 enum AIToolExecutionError: LocalizedError {
     case unsupportedTool(String)
     case missingWorkspace
-    case writeConfirmationRequired
     case invalidToolInput(
         requestId: String?,
         toolName: String,
@@ -19,8 +18,6 @@ enum AIToolExecutionError: LocalizedError {
             return "Unsupported AI tool: \(name)"
         case .missingWorkspace:
             return "Workspace is unavailable"
-        case .writeConfirmationRequired:
-            return "Write tool blocked: latest user message is not an explicit confirmation"
         case .invalidToolInput(let requestId, let toolName, let toolCallId, _, _, _):
             let reference = requestId?.isEmpty == false ? requestId ?? toolCallId : toolCallId
             return [
@@ -180,16 +177,6 @@ private enum AIReviewRating: String, Decodable {
     }
 }
 
-private let aiWriteConfirmationPatterns: [String] = [
-    #"(?i)\bconfirm\b"#,
-    #"(?i)\bapproved?\b"#,
-    #"(?i)\byes\b"#,
-    #"(?i)\bgo ahead\b"#,
-    #"(?i)\bdo it\b"#,
-    #"(?i)\bapply (it|this|changes?)\b"#,
-    #"(?i)\bproceed\b"#,
-]
-
 @MainActor
 struct LocalAIToolExecutor: AIToolExecuting {
     private let flashcardsStore: FlashcardsStore
@@ -202,7 +189,7 @@ struct LocalAIToolExecutor: AIToolExecuting {
         self.decoder = decoder
     }
 
-    func execute(toolCallRequest: AIToolCallRequest, latestUserText: String, requestId: String?) async throws -> String {
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> String {
         switch toolCallRequest.name {
         case "get_workspace_context":
             return try self.encodeJSON(value: try self.makeWorkspaceContextPayload())
@@ -240,50 +227,39 @@ struct LocalAIToolExecutor: AIToolExecuting {
             let input = try self.decodeInput(ListOutboxToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.encodeJSON(value: try self.makeOutboxPayload(limit: self.normalizeLimit(input.limit)))
         case "create_card":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(CreateCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.createCard(input: input)
         case "create_cards":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(CreateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.createCards(input: input)
         case "update_card":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(UpdateCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.updateCard(input: input)
         case "update_cards":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(UpdateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.updateCards(input: input)
         case "delete_card":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(DeleteCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.flashcardsStore.deleteCard(cardId: input.cardId)
             return try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted card \(input.cardId)"))
         case "delete_cards":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(DeleteCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.deleteCards(input: input)
         case "create_deck":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(CreateDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.createDeck(input: input)
         case "update_deck":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(UpdateDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return try self.updateDeck(input: input)
         case "delete_deck":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(DeleteDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.flashcardsStore.deleteDeck(deckId: input.deckId)
             return try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted deck \(input.deckId)"))
         case "submit_review":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(SubmitReviewToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.flashcardsStore.submitReview(cardId: input.cardId, rating: input.rating.reviewRating)
             return try self.encodeJSON(value: try self.findCard(cardId: input.cardId))
         case "update_scheduler_settings":
-            try self.ensureWriteConfirmed(latestUserText: latestUserText)
             let input = try self.decodeInput(UpdateSchedulerSettingsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.flashcardsStore.updateSchedulerSettings(
                 desiredRetention: input.desiredRetention,
@@ -553,21 +529,6 @@ struct LocalAIToolExecutor: AIToolExecuting {
             return "workspace scheduler settings"
         case .reviewEvent(let reviewEventPayload):
             return "review event \(reviewEventPayload.reviewEventId)"
-        }
-    }
-
-    private func ensureWriteConfirmed(latestUserText: String) throws {
-        let trimmedText = latestUserText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedText.isEmpty {
-            throw AIToolExecutionError.writeConfirmationRequired
-        }
-
-        let isConfirmed = aiWriteConfirmationPatterns.contains { pattern in
-            trimmedText.range(of: pattern, options: .regularExpression) != nil
-        }
-
-        if isConfirmed == false {
-            throw AIToolExecutionError.writeConfirmationRequired
         }
     }
 

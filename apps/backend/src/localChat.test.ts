@@ -97,6 +97,7 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
 
   assert.match(instructions, /Tool arguments must be exactly one JSON object\./);
   assert.match(instructions, /If a field is optional semantically, send null instead of omitting it\./);
+  assert.match(instructions, /wait for explicit user confirmation before executing the write tool/i);
   assert.match(instructions, /list_cards => \{"limit": 20\}/);
   assert.match(instructions, /search_cards => \{"query": "grammar", "limit": null\}/);
   assert.match(instructions, /list_review_history => \{"limit": 20, "cardId": null\}/);

@@ -10,7 +10,6 @@ import type {
 import {
   buildSystemInstructions,
   extractText,
-  getLatestUserText,
   summarizeContent,
   type AgentContext,
 } from "../shared";
@@ -206,7 +205,6 @@ export async function* streamAgentResponse(
     context: {
       workspaceId: params.workspaceId,
       deviceId: params.deviceId,
-      latestUserText: getLatestUserText(params.messages),
     },
     maxTurns: 10,
   });
