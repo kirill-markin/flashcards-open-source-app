@@ -1,5 +1,12 @@
 import SwiftUI
 
+private let reviewBottomBarHorizontalPadding: CGFloat = 20
+private let reviewBottomBarTopPadding: CGFloat = 16
+private let reviewBottomBarBottomPadding: CGFloat = 12
+private let reviewBottomBarButtonSpacing: CGFloat = 12
+private let reviewAnswerButtonMinHeight: CGFloat = 64
+private let showAnswerButtonMinHeight: CGFloat = (reviewAnswerButtonMinHeight * 2) + reviewBottomBarButtonSpacing
+
 struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
@@ -88,104 +95,178 @@ struct ReviewView: View {
 
     private func activeCardView(card: Card) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if screenErrorMessage.isEmpty == false {
-                    Text(screenErrorMessage)
-                        .foregroundStyle(.red)
-                }
+            activeCardContentView(card: card)
+                .padding(20)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            reviewBottomBar(card: card)
+        }
+    }
 
-                HStack(spacing: 12) {
-                    Label(card.effortLevel.title, systemImage: "timer")
-                    Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+    private func activeCardContentView(card: Card) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            if screenErrorMessage.isEmpty == false {
+                Text(screenErrorMessage)
+                    .foregroundStyle(.red)
+            }
 
+            HStack(spacing: 12) {
+                Label(card.effortLevel.title, systemImage: "timer")
+                Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Front")
+                    .font(.caption)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+
+                Text(card.frontText)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+
+            if isAnswerVisible {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Front")
+                    Text("Back")
                         .font(.caption)
                         .textCase(.uppercase)
                         .foregroundStyle(.secondary)
 
-                    Text(card.frontText)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                    Text(card.backText)
+                        .font(.title3)
+                        .fontWeight(.medium)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(24)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(Color(uiColor: .secondarySystemBackground))
+                )
+            }
 
-                if isAnswerVisible {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Back")
-                            .font(.caption)
-                            .textCase(.uppercase)
-                            .foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                Label("Due \(displayTimestamp(value: card.dueAt))", systemImage: "clock")
+                Label("Reps \(card.reps)", systemImage: "arrow.clockwise")
+                Label("Lapses \(card.lapses)", systemImage: "exclamationmark.circle")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
 
-                        Text(card.backText)
-                            .font(.title3)
-                            .fontWeight(.medium)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(24)
-                    .background(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(Color(uiColor: .secondarySystemBackground))
-                    )
-                }
+            if let reviewActionErrorMessage = reviewActionErrorMessage(card: card) {
+                Text(reviewActionErrorMessage)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
 
-                HStack(spacing: 12) {
-                    Label("Due \(displayTimestamp(value: card.dueAt))", systemImage: "clock")
-                    Label("Reps \(card.reps)", systemImage: "arrow.clockwise")
-                    Label("Lapses \(card.lapses)", systemImage: "exclamationmark.circle")
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-                if isAnswerVisible {
-                    let reviewAnswerOptionsState = self.loadReviewAnswerOptions(card: card)
-
-                    if let message = reviewAnswerOptionsState.errorMessage {
-                        Text(message)
-                            .foregroundStyle(.red)
-                    } else {
-                        VStack(spacing: 12) {
-                            ForEach(reviewAnswerOptionsState.options) { option in
-                                Button {
-                                    self.submitReview(cardId: card.cardId, rating: option.rating)
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: option.rating.symbolName)
-                                            .font(.title3)
-
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(option.rating.title)
-                                                .fontWeight(.semibold)
-                                            Text(option.intervalDescription)
-                                                .font(.caption)
-                                                .opacity(0.8)
-                                        }
-
-                                        Spacer()
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .buttonStyle(.borderedProminent)
-                            }
-                        }
-                    }
-                } else {
-                    Button {
-                        isAnswerVisible = true
-                    } label: {
-                        Label("Show answer", systemImage: "eye")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+    @ViewBuilder
+    private func reviewBottomBar(card: Card) -> some View {
+        if isAnswerVisible {
+            if let options = try? resolvedReviewAnswerGridOptions(card: card) {
+                reviewBottomBarContainer {
+                    reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
                 }
             }
-            .padding(20)
+        } else {
+            reviewBottomBarContainer {
+                showAnswerButton
+            }
         }
+    }
+
+    private var showAnswerButton: some View {
+        Button {
+            isAnswerVisible = true
+        } label: {
+            Label("Show answer", systemImage: "eye")
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: showAnswerButtonMinHeight)
+        }
+        .buttonStyle(.borderedProminent)
+    }
+
+    private func reviewAnswerButtonsGrid(cardId: String, options: ReviewAnswerGridOptions) -> some View {
+        HStack(alignment: .top, spacing: reviewBottomBarButtonSpacing) {
+            VStack(spacing: reviewBottomBarButtonSpacing) {
+                reviewAnswerButton(cardId: cardId, option: options.easy)
+                reviewAnswerButton(cardId: cardId, option: options.good)
+            }
+
+            VStack(spacing: reviewBottomBarButtonSpacing) {
+                reviewAnswerButton(cardId: cardId, option: options.hard)
+                reviewAnswerButton(cardId: cardId, option: options.again)
+            }
+        }
+    }
+
+    private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
+        Button {
+            self.submitReview(cardId: cardId, rating: option.rating)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: option.rating.symbolName)
+                        .font(.headline)
+
+                    Text(option.rating.title)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 0)
+                }
+
+                Text(option.intervalDescription)
+                    .font(.caption)
+                    .opacity(0.8)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .topLeading)
+        }
+        .buttonStyle(.borderedProminent)
+    }
+
+    private func reviewBottomBarContainer<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(spacing: 0) {
+            Divider()
+
+            content()
+            .padding(.top, reviewBottomBarTopPadding)
+            .padding(.horizontal, reviewBottomBarHorizontalPadding)
+            .padding(.bottom, reviewBottomBarBottomPadding)
+        }
+        .background(.regularMaterial)
+        .shadow(color: Color.black.opacity(0.08), radius: 10, y: -2)
+    }
+
+    private func reviewActionErrorMessage(card: Card) -> String? {
+        guard isAnswerVisible else {
+            return nil
+        }
+
+        do {
+            _ = try resolvedReviewAnswerGridOptions(card: card)
+            return nil
+        } catch {
+            return localizedMessage(error: error)
+        }
+    }
+
+    private func resolvedReviewAnswerGridOptions(card: Card) throws -> ReviewAnswerGridOptions {
+        let reviewAnswerOptionsState = self.loadReviewAnswerOptions(card: card)
+        if let errorMessage = reviewAnswerOptionsState.errorMessage {
+            throw ReviewViewError.reviewAnswerOptionsUnavailable(errorMessage)
+        }
+
+        return try ReviewAnswerGridOptions(options: reviewAnswerOptionsState.options)
     }
 
     private var emptyStateView: some View {
@@ -229,6 +310,55 @@ struct ReviewView: View {
             return (try makeReviewAnswerOptions(card: card, schedulerSettings: schedulerSettings, now: Date()), nil)
         } catch {
             return ([], localizedMessage(error: error))
+        }
+    }
+}
+
+private struct ReviewAnswerGridOptions {
+    let easy: ReviewAnswerOption
+    let good: ReviewAnswerOption
+    let hard: ReviewAnswerOption
+    let again: ReviewAnswerOption
+
+    init(options: [ReviewAnswerOption]) throws {
+        guard let easyOption = options.first(where: { option in
+            option.rating == .easy
+        }) else {
+            throw ReviewViewError.missingReviewAnswerOption(.easy)
+        }
+        guard let goodOption = options.first(where: { option in
+            option.rating == .good
+        }) else {
+            throw ReviewViewError.missingReviewAnswerOption(.good)
+        }
+        guard let hardOption = options.first(where: { option in
+            option.rating == .hard
+        }) else {
+            throw ReviewViewError.missingReviewAnswerOption(.hard)
+        }
+        guard let againOption = options.first(where: { option in
+            option.rating == .again
+        }) else {
+            throw ReviewViewError.missingReviewAnswerOption(.again)
+        }
+
+        self.easy = easyOption
+        self.good = goodOption
+        self.hard = hardOption
+        self.again = againOption
+    }
+}
+
+private enum ReviewViewError: LocalizedError {
+    case missingReviewAnswerOption(ReviewRating)
+    case reviewAnswerOptionsUnavailable(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingReviewAnswerOption(let rating):
+            return "Missing review answer option for \(rating.title)"
+        case .reviewAnswerOptionsUnavailable(let message):
+            return message
         }
     }
 }
