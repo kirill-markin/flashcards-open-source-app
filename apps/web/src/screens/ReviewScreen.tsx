@@ -1,6 +1,26 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
-import type { Card } from "../types";
+import type { Card, WorkspaceSchedulerSettings } from "../types";
+import {
+  computeReviewSchedule,
+  type ReviewRating,
+} from "../../../backend/src/schedule";
+
+type ReviewButtonOption = Readonly<{
+  title: string;
+  rating: 0 | 1 | 2 | 3;
+  intervalDescription: string;
+}>;
+
+const reviewAnswerOptions: ReadonlyArray<Readonly<{
+  title: string;
+  rating: ReviewRating;
+}>> = [
+  { title: "Easy", rating: 3 },
+  { title: "Good", rating: 2 },
+  { title: "Hard", rating: 1 },
+  { title: "Again", rating: 0 },
+];
 
 function formatTimestamp(value: string | null): string {
   if (value === null) {
@@ -61,12 +81,69 @@ function formatQueueBadge(dueCount: number, totalCount: number): string {
   return `${dueCount} due • ${upcomingCount} upcoming`;
 }
 
+function formatReviewIntervalDescription(now: Date, dueAt: Date): string {
+  const durationMilliseconds = Math.max(dueAt.getTime() - now.getTime(), 0);
+  const durationSeconds = Math.floor(durationMilliseconds / 1000);
+
+  if (durationSeconds < 60) {
+    return "in less than a minute";
+  }
+
+  const durationMinutes = Math.floor(durationSeconds / 60);
+  if (durationMinutes < 60) {
+    return `in ${durationMinutes} minute${durationMinutes === 1 ? "" : "s"}`;
+  }
+
+  const durationHours = Math.floor(durationMinutes / 60);
+  if (durationHours < 24) {
+    return `in ${durationHours} hour${durationHours === 1 ? "" : "s"}`;
+  }
+
+  const durationDays = Math.floor(durationHours / 24);
+  return `in ${durationDays} day${durationDays === 1 ? "" : "s"}`;
+}
+
+function buildReviewButtonOptions(card: Card, schedulerSettings: WorkspaceSchedulerSettings, now: Date): Array<ReviewButtonOption> {
+  return reviewAnswerOptions.map((option) => {
+    const schedule = computeReviewSchedule(
+      {
+        cardId: card.cardId,
+        reps: card.reps,
+        lapses: card.lapses,
+        fsrsCardState: card.fsrsCardState,
+        fsrsStepIndex: card.fsrsStepIndex,
+        fsrsStability: card.fsrsStability,
+        fsrsDifficulty: card.fsrsDifficulty,
+        fsrsLastReviewedAt: card.fsrsLastReviewedAt === null ? null : new Date(card.fsrsLastReviewedAt),
+        fsrsScheduledDays: card.fsrsScheduledDays,
+      },
+      {
+        algorithm: schedulerSettings.algorithm,
+        desiredRetention: schedulerSettings.desiredRetention,
+        learningStepsMinutes: schedulerSettings.learningStepsMinutes,
+        relearningStepsMinutes: schedulerSettings.relearningStepsMinutes,
+        maximumIntervalDays: schedulerSettings.maximumIntervalDays,
+        enableFuzz: schedulerSettings.enableFuzz,
+      },
+      option.rating,
+      now,
+    );
+
+    return {
+      title: option.title,
+      rating: option.rating,
+      intervalDescription: formatReviewIntervalDescription(now, schedule.dueAt),
+    };
+  });
+}
+
 export function ReviewScreen(): ReactElement {
   const {
     cards,
     cardsState,
     reviewQueue,
     reviewQueueState,
+    workspaceSettings,
     ensureCardsLoaded,
     ensureReviewQueueLoaded,
     refreshReviewQueue,
@@ -79,6 +156,19 @@ export function ReviewScreen(): ReactElement {
   const nowTimestamp = Date.now();
   const queueCards = cardsState.hasLoaded ? sortCardsForReviewQueue(cards, nowTimestamp) : reviewQueue;
   const selectedCard = reviewQueue.find((card) => card.cardId === selectedCardId) ?? reviewQueue[0] ?? null;
+  const reviewButtonsNow = new Date();
+  let reviewButtonOptions: Array<ReviewButtonOption> = [];
+  let reviewButtonErrorMessage: string = "";
+
+  if (isAnswerVisible && selectedCard !== null && workspaceSettings !== null) {
+    try {
+      reviewButtonOptions = buildReviewButtonOptions(selectedCard, workspaceSettings, reviewButtonsNow);
+    } catch (error) {
+      reviewButtonErrorMessage = error instanceof Error ? error.message : String(error);
+    }
+  } else if (isAnswerVisible && selectedCard !== null) {
+    reviewButtonErrorMessage = "Workspace scheduler settings are not loaded";
+  }
 
   useEffect(() => {
     void ensureCardsLoaded();
@@ -196,19 +286,24 @@ export function ReviewScreen(): ReactElement {
                 </div>
 
                 {isAnswerVisible ? (
-                  <div className="rating-bar">
-                    {[0, 1, 2, 3].map((rating) => (
-                      <button
-                        key={rating}
-                        type="button"
-                        className="rating-btn"
-                        disabled={isSubmitting}
-                        onClick={() => void handleReview(selectedCard, rating as 0 | 1 | 2 | 3)}
-                      >
-                        {isSubmitting ? "…" : rating}
-                      </button>
-                    ))}
-                  </div>
+                  reviewButtonErrorMessage !== "" ? (
+                    <p className="error-banner">{reviewButtonErrorMessage}</p>
+                  ) : (
+                    <div className="rating-bar">
+                      {reviewButtonOptions.map((option) => (
+                        <button
+                          key={option.rating}
+                          type="button"
+                          className="rating-btn"
+                          disabled={isSubmitting}
+                          onClick={() => void handleReview(selectedCard, option.rating)}
+                        >
+                          <span className="rating-btn-title">{option.title}</span>
+                          <span className="rating-btn-subtitle">{option.intervalDescription}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )
                 ) : null}
               </>
             )}
