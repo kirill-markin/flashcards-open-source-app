@@ -423,6 +423,17 @@ final class CloudSyncService {
         let syncBasePath = "/workspaces/\(workspaceId)/sync"
 
         while true {
+            let removedReviewEventCount = try self.database.deleteStaleReviewEventOutboxEntries(workspaceId: workspaceId)
+            if removedReviewEventCount > 0 {
+                logCloudPhase(
+                    phase: .initialPush,
+                    outcome: "self_heal",
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationsCount: removedReviewEventCount
+                )
+            }
+
             let outboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
             if outboxEntries.isEmpty {
                 break

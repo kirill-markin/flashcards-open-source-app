@@ -44,6 +44,11 @@ private struct ReviewEventOutboxPayload: Codable {
     let reviewedAtClient: String
 }
 
+private struct ReviewEventOutboxCandidate {
+    let operationId: String
+    let payloadJson: String
+}
+
 struct OutboxStore {
     let core: DatabaseCore
 
@@ -101,6 +106,33 @@ struct OutboxStore {
                 values: [.text(operationId)]
             )
         }
+    }
+
+    func deleteStaleReviewEventOutboxEntries(workspaceId: String, currentDeviceId: String) throws -> Int {
+        let candidates = try self.core.query(
+            sql: """
+            SELECT operation_id, payload_json
+            FROM outbox
+            WHERE workspace_id = ? AND entity_type = 'review_event'
+            """,
+            values: [.text(workspaceId)]
+        ) { statement in
+            ReviewEventOutboxCandidate(
+                operationId: DatabaseCore.columnText(statement: statement, index: 0),
+                payloadJson: DatabaseCore.columnText(statement: statement, index: 1)
+            )
+        }
+
+        let staleOperationIds = try candidates.compactMap { candidate in
+            let payload = try self.core.decoder.decode(
+                ReviewEventOutboxPayload.self,
+                from: Data(candidate.payloadJson.utf8)
+            )
+            return payload.deviceId == currentDeviceId ? nil : candidate.operationId
+        }
+
+        try self.deleteOutboxEntries(operationIds: staleOperationIds)
+        return staleOperationIds.count
     }
 
     func markOutboxEntriesFailed(operationIds: [String], message: String) throws {

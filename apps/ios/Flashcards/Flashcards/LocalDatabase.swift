@@ -401,6 +401,16 @@ final class LocalDatabase {
         try self.outboxStore.deleteOutboxEntries(operationIds: operationIds)
     }
 
+    func deleteStaleReviewEventOutboxEntries(workspaceId: String) throws -> Int {
+        try self.core.inTransaction {
+            let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
+            return try self.outboxStore.deleteStaleReviewEventOutboxEntries(
+                workspaceId: workspaceId,
+                currentDeviceId: cloudSettings.deviceId
+            )
+        }
+    }
+
     func markOutboxEntriesFailed(operationIds: [String], message: String) throws {
         try self.outboxStore.markOutboxEntriesFailed(operationIds: operationIds, message: message)
     }

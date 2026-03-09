@@ -779,13 +779,129 @@ final class LocalDatabaseTests: XCTestCase {
         )
     }
 
+    func testDeleteStaleReviewEventOutboxEntriesRemovesOnlyMismatchedReviewEventOperations() throws {
+        let (databaseURL, database) = try self.makeDatabaseWithURL()
+        let snapshot = try database.loadStateSnapshot()
+        let workspaceId = snapshot.workspace.workspaceId
+        let originalDeviceId = snapshot.cloudSettings.deviceId
+
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        try database.updateWorkspaceSchedulerSettings(
+            workspaceId: workspaceId,
+            desiredRetention: 0.92,
+            learningStepsMinutes: [2, 12],
+            relearningStepsMinutes: [15],
+            maximumIntervalDays: 1200,
+            enableFuzz: false
+        )
+        try database.submitReview(
+            workspaceId: workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: cardId,
+                rating: .good,
+                reviewedAtClient: "2026-03-08T10:00:00.000Z"
+            )
+        )
+
+        try self.updateStoredDeviceId(
+            databaseURL: databaseURL,
+            deviceId: "replacement-device-id"
+        )
+
+        let removedEntriesCount = try database.deleteStaleReviewEventOutboxEntries(workspaceId: workspaceId)
+
+        XCTAssertEqual(removedEntriesCount, 1)
+
+        let outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        XCTAssertEqual(outboxEntries.count, 3)
+        XCTAssertEqual(
+            outboxEntries.filter { entry in
+                entry.operation.entityType == .card
+            }.count,
+            2
+        )
+        XCTAssertEqual(
+            outboxEntries.filter { entry in
+                entry.operation.entityType == .workspaceSchedulerSettings
+            }.count,
+            1
+        )
+        XCTAssertEqual(
+            outboxEntries.filter { entry in
+                entry.operation.entityType == .reviewEvent
+            }.count,
+            0
+        )
+
+        let reviewEvents = try database.loadReviewEvents(workspaceId: workspaceId)
+        XCTAssertEqual(reviewEvents.count, 1)
+        XCTAssertEqual(reviewEvents.first?.deviceId, originalDeviceId)
+    }
+
+    func testDeleteStaleReviewEventOutboxEntriesKeepsMatchingReviewEventOperations() throws {
+        let database = try self.makeDatabase()
+        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        try database.submitReview(
+            workspaceId: workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: cardId,
+                rating: .good,
+                reviewedAtClient: "2026-03-08T10:00:00.000Z"
+            )
+        )
+
+        let removedEntriesCount = try database.deleteStaleReviewEventOutboxEntries(workspaceId: workspaceId)
+
+        XCTAssertEqual(removedEntriesCount, 0)
+        XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).count, 3)
+        XCTAssertEqual(
+            try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).filter { entry in
+                entry.operation.entityType == .reviewEvent
+            }.count,
+            1
+        )
+    }
+
     private func makeDatabase() throws -> LocalDatabase {
+        let (_, database) = try self.makeDatabaseWithURL()
+        return database
+    }
+
+    private func makeDatabaseWithURL() throws -> (URL, LocalDatabase) {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
         self.addTeardownBlock {
             try? FileManager.default.removeItem(at: databaseDirectory)
         }
-        return try LocalDatabase(databaseURL: databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false))
+        let databaseURL = databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
+        return (databaseURL, try LocalDatabase(databaseURL: databaseURL))
+    }
+
+    private func updateStoredDeviceId(databaseURL: URL, deviceId: String) throws {
+        let core = try DatabaseCore(databaseURL: databaseURL)
+        _ = try core.execute(
+            sql: """
+            UPDATE app_local_settings
+            SET device_id = ?, updated_at = ?
+            WHERE settings_id = 1
+            """,
+            values: [
+                .text(deviceId),
+                .text(currentIsoTimestamp())
+            ]
+        )
     }
 
     private func makeCardInput(frontText: String, backText: String) -> CardEditorInput {

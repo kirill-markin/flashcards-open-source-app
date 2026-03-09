@@ -3,6 +3,11 @@ import XCTest
 @testable import Flashcards
 
 final class CloudSupportTests: XCTestCase {
+    override func tearDown() {
+        CloudSupportMockUrlProtocol.requestHandler = nil
+        super.tearDown()
+    }
+
     func testLoadCloudServiceConfigurationReadsUrlsFromBundleInfoDictionary() throws {
         let bundle = try self.makeBundle(
             infoDictionary: [
@@ -110,6 +115,179 @@ final class CloudSupportTests: XCTestCase {
         )
     }
 
+    @MainActor
+    func testRunLinkedSyncDropsStaleReviewEventOperationsBeforePush() async throws {
+        let (databaseURL, database) = try self.makeDatabaseWithURL()
+        let snapshot = try database.loadStateSnapshot()
+        let workspaceId = snapshot.workspace.workspaceId
+
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        try database.submitReview(
+            workspaceId: workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: cardId,
+                rating: .good,
+                reviewedAtClient: "2026-03-08T10:00:00.000Z"
+            )
+        )
+        try self.updateStoredDeviceId(
+            databaseURL: databaseURL,
+            deviceId: "replacement-device-id"
+        )
+
+        let recorder = CloudSupportRequestRecorder()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            recorder.appendPath(url.path)
+
+            if url.path.hasSuffix("/sync/push") {
+                let bodyData = try XCTUnwrap(request.httpBody)
+                let bodyObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+                XCTAssertEqual(bodyObject["deviceId"] as? String, "replacement-device-id")
+                let operations = try XCTUnwrap(bodyObject["operations"] as? [[String: Any]])
+                let entityTypes = operations.compactMap { operation in
+                    operation["entityType"] as? String
+                }
+                recorder.setPushedEntityTypes(entityTypes)
+
+                let response = HTTPURLResponse(
+                    url: url,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                let results = operations.compactMap { operation -> [String: Any]? in
+                    guard
+                        let operationId = operation["operationId"] as? String,
+                        let entityType = operation["entityType"] as? String,
+                        let entityId = operation["entityId"] as? String
+                    else {
+                        return nil
+                    }
+
+                    return [
+                        "operationId": operationId,
+                        "entityType": entityType,
+                        "entityId": entityId,
+                        "status": "applied",
+                        "resultingChangeId": 1
+                    ]
+                }
+                let data = try JSONSerialization.data(withJSONObject: ["operations": results])
+                return (response, data)
+            }
+
+            XCTAssertTrue(url.path.hasSuffix("/sync/pull"))
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let data = """
+            {"changes":[],"nextChangeId":0,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+
+        try await service.runLinkedSync(
+            linkedSession: CloudLinkedSession(
+                userId: "user-id",
+                workspaceId: workspaceId,
+                email: "user@example.com",
+                apiBaseUrl: "https://api.example.com/v1",
+                bearerToken: "id-token"
+            )
+        )
+
+        let requestPaths = recorder.requestPaths
+        let pushedEntityTypes = recorder.pushedEntityTypes
+        XCTAssertEqual(
+            requestPaths,
+            [
+                "/v1/workspaces/\(workspaceId)/sync/push",
+                "/v1/workspaces/\(workspaceId)/sync/pull"
+            ]
+        )
+        XCTAssertEqual(pushedEntityTypes.filter { $0 == "review_event" }.count, 0)
+        XCTAssertEqual(pushedEntityTypes.count, 2)
+        XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).count, 0)
+        XCTAssertEqual(try database.loadReviewEvents(workspaceId: workspaceId).count, 1)
+    }
+
+    @MainActor
+    func testRunLinkedSyncSkipsPushWhenCleanupRemovesEntireOutboxBatch() async throws {
+        let (databaseURL, database) = try self.makeDatabaseWithURL()
+        let snapshot = try database.loadStateSnapshot()
+        let workspaceId = snapshot.workspace.workspaceId
+
+        try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        try database.submitReview(
+            workspaceId: workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: cardId,
+                rating: .good,
+                reviewedAtClient: "2026-03-08T10:00:00.000Z"
+            )
+        )
+
+        let existingEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        try database.deleteOutboxEntries(operationIds: existingEntries.compactMap { entry in
+            entry.operation.entityType == .reviewEvent ? nil : entry.operationId
+        })
+        try self.updateStoredDeviceId(
+            databaseURL: databaseURL,
+            deviceId: "replacement-device-id"
+        )
+
+        let recorder = CloudSupportRequestRecorder()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            recorder.appendPath(url.path)
+
+            XCTAssertTrue(url.path.hasSuffix("/sync/pull"))
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let data = """
+            {"changes":[],"nextChangeId":0,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+
+        try await service.runLinkedSync(
+            linkedSession: CloudLinkedSession(
+                userId: "user-id",
+                workspaceId: workspaceId,
+                email: "user@example.com",
+                apiBaseUrl: "https://api.example.com/v1",
+                bearerToken: "id-token"
+            )
+        )
+
+        let requestPaths = recorder.requestPaths
+        XCTAssertEqual(requestPaths, ["/v1/workspaces/\(workspaceId)/sync/pull"])
+        XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).count, 0)
+        XCTAssertEqual(try database.loadReviewEvents(workspaceId: workspaceId).count, 1)
+    }
+
     private func makeBundle(infoDictionary: [String: String]) throws -> Bundle {
         let rootUrl = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let bundleUrl = rootUrl.appendingPathExtension("bundle")
@@ -128,5 +306,106 @@ final class CloudSupportTests: XCTestCase {
         try infoPlistData.write(to: infoPlistUrl)
 
         return try XCTUnwrap(Bundle(url: bundleUrl))
+    }
+
+    private func makeDatabaseWithURL() throws -> (URL, LocalDatabase) {
+        let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
+        self.addTeardownBlock {
+            try? FileManager.default.removeItem(at: databaseDirectory)
+        }
+
+        let databaseURL = databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
+        return (databaseURL, try LocalDatabase(databaseURL: databaseURL))
+    }
+
+    private func makeCardInput(frontText: String, backText: String) -> CardEditorInput {
+        CardEditorInput(
+            frontText: frontText,
+            backText: backText,
+            tags: ["tag-a"],
+            effortLevel: .medium
+        )
+    }
+
+    private func makeSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CloudSupportMockUrlProtocol.self]
+        return URLSession(configuration: configuration)
+    }
+
+    private func updateStoredDeviceId(databaseURL: URL, deviceId: String) throws {
+        let core = try DatabaseCore(databaseURL: databaseURL)
+        _ = try core.execute(
+            sql: """
+            UPDATE app_local_settings
+            SET device_id = ?, updated_at = ?
+            WHERE settings_id = 1
+            """,
+            values: [
+                .text(deviceId),
+                .text(currentIsoTimestamp())
+            ]
+        )
+    }
+}
+
+private final class CloudSupportMockUrlProtocol: URLProtocol {
+    nonisolated(unsafe) static var requestHandler: (@Sendable (URLRequest) throws -> (HTTPURLResponse, Data))?
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        true
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        guard let handler = CloudSupportMockUrlProtocol.requestHandler else {
+            XCTFail("CloudSupportMockUrlProtocol.requestHandler is not set")
+            return
+        }
+
+        do {
+            let (response, data) = try handler(self.request)
+            self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            self.client?.urlProtocol(self, didLoad: data)
+            self.client?.urlProtocolDidFinishLoading(self)
+        } catch {
+            self.client?.urlProtocol(self, didFailWithError: error)
+        }
+    }
+
+    override func stopLoading() {}
+}
+
+private final class CloudSupportRequestRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedRequestPaths: [String] = []
+    private var storedPushedEntityTypes: [String] = []
+
+    var requestPaths: [String] {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.storedRequestPaths
+    }
+
+    var pushedEntityTypes: [String] {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.storedPushedEntityTypes
+    }
+
+    func appendPath(_ path: String) {
+        self.lock.lock()
+        self.storedRequestPaths.append(path)
+        self.lock.unlock()
+    }
+
+    func setPushedEntityTypes(_ entityTypes: [String]) {
+        self.lock.lock()
+        self.storedPushedEntityTypes = entityTypes
+        self.lock.unlock()
     }
 }
