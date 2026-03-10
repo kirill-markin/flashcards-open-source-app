@@ -12,8 +12,6 @@ CREATE INDEX IF NOT EXISTS idx_cards_active_search_trgm
         front_text
         || ' '
         || back_text
-        || ' '
-        || COALESCE(array_to_string(tags, ' '), '')
       )
     ) public.gin_trgm_ops
   )
