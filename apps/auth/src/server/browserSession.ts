@@ -91,6 +91,15 @@ export async function validateSessionToken(sessionToken: string): Promise<Sessio
   }
 }
 
+/**
+ * Verifies a Cognito ID token issued for this app and returns the stable user
+ * subject so the auth service can create first-party agent API keys.
+ */
+export async function verifySessionTokenSubject(sessionToken: string): Promise<string> {
+  const payload = await getVerifier().verify(sessionToken);
+  return payload.sub;
+}
+
 export function setBrowserSessionCookies(
   context: Context,
   sessionToken: string,

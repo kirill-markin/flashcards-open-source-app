@@ -50,6 +50,17 @@ private struct WorkspaceEnvelope: Decodable {
     let workspace: CloudWorkspaceSummary
 }
 
+private struct AgentApiKeyConnectionsEnvelope: Decodable {
+    let connections: [AgentApiKeyConnection]
+    let instructions: String
+}
+
+private struct AgentApiKeyRevokeEnvelope: Decodable {
+    let ok: Bool
+    let connection: AgentApiKeyConnection
+    let instructions: String
+}
+
 private struct CreateWorkspaceRequest: Encodable {
     let name: String
 }
@@ -410,6 +421,30 @@ final class CloudSyncService: @unchecked Sendable {
             selection: "existing"
         )
         return response.workspace
+    }
+
+    /// Loads the long-lived bot connections associated with the signed-in user.
+    func listAgentApiKeys(apiBaseUrl: String, bearerToken: String) async throws -> ([AgentApiKeyConnection], String) {
+        let response: AgentApiKeyConnectionsEnvelope = try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/agent-api-keys",
+            method: "GET",
+            body: Optional<String>.none
+        )
+        return (response.connections, response.instructions)
+    }
+
+    /// Revokes one long-lived bot connection immediately by its connection identifier.
+    func revokeAgentApiKey(apiBaseUrl: String, bearerToken: String, connectionId: String) async throws -> (AgentApiKeyConnection, String) {
+        let response: AgentApiKeyRevokeEnvelope = try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/agent-api-keys/\(connectionId)/revoke",
+            method: "POST",
+            body: Optional<String>.none
+        )
+        return (response.connection, response.instructions)
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws {

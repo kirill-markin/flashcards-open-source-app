@@ -40,6 +40,25 @@ export type WorkspaceSummary = Readonly<{
   isSelected: boolean;
 }>;
 
+export type AgentApiKeyConnection = Readonly<{
+  connectionId: string;
+  label: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}>;
+
+export type AgentApiKeyConnectionsResponse = Readonly<{
+  connections: ReadonlyArray<AgentApiKeyConnection>;
+  instructions: string;
+}>;
+
+export type AgentApiKeyRevokeResponse = Readonly<{
+  ok: true;
+  connection: AgentApiKeyConnection;
+  instructions: string;
+}>;
+
 /** Mirrors the iOS local workspace payload used by local AI tools. */
 export type Workspace = Readonly<{
   workspaceId: string;

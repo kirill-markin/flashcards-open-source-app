@@ -1,11 +1,17 @@
 import * as cdk from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import * as path from "path";
 
 export interface AuthGatewayProps {
+  vpc: ec2.Vpc;
+  lambdaSg: ec2.SecurityGroup;
+  db: rds.DatabaseInstance;
+  appDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   authCertificateArn: string | undefined;
   userPoolId: string;
@@ -36,17 +42,26 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(30),
     memorySize: 256,
+    vpc: props.vpc,
+    vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+    securityGroups: [props.lambdaSg],
     bundling: { minify: true, sourceMap: true },
     environment: {
+      DB_SECRET_ARN: props.appDbSecret.secretArn,
+      DB_HOST: props.db.dbInstanceEndpointAddress,
+      DB_NAME: "flashcards",
       COGNITO_USER_POOL_ID: props.userPoolId,
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
       ALLOWED_REDIRECT_URIS: `https://${props.baseDomain},https://app.${props.baseDomain}`,
       COOKIE_DOMAIN: props.baseDomain,
+      PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
+      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
     },
   });
 
   sessionEncryptionKey.grantRead(authFn);
+  props.appDbSecret.grantRead(authFn);
   authFn.addEnvironment(
     "SESSION_ENCRYPTION_KEY",
     sessionEncryptionKey.secretValue.unsafeUnwrap(),

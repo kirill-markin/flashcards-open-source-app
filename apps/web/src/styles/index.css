@@ -9,3 +9,4 @@
 @import "./features/forms.css" layer(features);
 @import "./features/review.css" layer(features);
 @import "./features/chat.css" layer(features);
+@import "./features/settings.css" layer(features);

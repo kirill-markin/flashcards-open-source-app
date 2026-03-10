@@ -1,6 +1,7 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
+import { authenticateAgentApiKey } from "./agentApiKeys";
 
-export type AuthTransport = "none" | "bearer" | "session";
+export type AuthTransport = "none" | "bearer" | "session" | "api_key";
 
 export type AuthResult = Readonly<{
   userId: string;
@@ -32,21 +33,35 @@ function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
   return verifier;
 }
 
-function getBearerToken(authorizationHeader: string | undefined): string | null {
+type ParsedAuthorizationHeader =
+  | Readonly<{ scheme: "none" }>
+  | Readonly<{ scheme: "bearer"; token: string }>
+  | Readonly<{ scheme: "api_key"; token: string }>;
+
+function parseAuthorizationHeader(authorizationHeader: string | undefined): ParsedAuthorizationHeader {
   if (authorizationHeader === undefined || authorizationHeader === "") {
-    return null;
+    return { scheme: "none" };
   }
 
-  if (!authorizationHeader.startsWith("Bearer ")) {
-    throw new AuthError(401, "Authorization header must use Bearer scheme");
+  if (authorizationHeader.startsWith("Bearer ")) {
+    const token = authorizationHeader.slice(7).trim();
+    if (token === "") {
+      throw new AuthError(401, "Authorization header must include a token");
+    }
+
+    return { scheme: "bearer", token };
   }
 
-  const token = authorizationHeader.slice(7).trim();
-  if (token === "") {
-    throw new AuthError(401, "Authorization header must include a token");
+  if (authorizationHeader.startsWith("ApiKey ")) {
+    const token = authorizationHeader.slice(7).trim();
+    if (token === "") {
+      throw new AuthError(401, "Authorization header must include an API key");
+    }
+
+    return { scheme: "api_key", token };
   }
 
-  return token;
+  throw new AuthError(401, "Authorization header must use Bearer or ApiKey scheme");
 }
 
 async function verifyIdToken(token: string): Promise<string> {
@@ -66,9 +81,14 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
     return { userId: "local", transport: "none" };
   }
 
-  const bearerToken = getBearerToken(request.authorizationHeader);
-  if (bearerToken !== null) {
-    const userId = await verifyIdToken(bearerToken);
+  const parsedAuthorization = parseAuthorizationHeader(request.authorizationHeader);
+  if (parsedAuthorization.scheme === "api_key") {
+    const auth = await authenticateAgentApiKey(parsedAuthorization.token);
+    return { userId: auth.userId, transport: "api_key" };
+  }
+
+  if (parsedAuthorization.scheme === "bearer") {
+    const userId = await verifyIdToken(parsedAuthorization.token);
     return { userId, transport: "bearer" };
   }
 

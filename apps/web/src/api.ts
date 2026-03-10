@@ -12,6 +12,8 @@ import type {
   SyncPullResult,
   SyncPushOperation,
   SyncPushResult,
+  AgentApiKeyConnectionsResponse,
+  AgentApiKeyRevokeResponse,
   WorkspaceSummary,
 } from "./types";
 
@@ -379,6 +381,14 @@ export async function selectWorkspace(workspaceId: string): Promise<WorkspaceSum
     method: "POST",
   }, allowAuthRecovery)) as unknown as WorkspaceEnvelope;
   return payload.workspace;
+}
+
+export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse> {
+  return expectObject(await requestJson("/agent-api-keys", { method: "GET" }, allowAuthRecovery)) as unknown as AgentApiKeyConnectionsResponse;
+}
+
+export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiKeyRevokeResponse> {
+  return expectObject(await requestJson(`/agent-api-keys/${connectionId}/revoke`, { method: "POST" }, allowAuthRecovery)) as unknown as AgentApiKeyRevokeResponse;
 }
 
 export async function pushSyncOperations(
