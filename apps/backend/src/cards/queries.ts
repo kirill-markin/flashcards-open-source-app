@@ -338,7 +338,7 @@ function buildCardsQuerySearchClause(
 
   return {
     clause: [
-      "AND lower(concat_ws(' ', front_text, back_text, array_to_string(tags, ' ')))",
+      "AND lower(front_text || ' ' || back_text || ' ' || COALESCE(array_to_string(tags, ' '), ''))",
       `LIKE $${startIndex + 1}`,
     ].join(" "),
     params: [`%${searchText.toLowerCase()}%`],

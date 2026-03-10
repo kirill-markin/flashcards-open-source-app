@@ -9,12 +9,11 @@ CREATE INDEX IF NOT EXISTS idx_cards_active_search_trgm
   USING GIN (
     (
       lower(
-        concat_ws(
-          ' ',
-          front_text,
-          back_text,
-          array_to_string(tags, ' ')
-        )
+        front_text
+        || ' '
+        || back_text
+        || ' '
+        || COALESCE(array_to_string(tags, ' '), '')
       )
     ) public.gin_trgm_ops
   )
