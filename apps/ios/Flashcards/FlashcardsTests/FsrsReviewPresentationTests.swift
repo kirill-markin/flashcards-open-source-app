@@ -39,9 +39,10 @@ final class FsrsReviewPresentationTests: XCTestCase {
         let reviewQueue = makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now)
         let reviewTimeline = makeReviewTimeline(reviewFilter: .allCards, decks: [], cards: cards, now: now)
 
-        XCTAssertEqual(reviewQueue.count, 3)
+        XCTAssertEqual(reviewQueue.count, 2)
         XCTAssertEqual(reviewTimeline.count, 4)
         XCTAssertEqual(Array(reviewTimeline.prefix(reviewQueue.count)).map(\.cardId), reviewQueue.map(\.cardId))
+        XCTAssertEqual(reviewTimeline.map(\.cardId), ["active-new", "active-due", "future", "malformed"])
     }
 
     func testMakeReviewTimelineForDeckFilterReturnsMatchingActiveAndTotalCounts() throws {
@@ -138,6 +139,99 @@ final class FsrsReviewPresentationTests: XCTestCase {
             reviewTimeline.map(\.cardId),
             ["current", "future-early", "future-tie-newer", "future-tie-older"]
         )
+    }
+
+    func testMakeReviewQueuePlacesNilDueAtBeforeEarlierDueAtAndUsesUpdatedAtAsFinalTiebreaker() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let cards = [
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "timed-tie-older",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:30:00.000Z",
+                updatedAt: "2026-03-09T06:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "timed-earlier",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:00:00.000Z",
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "timed-tie-newer",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:30:00.000Z",
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "nil-due",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: nil,
+                updatedAt: "2026-03-09T05:00:00.000Z"
+            )
+        ]
+
+        XCTAssertEqual(
+            makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
+            ["nil-due", "timed-earlier", "timed-tie-newer", "timed-tie-older"]
+        )
+    }
+
+    func testMakeReviewQueueDoesNotTreatFutureNewCardsAsDue() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let cards = [
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "future-new",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T12:00:00.000Z",
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "due-card",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:00:00.000Z",
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            )
+        ]
+
+        XCTAssertEqual(
+            makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
+            ["due-card"]
+        )
+    }
+
+    func testSelectedReviewCardFallsBackToCanonicalQueueHeadWhenSelectionDisappears() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let reviewQueue = makeReviewQueue(
+            reviewFilter: .allCards,
+            decks: [],
+            cards: [
+                FsrsSchedulerTestSupport.makeTestCard(
+                    cardId: "top-queue-card",
+                    tags: [],
+                    effortLevel: .fast,
+                    dueAt: "2026-03-09T08:00:00.000Z",
+                    updatedAt: "2026-03-09T06:00:00.000Z"
+                ),
+                FsrsSchedulerTestSupport.makeTestCard(
+                    cardId: "remotely-updated-card",
+                    tags: [],
+                    effortLevel: .fast,
+                    dueAt: "2026-03-09T08:30:00.000Z",
+                    updatedAt: "2026-03-09T08:00:00.000Z"
+                )
+            ],
+            now: now
+        )
+
+        XCTAssertEqual(selectedReviewCard(reviewQueue: reviewQueue, selectedCardId: "missing")?.cardId, "top-queue-card")
+        XCTAssertEqual(selectedReviewCardId(reviewQueue: reviewQueue, selectedCardId: "missing"), "top-queue-card")
+        XCTAssertEqual(selectedReviewCard(reviewQueue: reviewQueue, selectedCardId: "remotely-updated-card")?.cardId, "remotely-updated-card")
     }
 
     func testInitialIncrementalVisibleCountShowsFirstPage() {

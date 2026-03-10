@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Card, Deck, ReviewEvent } from "../types";
 import {
+  deriveReviewTimeline,
   compareLww,
   deriveReviewQueue,
   normalizeCreateCardInput,
   normalizeUpdateCardInput,
+  selectReviewCard,
   upsertCard,
   upsertDeck,
   upsertReviewEvent,
@@ -172,22 +174,26 @@ describe("appData domain helpers", () => {
     })).toThrow("Card front text must not be empty");
   });
 
-  it("derives the review queue from due and new cards only", () => {
-    const dueCard = createCard({
-      cardId: "due-card",
-      dueAt: "2026-03-10T10:00:00.000Z",
-      updatedAt: "2026-03-10T10:00:00.000Z",
-    });
-    const newCard = createCard({
-      cardId: "new-card",
-      dueAt: "2026-03-10T15:00:00.000Z",
-      fsrsCardState: "new",
-      updatedAt: "2026-03-10T11:00:00.000Z",
-    });
+  it("derives the review queue with canonical due ordering only", () => {
     const noDueDateCard = createCard({
       cardId: "no-due-date-card",
       dueAt: null,
       updatedAt: "2026-03-10T09:00:00.000Z",
+    });
+    const earlyDueCard = createCard({
+      cardId: "early-due-card",
+      dueAt: "2026-03-10T09:30:00.000Z",
+      updatedAt: "2026-03-10T08:00:00.000Z",
+    });
+    const tiedDueNewerCard = createCard({
+      cardId: "tied-due-newer-card",
+      dueAt: "2026-03-10T10:00:00.000Z",
+      updatedAt: "2026-03-10T11:00:00.000Z",
+    });
+    const tiedDueOlderCard = createCard({
+      cardId: "tied-due-older-card",
+      dueAt: "2026-03-10T10:00:00.000Z",
+      updatedAt: "2026-03-10T10:00:00.000Z",
     });
     const futureReviewCard = createCard({
       cardId: "future-review-card",
@@ -195,23 +201,130 @@ describe("appData domain helpers", () => {
       fsrsCardState: "review",
       updatedAt: "2026-03-10T12:00:00.000Z",
     });
+    const malformedDueAtCard = createCard({
+      cardId: "malformed-due-at-card",
+      dueAt: "not-an-iso-date",
+      updatedAt: "2026-03-10T13:00:00.000Z",
+    });
     const deletedCard = createCard({
       cardId: "deleted-card",
       dueAt: "2026-03-10T08:00:00.000Z",
       deletedAt: "2026-03-10T08:30:00.000Z",
-      updatedAt: "2026-03-10T13:00:00.000Z",
+      updatedAt: "2026-03-10T14:00:00.000Z",
     });
 
     expect(deriveReviewQueue([
       deletedCard,
       futureReviewCard,
-      dueCard,
       noDueDateCard,
-      newCard,
+      earlyDueCard,
+      tiedDueOlderCard,
+      tiedDueNewerCard,
+      malformedDueAtCard,
     ])).toEqual([
-      newCard,
-      dueCard,
       noDueDateCard,
+      earlyDueCard,
+      tiedDueNewerCard,
+      tiedDueOlderCard,
+    ]);
+  });
+
+  it("derives the review timeline with active cards before upcoming cards", () => {
+    const noDueDateCard = createCard({
+      cardId: "no-due-date-card",
+      dueAt: null,
+      updatedAt: "2026-03-10T09:00:00.000Z",
+    });
+    const earlyDueCard = createCard({
+      cardId: "early-due-card",
+      dueAt: "2026-03-10T09:30:00.000Z",
+      updatedAt: "2026-03-10T08:00:00.000Z",
+    });
+    const futureEarlierCard = createCard({
+      cardId: "future-earlier-card",
+      dueAt: "2026-03-10T14:00:00.000Z",
+      updatedAt: "2026-03-10T12:00:00.000Z",
+    });
+    const futureTieNewerCard = createCard({
+      cardId: "future-tie-newer-card",
+      dueAt: "2026-03-10T15:00:00.000Z",
+      updatedAt: "2026-03-10T13:00:00.000Z",
+    });
+    const futureTieOlderCard = createCard({
+      cardId: "future-tie-older-card",
+      dueAt: "2026-03-10T15:00:00.000Z",
+      updatedAt: "2026-03-10T11:00:00.000Z",
+    });
+    const malformedDueAtCard = createCard({
+      cardId: "malformed-due-at-card",
+      dueAt: "not-an-iso-date",
+      updatedAt: "2026-03-10T14:00:00.000Z",
+    });
+
+    expect(deriveReviewTimeline([
+      futureTieOlderCard,
+      malformedDueAtCard,
+      noDueDateCard,
+      futureEarlierCard,
+      futureTieNewerCard,
+      earlyDueCard,
+    ])).toEqual([
+      noDueDateCard,
+      earlyDueCard,
+      futureEarlierCard,
+      futureTieNewerCard,
+      futureTieOlderCard,
+      malformedDueAtCard,
+    ]);
+  });
+
+  it("selects the same top review card after a remote sync reorders updatedAt values", () => {
+    const topQueueCard = createCard({
+      cardId: "top-queue-card",
+      dueAt: "2026-03-10T09:30:00.000Z",
+      updatedAt: "2026-03-10T08:00:00.000Z",
+    });
+    const remotelyUpdatedCard = createCard({
+      cardId: "remotely-updated-card",
+      dueAt: "2026-03-10T10:00:00.000Z",
+      updatedAt: "2026-03-10T14:00:00.000Z",
+    });
+
+    const reviewQueue = deriveReviewQueue([
+      remotelyUpdatedCard,
+      topQueueCard,
+    ]);
+
+    expect(reviewQueue.map((card) => card.cardId)).toEqual([
+      "top-queue-card",
+      "remotely-updated-card",
+    ]);
+    expect(selectReviewCard(reviewQueue, "missing-card")?.cardId).toBe("top-queue-card");
+    expect(selectReviewCard(reviewQueue, "top-queue-card")?.cardId).toBe("top-queue-card");
+    expect(selectReviewCard(reviewQueue, "remotely-updated-card")?.cardId).toBe("remotely-updated-card");
+  });
+
+  it("does not treat future new cards as due when dueAt is in the future", () => {
+    const futureNewCard = createCard({
+      cardId: "future-new-card",
+      dueAt: "2026-03-10T15:00:00.000Z",
+      fsrsCardState: "new",
+      updatedAt: "2026-03-10T11:00:00.000Z",
+    });
+
+    expect(deriveReviewQueue([
+      futureNewCard,
+      createCard({
+        cardId: "due-card",
+        dueAt: "2026-03-10T11:00:00.000Z",
+        updatedAt: "2026-03-10T10:00:00.000Z",
+      }),
+    ])).toEqual([
+      createCard({
+        cardId: "due-card",
+        dueAt: "2026-03-10T11:00:00.000Z",
+        updatedAt: "2026-03-10T10:00:00.000Z",
+      }),
     ]);
   });
 });

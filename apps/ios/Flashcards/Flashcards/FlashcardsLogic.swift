@@ -184,7 +184,7 @@ func isCardDue(card: Card, now: Date) -> Bool {
                 "dueAt": dueAt
             ]
         )
-        return true
+        return false
     }
 
     return dueDate <= now
@@ -241,47 +241,56 @@ func formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition) -> Strin
     return parts.joined(separator: " AND ")
 }
 
+private func reviewOrderDueRank(card: Card) -> Int {
+    guard let dueAt = card.dueAt else {
+        return 0
+    }
+
+    guard parseIsoTimestamp(value: dueAt) != nil else {
+        return 2
+    }
+
+    return 1
+}
+
+private func compareCardsForReviewOrder(leftCard: Card, rightCard: Card, now: Date) -> Bool {
+    let leftIsDue = isCardDue(card: leftCard, now: now)
+    let rightIsDue = isCardDue(card: rightCard, now: now)
+    if leftIsDue != rightIsDue {
+        return leftIsDue
+    }
+
+    let leftDueRank = reviewOrderDueRank(card: leftCard)
+    let rightDueRank = reviewOrderDueRank(card: rightCard)
+    if leftDueRank != rightDueRank {
+        return leftDueRank < rightDueRank
+    }
+
+    if
+        let leftDueDate = leftCard.dueAt.flatMap(parseIsoTimestamp),
+        let rightDueDate = rightCard.dueAt.flatMap(parseIsoTimestamp),
+        leftDueDate != rightDueDate
+    {
+        return leftDueDate < rightDueDate
+    }
+
+    return leftCard.updatedAt > rightCard.updatedAt
+}
+
 func sortCardsForReviewQueue(cards: [Card], now: Date) -> [Card] {
     cards.filter { card in
         card.deletedAt == nil && isCardDue(card: card, now: now)
     }.sorted { leftCard, rightCard in
-        switch (leftCard.dueAt, rightCard.dueAt) {
-        case (nil, nil):
-            return leftCard.updatedAt > rightCard.updatedAt
-        case (nil, _?):
-            return true
-        case (_?, nil):
-            return false
-        case let (.some(leftDueAt), .some(rightDueAt)):
-            if leftDueAt != rightDueAt {
-                return leftDueAt < rightDueAt
-            }
-
-            return leftCard.updatedAt > rightCard.updatedAt
-        }
+        compareCardsForReviewOrder(leftCard: leftCard, rightCard: rightCard, now: now)
     }
 }
 
 func sortCardsForReviewTimeline(cards: [Card], now: Date) -> [Card] {
-    let activeQueue = sortCardsForReviewQueue(cards: cards, now: now)
-    let futureCards = cards.filter { card in
-        card.deletedAt == nil && isCardDue(card: card, now: now) == false
+    cards.filter { card in
+        card.deletedAt == nil
     }.sorted { leftCard, rightCard in
-        guard let leftDueDate = leftCard.dueAt.flatMap(parseIsoTimestamp) else {
-            preconditionFailure("Future review card is missing a valid dueAt value")
-        }
-        guard let rightDueDate = rightCard.dueAt.flatMap(parseIsoTimestamp) else {
-            preconditionFailure("Future review card is missing a valid dueAt value")
-        }
-
-        if leftDueDate != rightDueDate {
-            return leftDueDate < rightDueDate
-        }
-
-        return leftCard.updatedAt > rightCard.updatedAt
+        compareCardsForReviewOrder(leftCard: leftCard, rightCard: rightCard, now: now)
     }
-
-    return activeQueue + futureCards
 }
 
 func activeCards(cards: [Card]) -> [Card] {
@@ -390,6 +399,20 @@ func makeReviewTimeline(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]
         cards: cardsMatchingReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards),
         now: now
     )
+}
+
+func selectedReviewCard(reviewQueue: [Card], selectedCardId: String) -> Card? {
+    if let selectedCard = reviewQueue.first(where: { card in
+        card.cardId == selectedCardId
+    }) {
+        return selectedCard
+    }
+
+    return reviewQueue.first
+}
+
+func selectedReviewCardId(reviewQueue: [Card], selectedCardId: String) -> String {
+    selectedReviewCard(reviewQueue: reviewQueue, selectedCardId: selectedCardId)?.cardId ?? ""
 }
 
 func initialIncrementalVisibleCount(totalCount: Int, initialCount: Int) -> Int {
