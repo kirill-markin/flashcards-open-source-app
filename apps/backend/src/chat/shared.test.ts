@@ -84,6 +84,10 @@ test("buildSystemInstructions keeps delete confirmation policy in the system pro
 
   assert.match(instructions, /wait for explicit user confirmation before executing the write tool/i);
   assert.match(instructions, /before any create, update, or delete tool call/i);
+  assert.match(instructions, /before proposing or executing any new card or deck creation, you must first inspect existing cards or decks/i);
+  assert.match(instructions, /summarize what you found and discuss possible duplicates or overlap with the user/i);
+  assert.match(instructions, /every newly proposed card must include at least one tag/i);
+  assert.match(instructions, /if the user did not provide tags for a new card, you must suggest one or more concrete tags/i);
 });
 
 test("tool registrations expose the plural deck contract", () => {
