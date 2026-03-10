@@ -1,8 +1,8 @@
 type AgentDiscoveryAction = Readonly<{
-  name: "send_code";
-  method: "POST";
+  name: "send_code" | "openapi";
+  method: "GET" | "POST";
   url: string;
-  input: Readonly<{
+  input?: Readonly<{
     required: ReadonlyArray<string>;
   }>;
 }>;
@@ -12,6 +12,7 @@ type AgentDiscoveryEnvelope = Readonly<{
   data: Readonly<{
     service: Readonly<{
       name: string;
+      version: "v1";
       description: string;
     }>;
     authentication: Readonly<{
@@ -21,6 +22,10 @@ type AgentDiscoveryEnvelope = Readonly<{
     capabilitiesAfterLogin: ReadonlyArray<string>;
     authBaseUrl: string;
     apiBaseUrl: string;
+    docs: Readonly<{
+      openapiUrl: string;
+      swaggerUrl: string;
+    }>;
   }>;
   actions: ReadonlyArray<AgentDiscoveryAction>;
   instructions: string;
@@ -68,12 +73,15 @@ function buildAuthBaseUrl(requestUrl: string): string {
 export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscoveryEnvelope {
   const authBaseUrl = buildAuthBaseUrl(requestUrl);
   const apiBaseUrl = buildApiBaseUrl(requestUrl);
+  const openapiUrl = `${apiBaseUrl}/openapi.json`;
+  const swaggerUrl = `${apiBaseUrl}/swagger.json`;
 
   return {
     ok: true,
     data: {
       service: {
         name: "flashcards-open-source-app",
+        version: "v1",
         description: "Offline-first flashcards service with user-owned workspaces and AI-friendly API onboarding.",
       },
       authentication: {
@@ -82,22 +90,32 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       },
       capabilitiesAfterLogin: [
         "Load account context",
-        "List, create, and select workspaces",
-        "Search cards and decks",
-        "Use AI chat to inspect and create cards",
+        "Select a workspace",
+        "Search cards and use AI chat",
       ],
       authBaseUrl,
       apiBaseUrl,
-    },
-    actions: [{
-      name: "send_code",
-      method: "POST",
-      url: `${authBaseUrl}/api/agent/send-code`,
-      input: {
-        required: ["email"],
+      docs: {
+        openapiUrl,
+        swaggerUrl,
       },
-    }],
+    },
+    actions: [
+      {
+        name: "send_code",
+        method: "POST",
+        url: `${authBaseUrl}/api/agent/send-code`,
+        input: {
+          required: ["email"],
+        },
+      },
+      {
+        name: "openapi",
+        method: "GET",
+        url: openapiUrl,
+      },
+    ],
     instructions:
-      "This endpoint is the discovery entrypoint for AI agents. Ask which email address the user wants to use, call send_code with that email, ask for the confirmation code from the email, and continue onboarding so the user can start using the service for free. The same flow covers both registration and login. Every later response includes the next action and short English instructions.",
+      "Start with send_code. After login, call /me, then /workspaces before workspace-scoped actions.",
   };
 }
