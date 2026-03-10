@@ -8,6 +8,14 @@ const EMAIL_DAY_WINDOW_MS = 24 * 60 * 60_000;
 const IP_SHORT_WINDOW_MS = 15 * 60_000;
 const IP_HOUR_WINDOW_MS = 60 * 60_000;
 const IP_DAY_WINDOW_MS = 24 * 60 * 60_000;
+const EMAIL_COOLDOWN_LIMIT = 3;
+const EMAIL_SHORT_LIMIT = 5;
+const EMAIL_DAY_LIMIT = 10;
+const IP_SHORT_LIMIT = 10;
+const IP_HOUR_LIMIT = 30;
+const IP_DAY_LIMIT = 100;
+const IP_DISTINCT_HOUR_LIMIT = 5;
+const IP_DISTINCT_DAY_LIMIT = 20;
 
 type CountRow = Readonly<{
   count: string;
@@ -26,6 +34,17 @@ export type OtpRateLimitDecision =
   | Readonly<{ kind: "send" }>
   | Readonly<{ kind: "suppress_email_limit" }>
   | Readonly<{ kind: "block_ip_limit" }>;
+
+type OtpRateLimitCounts = Readonly<{
+  emailCooldownCount: number;
+  emailShortCount: number;
+  emailDayCount: number;
+  ipShortCount: number;
+  ipHourCount: number;
+  ipDayCount: number;
+  ipDistinctHourCount: number;
+  ipDistinctDayCount: number;
+}>;
 
 function asCount(value: string | undefined): number {
   if (value === undefined) {
@@ -71,6 +90,28 @@ async function countDistinctEmailsForIp(ipAddress: string, windowMs: number): Pr
   return asCount(result.rows[0]?.count);
 }
 
+export function decideOtpRateLimitFromCounts(counts: OtpRateLimitCounts): OtpRateLimitDecision {
+  if (
+    counts.ipShortCount >= IP_SHORT_LIMIT
+    || counts.ipHourCount >= IP_HOUR_LIMIT
+    || counts.ipDayCount >= IP_DAY_LIMIT
+    || counts.ipDistinctHourCount >= IP_DISTINCT_HOUR_LIMIT
+    || counts.ipDistinctDayCount >= IP_DISTINCT_DAY_LIMIT
+  ) {
+    return { kind: "block_ip_limit" };
+  }
+
+  if (
+    counts.emailCooldownCount >= EMAIL_COOLDOWN_LIMIT
+    || counts.emailShortCount >= EMAIL_SHORT_LIMIT
+    || counts.emailDayCount >= EMAIL_DAY_LIMIT
+  ) {
+    return { kind: "suppress_email_limit" };
+  }
+
+  return { kind: "send" };
+}
+
 /**
  * Applies conservative anti-spam limits before sending OTP emails. Email
  * throttles suppress sends while IP-based abuse returns a hard block across
@@ -100,21 +141,16 @@ export async function decideOtpRateLimit(
     countDistinctEmailsForIp(ipAddress, IP_DAY_WINDOW_MS),
   ]);
 
-  if (
-    ipShortCount >= 10
-    || ipHourCount >= 30
-    || ipDayCount >= 100
-    || ipDistinctHourCount >= 5
-    || ipDistinctDayCount >= 20
-  ) {
-    return { kind: "block_ip_limit" };
-  }
-
-  if (emailCooldownCount >= 1 || emailShortCount >= 3 || emailDayCount >= 10) {
-    return { kind: "suppress_email_limit" };
-  }
-
-  return { kind: "send" };
+  return decideOtpRateLimitFromCounts({
+    emailCooldownCount,
+    emailShortCount,
+    emailDayCount,
+    ipShortCount,
+    ipHourCount,
+    ipDayCount,
+    ipDistinctHourCount,
+    ipDistinctDayCount,
+  });
 }
 
 export async function recordOtpSendDecision(
