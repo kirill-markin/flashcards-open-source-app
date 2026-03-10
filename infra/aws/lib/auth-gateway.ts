@@ -23,6 +23,18 @@ export interface AuthGatewayResult {
   authFn: lambdaNodejs.NodejsFunction;
 }
 
+const lambdaBundling: lambdaNodejs.BundlingOptions = {
+  minify: true,
+  sourceMap: true,
+  commandHooks: {
+    beforeBundling: () => [],
+    beforeInstall: () => [],
+    afterBundling: (_inputDir: string, outputDir: string) => [
+      `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
+    ],
+  },
+};
+
 export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGatewayResult {
   const sessionEncryptionKey = new cdk.aws_secretsmanager.Secret(scope, "SessionEncryptionKey", {
     secretName: "flashcards-open-source-app/session-encryption-key",
@@ -45,8 +57,9 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
-    bundling: { minify: true, sourceMap: true },
+    bundling: lambdaBundling,
     environment: {
+      NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
       DB_SECRET_ARN: props.appDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
