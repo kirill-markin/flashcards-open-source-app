@@ -3,6 +3,7 @@ import type { DeckFilterDefinition, EffortLevel } from "./types";
 export const EFFORT_LEVELS: ReadonlyArray<EffortLevel> = ["fast", "medium", "long"];
 /** Label for the synthetic system deck that aggregates every active card. */
 export const ALL_CARDS_DECK_LABEL = "All cards";
+export const ALL_CARDS_DECK_SLUG = "all-cards";
 
 export function buildDeckFilterDefinition(
   effortLevels: ReadonlyArray<EffortLevel>,

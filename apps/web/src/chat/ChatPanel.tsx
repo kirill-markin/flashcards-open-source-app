@@ -41,6 +41,16 @@ type ChatResponseMetadata = Readonly<{
   responseBodyMissing: boolean;
 }>;
 
+export function calculateSidebarWidthFromPointer(
+  pointerClientX: number,
+  sidebarLeft: number,
+  minimumWidth: number,
+  maximumWidth: number,
+): number {
+  const nextWidth = Math.round(pointerClientX - sidebarLeft);
+  return Math.max(minimumWidth, Math.min(nextWidth, maximumWidth));
+}
+
 /**
  * Normalizes exposed response headers so diagnostics can distinguish truly
  * missing values from empty strings returned by intermediate infrastructure.
@@ -237,8 +247,10 @@ export function ChatPanel(props: Props): ReactElement {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
 
+  const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const dragCounterRef = useRef<number>(0);
+  const dragWidthRef = useRef<number>(chatWidth);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -250,6 +262,7 @@ export function ChatPanel(props: Props): ReactElement {
 
   useEffect(() => {
     setLocalWidth(chatWidth);
+    dragWidthRef.current = chatWidth;
   }, [chatWidth]);
 
   useEffect(() => {
@@ -265,14 +278,26 @@ export function ChatPanel(props: Props): ReactElement {
     }
 
     function handleMouseMove(event: MouseEvent): void {
-      const isRtl = document.documentElement.dir === "rtl";
-      const rawWidth = isRtl ? window.innerWidth - event.clientX : event.clientX;
-      setLocalWidth(Math.max(MIN_WIDTH, Math.min(rawWidth, MAX_WIDTH)));
+      const sidebarElement = rootRef.current;
+      if (sidebarElement === null) {
+        return;
+      }
+
+      const sidebarBounds = sidebarElement.getBoundingClientRect();
+      const nextWidth = calculateSidebarWidthFromPointer(
+        event.clientX,
+        sidebarBounds.left,
+        MIN_WIDTH,
+        MAX_WIDTH,
+      );
+
+      dragWidthRef.current = nextWidth;
+      setLocalWidth(nextWidth);
     }
 
     function handleMouseUp(): void {
       setIsDragging(false);
-      setChatWidth(localWidth);
+      setChatWidth(dragWidthRef.current);
     }
 
     document.addEventListener("mousemove", handleMouseMove);
@@ -286,7 +311,7 @@ export function ChatPanel(props: Props): ReactElement {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-  }, [isDragging, localWidth, setChatWidth]);
+  }, [isDragging, setChatWidth]);
 
   function handleModelChange(modelId: string): void {
     setSelectedModel(modelId);
@@ -541,6 +566,7 @@ export function ChatPanel(props: Props): ReactElement {
 
   return (
     <div
+      ref={rootRef}
       className={rootClassName}
       style={mode === "sidebar" ? { width: localWidth } : undefined}
       onDragEnter={(event) => {
@@ -566,6 +592,7 @@ export function ChatPanel(props: Props): ReactElement {
           className={`chat-resize-handle${isDragging ? " dragging" : ""}`}
           onMouseDown={(event) => {
             event.preventDefault();
+            dragWidthRef.current = localWidth;
             setIsDragging(true);
           }}
         />

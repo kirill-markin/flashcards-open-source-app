@@ -28,6 +28,7 @@ import type {
   SessionInfo,
   SyncChange,
   UpdateCardInput,
+  UpdateDeckInput,
   WorkspaceSummary,
 } from "../types";
 import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/schedule";
@@ -36,18 +37,22 @@ import {
   buildDeck,
   buildDeckUpsertOperation,
   buildDeletedCard,
+  buildDeletedDeck,
   buildInitialCard,
   buildReviewEvent,
   buildReviewEventAppendOperation,
   buildReviewedCard,
   buildUpdatedCard,
+  buildUpdatedDeck,
   compareLww,
   deriveActiveCards,
   deriveActiveDecks,
   deriveReviewQueue,
   getErrorMessage,
   normalizeCreateCardInput,
+  normalizeCreateDeckInput,
   normalizeUpdateCardInput,
+  normalizeUpdateDeckInput,
   nowIso,
   toReviewableCardState,
   upsertCard,
@@ -91,10 +96,13 @@ type SyncEngine = Readonly<{
   refreshDecks: () => Promise<void>;
   refreshReviewQueue: () => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;
+  getDeckById: (deckId: string) => Promise<Deck>;
   createCardItem: (input: CreateCardInput) => Promise<Card>;
   createDeckItem: (input: CreateDeckInput) => Promise<Deck>;
   updateCardItem: (cardId: string, input: UpdateCardInput) => Promise<Card>;
+  updateDeckItem: (deckId: string, input: UpdateDeckInput) => Promise<Deck>;
   deleteCardItem: (cardId: string) => Promise<Card>;
+  deleteDeckItem: (deckId: string) => Promise<Deck>;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
 }>;
 
@@ -421,6 +429,21 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     return syncedCard;
   }, [runSync]);
 
+  const getDeckById = useCallback(async function getDeckById(deckId: string): Promise<Deck> {
+    const existingDeck = snapshotRef.current.decks.find((deck) => deck.deckId === deckId && deck.deletedAt === null);
+    if (existingDeck !== undefined) {
+      return existingDeck;
+    }
+
+    await runSync();
+    const syncedDeck = snapshotRef.current.decks.find((deck) => deck.deckId === deckId && deck.deletedAt === null);
+    if (syncedDeck === undefined) {
+      throw new Error(`Deck not found: ${deckId}`);
+    }
+
+    return syncedDeck;
+  }, [runSync]);
+
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
 
   const createCardItem = useCallback(async function createCardItem(input: CreateCardInput): Promise<Card> {
@@ -458,11 +481,12 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       throw new Error("Workspace is unavailable");
     }
 
+    const normalizedInput = normalizeCreateDeckInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = getStableDeviceId();
     const nextDeck = {
-      ...buildDeck(input, clientUpdatedAt, deviceId, operationId),
+      ...buildDeck(normalizedInput, clientUpdatedAt, deviceId, operationId),
       workspaceId: activeWorkspaceId,
     };
     const nextOutboxRecord: PersistedOutboxRecord = {
@@ -520,6 +544,41 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     return nextCard;
   }, [activeWorkspaceId, publishSnapshot, runSync]);
 
+  const updateDeckItem = useCallback(async function updateDeckItem(deckId: string, input: UpdateDeckInput): Promise<Deck> {
+    if (activeWorkspaceId === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
+    const existingDeck = snapshotRef.current.decks.find((deck) => deck.deckId === deckId && deck.deletedAt === null);
+    if (existingDeck === undefined) {
+      throw new Error("Deck not found");
+    }
+
+    const normalizedInput = normalizeUpdateDeckInput(input);
+    const clientUpdatedAt = nowIso();
+    const operationId = crypto.randomUUID().toLowerCase();
+    const deviceId = getStableDeviceId();
+    const nextDeck = buildUpdatedDeck(existingDeck, normalizedInput, clientUpdatedAt, deviceId, operationId);
+    const nextOutboxRecord: PersistedOutboxRecord = {
+      operationId,
+      workspaceId: activeWorkspaceId,
+      createdAt: clientUpdatedAt,
+      attemptCount: 0,
+      lastError: "",
+      operation: buildDeckUpsertOperation(nextDeck),
+    };
+
+    await putDeck(nextDeck);
+    await putOutboxRecord(nextOutboxRecord);
+    publishSnapshot({
+      ...snapshotRef.current,
+      decks: upsertDeck(snapshotRef.current.decks, nextDeck),
+      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
+    });
+    void runSync();
+    return nextDeck;
+  }, [activeWorkspaceId, publishSnapshot, runSync]);
+
   const deleteCardItem = useCallback(async function deleteCardItem(cardId: string): Promise<Card> {
     if (activeWorkspaceId === null) {
       throw new Error("Workspace is unavailable");
@@ -552,6 +611,40 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     });
     void runSync();
     return nextCard;
+  }, [activeWorkspaceId, publishSnapshot, runSync]);
+
+  const deleteDeckItem = useCallback(async function deleteDeckItem(deckId: string): Promise<Deck> {
+    if (activeWorkspaceId === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
+    const existingDeck = snapshotRef.current.decks.find((deck) => deck.deckId === deckId && deck.deletedAt === null);
+    if (existingDeck === undefined) {
+      throw new Error("Deck not found");
+    }
+
+    const clientUpdatedAt = nowIso();
+    const operationId = crypto.randomUUID().toLowerCase();
+    const deviceId = getStableDeviceId();
+    const nextDeck = buildDeletedDeck(existingDeck, clientUpdatedAt, deviceId, operationId);
+    const nextOutboxRecord: PersistedOutboxRecord = {
+      operationId,
+      workspaceId: activeWorkspaceId,
+      createdAt: clientUpdatedAt,
+      attemptCount: 0,
+      lastError: "",
+      operation: buildDeckUpsertOperation(nextDeck),
+    };
+
+    await putDeck(nextDeck);
+    await putOutboxRecord(nextOutboxRecord);
+    publishSnapshot({
+      ...snapshotRef.current,
+      decks: upsertDeck(snapshotRef.current.decks, nextDeck),
+      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
+    });
+    void runSync();
+    return nextDeck;
   }, [activeWorkspaceId, publishSnapshot, runSync]);
 
   const submitReviewItem = useCallback(async function submitReviewItem(
@@ -645,10 +738,13 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     refreshDecks,
     refreshReviewQueue,
     getCardById,
+    getDeckById,
     createCardItem,
     createDeckItem,
     updateCardItem,
+    updateDeckItem,
     deleteCardItem,
+    deleteDeckItem,
     submitReviewItem,
   };
 }

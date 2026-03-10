@@ -10,15 +10,14 @@
   top: 0;
   z-index: 50;
   flex-shrink: 0;
-  padding: 18px 34px 0;
+  padding: 18px var(--desktop-shell-gutter) 0;
   background:
     linear-gradient(180deg, rgba(5, 5, 5, 0.96), rgba(5, 5, 5, 0.72) 80%, transparent);
   backdrop-filter: var(--blur);
 }
 
 .topbar-shell {
-  width: min(100%, var(--shell-width));
-  margin: 0 auto;
+  width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
@@ -239,9 +238,8 @@
 }
 
 .global-error-wrap {
-  width: min(100%, var(--shell-width));
-  margin: 0 auto;
-  padding: 14px 34px 0;
+  width: 100%;
+  padding: 14px var(--desktop-shell-gutter) 0;
 }
 
 .global-error {
@@ -255,10 +253,9 @@
 }
 
 .container {
-  width: min(100%, var(--content-width));
+  width: 100%;
   min-width: 0;
-  margin: 0 auto;
-  padding: 20px 34px 36px;
+  padding: 20px 0 36px;
 }
 
 .page-state {

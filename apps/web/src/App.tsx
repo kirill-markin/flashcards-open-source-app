@@ -8,6 +8,7 @@ import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatToggle } from "./chat/ChatToggle";
 import { CardFormScreen } from "./screens/CardFormScreen";
 import { CardsScreen } from "./screens/CardsScreen";
+import { DeckDetailScreen } from "./screens/DeckDetailScreen";
 import { DeckFormScreen } from "./screens/DeckFormScreen";
 import { DecksScreen } from "./screens/DecksScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
@@ -127,11 +128,33 @@ function AppShell(): ReactElement {
   );
 }
 
-function RoutedShell(): ReactElement {
+function buildChatLayoutShellClassName(isFullscreenChat: boolean, isOpen: boolean): string {
+  const sidebarStateClassName = !isFullscreenChat && isOpen
+    ? "chat-layout-shell-sidebar-open"
+    : "chat-layout-shell-sidebar-closed";
+
+  return isFullscreenChat
+    ? `chat-layout-shell ${sidebarStateClassName} chat-layout-shell-fullscreen`
+    : `chat-layout-shell ${sidebarStateClassName}`;
+}
+
+function buildChatMainContentClassName(isFullscreenChat: boolean, isOpen: boolean): string {
+  const sidebarStateClassName = !isFullscreenChat && isOpen
+    ? "chat-main-content-sidebar-open"
+    : "chat-main-content-sidebar-closed";
+
+  return isFullscreenChat
+    ? `chat-main-content ${sidebarStateClassName} chat-main-content-fullscreen`
+    : `chat-main-content ${sidebarStateClassName}`;
+}
+
+export function RoutedShell(): ReactElement {
   const location = useLocation();
   const { isOpen } = useChatLayout();
   const isFullscreenChat = location.pathname === "/chat";
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const shellClassName = buildChatLayoutShellClassName(isFullscreenChat, isOpen);
+  const contentClassName = buildChatMainContentClassName(isFullscreenChat, isOpen);
 
   useEffect(() => {
     if (contentRef.current !== null) {
@@ -141,9 +164,9 @@ function RoutedShell(): ReactElement {
   }, [location.pathname]);
 
   return (
-    <div className="chat-layout-shell">
+    <div className={shellClassName}>
       {!isFullscreenChat && isOpen ? <ChatPanel mode="sidebar" /> : null}
-      <div ref={contentRef} className="chat-main-content">
+      <div ref={contentRef} className={contentClassName}>
         <Routes>
           <Route path="/" element={<Navigate replace to="/cards" />} />
           <Route path="/cards" element={<CardsScreen />} />
@@ -151,6 +174,8 @@ function RoutedShell(): ReactElement {
           <Route path="/cards/:cardId" element={<CardFormScreen />} />
           <Route path="/decks" element={<DecksScreen />} />
           <Route path="/decks/new" element={<DeckFormScreen />} />
+          <Route path="/decks/:deckId/edit" element={<DeckFormScreen />} />
+          <Route path="/decks/:deckId" element={<DeckDetailScreen />} />
           <Route path="/review" element={<ReviewScreen />} />
           <Route
             path="/chat"

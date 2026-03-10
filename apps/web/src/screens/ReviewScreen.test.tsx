@@ -5,7 +5,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewScreen } from "./ReviewScreen";
-import type { Card, WorkspaceSchedulerSettings } from "../types";
+import type { Card, Deck, ReviewFilter } from "../types";
 
 const { mockAppData } = vi.hoisted(() => ({
   mockAppData: {
@@ -16,17 +16,36 @@ const { mockAppData } = vi.hoisted(() => ({
       errorMessage: "",
       hasLoaded: true,
     },
+    decks: [] as Array<Deck>,
     reviewQueue: [] as Array<Card>,
+    reviewTimeline: [] as Array<Card>,
     reviewQueueState: {
       status: "ready",
       items: [],
       errorMessage: "",
       hasLoaded: true,
     },
-    workspaceSettings: null as WorkspaceSchedulerSettings | null,
+    selectedReviewFilter: {
+      kind: "allCards",
+    } as ReviewFilter,
+    selectedReviewFilterTitle: "All cards",
+    workspaceSettings: {
+      algorithm: "fsrs-6",
+      desiredRetention: 0.9,
+      learningStepsMinutes: [1, 10],
+      relearningStepsMinutes: [10],
+      maximumIntervalDays: 36500,
+      enableFuzz: true,
+      clientUpdatedAt: "2026-03-10T09:00:00.000Z",
+      lastModifiedByDeviceId: "device-1",
+      lastOperationId: "settings-operation-1",
+      updatedAt: "2026-03-10T09:00:00.000Z",
+    },
     ensureCardsLoaded: vi.fn(async () => undefined),
+    ensureDecksLoaded: vi.fn(async () => undefined),
     ensureReviewQueueLoaded: vi.fn(async () => undefined),
     refreshReviewQueue: vi.fn(async () => undefined),
+    selectReviewFilter: vi.fn(),
     submitReviewItem: vi.fn(async () => {
       throw new Error("not used");
     }),
@@ -51,15 +70,15 @@ function createCard(overrides?: Partial<Card>): Card {
     backText: "Back",
     tags: [],
     effortLevel: "fast",
-    dueAt: "2026-03-10T11:30:00.000Z",
-    reps: 3,
-    lapses: 1,
-    fsrsCardState: "review",
+    dueAt: null,
+    reps: 0,
+    lapses: 0,
+    fsrsCardState: "new",
     fsrsStepIndex: null,
-    fsrsStability: 6,
-    fsrsDifficulty: 5,
-    fsrsLastReviewedAt: "2026-03-09T11:30:00.000Z",
-    fsrsScheduledDays: 2,
+    fsrsStability: null,
+    fsrsDifficulty: null,
+    fsrsLastReviewedAt: null,
+    fsrsScheduledDays: null,
     clientUpdatedAt: "2026-03-10T09:00:00.000Z",
     lastModifiedByDeviceId: "device-1",
     lastOperationId: "operation-1",
@@ -69,23 +88,30 @@ function createCard(overrides?: Partial<Card>): Card {
   };
 }
 
-function createWorkspaceSchedulerSettings(): WorkspaceSchedulerSettings {
+function createDeck(overrides?: Partial<Deck>): Deck {
   return {
-    algorithm: "fsrs-6",
-    desiredRetention: 0.9,
-    learningStepsMinutes: [1, 10],
-    relearningStepsMinutes: [10],
-    maximumIntervalDays: 36500,
-    enableFuzz: false,
+    deckId: "deck-1",
+    workspaceId: "workspace-1",
+    name: "Grammar",
+    filterDefinition: {
+      version: 2,
+      effortLevels: ["fast"],
+      tags: ["grammar"],
+    },
+    createdAt: "2026-03-10T09:00:00.000Z",
     clientUpdatedAt: "2026-03-10T09:00:00.000Z",
     lastModifiedByDeviceId: "device-1",
-    lastOperationId: "settings-operation-1",
+    lastOperationId: "deck-operation-1",
     updatedAt: "2026-03-10T09:00:00.000Z",
+    deletedAt: null,
+    ...overrides,
   };
 }
 
-function clickElement(element: Element): void {
-  element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+function setSelectValue(select: HTMLSelectElement, value: string): void {
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  descriptor?.set?.call(select, value);
+  select.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 describe("ReviewScreen", () => {
@@ -97,26 +123,16 @@ describe("ReviewScreen", () => {
     vi.setSystemTime(new Date("2026-03-10T12:00:00.000Z"));
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     mockAppData.cards = [];
-    mockAppData.cardsState = {
-      status: "ready",
-      items: [],
-      errorMessage: "",
-      hasLoaded: true,
-    };
+    mockAppData.decks = [];
     mockAppData.reviewQueue = [];
-    mockAppData.reviewQueueState = {
-      status: "ready",
-      items: [],
-      errorMessage: "",
-      hasLoaded: true,
-    };
-    mockAppData.workspaceSettings = createWorkspaceSchedulerSettings();
+    mockAppData.reviewTimeline = [];
+    mockAppData.selectedReviewFilter = { kind: "allCards" } as ReviewFilter;
+    mockAppData.selectedReviewFilterTitle = "All cards";
     mockAppData.ensureCardsLoaded.mockClear();
+    mockAppData.ensureDecksLoaded.mockClear();
     mockAppData.ensureReviewQueueLoaded.mockClear();
     mockAppData.refreshReviewQueue.mockClear();
-    mockAppData.submitReviewItem.mockClear();
-    mockAppData.updateCardItem.mockClear();
-    mockAppData.deleteCardItem.mockClear();
+    mockAppData.selectReviewFilter.mockClear();
     mockAppData.setErrorMessage.mockClear();
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -129,22 +145,18 @@ describe("ReviewScreen", () => {
     vi.useRealTimers();
   });
 
-  it("renders review answer buttons in the iOS two-column order", async () => {
-    const card = createCard();
-    mockAppData.cards = [card];
-    mockAppData.cardsState = {
-      status: "ready",
-      items: [card],
-      errorMessage: "",
-      hasLoaded: true,
-    };
-    mockAppData.reviewQueue = [card];
-    mockAppData.reviewQueueState = {
-      status: "ready",
-      items: [card],
-      errorMessage: "",
-      hasLoaded: true,
-    };
+  it("renders the selected deck-specific queue and timeline", async () => {
+    const grammarCard = createCard({
+      cardId: "grammar-card",
+      frontText: "Grammar front",
+      tags: ["grammar"],
+    });
+    mockAppData.decks = [createDeck()];
+    mockAppData.cards = [grammarCard];
+    mockAppData.reviewQueue = [grammarCard];
+    mockAppData.reviewTimeline = [grammarCard];
+    mockAppData.selectedReviewFilter = { kind: "deck", deckId: "deck-1" } as ReviewFilter;
+    mockAppData.selectedReviewFilterTitle = "Grammar";
 
     await act(async () => {
       root.render(
@@ -154,25 +166,32 @@ describe("ReviewScreen", () => {
       );
     });
 
-    const revealButton = container.querySelector(".review-reveal-btn");
+    expect(container.textContent).toContain("Grammar");
+    expect(container.textContent).toContain("Grammar front");
+    expect(container.textContent).not.toContain("No cards to review right now.");
+  });
 
-    expect(revealButton).not.toBeNull();
+  it("lists All cards and deck filters and dispatches the selected deck filter", async () => {
+    mockAppData.decks = [createDeck()];
 
     await act(async () => {
-      clickElement(revealButton as HTMLButtonElement);
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
     });
 
-    const ratingColumns = Array.from(container.querySelectorAll(".rating-bar-column"));
-    const titlesByColumn = ratingColumns.map((column) => (
-      Array.from(column.querySelectorAll(".rating-btn-title")).map((element) => element.textContent)
-    ));
-    const allTitles = Array.from(container.querySelectorAll(".rating-btn-title")).map((element) => element.textContent);
+    const select = container.querySelector(".review-filter-select");
+    const options = Array.from(container.querySelectorAll(".review-filter-select option")).map((option) => option.textContent);
 
-    expect(ratingColumns).toHaveLength(2);
-    expect(titlesByColumn).toEqual([
-      ["Easy", "Good"],
-      ["Hard", "Again"],
-    ]);
-    expect(allTitles).toEqual(["Easy", "Good", "Hard", "Again"]);
+    expect(select).not.toBeNull();
+    expect(options).toEqual(["All cards", "Grammar"]);
+
+    await act(async () => {
+      setSelectValue(select as HTMLSelectElement, "deck-1");
+    });
+
+    expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });
   });
 });

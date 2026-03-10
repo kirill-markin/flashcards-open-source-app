@@ -5,6 +5,23 @@
   align-items: start;
 }
 
+.review-filter-select-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.review-filter-label {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+.review-filter-select {
+  min-width: 180px;
+}
+
 .review-pane,
 .review-queue-panel {
   display: grid;
@@ -164,6 +181,10 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
+}
+
+.review-queue-subtitle {
+  margin-top: 4px;
 }
 
 .review-queue-caption {
