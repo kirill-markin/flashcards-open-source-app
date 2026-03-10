@@ -85,6 +85,13 @@ final class AIChatStore: ObservableObject {
         self.repairStatus = nil
     }
 
+    func applyPresentationRequest(request: AIChatPresentationRequest) {
+        switch request {
+        case .createCard:
+            self.inputText = aiChatCreateCardDraftPrompt
+        }
+    }
+
     func sendMessage() {
         if self.isStreaming {
             return

@@ -25,6 +25,10 @@ enum CardsPresentationRequest: Hashable, Sendable {
     case createCard
 }
 
+enum AIChatPresentationRequest: Hashable, Sendable {
+    case createCard
+}
+
 let allCardsDeckLabel: String = "All cards"
 
 enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {

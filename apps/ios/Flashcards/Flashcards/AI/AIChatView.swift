@@ -62,6 +62,12 @@ struct AIChatView: View {
             }
         }
         .navigationTitle("AI")
+        .onAppear {
+            self.handleAIChatPresentationRequest(request: self.flashcardsStore.aiChatPresentationRequest)
+        }
+        .onChange(of: self.flashcardsStore.aiChatPresentationRequest) { _, request in
+            self.handleAIChatPresentationRequest(request: request)
+        }
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet()
                 .environmentObject(flashcardsStore)
@@ -221,6 +227,15 @@ struct AIChatView: View {
         AIChatModelDef.all.first(where: { model in
             model.id == chatStore.selectedModelId
         })?.label ?? chatStore.selectedModelId
+    }
+
+    private func handleAIChatPresentationRequest(request: AIChatPresentationRequest?) {
+        guard let request else {
+            return
+        }
+
+        self.chatStore.applyPresentationRequest(request: request)
+        self.flashcardsStore.clearAIChatPresentationRequest()
     }
 
     private func repairStatus(for message: AIChatMessage) -> AIChatRepairAttemptStatus? {
