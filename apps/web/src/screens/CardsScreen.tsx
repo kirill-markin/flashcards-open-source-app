@@ -374,15 +374,15 @@ export function CardsScreen(): ReactElement {
           <table className="txn-table cards-table">
             <thead>
               <tr>
-                <th className="txn-th cards-open-th" />
-                <th className="txn-th cards-header-th">{renderSortableHeaderCell("frontText", "Front")}</th>
-                <th className="txn-th cards-header-th">{renderSortableHeaderCell("backText", "Back")}</th>
-                <th className="txn-th cards-header-th">{renderSortableHeaderCell("tags", "Tags")}</th>
-                <th className="txn-th cards-header-th">{renderSortableHeaderCell("effortLevel", "Effort")}</th>
-                <th className="txn-th cards-header-th">{renderSortableHeaderCell("dueAt", "Due")}</th>
-                <th className="txn-th cards-header-th">{renderSortableHeaderCell("reps", "Reps")}</th>
-                <th className="txn-th cards-header-th">{renderSortableHeaderCell("lapses", "Lapses")}</th>
-                <th className="txn-th cards-header-th">{renderSortableHeaderCell("updatedAt", "Updated")}</th>
+                <th className="txn-th cards-open-th cards-col-open" />
+                <th className="txn-th cards-header-th cards-col-front">{renderSortableHeaderCell("frontText", "Front")}</th>
+                <th className="txn-th cards-header-th cards-col-back">{renderSortableHeaderCell("backText", "Back")}</th>
+                <th className="txn-th cards-header-th cards-col-tags">{renderSortableHeaderCell("tags", "Tags")}</th>
+                <th className="txn-th cards-header-th cards-col-effort">{renderSortableHeaderCell("effortLevel", "Effort")}</th>
+                <th className="txn-th cards-header-th cards-col-due">{renderSortableHeaderCell("dueAt", "Due")}</th>
+                <th className="txn-th cards-header-th cards-col-reps">{renderSortableHeaderCell("reps", "Reps")}</th>
+                <th className="txn-th cards-header-th cards-col-lapses">{renderSortableHeaderCell("lapses", "Lapses")}</th>
+                <th className="txn-th cards-header-th cards-col-updated">{renderSortableHeaderCell("updatedAt", "Updated")}</th>
               </tr>
             </thead>
             <tbody>
@@ -390,13 +390,13 @@ export function CardsScreen(): ReactElement {
                 const isSaving = savingCardId === card.cardId;
                 return (
                   <tr key={card.cardId} className="txn-row cards-row">
-                    <td className="txn-cell cards-open-cell">
+                    <td className="txn-cell cards-open-cell cards-col-open">
                       <Link className="row-open-link" to={`/cards/${card.cardId}`}>Open</Link>
                     </td>
                     <EditableCardTextCell
                       value={card.frontText}
                       displayValue={card.frontText}
-                      cellClassName=""
+                      cellClassName="cards-col-front"
                       multiline={true}
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { frontText: nextValue })}
@@ -404,7 +404,7 @@ export function CardsScreen(): ReactElement {
                     <EditableCardTextCell
                       value={card.backText}
                       displayValue={card.backText}
-                      cellClassName=""
+                      cellClassName="cards-col-back"
                       multiline={true}
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { backText: nextValue })}
@@ -412,20 +412,20 @@ export function CardsScreen(): ReactElement {
                     <EditableCardTagsCell
                       value={card.tags}
                       suggestions={tagSuggestions}
-                      cellClassName="cards-tag-cell"
+                      cellClassName="cards-col-tags cards-tag-cell"
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { tags: nextValue })}
                     />
                     <EditableCardEffortCell
                       value={card.effortLevel}
-                      cellClassName=""
+                      cellClassName="cards-col-effort"
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { effortLevel: nextValue })}
                     />
-                    <td className="txn-cell txn-cell-mono">{formatTimestamp(card.dueAt)}</td>
-                    <td className="txn-cell txn-cell-mono">{card.reps}</td>
-                    <td className="txn-cell txn-cell-mono">{card.lapses}</td>
-                    <td className="txn-cell txn-cell-mono">{formatTimestamp(card.updatedAt)}</td>
+                    <td className="txn-cell txn-cell-mono cards-col-due">{formatTimestamp(card.dueAt)}</td>
+                    <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
+                    <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
+                    <td className="txn-cell txn-cell-mono cards-col-updated">{formatTimestamp(card.updatedAt)}</td>
                   </tr>
                 );
               })}

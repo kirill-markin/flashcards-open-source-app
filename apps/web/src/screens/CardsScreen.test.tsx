@@ -5,7 +5,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildNextCardsTableSorts, CardsScreen } from "./CardsScreen";
-import type { QueryCardsPage } from "../types";
+import type { Card, QueryCardsPage } from "../types";
 
 const {
   queryCardsMock,
@@ -61,6 +61,31 @@ function createCardsPage(overrides?: Partial<QueryCardsPage>): QueryCardsPage {
     nextCursor: null,
     hasMore: false,
     totalCount: 0,
+    ...overrides,
+  };
+}
+
+function createCard(overrides?: Partial<Card>): Card {
+  return {
+    cardId: "card-1",
+    frontText: "Front",
+    backText: "Back",
+    tags: [],
+    effortLevel: "fast",
+    dueAt: null,
+    reps: 0,
+    lapses: 0,
+    fsrsCardState: "new",
+    fsrsStepIndex: null,
+    fsrsStability: null,
+    fsrsDifficulty: null,
+    fsrsLastReviewedAt: null,
+    fsrsScheduledDays: null,
+    clientUpdatedAt: "2026-03-10T00:00:00.000Z",
+    lastModifiedByDeviceId: "device-1",
+    lastOperationId: "operation-1",
+    updatedAt: "2026-03-10T00:00:00.000Z",
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -165,27 +190,7 @@ describe("CardsScreen", () => {
   it("loads the next page when the sentinel intersects", async () => {
     queryCardsMock
       .mockResolvedValueOnce(createCardsPage({
-        cards: [{
-          cardId: "card-1",
-          frontText: "Front",
-          backText: "Back",
-          tags: [],
-          effortLevel: "fast",
-          dueAt: null,
-          reps: 0,
-          lapses: 0,
-          fsrsCardState: "new",
-          fsrsStepIndex: null,
-          fsrsStability: null,
-          fsrsDifficulty: null,
-          fsrsLastReviewedAt: null,
-          fsrsScheduledDays: null,
-          clientUpdatedAt: "2026-03-10T00:00:00.000Z",
-          lastModifiedByDeviceId: "device-1",
-          lastOperationId: "operation-1",
-          updatedAt: "2026-03-10T00:00:00.000Z",
-          deletedAt: null,
-        }],
+        cards: [createCard()],
         nextCursor: "cursor-1",
         hasMore: true,
         totalCount: 2,
@@ -220,5 +225,37 @@ describe("CardsScreen", () => {
       limit: 50,
       sorts: [],
     });
+  });
+
+  it("renders fixed-width front and back columns with multiline clamp wrappers", async () => {
+    queryCardsMock.mockResolvedValue(createCardsPage({
+      cards: [createCard({
+        frontText: "Line 1\nLine 2\nLine 3\nLine 4",
+        backText: "",
+      })],
+      totalCount: 1,
+    }));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <CardsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const frontHeader = container.querySelector("th.cards-col-front");
+    const backHeader = container.querySelector("th.cards-col-back");
+    const frontCell = container.querySelector("td.cards-col-front");
+    const backCell = container.querySelector("td.cards-col-back");
+    const multilineDisplays = container.querySelectorAll(".cards-cell-multiline-display");
+
+    expect(frontHeader).not.toBeNull();
+    expect(backHeader).not.toBeNull();
+    expect(frontCell).not.toBeNull();
+    expect(backCell).not.toBeNull();
+    expect(multilineDisplays).toHaveLength(2);
+    expect(frontCell?.querySelector(".cards-cell-multiline-display")?.textContent).toBe("Line 1\nLine 2\nLine 3\nLine 4");
+    expect(backCell?.querySelector(".cards-cell-multiline-display")?.textContent).toBe("—");
   });
 });
