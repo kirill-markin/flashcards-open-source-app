@@ -101,6 +101,31 @@ test("createAgentSetupErrorEnvelope keeps actionable retry instructions", () => 
   assert.equal(envelope.error.code, "WORKSPACE_SELECTION_REQUIRED");
   assert.equal(envelope.requestId, "request-1");
   assert.equal(envelope.docs.openapiUrl, "https://api.example.com/v1/agent/openapi.json");
+  assert.deepEqual(envelope.actions.map((action) => action.name), ["list_workspaces", "select_workspace"]);
+});
+
+test("createAgentSetupErrorEnvelope exposes validation details for tool input errors", () => {
+  process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
+
+  const envelope = createAgentSetupErrorEnvelope(
+    "https://api.example.com/v1/agent/tools/get_cards",
+    "AGENT_TOOL_INPUT_INVALID",
+    "Request body does not match the get_cards schema",
+    "Fix the JSON body to match the tool schema.",
+    "request-2",
+    {
+      validationIssues: [
+        {
+          path: "cardIds.0",
+          code: "invalid_format",
+          message: "Invalid UUID",
+        },
+      ],
+    },
+  );
+
+  assert.equal(envelope.error.details?.validationIssues[0]?.path, "cardIds.0");
+  assert.deepEqual(envelope.actions.map((action) => action.name), ["list_tools", "openapi"]);
 });
 
 test("createAgentConnectionManagementErrorEnvelope includes human-session guidance", () => {
@@ -108,10 +133,10 @@ test("createAgentConnectionManagementErrorEnvelope includes human-session guidan
     "AGENT_API_KEY_HUMAN_SESSION_REQUIRED",
     "Agent connections must be managed from a human session",
     "Manage long-lived bot connections from a human browser or mobile session.",
-    "request-2",
+    "request-3",
   );
 
   assert.equal(envelope.ok, false);
   assert.equal(envelope.error.code, "AGENT_API_KEY_HUMAN_SESSION_REQUIRED");
-  assert.equal(envelope.requestId, "request-2");
+  assert.equal(envelope.requestId, "request-3");
 });

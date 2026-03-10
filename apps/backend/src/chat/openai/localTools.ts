@@ -37,6 +37,11 @@ const LIMIT_SCHEMA = {
   maximum: 100,
 } as const;
 
+const UUID_SCHEMA = {
+  type: "string",
+  format: "uuid",
+} as const;
+
 const EFFORT_LEVEL_SCHEMA = {
   type: "string",
   enum: ["fast", "medium", "long"],
@@ -53,7 +58,7 @@ const CARD_INPUT_SCHEMA = strictObjectSchema({
 });
 
 const CARD_UPDATE_SCHEMA = strictObjectSchema({
-  cardId: { type: "string" },
+  cardId: UUID_SCHEMA,
   frontText: nullableSchema({ type: "string" }),
   backText: nullableSchema({ type: "string" }),
   tags: nullableSchema({
@@ -76,7 +81,7 @@ const DECK_INPUT_SCHEMA = strictObjectSchema({
 });
 
 const DECK_UPDATE_SCHEMA = strictObjectSchema({
-  deckId: { type: "string" },
+  deckId: UUID_SCHEMA,
   name: nullableSchema({ type: "string" }),
   effortLevels: nullableSchema({
     type: "array",
@@ -104,6 +109,8 @@ const nullableLimitValidator = z.number().int().min(1).max(100).nullable();
 const nullableStringValidator = z.string().nullable();
 const nullableStringArrayValidator = z.array(z.string()).nullable();
 const nullableEffortLevelValidator = z.enum(["fast", "medium", "long"]).nullable();
+const uuidValidator = z.string().uuid();
+const nullableUuidValidator = uuidValidator.nullable();
 
 const createCardValidator = z.object({
   frontText: z.string(),
@@ -113,7 +120,7 @@ const createCardValidator = z.object({
 }).strict();
 
 const updateCardValidator = z.object({
-  cardId: z.string(),
+  cardId: uuidValidator,
   frontText: nullableStringValidator,
   backText: nullableStringValidator,
   tags: nullableStringArrayValidator,
@@ -127,7 +134,7 @@ const createDeckValidator = z.object({
 }).strict();
 
 const updateDeckValidator = z.object({
-  deckId: z.string(),
+  deckId: uuidValidator,
   name: nullableStringValidator,
   effortLevels: z.array(z.enum(["fast", "medium", "long"])).nullable(),
   tags: nullableStringArrayValidator,
@@ -139,7 +146,7 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
     limit: nullableLimitValidator,
   }).strict(),
   get_cards: z.object({
-    cardIds: z.array(z.string()).min(1).max(100),
+    cardIds: z.array(uuidValidator).min(1).max(100),
   }).strict(),
   search_cards: z.object({
     query: z.string(),
@@ -154,11 +161,11 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
     limit: nullableLimitValidator,
   }).strict(),
   get_decks: z.object({
-    deckIds: z.array(z.string()).min(1).max(100),
+    deckIds: z.array(uuidValidator).min(1).max(100),
   }).strict(),
   list_review_history: z.object({
     limit: nullableLimitValidator,
-    cardId: nullableStringValidator,
+    cardId: nullableUuidValidator,
   }).strict(),
   get_scheduler_settings: z.object({}).strict(),
   get_cloud_settings: z.object({}).strict(),
@@ -172,7 +179,7 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
     updates: z.array(updateCardValidator).min(1).max(100),
   }).strict(),
   delete_cards: z.object({
-    cardIds: z.array(z.string()).min(1).max(100),
+    cardIds: z.array(uuidValidator).min(1).max(100),
   }).strict(),
   create_decks: z.object({
     decks: z.array(createDeckValidator).min(1).max(100),
@@ -181,7 +188,7 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
     updates: z.array(updateDeckValidator).min(1).max(100),
   }).strict(),
   delete_decks: z.object({
-    deckIds: z.array(z.string()).min(1).max(100),
+    deckIds: z.array(uuidValidator).min(1).max(100),
   }).strict(),
 } as const;
 
@@ -219,7 +226,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     parameters: strictObjectSchema({
       cardIds: {
         ...BULK_CARD_ARRAY_SCHEMA,
-        items: { type: "string" },
+        items: UUID_SCHEMA,
       },
     }),
   },
@@ -282,7 +289,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     parameters: strictObjectSchema({
       deckIds: {
         ...BULK_DECK_ARRAY_SCHEMA,
-        items: { type: "string" },
+        items: UUID_SCHEMA,
       },
     }),
   },
@@ -372,7 +379,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     parameters: strictObjectSchema({
       cardIds: {
         ...BULK_CARD_ARRAY_SCHEMA,
-        items: { type: "string" },
+        items: UUID_SCHEMA,
       },
     }),
   },
@@ -417,7 +424,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     parameters: strictObjectSchema({
       deckIds: {
         ...BULK_DECK_ARRAY_SCHEMA,
-        items: { type: "string" },
+        items: UUID_SCHEMA,
       },
     }),
   },

@@ -89,13 +89,13 @@ export function buildLocalToolCallExamplesSection(): string {
   return joinLines([
     "Tool-call JSON examples:",
     "- list_cards => {\"limit\": 20}",
-    "- get_cards => {\"cardIds\": [\"card_123\"]}",
+    "- get_cards => {\"cardIds\": [\"123e4567-e89b-42d3-a456-426614174000\"]}",
     "- search_cards => {\"query\": \"grammar\", \"limit\": null}",
     "- search_decks => {\"query\": \"grammar\", \"limit\": null}",
-    "- get_decks => {\"deckIds\": [\"deck_123\"]}",
+    "- get_decks => {\"deckIds\": [\"123e4567-e89b-42d3-a456-426614174001\"]}",
     "- list_review_history => {\"limit\": 20, \"cardId\": null}",
-    "- update_cards => {\"updates\": [{\"cardId\": \"card_123\", \"frontText\": null, \"backText\": \"Updated back\", \"tags\": null, \"effortLevel\": null}]}",
-    "- update_decks => {\"updates\": [{\"deckId\": \"deck_123\", \"name\": null, \"effortLevels\": [\"fast\", \"medium\"], \"tags\": [\"grammar\"]}]}",
+    "- update_cards => {\"updates\": [{\"cardId\": \"123e4567-e89b-42d3-a456-426614174000\", \"frontText\": null, \"backText\": \"Updated back\", \"tags\": null, \"effortLevel\": null}]}",
+    "- update_decks => {\"updates\": [{\"deckId\": \"123e4567-e89b-42d3-a456-426614174001\", \"name\": null, \"effortLevels\": [\"fast\", \"medium\"], \"tags\": [\"grammar\"]}]}",
   ]);
 }
 

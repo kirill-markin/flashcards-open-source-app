@@ -73,6 +73,11 @@ export function parseWorkspaceIdParam(value: string | undefined): string {
     throw new HttpError(400, "workspaceId must not be empty", "WORKSPACE_ID_INVALID");
   }
 
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(trimmedValue)) {
+    throw new HttpError(400, "workspaceId must be a UUID", "WORKSPACE_ID_INVALID");
+  }
+
   return trimmedValue;
 }
 
