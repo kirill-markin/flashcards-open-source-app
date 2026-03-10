@@ -60,6 +60,37 @@ export type Card = Readonly<{
   deletedAt: string | null;
 }>;
 
+export type CardQuerySortKey =
+  | "frontText"
+  | "backText"
+  | "tags"
+  | "effortLevel"
+  | "dueAt"
+  | "reps"
+  | "lapses"
+  | "updatedAt";
+
+export type CardQuerySortDirection = "asc" | "desc";
+
+export type CardQuerySort = Readonly<{
+  key: CardQuerySortKey;
+  direction: CardQuerySortDirection;
+}>;
+
+export type QueryCardsInput = Readonly<{
+  searchText: string | null;
+  cursor: string | null;
+  limit: number;
+  sorts: ReadonlyArray<CardQuerySort>;
+}>;
+
+export type QueryCardsPage = Readonly<{
+  cards: ReadonlyArray<Card>;
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
+}>;
+
 // Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::WorkspaceSchedulerSettings and apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings.
 export type WorkspaceSchedulerSettings = Readonly<{
   algorithm: "fsrs-6";

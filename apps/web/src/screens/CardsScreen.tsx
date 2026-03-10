@@ -1,26 +1,38 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
+import { isAuthRedirectError, queryCards } from "../api";
 import { useAppData } from "../appData";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
 import { getTagSuggestionsFromCards } from "./CardTagsInput";
-import type { Card, UpdateCardInput } from "../types";
+import type { Card, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, UpdateCardInput } from "../types";
 
-type SortKey = "frontText" | "backText" | "tags" | "effortLevel" | "dueAt" | "reps" | "lapses" | "updatedAt";
-type SortDirection = "asc" | "desc";
+type CardsQueryState = Readonly<{
+  items: ReadonlyArray<Card>;
+  totalCount: number;
+  nextCursor: string | null;
+  hasMore: boolean;
+  hasLoaded: boolean;
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  errorMessage: string;
+}>;
 
-const SORT_OPTIONS: ReadonlyArray<Readonly<{
-  key: SortKey;
-  label: string;
-}>> = [
-  { key: "updatedAt", label: "Updated" },
-  { key: "dueAt", label: "Due" },
-  { key: "frontText", label: "Front" },
-  { key: "backText", label: "Back" },
-  { key: "tags", label: "Tags" },
-  { key: "effortLevel", label: "Effort" },
-  { key: "reps", label: "Reps" },
-  { key: "lapses", label: "Lapses" },
-];
+const cardsPageSize = 50;
+const cardsSearchDebounceMs = 300;
+const maximumUserSortCount = 3;
+
+function createInitialCardsQueryState(): CardsQueryState {
+  return {
+    items: [],
+    totalCount: 0,
+    nextCursor: null,
+    hasMore: false,
+    hasLoaded: false,
+    isLoading: false,
+    isLoadingMore: false,
+    errorMessage: "",
+  };
+}
 
 function formatTimestamp(value: string | null): string {
   if (value === null) {
@@ -30,29 +42,230 @@ function formatTimestamp(value: string | null): string {
   return new Date(value).toLocaleString();
 }
 
-function compareCards(left: Card, right: Card, sortKey: SortKey, sortDirection: SortDirection): number {
-  const multiplier = sortDirection === "asc" ? 1 : -1;
-  const leftValue = sortKey === "tags" ? left.tags.join(", ") : left[sortKey];
-  const rightValue = sortKey === "tags" ? right.tags.join(", ") : right[sortKey];
+function normalizeCardsSearchText(searchText: string): string | null {
+  const normalizedSearchText = searchText.trim();
+  return normalizedSearchText === "" ? null : normalizedSearchText;
+}
 
-  if (typeof leftValue === "number" && typeof rightValue === "number") {
-    return (leftValue - rightValue) * multiplier;
+export function getDefaultCardSortDirection(sortKey: CardQuerySortKey): CardQuerySortDirection {
+  if (sortKey === "updatedAt") {
+    return "desc";
   }
 
-  const leftString = leftValue ?? "";
-  const rightString = rightValue ?? "";
-  return String(leftString).localeCompare(String(rightString)) * multiplier;
+  if (sortKey === "dueAt") {
+    return "asc";
+  }
+
+  return "asc";
+}
+
+export function buildNextCardsTableSorts(
+  currentSorts: ReadonlyArray<CardQuerySort>,
+  sortKey: CardQuerySortKey,
+): ReadonlyArray<CardQuerySort> {
+  const existingSort = currentSorts.find((sort) => sort.key === sortKey);
+  if (existingSort !== undefined) {
+    const remainingSorts = currentSorts.filter((sort) => sort.key !== sortKey);
+    const nextDirection: CardQuerySortDirection = existingSort.direction === "asc" ? "desc" : "asc";
+    return [{
+      key: sortKey,
+      direction: nextDirection,
+    }, ...remainingSorts].slice(0, maximumUserSortCount);
+  }
+
+  return [{
+    key: sortKey,
+    direction: getDefaultCardSortDirection(sortKey),
+  }, ...currentSorts].slice(0, maximumUserSortCount);
+}
+
+function getSortPriority(
+  sorts: ReadonlyArray<CardQuerySort>,
+  sortKey: CardQuerySortKey,
+): number | null {
+  const index = sorts.findIndex((sort) => sort.key === sortKey);
+  return index === -1 ? null : index + 1;
+}
+
+function mergeCardsPage(
+  currentState: CardsQueryState,
+  nextPage: QueryCardsPage,
+): CardsQueryState {
+  return {
+    items: [...currentState.items, ...nextPage.cards],
+    totalCount: nextPage.totalCount,
+    nextCursor: nextPage.nextCursor,
+    hasMore: nextPage.hasMore,
+    hasLoaded: true,
+    isLoading: false,
+    isLoadingMore: false,
+    errorMessage: "",
+  };
 }
 
 export function CardsScreen(): ReactElement {
-  const { cards, cardsState, ensureCardsLoaded, refreshCards, updateCardItem, setErrorMessage } = useAppData();
-  const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const {
+    activeWorkspace,
+    cards,
+    ensureCardsLoaded,
+    refreshCards,
+    updateCardItem,
+    setErrorMessage,
+  } = useAppData();
+  const [searchText, setSearchText] = useState<string>("");
+  const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
+  const [sorts, setSorts] = useState<ReadonlyArray<CardQuerySort>>([]);
   const [savingCardId, setSavingCardId] = useState<string>("");
+  const [cardsQueryState, setCardsQueryState] = useState<CardsQueryState>(createInitialCardsQueryState);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreSentinelRef = useRef<HTMLTableRowElement | null>(null);
+  const requestSequenceRef = useRef<number>(0);
+
+  const normalizedSearchText = normalizeCardsSearchText(debouncedSearchText);
+  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
 
   useEffect(() => {
     void ensureCardsLoaded();
   }, [ensureCardsLoaded]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, cardsSearchDebounceMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchText]);
+
+  async function loadFirstPage(): Promise<void> {
+    if (activeWorkspaceId === null) {
+      setCardsQueryState(createInitialCardsQueryState());
+      return;
+    }
+
+    const requestSequence = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestSequence;
+    setCardsQueryState((currentState) => ({
+      ...currentState,
+      isLoading: true,
+      isLoadingMore: false,
+      errorMessage: "",
+    }));
+
+    try {
+      const nextPage = await queryCards(activeWorkspaceId, {
+        searchText: normalizedSearchText,
+        cursor: null,
+        limit: cardsPageSize,
+        sorts,
+      });
+
+      if (requestSequenceRef.current !== requestSequence) {
+        return;
+      }
+
+      setCardsQueryState({
+        items: nextPage.cards,
+        totalCount: nextPage.totalCount,
+        nextCursor: nextPage.nextCursor,
+        hasMore: nextPage.hasMore,
+        hasLoaded: true,
+        isLoading: false,
+        isLoadingMore: false,
+        errorMessage: "",
+      });
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
+      if (requestSequenceRef.current !== requestSequence) {
+        return;
+      }
+
+      setCardsQueryState((currentState) => ({
+        ...currentState,
+        hasLoaded: currentState.hasLoaded,
+        isLoading: false,
+        isLoadingMore: false,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      }));
+    }
+  }
+
+  async function loadNextPage(): Promise<void> {
+    if (
+      activeWorkspaceId === null
+      || cardsQueryState.hasMore === false
+      || cardsQueryState.nextCursor === null
+      || cardsQueryState.isLoading
+      || cardsQueryState.isLoadingMore
+    ) {
+      return;
+    }
+
+    const requestSequence = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestSequence;
+    const currentCursor = cardsQueryState.nextCursor;
+    setCardsQueryState((currentState) => ({
+      ...currentState,
+      isLoadingMore: true,
+      errorMessage: "",
+    }));
+
+    try {
+      const nextPage = await queryCards(activeWorkspaceId, {
+        searchText: normalizedSearchText,
+        cursor: currentCursor,
+        limit: cardsPageSize,
+        sorts,
+      });
+
+      if (requestSequenceRef.current !== requestSequence) {
+        return;
+      }
+
+      setCardsQueryState((currentState) => mergeCardsPage(currentState, nextPage));
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
+      if (requestSequenceRef.current !== requestSequence) {
+        return;
+      }
+
+      setCardsQueryState((currentState) => ({
+        ...currentState,
+        isLoadingMore: false,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      }));
+    }
+  }
+
+  useEffect(() => {
+    void loadFirstPage();
+  }, [activeWorkspaceId, normalizedSearchText, sorts]);
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    const sentinel = loadMoreSentinelRef.current;
+    if (scrollContainer === null || sentinel === null || cardsQueryState.hasMore === false) {
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      const firstEntry = entries[0];
+      if (firstEntry?.isIntersecting) {
+        void loadNextPage();
+      }
+    }, {
+      root: scrollContainer,
+      rootMargin: "160px 0px",
+    });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [cardsQueryState.hasMore, cardsQueryState.nextCursor, loadNextPage]);
 
   async function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
     setSavingCardId(card.cardId);
@@ -60,6 +273,8 @@ export function CardsScreen(): ReactElement {
 
     try {
       await updateCardItem(card.cardId, patch);
+      await refreshCards();
+      await loadFirstPage();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -67,21 +282,41 @@ export function CardsScreen(): ReactElement {
     }
   }
 
-  function toggleSort(nextSortKey: SortKey): void {
-    if (nextSortKey === sortKey) {
-      setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
-      return;
-    }
-
-    setSortKey(nextSortKey);
-    setSortDirection(nextSortKey === "updatedAt" ? "desc" : "asc");
+  function handleSortChange(sortKey: CardQuerySortKey): void {
+    setSorts((currentSorts) => buildNextCardsTableSorts(currentSorts, sortKey));
+    scrollContainerRef.current?.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
-  const sortedCards = [...cards].sort((left, right) => compareCards(left, right, sortKey, sortDirection));
-  const tagSuggestions = getTagSuggestionsFromCards(cards);
-  const resourceErrorMessage = cardsState.status === "error" ? cardsState.errorMessage : "";
+  function renderSortableHeaderCell(sortKey: CardQuerySortKey, label: string): ReactElement {
+    const sortPriority = getSortPriority(sorts, sortKey);
+    const activeSort = sorts.find((sort) => sort.key === sortKey);
 
-  if (cardsState.status === "loading" && !cardsState.hasLoaded) {
+    return (
+      <button
+        type="button"
+        className={`cards-header-button${sortPriority === null ? "" : " cards-header-button-active"}`}
+        onClick={() => handleSortChange(sortKey)}
+      >
+        <span>{label}</span>
+        {sortPriority === null ? null : (
+          <span className="cards-header-sort-meta">
+            <span className="cards-header-sort-priority">{sortPriority}</span>
+            <span className="cards-header-sort-direction">{activeSort?.direction === "asc" ? "↑" : "↓"}</span>
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  const tagSuggestions = getTagSuggestionsFromCards(cards);
+  const countLabel = normalizedSearchText === null
+    ? `${cardsQueryState.totalCount} total`
+    : `${cardsQueryState.totalCount} matches`;
+
+  if (cardsQueryState.isLoading && cardsQueryState.hasLoaded === false) {
     return (
       <main className="container">
         <section className="panel cards-panel">
@@ -92,13 +327,13 @@ export function CardsScreen(): ReactElement {
     );
   }
 
-  if (cardsState.status === "error" && !cardsState.hasLoaded) {
+  if (cardsQueryState.errorMessage !== "" && cardsQueryState.hasLoaded === false) {
     return (
       <main className="container">
         <section className="panel cards-panel">
           <h1 className="title">Cards</h1>
-          <p className="error-banner">{cardsState.errorMessage}</p>
-          <button className="primary-btn" type="button" onClick={() => void refreshCards()}>
+          <p className="error-banner">{cardsQueryState.errorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void loadFirstPage()}>
             Retry
           </button>
         </section>
@@ -109,53 +344,49 @@ export function CardsScreen(): ReactElement {
   return (
     <main className="container">
       <section className="panel cards-panel">
-        {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
+        {cardsQueryState.errorMessage !== "" ? <p className="error-banner">{cardsQueryState.errorMessage}</p> : null}
         <div className="screen-head cards-screen-head">
           <div>
             <h1 className="title">Cards</h1>
             <p className="subtitle">Cards are the prompts and answers you review to learn and remember.</p>
           </div>
           <div className="screen-actions">
-            <span className="badge">{cards.length} total</span>
+            <span className="badge">{countLabel}</span>
             <Link className="primary-btn" to="/cards/new">New card</Link>
           </div>
         </div>
 
-        <div className="cards-sort-bar" aria-label="Card sorting">
-          {SORT_OPTIONS.map((option) => {
-            const isActive = option.key === sortKey;
-
-            return (
-              <button
-                key={option.key}
-                type="button"
-                className={`sort-chip${isActive ? " sort-chip-active" : ""}`}
-                onClick={() => toggleSort(option.key)}
-              >
-                {option.label}
-                {isActive ? <span className="sort-chip-direction">{sortDirection === "asc" ? "↑" : "↓"}</span> : null}
-              </button>
-            );
-          })}
+        <div className="cards-search-bar">
+          <label className="cards-search-field">
+            <span className="cards-search-label">Search</span>
+            <input
+              type="search"
+              name="cards-search"
+              className="cards-search-input"
+              placeholder="Search front, back, or tags"
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+            />
+          </label>
         </div>
 
-        <div className="txn-scroll cards-scroll">
+        <div ref={scrollContainerRef} className="txn-scroll cards-scroll">
           <table className="txn-table cards-table">
             <thead>
               <tr>
                 <th className="txn-th cards-open-th" />
-                <th className="txn-th txn-th-sortable" onClick={() => toggleSort("frontText")}>Front</th>
-                <th className="txn-th txn-th-sortable" onClick={() => toggleSort("backText")}>Back</th>
-                <th className="txn-th txn-th-sortable" onClick={() => toggleSort("tags")}>Tags</th>
-                <th className="txn-th txn-th-sortable" onClick={() => toggleSort("effortLevel")}>Effort</th>
-                <th className="txn-th txn-th-sortable" onClick={() => toggleSort("dueAt")}>Due</th>
-                <th className="txn-th txn-th-sortable" onClick={() => toggleSort("reps")}>Reps</th>
-                <th className="txn-th txn-th-sortable" onClick={() => toggleSort("lapses")}>Lapses</th>
-                <th className="txn-th txn-th-sortable" onClick={() => toggleSort("updatedAt")}>Updated</th>
+                <th className="txn-th cards-header-th">{renderSortableHeaderCell("frontText", "Front")}</th>
+                <th className="txn-th cards-header-th">{renderSortableHeaderCell("backText", "Back")}</th>
+                <th className="txn-th cards-header-th">{renderSortableHeaderCell("tags", "Tags")}</th>
+                <th className="txn-th cards-header-th">{renderSortableHeaderCell("effortLevel", "Effort")}</th>
+                <th className="txn-th cards-header-th">{renderSortableHeaderCell("dueAt", "Due")}</th>
+                <th className="txn-th cards-header-th">{renderSortableHeaderCell("reps", "Reps")}</th>
+                <th className="txn-th cards-header-th">{renderSortableHeaderCell("lapses", "Lapses")}</th>
+                <th className="txn-th cards-header-th">{renderSortableHeaderCell("updatedAt", "Updated")}</th>
               </tr>
             </thead>
             <tbody>
-              {sortedCards.map((card) => {
+              {cardsQueryState.items.map((card) => {
                 const isSaving = savingCardId === card.cardId;
                 return (
                   <tr key={card.cardId} className="txn-row cards-row">
@@ -198,9 +429,20 @@ export function CardsScreen(): ReactElement {
                   </tr>
                 );
               })}
-              {sortedCards.length === 0 ? (
+              {cardsQueryState.items.length === 0 ? (
                 <tr>
-                  <td className="txn-cell txn-empty" colSpan={9}>You haven't created any cards yet.</td>
+                  <td className="txn-cell txn-empty" colSpan={9}>
+                    {normalizedSearchText === null
+                      ? "You haven't created any cards yet."
+                      : "No cards match that search yet."}
+                  </td>
+                </tr>
+              ) : null}
+              {cardsQueryState.hasMore ? (
+                <tr ref={loadMoreSentinelRef} className="cards-load-more-row" aria-hidden="true">
+                  <td className="txn-cell" colSpan={9}>
+                    {cardsQueryState.isLoadingMore ? "Loading more cards…" : ""}
+                  </td>
                 </tr>
               ) : null}
             </tbody>

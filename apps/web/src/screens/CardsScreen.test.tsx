@@ -1,0 +1,224 @@
+// @vitest-environment jsdom
+
+import { act } from "react";
+import ReactDOM from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildNextCardsTableSorts, CardsScreen } from "./CardsScreen";
+import type { QueryCardsPage } from "../types";
+
+const {
+  queryCardsMock,
+  mockAppData,
+} = vi.hoisted(() => ({
+  queryCardsMock: vi.fn(),
+  mockAppData: {
+    activeWorkspace: {
+      workspaceId: "workspace-1",
+      name: "Primary",
+      createdAt: "2026-03-10T00:00:00.000Z",
+      isSelected: true,
+    },
+    cards: [],
+    ensureCardsLoaded: vi.fn(async () => undefined),
+    refreshCards: vi.fn(async () => undefined),
+    updateCardItem: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    setErrorMessage: vi.fn(),
+  },
+}));
+
+vi.mock("../api", () => ({
+  isAuthRedirectError: () => false,
+  queryCards: queryCardsMock,
+}));
+
+vi.mock("../appData", () => ({
+  useAppData: () => mockAppData,
+}));
+
+class IntersectionObserverMock {
+  static instances: Array<IntersectionObserverMock> = [];
+
+  readonly callback: IntersectionObserverCallback;
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+    IntersectionObserverMock.instances.push(this);
+  }
+
+  observe(): void {}
+
+  disconnect(): void {}
+
+  unobserve(): void {}
+}
+
+function createCardsPage(overrides?: Partial<QueryCardsPage>): QueryCardsPage {
+  return {
+    cards: [],
+    nextCursor: null,
+    hasMore: false,
+    totalCount: 0,
+    ...overrides,
+  };
+}
+
+function setInputValue(input: HTMLInputElement, value: string): void {
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  descriptor?.set?.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+describe("buildNextCardsTableSorts", () => {
+  it("adds new sort keys as primary and keeps only three user sorts", () => {
+    const initialSorts = [
+      { key: "frontText", direction: "asc" },
+      { key: "backText", direction: "asc" },
+      { key: "tags", direction: "asc" },
+    ] as const;
+
+    expect(buildNextCardsTableSorts(initialSorts, "reps")).toEqual([
+      { key: "reps", direction: "asc" },
+      { key: "frontText", direction: "asc" },
+      { key: "backText", direction: "asc" },
+    ]);
+  });
+
+  it("promotes an existing secondary sort and toggles its direction", () => {
+    expect(buildNextCardsTableSorts([
+      { key: "frontText", direction: "asc" },
+      { key: "reps", direction: "asc" },
+      { key: "updatedAt", direction: "desc" },
+    ], "reps")).toEqual([
+      { key: "reps", direction: "desc" },
+      { key: "frontText", direction: "asc" },
+      { key: "updatedAt", direction: "desc" },
+    ]);
+  });
+});
+
+describe("CardsScreen", () => {
+  let container: HTMLDivElement;
+  let root: ReactDOM.Root;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    queryCardsMock.mockReset();
+    mockAppData.ensureCardsLoaded.mockClear();
+    mockAppData.refreshCards.mockClear();
+    mockAppData.setErrorMessage.mockClear();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = ReactDOM.createRoot(container);
+    vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
+    IntersectionObserverMock.instances.length = 0;
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("debounces search before reloading the first page", async () => {
+    queryCardsMock.mockResolvedValue(createCardsPage());
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <CardsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(queryCardsMock).toHaveBeenCalledTimes(1);
+    const searchInput = container.querySelector('input[name="cards-search"]');
+    expect(searchInput).not.toBeNull();
+
+    await act(async () => {
+      const inputElement = searchInput as HTMLInputElement;
+      setInputValue(inputElement, "h");
+      vi.advanceTimersByTime(299);
+    });
+
+    expect(queryCardsMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      const inputElement = searchInput as HTMLInputElement;
+      setInputValue(inputElement, "hola");
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(queryCardsMock).toHaveBeenCalledTimes(2);
+    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+      searchText: "hola",
+      cursor: null,
+      limit: 50,
+      sorts: [],
+    });
+  });
+
+  it("loads the next page when the sentinel intersects", async () => {
+    queryCardsMock
+      .mockResolvedValueOnce(createCardsPage({
+        cards: [{
+          cardId: "card-1",
+          frontText: "Front",
+          backText: "Back",
+          tags: [],
+          effortLevel: "fast",
+          dueAt: null,
+          reps: 0,
+          lapses: 0,
+          fsrsCardState: "new",
+          fsrsStepIndex: null,
+          fsrsStability: null,
+          fsrsDifficulty: null,
+          fsrsLastReviewedAt: null,
+          fsrsScheduledDays: null,
+          clientUpdatedAt: "2026-03-10T00:00:00.000Z",
+          lastModifiedByDeviceId: "device-1",
+          lastOperationId: "operation-1",
+          updatedAt: "2026-03-10T00:00:00.000Z",
+          deletedAt: null,
+        }],
+        nextCursor: "cursor-1",
+        hasMore: true,
+        totalCount: 2,
+      }))
+      .mockResolvedValueOnce(createCardsPage({
+        cards: [],
+        nextCursor: null,
+        hasMore: false,
+        totalCount: 2,
+      }));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <CardsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(IntersectionObserverMock.instances).toHaveLength(1);
+
+    await act(async () => {
+      IntersectionObserverMock.instances[0]?.callback([{
+        isIntersecting: true,
+      } as IntersectionObserverEntry], {} as IntersectionObserver);
+    });
+
+    expect(queryCardsMock).toHaveBeenCalledTimes(2);
+    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+      searchText: null,
+      cursor: "cursor-1",
+      limit: 50,
+      sorts: [],
+    });
+  });
+});
