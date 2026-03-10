@@ -15,7 +15,12 @@ import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { initiateEmailOtp } from "../server/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
-import { sign } from "../server/crypto.js";
+import { sign, verify } from "../server/crypto.js";
+import {
+  decideAgentOtpRateLimit,
+  loadLatestSentAgentOtpSessionToken,
+  recordAgentOtpSendDecision,
+} from "../server/agentRateLimit.js";
 import { log, maskEmail } from "../server/logger.js";
 
 const app = new Hono<AuthAppEnv>();
@@ -29,6 +34,31 @@ const jitterDelay = (): Promise<void> =>
     const ms = randomInt(JITTER_MIN_MS, JITTER_MAX_MS);
     setTimeout(resolve, ms);
   });
+
+type OtpPayload = Readonly<{
+  s: string;
+  e: string;
+  csrf: string;
+  t: number;
+}>;
+
+function getClientIpAddress(request: Request): string {
+  const cfConnectingIp = request.headers.get("cf-connecting-ip");
+  if (cfConnectingIp !== null && cfConnectingIp.trim() !== "") {
+    return cfConnectingIp.trim();
+  }
+
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor !== null && forwardedFor.trim() !== "") {
+    return forwardedFor.split(",")[0]?.trim() ?? "unknown";
+  }
+
+  return "unknown";
+}
+
+function parseOtpPayload(otpSessionToken: string): OtpPayload {
+  return JSON.parse(verify(otpSessionToken)) as OtpPayload;
+}
 
 app.post("/api/send-code", async (c) => {
   let body: { email?: string };
@@ -45,35 +75,68 @@ app.post("/api/send-code", async (c) => {
   }
 
   const requestId = getRequestId(c);
-  let session: string;
-  try {
-    const [result] = await Promise.all([initiateEmailOtp(email), jitterDelay()]);
-    session = result.session;
-  } catch (err) {
-    log({
-      domain: "auth",
-      action: "send_code_error",
-      requestId,
-      route: c.req.path,
-      statusCode: 500,
-      code: "OTP_SEND_FAILED",
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return jsonAuthError(c, 500, "OTP_SEND_FAILED", "Could not send a code. Try again.");
+  const ipAddress = getClientIpAddress(c.req.raw);
+  const rateLimitDecision = await decideAgentOtpRateLimit(email, ipAddress);
+
+  if (rateLimitDecision.kind === "block_ip_limit") {
+    await recordAgentOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
+    return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
   }
 
-  log({ domain: "auth", action: "send_code", requestId, route: c.req.path, maskedEmail: maskEmail(email) });
+  let csrfToken: string;
+  let signed: string;
 
-  const csrfToken = randomBytes(32).toString("hex");
+  if (rateLimitDecision.kind === "suppress_email_limit") {
+    const [existingOtpSessionToken] = await Promise.all([
+      loadLatestSentAgentOtpSessionToken(email, Date.now()),
+      jitterDelay(),
+    ]);
+    if (existingOtpSessionToken === null) {
+      return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
+    }
 
-  const payload = JSON.stringify({
-    s: session,
-    e: email,
-    csrf: csrfToken,
-    t: Date.now(),
-  });
+    let payload: OtpPayload;
+    try {
+      payload = parseOtpPayload(existingOtpSessionToken);
+    } catch {
+      return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
+    }
 
-  const signed = sign(payload);
+    csrfToken = payload.csrf;
+    signed = existingOtpSessionToken;
+    await recordAgentOtpSendDecision(email, ipAddress, "suppressed_email_limit", signed);
+  } else {
+    let session: string;
+    try {
+      const [result] = await Promise.all([initiateEmailOtp(email), jitterDelay()]);
+      session = result.session;
+    } catch (err) {
+      log({
+        domain: "auth",
+        action: "send_code_error",
+        requestId,
+        route: c.req.path,
+        statusCode: 500,
+        code: "OTP_SEND_FAILED",
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return jsonAuthError(c, 500, "OTP_SEND_FAILED", "Could not send a code. Try again.");
+    }
+
+    log({ domain: "auth", action: "send_code", requestId, route: c.req.path, maskedEmail: maskEmail(email) });
+
+    csrfToken = randomBytes(32).toString("hex");
+
+    const payload = JSON.stringify({
+      s: session,
+      e: email,
+      csrf: csrfToken,
+      t: Date.now(),
+    });
+
+    signed = sign(payload);
+    await recordAgentOtpSendDecision(email, ipAddress, "sent", signed);
+  }
 
   setCookie(c, "otp_session", signed, {
     path: "/",

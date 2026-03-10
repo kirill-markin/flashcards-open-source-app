@@ -11,6 +11,7 @@ export type AuthAppEnv = {
 export type AuthPublicErrorCode =
   | "INVALID_REQUEST"
   | "INVALID_EMAIL"
+  | "RATE_LIMITED"
   | "OTP_SEND_FAILED"
   | "OTP_SESSION_EXPIRED"
   | "OTP_CHALLENGE_CONSUMED"
