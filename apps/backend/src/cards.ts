@@ -9,6 +9,10 @@
  * the same change in the iOS mirror and update docs/fsrs-scheduling-logic.md.
  */
 export type {
+  BulkCreateCardItem,
+  BulkDeleteCardItem,
+  BulkDeleteCardsResult,
+  BulkUpdateCardItem,
   Card,
   CardMutationMetadata,
   CardMutationResult,
@@ -31,13 +35,18 @@ export {
 
 export {
   createCard,
+  createCards,
+  deleteCard,
+  deleteCards,
   updateCard,
+  updateCards,
   upsertCardSnapshot,
   upsertCardSnapshotInExecutor,
 } from "./cards/mutations";
 
 export {
   getCard,
+  getCards,
   listCards,
   listReviewHistory,
   listReviewQueue,

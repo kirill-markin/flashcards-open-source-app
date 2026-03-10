@@ -86,6 +86,36 @@ export async function getCard(workspaceId: string, cardId: string): Promise<Card
   });
 }
 
+export async function getCards(
+  workspaceId: string,
+  cardIds: ReadonlyArray<string>,
+): Promise<ReadonlyArray<Card>> {
+  return transaction(async (executor) => {
+    const result = await executor.query<CardRow>(
+      [
+        CARD_SELECT,
+        "WHERE workspace_id = $1 AND card_id = ANY($2::text[]) AND deleted_at IS NULL",
+      ].join(" "),
+      [workspaceId, cardIds],
+    );
+
+    const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);
+    const cardsById = new Map(repairedRows.map((row) => {
+      const card = mapCard(row);
+      return [card.cardId, card] as const;
+    }));
+
+    return cardIds.map((cardId) => {
+      const card = cardsById.get(cardId);
+      if (card === undefined) {
+        throw new HttpError(404, `Card not found: ${cardId}`);
+      }
+
+      return card;
+    });
+  });
+}
+
 export async function listReviewQueue(
   workspaceId: string,
   limit: number,

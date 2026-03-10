@@ -1,19 +1,29 @@
 import { randomUUID } from "node:crypto";
 import * as cards from "../cards";
-import type { CreateCardInput, EffortLevel, UpdateCardInput } from "../cards";
+import type {
+  BulkCreateCardItem,
+  BulkDeleteCardItem,
+  BulkUpdateCardItem,
+  CreateCardInput,
+  EffortLevel,
+  UpdateCardInput,
+} from "../cards";
 import type { ChatMessage, ContentPart } from "./types";
 
 const MAX_LIST_LIMIT = 100;
 
 export const cardsApi = {
   createCard: cards.createCard,
-  getCard: cards.getCard,
+  createCards: cards.createCards,
+  deleteCards: cards.deleteCards,
+  getCards: cards.getCards,
   listCards: cards.listCards,
   listReviewHistory: cards.listReviewHistory,
   listReviewQueue: cards.listReviewQueue,
   searchCards: cards.searchCards,
   summarizeDeckState: cards.summarizeDeckState,
   updateCard: cards.updateCard,
+  updateCards: cards.updateCards,
 } as const;
 
 export type AgentContext = Readonly<{
@@ -45,10 +55,10 @@ function formatDatetime(timezone: string): string {
 const BASE_SYSTEM_INSTRUCTIONS = `You are a flashcards assistant for an offline-first flashcards app.
 You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.
 You can inspect cards, review history, due cards, and deck summary through tools.
-You can also create cards and update editable card fields through tools.
+You can also create, update, and delete cards through tools.
 
 Write policy:
-- Before any create or update tool call, you MUST first describe the exact changes you plan to make.
+- Before any create, update, or delete tool call, you MUST first describe the exact changes you plan to make.
 - You MUST then wait for explicit user confirmation before executing the write tool.
 - Treat confirmation as explicit only when the latest user message clearly approves the exact pending change.
 - Never mutate due dates, reps, lapses, updated timestamps, or review-event history.
@@ -73,16 +83,32 @@ function normalizeLimit(limit: number | undefined): number {
   return limit;
 }
 
-function makeWriteMetadata(deviceId: string): Readonly<{
+function validateCardBatchCount(count: number): void {
+  if (!Number.isInteger(count) || count < 1 || count > MAX_LIST_LIMIT) {
+    throw new Error(`Card batch must contain between 1 and ${MAX_LIST_LIMIT} items`);
+  }
+}
+
+function validateUniqueCardIds(cardIds: ReadonlyArray<string>): void {
+  const uniqueCardIds = new Set(cardIds);
+  if (uniqueCardIds.size !== cardIds.length) {
+    throw new Error("Card batch must not contain duplicate cardId values");
+  }
+}
+
+function makeWriteMetadataList(deviceId: string, count: number): ReadonlyArray<Readonly<{
   clientUpdatedAt: string;
   lastModifiedByDeviceId: string;
   lastOperationId: string;
-}> {
-  return {
-    clientUpdatedAt: new Date().toISOString(),
+}>> {
+  validateCardBatchCount(count);
+  const clientUpdatedAt = new Date().toISOString();
+
+  return Array.from({ length: count }, () => ({
+    clientUpdatedAt,
     lastModifiedByDeviceId: deviceId,
     lastOperationId: randomUUID(),
-  };
+  }));
 }
 
 function stringifyResult(value: unknown): string {
@@ -138,8 +164,13 @@ export async function runListCardsTool(workspaceId: string, limit: number | unde
   return stringifyResult(items.slice(0, normalizeLimit(limit)));
 }
 
-export async function runGetCardTool(workspaceId: string, cardId: string): Promise<string> {
-  return stringifyResult(await cardsApi.getCard(workspaceId, cardId));
+export async function runGetCardsTool(
+  workspaceId: string,
+  cardIds: ReadonlyArray<string>,
+): Promise<string> {
+  validateCardBatchCount(cardIds.length);
+  validateUniqueCardIds(cardIds);
+  return stringifyResult(await cardsApi.getCards(workspaceId, cardIds));
 }
 
 export async function runSearchCardsTool(
@@ -171,52 +202,106 @@ export async function runSummarizeDeckStateTool(workspaceId: string): Promise<st
   return stringifyResult(await cardsApi.summarizeDeckState(workspaceId));
 }
 
-export async function runCreateCardTool(
+export async function runCreateCardsTool(
   workspaceId: string,
-  input: CreateCardInput,
+  inputs: ReadonlyArray<CreateCardInput>,
   writeToolInput: WriteToolInput,
 ): Promise<string> {
-  const validatedInput = validateCreateInput(input);
+  validateCardBatchCount(inputs.length);
 
-  return stringifyResult(await cardsApi.createCard(workspaceId, {
-    frontText: ensureNonEmptyCardText(validatedInput.frontText, "frontText"),
-    backText: normalizeCardBackText(validatedInput.backText),
-    tags: validatedInput.tags,
-    effortLevel: validatedInput.effortLevel,
-  }, makeWriteMetadata(writeToolInput.deviceId)));
+  const validatedInputs = inputs.map((input) => {
+    const validatedInput = validateCreateInput(input);
+
+    return {
+      frontText: ensureNonEmptyCardText(validatedInput.frontText, "frontText"),
+      backText: normalizeCardBackText(validatedInput.backText),
+      tags: validatedInput.tags,
+      effortLevel: validatedInput.effortLevel,
+    };
+  });
+  const metadataList = makeWriteMetadataList(writeToolInput.deviceId, validatedInputs.length);
+  const items: Array<BulkCreateCardItem> = validatedInputs.map((input, index) => ({
+    input,
+    metadata: metadataList[index]!,
+  }));
+
+  return stringifyResult(await cardsApi.createCards(workspaceId, items));
 }
 
-export async function runUpdateCardTool(
+export async function runUpdateCardsTool(
   workspaceId: string,
-  cardId: string,
-  input: UpdateCardInput,
-  writeToolInput: WriteToolInput,
-): Promise<string> {
-  const validatedInput = validateUpdateInput(input);
-  const nextInput: {
+  updates: ReadonlyArray<Readonly<{
+    cardId: string;
     frontText?: string;
     backText?: string;
     tags?: ReadonlyArray<string>;
     effortLevel?: EffortLevel;
-  } = {};
+  }>>,
+  writeToolInput: WriteToolInput,
+): Promise<string> {
+  validateCardBatchCount(updates.length);
+  validateUniqueCardIds(updates.map((update) => update.cardId));
 
-  if (validatedInput.frontText !== undefined) {
-    nextInput.frontText = ensureNonEmptyCardText(validatedInput.frontText, "frontText");
-  }
+  const validatedUpdates = updates.map((update) => {
+    const validatedInput = validateUpdateInput({
+      frontText: update.frontText,
+      backText: update.backText,
+      tags: update.tags,
+      effortLevel: update.effortLevel,
+    });
+    const nextInput: {
+      frontText?: string;
+      backText?: string;
+      tags?: ReadonlyArray<string>;
+      effortLevel?: EffortLevel;
+    } = {};
 
-  if (validatedInput.backText !== undefined) {
-    nextInput.backText = normalizeCardBackText(validatedInput.backText);
-  }
+    if (validatedInput.frontText !== undefined) {
+      nextInput.frontText = ensureNonEmptyCardText(validatedInput.frontText, "frontText");
+    }
 
-  if (validatedInput.tags !== undefined) {
-    nextInput.tags = validatedInput.tags;
-  }
+    if (validatedInput.backText !== undefined) {
+      nextInput.backText = normalizeCardBackText(validatedInput.backText);
+    }
 
-  if (validatedInput.effortLevel !== undefined) {
-    nextInput.effortLevel = validatedInput.effortLevel;
-  }
+    if (validatedInput.tags !== undefined) {
+      nextInput.tags = validatedInput.tags;
+    }
 
-  return stringifyResult(await cardsApi.updateCard(workspaceId, cardId, nextInput, makeWriteMetadata(writeToolInput.deviceId)));
+    if (validatedInput.effortLevel !== undefined) {
+      nextInput.effortLevel = validatedInput.effortLevel;
+    }
+
+    return {
+      cardId: update.cardId,
+      input: nextInput,
+    };
+  });
+  const metadataList = makeWriteMetadataList(writeToolInput.deviceId, validatedUpdates.length);
+  const items: Array<BulkUpdateCardItem> = validatedUpdates.map((update, index) => ({
+    cardId: update.cardId,
+    input: update.input,
+    metadata: metadataList[index]!,
+  }));
+
+  return stringifyResult(await cardsApi.updateCards(workspaceId, items));
+}
+
+export async function runDeleteCardsTool(
+  workspaceId: string,
+  cardIds: ReadonlyArray<string>,
+  writeToolInput: WriteToolInput,
+): Promise<string> {
+  validateCardBatchCount(cardIds.length);
+  validateUniqueCardIds(cardIds);
+
+  const metadataList = makeWriteMetadataList(writeToolInput.deviceId, cardIds.length);
+  const items: Array<BulkDeleteCardItem> = cardIds.map((cardId, index) => ({
+    cardId,
+    metadata: metadataList[index]!,
+  }));
+
+  return stringifyResult(await cardsApi.deleteCards(workspaceId, items));
 }
 
 export function extractText(content: ReadonlyArray<ContentPart>): string {
