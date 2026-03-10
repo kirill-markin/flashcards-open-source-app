@@ -170,10 +170,45 @@ function getUnsentMessageOutputText(fullText: string, streamedText: string): str
   }
 
   if (!fullText.startsWith(streamedText)) {
-    throw new Error("OpenAI message output does not match streamed text prefix");
+    throw new Error(
+      `OpenAI message output does not match streamed text prefix: fullTextLength=${fullText.length} streamedTextLength=${streamedText.length}`,
+    );
   }
 
   return fullText.slice(streamedText.length);
+}
+
+export type StreamedMessageTextState = Readonly<{
+  currentMessageText: string;
+  emittedTextLength: number;
+}>;
+
+export function appendStreamedMessageText(
+  state: StreamedMessageTextState,
+  delta: string,
+): StreamedMessageTextState {
+  return {
+    currentMessageText: state.currentMessageText + delta,
+    emittedTextLength: state.emittedTextLength + delta.length,
+  };
+}
+
+export function completeStreamedMessageText(
+  state: StreamedMessageTextState,
+  fullText: string,
+): Readonly<{
+  state: StreamedMessageTextState;
+  unsentText: string;
+}> {
+  const unsentText = getUnsentMessageOutputText(fullText, state.currentMessageText);
+
+  return {
+    state: {
+      currentMessageText: "",
+      emittedTextLength: state.emittedTextLength + unsentText.length,
+    },
+    unsentText,
+  };
 }
 
 export type StreamAgentParams = Readonly<{
@@ -211,7 +246,10 @@ export async function* streamAgentResponse(
 
   let activeToolName: string | null = null;
   let activeToolInput: string | null = null;
-  let streamedText = "";
+  let streamedMessageTextState: StreamedMessageTextState = {
+    currentMessageText: "",
+    emittedTextLength: 0,
+  };
   let rawDeltaEventCount = 0;
   let rawDeltaTextLength = 0;
   let messageOutputEventCount = 0;
@@ -236,7 +274,7 @@ export async function* streamAgentResponse(
       if (event.type === "raw_model_stream_event" && event.data.type === "output_text_delta") {
         rawDeltaEventCount += 1;
         rawDeltaTextLength += event.data.delta.length;
-        streamedText += event.data.delta;
+        streamedMessageTextState = appendStreamedMessageText(streamedMessageTextState, event.data.delta);
         yield { type: "delta", text: event.data.delta };
         continue;
       }
@@ -261,7 +299,9 @@ export async function* streamAgentResponse(
         }
 
         const messageText = extractMessageOutputText(event.item);
-        const unsentText = getUnsentMessageOutputText(messageText, streamedText);
+        const completion = completeStreamedMessageText(streamedMessageTextState, messageText);
+        const unsentText = completion.unsentText;
+        streamedMessageTextState = completion.state;
         messageOutputEventCount += 1;
 
         logChatEvent({
@@ -274,7 +314,6 @@ export async function* streamAgentResponse(
         });
 
         if (unsentText !== "") {
-          streamedText += unsentText;
           yield { type: "delta", text: unsentText };
         }
 
@@ -342,9 +381,9 @@ export async function* streamAgentResponse(
     rawDeltaEventCount,
     rawDeltaTextLength,
     messageOutputEventCount,
-    emittedTextLength: streamedText.length,
+    emittedTextLength: streamedMessageTextState.emittedTextLength,
     toolCallCount,
-    empty: streamedText.length === 0,
+    empty: streamedMessageTextState.emittedTextLength === 0,
   });
 
   yield { type: "done" };
