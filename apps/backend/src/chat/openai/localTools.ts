@@ -68,7 +68,38 @@ const CARD_UPDATE_SCHEMA = strictObjectSchema({
   effortLevel: nullableSchema(EFFORT_LEVEL_SCHEMA),
 });
 
+const DECK_INPUT_SCHEMA = strictObjectSchema({
+  name: { type: "string" },
+  effortLevels: {
+    type: "array",
+    items: EFFORT_LEVEL_SCHEMA,
+  },
+  tags: {
+    type: "array",
+    items: { type: "string" },
+  },
+});
+
+const DECK_UPDATE_SCHEMA = strictObjectSchema({
+  deckId: { type: "string" },
+  name: nullableSchema({ type: "string" }),
+  effortLevels: nullableSchema({
+    type: "array",
+    items: EFFORT_LEVEL_SCHEMA,
+  }),
+  tags: nullableSchema({
+    type: "array",
+    items: { type: "string" },
+  }),
+});
+
 const BULK_CARD_ARRAY_SCHEMA = {
+  type: "array",
+  minItems: 1,
+  maxItems: 100,
+} as const;
+
+const BULK_DECK_ARRAY_SCHEMA = {
   type: "array",
   minItems: 1,
   maxItems: 100,
@@ -94,6 +125,19 @@ const updateCardValidator = z.object({
   effortLevel: nullableEffortLevelValidator,
 }).strict();
 
+const createDeckValidator = z.object({
+  name: z.string(),
+  effortLevels: z.array(z.enum(["fast", "medium", "long"])),
+  tags: z.array(z.string()),
+}).strict();
+
+const updateDeckValidator = z.object({
+  deckId: z.string(),
+  name: nullableStringValidator,
+  effortLevels: z.array(z.enum(["fast", "medium", "long"])).nullable(),
+  tags: nullableStringArrayValidator,
+}).strict();
+
 export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.ZodType<unknown>>> = {
   get_workspace_context: z.object({}).strict(),
   list_cards: z.object({
@@ -110,8 +154,12 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
     limit: nullableLimitValidator,
   }).strict(),
   list_decks: z.object({}).strict(),
-  get_deck: z.object({
-    deckId: z.string(),
+  search_decks: z.object({
+    query: z.string(),
+    limit: nullableLimitValidator,
+  }).strict(),
+  get_decks: z.object({
+    deckIds: z.array(z.string()).min(1).max(100),
   }).strict(),
   list_review_history: z.object({
     limit: nullableLimitValidator,
@@ -131,19 +179,14 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
   delete_cards: z.object({
     cardIds: z.array(z.string()).min(1).max(100),
   }).strict(),
-  create_deck: z.object({
-    name: z.string(),
-    effortLevels: z.array(z.enum(["fast", "medium", "long"])),
-    tags: z.array(z.string()),
+  create_decks: z.object({
+    decks: z.array(createDeckValidator).min(1).max(100),
   }).strict(),
-  update_deck: z.object({
-    deckId: z.string(),
-    name: nullableStringValidator,
-    effortLevels: z.array(z.enum(["fast", "medium", "long"])).nullable(),
-    tags: nullableStringArrayValidator,
+  update_decks: z.object({
+    updates: z.array(updateDeckValidator).min(1).max(100),
   }).strict(),
-  delete_deck: z.object({
-    deckId: z.string(),
+  delete_decks: z.object({
+    deckIds: z.array(z.string()).min(1).max(100),
   }).strict(),
   submit_review: z.object({
     cardId: z.string(),
@@ -233,14 +276,30 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   },
   {
     type: "function",
-    name: "get_deck",
+    name: "search_decks",
     description: strictDescription(
-      "Get one deck from the local device database by deckId.",
-      "Use {\"deckId\": string}."
+      "Search local decks by name, tags, or effort levels.",
+      "Use {\"query\": string, \"limit\": number|null}. Include both properties every time."
     ),
     strict: true,
     parameters: strictObjectSchema({
-      deckId: { type: "string" },
+      query: { type: "string" },
+      limit: nullableSchema(LIMIT_SCHEMA),
+    }),
+  },
+  {
+    type: "function",
+    name: "get_decks",
+    description: strictDescription(
+      "Get one or more decks from the local device database by deckId.",
+      "Use {\"deckIds\": string[]}. Include one or more deckIds."
+    ),
+    strict: true,
+    parameters: strictObjectSchema({
+      deckIds: {
+        ...BULK_DECK_ARRAY_SCHEMA,
+        items: { type: "string" },
+      },
     }),
   },
   {
@@ -335,55 +394,47 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   },
   {
     type: "function",
-    name: "create_deck",
+    name: "create_decks",
     description: strictDescription(
-      "Create a new deck locally using effort-level and tag filters.",
-      "Use {\"name\": string, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[], \"tags\": string[]}."
+      "Create one or more new decks locally using effort-level and tag filters.",
+      "Use {\"decks\": DeckInput[]} where every deck object includes name, effortLevels, and tags."
     ),
     strict: true,
     parameters: strictObjectSchema({
-      name: { type: "string" },
-      effortLevels: {
-        type: "array",
-        items: EFFORT_LEVEL_SCHEMA,
-      },
-      tags: {
-        type: "array",
-        items: { type: "string" },
+      decks: {
+        ...BULK_DECK_ARRAY_SCHEMA,
+        items: DECK_INPUT_SCHEMA,
       },
     }),
   },
   {
     type: "function",
-    name: "update_deck",
+    name: "update_decks",
     description: strictDescription(
-      "Update a deck locally using effort-level and tag filters.",
-      "Use {\"deckId\": string, \"name\": string|null, \"effortLevels\": (\"fast\"|\"medium\"|\"long\")[]|null, \"tags\": string[]|null}. Include every property. Use null for unchanged fields."
+      "Update one or more decks locally using effort-level and tag filters.",
+      "Use {\"updates\": UpdateDeckInput[]} where every update object includes deckId, name, effortLevels, and tags. Use null for unchanged fields."
     ),
     strict: true,
     parameters: strictObjectSchema({
-      deckId: { type: "string" },
-      name: nullableSchema({ type: "string" }),
-      effortLevels: nullableSchema({
-        type: "array",
-        items: EFFORT_LEVEL_SCHEMA,
-      }),
-      tags: nullableSchema({
-        type: "array",
-        items: { type: "string" },
-      }),
+      updates: {
+        ...BULK_DECK_ARRAY_SCHEMA,
+        items: DECK_UPDATE_SCHEMA,
+      },
     }),
   },
   {
     type: "function",
-    name: "delete_deck",
+    name: "delete_decks",
     description: strictDescription(
-      "Delete a deck locally.",
-      "Use {\"deckId\": string}."
+      "Delete one or more decks locally.",
+      "Use {\"deckIds\": string[]}."
     ),
     strict: true,
     parameters: strictObjectSchema({
-      deckId: { type: "string" },
+      deckIds: {
+        ...BULK_DECK_ARRAY_SCHEMA,
+        items: { type: "string" },
+      },
     }),
   },
   {

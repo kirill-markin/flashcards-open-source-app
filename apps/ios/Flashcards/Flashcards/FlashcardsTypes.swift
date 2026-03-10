@@ -564,12 +564,22 @@ struct BulkDeleteCardsResult: Hashable, Sendable {
     let deletedCount: Int
 }
 
-struct DeckEditorInput: Hashable {
+struct DeckEditorInput: Hashable, Sendable {
     let name: String
     let filterDefinition: DeckFilterDefinition
 }
 
-struct ReviewSubmission: Hashable {
+struct DeckUpdateInput: Hashable, Sendable {
+    let deckId: String
+    let input: DeckEditorInput
+}
+
+struct BulkDeleteDecksResult: Hashable, Sendable {
+    let deletedDeckIds: [String]
+    let deletedCount: Int
+}
+
+struct ReviewSubmission: Hashable, Sendable {
     let cardId: String
     let rating: ReviewRating
     let reviewedAtClient: String

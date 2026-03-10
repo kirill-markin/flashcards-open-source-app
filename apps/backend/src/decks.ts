@@ -51,6 +51,11 @@ export type CreateDeckInput = Readonly<{
   filterDefinition: DeckFilterDefinition;
 }>;
 
+export type UpdateDeckInput = Readonly<{
+  name: string;
+  filterDefinition: DeckFilterDefinition;
+}>;
+
 export type DeckMutationMetadata = LwwMetadata;
 
 export type DeckSnapshotInput = Readonly<{
@@ -66,6 +71,29 @@ export type DeckMutationResult = Readonly<{
   applied: boolean;
   changeId: number | null;
 }>;
+
+export type BulkCreateDeckItem = Readonly<{
+  input: CreateDeckInput;
+  metadata: DeckMutationMetadata;
+}>;
+
+export type BulkUpdateDeckItem = Readonly<{
+  deckId: string;
+  input: UpdateDeckInput;
+  metadata: DeckMutationMetadata;
+}>;
+
+export type BulkDeleteDeckItem = Readonly<{
+  deckId: string;
+  metadata: DeckMutationMetadata;
+}>;
+
+export type BulkDeleteDecksResult = Readonly<{
+  deletedDeckIds: ReadonlyArray<string>;
+  deletedCount: number;
+}>;
+
+const MAX_DECK_BATCH_SIZE = 100;
 
 function toIsoString(value: TimestampValue): string {
   if (value instanceof Date) {
@@ -259,6 +287,57 @@ export function parseDeckFilterDefinition(value: unknown): DeckFilterDefinition 
   return parseDeckFilterDefinitionWithFactory(value, createRequestError);
 }
 
+function normalizeDeckName(name: string): string {
+  return expectNonEmptyString(name, "name", createRequestError);
+}
+
+function normalizeTypedDeckFilterDefinition(filterDefinition: DeckFilterDefinition): DeckFilterDefinition {
+  return {
+    version: 2,
+    effortLevels: normalizeDeckEffortLevels(
+      filterDefinition.effortLevels,
+      "filterDefinition effortLevels",
+      createRequestError,
+    ),
+    tags: normalizeDeckTags(
+      filterDefinition.tags,
+      "filterDefinition tags",
+      createRequestError,
+    ),
+  };
+}
+
+function normalizeCreateDeckInput(input: CreateDeckInput): CreateDeckInput {
+  return {
+    name: normalizeDeckName(input.name),
+    filterDefinition: normalizeTypedDeckFilterDefinition(input.filterDefinition),
+  };
+}
+
+function normalizeUpdateDeckInput(input: UpdateDeckInput): UpdateDeckInput {
+  return {
+    name: normalizeDeckName(input.name),
+    filterDefinition: normalizeTypedDeckFilterDefinition(input.filterDefinition),
+  };
+}
+
+function validateDeckBatchCount(count: number): void {
+  if (count < 1) {
+    throw createRequestError("Deck batch must contain at least one item");
+  }
+
+  if (count > MAX_DECK_BATCH_SIZE) {
+    throw createRequestError(`Deck batch must contain at most ${MAX_DECK_BATCH_SIZE} items`);
+  }
+}
+
+function validateUniqueDeckIds(deckIds: ReadonlyArray<string>): void {
+  const uniqueDeckIds = new Set(deckIds);
+  if (uniqueDeckIds.size !== deckIds.length) {
+    throw createRequestError("Deck batch must not contain duplicate deckId values");
+  }
+}
+
 export function parseCreateDeckInput(value: unknown): CreateDeckInput {
   const record = expectRecord(value, "request body", createRequestError);
   expectOnlyAllowedKeys(record, ["name", "filterDefinition"], "request body", createRequestError);
@@ -284,18 +363,102 @@ export async function listDecks(workspaceId: string): Promise<ReadonlyArray<Deck
   return result.rows.map(mapDeck);
 }
 
+export async function getDeck(workspaceId: string, deckId: string): Promise<Deck> {
+  const result = await query<DeckRow>(
+    [
+      "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
+      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "FROM content.decks",
+      "WHERE workspace_id = $1 AND deck_id = $2 AND deleted_at IS NULL",
+    ].join(" "),
+    [workspaceId, deckId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new HttpError(404, "Deck not found");
+  }
+
+  return mapDeck(row);
+}
+
+export async function getDecks(
+  workspaceId: string,
+  deckIds: ReadonlyArray<string>,
+): Promise<ReadonlyArray<Deck>> {
+  validateDeckBatchCount(deckIds.length);
+  validateUniqueDeckIds(deckIds);
+
+  const result = await query<DeckRow>(
+    [
+      "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
+      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "FROM content.decks",
+      "WHERE workspace_id = $1 AND deck_id = ANY($2::text[]) AND deleted_at IS NULL",
+    ].join(" "),
+    [workspaceId, deckIds],
+  );
+
+  const decksById = new Map(result.rows.map((row) => {
+    const deck = mapDeck(row);
+    return [deck.deckId, deck] as const;
+  }));
+
+  return deckIds.map((deckId) => {
+    const deck = decksById.get(deckId);
+    if (deck === undefined) {
+      throw new HttpError(404, `Deck not found: ${deckId}`);
+    }
+
+    return deck;
+  });
+}
+
+export async function searchDecks(
+  workspaceId: string,
+  searchText: string,
+  limit: number,
+): Promise<ReadonlyArray<Deck>> {
+  const normalizedSearchText = searchText.trim();
+  if (normalizedSearchText === "") {
+    throw createRequestError("query must not be empty");
+  }
+
+  const likeValue = `%${normalizedSearchText}%`;
+  const result = await query<DeckRow>(
+    [
+      "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
+      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "FROM content.decks",
+      "WHERE workspace_id = $1",
+      "AND deleted_at IS NULL",
+      "AND (name ILIKE $2 OR EXISTS (",
+      "SELECT 1 FROM jsonb_array_elements_text(filter_definition->'tags') AS tag WHERE tag ILIKE $2",
+      ") OR EXISTS (",
+      "SELECT 1 FROM jsonb_array_elements_text(filter_definition->'effortLevels') AS effort_level WHERE effort_level ILIKE $2",
+      "))",
+      "ORDER BY updated_at DESC, created_at DESC",
+      "LIMIT $3",
+    ].join(" "),
+    [workspaceId, likeValue, limit],
+  );
+
+  return result.rows.map(mapDeck);
+}
+
 export async function createDeck(
   workspaceId: string,
   input: CreateDeckInput,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
+  const normalizedInput = normalizeCreateDeckInput(input);
   const now = normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt");
   const result = await upsertDeckSnapshot(
     workspaceId,
     {
       deckId: randomUUID(),
-      name: input.name,
-      filterDefinition: input.filterDefinition,
+      name: normalizedInput.name,
+      filterDefinition: normalizedInput.filterDefinition,
       createdAt: now,
       deletedAt: null,
     },
@@ -418,4 +581,169 @@ export async function upsertDeckSnapshot(
   metadata: DeckMutationMetadata,
 ): Promise<DeckMutationResult> {
   return transaction(async (executor) => upsertDeckSnapshotInExecutor(executor, workspaceId, input, metadata));
+}
+
+async function updateDeckInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  deckId: string,
+  input: UpdateDeckInput,
+  metadata: DeckMutationMetadata,
+): Promise<Deck> {
+  const existingResult = await executor.query<DeckRow>(
+    [
+      "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
+      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "FROM content.decks",
+      "WHERE workspace_id = $1 AND deck_id = $2 AND deleted_at IS NULL",
+    ].join(" "),
+    [workspaceId, deckId],
+  );
+
+  const existingRow = existingResult.rows[0];
+  if (existingRow === undefined) {
+    throw new HttpError(404, "Deck not found");
+  }
+
+  const existingDeck = mapDeck(existingRow);
+  const normalizedInput = normalizeUpdateDeckInput(input);
+  const result = await upsertDeckSnapshotInExecutor(
+    executor,
+    workspaceId,
+    {
+      deckId,
+      name: normalizedInput.name,
+      filterDefinition: normalizedInput.filterDefinition,
+      createdAt: existingDeck.createdAt,
+      deletedAt: null,
+    },
+    metadata,
+  );
+
+  return result.deck;
+}
+
+export async function updateDeck(
+  workspaceId: string,
+  deckId: string,
+  input: UpdateDeckInput,
+  metadata: DeckMutationMetadata,
+): Promise<Deck> {
+  return transaction(async (executor) => updateDeckInExecutor(executor, workspaceId, deckId, input, metadata));
+}
+
+async function deleteDeckInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  deckId: string,
+  metadata: DeckMutationMetadata,
+): Promise<Deck> {
+  const existingResult = await executor.query<DeckRow>(
+    [
+      "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
+      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "FROM content.decks",
+      "WHERE workspace_id = $1 AND deck_id = $2 AND deleted_at IS NULL",
+      "FOR UPDATE",
+    ].join(" "),
+    [workspaceId, deckId],
+  );
+
+  const existingRow = existingResult.rows[0];
+  if (existingRow === undefined) {
+    throw new HttpError(404, "Deck not found");
+  }
+
+  const existingDeck = mapDeck(existingRow);
+  const normalizedMetadata = normalizeDeckMutationMetadata(metadata);
+  const result = await upsertDeckSnapshotInExecutor(
+    executor,
+    workspaceId,
+    {
+      deckId,
+      name: existingDeck.name,
+      filterDefinition: existingDeck.filterDefinition,
+      createdAt: existingDeck.createdAt,
+      deletedAt: normalizedMetadata.clientUpdatedAt,
+    },
+    normalizedMetadata,
+  );
+
+  return result.deck;
+}
+
+export async function deleteDeck(
+  workspaceId: string,
+  deckId: string,
+  metadata: DeckMutationMetadata,
+): Promise<Deck> {
+  return transaction(async (executor) => deleteDeckInExecutor(executor, workspaceId, deckId, metadata));
+}
+
+export async function createDecks(
+  workspaceId: string,
+  items: ReadonlyArray<BulkCreateDeckItem>,
+): Promise<ReadonlyArray<Deck>> {
+  validateDeckBatchCount(items.length);
+
+  return transaction(async (executor) => {
+    const createdDecks: Array<Deck> = [];
+    for (const item of items) {
+      const now = normalizeIsoTimestamp(item.metadata.clientUpdatedAt, "clientUpdatedAt");
+      const normalizedInput = normalizeCreateDeckInput(item.input);
+      const result = await upsertDeckSnapshotInExecutor(
+        executor,
+        workspaceId,
+        {
+          deckId: randomUUID(),
+          name: normalizedInput.name,
+          filterDefinition: normalizedInput.filterDefinition,
+          createdAt: now,
+          deletedAt: null,
+        },
+        item.metadata,
+      );
+      createdDecks.push(result.deck);
+    }
+
+    return createdDecks;
+  });
+}
+
+export async function updateDecks(
+  workspaceId: string,
+  items: ReadonlyArray<BulkUpdateDeckItem>,
+): Promise<ReadonlyArray<Deck>> {
+  validateDeckBatchCount(items.length);
+  validateUniqueDeckIds(items.map((item) => item.deckId));
+
+  return transaction(async (executor) => {
+    const updatedDecks: Array<Deck> = [];
+    for (const item of items) {
+      updatedDecks.push(await updateDeckInExecutor(executor, workspaceId, item.deckId, item.input, item.metadata));
+    }
+
+    return updatedDecks;
+  });
+}
+
+export async function deleteDecks(
+  workspaceId: string,
+  items: ReadonlyArray<BulkDeleteDeckItem>,
+): Promise<BulkDeleteDecksResult> {
+  validateDeckBatchCount(items.length);
+  validateUniqueDeckIds(items.map((item) => item.deckId));
+
+  return transaction(async (executor) => {
+    const deletedDeckIds: Array<string> = [];
+    for (const item of items) {
+      const deletedDeck = await deleteDeckInExecutor(executor, workspaceId, item.deckId, item.metadata);
+      deletedDeckIds.push(deletedDeck.deckId);
+    }
+
+    return {
+      deletedDeckIds,
+      deletedCount: deletedDeckIds.length,
+    };
+  });
 }
