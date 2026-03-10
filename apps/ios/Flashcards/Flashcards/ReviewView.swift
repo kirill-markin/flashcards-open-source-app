@@ -6,6 +6,7 @@ private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
+private let reviewCardContentMinHeight: CGFloat = 152
 private let emptyBackTextPlaceholder: String = "No back text"
 
 struct ReviewView: View {
@@ -157,36 +158,17 @@ struct ReviewView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Front")
-                    .font(.caption)
-                    .textCase(.uppercase)
-                    .foregroundStyle(.secondary)
-
-                Text(card.frontText)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(24)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            ReviewCardSideView(
+                label: "Front",
+                text: card.frontText,
+                surfaceStyle: .front
+            )
 
             if isAnswerVisible {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Back")
-                        .font(.caption)
-                        .textCase(.uppercase)
-                        .foregroundStyle(.secondary)
-
-                    Text(card.backText.isEmpty ? emptyBackTextPlaceholder : card.backText)
-                        .font(.title3)
-                        .fontWeight(.medium)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(24)
-                .background(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(Color(uiColor: .secondarySystemBackground))
+                ReviewCardSideView(
+                    label: "Back",
+                    text: card.backText.isEmpty ? emptyBackTextPlaceholder : card.backText,
+                    surfaceStyle: .back
                 )
             }
 
@@ -461,6 +443,95 @@ private enum ReviewViewError: LocalizedError {
             return "Missing review answer option for \(rating.title)"
         case .reviewAnswerOptionsUnavailable(let message):
             return message
+        }
+    }
+}
+
+private enum ReviewCardSurfaceStyle {
+    case front
+    case back
+}
+
+private struct ReviewCardSideView: View {
+    let label: String
+    let text: String
+    let surfaceStyle: ReviewCardSurfaceStyle
+
+    private var presentationMode: ReviewContentPresentationMode {
+        classifyReviewContentPresentation(text: text)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(label)
+                .font(.caption)
+                .textCase(.uppercase)
+                .foregroundStyle(.secondary)
+
+            contentView
+                .frame(maxWidth: .infinity, minHeight: reviewCardContentMinHeight)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(24)
+        .background(backgroundStyle, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        switch presentationMode {
+        case .shortPlain:
+            Text(text)
+                .font(shortPlainFont)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        case .paragraphPlain:
+            Text(text)
+                .font(.body)
+                .lineSpacing(3)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        case .markdown:
+            ReviewMarkdownText(text: text)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private var shortPlainFont: Font {
+        switch surfaceStyle {
+        case .front:
+            return .title2.weight(.semibold)
+        case .back:
+            return .title3.weight(.medium)
+        }
+    }
+
+    private var backgroundStyle: AnyShapeStyle {
+        switch surfaceStyle {
+        case .front:
+            return AnyShapeStyle(.thinMaterial)
+        case .back:
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+    }
+}
+
+private struct ReviewMarkdownText: View {
+    let text: String
+
+    private var renderedMarkdown: Result<AttributedString, Error> {
+        Result {
+            try makeReviewMarkdownAttributedString(text: text)
+        }
+    }
+
+    var body: some View {
+        switch renderedMarkdown {
+        case .success(let attributedText):
+            Text(attributedText)
+                .multilineTextAlignment(.leading)
+        case .failure(let error):
+            Text("Failed to render markdown content: \(error.localizedDescription)")
+                .font(.footnote)
+                .foregroundStyle(.red)
         }
     }
 }

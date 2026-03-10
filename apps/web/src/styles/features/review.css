@@ -73,8 +73,8 @@
     radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 44%),
     linear-gradient(180deg, rgba(33, 33, 39, 0.96), rgba(23, 23, 28, 0.98));
   display: grid;
+  grid-template-rows: auto minmax(152px, 1fr);
   gap: 8px;
-  align-content: start;
 }
 
 .review-card-answer {
@@ -90,17 +90,136 @@
   color: var(--text-tertiary);
 }
 
+.review-card-body {
+  min-height: 152px;
+  display: flex;
+}
+
+.review-card-content {
+  width: 100%;
+  color: var(--text);
+}
+
 .review-front,
 .review-back {
+  white-space: pre-wrap;
+}
+
+.review-card-content-shortPlain {
+  margin: auto;
+  text-align: center;
   font-size: clamp(1.65rem, 2vw, 2.3rem);
   line-height: 1.14;
-  white-space: pre-wrap;
   letter-spacing: -0.04em;
   font-weight: 680;
 }
 
-.review-back {
+.review-back.review-card-content-shortPlain {
   font-size: clamp(1.4rem, 1.7vw, 1.9rem);
+}
+
+.review-card-content-paragraphPlain,
+.review-card-content-markdown {
+  align-self: stretch;
+  font-size: clamp(0.95rem, 1.1vw, 1.1rem);
+  line-height: 1.5;
+  letter-spacing: normal;
+  font-weight: 450;
+  text-align: left;
+}
+
+.review-card-content-markdown > :first-child,
+.review-card-content-markdown > :first-child > :first-child {
+  margin-top: 0;
+}
+
+.review-card-content-markdown > :last-child,
+.review-card-content-markdown > :last-child > :last-child {
+  margin-bottom: 0;
+}
+
+.review-markdown-h1,
+.review-markdown-h2,
+.review-markdown-h3,
+.review-markdown-h4,
+.review-markdown-h5,
+.review-markdown-h6 {
+  margin: 0 0 0.65em;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.review-markdown-h1 {
+  font-size: 1.55em;
+}
+
+.review-markdown-h2 {
+  font-size: 1.35em;
+}
+
+.review-markdown-h3 {
+  font-size: 1.2em;
+}
+
+.review-markdown-p,
+.review-markdown-blockquote,
+.review-markdown-pre,
+.review-markdown-table {
+  margin: 0 0 0.9em;
+}
+
+.review-markdown-ul,
+.review-markdown-ol {
+  margin: 0 0 0.9em;
+  padding-left: 1.35em;
+}
+
+.review-markdown-li + .review-markdown-li {
+  margin-top: 0.25em;
+}
+
+.review-markdown-blockquote {
+  padding-left: 1em;
+  border-left: 3px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-secondary);
+}
+
+.review-markdown-code {
+  padding: 0.12em 0.32em;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.92em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.review-markdown-pre {
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: rgba(7, 7, 10, 0.5);
+  overflow-x: auto;
+}
+
+.review-markdown-pre .review-markdown-code {
+  padding: 0;
+  background: transparent;
+}
+
+.review-markdown-hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.review-markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.review-markdown-th,
+.review-markdown-td {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
 }
 
 .review-meta {
