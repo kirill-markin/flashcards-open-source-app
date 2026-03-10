@@ -24,11 +24,11 @@
   --shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
   --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.26);
   --blur: blur(28px);
-  --radius-xs: 14px;
-  --radius-sm: 18px;
-  --radius-md: 24px;
-  --radius-lg: 32px;
-  --radius-pill: 999px;
+  --radius-xs: 7px;
+  --radius-sm: 9px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 499.5px;
   --desktop-shell-gutter: 24px;
   --content-width: 1240px;
   --shell-width: 1320px;

@@ -108,7 +108,7 @@
   min-width: 18px;
   height: 18px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-strong);
   font-size: 11px;
