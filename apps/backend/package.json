@@ -13,8 +13,6 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@aws-sdk/client-secrets-manager": "^3.996.0",
     "@hono/node-server": "^1.19.6",
-    "@openai/agents": "^0.5.4",
-    "@openai/agents-openai": "^0.5.4",
     "aws-jwt-verify": "^4.0.1",
     "hono": "^4.7.0",
     "openai": "^6.27.0",

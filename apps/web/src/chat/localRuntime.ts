@@ -1,83 +1,43 @@
-import type { ContentPart, LocalAssistantToolCall, LocalChatMessage, LocalChatStreamEvent } from "../types";
+import type { ContentPart, LocalChatMessage, LocalChatStreamEvent } from "../types";
+import { LOCAL_TOOL_NAMES } from "./localToolExecutor";
 import type { StoredMessage } from "./useChatHistory";
 
-function contentPartToText(part: ContentPart): string {
-  if (part.type === "text") {
-    return part.text;
-  }
+const LOCAL_TOOL_NAME_SET = new Set<string>(LOCAL_TOOL_NAMES);
 
-  if (part.type === "image") {
-    return "[image attached]";
-  }
-
-  if (part.type === "file") {
-    return `[${part.fileName}]`;
-  }
-
-  return "";
-}
-
-function messageTextContent(content: ReadonlyArray<ContentPart>): string {
-  return content
-    .map(contentPartToText)
-    .filter((part) => part !== "")
-    .join("\n");
-}
-
-function assistantToolCalls(content: ReadonlyArray<ContentPart>): ReadonlyArray<LocalAssistantToolCall> {
-  return content
-    .filter((part): part is Extract<ContentPart, { type: "tool_call" }> => part.type === "tool_call")
-    .map((part) => ({
-      toolCallId: part.toolCallId,
-      name: part.name,
-      input: part.input ?? "{}",
-    }));
-}
-
-/**
- * Local-turn history is text-only. If any browser message contains images or
- * files, the caller must keep using the server chat runtime for that thread.
- */
-export function chatHistorySupportsLocalRuntime(messages: ReadonlyArray<StoredMessage>): boolean {
-  return messages.every((message) => message.content.every((part) => part.type !== "image" && part.type !== "file"));
+function isLocalToolName(name: string): boolean {
+  return LOCAL_TOOL_NAME_SET.has(name);
 }
 
 /**
  * Converts persisted web chat history into the local-turn wire format shared
- * by iOS and the browser local runtime. Tool outputs are emitted as explicit
- * `tool` messages so later turns can resume after prior local tool usage.
+ * by iOS and the browser runtime. Completed client-side tool calls are still
+ * emitted as explicit `tool` messages so later turns can continue after local
+ * mutations, while provider-side tool calls remain inside assistant content.
  */
 export function toLocalChatMessages(messages: ReadonlyArray<StoredMessage>): ReadonlyArray<LocalChatMessage> {
   const localMessages: Array<LocalChatMessage> = [];
 
   for (const message of messages) {
-    if (message.role === "user") {
-      localMessages.push({
-        role: "user",
-        content: messageTextContent(message.content),
-      });
+    localMessages.push({
+      role: message.role,
+      content: message.content,
+    });
+
+    if (message.role !== "assistant") {
       continue;
     }
 
-    const content = messageTextContent(message.content);
-    const toolCalls = assistantToolCalls(message.content);
-    if (content !== "" || toolCalls.length > 0) {
-      localMessages.push({
-        role: "assistant",
-        content,
-        toolCalls,
-      });
-    }
-
     for (const part of message.content) {
-      if (part.type === "tool_call" && part.status === "completed" && part.output !== null) {
-        localMessages.push({
-          role: "tool",
-          toolCallId: part.toolCallId,
-          name: part.name,
-          output: part.output,
-        });
+      if (part.type !== "tool_call" || part.status !== "completed" || part.output === null || isLocalToolName(part.name) === false) {
+        continue;
       }
+
+      localMessages.push({
+        role: "tool",
+        toolCallId: part.toolCallId,
+        name: part.name,
+        output: part.output,
+      });
     }
   }
 

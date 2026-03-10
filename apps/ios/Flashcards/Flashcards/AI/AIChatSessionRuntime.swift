@@ -53,6 +53,13 @@ actor AIChatSessionRuntime {
 
                         await self.handleDelta(text: text, eventHandler: eventHandler)
                     },
+                    onToolCall: { [weak self] toolCall in
+                        guard let self else {
+                            return
+                        }
+
+                        await self.handleToolCall(toolCall: toolCall, eventHandler: eventHandler)
+                    },
                     onToolCallRequest: { [weak self] toolCallRequest in
                         guard let self else {
                             return
@@ -157,19 +164,38 @@ actor AIChatSessionRuntime {
         }
     }
 
+    private func handleToolCall(
+        toolCall: AIChatToolCall,
+        eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
+    ) async {
+        await self.flushPendingAssistantText(eventHandler: eventHandler)
+        self.persistedState = upsertAssistantToolCall(state: self.persistedState, toolCall: toolCall)
+        await self.historyStore.saveState(state: self.persistedState)
+        self.lastHistoryCheckpointAt = Date()
+        await eventHandler(.setRepairStatus(nil))
+        await eventHandler(.upsertToolCall(toolCall))
+    }
+
     private func handleToolCallRequest(
         toolCallRequest: AIToolCallRequest,
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
     ) async {
         await self.flushPendingAssistantText(eventHandler: eventHandler)
-        self.persistedState = appendToolCallRequest(
+        let requestedToolCall = AIChatToolCall(
+            id: toolCallRequest.toolCallId,
+            name: toolCallRequest.name,
+            status: .started,
+            input: toolCallRequest.input,
+            output: nil
+        )
+        self.persistedState = upsertAssistantToolCall(
             state: self.persistedState,
-            toolCallRequest: toolCallRequest
+            toolCall: requestedToolCall
         )
         await self.historyStore.saveState(state: self.persistedState)
         self.lastHistoryCheckpointAt = Date()
         await eventHandler(.setRepairStatus(nil))
-        await eventHandler(.appendToolCallRequest(toolCallRequest))
+        await eventHandler(.upsertToolCall(requestedToolCall))
     }
 
     private func handleRepairStatus(
@@ -185,14 +211,21 @@ actor AIChatSessionRuntime {
         didMutateAppState: Bool,
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
     ) async throws {
-        self.persistedState = completeToolCall(
+        self.persistedState = completeAssistantToolCall(
             state: self.persistedState,
             toolCallId: toolCallId,
             output: output
         )
         await self.historyStore.saveState(state: self.persistedState)
         self.lastHistoryCheckpointAt = Date()
-        await eventHandler(.completeToolCall(toolCallId: toolCallId, output: output))
+
+        if let completedToolCall = assistantToolCall(
+            state: self.persistedState,
+            toolCallId: toolCallId
+        ) {
+            await eventHandler(.upsertToolCall(completedToolCall))
+        }
+
         if didMutateAppState {
             let snapshot = try await self.snapshotLoader.loadSnapshot()
             await eventHandler(.applySnapshot(snapshot))
@@ -309,42 +342,36 @@ private func makeRuntimeRequestBody(state: AIChatPersistedState) -> AILocalChatR
             makeWireMessages(message: message)
         },
         model: state.selectedModelId,
-        timezone: TimeZone.current.identifier
+        timezone: TimeZone.current.identifier,
+        devicePlatform: "ios"
     )
 }
 
 private func makeWireMessages(message: AIChatMessage) -> [AILocalChatWireMessage] {
-    if message.role == .user {
-        return [
-            AILocalChatWireMessage(
-                role: "user",
-                content: message.text,
-                toolCalls: nil,
-                toolCallId: nil,
-                name: nil,
-                output: nil
-            )
-        ]
-    }
-
     var wireMessages: [AILocalChatWireMessage] = [
         AILocalChatWireMessage(
-            role: "assistant",
-            content: message.text,
-            toolCalls: message.toolCalls.map { toolCall in
-                AILocalAssistantToolCall(
-                    toolCallId: toolCall.id,
-                    name: toolCall.name,
-                    input: toolCall.input
-                )
-            },
+            role: message.role.rawValue,
+            content: message.content,
             toolCallId: nil,
             name: nil,
             output: nil
         )
     ]
 
-    for toolCall in message.toolCalls {
+    guard message.role == .assistant else {
+        return wireMessages
+    }
+
+    for part in message.content {
+        guard case .toolCall(let toolCall) = part else {
+            continue
+        }
+        guard toolCall.status == .completed else {
+            continue
+        }
+        guard aiChatLocalToolNames.contains(toolCall.name) else {
+            continue
+        }
         guard let output = toolCall.output else {
             continue
         }
@@ -353,7 +380,6 @@ private func makeWireMessages(message: AIChatMessage) -> [AILocalChatWireMessage
             AILocalChatWireMessage(
                 role: "tool",
                 content: nil,
-                toolCalls: nil,
                 toolCallId: toolCall.id,
                 name: toolCall.name,
                 output: output
@@ -377,17 +403,19 @@ private func appendAssistantText(state: AIChatPersistedState, text: String) -> A
     messages[lastIndex] = AIChatMessage(
         id: lastMessage.id,
         role: lastMessage.role,
-        text: lastMessage.text + text,
-        toolCalls: lastMessage.toolCalls,
+        content: appendingText(
+            content: lastMessage.content,
+            text: text
+        ),
         timestamp: lastMessage.timestamp,
         isError: lastMessage.isError
     )
     return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
 }
 
-private func appendToolCallRequest(
+private func upsertAssistantToolCall(
     state: AIChatPersistedState,
-    toolCallRequest: AIToolCallRequest
+    toolCall: AIChatToolCall
 ) -> AIChatPersistedState {
     guard let lastIndex = state.messages.indices.last else {
         return state
@@ -398,26 +426,30 @@ private func appendToolCallRequest(
 
     var messages = state.messages
     let lastMessage = messages[lastIndex]
+    var updatedContent = lastMessage.content
+    if let contentIndex = updatedContent.firstIndex(where: { part in
+        guard case .toolCall(let existingToolCall) = part else {
+            return false
+        }
+
+        return existingToolCall.id == toolCall.id
+    }) {
+        updatedContent[contentIndex] = .toolCall(toolCall)
+    } else {
+        updatedContent.append(.toolCall(toolCall))
+    }
+
     messages[lastIndex] = AIChatMessage(
         id: lastMessage.id,
         role: lastMessage.role,
-        text: lastMessage.text,
-        toolCalls: lastMessage.toolCalls + [
-            AIChatToolCall(
-                id: toolCallRequest.toolCallId,
-                name: toolCallRequest.name,
-                status: .requested,
-                input: toolCallRequest.input,
-                output: nil
-            )
-        ],
+        content: updatedContent,
         timestamp: lastMessage.timestamp,
         isError: lastMessage.isError
     )
     return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
 }
 
-private func completeToolCall(
+private func completeAssistantToolCall(
     state: AIChatPersistedState,
     toolCallId: String,
     output: String
@@ -431,29 +463,55 @@ private func completeToolCall(
 
     var messages = state.messages
     let lastMessage = messages[lastIndex]
-    let updatedToolCalls = lastMessage.toolCalls.map { toolCall in
+    let updatedContent = lastMessage.content.map { part in
+        guard case .toolCall(let toolCall) = part else {
+            return part
+        }
+
         if toolCall.id == toolCallId {
-            return AIChatToolCall(
-                id: toolCall.id,
-                name: toolCall.name,
-                status: .completed,
-                input: toolCall.input,
-                output: output
+            return .toolCall(
+                AIChatToolCall(
+                    id: toolCall.id,
+                    name: toolCall.name,
+                    status: .completed,
+                    input: toolCall.input,
+                    output: output
+                )
             )
         }
 
-        return toolCall
+        return part
     }
 
     messages[lastIndex] = AIChatMessage(
         id: lastMessage.id,
         role: lastMessage.role,
-        text: lastMessage.text,
-        toolCalls: updatedToolCalls,
+        content: updatedContent,
         timestamp: lastMessage.timestamp,
         isError: lastMessage.isError
     )
     return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
+}
+
+private func assistantToolCall(
+    state: AIChatPersistedState,
+    toolCallId: String
+) -> AIChatToolCall? {
+    guard let lastMessage = state.messages.last, lastMessage.role == .assistant else {
+        return nil
+    }
+
+    for part in lastMessage.content {
+        guard case .toolCall(let toolCall) = part else {
+            continue
+        }
+
+        if toolCall.id == toolCallId {
+            return toolCall
+        }
+    }
+
+    return nil
 }
 
 private func markAssistantError(state: AIChatPersistedState, message: String) -> AIChatPersistedState {
@@ -461,12 +519,14 @@ private func markAssistantError(state: AIChatPersistedState, message: String) ->
 
     if let lastIndex = messages.indices.last, messages[lastIndex].role == .assistant {
         let lastMessage = messages[lastIndex]
-        let nextText = lastMessage.text.isEmpty ? message : "\(lastMessage.text)\n\n\(message)"
+        let separator = extractAIChatText(from: lastMessage.content).isEmpty ? "" : "\n\n"
         messages[lastIndex] = AIChatMessage(
             id: lastMessage.id,
             role: lastMessage.role,
-            text: nextText,
-            toolCalls: lastMessage.toolCalls,
+            content: appendingText(
+                content: lastMessage.content,
+                text: separator + message
+            ),
             timestamp: lastMessage.timestamp,
             isError: true
         )
@@ -475,8 +535,7 @@ private func markAssistantError(state: AIChatPersistedState, message: String) ->
             AIChatMessage(
                 id: UUID().uuidString.lowercased(),
                 role: .assistant,
-                text: message,
-                toolCalls: [],
+                content: [.text(message)],
                 timestamp: currentIsoTimestamp(),
                 isError: true
             )
@@ -484,4 +543,27 @@ private func markAssistantError(state: AIChatPersistedState, message: String) ->
     }
 
     return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
+}
+
+private func appendingText(content: [AIChatContentPart], text: String) -> [AIChatContentPart] {
+    guard text.isEmpty == false else {
+        return content
+    }
+
+    var updatedContent = content
+    if let lastPart = updatedContent.last, case .text(let existingText) = lastPart {
+        updatedContent[updatedContent.count - 1] = .text(existingText + text)
+    } else {
+        updatedContent.append(.text(text))
+    }
+
+    return updatedContent
+}
+
+private func extractAIChatText(from content: [AIChatContentPart]) -> String {
+    content.reduce(into: "") { partialResult, part in
+        if case .text(let text) = part {
+            partialResult.append(text)
+        }
+    }
 }

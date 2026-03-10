@@ -13,7 +13,7 @@ import {
   isSupportedLocalChatModel as isSupportedAnthropicLocalChatModel,
   streamLocalAgentTurn as streamAnthropicLocalAgentTurn,
 } from "./chat/anthropic/localAgent";
-import type { LocalChatStreamEvent } from "./chat/localTypes";
+import type { LocalChatStreamEvent, LocalContentPart } from "./chat/localTypes";
 
 type FakeStreamEvent = Readonly<{
   type: "response.output_text.delta";
@@ -48,6 +48,9 @@ function makeFakeClient(
   attempts: ReadonlyArray<FakeAttempt>,
   capturedBodies: Array<CapturedStreamBody>,
 ): Readonly<{
+  files: Readonly<{
+    create: () => Promise<Readonly<{ id: string; filename: string }>>;
+  }>;
   responses: Readonly<{
     stream: (body: Readonly<Record<string, unknown>>) => AsyncIterable<FakeStreamEvent> & Readonly<{
       finalResponse: () => Promise<FakeFinalResponse>;
@@ -57,6 +60,14 @@ function makeFakeClient(
   let attemptIndex = 0;
 
   return {
+    files: {
+      async create() {
+        return {
+          id: "file_test_1",
+          filename: "test.txt",
+        };
+      },
+    },
     responses: {
       stream(body: Readonly<Record<string, unknown>>) {
         capturedBodies.push(body as CapturedStreamBody);
@@ -118,6 +129,9 @@ function makeFakeAnthropicClient(
   capturedBodies: Array<CapturedAnthropicStreamBody>,
 ): Readonly<{
   beta: Readonly<{
+    files: Readonly<{
+      upload: () => Promise<Readonly<{ id: string }>>;
+    }>;
     messages: Readonly<{
       stream: (body: Readonly<Record<string, unknown>>) => AsyncIterable<FakeAnthropicStreamEvent> & Readonly<{
         finalMessage: () => Promise<FakeAnthropicFinalMessage>;
@@ -129,6 +143,11 @@ function makeFakeAnthropicClient(
 
   return {
     beta: {
+      files: {
+        async upload() {
+          return { id: "file_test_1" };
+        },
+      },
       messages: {
         stream(body: Readonly<Record<string, unknown>>) {
           capturedBodies.push(body as CapturedAnthropicStreamBody);
@@ -163,6 +182,10 @@ async function collectEvents(iterable: AsyncIterable<LocalChatStreamEvent>): Pro
   }
 
   return events;
+}
+
+function userTextContent(text: string): ReadonlyArray<LocalContentPart> {
+  return [{ type: "text", text }];
 }
 
 test("isSupportedLocalChatModel accepts only OpenAI local-chat models", () => {
@@ -216,7 +239,7 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
   );
 
   const events = await collectEvents(streamLocalAgentTurn({
-    messages: [{ role: "user", content: "hi" }],
+    messages: [{ role: "user", content: userTextContent("hi") }],
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
@@ -267,7 +290,7 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
   );
 
   const events = await collectEvents(streamLocalAgentTurn({
-    messages: [{ role: "user", content: "list my cards" }],
+    messages: [{ role: "user", content: userTextContent("list my cards") }],
     model: "gpt-4.1-mini",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
@@ -330,7 +353,7 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
   );
 
   const events = await collectEvents(streamLocalAgentTurn({
-    messages: [{ role: "user", content: "list my cards" }],
+    messages: [{ role: "user", content: userTextContent("list my cards") }],
     model: "gpt-5.4",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
@@ -385,7 +408,7 @@ test("streamLocalAgentTurn stops after three repair attempts", async () => {
   await assert.rejects(
     async () => {
       await collectEvents(streamLocalAgentTurn({
-        messages: [{ role: "user", content: "list my cards" }],
+        messages: [{ role: "user", content: userTextContent("list my cards") }],
         model: "gpt-5.4",
         timezone: "Europe/Madrid",
         devicePlatform: "ios",
@@ -423,7 +446,7 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
   );
 
   const events = await collectEvents(streamAnthropicLocalAgentTurn({
-    messages: [{ role: "user", content: "list my cards" }],
+    messages: [{ role: "user", content: userTextContent("list my cards") }],
     model: "claude-sonnet-4-6",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
@@ -472,7 +495,7 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
   );
 
   const events = await collectEvents(streamAnthropicLocalAgentTurn({
-    messages: [{ role: "user", content: "list my cards" }],
+    messages: [{ role: "user", content: userTextContent("list my cards") }],
     model: "claude-sonnet-4-6",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
@@ -507,7 +530,7 @@ test("streamAnthropicLocalAgentTurn stops after three repair attempts", async ()
   await assert.rejects(
     async () => {
       await collectEvents(streamAnthropicLocalAgentTurn({
-        messages: [{ role: "user", content: "list my cards" }],
+        messages: [{ role: "user", content: userTextContent("list my cards") }],
         model: "claude-sonnet-4-6",
         timezone: "Europe/Madrid",
         devicePlatform: "web",
@@ -525,7 +548,7 @@ test("streamLocalChatResponse rejects only unknown local models", async () => {
     async () => {
       await streamLocalChatResponse(
         {
-          messages: [{ role: "user", content: "hi" }],
+          messages: [{ role: "user", content: userTextContent("hi") }],
           model: "unknown-model",
           timezone: "Europe/Madrid",
           devicePlatform: "ios",

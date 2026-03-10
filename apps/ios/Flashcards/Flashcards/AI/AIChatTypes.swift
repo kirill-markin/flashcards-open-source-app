@@ -2,6 +2,47 @@ import Foundation
 
 let aiChatDefaultModelId: String = "gpt-5.4"
 let aiChatCreateCardDraftPrompt: String = "Help me create a card."
+let aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
+let aiChatSupportedFileExtensions: Set<String> = [
+    "pdf",
+    "txt",
+    "csv",
+    "json",
+    "xml",
+    "xlsx",
+    "xls",
+    "md",
+    "html",
+    "py",
+    "js",
+    "ts",
+    "yaml",
+    "yml",
+    "sql",
+    "log",
+    "docx",
+]
+let aiChatLocalToolNames: Set<String> = [
+    "get_workspace_context",
+    "list_cards",
+    "get_cards",
+    "search_cards",
+    "list_due_cards",
+    "list_decks",
+    "search_decks",
+    "get_decks",
+    "list_review_history",
+    "get_scheduler_settings",
+    "get_cloud_settings",
+    "list_outbox",
+    "summarize_deck_state",
+    "create_cards",
+    "update_cards",
+    "delete_cards",
+    "create_decks",
+    "update_decks",
+    "delete_decks",
+]
 
 func aiChatAppVersion() -> String {
     let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
@@ -43,6 +84,9 @@ struct AIChatModelDef: Hashable, Identifiable, Sendable {
     let label: String
 
     static let all: [AIChatModelDef] = [
+        AIChatModelDef(id: "claude-opus-4-6", label: "Claude Opus 4.6"),
+        AIChatModelDef(id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6"),
+        AIChatModelDef(id: "claude-haiku-4-5", label: "Claude Haiku 4.5"),
         AIChatModelDef(id: "gpt-5.4", label: "GPT-5.4"),
         AIChatModelDef(id: "gpt-5.2", label: "GPT-5.2"),
         AIChatModelDef(id: "gpt-4.1", label: "GPT-4.1"),
@@ -57,7 +101,7 @@ enum AIChatRole: String, Codable, Hashable, Sendable {
 }
 
 enum AIChatToolCallStatus: String, Codable, Hashable, Sendable {
-    case requested
+    case started
     case completed
 }
 
@@ -65,15 +109,126 @@ struct AIChatToolCall: Codable, Hashable, Identifiable, Sendable {
     let id: String
     let name: String
     let status: AIChatToolCallStatus
-    let input: String
+    let input: String?
     let output: String?
+}
+
+struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
+    let id: String
+    let fileName: String
+    let mediaType: String
+    let base64Data: String
+
+    var isImage: Bool {
+        self.mediaType.hasPrefix("image/")
+    }
+}
+
+enum AIChatContentPart: Codable, Hashable, Sendable {
+    case text(String)
+    case image(mediaType: String, base64Data: String)
+    case file(fileName: String, mediaType: String, base64Data: String)
+    case toolCall(AIChatToolCall)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case mediaType
+        case base64Data
+        case fileName
+        case toolCallId
+        case name
+        case status
+        case input
+        case output
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+
+        switch type {
+        case "text":
+            self = .text(try container.decode(String.self, forKey: .text))
+        case "image":
+            self = .image(
+                mediaType: try container.decode(String.self, forKey: .mediaType),
+                base64Data: try container.decode(String.self, forKey: .base64Data)
+            )
+        case "file":
+            self = .file(
+                fileName: try container.decode(String.self, forKey: .fileName),
+                mediaType: try container.decode(String.self, forKey: .mediaType),
+                base64Data: try container.decode(String.self, forKey: .base64Data)
+            )
+        case "tool_call":
+            self = .toolCall(
+                AIChatToolCall(
+                    id: try container.decode(String.self, forKey: .toolCallId),
+                    name: try container.decode(String.self, forKey: .name),
+                    status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
+                    input: try container.decodeIfPresent(String.self, forKey: .input),
+                    output: try container.decodeIfPresent(String.self, forKey: .output)
+                )
+            )
+        default:
+            throw DecodingError.dataCorruptedError(
+                forKey: .type,
+                in: container,
+                debugDescription: "Unsupported AI chat content type: \(type)"
+            )
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        switch self {
+        case .text(let text):
+            try container.encode("text", forKey: .type)
+            try container.encode(text, forKey: .text)
+        case .image(let mediaType, let base64Data):
+            try container.encode("image", forKey: .type)
+            try container.encode(mediaType, forKey: .mediaType)
+            try container.encode(base64Data, forKey: .base64Data)
+        case .file(let fileName, let mediaType, let base64Data):
+            try container.encode("file", forKey: .type)
+            try container.encode(fileName, forKey: .fileName)
+            try container.encode(mediaType, forKey: .mediaType)
+            try container.encode(base64Data, forKey: .base64Data)
+        case .toolCall(let toolCall):
+            try container.encode("tool_call", forKey: .type)
+            try container.encode(toolCall.id, forKey: .toolCallId)
+            try container.encode(toolCall.name, forKey: .name)
+            try container.encode(toolCall.status, forKey: .status)
+            try container.encodeIfPresent(toolCall.input, forKey: .input)
+            try container.encodeIfPresent(toolCall.output, forKey: .output)
+        }
+    }
+
+    var textValue: String? {
+        switch self {
+        case .text(let text):
+            return text
+        default:
+            return nil
+        }
+    }
+
+    var toolCallValue: AIChatToolCall? {
+        switch self {
+        case .toolCall(let toolCall):
+            return toolCall
+        default:
+            return nil
+        }
+    }
 }
 
 struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
     let id: String
     let role: AIChatRole
-    let text: String
-    let toolCalls: [AIChatToolCall]
+    let content: [AIChatContentPart]
     let timestamp: String
     let isError: Bool
 }
@@ -83,16 +238,9 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     let selectedModelId: String
 }
 
-struct AILocalAssistantToolCall: Codable, Hashable, Sendable {
-    let toolCallId: String
-    let name: String
-    let input: String
-}
-
 struct AILocalChatWireMessage: Codable, Hashable, Sendable {
     let role: String
-    let content: String?
-    let toolCalls: [AILocalAssistantToolCall]?
+    let content: [AIChatContentPart]?
     let toolCallId: String?
     let name: String?
     let output: String?
@@ -102,9 +250,10 @@ struct AILocalChatRequestBody: Codable, Hashable, Sendable {
     let messages: [AILocalChatWireMessage]
     let model: String
     let timezone: String
+    let devicePlatform: String
 }
 
-struct AIToolCallRequest: Hashable {
+struct AIToolCallRequest: Hashable, Sendable {
     let toolCallId: String
     let name: String
     let input: String
@@ -196,6 +345,7 @@ struct AIChatBackendError: Decodable, Hashable, Sendable {
 
 enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
     case delta(String)
+    case toolCall(AIChatToolCall)
     case toolCallRequest(AIToolCallRequest)
     case repairAttempt(AIChatRepairAttemptStatus)
     case awaitToolResults
@@ -207,7 +357,9 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
         case text
         case toolCallId
         case name
+        case status
         case input
+        case output
         case message
         case attempt
         case maxAttempts
@@ -224,6 +376,16 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
         switch type {
         case "delta":
             self = .delta(try container.decode(String.self, forKey: .text))
+        case "tool_call":
+            self = .toolCall(
+                AIChatToolCall(
+                    id: try container.decode(String.self, forKey: .toolCallId),
+                    name: try container.decode(String.self, forKey: .name),
+                    status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
+                    input: try container.decodeIfPresent(String.self, forKey: .input),
+                    output: try container.decodeIfPresent(String.self, forKey: .output)
+                )
+            )
         case "tool_call_request":
             self = .toolCallRequest(
                 AIToolCallRequest(
@@ -266,8 +428,7 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
 
 enum AIChatRuntimeEvent: Sendable {
     case appendAssistantText(String)
-    case appendToolCallRequest(AIToolCallRequest)
-    case completeToolCall(toolCallId: String, output: String)
+    case upsertToolCall(AIChatToolCall)
     case setRepairStatus(AIChatRepairAttemptStatus?)
     case applySnapshot(AppStateSnapshot)
     case finish
@@ -294,6 +455,7 @@ protocol AIChatStreaming: Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome

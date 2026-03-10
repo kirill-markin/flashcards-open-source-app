@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chatHistorySupportsLocalRuntime, parseLocalSSELine, toLocalChatMessages } from "./localRuntime";
+import { parseLocalSSELine, toLocalChatMessages } from "./localRuntime";
 import { normalizeStoredMessageForTests } from "./useChatHistory";
 import type { StoredMessage } from "./useChatHistory";
 
@@ -19,10 +19,10 @@ describe("localRuntime", () => {
     expect(toLocalChatMessages(messages)).toEqual([
       {
         role: "assistant",
-        content: "Looking up cards.",
-        toolCalls: [
-          { toolCallId: "call-1", name: "list_cards", input: "{\"limit\":10}" },
-          { toolCallId: "call-2", name: "list_cards", input: "{\"limit\":20}" },
+        content: [
+          { type: "text", text: "Looking up cards." },
+          { type: "tool_call", toolCallId: "call-1", name: "list_cards", status: "completed", input: "{\"limit\":10}", output: "[{\"cardId\":\"card-1\"}]" },
+          { type: "tool_call", toolCallId: "call-2", name: "list_cards", status: "completed", input: "{\"limit\":20}", output: "[{\"cardId\":\"card-2\"}]" },
         ],
       },
       {
@@ -59,13 +59,16 @@ describe("localRuntime", () => {
     });
   });
 
-  it("rejects local runtime for histories containing attachments and parses local SSE lines", () => {
-    expect(chatHistorySupportsLocalRuntime([{
+  it("preserves attachments and parses local SSE lines", () => {
+    expect(toLocalChatMessages([{
       role: "user",
       content: [{ type: "image", mediaType: "image/png", base64Data: "abc" }],
       timestamp: 1,
       isError: false,
-    }])).toBe(false);
+    }])).toEqual([{
+      role: "user",
+      content: [{ type: "image", mediaType: "image/png", base64Data: "abc" }],
+    }]);
 
     expect(parseLocalSSELine("data: {\"type\":\"await_tool_results\"}")).toEqual({
       type: "await_tool_results",

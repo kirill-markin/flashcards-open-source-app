@@ -7,21 +7,15 @@ import {
   type ReactElement,
 } from "react";
 import {
-  createChatRequestBody,
   createLocalChatRequestBody,
-  sendChatDiagnostics,
   sendLocalChatDiagnostics,
-  streamChat,
   streamLocalChat,
-  type ChatRequestBody,
 } from "../api";
 import { webAppVersion } from "../clientIdentity";
 import { DEFAULT_MODEL_ID } from "../chatModels";
 import { useAppData } from "../appData";
 import { ensurePersistentStorage } from "../syncStorage";
 import type {
-  ChatDiagnosticsPayload,
-  ChatStreamEvent,
   ContentPart,
   LocalChatDiagnosticsPayload,
   LocalChatStreamEvent,
@@ -34,7 +28,7 @@ import {
   type PendingAttachment,
 } from "./FileAttachment";
 import { createLocalToolExecutor } from "./localToolExecutor";
-import { chatHistorySupportsLocalRuntime, parseLocalSSELine, toLocalChatMessages } from "./localRuntime";
+import { parseLocalSSELine, toLocalChatMessages } from "./localRuntime";
 import { ModelSelector } from "./ModelSelector";
 import { useChatHistory, type StoredMessage } from "./useChatHistory";
 
@@ -116,26 +110,6 @@ function buildChatResponseMetadata(response: Response | null): ChatResponseMetad
   };
 }
 
-/**
- * Reports diagnostics both to the local console and to the backend endpoint so
- * production-only stream failures can be compared with CloudWatch logs.
- */
-async function reportChatDiagnostics(payload: ChatDiagnosticsPayload): Promise<void> {
-  console.info("chat_frontend_diagnostics", payload);
-
-  try {
-    await sendChatDiagnostics(payload);
-  } catch (error) {
-    console.error("chat_frontend_diagnostics_failed", {
-      clientRequestId: payload.clientRequestId,
-      responseRequestId: payload.responseRequestId,
-      stage: payload.stage,
-      errorName: error instanceof Error ? error.name : null,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
-  }
-}
-
 async function reportLocalChatDiagnostics(payload: LocalChatDiagnosticsPayload): Promise<void> {
   console.info("chat_local_frontend_diagnostics", payload);
 
@@ -177,18 +151,6 @@ function buildContentParts(
   }
 
   return parts;
-}
-
-function parseSSELine(line: string): ChatStreamEvent | null {
-  if (!line.startsWith("data: ")) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(line.slice(6)) as ChatStreamEvent;
-  } catch {
-    return null;
-  }
 }
 
 function sanitizeErrorText(status: number, raw: string): string {
@@ -403,487 +365,362 @@ export function ChatPanel(props: Props): ReactElement {
     setIsStreaming(true);
     startAssistantMessage();
 
-    const allMessages = [
-      ...messages.map((message) => ({ role: message.role, content: message.content })),
-      { role: "user" as const, content: contentParts },
-    ];
     const abortController = new AbortController();
     abortRef.current = abortController;
 
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const shouldUseLocalRuntime = pendingAttachments.length === 0 && chatHistorySupportsLocalRuntime(messages);
+      const storageState = await ensurePersistentStorage();
+      console.info("chat_local_storage_state", storageState);
 
-      if (shouldUseLocalRuntime) {
-        const storageState = await ensurePersistentStorage();
-        console.info("chat_local_storage_state", storageState);
+      const localToolExecutor = createLocalToolExecutor(appData);
+      const clientRequestId = globalThis.crypto.randomUUID();
+      const requestStartedAt = Date.now();
+      const wireMessages = [...toLocalChatMessages([
+        ...messages,
+        {
+          role: "user",
+          content: contentParts,
+          timestamp: Date.now(),
+          isError: false,
+        },
+      ])];
+      let receivedContent = false;
+      let backendRequestId: string | null = null;
+      let bufferLength = 0;
+      let lastEventType: string | null = null;
 
-        const localToolExecutor = createLocalToolExecutor(appData);
-        const clientRequestId = globalThis.crypto.randomUUID();
-        const requestStartedAt = Date.now();
-        const wireMessages = [...toLocalChatMessages([
-          ...messages,
-          {
-            role: "user",
-            content: contentParts,
-            timestamp: Date.now(),
-            isError: false,
-          },
-        ])];
-        let receivedContent = false;
-        let backendRequestId: string | null = null;
-        let bufferLength = 0;
-        let lastEventType: string | null = null;
+      while (true) {
+        const requestBody = createLocalChatRequestBody(wireMessages, selectedModel, timezone);
+        if (JSON.stringify(requestBody).length > MAX_BODY_BYTES) {
+          markAssistantError("Request is too large for the local chat endpoint.");
+          return;
+        }
 
-        while (true) {
-          const requestBody = createLocalChatRequestBody(wireMessages, selectedModel, timezone);
-          if (JSON.stringify(requestBody).length > MAX_BODY_BYTES) {
-            markAssistantError("Request is too large for the local chat endpoint.");
+        let response: Response | null = null;
+        let buffer = "";
+        let lineNumber = 0;
+        let responseStatusCode: number | null = null;
+
+        function reportLocalDiagnostics(
+          stage: string,
+          errorKind: string,
+          extra: Readonly<{
+            eventType: string | null;
+            toolName: string | null;
+            toolCallId: string | null;
+            lineNumber: number | null;
+            rawSnippet: string | null;
+            decoderSummary: string | null;
+          }>,
+        ): void {
+          const responseMetadata = buildChatResponseMetadata(response);
+          backendRequestId = responseMetadata.responseRequestId;
+          responseStatusCode = responseMetadata.statusCode;
+          bufferLength = buffer.length;
+          lastEventType = extra.eventType;
+
+          void reportLocalChatDiagnostics({
+            clientRequestId,
+            backendRequestId: responseMetadata.responseRequestId,
+            stage,
+            errorKind,
+            statusCode: responseMetadata.statusCode,
+            eventType: extra.eventType,
+            toolName: extra.toolName,
+            toolCallId: extra.toolCallId,
+            lineNumber: extra.lineNumber,
+            rawSnippet: extra.rawSnippet,
+            decoderSummary: extra.decoderSummary,
+            selectedModel,
+            messageCount: requestBody.messages.length,
+            appVersion: webAppVersion,
+            devicePlatform: "web",
+          });
+        }
+
+        response = await streamLocalChat(requestBody, abortController.signal);
+        responseStatusCode = response.status;
+        backendRequestId = buildChatResponseMetadata(response).responseRequestId;
+        if (!response.ok) {
+          const message = `Error ${response.status}: ${sanitizeErrorText(response.status, await response.text())}`;
+          markAssistantError(message);
+          reportLocalDiagnostics("response_not_ok", "response_not_ok", {
+            eventType: null,
+            toolName: null,
+            toolCallId: null,
+            lineNumber: null,
+            rawSnippet: null,
+            decoderSummary: message,
+          });
+          return;
+        }
+
+        const reader = response.body?.getReader();
+        if (reader === undefined) {
+          markAssistantError("The local chat response stream is missing.");
+          reportLocalDiagnostics("missing_reader", "missing_reader", {
+            eventType: null,
+            toolName: null,
+            toolCallId: null,
+            lineNumber: null,
+            rawSnippet: null,
+            decoderSummary: "ReadableStream reader is unavailable",
+          });
+          return;
+        }
+
+        const decoder = new TextDecoder();
+        const pendingToolCalls: Array<Extract<LocalChatStreamEvent, { type: "tool_call_request" }>> = [];
+        const assistantContentParts: Array<ContentPart> = [];
+        let shouldAwaitToolResults = false;
+
+        function upsertAssistantToolCallPart(
+          part: Extract<ContentPart, { type: "tool_call" }>,
+        ): void {
+          const existingIndex = assistantContentParts.findIndex(
+            (contentPart) => contentPart.type === "tool_call" && contentPart.toolCallId === part.toolCallId,
+          );
+          if (existingIndex >= 0) {
+            assistantContentParts[existingIndex] = part;
             return;
           }
 
-          let response: Response | null = null;
-          let buffer = "";
-          let lineNumber = 0;
-          let responseStatusCode: number | null = null;
+          assistantContentParts.push(part);
+        }
 
-          function reportLocalDiagnostics(
-            stage: string,
-            errorKind: string,
-            extra: Readonly<{
-              eventType: string | null;
-              toolName: string | null;
-              toolCallId: string | null;
-              lineNumber: number | null;
-              rawSnippet: string | null;
-              decoderSummary: string | null;
-            }>,
-          ): void {
-            const responseMetadata = buildChatResponseMetadata(response);
-            backendRequestId = responseMetadata.responseRequestId;
-            responseStatusCode = responseMetadata.statusCode;
-            bufferLength = buffer.length;
-            lastEventType = extra.eventType;
-
-            void reportLocalChatDiagnostics({
-              clientRequestId,
-              backendRequestId: responseMetadata.responseRequestId,
-              stage,
-              errorKind,
-              statusCode: responseMetadata.statusCode,
-              eventType: extra.eventType,
-              toolName: extra.toolName,
-              toolCallId: extra.toolCallId,
-              lineNumber: extra.lineNumber,
-              rawSnippet: extra.rawSnippet,
-              decoderSummary: extra.decoderSummary,
-              selectedModel,
-              messageCount: requestBody.messages.length,
-              appVersion: webAppVersion,
-              devicePlatform: "web",
-            });
+        function appendAssistantText(text: string): void {
+          const lastPart = assistantContentParts[assistantContentParts.length - 1];
+          if (lastPart !== undefined && lastPart.type === "text") {
+            assistantContentParts[assistantContentParts.length - 1] = {
+              ...lastPart,
+              text: lastPart.text + text,
+            };
+          } else {
+            assistantContentParts.push({ type: "text", text });
           }
 
-          response = await streamLocalChat(requestBody, abortController.signal);
-          responseStatusCode = response.status;
-          backendRequestId = buildChatResponseMetadata(response).responseRequestId;
-          if (!response.ok) {
-            const message = `Error ${response.status}: ${sanitizeErrorText(response.status, await response.text())}`;
-            markAssistantError(message);
-            reportLocalDiagnostics("response_not_ok", "response_not_ok", {
+          appendAssistantChunk(text);
+        }
+
+        function ensureVisibleToolCall(
+          toolCallId: string,
+          name: string,
+          status: "started" | "completed",
+          input: string | null,
+          output: string | null,
+        ): void {
+          const hasExistingToolCall = assistantContentParts.some(
+            (part) => part.type === "tool_call" && part.toolCallId === toolCallId,
+          );
+
+          if (status === "started" || hasExistingToolCall === false) {
+            appendToolCall(name, toolCallId);
+          }
+
+          upsertAssistantToolCallPart({
+            type: "tool_call",
+            toolCallId,
+            name,
+            status,
+            input,
+            output,
+          });
+
+          if (status === "completed") {
+            completeToolCall(toolCallId, input, output);
+          }
+        }
+
+        function processLocalStreamLine(line: string): string | null {
+          lineNumber += 1;
+          const trimmedLine = line.trim();
+          if (trimmedLine === "") {
+            return null;
+          }
+
+          const event = parseLocalSSELine(trimmedLine);
+          if (event === null) {
+            reportLocalDiagnostics("decoding_event_json", "invalid_sse_event_json", {
               eventType: null,
-              toolName: null,
-              toolCallId: null,
-              lineNumber: null,
-              rawSnippet: null,
-              decoderSummary: message,
-            });
-            return;
-          }
-
-          const reader = response.body?.getReader();
-          if (reader === undefined) {
-            markAssistantError("The local chat response stream is missing.");
-            reportLocalDiagnostics("missing_reader", "missing_reader", {
-              eventType: null,
-              toolName: null,
-              toolCallId: null,
-              lineNumber: null,
-              rawSnippet: null,
-              decoderSummary: "ReadableStream reader is unavailable",
-            });
-            return;
-          }
-
-          const decoder = new TextDecoder();
-          let assistantText = "";
-          const pendingToolCalls: Array<Extract<LocalChatStreamEvent, { type: "tool_call_request" }>> = [];
-          let shouldAwaitToolResults = false;
-
-          function processLocalStreamLine(line: string): string | null {
-            lineNumber += 1;
-            const trimmedLine = line.trim();
-            if (trimmedLine === "") {
-              return null;
-            }
-
-            const event = parseLocalSSELine(trimmedLine);
-            if (event === null) {
-              reportLocalDiagnostics("decoding_event_json", "invalid_sse_event_json", {
-                eventType: null,
-                toolName: null,
-                toolCallId: null,
-                lineNumber,
-                rawSnippet: trimmedLine,
-                decoderSummary: "The local SSE event JSON could not be decoded",
-              });
-              return "The local chat stream returned an invalid event.";
-            }
-
-            lastEventType = event.type;
-
-            if (event.type === "delta") {
-              assistantText += event.text;
-              receivedContent = true;
-              appendAssistantChunk(event.text);
-              return null;
-            }
-
-            if (event.type === "repair_attempt") {
-              return null;
-            }
-
-            if (event.type === "tool_call_request") {
-              receivedContent = true;
-              appendToolCall(event.name, event.toolCallId);
-              pendingToolCalls.push(event);
-              return null;
-            }
-
-            if (event.type === "await_tool_results") {
-              shouldAwaitToolResults = true;
-              return null;
-            }
-
-            if (event.type === "done") {
-              return null;
-            }
-
-            reportLocalDiagnostics(event.stage, event.code, {
-              eventType: event.type,
               toolName: null,
               toolCallId: null,
               lineNumber,
               rawSnippet: trimmedLine,
-              decoderSummary: event.message,
+              decoderSummary: "The local SSE event JSON could not be decoded",
             });
-            return event.message;
+            return "The local chat stream returned an invalid event.";
           }
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              break;
-            }
+          lastEventType = event.type;
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() ?? "";
-
-            for (const line of lines) {
-              const errorMessage = processLocalStreamLine(line);
-              if (errorMessage !== null) {
-                markAssistantError(errorMessage);
-                return;
-              }
-            }
+          if (event.type === "delta") {
+            receivedContent = true;
+            appendAssistantText(event.text);
+            return null;
           }
 
-          buffer += decoder.decode();
-          if (buffer !== "") {
-            const lines = buffer.split("\n");
-            buffer = "";
-            for (const line of lines) {
-              const errorMessage = processLocalStreamLine(line);
-              if (errorMessage !== null) {
-                markAssistantError(errorMessage);
-                return;
-              }
-            }
+          if (event.type === "repair_attempt") {
+            return null;
           }
 
-          if (shouldAwaitToolResults) {
-            if (pendingToolCalls.length === 0) {
-              const message = "The local chat runtime requested tool results without any tool call.";
-              markAssistantError(message);
-              reportLocalDiagnostics("await_tool_results", "missing_tool_call_request", {
-                eventType: "await_tool_results",
-                toolName: null,
-                toolCallId: null,
-                lineNumber: null,
-                rawSnippet: null,
-                decoderSummary: "await_tool_results without tool_call_request",
-              });
+          if (event.type === "tool_call") {
+            receivedContent = true;
+            ensureVisibleToolCall(event.toolCallId, event.name, event.status, event.input, event.output);
+            return null;
+          }
+
+          if (event.type === "tool_call_request") {
+            receivedContent = true;
+            ensureVisibleToolCall(event.toolCallId, event.name, "started", event.input, null);
+            pendingToolCalls.push(event);
+            return null;
+          }
+
+          if (event.type === "await_tool_results") {
+            shouldAwaitToolResults = true;
+            return null;
+          }
+
+          if (event.type === "done") {
+            return null;
+          }
+
+          reportLocalDiagnostics(event.stage, event.code, {
+            eventType: event.type,
+            toolName: null,
+            toolCallId: null,
+            lineNumber,
+            rawSnippet: trimmedLine,
+            decoderSummary: event.message,
+          });
+          return event.message;
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            const errorMessage = processLocalStreamLine(line);
+            if (errorMessage !== null) {
+              markAssistantError(errorMessage);
               return;
             }
+          }
+        }
 
-            wireMessages.push({
-              role: "assistant",
-              content: assistantText,
-              toolCalls: pendingToolCalls.map((toolCall) => ({
+        buffer += decoder.decode();
+        if (buffer !== "") {
+          const lines = buffer.split("\n");
+          buffer = "";
+          for (const line of lines) {
+            const errorMessage = processLocalStreamLine(line);
+            if (errorMessage !== null) {
+              markAssistantError(errorMessage);
+              return;
+            }
+          }
+        }
+
+        if (shouldAwaitToolResults) {
+          if (pendingToolCalls.length === 0) {
+            const message = "The local chat runtime requested tool results without any tool call.";
+            markAssistantError(message);
+            reportLocalDiagnostics("await_tool_results", "missing_tool_call_request", {
+              eventType: "await_tool_results",
+              toolName: null,
+              toolCallId: null,
+              lineNumber: null,
+              rawSnippet: null,
+              decoderSummary: "await_tool_results without tool_call_request",
+            });
+            return;
+          }
+
+          wireMessages.push({
+            role: "assistant",
+            content: assistantContentParts,
+          });
+
+          for (const toolCall of pendingToolCalls) {
+            try {
+              const result = await localToolExecutor.execute({
                 toolCallId: toolCall.toolCallId,
                 name: toolCall.name,
                 input: toolCall.input,
-              })),
-            });
-
-            for (const toolCall of pendingToolCalls) {
-              try {
-                const result = await localToolExecutor.execute({
-                  toolCallId: toolCall.toolCallId,
-                  name: toolCall.name,
-                  input: toolCall.input,
-                });
-                completeToolCall(toolCall.toolCallId, toolCall.input, result.output);
-                wireMessages.push({
-                  role: "tool",
-                  toolCallId: toolCall.toolCallId,
-                  name: toolCall.name,
-                  output: result.output,
-                });
-              } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                markAssistantError(message);
-                reportLocalDiagnostics("tool_execution", "tool_execution_failed", {
-                  eventType: "tool_call_request",
-                  toolName: toolCall.name,
-                  toolCallId: toolCall.toolCallId,
-                  lineNumber: null,
-                  rawSnippet: toolCall.input,
-                  decoderSummary: message,
-                });
-                return;
-              }
-            }
-
-            continue;
-          }
-
-          if (receivedContent) {
-            finalizeAssistant();
-            void reportLocalChatDiagnostics({
-              clientRequestId,
-              backendRequestId,
-              stage: "success",
-              errorKind: "success",
-              statusCode: responseStatusCode,
-              eventType: lastEventType,
-              toolName: null,
-              toolCallId: null,
-              lineNumber: null,
-              rawSnippet: null,
-              decoderSummary: null,
-              selectedModel,
-              messageCount: requestBody.messages.length,
-              appVersion: webAppVersion,
-              devicePlatform: "web",
-            });
-          } else {
-            markAssistantError("The assistant returned an empty response.");
-            void reportLocalChatDiagnostics({
-              clientRequestId,
-              backendRequestId,
-              stage: "empty_response",
-              errorKind: "empty_response",
-              statusCode: responseStatusCode,
-              eventType: lastEventType,
-              toolName: null,
-              toolCallId: null,
-              lineNumber: null,
-              rawSnippet: null,
-              decoderSummary: `Empty local response after ${Date.now() - requestStartedAt}ms with buffer length ${bufferLength}`,
-              selectedModel,
-              messageCount: requestBody.messages.length,
-              appVersion: webAppVersion,
-              devicePlatform: "web",
-            });
-          }
-          return;
-        }
-      }
-
-      const requestBody: ChatRequestBody = createChatRequestBody(allMessages, selectedModel, timezone);
-      if (JSON.stringify(requestBody).length > MAX_BODY_BYTES) {
-        markAssistantError("Request is too large for the chat endpoint.");
-        return;
-      }
-
-      const clientRequestId = globalThis.crypto.randomUUID();
-      const requestStartedAt = Date.now();
-      let response: Response | null = null;
-      let buffer = "";
-      let chunkCount = 0;
-      let bytesReceived = 0;
-      let lineCount = 0;
-      let nonEmptyLineCount = 0;
-      let parseNullCount = 0;
-      let deltaEventCount = 0;
-      let toolCallEventCount = 0;
-      let errorEventCount = 0;
-      let doneEventCount = 0;
-      let receivedContent = false;
-      let streamEnded = false;
-      let readerMissing = false;
-      let lastEventType: string | null = null;
-      const pendingToolCallIds = new Map<string, Array<string>>();
-
-      function reportDiagnostics(stage: ChatDiagnosticsPayload["stage"], errorName: string | null): void {
-        const responseMetadata = buildChatResponseMetadata(response);
-        const payload: ChatDiagnosticsPayload = {
-          clientRequestId,
-          responseRequestId: responseMetadata.responseRequestId,
-          model: requestBody.model,
-          stage,
-          statusCode: responseMetadata.statusCode,
-          responseContentType: responseMetadata.responseContentType,
-          responseContentLength: responseMetadata.responseContentLength,
-          responseContentEncoding: responseMetadata.responseContentEncoding,
-          responseCacheControl: responseMetadata.responseCacheControl,
-          responseAmznRequestId: responseMetadata.responseAmznRequestId,
-          responseApiGatewayId: responseMetadata.responseApiGatewayId,
-          responseBodyMissing: responseMetadata.responseBodyMissing,
-          chunkCount,
-          bytesReceived,
-          lineCount,
-          nonEmptyLineCount,
-          parseNullCount,
-          deltaEventCount,
-          toolCallEventCount,
-          errorEventCount,
-          doneEventCount,
-          receivedContent,
-          streamEnded,
-          readerMissing,
-          aborted: abortController.signal.aborted,
-          durationMs: Date.now() - requestStartedAt,
-          bufferLength: buffer.length,
-          errorName,
-          lastEventType,
-        };
-
-        void reportChatDiagnostics(payload);
-      }
-
-      function processStreamLine(line: string): string | null {
-        lineCount += 1;
-        const trimmedLine = line.trim();
-        if (trimmedLine === "") {
-          return null;
-        }
-
-        nonEmptyLineCount += 1;
-        const event = parseSSELine(trimmedLine);
-        if (event === null) {
-          parseNullCount += 1;
-          return null;
-        }
-
-        lastEventType = event.type;
-
-        if (event.type === "delta") {
-          deltaEventCount += 1;
-          receivedContent = true;
-          appendAssistantChunk(event.text);
-          return null;
-        }
-
-        if (event.type === "tool_call") {
-          toolCallEventCount += 1;
-          receivedContent = true;
-          if (event.status === "started") {
-            const toolCallId = crypto.randomUUID().toLowerCase();
-            pendingToolCallIds.set(event.name, [...(pendingToolCallIds.get(event.name) ?? []), toolCallId]);
-            appendToolCall(event.name, toolCallId);
-          } else {
-            const pendingIds = pendingToolCallIds.get(event.name) ?? [];
-            const toolCallId = pendingIds[pendingIds.length - 1];
-            if (toolCallId !== undefined) {
-              completeToolCall(toolCallId, event.input ?? null, event.output ?? null);
-              pendingToolCallIds.set(event.name, pendingIds.slice(0, -1));
+              });
+              completeToolCall(toolCall.toolCallId, toolCall.input, result.output);
+              wireMessages.push({
+                role: "tool",
+                toolCallId: toolCall.toolCallId,
+                name: toolCall.name,
+                output: result.output,
+              });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              markAssistantError(message);
+              reportLocalDiagnostics("tool_execution", "tool_execution_failed", {
+                eventType: "tool_call_request",
+                toolName: toolCall.name,
+                toolCallId: toolCall.toolCallId,
+                lineNumber: null,
+                rawSnippet: toolCall.input,
+                decoderSummary: message,
+              });
+              return;
             }
           }
 
-          return null;
+          continue;
         }
 
-        if (event.type === "done") {
-          doneEventCount += 1;
-          return null;
+        if (receivedContent) {
+          finalizeAssistant();
+          void reportLocalChatDiagnostics({
+            clientRequestId,
+            backendRequestId,
+            stage: "success",
+            errorKind: "success",
+            statusCode: responseStatusCode,
+            eventType: lastEventType,
+            toolName: null,
+            toolCallId: null,
+            lineNumber: null,
+            rawSnippet: null,
+            decoderSummary: null,
+            selectedModel,
+            messageCount: requestBody.messages.length,
+            appVersion: webAppVersion,
+            devicePlatform: "web",
+          });
+        } else {
+          markAssistantError("The assistant returned an empty response.");
+          void reportLocalChatDiagnostics({
+            clientRequestId,
+            backendRequestId,
+            stage: "empty_response",
+            errorKind: "empty_response",
+            statusCode: responseStatusCode,
+            eventType: lastEventType,
+            toolName: null,
+            toolCallId: null,
+            lineNumber: null,
+            rawSnippet: null,
+            decoderSummary: `Empty local response after ${Date.now() - requestStartedAt}ms with buffer length ${bufferLength}`,
+            selectedModel,
+            messageCount: requestBody.messages.length,
+            appVersion: webAppVersion,
+            devicePlatform: "web",
+          });
         }
-
-        errorEventCount += 1;
-        markAssistantError(event.message);
-        return event.message;
-      }
-
-      response = await streamChat(requestBody, abortController.signal);
-      if (!response.ok) {
-        markAssistantError(`Error ${response.status}: ${sanitizeErrorText(response.status, await response.text())}`);
-        reportDiagnostics("response_not_ok", null);
         return;
-      }
-
-      const reader = response.body?.getReader();
-      if (reader === undefined) {
-        readerMissing = true;
-        markAssistantError("The chat response stream is missing.");
-        reportDiagnostics("missing_reader", null);
-        return;
-      }
-
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          streamEnded = true;
-          break;
-        }
-
-        chunkCount += 1;
-        bytesReceived += value.byteLength;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          const errorMessage = processStreamLine(line);
-          if (errorMessage !== null) {
-            reportDiagnostics("stream_error_event", "stream_error_event");
-            return;
-          }
-        }
-      }
-
-      buffer += decoder.decode();
-      if (buffer !== "") {
-        const lines = buffer.split("\n");
-        buffer = "";
-        for (const line of lines) {
-          const errorMessage = processStreamLine(line);
-          if (errorMessage !== null) {
-            reportDiagnostics("stream_error_event", "stream_error_event");
-            return;
-          }
-        }
-      }
-
-      if (receivedContent) {
-        finalizeAssistant();
-        reportDiagnostics("success", null);
-      } else {
-        markAssistantError("The assistant returned an empty response.");
-        reportDiagnostics("empty_response", null);
       }
     } catch (error) {
       if (abortController.signal.aborted === false) {

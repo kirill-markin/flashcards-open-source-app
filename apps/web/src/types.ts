@@ -381,21 +381,14 @@ export type ChatStreamEvent =
   | Readonly<{ type: "done" }>
   | Readonly<{ type: "error"; message: string }>;
 
-export type LocalAssistantToolCall = Readonly<{
-  toolCallId: string;
-  name: string;
-  input: string;
-}>;
-
 export type LocalChatMessage =
   | Readonly<{
     role: "user";
-    content: string;
+    content: ReadonlyArray<ContentPart>;
   }>
   | Readonly<{
     role: "assistant";
-    content: string;
-    toolCalls: ReadonlyArray<LocalAssistantToolCall>;
+    content: ReadonlyArray<ContentPart>;
   }>
   | Readonly<{
     role: "tool";
@@ -413,6 +406,14 @@ export type LocalChatRequestBody = Readonly<{
 
 export type LocalChatStreamEvent =
   | Readonly<{ type: "delta"; text: string }>
+  | Readonly<{
+    type: "tool_call";
+    toolCallId: string;
+    name: string;
+    status: "started" | "completed";
+    input: string | null;
+    output: string | null;
+  }>
   | Readonly<{ type: "tool_call_request"; toolCallId: string; name: string; input: string }>
   | Readonly<{
     type: "repair_attempt";
