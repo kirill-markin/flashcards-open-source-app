@@ -19,6 +19,7 @@ type ReviewButtonOption = Readonly<{
 }>;
 
 const EMPTY_BACK_TEXT_PLACEHOLDER = "No back text";
+const REVIEW_BUTTONS_PER_COLUMN = 2;
 
 const reviewAnswerOptions: ReadonlyArray<Readonly<{
   title: string;
@@ -148,6 +149,9 @@ export function ReviewScreen(): ReactElement {
   } else if (isAnswerVisible && selectedCard !== null) {
     reviewButtonErrorMessage = "Workspace scheduler settings are not loaded";
   }
+
+  const leftReviewButtonOptions = reviewButtonOptions.slice(0, REVIEW_BUTTONS_PER_COLUMN);
+  const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
 
   useEffect(() => {
     void ensureCardsLoaded();
@@ -331,18 +335,34 @@ export function ReviewScreen(): ReactElement {
                       <p className="error-banner">{reviewButtonErrorMessage}</p>
                     ) : (
                       <div className="rating-bar">
-                        {reviewButtonOptions.map((option) => (
-                          <button
-                            key={option.rating}
-                            type="button"
-                            className="rating-btn"
-                            disabled={isSubmitting}
-                            onClick={() => void handleReview(selectedCard, option.rating)}
-                          >
-                            <span className="rating-btn-title">{option.title}</span>
-                            <span className="rating-btn-subtitle">{option.intervalDescription}</span>
-                          </button>
-                        ))}
+                        <div className="rating-bar-column">
+                          {leftReviewButtonOptions.map((option) => (
+                            <button
+                              key={option.rating}
+                              type="button"
+                              className="rating-btn"
+                              disabled={isSubmitting}
+                              onClick={() => void handleReview(selectedCard, option.rating)}
+                            >
+                              <span className="rating-btn-title">{option.title}</span>
+                              <span className="rating-btn-subtitle">{option.intervalDescription}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="rating-bar-column">
+                          {rightReviewButtonOptions.map((option) => (
+                            <button
+                              key={option.rating}
+                              type="button"
+                              className="rating-btn"
+                              disabled={isSubmitting}
+                              onClick={() => void handleReview(selectedCard, option.rating)}
+                            >
+                              <span className="rating-btn-title">{option.title}</span>
+                              <span className="rating-btn-subtitle">{option.intervalDescription}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )
                   ) : (
