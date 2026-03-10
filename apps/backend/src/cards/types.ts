@@ -88,6 +88,37 @@ export type Card = Readonly<{
   deletedAt: string | null;
 }>;
 
+export type CardQuerySortKey =
+  | "frontText"
+  | "backText"
+  | "tags"
+  | "effortLevel"
+  | "dueAt"
+  | "reps"
+  | "lapses"
+  | "updatedAt";
+
+export type CardQuerySortDirection = "asc" | "desc";
+
+export type CardQuerySort = Readonly<{
+  key: CardQuerySortKey;
+  direction: CardQuerySortDirection;
+}>;
+
+export type QueryCardsInput = Readonly<{
+  searchText: string | null;
+  cursor: string | null;
+  limit: number;
+  sorts: ReadonlyArray<CardQuerySort>;
+}>;
+
+export type QueryCardsPage = Readonly<{
+  cards: ReadonlyArray<Card>;
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
+}>;
+
 export type CardMutationMetadata = LwwMetadata;
 
 export type CreateCardInput = Readonly<{
