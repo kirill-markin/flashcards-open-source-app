@@ -68,7 +68,7 @@
   min-height: 210px;
   padding: 18px;
   border: 1px solid var(--panel-border);
-  border-radius: 15px;
+  border-radius: var(--radius-lg);
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 44%),
     linear-gradient(180deg, rgba(33, 33, 39, 0.96), rgba(23, 23, 28, 0.98));
@@ -117,7 +117,7 @@
   margin-top: 4px;
   padding: 10px;
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: rgba(28, 28, 32, 0.8);
   backdrop-filter: var(--blur);
   box-shadow: var(--shadow-soft);
@@ -142,7 +142,7 @@
   width: 100%;
   min-height: 82px;
   border: none;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: var(--accent);
   cursor: pointer;
   display: flex;
