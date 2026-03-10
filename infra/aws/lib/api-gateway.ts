@@ -97,6 +97,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       BACKEND_ALLOWED_ORIGINS: props.allowedOrigins.join(","),
       BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
     },
   });
 
@@ -233,6 +234,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       },
     ],
   };
+
+  const agent = restApi.root.addResource("agent");
+  agent.addMethod("GET", integration);
 
   const health = restApi.root.addResource("health");
   health.addMethod("GET", integration);

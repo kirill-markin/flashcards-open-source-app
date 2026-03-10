@@ -42,14 +42,14 @@ function createAgentInstructions(code: string | null): string {
   switch (code) {
     case "AUTH_UNAUTHORIZED":
     case "AGENT_API_KEY_INVALID":
-      return "Use a valid non-revoked API key in the Authorization header as: ApiKey <apiKey>. If needed, restart from GET /api/agent.";
+      return "Use a valid non-revoked API key in the Authorization header as: ApiKey <apiKey>. If needed, restart from GET /agent.";
     case "WORKSPACE_SELECTION_REQUIRED":
       return "Call GET /workspaces to inspect available workspaces, then select one with POST /workspaces/{workspaceId}/select.";
     case "WORKSPACE_ID_REQUIRED":
     case "WORKSPACE_ID_INVALID":
       return "Provide a non-empty workspaceId in the request URL, then retry the action.";
     default:
-      return "Retry the same request after fixing the reported input. If the issue persists, reload account context from GET /me or restart from GET /api/agent.";
+      return "Retry the same request after fixing the reported input. If the issue persists, reload account context from GET /me or restart from GET /agent.";
   }
 }
 

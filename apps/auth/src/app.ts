@@ -8,7 +8,6 @@
 import { randomUUID } from "node:crypto";
 import { type Context, Hono } from "hono";
 import health from "./routes/health.js";
-import agentInfo from "./routes/agentInfo.js";
 import agentSendCode from "./routes/agentSendCode.js";
 import agentVerifyCode from "./routes/agentVerifyCode.js";
 import sendCode from "./routes/sendCode.js";
@@ -122,7 +121,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
           createAgentErrorEnvelope(
             "INTERNAL_ERROR",
             "Agent authentication request failed. Try again.",
-            "Retry the same action. If the issue persists, restart from GET /api/agent and follow the returned actions.",
+            "Retry the same action. If the issue persists, restart from GET /agent on the API host and follow the returned actions.",
           ),
           500,
         );
@@ -135,7 +134,6 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
 
   app.route("/", health);
   app.route("/", robots);
-  app.route("/", agentInfo);
   app.route("/", agentSendCode);
   app.route("/", agentVerifyCode);
   app.route("/", sendCode);
