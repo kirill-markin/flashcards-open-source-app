@@ -73,4 +73,11 @@ test("agent verify-code returns env-var guidance with the new API key", async ()
   assert.equal(body.ok, true);
   assert.equal(body.data.apiKey, "fca_ABCDEFGH_0123456789ABCDEFGHJKMNPQRS");
   assert.match(body.instructions, /FLASHCARDS_OPEN_SOURCE_API_KEY/);
+  assert.match(body.instructions, /do not rely on chat history alone/i);
+  assert.match(body.instructions, /saved outside this conversation/i);
+  assert.match(body.instructions, /new dialog or session on the same machine/i);
+  assert.match(body.instructions, /ask the user for permission before writing to \.env or any file/i);
+  assert.match(body.instructions, /export FLASHCARDS_OPEN_SOURCE_API_KEY=/);
+  assert.match(body.instructions, /Authorization: ApiKey \$FLASHCARDS_OPEN_SOURCE_API_KEY/);
+  assert.match(body.instructions, /load_account/);
 });
