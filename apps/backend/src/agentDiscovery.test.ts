@@ -34,7 +34,10 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
       url: "https://api.example.com/v1/openapi.json",
     },
   ]);
-  assert.equal(envelope.instructions, "Start with send_code. After login, call /me, then /workspaces before workspace-scoped actions.");
+  assert.equal(
+    envelope.instructions,
+    "Start with send_code. After login, call https://api.example.com/v1/me, then https://api.example.com/v1/workspaces before workspace-scoped actions.",
+  );
 });
 
 test("createAgentDiscoveryEnvelope derives localhost URLs when public env is missing", () => {

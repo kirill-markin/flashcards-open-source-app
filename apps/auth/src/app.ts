@@ -121,7 +121,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
           createAgentErrorEnvelope(
             "INTERNAL_ERROR",
             "Agent authentication request failed. Try again.",
-            "Retry the same action. If the issue persists, restart from GET /agent on the API host and follow the returned actions.",
+            "Retry the same action. If the issue persists, restart from GET /v1/agent on the API host and follow the returned actions.",
           ),
           500,
         );
