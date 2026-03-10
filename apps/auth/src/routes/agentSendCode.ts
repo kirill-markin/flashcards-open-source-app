@@ -9,10 +9,10 @@ import { type AuthAppEnv, getRequestId } from "../server/apiErrors.js";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../server/agentEnvelope.js";
 import { createAgentOtpSessionToken } from "../server/agentOtp.js";
 import {
-  decideAgentOtpRateLimit,
-  loadLatestSentAgentOtpSessionToken,
-  recordAgentOtpSendDecision,
-} from "../server/agentRateLimit.js";
+  decideOtpRateLimit,
+  loadLatestSentOtpSessionToken,
+  recordOtpSendDecision,
+} from "../server/otpRateLimit.js";
 import { log, maskEmail } from "../server/logger.js";
 import { getPublicAuthBaseUrl, getPublicApiBaseUrl } from "../server/publicUrls.js";
 
@@ -71,12 +71,12 @@ app.post("/api/agent/send-code", async (c) => {
 
   const requestId = getRequestId(c);
   const ipAddress = getClientIpAddress(c.req.raw);
-  const rateLimitDecision = await decideAgentOtpRateLimit(email, ipAddress);
+  const rateLimitDecision = await decideOtpRateLimit(email, ipAddress);
   const authBaseUrl = getPublicAuthBaseUrl(c.req.url);
   const apiBaseUrl = getPublicApiBaseUrl(c.req.url);
 
   if (rateLimitDecision.kind === "block_ip_limit") {
-    await recordAgentOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
+    await recordOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
     log({
       domain: "auth",
       action: "agent_send_code_blocked_ip_limit",
@@ -100,7 +100,7 @@ app.post("/api/agent/send-code", async (c) => {
   if (rateLimitDecision.kind === "suppress_email_limit") {
     // The email-level limiter intentionally reuses the last valid OTP token so
     // the user can continue with the most recent email without receiving more mail.
-    otpSessionToken = await loadLatestSentAgentOtpSessionToken(email, Date.now());
+    otpSessionToken = await loadLatestSentOtpSessionToken(email, Date.now());
     if (otpSessionToken === null) {
       return c.json(
         createAgentErrorEnvelope(
@@ -111,12 +111,12 @@ app.post("/api/agent/send-code", async (c) => {
         429,
       );
     }
-    await recordAgentOtpSendDecision(email, ipAddress, "suppressed_email_limit", otpSessionToken);
+    await recordOtpSendDecision(email, ipAddress, "suppressed_email_limit", otpSessionToken);
   } else {
     try {
       const result = await initiateEmailOtp(email);
       otpSessionToken = createAgentOtpSessionToken(result.session, email);
-      await recordAgentOtpSendDecision(email, ipAddress, "sent", otpSessionToken);
+      await recordOtpSendDecision(email, ipAddress, "sent", otpSessionToken);
     } catch (error) {
       log({
         domain: "auth",
