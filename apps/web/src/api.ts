@@ -3,6 +3,8 @@ import { getStableDeviceId, webAppVersion } from "./clientIdentity";
 import type {
   ChatDiagnosticsPayload,
   ChatMessage,
+  QueryCardsInput,
+  QueryCardsPage,
   SessionInfo,
   SyncPullResult,
   SyncPushOperation,
@@ -416,6 +418,18 @@ export async function pullSyncChanges(
   }, allowAuthRecovery));
 
   return payload as unknown as SyncPullResult;
+}
+
+export async function queryCards(
+  workspaceId: string,
+  input: QueryCardsInput,
+): Promise<QueryCardsPage> {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/cards/query`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  }, allowAuthRecovery));
+
+  return payload as unknown as QueryCardsPage;
 }
 
 export async function streamChat(body: ChatRequestBody, signal: AbortSignal): Promise<Response> {

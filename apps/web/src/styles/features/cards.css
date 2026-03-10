@@ -7,38 +7,39 @@
   margin-bottom: 0;
 }
 
-.cards-sort-bar {
+.cards-search-bar {
   display: flex;
-  flex-wrap: wrap;
+}
+
+.cards-search-field {
+  display: grid;
   gap: 8px;
+  width: min(420px, 100%);
 }
 
-.sort-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.sort-chip:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.sort-chip-active {
-  border-color: rgba(196, 75, 45, 0.28);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.sort-chip-direction {
+.cards-search-label {
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.cards-search-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit;
+}
+
+.cards-search-input:focus {
+  outline: none;
+  border-color: rgba(196, 75, 45, 0.35);
+  box-shadow: 0 0 0 3px rgba(196, 75, 45, 0.12);
 }
 
 .cards-scroll {
@@ -52,6 +53,50 @@
 .cards-table .txn-th,
 .cards-table .txn-cell {
   padding-inline-end: 14px;
+}
+
+.cards-header-th {
+  white-space: nowrap;
+}
+
+.cards-header-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cards-header-button-active {
+  color: var(--accent-strong);
+}
+
+.cards-header-sort-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cards-header-sort-priority {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cards-header-sort-direction {
+  font-size: 12px;
 }
 
 .cards-table .txn-cell {
@@ -82,6 +127,11 @@
 .cards-row:hover .row-open-link {
   opacity: 1;
   pointer-events: auto;
+}
+
+.cards-load-more-row .txn-cell {
+  text-align: center;
+  color: var(--text-secondary);
 }
 
 .cards-cell-disabled {
@@ -251,14 +301,8 @@
 }
 
 @media (max-width: 768px) {
-  .cards-sort-bar {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: 4px;
-  }
-
-  .sort-chip {
-    flex: 0 0 auto;
+  .cards-search-field {
+    width: 100%;
   }
 
   .deck-card {
