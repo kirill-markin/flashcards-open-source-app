@@ -78,7 +78,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       },
       authentication: {
         type: "email_otp_then_api_key",
-        registerAndLogin: "The same flow works for both new and existing users.",
+        registerAndLogin: "Ask which email the user wants to use, then start the same flow for both new and existing users.",
       },
       capabilitiesAfterLogin: [
         "Load account context",
@@ -98,6 +98,6 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       },
     }],
     instructions:
-      "This endpoint is the discovery entrypoint for AI agents. Start by calling send_code with the user's email address. The same flow covers both registration and login. Every later response includes the next action and short English instructions.",
+      "This endpoint is the discovery entrypoint for AI agents. Ask which email address the user wants to use, call send_code with that email, ask for the confirmation code from the email, and continue onboarding so the user can start using the service for free. The same flow covers both registration and login. Every later response includes the next action and short English instructions.",
   };
 }

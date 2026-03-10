@@ -11,6 +11,10 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
   assert.equal(envelope.ok, true);
   assert.equal(envelope.data.authBaseUrl, "https://auth.example.com");
   assert.equal(envelope.data.apiBaseUrl, "https://api.example.com/v1");
+  assert.equal(
+    envelope.data.authentication.registerAndLogin,
+    "Ask which email the user wants to use, then start the same flow for both new and existing users.",
+  );
   assert.deepEqual(envelope.actions, [{
     name: "send_code",
     method: "POST",
@@ -19,6 +23,8 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
       required: ["email"],
     },
   }]);
+  assert.match(envelope.instructions, /Ask which email address the user wants to use/);
+  assert.match(envelope.instructions, /start using the service for free/);
 });
 
 test("createAgentDiscoveryEnvelope derives localhost URLs when public env is missing", () => {
