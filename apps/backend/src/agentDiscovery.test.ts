@@ -11,20 +11,30 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
   assert.equal(envelope.ok, true);
   assert.equal(envelope.data.authBaseUrl, "https://auth.example.com");
   assert.equal(envelope.data.apiBaseUrl, "https://api.example.com/v1");
+  assert.deepEqual(envelope.data.docs, {
+    openapiUrl: "https://api.example.com/v1/openapi.json",
+    swaggerUrl: "https://api.example.com/v1/swagger.json",
+  });
   assert.equal(
     envelope.data.authentication.registerAndLogin,
     "Ask which email the user wants to use, then start the same flow for both new and existing users.",
   );
-  assert.deepEqual(envelope.actions, [{
-    name: "send_code",
-    method: "POST",
-    url: "https://auth.example.com/api/agent/send-code",
-    input: {
-      required: ["email"],
+  assert.deepEqual(envelope.actions, [
+    {
+      name: "send_code",
+      method: "POST",
+      url: "https://auth.example.com/api/agent/send-code",
+      input: {
+        required: ["email"],
+      },
     },
-  }]);
-  assert.match(envelope.instructions, /Ask which email address the user wants to use/);
-  assert.match(envelope.instructions, /start using the service for free/);
+    {
+      name: "openapi",
+      method: "GET",
+      url: "https://api.example.com/v1/openapi.json",
+    },
+  ]);
+  assert.equal(envelope.instructions, "Start with send_code. After login, call /me, then /workspaces before workspace-scoped actions.");
 });
 
 test("createAgentDiscoveryEnvelope derives localhost URLs when public env is missing", () => {
@@ -35,4 +45,5 @@ test("createAgentDiscoveryEnvelope derives localhost URLs when public env is mis
 
   assert.equal(envelope.data.authBaseUrl, "http://localhost:8081");
   assert.equal(envelope.data.apiBaseUrl, "http://localhost:8080/v1");
+  assert.equal(envelope.data.docs.openapiUrl, "http://localhost:8080/v1/openapi.json");
 });

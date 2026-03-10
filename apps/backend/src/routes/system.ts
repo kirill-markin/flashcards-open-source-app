@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { createAgentDiscoveryEnvelope } from "../agentDiscovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agentSetup";
 import { query } from "../db";
+import { loadOpenApiDocument } from "../openapi";
 import { getSessionCsrfToken } from "../requestSecurity";
 import { loadRequestContextFromRequest } from "../server/requestContext";
 import type { AppEnv } from "../app";
@@ -13,7 +14,10 @@ type SystemRoutesOptions = Readonly<{
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
+  app.get("/", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
   app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
+  app.get("/openapi.json", async (context) => context.json(loadOpenApiDocument()));
+  app.get("/swagger.json", async (context) => context.json(loadOpenApiDocument()));
 
   app.get("/health", async (context) => {
     const result = await query<Readonly<{ now: Date | string }>>("SELECT now() AS now", []);

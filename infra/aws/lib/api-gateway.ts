@@ -49,6 +49,8 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
       `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
+      `mkdir -p ${outputDir}/api`,
+      `cp ${path.join(_inputDir, "api/openapi.yaml")} ${outputDir}/api/openapi.yaml`,
     ],
   },
 };
@@ -235,8 +237,13 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     ],
   };
 
+  restApi.root.addMethod("GET", integration);
+
   const agent = restApi.root.addResource("agent");
   agent.addMethod("GET", integration);
+
+  restApi.root.addResource("openapi.json").addMethod("GET", integration);
+  restApi.root.addResource("swagger.json").addMethod("GET", integration);
 
   const health = restApi.root.addResource("health");
   health.addMethod("GET", integration);

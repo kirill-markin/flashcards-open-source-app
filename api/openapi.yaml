@@ -1,0 +1,367 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Flashcards Open Source App API",
+    "version": "v1",
+    "description": "Machine-facing API for flashcards-open-source-app."
+  },
+  "servers": [
+    {
+      "url": "https://api.flashcards-open-source-app.com/v1",
+      "description": "Canonical API host"
+    },
+    {
+      "url": "https://auth.flashcards-open-source-app.com",
+      "description": "Auth bootstrap host"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "API discovery index",
+        "responses": {
+          "200": {
+            "description": "Discovery envelope"
+          }
+        }
+      }
+    },
+    "/agent": {
+      "get": {
+        "summary": "Agent discovery",
+        "responses": {
+          "200": {
+            "description": "Discovery envelope"
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "OpenAPI document",
+        "responses": {
+          "200": {
+            "description": "OpenAPI JSON document"
+          }
+        }
+      }
+    },
+    "/swagger.json": {
+      "get": {
+        "summary": "OpenAPI document alias",
+        "responses": {
+          "200": {
+            "description": "OpenAPI JSON document"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Backend health"
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "summary": "Load account context",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account envelope"
+          }
+        }
+      }
+    },
+    "/workspaces": {
+      "get": {
+        "summary": "List workspaces",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace list"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create workspace",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Workspace created"
+          }
+        }
+      }
+    },
+    "/workspaces/{workspaceId}/select": {
+      "post": {
+        "summary": "Select workspace",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace ready"
+          }
+        }
+      }
+    },
+    "/agent-api-keys": {
+      "get": {
+        "summary": "List human-managed bot connections",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection list"
+          }
+        }
+      }
+    },
+    "/agent-api-keys/{connectionId}/revoke": {
+      "post": {
+        "summary": "Revoke a bot connection",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection revoked"
+          }
+        }
+      }
+    },
+    "/workspaces/{workspaceId}/cards/query": {
+      "post": {
+        "summary": "Query cards in a workspace",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["limit"],
+                "properties": {
+                  "searchText": {
+                    "type": ["string", "null"]
+                  },
+                  "cursor": {
+                    "type": ["string", "null"]
+                  },
+                  "limit": {
+                    "type": "integer"
+                  },
+                  "sorts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["key", "direction"],
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "direction": {
+                          "type": "string",
+                          "enum": ["asc", "desc"]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Paged cards"
+          }
+        }
+      }
+    },
+    "/workspaces/{workspaceId}/sync/push": {
+      "post": {
+        "summary": "Push offline sync operations",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Push result"
+          }
+        }
+      }
+    },
+    "/workspaces/{workspaceId}/sync/pull": {
+      "post": {
+        "summary": "Pull remote sync changes",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pull result"
+          }
+        }
+      }
+    },
+    "/chat/local-turn": {
+      "post": {
+        "summary": "Run a local chat turn",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Streaming chat response"
+          }
+        }
+      }
+    },
+    "/chat/local-turn/diagnostics": {
+      "post": {
+        "summary": "Submit chat diagnostics",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Diagnostics accepted"
+          }
+        }
+      }
+    },
+    "/api/agent/send-code": {
+      "post": {
+        "summary": "Start OTP login",
+        "responses": {
+          "200": {
+            "description": "OTP challenge created"
+          }
+        }
+      }
+    },
+    "/api/agent/verify-code": {
+      "post": {
+        "summary": "Finish OTP login and mint ApiKey",
+        "responses": {
+          "200": {
+            "description": "ApiKey issued"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Send the full header value as: ApiKey <key>."
+      }
+    }
+  }
+}
