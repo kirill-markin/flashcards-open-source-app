@@ -162,6 +162,21 @@ func formatTags(tags: [String]) -> String {
     tags.joined(separator: ", ")
 }
 
+func cardsMatchingSearchText(cards: [Card], searchText: String) -> [Card] {
+    let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if normalizedSearchText.isEmpty {
+        return cards
+    }
+
+    return cards.filter { card in
+        card.frontText.lowercased().contains(normalizedSearchText)
+            || card.backText.lowercased().contains(normalizedSearchText)
+            || card.tags.contains(where: { tag in
+                tag.lowercased().contains(normalizedSearchText)
+            })
+    }
+}
+
 func addMinutes(date: Date, minutes: Int) -> Date {
     Date(timeInterval: TimeInterval(minutes * 60), since: date)
 }
