@@ -59,28 +59,3 @@ test("foreign origins stay blocked", async () => {
   assert.equal(response.status, 403);
   assert.deepEqual(await response.json(), { error: "Origin is not allowed" });
 });
-
-test("agent discovery route explains the first step for terminal clients", async () => {
-  const app = createAuthApp();
-
-  const response = await app.request("http://localhost/api/agent", {
-    method: "GET",
-  });
-
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /^application\/json/);
-  const payload = await response.json() as {
-    ok: boolean;
-    data: {
-      service: { name: string };
-      authentication: { registerAndLogin: string };
-    };
-    actions: Array<{ name: string; method: string; url: string }>;
-    instructions: string;
-  };
-  assert.equal(payload.ok, true);
-  assert.equal(payload.data.service.name, "flashcards-open-source-app");
-  assert.equal(payload.actions[0]?.name, "send_code");
-  assert.equal(payload.actions[0]?.method, "POST");
-  assert.match(payload.instructions, /Start by calling send_code/);
-});

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createAgentDiscoveryEnvelope } from "../agentDiscovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agentSetup";
 import { query } from "../db";
 import { getSessionCsrfToken } from "../requestSecurity";
@@ -11,6 +12,8 @@ type SystemRoutesOptions = Readonly<{
 
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+
+  app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
 
   app.get("/health", async (context) => {
     const result = await query<Readonly<{ now: Date | string }>>("SELECT now() AS now", []);
