@@ -70,7 +70,7 @@ function createAgentConnectionManagementInstructions(code: string | null): strin
 }
 
 function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
-  const app = new Hono<AppEnv>().basePath(basePath);
+  const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
   app.use(
     "*",
     async (context, next) => {
@@ -205,7 +205,7 @@ export function createApp(basePath: string): Hono<AppEnv> {
     return createMountedApp(routeMountPaths[0], allowedOrigins);
   }
 
-  const app = new Hono<AppEnv>();
+  const app = new Hono<AppEnv>({ strict: false });
   for (const routeMountPath of routeMountPaths) {
     app.route("/", createMountedApp(routeMountPath, allowedOrigins));
   }
