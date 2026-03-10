@@ -266,6 +266,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const workspaceById = workspaces.addResource("{workspaceId}");
   workspaceById.addResource("select").addMethod("POST", integration);
+  workspaceById
+    .addResource("cards")
+    .addResource("query")
+    .addMethod("POST", integration);
 
   const workspaceSync = workspaceById.addResource("sync");
   workspaceSync.addResource("push").addMethod("POST", integration);
