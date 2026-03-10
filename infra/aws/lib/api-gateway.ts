@@ -195,8 +195,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
    * Keeps the existing buffered Lambda proxy behavior for JSON-style endpoints.
    * Those routes only return complete payloads, so streaming would add no value
    * and would widen the blast radius of the chat-specific transport change.
+   *
+   * Permission scoping is intentionally API-wide instead of method-wide. The
+   * backend now has enough public resources that per-method Lambda permissions
+   * exceed the Lambda resource-policy size limit during deployment.
    */
-  const integration = new apigw.LambdaIntegration(backendFn);
+  const integration = new apigw.LambdaIntegration(backendFn, {
+    scopePermissionToMethod: false,
+  });
 
   /**
    * Routes the SSE chat endpoints through a dedicated streaming Lambda instead
