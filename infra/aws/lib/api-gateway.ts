@@ -247,6 +247,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   workspaces.addMethod("GET", integration);
   workspaces.addMethod("POST", integration);
 
+  // Keep this manual resource list aligned with apps/backend/src/routes/*.ts.
+  // API Gateway must know each public path ahead of time, or requests will fail
+  // at the edge with MissingAuthenticationTokenException before Lambda runs.
   const workspaceById = workspaces.addResource("{workspaceId}");
   workspaceById.addResource("select").addMethod("POST", integration);
   workspaceById

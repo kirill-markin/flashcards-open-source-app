@@ -83,6 +83,7 @@ Email + OTP authentication via AWS Cognito (passwordless).
 - Keep changes minimal and scoped.
 - In the iOS app, every user tap should trigger immediate Apple-standard UI feedback, with background loading shown in place or on the next surface, failed actions restoring the previous state, and successful actions clearly exposing the next step.
 - Always mention the schema explicitly in migrations.
+- When adding, removing, or renaming backend HTTP routes, update `infra/aws/lib/api-gateway.ts` in the same change so API Gateway stays in sync.
 - Prioritize clear, actionable errors.
 
 We do not support backward compatibility. Instead, we migrate old data and aim to keep only one correct solution working, avoiding the accumulation of legacy behavior.
