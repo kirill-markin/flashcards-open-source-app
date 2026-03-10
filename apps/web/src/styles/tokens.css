@@ -29,6 +29,7 @@
   --radius-md: 24px;
   --radius-lg: 32px;
   --radius-pill: 999px;
+  --desktop-shell-gutter: 24px;
   --content-width: 1240px;
   --shell-width: 1320px;
 }

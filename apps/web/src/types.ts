@@ -137,6 +137,20 @@ export type CreateDeckInput = Readonly<{
   filterDefinition: DeckFilterDefinition;
 }>;
 
+export type UpdateDeckInput = Readonly<{
+  name: string;
+  filterDefinition: DeckFilterDefinition;
+}>;
+
+export type ReviewFilter =
+  | Readonly<{
+    kind: "allCards";
+  }>
+  | Readonly<{
+    kind: "deck";
+    deckId: string;
+  }>;
+
 export type ReviewEvent = Readonly<{
   reviewEventId: string;
   workspaceId: string;

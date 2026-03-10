@@ -174,6 +174,8 @@ describe("DecksScreen", () => {
     const deckTitles = Array.from(container.querySelectorAll(".deck-card-title")).map((element) => element.textContent);
     expect(deckTitles).toEqual(["All cards", "Grammar"]);
     expect(container.textContent).toContain("2 total");
+    const deckLinks = Array.from(container.querySelectorAll(".deck-card-link")).map((element) => element.getAttribute("href"));
+    expect(deckLinks).toEqual(["/decks/all-cards", "/decks/deck-1"]);
 
     const deckCards = Array.from(container.querySelectorAll(".deck-card"));
 
@@ -193,8 +195,10 @@ describe("DecksScreen", () => {
     });
 
     const deckTitles = Array.from(container.querySelectorAll(".deck-card-title")).map((element) => element.textContent);
+    const deckLinks = Array.from(container.querySelectorAll(".deck-card-link")).map((element) => element.getAttribute("href"));
 
     expect(deckTitles).toEqual(["All cards"]);
+    expect(deckLinks).toEqual(["/decks/all-cards"]);
     expect(container.textContent).toContain("1 total");
     expect(container.textContent).not.toContain("You haven't created any decks yet.");
   });

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type ReactElement } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
-import { buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition } from "../deckFilters";
+import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition } from "../deckFilters";
 import { CardFormTagsField } from "./CardFormTagsField";
 import { getTagSuggestionsFromCards } from "./CardTagsInput";
-import type { EffortLevel } from "../types";
+import type { Deck, EffortLevel, UpdateDeckInput } from "../types";
 
 type FormState = Readonly<{
   name: string;
@@ -20,6 +20,14 @@ function createInitialFormState(): FormState {
   };
 }
 
+function toFormState(deck: Deck): FormState {
+  return {
+    name: deck.name,
+    effortLevels: deck.filterDefinition.effortLevels,
+    tags: deck.filterDefinition.tags,
+  };
+}
+
 function toggleEffortLevel(
   effortLevels: ReadonlyArray<EffortLevel>,
   effortLevel: EffortLevel,
@@ -32,8 +40,17 @@ function toggleEffortLevel(
 }
 
 export function DeckFormScreen(): ReactElement {
+  const { deckId } = useParams();
   const navigate = useNavigate();
-  const { cards, ensureCardsLoaded, ensureDecksLoaded, createDeckItem, setErrorMessage } = useAppData();
+  const {
+    cards,
+    ensureCardsLoaded,
+    ensureDecksLoaded,
+    createDeckItem,
+    getDeckById,
+    updateDeckItem,
+    setErrorMessage,
+  } = useAppData();
   const [formState, setFormState] = useState<FormState>(createInitialFormState());
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -42,6 +59,9 @@ export function DeckFormScreen(): ReactElement {
   const filterDefinition = buildDeckFilterDefinition(formState.effortLevels, formState.tags);
   const nameFieldId = "deck-name";
   const tagsFieldId = "deck-tags-input";
+  const isCreateMode = deckId === undefined;
+  const screenTitle = isCreateMode ? "New deck" : "Edit deck";
+  const backHref = isCreateMode ? "/decks" : `/decks/${deckId}`;
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setIsLoading(true);
@@ -49,12 +69,22 @@ export function DeckFormScreen(): ReactElement {
 
     try {
       await Promise.all([ensureDecksLoaded(), ensureCardsLoaded()]);
+      if (deckId !== undefined) {
+        if (deckId === ALL_CARDS_DECK_SLUG) {
+          throw new Error("System deck cannot be edited.");
+        }
+
+        const deck = await getDeckById(deckId);
+        setFormState(toFormState(deck));
+      } else {
+        setFormState(createInitialFormState());
+      }
     } catch (error) {
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
     }
-  }, [ensureCardsLoaded, ensureDecksLoaded]);
+  }, [deckId, ensureCardsLoaded, ensureDecksLoaded, getDeckById]);
 
   useEffect(() => {
     void loadScreenData();
@@ -72,11 +102,18 @@ export function DeckFormScreen(): ReactElement {
     setErrorMessage("");
 
     try {
-      await createDeckItem({
+      const payload: UpdateDeckInput = {
         name: formState.name,
         filterDefinition,
-      });
-      navigate("/decks");
+      };
+
+      if (isCreateMode) {
+        const createdDeck = await createDeckItem(payload);
+        navigate(`/decks/${createdDeck.deckId}`);
+      } else if (deckId !== undefined) {
+        const updatedDeck = await updateDeckItem(deckId, payload);
+        navigate(`/decks/${updatedDeck.deckId}`);
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -88,7 +125,7 @@ export function DeckFormScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel">
-          <h1 className="title">New deck</h1>
+          <h1 className="title">{screenTitle}</h1>
           <p className="subtitle">Loading deck data…</p>
         </section>
       </main>
@@ -99,7 +136,7 @@ export function DeckFormScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel">
-          <h1 className="title">New deck</h1>
+          <h1 className="title">{screenTitle}</h1>
           <p className="error-banner">{screenErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void loadScreenData()}>
             Retry
@@ -114,18 +151,18 @@ export function DeckFormScreen(): ReactElement {
       <section className="panel">
         <div className="screen-head">
           <div>
-            <h1 className="title">New deck</h1>
-            <p className="subtitle">Save a reusable card filter set.</p>
+            <h1 className="title">{screenTitle}</h1>
+            <p className="subtitle">{isCreateMode ? "Save a reusable card filter set." : "Update a reusable card filter set."}</p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to="/decks">Back</Link>
+            <Link className="ghost-btn" to={backHref}>Back</Link>
             <button
               type="button"
               className="primary-btn"
               disabled={isSaving}
               onClick={() => void handleSubmit()}
             >
-              {isSaving ? "Saving…" : "Save deck"}
+              {isSaving ? "Saving…" : isCreateMode ? "Save deck" : "Save changes"}
             </button>
           </div>
         </div>

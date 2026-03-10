@@ -7,11 +7,14 @@ import type {
   CreateDeckInput,
   DeckFilterDefinition,
   Deck,
+  ReviewFilter,
   ReviewEvent,
   SyncPushOperation,
   UpdateCardInput,
+  UpdateDeckInput,
   WorkspaceSummary,
 } from "../types";
+import { ALL_CARDS_DECK_LABEL } from "../deckFilters";
 
 type LastWriteWinsRecord = Readonly<{
   clientUpdatedAt: string;
@@ -38,6 +41,11 @@ export type DeckCardStats = Readonly<{
   newCards: number;
   reviewedCards: number;
 }>;
+
+/** Shared singleton review filter for the virtual deck that targets all active cards. */
+export const ALL_CARDS_REVIEW_FILTER: ReviewFilter = {
+  kind: "allCards",
+};
 
 export function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -80,6 +88,22 @@ export function deriveActiveDecks(decks: ReadonlyArray<Deck>): ReadonlyArray<Dec
   return decks.filter((deck) => deck.deletedAt === null);
 }
 
+export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): boolean {
+  if (left.kind !== right.kind) {
+    return false;
+  }
+
+  if (left.kind === "allCards" && right.kind === "allCards") {
+    return true;
+  }
+
+  if (left.kind === "deck" && right.kind === "deck") {
+    return left.deckId === right.deckId;
+  }
+
+  return false;
+}
+
 /** Mirrors iOS deck matching semantics: effort is inclusive and tags use subset matching. */
 export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card): boolean {
   if (filterDefinition.effortLevels.length > 0 && filterDefinition.effortLevels.includes(card.effortLevel) === false) {
@@ -107,6 +131,47 @@ export function makeDeckCardStats(cards: ReadonlyArray<Card>, nowTimestamp: numb
     newCards: cards.filter((card) => isCardNew(card)).length,
     reviewedCards: cards.filter((card) => isCardReviewed(card)).length,
   };
+}
+
+export function resolveReviewFilter(reviewFilter: ReviewFilter, decks: ReadonlyArray<Deck>): ReviewFilter {
+  if (reviewFilter.kind === "allCards") {
+    return ALL_CARDS_REVIEW_FILTER;
+  }
+
+  const activeDeck = deriveActiveDecks(decks).find((deck) => deck.deckId === reviewFilter.deckId);
+  if (activeDeck === undefined) {
+    return ALL_CARDS_REVIEW_FILTER;
+  }
+
+  return reviewFilter;
+}
+
+export function cardsMatchingReviewFilter(
+  reviewFilter: ReviewFilter,
+  decks: ReadonlyArray<Deck>,
+  cards: ReadonlyArray<Card>,
+): ReadonlyArray<Card> {
+  const resolvedReviewFilter = resolveReviewFilter(reviewFilter, decks);
+  if (resolvedReviewFilter.kind === "allCards") {
+    return deriveActiveCards(cards);
+  }
+
+  const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
+  if (deck === undefined) {
+    return [];
+  }
+
+  return cardsMatchingDeck(deck, cards);
+}
+
+export function reviewFilterTitle(reviewFilter: ReviewFilter, decks: ReadonlyArray<Deck>): string {
+  const resolvedReviewFilter = resolveReviewFilter(reviewFilter, decks);
+  if (resolvedReviewFilter.kind === "allCards") {
+    return ALL_CARDS_DECK_LABEL;
+  }
+
+  const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
+  return deck?.name ?? ALL_CARDS_DECK_LABEL;
 }
 
 function getReviewOrderDueTimestamp(card: Card): number {
@@ -149,6 +214,22 @@ export function deriveReviewTimeline(cards: ReadonlyArray<Card>): ReadonlyArray<
 export function deriveReviewQueue(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
   const nowTimestamp = Date.now();
   return deriveReviewTimeline(cards).filter((card) => isCardDue(card, nowTimestamp));
+}
+
+export function makeReviewTimeline(
+  reviewFilter: ReviewFilter,
+  decks: ReadonlyArray<Deck>,
+  cards: ReadonlyArray<Card>,
+): ReadonlyArray<Card> {
+  return deriveReviewTimeline(cardsMatchingReviewFilter(reviewFilter, decks, cards));
+}
+
+export function makeReviewQueue(
+  reviewFilter: ReviewFilter,
+  decks: ReadonlyArray<Deck>,
+  cards: ReadonlyArray<Card>,
+): ReadonlyArray<Card> {
+  return deriveReviewQueue(cardsMatchingReviewFilter(reviewFilter, decks, cards));
 }
 
 export function selectReviewCard(reviewQueue: ReadonlyArray<Card>, selectedCardId: string): Card | null {
@@ -255,6 +336,37 @@ export function normalizeCreateCardInput(input: CreateCardInput): CreateCardInpu
   };
 }
 
+export function normalizeRequiredDeckName(value: string): string {
+  const normalizedValue = value.trim();
+  if (normalizedValue === "") {
+    throw new Error("Deck name must not be empty");
+  }
+
+  return normalizedValue;
+}
+
+function normalizeDeckFilterDefinition(filterDefinition: DeckFilterDefinition): DeckFilterDefinition {
+  return {
+    version: 2,
+    effortLevels: [...new Set(filterDefinition.effortLevels)],
+    tags: [...new Set(filterDefinition.tags.map((tag) => tag.trim()).filter((tag) => tag !== ""))],
+  };
+}
+
+export function normalizeCreateDeckInput(input: CreateDeckInput): CreateDeckInput {
+  return {
+    name: normalizeRequiredDeckName(input.name),
+    filterDefinition: normalizeDeckFilterDefinition(input.filterDefinition),
+  };
+}
+
+export function normalizeUpdateDeckInput(input: UpdateDeckInput): UpdateDeckInput {
+  return {
+    name: normalizeRequiredDeckName(input.name),
+    filterDefinition: normalizeDeckFilterDefinition(input.filterDefinition),
+  };
+}
+
 export function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInput {
   return {
     frontText: input.frontText === undefined ? undefined : normalizeRequiredCardText(input.frontText),
@@ -317,6 +429,40 @@ export function buildDeck(
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
     deletedAt: null,
+  };
+}
+
+export function buildUpdatedDeck(
+  deck: Deck,
+  input: UpdateDeckInput,
+  clientUpdatedAt: string,
+  deviceId: string,
+  operationId: string,
+): Deck {
+  return {
+    ...deck,
+    name: input.name,
+    filterDefinition: input.filterDefinition,
+    clientUpdatedAt,
+    lastModifiedByDeviceId: deviceId,
+    lastOperationId: operationId,
+    updatedAt: clientUpdatedAt,
+  };
+}
+
+export function buildDeletedDeck(
+  deck: Deck,
+  clientUpdatedAt: string,
+  deviceId: string,
+  operationId: string,
+): Deck {
+  return {
+    ...deck,
+    clientUpdatedAt,
+    lastModifiedByDeviceId: deviceId,
+    lastOperationId: operationId,
+    updatedAt: clientUpdatedAt,
+    deletedAt: clientUpdatedAt,
   };
 }
 

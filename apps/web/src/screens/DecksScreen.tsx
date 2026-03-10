@@ -8,7 +8,7 @@ import {
   makeDeckCardStats,
   type DeckCardStats,
 } from "../appData/domain";
-import { ALL_CARDS_DECK_LABEL, formatDeckFilterDefinition } from "../deckFilters";
+import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
 import type { Card, Deck } from "../types";
 
 type DeckListEntry = Readonly<{
@@ -16,22 +16,29 @@ type DeckListEntry = Readonly<{
   title: string;
   filterSummary: string;
   stats: DeckCardStats;
+  href: string;
 }>;
+
+function buildDeckDetailPath(deckId: string): string {
+  return `/decks/${deckId}`;
+}
 
 /** Prepends the synthetic All cards entry and keeps deck cards read-only on the web list. */
 function makeDeckListEntries(cards: ReadonlyArray<Card>, decks: ReadonlyArray<Deck>, nowTimestamp: number): Array<DeckListEntry> {
   const activeCards = deriveActiveCards(cards);
 
   return [{
-    id: "system-all-cards",
+    id: ALL_CARDS_DECK_SLUG,
     title: ALL_CARDS_DECK_LABEL,
     filterSummary: ALL_CARDS_DECK_LABEL,
     stats: makeDeckCardStats(activeCards, nowTimestamp),
+    href: buildDeckDetailPath(ALL_CARDS_DECK_SLUG),
   }, ...deriveActiveDecks(decks).map((deck) => ({
     id: deck.deckId,
     title: deck.name,
     filterSummary: formatDeckFilterDefinition(deck.filterDefinition),
     stats: makeDeckCardStats(cardsMatchingDeck(deck, cards), nowTimestamp),
+    href: buildDeckDetailPath(deck.deckId),
   }))];
 }
 
@@ -115,27 +122,29 @@ export function DecksScreen(): ReactElement {
 
         <div className="deck-list">
           {deckListEntries.map((deck) => (
-            <article key={deck.id} className="deck-card">
-              <div className="deck-card-head">
-                <h2 className="deck-card-title">{deck.title}</h2>
-                <span className="badge">{deck.stats.dueCards} due</span>
-              </div>
-              <p className="deck-card-summary">{deck.filterSummary}</p>
-              <div className="deck-card-stats" aria-label={`${deck.title} stats`}>
-                <span className="deck-card-stat">
-                  <span className="deck-card-stat-value">{deck.stats.totalCards}</span>
-                  <span className="deck-card-stat-label">cards</span>
-                </span>
-                <span className="deck-card-stat">
-                  <span className="deck-card-stat-value">{deck.stats.newCards}</span>
-                  <span className="deck-card-stat-label">new</span>
-                </span>
-                <span className="deck-card-stat">
-                  <span className="deck-card-stat-value">{deck.stats.reviewedCards}</span>
-                  <span className="deck-card-stat-label">reviewed</span>
-                </span>
-              </div>
-            </article>
+            <Link key={deck.id} className="deck-card-link" to={deck.href}>
+              <article className="deck-card">
+                <div className="deck-card-head">
+                  <h2 className="deck-card-title">{deck.title}</h2>
+                  <span className="badge">{deck.stats.dueCards} due</span>
+                </div>
+                <p className="deck-card-summary">{deck.filterSummary}</p>
+                <div className="deck-card-stats" aria-label={`${deck.title} stats`}>
+                  <span className="deck-card-stat">
+                    <span className="deck-card-stat-value">{deck.stats.totalCards}</span>
+                    <span className="deck-card-stat-label">cards</span>
+                  </span>
+                  <span className="deck-card-stat">
+                    <span className="deck-card-stat-value">{deck.stats.newCards}</span>
+                    <span className="deck-card-stat-label">new</span>
+                  </span>
+                  <span className="deck-card-stat">
+                    <span className="deck-card-stat-value">{deck.stats.reviewedCards}</span>
+                    <span className="deck-card-stat-label">reviewed</span>
+                  </span>
+                </div>
+              </article>
+            </Link>
           ))}
         </div>
       </section>

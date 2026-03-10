@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatToolLabel } from "./ChatPanel";
+import { calculateSidebarWidthFromPointer, formatToolLabel } from "./ChatPanel";
 
 describe("formatToolLabel", () => {
   it("renders plural-only card and deck tool labels", () => {
@@ -14,5 +14,16 @@ describe("formatToolLabel", () => {
     expect(formatToolLabel("update_decks")).toBe("Update decks");
     expect(formatToolLabel("delete_decks")).toBe("Delete decks");
     expect(formatToolLabel("summarize_deck_state")).toBe("Deck summary");
+  });
+});
+
+describe("calculateSidebarWidthFromPointer", () => {
+  it("measures the dragged width from the sidebar left edge instead of the viewport", () => {
+    expect(calculateSidebarWidthFromPointer(452, 128, 280, 600)).toBe(324);
+  });
+
+  it("clamps the dragged width to the configured min and max values", () => {
+    expect(calculateSidebarWidthFromPointer(200, 32, 280, 600)).toBe(280);
+    expect(calculateSidebarWidthFromPointer(900, 32, 280, 600)).toBe(600);
   });
 });

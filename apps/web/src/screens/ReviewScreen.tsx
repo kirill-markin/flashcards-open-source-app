@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import {
-  deriveReviewTimeline,
+  ALL_CARDS_REVIEW_FILTER,
   isCardDue,
   selectReviewCard,
 } from "../appData/domain";
+import { ALL_CARDS_DECK_SLUG } from "../deckFilters";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
-import type { Card, WorkspaceSchedulerSettings } from "../types";
+import type { Card, ReviewFilter, WorkspaceSchedulerSettings } from "../types";
 import {
   computeReviewSchedule,
   type ReviewRating,
@@ -41,6 +42,21 @@ function formatTimestamp(value: string | null): string {
 
 function renderTags(tags: ReadonlyArray<string>): string {
   return tags.length === 0 ? "—" : tags.join(", ");
+}
+
+function toReviewFilterSelectValue(reviewFilter: ReviewFilter): string {
+  return reviewFilter.kind === "allCards" ? ALL_CARDS_DECK_SLUG : reviewFilter.deckId;
+}
+
+function parseReviewFilterSelectValue(value: string): ReviewFilter {
+  if (value === ALL_CARDS_DECK_SLUG) {
+    return ALL_CARDS_REVIEW_FILTER;
+  }
+
+  return {
+    kind: "deck",
+    deckId: value,
+  };
 }
 
 function formatQueueBadge(dueCount: number, totalCount: number): string {
@@ -112,12 +128,18 @@ export function ReviewScreen(): ReactElement {
   const {
     cards,
     cardsState,
+    decks,
     reviewQueue,
+    reviewTimeline,
     reviewQueueState,
+    selectedReviewFilter,
+    selectedReviewFilterTitle,
     workspaceSettings,
     ensureCardsLoaded,
+    ensureDecksLoaded,
     ensureReviewQueueLoaded,
     refreshReviewQueue,
+    selectReviewFilter,
     submitReviewItem,
     updateCardItem,
     deleteCardItem,
@@ -133,7 +155,7 @@ export function ReviewScreen(): ReactElement {
   const [isEditorSaving, setIsEditorSaving] = useState<boolean>(false);
   const nowTimestamp = Date.now();
   const activeReviewQueue = reviewQueue;
-  const queueCards = cardsState.hasLoaded ? deriveReviewTimeline(cards) : reviewQueue;
+  const queueCards = cardsState.hasLoaded ? reviewTimeline : reviewQueue;
   const selectedCard = selectReviewCard(activeReviewQueue, selectedCardId);
   const editingCard = cards.find((card) => card.cardId === editingCardId && card.deletedAt === null) ?? null;
   const reviewButtonsNow = new Date();
@@ -155,8 +177,9 @@ export function ReviewScreen(): ReactElement {
 
   useEffect(() => {
     void ensureCardsLoaded();
+    void ensureDecksLoaded();
     void ensureReviewQueueLoaded();
-  }, [ensureCardsLoaded, ensureReviewQueueLoaded]);
+  }, [ensureCardsLoaded, ensureDecksLoaded, ensureReviewQueueLoaded]);
 
   useEffect(() => {
     if (activeReviewQueue.length === 0) {
@@ -284,7 +307,22 @@ export function ReviewScreen(): ReactElement {
             <h1 className="title">Review</h1>
             <p className="subtitle">Queue table plus a focused flip flow.</p>
           </div>
-          <span className="badge">{formatQueueBadge(activeReviewQueue.length, queueCards.length)}</span>
+          <div className="screen-actions">
+            <label className="review-filter-select-wrap">
+              <span className="review-filter-label">Deck</span>
+              <select
+                className="settings-input review-filter-select"
+                value={toReviewFilterSelectValue(selectedReviewFilter)}
+                onChange={(event) => selectReviewFilter(parseReviewFilterSelectValue(event.target.value))}
+              >
+                <option value={ALL_CARDS_DECK_SLUG}>All cards</option>
+                {decks.map((deck) => (
+                  <option key={deck.deckId} value={deck.deckId}>{deck.name}</option>
+                ))}
+              </select>
+            </label>
+            <span className="badge">{formatQueueBadge(activeReviewQueue.length, queueCards.length)}</span>
+          </div>
         </div>
 
         <div className="review-layout">
@@ -381,7 +419,10 @@ export function ReviewScreen(): ReactElement {
 
           <aside className="review-queue-panel">
             <div className="review-queue-head">
-              <h2 className="panel-subtitle">Queue</h2>
+              <div>
+                <h2 className="panel-subtitle">Queue</h2>
+                <p className="subtitle review-queue-subtitle">{selectedReviewFilterTitle}</p>
+              </div>
               <span className="review-queue-caption">{queueCards.length} cards</span>
             </div>
             {queueCards.length === 0 ? (

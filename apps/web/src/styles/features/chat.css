@@ -1,7 +1,7 @@
 .chat-page {
   display: flex;
   justify-content: center;
-  padding: 24px 34px 40px;
+  padding: 24px 0 40px;
 }
 
 .chat-layout-shell {
@@ -9,6 +9,8 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  gap: var(--desktop-shell-gutter);
+  padding-inline: var(--desktop-shell-gutter);
 }
 
 .chat-main-content {
@@ -16,6 +18,11 @@
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.chat-layout-shell-sidebar-closed .chat-main-content,
+.chat-layout-shell-fullscreen .chat-main-content {
+  padding-inline: 0;
 }
 
 .chat-sidebar,
@@ -32,7 +39,8 @@
 }
 
 .chat-sidebar {
-  margin: 24px 16px 40px 34px;
+  flex: 0 0 auto;
+  margin: 24px 0 40px;
 }
 
 .chat-sidebar-fullscreen {
@@ -407,6 +415,11 @@
 @media (max-width: 768px) {
   .chat-page {
     padding-inline: 18px;
+  }
+
+  .chat-layout-shell {
+    gap: 0;
+    padding-inline: 0;
   }
 
   .chat-sidebar {

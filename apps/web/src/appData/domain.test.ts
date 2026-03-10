@@ -1,16 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Card, Deck, ReviewEvent } from "../types";
 import {
+  ALL_CARDS_REVIEW_FILTER,
+  buildDeletedDeck,
   cardsMatchingDeck,
+  cardsMatchingReviewFilter,
   deriveReviewTimeline,
   compareLww,
   deriveReviewQueue,
   isCardNew,
   isCardReviewed,
   makeDeckCardStats,
+  makeReviewQueue,
+  makeReviewTimeline,
   matchesDeckFilterDefinition,
   normalizeCreateCardInput,
+  normalizeCreateDeckInput,
   normalizeUpdateCardInput,
+  normalizeUpdateDeckInput,
+  reviewFilterTitle,
+  resolveReviewFilter,
   selectReviewCard,
   upsertCard,
   upsertDeck,
@@ -177,6 +186,15 @@ describe("appData domain helpers", () => {
     expect(() => normalizeUpdateCardInput({
       frontText: "   ",
     })).toThrow("Card front text must not be empty");
+
+    expect(() => normalizeCreateDeckInput({
+      name: "   ",
+      filterDefinition: {
+        version: 2,
+        effortLevels: [],
+        tags: [],
+      },
+    })).toThrow("Deck name must not be empty");
   });
 
   it("matches deck filters using effort inclusion and tag subset semantics", () => {
@@ -272,6 +290,133 @@ describe("appData domain helpers", () => {
       nonMatchingActiveCard,
       matchingActiveCard,
     ])).toEqual([matchingActiveCard]);
+  });
+
+  it("resolves missing deck review filters back to All cards", () => {
+    expect(resolveReviewFilter({
+      kind: "deck",
+      deckId: "missing-deck",
+    }, [
+      createDeck({ deckId: "deck-1" }),
+    ])).toEqual(ALL_CARDS_REVIEW_FILTER);
+  });
+
+  it("matches cards and titles for persisted and virtual review filters", () => {
+    const grammarDeck = createDeck({
+      deckId: "grammar",
+      name: "Grammar",
+      filterDefinition: {
+        version: 2,
+        effortLevels: ["fast"],
+        tags: ["grammar"],
+      },
+    });
+    const grammarCard = createCard({
+      cardId: "grammar-card",
+      effortLevel: "fast",
+      tags: ["grammar", "verbs"],
+    });
+    const travelCard = createCard({
+      cardId: "travel-card",
+      effortLevel: "long",
+      tags: ["travel"],
+    });
+
+    expect(cardsMatchingReviewFilter(ALL_CARDS_REVIEW_FILTER, [grammarDeck], [
+      grammarCard,
+      travelCard,
+    ])).toEqual([grammarCard, travelCard]);
+    expect(cardsMatchingReviewFilter({
+      kind: "deck",
+      deckId: "grammar",
+    }, [grammarDeck], [
+      grammarCard,
+      travelCard,
+    ])).toEqual([grammarCard]);
+    expect(reviewFilterTitle(ALL_CARDS_REVIEW_FILTER, [grammarDeck])).toBe("All cards");
+    expect(reviewFilterTitle({
+      kind: "deck",
+      deckId: "grammar",
+    }, [grammarDeck])).toBe("Grammar");
+  });
+
+  it("builds filtered review timeline and queue from the selected review filter", () => {
+    const grammarDeck = createDeck({
+      deckId: "grammar",
+      filterDefinition: {
+        version: 2,
+        effortLevels: ["fast"],
+        tags: ["grammar"],
+      },
+    });
+    const dueGrammarCard = createCard({
+      cardId: "due-grammar-card",
+      effortLevel: "fast",
+      tags: ["grammar"],
+      dueAt: "2026-03-10T11:00:00.000Z",
+    });
+    const futureGrammarCard = createCard({
+      cardId: "future-grammar-card",
+      effortLevel: "fast",
+      tags: ["grammar"],
+      dueAt: "2026-03-10T15:00:00.000Z",
+    });
+    const dueTravelCard = createCard({
+      cardId: "due-travel-card",
+      effortLevel: "long",
+      tags: ["travel"],
+      dueAt: "2026-03-10T10:00:00.000Z",
+    });
+
+    expect(makeReviewTimeline({
+      kind: "deck",
+      deckId: "grammar",
+    }, [grammarDeck], [
+      dueTravelCard,
+      futureGrammarCard,
+      dueGrammarCard,
+    ])).toEqual([
+      dueGrammarCard,
+      futureGrammarCard,
+    ]);
+    expect(makeReviewQueue({
+      kind: "deck",
+      deckId: "grammar",
+    }, [grammarDeck], [
+      dueTravelCard,
+      futureGrammarCard,
+      dueGrammarCard,
+    ])).toEqual([dueGrammarCard]);
+  });
+
+  it("builds deck tombstones for delete mutations", () => {
+    const deletedDeck = buildDeletedDeck(
+      createDeck({
+        deckId: "deck-1",
+        deletedAt: null,
+      }),
+      "2026-03-10T13:00:00.000Z",
+      "device-b",
+      "op-b",
+    );
+
+    expect(deletedDeck.deletedAt).toBe("2026-03-10T13:00:00.000Z");
+    expect(deletedDeck.updatedAt).toBe("2026-03-10T13:00:00.000Z");
+    expect(normalizeUpdateDeckInput({
+      name: "  Grammar  ",
+      filterDefinition: {
+        version: 2,
+        effortLevels: ["fast", "fast"],
+        tags: [" verbs ", "verbs", "grammar"],
+      },
+    })).toEqual({
+      name: "Grammar",
+      filterDefinition: {
+        version: 2,
+        effortLevels: ["fast"],
+        tags: ["verbs", "grammar"],
+      },
+    });
   });
 
   it("derives the review queue with canonical due ordering only", () => {
