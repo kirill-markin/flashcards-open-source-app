@@ -338,8 +338,10 @@ function buildCardsQuerySearchClause(
 
   return {
     clause: [
-      "AND lower(front_text || ' ' || back_text || ' ' || COALESCE(array_to_string(tags, ' '), ''))",
-      `LIKE $${startIndex + 1}`,
+      "AND (",
+      `lower(front_text || ' ' || back_text) LIKE $${startIndex + 1}`,
+      `OR EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${startIndex + 1})`,
+      ")",
     ].join(" "),
     params: [`%${searchText.toLowerCase()}%`],
   };
