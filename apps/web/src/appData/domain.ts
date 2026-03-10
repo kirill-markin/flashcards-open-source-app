@@ -5,6 +5,7 @@ import type {
   Card,
   CreateCardInput,
   CreateDeckInput,
+  DeckFilterDefinition,
   Deck,
   ReviewEvent,
   SyncPushOperation,
@@ -28,6 +29,14 @@ type ReviewScheduleResult = Readonly<{
   fsrsDifficulty: Card["fsrsDifficulty"];
   fsrsLastReviewedAt: Date;
   fsrsScheduledDays: Card["fsrsScheduledDays"];
+}>;
+
+/** Aggregate counts rendered by deck cards on the web deck list. */
+export type DeckCardStats = Readonly<{
+  totalCards: number;
+  dueCards: number;
+  newCards: number;
+  reviewedCards: number;
 }>;
 
 export function getErrorMessage(error: unknown): string {
@@ -55,12 +64,49 @@ export function isCardDue(card: Card, nowTimestamp: number): boolean {
   return dueAtTimestamp <= nowTimestamp;
 }
 
+export function isCardNew(card: Card): boolean {
+  return card.reps === 0 && card.lapses === 0;
+}
+
+export function isCardReviewed(card: Card): boolean {
+  return card.reps > 0 || card.lapses > 0;
+}
+
 export function deriveActiveCards(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
   return cards.filter((card) => card.deletedAt === null);
 }
 
 export function deriveActiveDecks(decks: ReadonlyArray<Deck>): ReadonlyArray<Deck> {
   return decks.filter((deck) => deck.deletedAt === null);
+}
+
+/** Mirrors iOS deck matching semantics: effort is inclusive and tags use subset matching. */
+export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card): boolean {
+  if (filterDefinition.effortLevels.length > 0 && filterDefinition.effortLevels.includes(card.effortLevel) === false) {
+    return false;
+  }
+
+  if (filterDefinition.tags.length === 0) {
+    return true;
+  }
+
+  const cardTags = new Set(card.tags);
+  return filterDefinition.tags.every((tag) => cardTags.has(tag));
+}
+
+/** Returns only active cards that belong to the provided persisted deck. */
+export function cardsMatchingDeck(deck: Deck, cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
+  return deriveActiveCards(cards).filter((card) => matchesDeckFilterDefinition(deck.filterDefinition, card));
+}
+
+/** Builds the deck counters used by both persisted decks and the synthetic All cards deck. */
+export function makeDeckCardStats(cards: ReadonlyArray<Card>, nowTimestamp: number): DeckCardStats {
+  return {
+    totalCards: cards.length,
+    dueCards: cards.filter((card) => isCardDue(card, nowTimestamp)).length,
+    newCards: cards.filter((card) => isCardNew(card)).length,
+    reviewedCards: cards.filter((card) => isCardReviewed(card)).length,
+  };
 }
 
 function getReviewOrderDueTimestamp(card: Card): number {

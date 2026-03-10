@@ -1,6 +1,8 @@
 import type { DeckFilterDefinition, EffortLevel } from "./types";
 
 export const EFFORT_LEVELS: ReadonlyArray<EffortLevel> = ["fast", "medium", "long"];
+/** Label for the synthetic system deck that aggregates every active card. */
+export const ALL_CARDS_DECK_LABEL = "All cards";
 
 export function buildDeckFilterDefinition(
   effortLevels: ReadonlyArray<EffortLevel>,
@@ -25,7 +27,7 @@ export function formatDeckFilterDefinition(filterDefinition: DeckFilterDefinitio
   }
 
   if (parts.length === 0) {
-    return "All cards";
+    return ALL_CARDS_DECK_LABEL;
   }
 
   return parts.join(" AND ");

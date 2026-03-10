@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Card, Deck, ReviewEvent } from "../types";
 import {
+  cardsMatchingDeck,
   deriveReviewTimeline,
   compareLww,
   deriveReviewQueue,
+  isCardNew,
+  isCardReviewed,
+  makeDeckCardStats,
+  matchesDeckFilterDefinition,
   normalizeCreateCardInput,
   normalizeUpdateCardInput,
   selectReviewCard,
@@ -172,6 +177,101 @@ describe("appData domain helpers", () => {
     expect(() => normalizeUpdateCardInput({
       frontText: "   ",
     })).toThrow("Card front text must not be empty");
+  });
+
+  it("matches deck filters using effort inclusion and tag subset semantics", () => {
+    const matchingCard = createCard({
+      cardId: "matching-card",
+      effortLevel: "fast",
+      tags: ["grammar", "verbs", "spanish"],
+    });
+    const wrongEffortCard = createCard({
+      cardId: "wrong-effort-card",
+      effortLevel: "long",
+      tags: ["grammar", "verbs", "spanish"],
+    });
+    const missingTagCard = createCard({
+      cardId: "missing-tag-card",
+      effortLevel: "fast",
+      tags: ["grammar"],
+    });
+    const deck = createDeck({
+      filterDefinition: {
+        version: 2,
+        effortLevels: ["fast", "medium"],
+        tags: ["grammar", "verbs"],
+      },
+    });
+
+    expect(matchesDeckFilterDefinition(deck.filterDefinition, matchingCard)).toBe(true);
+    expect(matchesDeckFilterDefinition(deck.filterDefinition, wrongEffortCard)).toBe(false);
+    expect(matchesDeckFilterDefinition(deck.filterDefinition, missingTagCard)).toBe(false);
+  });
+
+  it("derives deck card stats using iOS parity helpers", () => {
+    const dueNewCard = createCard({
+      cardId: "due-new-card",
+      dueAt: null,
+      reps: 0,
+      lapses: 0,
+    });
+    const dueReviewedCard = createCard({
+      cardId: "due-reviewed-card",
+      dueAt: "2026-03-10T11:00:00.000Z",
+      reps: 1,
+      lapses: 0,
+    });
+    const upcomingReviewedCard = createCard({
+      cardId: "upcoming-reviewed-card",
+      dueAt: "2026-03-10T15:00:00.000Z",
+      reps: 2,
+      lapses: 0,
+    });
+
+    expect(isCardNew(dueNewCard)).toBe(true);
+    expect(isCardReviewed(dueNewCard)).toBe(false);
+    expect(isCardReviewed(dueReviewedCard)).toBe(true);
+    expect(makeDeckCardStats([
+      dueNewCard,
+      dueReviewedCard,
+      upcomingReviewedCard,
+    ], Date.now())).toEqual({
+      totalCards: 3,
+      dueCards: 2,
+      newCards: 1,
+      reviewedCards: 2,
+    });
+  });
+
+  it("excludes deleted cards from deck matching so derived all-cards and deck stats stay active-only", () => {
+    const matchingActiveCard = createCard({
+      cardId: "matching-active-card",
+      tags: ["grammar", "verbs"],
+      reps: 1,
+      lapses: 0,
+    });
+    const deletedMatchingCard = createCard({
+      cardId: "deleted-matching-card",
+      tags: ["grammar", "verbs"],
+      deletedAt: "2026-03-10T11:30:00.000Z",
+    });
+    const nonMatchingActiveCard = createCard({
+      cardId: "non-matching-active-card",
+      tags: ["travel"],
+    });
+    const deck = createDeck({
+      filterDefinition: {
+        version: 2,
+        effortLevels: [],
+        tags: ["grammar", "verbs"],
+      },
+    });
+
+    expect(cardsMatchingDeck(deck, [
+      deletedMatchingCard,
+      nonMatchingActiveCard,
+      matchingActiveCard,
+    ])).toEqual([matchingActiveCard]);
   });
 
   it("derives the review queue with canonical due ordering only", () => {
