@@ -75,15 +75,15 @@
 
 .review-front,
 .review-back {
-  font-size: clamp(2rem, 2.8vw, 3.4rem);
-  line-height: 1.08;
+  font-size: clamp(1.65rem, 2vw, 2.3rem);
+  line-height: 1.14;
   white-space: pre-wrap;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   font-weight: 680;
 }
 
 .review-back {
-  font-size: clamp(1.8rem, 2.3vw, 2.8rem);
+  font-size: clamp(1.4rem, 1.7vw, 1.9rem);
 }
 
 .review-meta {
@@ -113,6 +113,11 @@
 .rating-bar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rating-bar-column {
+  display: grid;
   gap: 8px;
 }
 
