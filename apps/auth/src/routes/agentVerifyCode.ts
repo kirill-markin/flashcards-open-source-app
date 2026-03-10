@@ -165,7 +165,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
             scheme: "ApiKey",
           },
         }],
-        "Store the API key securely. Export it once as FLASHCARDS_OPEN_SOURCE_API_KEY and reuse Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY instead of retyping the key in each request. Next, call load_account.",
+        `Store this long-lived API key now and do not rely on chat history alone. A new dialog or session on the same machine will not have this key unless it was saved outside this conversation. Prefer exporting it first as FLASHCARDS_OPEN_SOURCE_API_KEY; if needed, save it in a local .env file or another local file, but ask the user for permission before writing to .env or any file. At minimum, save it somewhere persistent outside chat memory. Example: export FLASHCARDS_OPEN_SOURCE_API_KEY='<PASTE_KEY_HERE>' && curl -H 'Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY' '${apiBaseUrl}/me'. Next, call load_account.`,
       ));
     } catch (error) {
       const failure = classifyVerifyFailure(error);
