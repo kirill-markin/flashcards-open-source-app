@@ -4,6 +4,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AuthError } from "./auth";
 import { HttpError } from "./errors";
 import { createChatRoutes } from "./routes/chat";
+import { createAgentRoutes } from "./routes/agent";
 import { createCardsRoutes } from "./routes/cards";
 import { createSyncRoutes } from "./routes/sync";
 import { createSystemRoutes } from "./routes/system";
@@ -44,12 +45,12 @@ function createAgentInstructions(code: string | null): string {
     case "AGENT_API_KEY_INVALID":
       return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
     case "WORKSPACE_SELECTION_REQUIRED":
-      return "Call GET /v1/workspaces to inspect available workspaces, then select one with POST /v1/workspaces/{workspaceId}/select.";
+      return "Call GET /v1/agent/workspaces to inspect available workspaces, then select one with POST /v1/agent/workspaces/{workspaceId}/select.";
     case "WORKSPACE_ID_REQUIRED":
     case "WORKSPACE_ID_INVALID":
       return "Provide a non-empty workspaceId in the request URL, then retry the action.";
     default:
-      return "Retry the same request after fixing the reported input. If the issue persists, reload account context from GET /v1/me or restart from GET /v1/agent.";
+      return "Retry the same request after fixing the reported input. If the issue persists, reload account context from GET /v1/agent/me or restart from GET /v1/agent.";
   }
 }
 
@@ -108,6 +109,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       if (apiKeyRequest) {
         return context.json(
           createAgentSetupErrorEnvelope(
+            context.req.url,
             "AUTH_UNAUTHORIZED",
             "Authentication failed. Sign in again.",
             createAgentInstructions("AUTH_UNAUTHORIZED"),
@@ -137,6 +139,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       if (apiKeyRequest) {
         return context.json(
           createAgentSetupErrorEnvelope(
+            context.req.url,
             error.code ?? "REQUEST_FAILED",
             error.message,
             createAgentInstructions(error.code),
@@ -165,6 +168,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     if (apiKeyRequest) {
       return context.json(
         createAgentSetupErrorEnvelope(
+          context.req.url,
           "INTERNAL_ERROR",
           "Request failed. Try again.",
           createAgentInstructions("INTERNAL_ERROR"),
@@ -190,6 +194,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   });
 
   app.route("/", createSystemRoutes({ allowedOrigins }));
+  app.route("/", createAgentRoutes({ allowedOrigins }));
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createChatRoutes({ allowedOrigins }));

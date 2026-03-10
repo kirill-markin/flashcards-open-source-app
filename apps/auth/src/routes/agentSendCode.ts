@@ -71,6 +71,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
     } catch {
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           "INVALID_REQUEST",
           "Invalid request.",
           "Provide an email string and call this endpoint again.",
@@ -83,6 +84,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
     if (!EMAIL_RE.test(email) || email.length > 256) {
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           "INVALID_EMAIL",
           "Enter a valid email address.",
           "Provide a valid email address, then call POST /api/agent/send-code again.",
@@ -110,6 +112,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
       });
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           "RATE_LIMITED",
           "Too many requests. Try again later.",
           "Wait before requesting another code from this IP address, then retry POST /api/agent/send-code.",
@@ -124,6 +127,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
       if (otpSessionToken === "") {
         return c.json(
           createAgentErrorEnvelope(
+            c.req.url,
             "RATE_LIMITED",
             "Too many requests. Try again later.",
             "Wait before requesting another code for this email address, then retry POST /api/agent/send-code.",
@@ -150,6 +154,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
         });
         return c.json(
           createAgentErrorEnvelope(
+            c.req.url,
             "OTP_SEND_FAILED",
             "Could not send a code. Try again.",
             "Retry POST /api/agent/send-code with the same email. If the issue persists, try later.",
@@ -160,6 +165,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
     }
 
     return c.json(createAgentEnvelope(
+      c.req.url,
       {
         email,
         otpSessionToken,

@@ -32,13 +32,25 @@ test("openapi endpoints return the same JSON document", async () => {
   const app = createApp("");
   const openapiResponse = await app.request("https://api.example.com/v1/openapi.json");
   const swaggerResponse = await app.request("https://api.example.com/v1/swagger.json");
+  const agentOpenapiResponse = await app.request("https://api.example.com/v1/agent/openapi.json");
+  const agentSwaggerResponse = await app.request("https://api.example.com/v1/agent/swagger.json");
 
   assert.equal(openapiResponse.status, 200);
   assert.equal(swaggerResponse.status, 200);
+  assert.equal(agentOpenapiResponse.status, 200);
+  assert.equal(agentSwaggerResponse.status, 200);
 
-  const openapiBody = await openapiResponse.json() as { openapi: string };
+  const openapiBody = await openapiResponse.json() as { openapi: string; paths: Record<string, unknown> };
   const swaggerBody = await swaggerResponse.json();
+  const agentOpenapiBody = await agentOpenapiResponse.json();
+  const agentSwaggerBody = await agentSwaggerResponse.json();
 
   assert.equal(openapiBody.openapi, "3.1.0");
   assert.deepEqual(swaggerBody, openapiBody);
+  assert.deepEqual(agentOpenapiBody, openapiBody);
+  assert.deepEqual(agentSwaggerBody, openapiBody);
+  assert.equal("/workspaces/{workspaceId}/sync/push" in openapiBody.paths, false);
+  assert.equal("/chat/local-turn" in openapiBody.paths, false);
+  assert.equal("/agent-api-keys" in openapiBody.paths, false);
+  assert.equal("/agent/tools/list_cards" in openapiBody.paths, true);
 });

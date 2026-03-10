@@ -16,7 +16,7 @@ type InitiateAuthResult = Readonly<{
   session: string;
 }>;
 
-type TokenResult = Readonly<{
+export type TokenResult = Readonly<{
   idToken: string;
   accessToken: string;
   refreshToken: string;

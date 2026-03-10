@@ -49,7 +49,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         workspacesCount: workspaces.length,
       }, false);
       if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
-        return context.json(createAgentWorkspacesEnvelope(workspaces));
+        return context.json(createAgentWorkspacesEnvelope(context.req.url, workspaces));
       }
       return context.json({ workspaces });
     } catch (error) {
@@ -84,7 +84,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         workspaceId: workspace.workspaceId,
       }, false);
       if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
-        return context.json(createAgentWorkspaceReadyEnvelope(workspace), 201);
+        return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace), 201);
       }
       return context.json({ workspace }, 201);
     } catch (error) {
@@ -115,7 +115,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         workspaceId,
       }, false);
       if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
-        return context.json(createAgentWorkspaceReadyEnvelope(workspace));
+        return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace));
       }
       return context.json({ workspace });
     } catch (error) {

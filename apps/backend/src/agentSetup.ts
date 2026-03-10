@@ -1,44 +1,19 @@
 import type { AgentApiKeyConnection } from "./agentApiKeys";
+import {
+  buildAgentNextStepsInstructions,
+  createAgentCreateWorkspaceAction,
+  createAgentEnvelope,
+  createAgentErrorEnvelope,
+  createAgentListToolsAction,
+  createAgentListWorkspacesAction,
+  createAgentSelectWorkspaceAction,
+  createAgentToolAction,
+  type AgentEnvelope,
+  type AgentErrorEnvelope,
+} from "./agentEnvelope";
 import type { AuthTransport } from "./auth";
 import type { RequestContext } from "./server/requestContext";
 import type { WorkspaceSummary } from "./workspaces";
-
-/**
- * Small agent-facing setup envelope builders. The shape stays intentionally
- * narrow so terminal clients can follow the next step without a generic
- * hypermedia implementation.
- */
-export type AgentSetupAction = Readonly<{
-  name: "load_account" | "list_workspaces" | "create_workspace" | "select_workspace";
-  method: "GET" | "POST";
-  url?: string;
-  urlTemplate?: string;
-  input?: Readonly<{
-    required?: ReadonlyArray<string>;
-  }>;
-  auth?: Readonly<{
-    scheme: "ApiKey";
-  }>;
-}>;
-
-export type AgentSetupEnvelope<Data> = Readonly<{
-  ok: true;
-  data: Data;
-  actions: ReadonlyArray<AgentSetupAction>;
-  instructions: string;
-}>;
-
-export type AgentSetupErrorEnvelope = Readonly<{
-  ok: false;
-  data: Record<string, never>;
-  actions: ReadonlyArray<AgentSetupAction>;
-  instructions: string;
-  error: Readonly<{
-    code: string;
-    message: string;
-  }>;
-  requestId?: string;
-}>;
 
 type AccountData = Readonly<{
   userId: string;
@@ -59,60 +34,31 @@ type WorkspaceData = Readonly<{
   workspace: WorkspaceSummary;
 }>;
 
-function buildApiBaseUrl(): string {
-  const configuredBaseUrl = process.env.PUBLIC_API_BASE_URL;
-  if (configuredBaseUrl !== undefined && configuredBaseUrl !== "") {
-    return configuredBaseUrl.endsWith("/") ? configuredBaseUrl.slice(0, -1) : configuredBaseUrl;
-  }
-
-  return "http://localhost:8080/v1";
-}
-
-function createEnvelope<Data>(
-  data: Data,
-  actions: ReadonlyArray<AgentSetupAction>,
-  instructions: string,
-): AgentSetupEnvelope<Data> {
-  return {
-    ok: true,
-    data,
-    actions,
-    instructions,
-  };
-}
-
-function createErrorEnvelope(
-  code: string,
-  message: string,
-  instructions: string,
-  requestId?: string,
-): AgentSetupErrorEnvelope {
-  return {
-    ok: false,
-    data: {},
-    actions: [],
-    instructions,
-    error: {
-      code,
-      message,
-    },
-    requestId,
-  };
+function buildWorkspaceReadyActions(requestUrl: string) {
+  return [
+    createAgentListToolsAction(requestUrl),
+    createAgentToolAction(requestUrl, "get_workspace_context"),
+    createAgentToolAction(requestUrl, "search_cards"),
+    createAgentToolAction(requestUrl, "create_cards"),
+  ] as const;
 }
 
 export function shouldUseAgentSetupEnvelope(transport: AuthTransport): boolean {
   return transport === "api_key";
 }
 
-const API_KEY_ENV_VAR = "FLASHCARDS_OPEN_SOURCE_API_KEY";
-
 /**
  * Returns the authenticated account context plus the next recommended action
- * for an ApiKey-based terminal client.
+ * for an ApiKey-based external AI agent.
  */
-export function createAgentAccountEnvelope(requestContext: RequestContext): AgentSetupEnvelope<AccountData> {
-  const apiBaseUrl = buildApiBaseUrl();
-  return createEnvelope(
+export function createAgentAccountEnvelope(
+  requestUrl: string,
+  requestContext: RequestContext,
+): AgentEnvelope<AccountData> {
+  const actions = [createAgentListWorkspacesAction(requestUrl)];
+
+  return createAgentEnvelope(
+    requestUrl,
     {
       userId: requestContext.userId,
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
@@ -123,90 +69,78 @@ export function createAgentAccountEnvelope(requestContext: RequestContext): Agen
         createdAt: requestContext.userSettingsCreatedAt,
       },
     },
-    [{
-      name: "list_workspaces",
-      method: "GET",
-      url: `${apiBaseUrl}/workspaces`,
-      auth: {
-        scheme: "ApiKey",
-      },
-    }],
-    `Authentication succeeded. Export the key once as ${API_KEY_ENV_VAR} and reuse Authorization: ApiKey $${API_KEY_ENV_VAR}. Next, call list_workspaces to load the user's workspaces. If none exist, create one. If several exist, select the correct one before using workspace-scoped actions.`,
+    actions,
+    buildAgentNextStepsInstructions(actions),
   );
 }
 
 /**
- * Guides a newly authenticated terminal client toward creating or selecting a
- * workspace before it starts workspace-scoped actions.
+ * Guides an ApiKey-authenticated external AI agent toward creating or
+ * selecting a workspace before calling tool endpoints.
  */
-export function createAgentWorkspacesEnvelope(workspaces: ReadonlyArray<WorkspaceSummary>): AgentSetupEnvelope<WorkspacesData> {
-  const apiBaseUrl = buildApiBaseUrl();
+export function createAgentWorkspacesEnvelope(
+  requestUrl: string,
+  workspaces: ReadonlyArray<WorkspaceSummary>,
+): AgentEnvelope<WorkspacesData> {
   if (workspaces.length === 0) {
-    return createEnvelope(
+    const actions = [createAgentCreateWorkspaceAction(requestUrl)];
+    return createAgentEnvelope(
+      requestUrl,
       { workspaces },
-      [{
-        name: "create_workspace",
-        method: "POST",
-        url: `${apiBaseUrl}/workspaces`,
-        auth: {
-          scheme: "ApiKey",
-        },
-        input: {
-          required: ["name"],
-        },
-      }],
-      `No workspaces exist yet. Reuse Authorization: ApiKey $${API_KEY_ENV_VAR}, then create the first workspace with create_workspace and provide a human-readable workspace name.`,
+      actions,
+      buildAgentNextStepsInstructions(actions),
     );
   }
 
   if (workspaces.length === 1 || workspaces.some((workspace) => workspace.isSelected)) {
-    return createEnvelope(
+    const actions = buildWorkspaceReadyActions(requestUrl);
+    return createAgentEnvelope(
+      requestUrl,
       { workspaces },
-      [],
-      `A workspace is already available and selected. Keep reusing Authorization: ApiKey $${API_KEY_ENV_VAR} for workspace-scoped endpoints and the chat endpoint.`,
+      actions,
+      buildAgentNextStepsInstructions(actions),
     );
   }
 
-  return createEnvelope(
+  const actions = [createAgentSelectWorkspaceAction(requestUrl)];
+  return createAgentEnvelope(
+    requestUrl,
     { workspaces },
-    [{
-      name: "select_workspace",
-      method: "POST",
-      urlTemplate: `${apiBaseUrl}/workspaces/{workspaceId}/select`,
-      auth: {
-        scheme: "ApiKey",
-      },
-      input: {
-        required: ["workspaceId"],
-      },
-    }],
-    `Multiple workspaces exist. Reuse Authorization: ApiKey $${API_KEY_ENV_VAR} and select the correct one with select_workspace before using workspace-scoped endpoints.`,
+    actions,
+    buildAgentNextStepsInstructions(actions),
   );
 }
 
 /**
- * Confirms that workspace bootstrap is complete and no more setup action is
- * required before card or chat operations.
+ * Confirms that workspace bootstrap is complete and points the external AI
+ * agent at the compact tool surface.
  */
-export function createAgentWorkspaceReadyEnvelope(workspace: WorkspaceSummary): AgentSetupEnvelope<WorkspaceData> {
-  return createEnvelope(
+export function createAgentWorkspaceReadyEnvelope(
+  requestUrl: string,
+  workspace: WorkspaceSummary,
+): AgentEnvelope<WorkspaceData> {
+  const actions = buildWorkspaceReadyActions(requestUrl);
+
+  return createAgentEnvelope(
+    requestUrl,
     { workspace },
-    [],
-    `The workspace is ready. Keep reusing Authorization: ApiKey $${API_KEY_ENV_VAR} while you search cards, create cards, create decks, and use AI chat with this account.`,
+    actions,
+    buildAgentNextStepsInstructions(actions),
   );
 }
 
 /**
- * Builds a deterministic error payload for ApiKey-authenticated setup and
- * workspace bootstrap requests.
+ * Builds a deterministic error payload for ApiKey-authenticated bootstrap and
+ * tool onboarding requests.
  */
 export function createAgentSetupErrorEnvelope(
+  requestUrl: string,
   code: string,
   message: string,
   instructions: string,
   requestId?: string,
-): AgentSetupErrorEnvelope {
-  return createErrorEnvelope(code, message, instructions, requestId);
+): AgentErrorEnvelope {
+  return createAgentErrorEnvelope(requestUrl, code, message, instructions, requestId);
 }
 
 export type AgentConnectionListEnvelope = Readonly<{

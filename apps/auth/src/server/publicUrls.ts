@@ -38,3 +38,18 @@ export function getPublicApiBaseUrl(requestUrl: string): string {
 
   return stripTrailingSlash(requestOrigin.replace("//auth.", "//api.")) + "/v1";
 }
+
+/**
+ * Builds the public AI-agent documentation URLs served by the API host.
+ */
+export function getPublicAgentDocs(requestUrl: string): Readonly<{
+  openapiUrl: string;
+  swaggerUrl: string;
+}> {
+  const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
+
+  return {
+    openapiUrl: `${apiBaseUrl}/agent/openapi.json`,
+    swaggerUrl: `${apiBaseUrl}/agent/swagger.json`,
+  };
+}

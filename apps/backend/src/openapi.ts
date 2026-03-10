@@ -26,6 +26,9 @@ export const loadOpenApiDocument = (): OpenApiDocument => {
     return cachedDocument;
   }
 
+  // This document is intentionally the external AI-agent contract only. It
+  // excludes shared first-party routes such as sync, local chat, and human
+  // connection-management endpoints even when those routes remain live.
   const rawDocument = fs.readFileSync(findOpenApiPath(), "utf8");
   cachedDocument = JSON.parse(rawDocument) as OpenApiDocument;
   return cachedDocument;
