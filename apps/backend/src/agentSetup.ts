@@ -104,6 +104,8 @@ export function shouldUseAgentSetupEnvelope(transport: AuthTransport): boolean {
   return transport === "api_key";
 }
 
+const API_KEY_ENV_VAR = "FLASHCARDS_OPEN_SOURCE_API_KEY";
+
 /**
  * Returns the authenticated account context plus the next recommended action
  * for an ApiKey-based terminal client.
@@ -129,7 +131,7 @@ export function createAgentAccountEnvelope(requestContext: RequestContext): Agen
         scheme: "ApiKey",
       },
     }],
-    "Authentication succeeded. Next, call list_workspaces to load the user's workspaces. If none exist, create one. If several exist, select the correct one before using workspace-scoped actions.",
+    `Authentication succeeded. Export the key once as ${API_KEY_ENV_VAR} and reuse Authorization: ApiKey $${API_KEY_ENV_VAR}. Next, call list_workspaces to load the user's workspaces. If none exist, create one. If several exist, select the correct one before using workspace-scoped actions.`,
   );
 }
 
@@ -153,7 +155,7 @@ export function createAgentWorkspacesEnvelope(workspaces: ReadonlyArray<Workspac
           required: ["name"],
         },
       }],
-      "No workspaces exist yet. Create the first workspace with create_workspace and provide a human-readable workspace name.",
+      `No workspaces exist yet. Reuse Authorization: ApiKey $${API_KEY_ENV_VAR}, then create the first workspace with create_workspace and provide a human-readable workspace name.`,
     );
   }
 
@@ -161,7 +163,7 @@ export function createAgentWorkspacesEnvelope(workspaces: ReadonlyArray<Workspac
     return createEnvelope(
       { workspaces },
       [],
-      "A workspace is already available and selected. You can now use workspace-scoped endpoints and the chat endpoint.",
+      `A workspace is already available and selected. Keep reusing Authorization: ApiKey $${API_KEY_ENV_VAR} for workspace-scoped endpoints and the chat endpoint.`,
     );
   }
 
@@ -178,7 +180,7 @@ export function createAgentWorkspacesEnvelope(workspaces: ReadonlyArray<Workspac
         required: ["workspaceId"],
       },
     }],
-    "Multiple workspaces exist. Select the correct one with select_workspace before using workspace-scoped endpoints.",
+    `Multiple workspaces exist. Reuse Authorization: ApiKey $${API_KEY_ENV_VAR} and select the correct one with select_workspace before using workspace-scoped endpoints.`,
   );
 }
 
@@ -190,7 +192,7 @@ export function createAgentWorkspaceReadyEnvelope(workspace: WorkspaceSummary): 
   return createEnvelope(
     { workspace },
     [],
-    "The workspace is ready. You can now search cards, create cards, create decks, and use AI chat with this account.",
+    `The workspace is ready. Keep reusing Authorization: ApiKey $${API_KEY_ENV_VAR} while you search cards, create cards, create decks, and use AI chat with this account.`,
   );
 }
 

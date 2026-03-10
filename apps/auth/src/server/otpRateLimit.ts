@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { query } from "../db.js";
-import { AGENT_OTP_TTL_MS } from "./agentOtp.js";
 
 const EMAIL_COOLDOWN_WINDOW_MS = 60_000;
 const EMAIL_SHORT_WINDOW_MS = 15 * 60_000;
@@ -16,6 +15,7 @@ const IP_HOUR_LIMIT = 30;
 const IP_DAY_LIMIT = 100;
 const IP_DISTINCT_HOUR_LIMIT = 5;
 const IP_DISTINCT_DAY_LIMIT = 20;
+const OTP_SESSION_TTL_MS = 180_000;
 
 type CountRow = Readonly<{
   count: string;
@@ -170,8 +170,8 @@ export async function recordOtpSendDecision(
 }
 
 /**
- * Returns the newest still-valid sent OTP token so suppressed email retries can
- * continue the latest challenge without generating more mail.
+ * Returns the newest still-valid signed OTP session token so browser retries
+ * can continue the last challenge without sending another email.
  */
 export async function loadLatestSentOtpSessionToken(email: string, nowMs: number): Promise<string | null> {
   const result = await query<TokenRow>(
@@ -191,7 +191,7 @@ export async function loadLatestSentOtpSessionToken(email: string, nowMs: number
   }
 
   const createdAtMs = new Date(row.created_at).getTime();
-  if (Number.isNaN(createdAtMs) || nowMs - createdAtMs > AGENT_OTP_TTL_MS) {
+  if (Number.isNaN(createdAtMs) || nowMs - createdAtMs > OTP_SESSION_TTL_MS) {
     return null;
   }
 

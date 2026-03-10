@@ -42,7 +42,7 @@ function createAgentInstructions(code: string | null): string {
   switch (code) {
     case "AUTH_UNAUTHORIZED":
     case "AGENT_API_KEY_INVALID":
-      return "Use a valid non-revoked API key in the Authorization header as: ApiKey <apiKey>. If needed, restart from GET /agent.";
+      return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /agent.";
     case "WORKSPACE_SELECTION_REQUIRED":
       return "Call GET /workspaces to inspect available workspaces, then select one with POST /workspaces/{workspaceId}/select.";
     case "WORKSPACE_ID_REQUIRED":

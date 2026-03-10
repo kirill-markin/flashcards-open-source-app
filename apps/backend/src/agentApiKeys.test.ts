@@ -4,9 +4,9 @@ import { HttpError } from "./errors";
 import { parseAgentApiKey } from "./agentApiKeys";
 
 test("parseAgentApiKey splits the key identifier and secret", () => {
-  assert.deepEqual(parseAgentApiKey("fca_live_key123_secret456"), {
-    keyId: "key123",
-    secret: "secret456",
+  assert.deepEqual(parseAgentApiKey("fca_abcd-ef12_0123 456789ABCDEFGHJKMNPQRS"), {
+    keyId: "ABCDEF12",
+    secret: "0123456789ABCDEFGHJKMNPQRS",
   });
 });
 
