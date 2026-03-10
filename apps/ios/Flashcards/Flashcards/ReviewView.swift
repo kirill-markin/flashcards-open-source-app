@@ -403,12 +403,25 @@ struct ReviewView: View {
                 Text("You're all caught up for now. Come back later or add more cards.")
             }
         } actions: {
-            Button {
-                store.openCardCreation()
-            } label: {
-                Label("Create card", systemImage: "plus")
+            VStack(spacing: 8) {
+                Button {
+                    store.openCardCreation()
+                } label: {
+                    Label("Create card", systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Text("or")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    store.openAICardCreation()
+                } label: {
+                    Label("Create with AI", systemImage: "sparkles")
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.borderedProminent)
         }
     }
 

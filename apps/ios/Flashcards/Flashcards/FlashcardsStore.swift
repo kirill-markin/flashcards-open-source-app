@@ -76,6 +76,7 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var lastSuccessfulCloudSyncAt: String?
     @Published private(set) var selectedTab: AppTab
     @Published private(set) var cardsPresentationRequest: CardsPresentationRequest?
+    @Published private(set) var aiChatPresentationRequest: AIChatPresentationRequest?
 
     private let database: LocalDatabase?
     private let cloudAuthService: CloudAuthService
@@ -150,6 +151,7 @@ final class FlashcardsStore: ObservableObject {
         self.lastSuccessfulCloudSyncAt = nil
         self.selectedTab = .review
         self.cardsPresentationRequest = nil
+        self.aiChatPresentationRequest = nil
         self.database = database
         self.cloudAuthService = cloudAuthService
         self.cloudSyncService = database.map { initializedDatabase in
@@ -217,8 +219,17 @@ final class FlashcardsStore: ObservableObject {
         self.cardsPresentationRequest = .createCard
     }
 
+    func openAICardCreation() {
+        self.selectTab(tab: .ai)
+        self.aiChatPresentationRequest = .createCard
+    }
+
     func clearCardsPresentationRequest() {
         self.cardsPresentationRequest = nil
+    }
+
+    func clearAIChatPresentationRequest() {
+        self.aiChatPresentationRequest = nil
     }
 
     func saveCard(input: CardEditorInput, editingCardId: String?) throws {

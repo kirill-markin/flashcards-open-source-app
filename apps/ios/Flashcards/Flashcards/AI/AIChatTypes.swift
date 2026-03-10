@@ -1,6 +1,7 @@
 import Foundation
 
 let aiChatDefaultModelId: String = "gpt-5.4"
+let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 
 func aiChatAppVersion() -> String {
     let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
