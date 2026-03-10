@@ -1,8 +1,11 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { transaction, query } from "../db.js";
 import { verifySessionTokenSubject } from "./browserSession.js";
+import { createCrockfordToken } from "./crockford.js";
 
-const AGENT_API_KEY_PREFIX = "fca_live";
+const AGENT_API_KEY_PREFIX = "fca";
+const AGENT_API_KEY_ID_LENGTH = 8;
+const AGENT_API_KEY_SECRET_LENGTH = 26;
 
 type AgentApiKeyRow = Readonly<{
   connection_id: string;
@@ -22,7 +25,7 @@ export type AgentApiKeyConnection = Readonly<{
   revokedAt: string | null;
 }>;
 
-type CreatedAgentApiKey = Readonly<{
+export type CreatedAgentApiKey = Readonly<{
   apiKey: string;
   connection: AgentApiKeyConnection;
 }>;
@@ -53,11 +56,11 @@ export function normalizeAgentApiKeyLabel(label: string): string {
 }
 
 function createKeyId(): string {
-  return randomBytes(8).toString("hex");
+  return createCrockfordToken(AGENT_API_KEY_ID_LENGTH);
 }
 
 function createKeySecret(): string {
-  return randomBytes(24).toString("base64url");
+  return createCrockfordToken(AGENT_API_KEY_SECRET_LENGTH);
 }
 
 function hashKeySecret(secret: string): string {

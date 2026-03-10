@@ -1,8 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { query } from "./db";
 import { HttpError } from "./errors";
+import { normalizeCrockfordToken } from "./crockford";
 
-const AGENT_API_KEY_PREFIX = "fca_live";
+const AGENT_API_KEY_PREFIX = "fca";
+const AGENT_API_KEY_ID_LENGTH = 8;
+const AGENT_API_KEY_SECRET_LENGTH = 26;
 const LAST_USED_UPDATE_INTERVAL_MS = 5 * 60_000;
 
 type AgentApiKeyRow = Readonly<{
@@ -67,8 +70,8 @@ export function parseAgentApiKey(value: string): Readonly<{
   keyId: string;
   secret: string;
 }> {
-  const trimmedValue = value.trim();
-  const prefix = `${AGENT_API_KEY_PREFIX}_`;
+  const trimmedValue = value.replace(/[\s-]/g, "").toUpperCase();
+  const prefix = `${AGENT_API_KEY_PREFIX.toUpperCase()}_`;
   if (!trimmedValue.startsWith(prefix)) {
     throw new HttpError(401, "Invalid API key", "AGENT_API_KEY_INVALID");
   }
@@ -79,10 +82,19 @@ export function parseAgentApiKey(value: string): Readonly<{
     throw new HttpError(401, "Invalid API key", "AGENT_API_KEY_INVALID");
   }
 
-  return {
-    keyId: remaining.slice(0, separatorIndex),
-    secret: remaining.slice(separatorIndex + 1),
-  };
+  let keyId: string;
+  let secret: string;
+  try {
+    keyId = normalizeCrockfordToken(remaining.slice(0, separatorIndex), "agent API key id");
+    secret = normalizeCrockfordToken(remaining.slice(separatorIndex + 1), "agent API key secret");
+    if (keyId.length !== AGENT_API_KEY_ID_LENGTH || secret.length !== AGENT_API_KEY_SECRET_LENGTH) {
+      throw new Error("Invalid API key length");
+    }
+  } catch {
+    throw new HttpError(401, "Invalid API key", "AGENT_API_KEY_INVALID");
+  }
+
+  return { keyId, secret };
 }
 
 /**
