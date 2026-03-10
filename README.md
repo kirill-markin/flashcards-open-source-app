@@ -31,6 +31,8 @@ This repository is under active development and not production-ready yet.
 - iOS app in `apps/ios` with local SQLite, offline-first review flow, and FSRS parity with backend
 - Android app later
 
+The discovery response tells agents to ask for the user's email first, and the same email OTP flow covers both signup and login.
+
 ## Local run
 
 1. `cp .env.example .env`
