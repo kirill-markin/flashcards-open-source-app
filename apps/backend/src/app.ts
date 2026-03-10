@@ -42,14 +42,14 @@ function createAgentInstructions(code: string | null): string {
   switch (code) {
     case "AUTH_UNAUTHORIZED":
     case "AGENT_API_KEY_INVALID":
-      return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /agent.";
+      return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
     case "WORKSPACE_SELECTION_REQUIRED":
-      return "Call GET /workspaces to inspect available workspaces, then select one with POST /workspaces/{workspaceId}/select.";
+      return "Call GET /v1/workspaces to inspect available workspaces, then select one with POST /v1/workspaces/{workspaceId}/select.";
     case "WORKSPACE_ID_REQUIRED":
     case "WORKSPACE_ID_INVALID":
       return "Provide a non-empty workspaceId in the request URL, then retry the action.";
     default:
-      return "Retry the same request after fixing the reported input. If the issue persists, reload account context from GET /me or restart from GET /agent.";
+      return "Retry the same request after fixing the reported input. If the issue persists, reload account context from GET /v1/me or restart from GET /v1/agent.";
   }
 }
 
@@ -60,7 +60,7 @@ function createAgentConnectionManagementInstructions(code: string | null): strin
     case "AGENT_API_KEY_HUMAN_SESSION_REQUIRED":
       return "Manage long-lived bot connections from a human browser or mobile session, not from an ApiKey-authenticated bot.";
     case "AGENT_API_KEY_NOT_FOUND":
-      return "Reload the connection list with GET /agent-api-keys, then retry revoke with a current connectionId.";
+      return "Reload the connection list with GET /v1/agent-api-keys, then retry revoke with a current connectionId.";
     case "AGENT_API_KEY_ID_REQUIRED":
     case "AGENT_API_KEY_ID_INVALID":
       return "Provide a non-empty connectionId in the request URL, then retry the request.";

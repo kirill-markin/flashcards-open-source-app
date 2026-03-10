@@ -116,6 +116,6 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       },
     ],
     instructions:
-      "Start with send_code. After login, call /me, then /workspaces before workspace-scoped actions.",
+      `Start with send_code. After login, call ${apiBaseUrl}/me, then ${apiBaseUrl}/workspaces before workspace-scoped actions.`,
   };
 }

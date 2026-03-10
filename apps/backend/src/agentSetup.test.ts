@@ -87,7 +87,7 @@ test("createAgentSetupErrorEnvelope keeps actionable retry instructions", () => 
   const envelope = createAgentSetupErrorEnvelope(
     "WORKSPACE_SELECTION_REQUIRED",
     "Select a workspace before using this endpoint",
-    "Call GET /workspaces and then POST /workspaces/{workspaceId}/select.",
+    "Call GET /v1/workspaces and then POST /v1/workspaces/{workspaceId}/select.",
     "request-1",
   );
 
