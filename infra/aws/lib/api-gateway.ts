@@ -28,6 +28,7 @@ export interface ApiGatewayResult {
 interface BackendFunctionProps {
   constructId: string;
   entry: string;
+  baseDomain: string;
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
@@ -143,6 +144,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const backendFn = createBackendFunction(scope, {
     constructId: "BackendHandler",
     entry: path.join(__dirname, "../../../apps/backend/src/lambda.ts"),
+    baseDomain: props.baseDomain,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -157,6 +159,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const chatStreamingFn = createBackendFunction(scope, {
     constructId: "ChatStreamingHandler",
     entry: path.join(__dirname, "../../../apps/backend/src/lambda-stream.ts"),
+    baseDomain: props.baseDomain,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
