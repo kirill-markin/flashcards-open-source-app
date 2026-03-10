@@ -7,6 +7,18 @@ import type {
 } from "openai/resources/responses/responses";
 import type { LocalAssistantToolCall, LocalChatMessage, LocalChatStreamEvent } from "../localTypes";
 import {
+  buildAssistantRoleSection,
+  buildConciseStyleSection,
+  buildDatetimeSection,
+  buildLocalRepairSection,
+  buildLocalToolCallExamplesSection,
+  buildLocalToolCallRulesSection,
+  buildLocalWorkspaceSection,
+  buildLocalWritePolicyLines,
+  buildPromptFromSections,
+  buildWritePolicySection,
+} from "../promptSections";
+import {
   OPENAI_LOCAL_FLASHCARDS_TOOLS,
   OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS,
 } from "./localTools";
@@ -133,57 +145,18 @@ function logLocalChatEvent(event: LocalChatLogEvent): void {
   }));
 }
 
-function formatDatetime(timezone: string): string {
-  const now = new Date();
-  const utc = now.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
-  const local = now.toLocaleString("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZoneName: "short",
-  });
-  return `Current datetime - UTC: ${utc} | User local (${timezone}): ${local}`;
-}
-
 export function buildLocalSystemInstructions(timezone: string): string {
-  return [
-    "You are a flashcards assistant for an offline-first flashcards app on iPhone.",
-    "The local device database is the source of truth for reads.",
-    "Use only the provided local tools to inspect workspace data.",
-    "Keep answers concise, direct, and operational.",
-    "",
-    "Tool-call rules:",
-    "- Tool arguments must be exactly one JSON object.",
-    "- Never send prose, markdown, comments, arrays, or multiple JSON objects.",
-    "- For strict schemas, every property in the tool contract must be present.",
-    "- If a field is optional semantically, send null instead of omitting it.",
-    "- For update tools, include unchanged editable fields as null.",
-    "- Do not invent extra properties.",
-    "",
-    "Write policy:",
-    "- Before any create, update, or delete tool call you must describe the exact change.",
-    "- You must then wait for explicit user confirmation before executing the write tool.",
-    "- Use write tools only after the latest user message clearly confirms the exact proposed change.",
-    "- Never mutate hidden FSRS fields, sync metadata, outbox rows, cloud settings, or arbitrary local tables directly.",
-    "",
-    "Tool-call JSON examples:",
-    "- list_cards => {\"limit\": 20}",
-    "- get_cards => {\"cardIds\": [\"card_123\"]}",
-    "- search_cards => {\"query\": \"grammar\", \"limit\": null}",
-    "- search_decks => {\"query\": \"grammar\", \"limit\": null}",
-    "- get_decks => {\"deckIds\": [\"deck_123\"]}",
-    "- list_review_history => {\"limit\": 20, \"cardId\": null}",
-    "- update_cards => {\"updates\": [{\"cardId\": \"card_123\", \"frontText\": null, \"backText\": \"Updated back\", \"tags\": null, \"effortLevel\": null}]}",
-    "- update_decks => {\"updates\": [{\"deckId\": \"deck_123\", \"name\": null, \"effortLevels\": [\"fast\", \"medium\"], \"tags\": [\"grammar\"]}]}",
-    "",
-    "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
-    formatDatetime(timezone),
-  ].join("\n");
+  return buildPromptFromSections([
+    buildAssistantRoleSection(),
+    "Use this assistant on iPhone.",
+    buildLocalWorkspaceSection(),
+    buildConciseStyleSection(),
+    buildLocalToolCallRulesSection(),
+    buildWritePolicySection(buildLocalWritePolicyLines()),
+    buildLocalToolCallExamplesSection(),
+    buildLocalRepairSection(),
+    buildDatetimeSection(timezone),
+  ]);
 }
 
 function mapMessage(message: LocalChatMessage): ReadonlyArray<ResponseInputItem> {

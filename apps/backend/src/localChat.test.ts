@@ -95,9 +95,15 @@ test("isSupportedLocalChatModel accepts only OpenAI local-chat models", () => {
 test("buildLocalSystemInstructions includes strict tool-call rules and examples", () => {
   const instructions = buildLocalSystemInstructions("Europe/Madrid");
 
+  assert.match(instructions, /use this assistant on iphone\./i);
+  assert.match(instructions, /the local device database is the source of truth for reads\./i);
   assert.match(instructions, /Tool arguments must be exactly one JSON object\./);
   assert.match(instructions, /If a field is optional semantically, send null instead of omitting it\./);
   assert.match(instructions, /wait for explicit user confirmation before executing the write tool/i);
+  assert.match(instructions, /before proposing or executing any new card or deck creation, you must first inspect the local workspace for exact or similar items/i);
+  assert.match(instructions, /summarize what you found and discuss possible duplicates or overlap with the user/i);
+  assert.match(instructions, /every newly proposed card must include at least one tag/i);
+  assert.match(instructions, /if the user did not provide tags for a new card, you must suggest one or more concrete tags/i);
   assert.match(instructions, /list_cards => \{"limit": 20\}/);
   assert.match(instructions, /get_cards => \{"cardIds": \["card_123"\]\}/);
   assert.match(instructions, /search_cards => \{"query": "grammar", "limit": null\}/);
@@ -106,6 +112,7 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
   assert.match(instructions, /list_review_history => \{"limit": 20, "cardId": null\}/);
   assert.match(instructions, /update_cards => \{"updates": \[\{"cardId": "card_123"/);
   assert.match(instructions, /update_decks => \{"updates": \[\{"deckId": "deck_123"/);
+  assert.match(instructions, /correct the tool call shape and continue without repeating earlier assistant text/i);
 });
 
 test("streamLocalAgentTurn emits text deltas and done when no tool calls are requested", async () => {

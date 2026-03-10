@@ -17,6 +17,16 @@ import type {
   DeckFilterDefinition,
   UpdateDeckInput,
 } from "../decks";
+import {
+  buildAssistantRoleSection,
+  buildCloudCapabilitiesSection,
+  buildCloudWorkspaceSection,
+  buildCloudWritePolicyLines,
+  buildConciseStyleSection,
+  buildDatetimeSection,
+  buildPromptFromSections,
+  buildWritePolicySection,
+} from "./promptSections";
 import type { ChatMessage, ContentPart } from "./types";
 
 const MAX_LIST_LIMIT = 100;
@@ -57,40 +67,15 @@ type WriteToolInput = Readonly<{
   deviceId: string;
 }>;
 
-function formatDatetime(timezone: string): string {
-  const now = new Date();
-  const utc = now.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
-  const local = now.toLocaleString("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZoneName: "short",
-  });
-  return `Current datetime — UTC: ${utc} | User local (${timezone}): ${local}`;
-}
-
-const BASE_SYSTEM_INSTRUCTIONS = `You are a flashcards assistant for an offline-first flashcards app.
-You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.
-You can inspect cards, decks, review history, due cards, and deck summary through tools.
-You can also create, update, and delete cards and decks through tools.
-
-Write policy:
-- Before any create, update, or delete tool call, you MUST first describe the exact changes you plan to make.
-- You MUST then wait for explicit user confirmation before executing the write tool.
-- Treat confirmation as explicit only when the latest user message clearly approves the exact pending change.
-- Never mutate due dates, reps, lapses, updated timestamps, or review-event history.
-- Never invent study stats or hidden fields.
-
-When helpful, use web search for current information and code execution for calculations, text transforms, or attachment analysis.
-Be concise, direct, and operational.`;
-
 export function buildSystemInstructions(timezone: string): string {
-  return `${BASE_SYSTEM_INSTRUCTIONS}\n\n${formatDatetime(timezone)}`;
+  return buildPromptFromSections([
+    buildAssistantRoleSection(),
+    buildCloudWorkspaceSection(),
+    buildWritePolicySection(buildCloudWritePolicyLines()),
+    buildCloudCapabilitiesSection(),
+    buildConciseStyleSection(),
+    buildDatetimeSection(timezone),
+  ]);
 }
 
 function normalizeLimit(limit: number | undefined): number {
