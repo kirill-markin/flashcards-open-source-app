@@ -22,7 +22,7 @@ type TokenRow = Readonly<{
   created_at: Date | string;
 }>;
 
-export type AgentOtpRateLimitDecision =
+export type OtpRateLimitDecision =
   | Readonly<{ kind: "send" }>
   | Readonly<{ kind: "suppress_email_limit" }>
   | Readonly<{ kind: "block_ip_limit" }>;
@@ -44,7 +44,7 @@ async function countEvents(
   const result = await query<CountRow>(
     [
       "SELECT COUNT(*)::text AS count",
-      "FROM auth.agent_otp_send_events",
+      "FROM auth.otp_send_events",
       "WHERE",
       `${filterColumn} = $1`,
       "AND decision = ANY($2)",
@@ -60,7 +60,7 @@ async function countDistinctEmailsForIp(ipAddress: string, windowMs: number): Pr
   const result = await query<DistinctEmailCountRow>(
     [
       "SELECT COUNT(DISTINCT email)::text AS count",
-      "FROM auth.agent_otp_send_events",
+      "FROM auth.otp_send_events",
       "WHERE ip_address = $1",
       "AND created_at >= $2",
       "AND decision = ANY($3)",
@@ -72,13 +72,14 @@ async function countDistinctEmailsForIp(ipAddress: string, windowMs: number): Pr
 }
 
 /**
- * Applies conservative anti-spam limits before sending agent OTP emails. Email
- * throttles suppress sends while IP-based abuse returns a hard block.
+ * Applies conservative anti-spam limits before sending OTP emails. Email
+ * throttles suppress sends while IP-based abuse returns a hard block across
+ * browser and agent flows.
  */
-export async function decideAgentOtpRateLimit(
+export async function decideOtpRateLimit(
   email: string,
   ipAddress: string,
-): Promise<AgentOtpRateLimitDecision> {
+): Promise<OtpRateLimitDecision> {
   const [
     emailCooldownCount,
     emailShortCount,
@@ -116,7 +117,7 @@ export async function decideAgentOtpRateLimit(
   return { kind: "send" };
 }
 
-export async function recordAgentOtpSendDecision(
+export async function recordOtpSendDecision(
   email: string,
   ipAddress: string,
   decision: "sent" | "suppressed_email_limit" | "blocked_ip_limit",
@@ -124,7 +125,7 @@ export async function recordAgentOtpSendDecision(
 ): Promise<void> {
   await query(
     [
-      "INSERT INTO auth.agent_otp_send_events",
+      "INSERT INTO auth.otp_send_events",
       "(event_id, email, ip_address, otp_session_token, decision)",
       "VALUES ($1, $2, $3, $4, $5)",
     ].join(" "),
@@ -136,11 +137,11 @@ export async function recordAgentOtpSendDecision(
  * Returns the newest still-valid sent OTP token so suppressed email retries can
  * continue the latest challenge without generating more mail.
  */
-export async function loadLatestSentAgentOtpSessionToken(email: string, nowMs: number): Promise<string | null> {
+export async function loadLatestSentOtpSessionToken(email: string, nowMs: number): Promise<string | null> {
   const result = await query<TokenRow>(
     [
       "SELECT otp_session_token, created_at",
-      "FROM auth.agent_otp_send_events",
+      "FROM auth.otp_send_events",
       "WHERE email = $1 AND decision = 'sent' AND otp_session_token IS NOT NULL",
       "ORDER BY created_at DESC, event_id DESC",
       "LIMIT 1",

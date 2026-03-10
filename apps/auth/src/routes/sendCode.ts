@@ -17,10 +17,10 @@ import { initiateEmailOtp } from "../server/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
 import { sign, verify } from "../server/crypto.js";
 import {
-  decideAgentOtpRateLimit,
-  loadLatestSentAgentOtpSessionToken,
-  recordAgentOtpSendDecision,
-} from "../server/agentRateLimit.js";
+  decideOtpRateLimit,
+  loadLatestSentOtpSessionToken,
+  recordOtpSendDecision,
+} from "../server/otpRateLimit.js";
 import { log, maskEmail } from "../server/logger.js";
 
 const app = new Hono<AuthAppEnv>();
@@ -76,10 +76,10 @@ app.post("/api/send-code", async (c) => {
 
   const requestId = getRequestId(c);
   const ipAddress = getClientIpAddress(c.req.raw);
-  const rateLimitDecision = await decideAgentOtpRateLimit(email, ipAddress);
+  const rateLimitDecision = await decideOtpRateLimit(email, ipAddress);
 
   if (rateLimitDecision.kind === "block_ip_limit") {
-    await recordAgentOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
+    await recordOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
     return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
   }
 
@@ -88,7 +88,7 @@ app.post("/api/send-code", async (c) => {
 
   if (rateLimitDecision.kind === "suppress_email_limit") {
     const [existingOtpSessionToken] = await Promise.all([
-      loadLatestSentAgentOtpSessionToken(email, Date.now()),
+      loadLatestSentOtpSessionToken(email, Date.now()),
       jitterDelay(),
     ]);
     if (existingOtpSessionToken === null) {
@@ -104,7 +104,7 @@ app.post("/api/send-code", async (c) => {
 
     csrfToken = payload.csrf;
     signed = existingOtpSessionToken;
-    await recordAgentOtpSendDecision(email, ipAddress, "suppressed_email_limit", signed);
+    await recordOtpSendDecision(email, ipAddress, "suppressed_email_limit", signed);
   } else {
     let session: string;
     try {
@@ -135,7 +135,7 @@ app.post("/api/send-code", async (c) => {
     });
 
     signed = sign(payload);
-    await recordAgentOtpSendDecision(email, ipAddress, "sent", signed);
+    await recordOtpSendDecision(email, ipAddress, "sent", signed);
   }
 
   setCookie(c, "otp_session", signed, {
