@@ -1,71 +1,19 @@
 import { HttpError } from "../errors";
 import type {
-  LocalAssistantToolCall,
+  LocalContentPart,
   LocalChatMessage,
   LocalChatRequestBody,
   LocalChatStreamEvent,
 } from "./localTypes";
 import { CHAT_MODELS } from "./models";
-import { createChatSseStream } from "./sse";
-import type { ChatMessage, ChatStreamEvent } from "./types";
 import type { RequestContext } from "../server/requestContext";
 import {
-  expectBoolean,
   expectNonEmptyString,
   expectNonNegativeInteger,
   expectNullableNonEmptyString,
   expectNullableNonNegativeInteger,
   expectRecord,
 } from "../server/requestParsing";
-
-type ChatRequestBody = Readonly<{
-  messages: ReadonlyArray<ChatMessage>;
-  model: string;
-  timezone: string;
-  deviceId: string;
-  appVersion: string;
-}>;
-
-type ChatDiagnosticsStage =
-  | "success"
-  | "empty_response"
-  | "response_not_ok"
-  | "missing_reader"
-  | "stream_error_event"
-  | "fetch_throw"
-  | "aborted";
-
-type ChatDiagnosticsBody = Readonly<{
-  clientRequestId: string;
-  responseRequestId: string | null;
-  model: string;
-  stage: ChatDiagnosticsStage;
-  statusCode: number | null;
-  responseContentType: string | null;
-  responseContentLength: string | null;
-  responseContentEncoding: string | null;
-  responseCacheControl: string | null;
-  responseAmznRequestId: string | null;
-  responseApiGatewayId: string | null;
-  responseBodyMissing: boolean;
-  chunkCount: number;
-  bytesReceived: number;
-  lineCount: number;
-  nonEmptyLineCount: number;
-  parseNullCount: number;
-  deltaEventCount: number;
-  toolCallEventCount: number;
-  errorEventCount: number;
-  doneEventCount: number;
-  receivedContent: boolean;
-  streamEnded: boolean;
-  readerMissing: boolean;
-  aborted: boolean;
-  durationMs: number;
-  bufferLength: number;
-  errorName: string | null;
-  lastEventType: string | null;
-}>;
 
 type LocalChatDiagnosticsBody = Readonly<{
   clientRequestId: string;
@@ -85,45 +33,76 @@ type LocalChatDiagnosticsBody = Readonly<{
   devicePlatform: string;
 }>;
 
-const CHAT_HEARTBEAT_INTERVAL_MS = 15_000;
-const CHAT_STREAM_MAX_DURATION_MS = 15 * 60 * 1000;
-const TIMER_SCHEDULER = {
-  setInterval: globalThis.setInterval,
-  clearInterval: globalThis.clearInterval,
-  setTimeout: globalThis.setTimeout,
-  clearTimeout: globalThis.clearTimeout,
-};
+function parseLocalContentPart(
+  value: unknown,
+  context: string,
+): LocalContentPart {
+  const body = expectRecord(value);
+  const type = expectNonEmptyString(body.type, `${context}.type`);
 
-function parseChatMessages(value: unknown): ReadonlyArray<ChatMessage> {
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new HttpError(400, "messages must be a non-empty array");
+  if (type === "text") {
+    return {
+      type: "text",
+      text: expectNonEmptyString(body.text, `${context}.text`),
+    };
   }
 
-  return value as ReadonlyArray<ChatMessage>;
+  if (type === "image") {
+    return {
+      type: "image",
+      mediaType: expectNonEmptyString(body.mediaType, `${context}.mediaType`),
+      base64Data: expectNonEmptyString(body.base64Data, `${context}.base64Data`),
+    };
+  }
+
+  if (type === "file") {
+    return {
+      type: "file",
+      mediaType: expectNonEmptyString(body.mediaType, `${context}.mediaType`),
+      base64Data: expectNonEmptyString(body.base64Data, `${context}.base64Data`),
+      fileName: expectNonEmptyString(body.fileName, `${context}.fileName`),
+    };
+  }
+
+  if (type === "tool_call") {
+    const inputValue = body.input;
+    const outputValue = body.output;
+
+    if (inputValue !== null && typeof inputValue !== "string") {
+      throw new HttpError(400, `${context}.input must be a string or null`);
+    }
+
+    if (outputValue !== null && typeof outputValue !== "string") {
+      throw new HttpError(400, `${context}.output must be a string or null`);
+    }
+
+    const status = expectNonEmptyString(body.status, `${context}.status`);
+    if (status !== "started" && status !== "completed") {
+      throw new HttpError(400, `${context}.status is invalid`);
+    }
+
+    return {
+      type: "tool_call",
+      toolCallId: expectNonEmptyString(body.toolCallId, `${context}.toolCallId`),
+      name: expectNonEmptyString(body.name, `${context}.name`),
+      status,
+      input: inputValue ?? null,
+      output: outputValue ?? null,
+    };
+  }
+
+  throw new HttpError(400, `${context}.type is invalid`);
 }
 
-export function parseChatRequestBody(value: unknown): ChatRequestBody {
-  const body = expectRecord(value);
-  const model = expectNonEmptyString(body.model, "model");
-  const timezone = expectNonEmptyString(body.timezone, "timezone");
+function parseLocalContentParts(
+  value: unknown,
+  context: string,
+): ReadonlyArray<LocalContentPart> {
+  if (!Array.isArray(value)) {
+    throw new HttpError(400, `${context} must be an array`);
+  }
 
-  return {
-    messages: parseChatMessages(body.messages),
-    model,
-    timezone,
-    deviceId: expectNonEmptyString(body.deviceId, "deviceId"),
-    appVersion: expectNonEmptyString(body.appVersion, "appVersion"),
-  };
-}
-
-function parseLocalAssistantToolCall(value: unknown): LocalAssistantToolCall {
-  const body = expectRecord(value);
-
-  return {
-    toolCallId: expectNonEmptyString(body.toolCallId, "toolCallId"),
-    name: expectNonEmptyString(body.name, "name"),
-    input: expectNonEmptyString(body.input, "input"),
-  };
+  return value.map((partValue, index) => parseLocalContentPart(partValue, `${context}[${index}]`));
 }
 
 function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage> {
@@ -136,26 +115,23 @@ function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage>
     const role = expectNonEmptyString(body.role, `messages[${index}].role`);
 
     if (role === "user") {
+      const content = parseLocalContentParts(body.content, `messages[${index}].content`);
+      for (const part of content) {
+        if (part.type === "tool_call") {
+          throw new HttpError(400, `messages[${index}].content cannot include tool_call parts for user messages`);
+        }
+      }
+
       return {
         role: "user",
-        content: expectNonEmptyString(body.content, `messages[${index}].content`),
+        content,
       };
     }
 
     if (role === "assistant") {
-      const toolCallsValue = body.toolCalls;
-      const toolCalls = toolCallsValue === undefined
-        ? []
-        : Array.isArray(toolCallsValue)
-        ? toolCallsValue.map(parseLocalAssistantToolCall)
-        : (() => {
-          throw new HttpError(400, `messages[${index}].toolCalls must be an array`);
-        })();
-
       return {
         role: "assistant",
-        content: typeof body.content === "string" ? body.content : "",
-        toolCalls,
+        content: parseLocalContentParts(body.content, `messages[${index}].content`),
       };
     }
 
@@ -191,66 +167,6 @@ export function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody 
   };
 }
 
-/**
- * Restricts diagnostics logs to a known set of lifecycle stages so CloudWatch
- * queries stay stable and client payloads remain bounded.
- */
-function parseChatDiagnosticsStage(value: unknown): ChatDiagnosticsStage {
-  if (
-    value === "success" ||
-    value === "empty_response" ||
-    value === "response_not_ok" ||
-    value === "missing_reader" ||
-    value === "stream_error_event" ||
-    value === "fetch_throw" ||
-    value === "aborted"
-  ) {
-    return value;
-  }
-
-  throw new HttpError(400, "stage is invalid");
-}
-
-/**
- * Accepts only scalar stream metadata from the browser and rejects any richer
- * payload shape that could accidentally include prompts, content, or files.
- */
-export function parseChatDiagnosticsBody(value: unknown): ChatDiagnosticsBody {
-  const body = expectRecord(value);
-
-  return {
-    clientRequestId: expectNonEmptyString(body.clientRequestId, "clientRequestId"),
-    responseRequestId: expectNullableNonEmptyString(body.responseRequestId, "responseRequestId"),
-    model: expectNonEmptyString(body.model, "model"),
-    stage: parseChatDiagnosticsStage(body.stage),
-    statusCode: expectNullableNonNegativeInteger(body.statusCode, "statusCode"),
-    responseContentType: expectNullableNonEmptyString(body.responseContentType, "responseContentType"),
-    responseContentLength: expectNullableNonEmptyString(body.responseContentLength, "responseContentLength"),
-    responseContentEncoding: expectNullableNonEmptyString(body.responseContentEncoding, "responseContentEncoding"),
-    responseCacheControl: expectNullableNonEmptyString(body.responseCacheControl, "responseCacheControl"),
-    responseAmznRequestId: expectNullableNonEmptyString(body.responseAmznRequestId, "responseAmznRequestId"),
-    responseApiGatewayId: expectNullableNonEmptyString(body.responseApiGatewayId, "responseApiGatewayId"),
-    responseBodyMissing: expectBoolean(body.responseBodyMissing, "responseBodyMissing"),
-    chunkCount: expectNonNegativeInteger(body.chunkCount, "chunkCount"),
-    bytesReceived: expectNonNegativeInteger(body.bytesReceived, "bytesReceived"),
-    lineCount: expectNonNegativeInteger(body.lineCount, "lineCount"),
-    nonEmptyLineCount: expectNonNegativeInteger(body.nonEmptyLineCount, "nonEmptyLineCount"),
-    parseNullCount: expectNonNegativeInteger(body.parseNullCount, "parseNullCount"),
-    deltaEventCount: expectNonNegativeInteger(body.deltaEventCount, "deltaEventCount"),
-    toolCallEventCount: expectNonNegativeInteger(body.toolCallEventCount, "toolCallEventCount"),
-    errorEventCount: expectNonNegativeInteger(body.errorEventCount, "errorEventCount"),
-    doneEventCount: expectNonNegativeInteger(body.doneEventCount, "doneEventCount"),
-    receivedContent: expectBoolean(body.receivedContent, "receivedContent"),
-    streamEnded: expectBoolean(body.streamEnded, "streamEnded"),
-    readerMissing: expectBoolean(body.readerMissing, "readerMissing"),
-    aborted: expectBoolean(body.aborted, "aborted"),
-    durationMs: expectNonNegativeInteger(body.durationMs, "durationMs"),
-    bufferLength: expectNonNegativeInteger(body.bufferLength, "bufferLength"),
-    errorName: expectNullableNonEmptyString(body.errorName, "errorName"),
-    lastEventType: expectNullableNonEmptyString(body.lastEventType, "lastEventType"),
-  };
-}
-
 export function parseLocalChatDiagnosticsBody(value: unknown): LocalChatDiagnosticsBody {
   const body = expectRecord(value);
 
@@ -275,31 +191,6 @@ export function parseLocalChatDiagnosticsBody(value: unknown): LocalChatDiagnost
 
 function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-/**
- * Writes client-side stream diagnostics with the current selected workspace
- * context so browser failures can be correlated with backend request logs.
- */
-export function logFrontendChatDiagnostics(
-  requestContext: RequestContext,
-  body: ChatDiagnosticsBody,
-): void {
-  const logRecord = {
-    domain: "chat",
-    vendor: "frontend",
-    action: "frontend_diagnostics",
-    workspaceId: requestContext.selectedWorkspaceId,
-    transport: requestContext.transport,
-    ...body,
-  };
-
-  if (body.stage === "success") {
-    console.log(JSON.stringify(logRecord));
-    return;
-  }
-
-  console.error(JSON.stringify(logRecord));
 }
 
 export function logLocalChatDiagnostics(
@@ -333,30 +224,6 @@ function logLocalChatTerminalError(
     stage,
     message,
   }));
-}
-
-/**
- * Keeps chat failures on the SSE transport so the frontend parser sees the
- * same envelope shape for both model and backend exceptions.
- */
-export function createChatErrorResponse(message: string, requestId: string): Response {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message })}\n\n`));
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    status: 500,
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      "X-Chat-Request-Id": requestId,
-    },
-  });
 }
 
 export function createLocalChatErrorEvent(
@@ -422,54 +289,6 @@ export function createLocalChatErrorResponse(
 
   return new Response(stream, {
     status: 500,
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      "X-Chat-Request-Id": requestId,
-    },
-  });
-}
-
-export async function streamChatResponse(
-  body: ChatRequestBody,
-  workspaceId: string,
-  requestId: string,
-): Promise<Response> {
-  const validModel = CHAT_MODELS.find((model) => model.id === body.model);
-  if (validModel === undefined) {
-    throw new HttpError(400, `Unknown model: ${body.model}`);
-  }
-
-  const envKey = validModel.vendor === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
-  const apiKey = process.env[envKey];
-  if (apiKey === undefined || apiKey === "") {
-    throw new HttpError(500, `${envKey} environment variable is not set`);
-  }
-
-  const agentModule = validModel.vendor === "anthropic"
-    ? await import("./anthropic/agent")
-    : await import("./openai/agent");
-
-  const stream = createChatSseStream({
-    events: agentModule.streamAgentResponse({
-      messages: body.messages,
-      model: body.model,
-      requestId,
-      workspaceId,
-      deviceId: body.deviceId,
-      timezone: body.timezone,
-    }),
-    requestId,
-    workspaceId,
-    model: body.model,
-    heartbeatIntervalMs: CHAT_HEARTBEAT_INTERVAL_MS,
-    maxDurationMs: CHAT_STREAM_MAX_DURATION_MS,
-    scheduler: TIMER_SCHEDULER,
-    now: Date.now,
-  });
-
-  return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",

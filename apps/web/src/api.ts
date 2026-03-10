@@ -1,8 +1,5 @@
 import { getAppConfig } from "./config";
-import { getStableDeviceId, webAppVersion } from "./clientIdentity";
 import type {
-  ChatDiagnosticsPayload,
-  ChatMessage,
   LocalChatDiagnosticsPayload,
   LocalChatMessage,
   LocalChatRequestBody,
@@ -47,14 +44,6 @@ type JsonObject = Record<string, unknown>;
 type SessionCsrfState = "unknown" | "session" | "non-session";
 type AuthRecoveryMode = "allow" | "skip";
 type NavigateToUrl = (url: string) => void;
-
-export type ChatRequestBody = Readonly<{
-  messages: ReadonlyArray<ChatMessage>;
-  model: string;
-  timezone: string;
-  deviceId: string;
-  appVersion: string;
-}>;
 
 let sessionCsrfToken: string | null = null;
 let sessionCsrfState: SessionCsrfState = "unknown";
@@ -445,34 +434,12 @@ export async function queryCards(
   return payload as unknown as QueryCardsPage;
 }
 
-export async function streamChat(body: ChatRequestBody, signal: AbortSignal): Promise<Response> {
-  return requestResponse("/chat", {
-    method: "POST",
-    body: JSON.stringify(body),
-    signal,
-  }, allowAuthRecovery);
-}
-
 export async function streamLocalChat(body: LocalChatRequestBody, signal: AbortSignal): Promise<Response> {
   return requestResponse("/chat/local-turn", {
     method: "POST",
     body: JSON.stringify(body),
     signal,
   }, allowAuthRecovery);
-}
-
-export function createChatRequestBody(
-  messages: ReadonlyArray<ChatMessage>,
-  model: string,
-  timezone: string,
-): ChatRequestBody {
-  return {
-    messages,
-    model,
-    timezone,
-    deviceId: getStableDeviceId(),
-    appVersion: webAppVersion,
-  };
 }
 
 export function createLocalChatRequestBody(
@@ -486,18 +453,6 @@ export function createLocalChatRequestBody(
     timezone,
     devicePlatform: "web",
   };
-}
-
-export async function sendChatDiagnostics(body: ChatDiagnosticsPayload): Promise<void> {
-  const response = await requestResponse("/chat/diagnostics", {
-    method: "POST",
-    body: JSON.stringify(body),
-    keepalive: true,
-  }, allowAuthRecovery);
-
-  if (!response.ok) {
-    throw new ApiError(response.status, `Request failed with status ${response.status}`);
-  }
 }
 
 export async function sendLocalChatDiagnostics(body: LocalChatDiagnosticsPayload): Promise<void> {

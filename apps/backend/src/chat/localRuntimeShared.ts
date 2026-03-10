@@ -1,5 +1,10 @@
 import { ZodError } from "zod";
-import type { LocalAssistantToolCall, LocalChatDevicePlatform, LocalChatStreamEvent } from "./localTypes";
+import type {
+  LocalAssistantToolCall,
+  LocalChatDevicePlatform,
+  LocalChatStreamEvent,
+  LocalContentPart,
+} from "./localTypes";
 import {
   buildAssistantRoleSection,
   buildConciseStyleSection,
@@ -15,6 +20,7 @@ import {
 import { OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS } from "./openai/localTools";
 
 export const MAX_LOCAL_TOOL_REPAIR_ATTEMPTS = 3;
+const LOCAL_TOOL_NAME_SET = new Set(Object.keys(OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS));
 
 type RepairableToolCallError = Readonly<{
   toolName: string | null;
@@ -177,4 +183,48 @@ export function toLocalAssistantToolCall(
     name,
     input: validateLocalToolArguments(name, rawInput),
   };
+}
+
+export function isLocalToolName(name: string): boolean {
+  return LOCAL_TOOL_NAME_SET.has(name);
+}
+
+export function summarizeLocalContentParts(parts: ReadonlyArray<LocalContentPart>): string {
+  return parts.map((part) => {
+    if (part.type === "text") {
+      return part.text;
+    }
+
+    if (part.type === "image") {
+      return "[image attached]";
+    }
+
+    if (part.type === "file") {
+      return `[${part.fileName}]`;
+    }
+
+    if (isLocalToolName(part.name)) {
+      return "";
+    }
+
+    return part.status === "completed"
+      ? `[${part.name} completed]`
+      : `[${part.name} started]`;
+  }).filter((part) => part !== "").join("\n");
+}
+
+export function extractLocalAssistantToolCalls(
+  parts: ReadonlyArray<LocalContentPart>,
+): ReadonlyArray<LocalAssistantToolCall> {
+  return parts.flatMap((part) => {
+    if (part.type !== "tool_call" || isLocalToolName(part.name) === false) {
+      return [];
+    }
+
+    return [{
+      toolCallId: part.toolCallId,
+      name: part.name,
+      input: part.input ?? "{}",
+    }];
+  });
 }

@@ -6,15 +6,47 @@ export type LocalAssistantToolCall = Readonly<{
   input: string;
 }>;
 
+export type LocalTextContentPart = Readonly<{
+  type: "text";
+  text: string;
+}>;
+
+export type LocalImageContentPart = Readonly<{
+  type: "image";
+  mediaType: string;
+  base64Data: string;
+}>;
+
+export type LocalFileContentPart = Readonly<{
+  type: "file";
+  mediaType: string;
+  base64Data: string;
+  fileName: string;
+}>;
+
+export type LocalToolCallContentPart = Readonly<{
+  type: "tool_call";
+  toolCallId: string;
+  name: string;
+  status: "started" | "completed";
+  input: string | null;
+  output: string | null;
+}>;
+
+export type LocalContentPart =
+  | LocalTextContentPart
+  | LocalImageContentPart
+  | LocalFileContentPart
+  | LocalToolCallContentPart;
+
 export type LocalChatMessage =
   | Readonly<{
     role: "user";
-    content: string;
+    content: ReadonlyArray<LocalContentPart>;
   }>
   | Readonly<{
     role: "assistant";
-    content: string;
-    toolCalls: ReadonlyArray<LocalAssistantToolCall>;
+    content: ReadonlyArray<LocalContentPart>;
   }>
   | Readonly<{
     role: "tool";
@@ -32,6 +64,14 @@ export type LocalChatRequestBody = Readonly<{
 
 export type LocalChatStreamEvent =
   | Readonly<{ type: "delta"; text: string }>
+  | Readonly<{
+    type: "tool_call";
+    toolCallId: string;
+    name: string;
+    status: "started" | "completed";
+    input: string | null;
+    output: string | null;
+  }>
   | Readonly<{ type: "tool_call_request"; toolCallId: string; name: string; input: string }>
   | Readonly<{
     type: "repair_attempt";

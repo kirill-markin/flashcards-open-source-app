@@ -184,6 +184,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
@@ -262,6 +263,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 requestedToolCalls: &requestedToolCalls,
                 awaitsToolResults: &awaitsToolResults,
                 onDelta: onDelta,
+                onToolCall: onToolCall,
                 onToolCallRequest: onToolCallRequest,
                 onRepairAttempt: onRepairAttempt
             )
@@ -283,6 +285,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 requestedToolCalls: &requestedToolCalls,
                 awaitsToolResults: &awaitsToolResults,
                 onDelta: onDelta,
+                onToolCall: onToolCall,
                 onToolCallRequest: onToolCallRequest,
                 onRepairAttempt: onRepairAttempt
             )
@@ -436,12 +439,16 @@ private func processStreamEvent(
     requestedToolCalls: inout [AIToolCallRequest],
     awaitsToolResults: inout Bool,
     onDelta: @escaping @Sendable (String) async -> Void,
+    onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
     onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
     onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
 ) async throws -> Bool {
     switch event {
     case .delta(let text):
         await onDelta(text)
+        return false
+    case .toolCall(let toolCall):
+        await onToolCall(toolCall)
         return false
     case .toolCallRequest(let toolCallRequest):
         requestedToolCalls.append(toolCallRequest)

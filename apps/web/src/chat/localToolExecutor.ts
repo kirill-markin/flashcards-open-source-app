@@ -37,6 +37,28 @@ export type LocalToolCallRequest = Readonly<{
   input: string;
 }>;
 
+export const LOCAL_TOOL_NAMES = [
+  "get_workspace_context",
+  "list_cards",
+  "get_cards",
+  "search_cards",
+  "list_due_cards",
+  "list_decks",
+  "search_decks",
+  "get_decks",
+  "list_review_history",
+  "get_scheduler_settings",
+  "get_cloud_settings",
+  "list_outbox",
+  "summarize_deck_state",
+  "create_cards",
+  "update_cards",
+  "delete_cards",
+  "create_decks",
+  "update_decks",
+  "delete_decks",
+] as const;
+
 type AIWorkspaceContextPayload = Readonly<{
   workspace: Workspace;
   userSettings: UserSettings;

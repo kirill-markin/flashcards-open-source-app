@@ -4,6 +4,7 @@ import Foundation
 final class AIChatStore: ObservableObject {
     @Published var inputText: String
     @Published private(set) var messages: [AIChatMessage]
+    @Published private(set) var pendingAttachments: [AIChatAttachment]
     @Published private(set) var selectedModelId: String
     @Published private(set) var isStreaming: Bool
     @Published private(set) var errorMessage: String
@@ -38,6 +39,7 @@ final class AIChatStore: ObservableObject {
         let persistedState = historyStore.loadState()
         self.inputText = ""
         self.messages = persistedState.messages
+        self.pendingAttachments = []
         self.selectedModelId = persistedState.selectedModelId
         self.isStreaming = false
         self.errorMessage = ""
@@ -52,7 +54,7 @@ final class AIChatStore: ObservableObject {
     var canSendMessage: Bool {
         self.isStreaming == false
             && self.flashcardsStore.cloudSettings?.cloudState == .linked
-            && self.trimmedInputText().isEmpty == false
+            && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
     }
 
     func setSelectedModel(modelId: String) {
@@ -67,9 +69,24 @@ final class AIChatStore: ObservableObject {
         }
     }
 
+    func appendAttachment(_ attachment: AIChatAttachment) {
+        self.pendingAttachments.append(attachment)
+    }
+
+    func removeAttachment(id: String) {
+        self.pendingAttachments.removeAll { attachment in
+            attachment.id == id
+        }
+    }
+
+    func showError(message: String) {
+        self.errorMessage = message
+    }
+
     func clearHistory() {
         self.cancelStreaming()
         self.messages = []
+        self.pendingAttachments = []
         self.errorMessage = ""
         self.repairStatus = nil
         self.activeConversationId = nil
@@ -97,8 +114,8 @@ final class AIChatStore: ObservableObject {
             return
         }
 
-        let trimmedText = self.trimmedInputText()
-        if trimmedText.isEmpty {
+        let content = self.makeOutgoingContent()
+        if content.isEmpty {
             return
         }
 
@@ -113,8 +130,7 @@ final class AIChatStore: ObservableObject {
             AIChatMessage(
                 id: UUID().uuidString.lowercased(),
                 role: .user,
-                text: trimmedText,
-                toolCalls: [],
+                content: content,
                 timestamp: currentIsoTimestamp(),
                 isError: false
             )
@@ -123,13 +139,13 @@ final class AIChatStore: ObservableObject {
             AIChatMessage(
                 id: UUID().uuidString.lowercased(),
                 role: .assistant,
-                text: "",
-                toolCalls: [],
+                content: [],
                 timestamp: currentIsoTimestamp(),
                 isError: false
             )
         )
         self.inputText = ""
+        self.pendingAttachments = []
         self.isStreaming = true
 
         let conversationId = UUID().uuidString.lowercased()
@@ -178,6 +194,27 @@ final class AIChatStore: ObservableObject {
         self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private func makeOutgoingContent() -> [AIChatContentPart] {
+        var content: [AIChatContentPart] = self.pendingAttachments.map { attachment in
+            if attachment.isImage {
+                return .image(mediaType: attachment.mediaType, base64Data: attachment.base64Data)
+            }
+
+            return .file(
+                fileName: attachment.fileName,
+                mediaType: attachment.mediaType,
+                base64Data: attachment.base64Data
+            )
+        }
+
+        let trimmedText = self.trimmedInputText()
+        if trimmedText.isEmpty == false {
+            content.append(.text(trimmedText))
+        }
+
+        return content
+    }
+
     private func currentPersistedState() -> AIChatPersistedState {
         AIChatPersistedState(messages: self.messages, selectedModelId: self.selectedModelId)
     }
@@ -190,10 +227,8 @@ final class AIChatStore: ObservableObject {
         switch event {
         case .appendAssistantText(let text):
             self.appendAssistantText(text: text)
-        case .appendToolCallRequest(let toolCallRequest):
-            self.appendToolCallRequest(toolCallRequest: toolCallRequest)
-        case .completeToolCall(let toolCallId, let output):
-            self.completeToolCall(toolCallId: toolCallId, output: output)
+        case .upsertToolCall(let toolCall):
+            self.upsertToolCall(toolCall: toolCall)
         case .setRepairStatus(let status):
             self.repairStatus = status
         case .applySnapshot(let snapshot):
@@ -224,14 +259,13 @@ final class AIChatStore: ObservableObject {
         self.messages[lastIndex] = AIChatMessage(
             id: lastMessage.id,
             role: lastMessage.role,
-            text: lastMessage.text + text,
-            toolCalls: lastMessage.toolCalls,
+            content: appendingAIChatText(content: lastMessage.content, text: text),
             timestamp: lastMessage.timestamp,
             isError: lastMessage.isError
         )
     }
 
-    private func appendToolCallRequest(toolCallRequest: AIToolCallRequest) {
+    private func upsertToolCall(toolCall: AIChatToolCall) {
         guard let lastIndex = self.messages.indices.last else {
             return
         }
@@ -241,52 +275,23 @@ final class AIChatStore: ObservableObject {
 
         self.repairStatus = nil
         let lastMessage = self.messages[lastIndex]
-        self.messages[lastIndex] = AIChatMessage(
-            id: lastMessage.id,
-            role: lastMessage.role,
-            text: lastMessage.text,
-            toolCalls: lastMessage.toolCalls + [
-                AIChatToolCall(
-                    id: toolCallRequest.toolCallId,
-                    name: toolCallRequest.name,
-                    status: .requested,
-                    input: toolCallRequest.input,
-                    output: nil
-                )
-            ],
-            timestamp: lastMessage.timestamp,
-            isError: lastMessage.isError
-        )
-    }
-
-    private func completeToolCall(toolCallId: String, output: String) {
-        guard let lastIndex = self.messages.indices.last else {
-            return
-        }
-        guard self.messages[lastIndex].role == .assistant else {
-            return
-        }
-
-        let lastMessage = self.messages[lastIndex]
-        let updatedToolCalls = lastMessage.toolCalls.map { toolCall in
-            if toolCall.id == toolCallId {
-                return AIChatToolCall(
-                    id: toolCall.id,
-                    name: toolCall.name,
-                    status: .completed,
-                    input: toolCall.input,
-                    output: output
-                )
+        var updatedContent = lastMessage.content
+        if let contentIndex = updatedContent.firstIndex(where: { part in
+            guard case .toolCall(let existingToolCall) = part else {
+                return false
             }
 
-            return toolCall
+            return existingToolCall.id == toolCall.id
+        }) {
+            updatedContent[contentIndex] = .toolCall(toolCall)
+        } else {
+            updatedContent.append(.toolCall(toolCall))
         }
 
         self.messages[lastIndex] = AIChatMessage(
             id: lastMessage.id,
             role: lastMessage.role,
-            text: lastMessage.text,
-            toolCalls: updatedToolCalls,
+            content: updatedContent,
             timestamp: lastMessage.timestamp,
             isError: lastMessage.isError
         )
@@ -295,12 +300,11 @@ final class AIChatStore: ObservableObject {
     private func markAssistantError(message: String) {
         if let lastIndex = self.messages.indices.last, self.messages[lastIndex].role == .assistant {
             let lastMessage = self.messages[lastIndex]
-            let nextText = lastMessage.text.isEmpty ? message : "\(lastMessage.text)\n\n\(message)"
+            let separator = extractAIChatTextContent(parts: lastMessage.content).isEmpty ? "" : "\n\n"
             self.messages[lastIndex] = AIChatMessage(
                 id: lastMessage.id,
                 role: lastMessage.role,
-                text: nextText,
-                toolCalls: lastMessage.toolCalls,
+                content: appendingAIChatText(content: lastMessage.content, text: separator + message),
                 timestamp: lastMessage.timestamp,
                 isError: true
             )
@@ -309,12 +313,34 @@ final class AIChatStore: ObservableObject {
                 AIChatMessage(
                     id: UUID().uuidString.lowercased(),
                     role: .assistant,
-                    text: message,
-                    toolCalls: [],
+                    content: [.text(message)],
                     timestamp: currentIsoTimestamp(),
                     isError: true
                 )
             )
+        }
+    }
+}
+
+private func appendingAIChatText(content: [AIChatContentPart], text: String) -> [AIChatContentPart] {
+    guard text.isEmpty == false else {
+        return content
+    }
+
+    var updatedContent = content
+    if let lastPart = updatedContent.last, case .text(let existingText) = lastPart {
+        updatedContent[updatedContent.count - 1] = .text(existingText + text)
+    } else {
+        updatedContent.append(.text(text))
+    }
+
+    return updatedContent
+}
+
+private func extractAIChatTextContent(parts: [AIChatContentPart]) -> String {
+    parts.reduce(into: "") { partialResult, part in
+        if case .text(let text) = part {
+            partialResult.append(text)
         }
     }
 }
