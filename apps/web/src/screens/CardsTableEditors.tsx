@@ -222,11 +222,14 @@ export function EditableCardTextCell(props: EditableTextCellProps): ReactElement
   const multilineClassName = multiline ? " cards-cell-multiline" : "";
   const className = `txn-cell ${cellClassName}${multilineClassName}${saving ? " cards-cell-disabled" : " drilldown-editable"}`;
   const displayText = displayValue.length > 0 ? displayValue : "\u2014";
+  const displayContent = multiline
+    ? <span className="cards-cell-multiline-display">{displayText}</span>
+    : displayText;
   const overlayStyle = overlayRect === null ? null : getTextOverlayStyle(overlayRect, multiline);
 
   return (
     <td ref={cellRef} className={className} onClick={saving ? undefined : startEditing}>
-      {displayText}
+      {displayContent}
       {isEditing && overlayStyle !== null && createPortal(
         multiline ? (
           <textarea
