@@ -416,18 +416,8 @@ func makeReviewTimeline(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]
     )
 }
 
-func selectedReviewCard(reviewQueue: [Card], selectedCardId: String) -> Card? {
-    if let selectedCard = reviewQueue.first(where: { card in
-        card.cardId == selectedCardId
-    }) {
-        return selectedCard
-    }
-
+func currentReviewCard(reviewQueue: [Card]) -> Card? {
     return reviewQueue.first
-}
-
-func selectedReviewCardId(reviewQueue: [Card], selectedCardId: String) -> String {
-    selectedReviewCard(reviewQueue: reviewQueue, selectedCardId: selectedCardId)?.cardId ?? ""
 }
 
 func initialIncrementalVisibleCount(totalCount: Int, initialCount: Int) -> Int {

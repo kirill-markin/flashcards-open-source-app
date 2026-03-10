@@ -232,8 +232,8 @@ export function makeReviewQueue(
   return deriveReviewQueue(cardsMatchingReviewFilter(reviewFilter, decks, cards));
 }
 
-export function selectReviewCard(reviewQueue: ReadonlyArray<Card>, selectedCardId: string): Card | null {
-  return reviewQueue.find((card) => card.cardId === selectedCardId) ?? reviewQueue[0] ?? null;
+export function currentReviewCard(reviewQueue: ReadonlyArray<Card>): Card | null {
+  return reviewQueue[0] ?? null;
 }
 
 export function compareLww(left: LastWriteWinsRecord, right: LastWriteWinsRecord): number {

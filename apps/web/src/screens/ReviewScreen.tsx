@@ -2,8 +2,8 @@ import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import {
   ALL_CARDS_REVIEW_FILTER,
+  currentReviewCard,
   isCardDue,
-  selectReviewCard,
 } from "../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../deckFilters";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
@@ -145,7 +145,6 @@ export function ReviewScreen(): ReactElement {
     deleteCardItem,
     setErrorMessage,
   } = useAppData();
-  const [selectedCardId, setSelectedCardId] = useState<string>("");
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isEditorPresented, setIsEditorPresented] = useState<boolean>(false);
@@ -156,7 +155,7 @@ export function ReviewScreen(): ReactElement {
   const nowTimestamp = Date.now();
   const activeReviewQueue = reviewQueue;
   const queueCards = cardsState.hasLoaded ? reviewTimeline : reviewQueue;
-  const selectedCard = selectReviewCard(activeReviewQueue, selectedCardId);
+  const selectedCard = currentReviewCard(activeReviewQueue);
   const editingCard = cards.find((card) => card.cardId === editingCardId && card.deletedAt === null) ?? null;
   const reviewButtonsNow = new Date();
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
@@ -182,20 +181,8 @@ export function ReviewScreen(): ReactElement {
   }, [ensureCardsLoaded, ensureDecksLoaded, ensureReviewQueueLoaded]);
 
   useEffect(() => {
-    if (activeReviewQueue.length === 0) {
-      setSelectedCardId("");
-      return;
-    }
-
-    const selectedStillExists = activeReviewQueue.some((card) => card.cardId === selectedCardId);
-    if (!selectedStillExists) {
-      setSelectedCardId(activeReviewQueue[0].cardId);
-    }
-  }, [activeReviewQueue, selectedCardId]);
-
-  useEffect(() => {
     setIsAnswerVisible(false);
-  }, [selectedCardId]);
+  }, [selectedCard?.cardId]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<void> {
     setIsSubmitting(true);
@@ -210,7 +197,6 @@ export function ReviewScreen(): ReactElement {
   }
 
   function openEditor(card: Card): void {
-    setSelectedCardId(card.cardId);
     setEditingCardId(card.cardId);
     setEditorFormState(toCardFormState(card));
     setEditorErrorMessage("");
@@ -234,7 +220,6 @@ export function ReviewScreen(): ReactElement {
         tags: editorFormState.tags,
         effortLevel: editorFormState.effortLevel,
       });
-      setSelectedCardId(editingCardId);
       setIsEditorPresented(false);
     } catch (error) {
       setEditorErrorMessage(error instanceof Error ? error.message : String(error));
@@ -433,16 +418,9 @@ export function ReviewScreen(): ReactElement {
                   const isDue = isCardDue(card, nowTimestamp);
 
                   return (
-                    <button
+                    <div
                       key={card.cardId}
-                      type="button"
                       className={`review-queue-card${isDue ? "" : " review-queue-card-upcoming"}${selectedCard?.cardId === card.cardId ? " review-queue-card-active" : ""}`}
-                      onClick={() => {
-                        if (isDue) {
-                          setSelectedCardId(card.cardId);
-                        }
-                      }}
-                      disabled={!isDue}
                     >
                       <span className="review-queue-card-title">{card.frontText}</span>
                       <span className="review-queue-card-tags">{renderTags(card.tags)}</span>
@@ -451,7 +429,7 @@ export function ReviewScreen(): ReactElement {
                         <span>{formatTimestamp(card.dueAt)}</span>
                         {isDue ? null : <span>Upcoming</span>}
                       </span>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

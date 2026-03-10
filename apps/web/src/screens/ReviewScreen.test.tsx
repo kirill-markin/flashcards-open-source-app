@@ -194,4 +194,103 @@ describe("ReviewScreen", () => {
 
     expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });
   });
+
+  it("shows the review queue head as the current card", async () => {
+    const topQueueCard = createCard({
+      cardId: "top-queue-card",
+      frontText: "Top queue front",
+    });
+    const secondQueueCard = createCard({
+      cardId: "second-queue-card",
+      frontText: "Second queue front",
+      updatedAt: "2026-03-10T10:00:00.000Z",
+    });
+    mockAppData.cards = [topQueueCard, secondQueueCard];
+    mockAppData.reviewQueue = [topQueueCard, secondQueueCard];
+    mockAppData.reviewTimeline = [topQueueCard, secondQueueCard];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelector(".review-front")?.textContent).toContain("Top queue front");
+    expect(container.querySelectorAll(".review-queue-card-active")).toHaveLength(1);
+    expect(container.querySelector(".review-queue-card-active")?.textContent).toContain("Top queue front");
+  });
+
+  it("switches the current card when the queue head changes after rerender", async () => {
+    const firstQueueHead = createCard({
+      cardId: "first-queue-head",
+      frontText: "First queue head",
+    });
+    const secondQueueHead = createCard({
+      cardId: "second-queue-head",
+      frontText: "Second queue head",
+      updatedAt: "2026-03-10T10:00:00.000Z",
+    });
+    mockAppData.cards = [firstQueueHead, secondQueueHead];
+    mockAppData.reviewQueue = [firstQueueHead, secondQueueHead];
+    mockAppData.reviewTimeline = [firstQueueHead, secondQueueHead];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelector(".review-front")?.textContent).toContain("First queue head");
+
+    mockAppData.reviewQueue = [secondQueueHead, firstQueueHead];
+    mockAppData.reviewTimeline = [secondQueueHead, firstQueueHead];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelector(".review-front")?.textContent).toContain("Second queue head");
+    expect(container.querySelector(".review-queue-card-active")?.textContent).toContain("Second queue head");
+  });
+
+  it("does not change the current card when clicking a non-head queue item", async () => {
+    const topQueueCard = createCard({
+      cardId: "top-queue-card",
+      frontText: "Top queue front",
+    });
+    const secondQueueCard = createCard({
+      cardId: "second-queue-card",
+      frontText: "Second queue front",
+      updatedAt: "2026-03-10T10:00:00.000Z",
+    });
+    mockAppData.cards = [topQueueCard, secondQueueCard];
+    mockAppData.reviewQueue = [topQueueCard, secondQueueCard];
+    mockAppData.reviewTimeline = [topQueueCard, secondQueueCard];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const queueCards = container.querySelectorAll(".review-queue-card");
+    expect(queueCards).toHaveLength(2);
+
+    await act(async () => {
+      queueCards[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.querySelector(".review-front")?.textContent).toContain("Top queue front");
+    expect(container.querySelector(".review-queue-card-active")?.textContent).toContain("Top queue front");
+  });
 });
