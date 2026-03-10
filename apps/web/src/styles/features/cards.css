@@ -344,16 +344,29 @@
   line-height: 1.6;
 }
 
-.deck-card-meta {
+.deck-card-stats {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--divider);
 }
 
-.deck-card-meta-label {
+.deck-card-stat {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.deck-card-stat-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.deck-card-stat-label {
   color: var(--text-tertiary);
   font-size: 11px;
   text-transform: uppercase;
