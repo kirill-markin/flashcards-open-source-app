@@ -178,6 +178,52 @@ private actor MutatingChatService: AIChatStreaming {
     }
 }
 
+private struct SuspendingChatService: AIChatStreaming, @unchecked Sendable {
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        try await Task.sleep(nanoseconds: 10_000_000_000)
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-suspending")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+}
+
+private struct RepairingSuspendingChatService: AIChatStreaming, @unchecked Sendable {
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        await onRepairAttempt(
+            AIChatRepairAttemptStatus(
+                message: "Assistant is correcting list_cards.",
+                attempt: 1,
+                maxAttempts: 3,
+                toolName: "list_cards"
+            )
+        )
+        try await Task.sleep(nanoseconds: 10_000_000_000)
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-repairing")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+}
+
 private struct StubLocalizedError: LocalizedError {
     let message: String
 
@@ -888,6 +934,95 @@ final class AIChatTests: XCTestCase {
     }
 
     @MainActor
+    func testAIChatStoreSendMessageClearsDraftAndAttachmentsBeforeStreaming() throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let historyStore = InMemoryHistoryStore(
+            savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+        )
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: historyStore,
+            chatService: SuspendingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.appendAttachment(
+            AIChatAttachment(
+                id: "attachment-1",
+                fileName: "note.txt",
+                mediaType: "text/plain",
+                base64Data: Data("hello".utf8).base64EncodedString()
+            )
+        )
+        chatStore.inputText = "hello"
+
+        chatStore.sendMessage()
+
+        XCTAssertTrue(chatStore.isStreaming)
+        XCTAssertEqual(chatStore.inputText, "")
+        XCTAssertEqual(chatStore.pendingAttachments, [])
+        XCTAssertEqual(chatStore.messages.count, 2)
+        XCTAssertEqual(chatStore.messages[0].role, .user)
+        XCTAssertEqual(chatStore.messages[0].content.count, 2)
+
+        chatStore.cancelStreaming()
+    }
+
+    @MainActor
+    func testAIChatStoreCancelStreamingClearsRepairStatusWithoutClearingDraft() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: RepairingSuspendingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForRepairStatus(chatStore: chatStore)
+        chatStore.inputText = "next draft"
+
+        chatStore.cancelStreaming()
+
+        XCTAssertFalse(chatStore.isStreaming)
+        XCTAssertNil(chatStore.repairStatus)
+        XCTAssertEqual(chatStore.inputText, "next draft")
+    }
+
+    @MainActor
+    func testAIChatStoreKeepsTypedDraftAfterStoppingStreaming() throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: SuspendingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+        XCTAssertTrue(chatStore.isStreaming)
+
+        chatStore.inputText = "follow up"
+        chatStore.cancelStreaming()
+
+        XCTAssertFalse(chatStore.isStreaming)
+        XCTAssertEqual(chatStore.inputText, "follow up")
+    }
+
+    @MainActor
     func testAIChatStoreAppliesCreateCardPresentationRequestAsDraftOnly() throws {
         let flashcardsStore = try self.makeStore()
         let failingToolExecutor = FailingToolExecutor()
@@ -1237,6 +1372,19 @@ final class AIChatTests: XCTestCase {
         }
 
         XCTFail("Timed out waiting for chat completion")
+    }
+
+    @MainActor
+    private func waitForRepairStatus(chatStore: AIChatStore) async throws {
+        for _ in 0..<50 {
+            if chatStore.repairStatus != nil {
+                return
+            }
+
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTFail("Timed out waiting for repair status")
     }
 
     private func makeSession() -> URLSession {

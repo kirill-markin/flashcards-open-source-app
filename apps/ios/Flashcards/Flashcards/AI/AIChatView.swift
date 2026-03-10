@@ -165,10 +165,13 @@ struct AIChatView: View {
                             .id(message.id)
                         }
                     }
-                    .padding(16)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
+                .defaultScrollAnchor(.bottom)
                 .background(Color(.systemGroupedBackground))
                 .contentShape(Rectangle())
+                .scrollDismissesKeyboard(.interactively)
                 .onTapGesture {
                     self.isComposerFocused = false
                 }
@@ -186,7 +189,14 @@ struct AIChatView: View {
                     }
                 }
             }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            self.composerInset
+        }
+    }
 
+    private var composerInset: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Divider()
 
             VStack(alignment: .leading, spacing: 12) {
@@ -240,23 +250,41 @@ struct AIChatView: View {
                     }
                 }
 
-                ZStack(alignment: .topLeading) {
-                    TextEditor(text: self.$chatStore.inputText)
-                        .focused(self.$isComposerFocused)
-                        .frame(minHeight: 88, maxHeight: 140)
-                        .padding(4)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color(.separator), lineWidth: 1)
-                        )
+                HStack(alignment: .bottom, spacing: 12) {
+                    TextField(
+                        "Ask about cards, review history, or propose a change...",
+                        text: self.$chatStore.inputText,
+                        axis: .vertical
+                    )
+                    .focused(self.$isComposerFocused)
+                    .lineLimit(1...aiChatComposerMaximumLineCount)
+                    .padding(.leading, 12)
+                    .padding(.vertical, 10)
 
-                    if self.chatStore.inputText.isEmpty {
-                        Text("Ask about cards, review history, or propose a change...")
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 14)
+                    Button {
+                        self.handlePrimaryComposerAction()
+                    } label: {
+                        Image(systemName: self.chatStore.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(self.chatStore.isStreaming ? Color.red : Color.accentColor)
                     }
+                    .buttonStyle(.plain)
+                    .disabled(self.primaryComposerButtonDisabled)
+                    .accessibilityLabel(self.chatStore.isStreaming ? "Stop response" : "Send message")
                 }
+                .padding(.trailing, 10)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color(.separator), lineWidth: 1)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        self.isComposerFocused = true
+                    }
+                )
 
                 HStack {
                     PhotosPicker(
@@ -277,23 +305,11 @@ struct AIChatView: View {
                     .buttonStyle(.bordered)
                     .disabled(self.chatStore.isStreaming)
 
-                    if self.chatStore.isStreaming {
-                        Button("Cancel") {
-                            self.chatStore.cancelStreaming()
-                        }
-                        .buttonStyle(.bordered)
-                    }
-
                     Spacer()
-
-                    Button("Send") {
-                        self.chatStore.sendMessage()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(self.chatStore.canSendMessage == false)
                 }
             }
             .padding(16)
+            .background(Color(.systemBackground))
         }
     }
 
@@ -301,6 +317,10 @@ struct AIChatView: View {
         AIChatModelDef.all.first(where: { model in
             model.id == self.chatStore.selectedModelId
         })?.label ?? self.chatStore.selectedModelId
+    }
+
+    private var primaryComposerButtonDisabled: Bool {
+        self.chatStore.isStreaming == false && self.chatStore.canSendMessage == false
     }
 
     private func handleAIChatPresentationRequest(request: AIChatPresentationRequest?) {
@@ -434,7 +454,19 @@ struct AIChatView: View {
             self.chatStore.showError(message: localizedMessage(error: error))
         }
     }
+
+    private func handlePrimaryComposerAction() {
+        if self.chatStore.isStreaming {
+            self.chatStore.cancelStreaming()
+            return
+        }
+
+        self.chatStore.sendMessage()
+        self.isComposerFocused = true
+    }
 }
+
+private let aiChatComposerMaximumLineCount: Int = 5
 
 private func aiChatImporterContentTypes() -> [UTType] {
     let baseTypes = aiChatSupportedFileExtensions.compactMap { fileExtension in
