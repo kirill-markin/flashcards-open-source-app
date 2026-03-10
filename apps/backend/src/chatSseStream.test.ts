@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createChatSseStream } from "./app";
+import { createChatSseStream } from "./chat/sse";
 import type { ChatStreamEvent } from "./chat/types";
 
 type IntervalHandle = ReturnType<typeof globalThis.setInterval>;
