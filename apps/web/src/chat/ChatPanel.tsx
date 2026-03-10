@@ -158,15 +158,16 @@ function sanitizeErrorText(status: number, raw: string): string {
   return raw;
 }
 
-function formatToolLabel(name: string): string {
+export function formatToolLabel(name: string): string {
   if (name === "list_cards") return "List cards";
-  if (name === "get_card") return "Get card";
+  if (name === "get_cards") return "Get cards";
   if (name === "search_cards") return "Search cards";
   if (name === "list_due_cards") return "List due cards";
   if (name === "list_review_history") return "Review history";
   if (name === "summarize_deck_state") return "Deck summary";
-  if (name === "create_card") return "Create card";
-  if (name === "update_card") return "Update card";
+  if (name === "create_cards") return "Create cards";
+  if (name === "update_cards") return "Update cards";
+  if (name === "delete_cards") return "Delete cards";
   if (name === "code_execution" || name === "code_interpreter") return "Code execution";
   if (name === "web_search") return "Web search";
   return name;

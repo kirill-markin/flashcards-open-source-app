@@ -1,16 +1,32 @@
 import { tool, type RunContext } from "@openai/agents";
 import { z } from "zod";
 import {
-  runCreateCardTool,
-  runGetCardTool,
+  runCreateCardsTool,
+  runDeleteCardsTool,
+  runGetCardsTool,
   runListCardsTool,
   runListDueCardsTool,
   runListReviewHistoryTool,
   runSearchCardsTool,
   runSummarizeDeckStateTool,
-  runUpdateCardTool,
+  runUpdateCardsTool,
   type AgentContext,
 } from "../shared";
+
+const CARD_ID_ARRAY_SCHEMA = z.array(z.string().min(1)).min(1).max(100);
+const CARD_INPUT_SCHEMA = z.object({
+  frontText: z.string().min(1),
+  backText: z.string(),
+  tags: z.array(z.string()),
+  effortLevel: z.enum(["fast", "medium", "long"]),
+});
+const CARD_UPDATE_SCHEMA = z.object({
+  cardId: z.string().min(1),
+  frontText: z.string().min(1).nullable(),
+  backText: z.string().nullable(),
+  tags: z.array(z.string()).nullable(),
+  effortLevel: z.enum(["fast", "medium", "long"]).nullable(),
+});
 
 function expectRunContext(runContext: RunContext<AgentContext> | undefined): AgentContext {
   if (runContext === undefined) {
@@ -32,15 +48,15 @@ export const listCardsTool = tool({
   },
 });
 
-export const getCardTool = tool({
-  name: "get_card",
-  description: "Get one card by cardId.",
+export const getCardsTool = tool({
+  name: "get_cards",
+  description: "Get one or more cards by cardId.",
   parameters: z.object({
-    cardId: z.string().min(1),
+    cardIds: CARD_ID_ARRAY_SCHEMA,
   }),
-  execute: async (input: { cardId: string }, runContext?: RunContext<AgentContext>): Promise<string> => {
+  execute: async (input: { cardIds: ReadonlyArray<string> }, runContext?: RunContext<AgentContext>): Promise<string> => {
     const context = expectRunContext(runContext);
-    return runGetCardTool(context.workspaceId, input.cardId);
+    return runGetCardsTool(context.workspaceId, input.cardIds);
   },
 });
 
@@ -98,56 +114,56 @@ export const summarizeDeckStateTool = tool({
   },
 });
 
-export const createCardTool = tool({
-  name: "create_card",
-  description: "Create a new card.",
+export const createCardsTool = tool({
+  name: "create_cards",
+  description: "Create one or more cards.",
   parameters: z.object({
-    frontText: z.string().min(1),
-    backText: z.string(),
-    tags: z.array(z.string()),
-    effortLevel: z.enum(["fast", "medium", "long"]),
+    cards: z.array(CARD_INPUT_SCHEMA).min(1).max(100),
   }),
   execute: async (
-    input: { frontText: string; backText: string; tags: ReadonlyArray<string>; effortLevel: "fast" | "medium" | "long" },
+    input: { cards: ReadonlyArray<{
+      frontText: string;
+      backText: string;
+      tags: ReadonlyArray<string>;
+      effortLevel: "fast" | "medium" | "long";
+    }> },
     runContext?: RunContext<AgentContext>,
   ): Promise<string> => {
     const context = expectRunContext(runContext);
-    return runCreateCardTool(context.workspaceId, input, {
+    return runCreateCardsTool(context.workspaceId, input.cards, {
       deviceId: context.deviceId,
     });
   },
 });
 
-export const updateCardTool = tool({
-  name: "update_card",
-  description: "Update editable card fields.",
+export const updateCardsTool = tool({
+  name: "update_cards",
+  description: "Update one or more cards.",
   parameters: z.object({
-    cardId: z.string().min(1),
-    frontText: z.string().min(1).nullable(),
-    backText: z.string().nullable(),
-    tags: z.array(z.string()).nullable(),
-    effortLevel: z.enum(["fast", "medium", "long"]).nullable(),
+    updates: z.array(CARD_UPDATE_SCHEMA).min(1).max(100),
   }),
   execute: async (
     input: {
-      cardId: string;
-      frontText: string | null;
-      backText: string | null;
-      tags: ReadonlyArray<string> | null;
-      effortLevel: "fast" | "medium" | "long" | null;
+      updates: ReadonlyArray<{
+        cardId: string;
+        frontText: string | null;
+        backText: string | null;
+        tags: ReadonlyArray<string> | null;
+        effortLevel: "fast" | "medium" | "long" | null;
+      }>;
     },
     runContext?: RunContext<AgentContext>,
   ): Promise<string> => {
     const context = expectRunContext(runContext);
-    return runUpdateCardTool(
+    return runUpdateCardsTool(
       context.workspaceId,
-      input.cardId,
-      {
-        frontText: input.frontText ?? undefined,
-        backText: input.backText ?? undefined,
-        tags: input.tags ?? undefined,
-        effortLevel: input.effortLevel ?? undefined,
-      },
+      input.updates.map((update) => ({
+        cardId: update.cardId,
+        frontText: update.frontText ?? undefined,
+        backText: update.backText ?? undefined,
+        tags: update.tags ?? undefined,
+        effortLevel: update.effortLevel ?? undefined,
+      })),
       {
         deviceId: context.deviceId,
       },
@@ -155,13 +171,31 @@ export const updateCardTool = tool({
   },
 });
 
+export const deleteCardsTool = tool({
+  name: "delete_cards",
+  description: "Delete one or more cards.",
+  parameters: z.object({
+    cardIds: CARD_ID_ARRAY_SCHEMA,
+  }),
+  execute: async (
+    input: { cardIds: ReadonlyArray<string> },
+    runContext?: RunContext<AgentContext>,
+  ): Promise<string> => {
+    const context = expectRunContext(runContext);
+    return runDeleteCardsTool(context.workspaceId, input.cardIds, {
+      deviceId: context.deviceId,
+    });
+  },
+});
+
 export const OPENAI_FLASHCARDS_TOOLS = [
   listCardsTool,
-  getCardTool,
+  getCardsTool,
   searchCardsTool,
   listDueCardsTool,
   listReviewHistoryTool,
   summarizeDeckStateTool,
-  createCardTool,
-  updateCardTool,
+  createCardsTool,
+  updateCardsTool,
+  deleteCardsTool,
 ] as const;

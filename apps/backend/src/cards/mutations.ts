@@ -16,6 +16,10 @@ import {
   toCardLwwMetadata,
 } from "./shared";
 import type {
+  BulkCreateCardItem,
+  BulkDeleteCardItem,
+  BulkDeleteCardsResult,
+  BulkUpdateCardItem,
   Card,
   CardMutationMetadata,
   CardMutationResult,
@@ -25,6 +29,8 @@ import type {
   UpdateCardInput,
   UpdateQueryParts,
 } from "./types";
+
+const MAX_CARD_BATCH_SIZE = 100;
 
 function normalizeRequiredCardText(value: string, fieldName: string): string {
   const normalizedValue = value.trim();
@@ -84,6 +90,23 @@ function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
   }
 
   return { assignments, params };
+}
+
+function validateCardBatchCount(count: number): void {
+  if (count < 1) {
+    throw new HttpError(400, "Card batch must contain at least one item");
+  }
+
+  if (count > MAX_CARD_BATCH_SIZE) {
+    throw new HttpError(400, `Card batch must contain at most ${MAX_CARD_BATCH_SIZE} items`);
+  }
+}
+
+function validateUniqueCardIds(cardIds: ReadonlyArray<string>): void {
+  const uniqueCardIds = new Set(cardIds);
+  if (uniqueCardIds.size !== cardIds.length) {
+    throw new HttpError(400, "Card batch must not contain duplicate cardId values");
+  }
 }
 
 function normalizeCardSnapshotInput(input: CardSnapshotInput): CardSnapshotInput {
@@ -269,7 +292,8 @@ export async function upsertCardSnapshot(
   ));
 }
 
-export async function createCard(
+async function createCardInExecutor(
+  executor: DatabaseExecutor,
   workspaceId: string,
   input: CreateCardInput,
   metadata: CardMutationMetadata,
@@ -277,44 +301,67 @@ export async function createCard(
   const normalizedInput = normalizeCreateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
-  return transaction(async (executor) => {
-    const result = await executor.query<CardRow>(
-      [
-        "INSERT INTO content.cards",
-        "(",
-        "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at,",
-        "reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-        "client_updated_at, last_modified_by_device_id, last_operation_id",
-        ")",
-        "VALUES ($1, $2, $3, $4, $5, $6, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $7, $8, $9)",
-        "RETURNING",
-        CARD_COLUMNS,
-      ].join(" "),
-      [
-        randomUUID(),
-        workspaceId,
-        normalizedInput.frontText,
-        normalizedInput.backText,
-        normalizedInput.tags,
-        normalizedInput.effortLevel,
-        normalizedMetadata.clientUpdatedAt,
-        normalizedMetadata.lastModifiedByDeviceId,
-        normalizedMetadata.lastOperationId,
-      ],
-    );
+  const result = await executor.query<CardRow>(
+    [
+      "INSERT INTO content.cards",
+      "(",
+      "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at,",
+      "reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
+      "client_updated_at, last_modified_by_device_id, last_operation_id",
+      ")",
+      "VALUES ($1, $2, $3, $4, $5, $6, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $7, $8, $9)",
+      "RETURNING",
+      CARD_COLUMNS,
+    ].join(" "),
+    [
+      randomUUID(),
+      workspaceId,
+      normalizedInput.frontText,
+      normalizedInput.backText,
+      normalizedInput.tags,
+      normalizedInput.effortLevel,
+      normalizedMetadata.clientUpdatedAt,
+      normalizedMetadata.lastModifiedByDeviceId,
+      normalizedMetadata.lastOperationId,
+    ],
+  );
 
-    const row = result.rows[0];
-    if (row === undefined) {
-      throw new Error("Card insert did not return a row");
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error("Card insert did not return a row");
+  }
+
+  const card = mapCard(row);
+  await recordCardSyncChange(executor, workspaceId, card);
+  return card;
+}
+
+export async function createCard(
+  workspaceId: string,
+  input: CreateCardInput,
+  metadata: CardMutationMetadata,
+): Promise<Card> {
+  return transaction(async (executor) => createCardInExecutor(executor, workspaceId, input, metadata));
+}
+
+export async function createCards(
+  workspaceId: string,
+  items: ReadonlyArray<BulkCreateCardItem>,
+): Promise<ReadonlyArray<Card>> {
+  validateCardBatchCount(items.length);
+
+  return transaction(async (executor) => {
+    const createdCards: Array<Card> = [];
+    for (const item of items) {
+      createdCards.push(await createCardInExecutor(executor, workspaceId, item.input, item.metadata));
     }
 
-    const card = mapCard(row);
-    await recordCardSyncChange(executor, workspaceId, card);
-    return card;
+    return createdCards;
   });
 }
 
-export async function updateCard(
+async function updateCardInExecutor(
+  executor: DatabaseExecutor,
   workspaceId: string,
   cardId: string,
   input: UpdateCardInput,
@@ -337,26 +384,117 @@ export async function updateCard(
     cardId,
   ];
 
-  return transaction(async (executor) => {
-    const result = await executor.query<CardRow>(
-      [
-        "UPDATE content.cards",
-        `SET ${updateParts.assignments.join(", ")}, client_updated_at = $${params.length - 4},`,
-        `last_modified_by_device_id = $${params.length - 3}, last_operation_id = $${params.length - 2}, updated_at = now()`,
-        `WHERE workspace_id = $${params.length - 1} AND card_id = $${params.length} AND deleted_at IS NULL`,
-        "RETURNING",
-        CARD_COLUMNS,
-      ].join(" "),
-      params,
-    );
+  const result = await executor.query<CardRow>(
+    [
+      "UPDATE content.cards",
+      `SET ${updateParts.assignments.join(", ")}, client_updated_at = $${params.length - 4},`,
+      `last_modified_by_device_id = $${params.length - 3}, last_operation_id = $${params.length - 2}, updated_at = now()`,
+      `WHERE workspace_id = $${params.length - 1} AND card_id = $${params.length} AND deleted_at IS NULL`,
+      "RETURNING",
+      CARD_COLUMNS,
+    ].join(" "),
+    params,
+  );
 
-    const row = result.rows[0];
-    if (row === undefined) {
-      throw new HttpError(404, "Card not found");
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new HttpError(404, "Card not found");
+  }
+
+  const card = mapCard(row);
+  await recordCardSyncChange(executor, workspaceId, card);
+  return card;
+}
+
+export async function updateCard(
+  workspaceId: string,
+  cardId: string,
+  input: UpdateCardInput,
+  metadata: CardMutationMetadata,
+): Promise<Card> {
+  return transaction(async (executor) => updateCardInExecutor(executor, workspaceId, cardId, input, metadata));
+}
+
+export async function updateCards(
+  workspaceId: string,
+  items: ReadonlyArray<BulkUpdateCardItem>,
+): Promise<ReadonlyArray<Card>> {
+  validateCardBatchCount(items.length);
+  validateUniqueCardIds(items.map((item) => item.cardId));
+
+  return transaction(async (executor) => {
+    const updatedCards: Array<Card> = [];
+    for (const item of items) {
+      updatedCards.push(
+        await updateCardInExecutor(executor, workspaceId, item.cardId, item.input, item.metadata),
+      );
     }
 
-    const card = mapCard(row);
-    await recordCardSyncChange(executor, workspaceId, card);
-    return card;
+    return updatedCards;
+  });
+}
+
+async function deleteCardInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  cardId: string,
+  metadata: CardMutationMetadata,
+): Promise<Card> {
+  const normalizedMetadata = normalizeCardMutationMetadata(metadata);
+
+  const result = await executor.query<CardRow>(
+    [
+      "UPDATE content.cards",
+      "SET deleted_at = $1, client_updated_at = $2, last_modified_by_device_id = $3, last_operation_id = $4, updated_at = now()",
+      "WHERE workspace_id = $5 AND card_id = $6 AND deleted_at IS NULL",
+      "RETURNING",
+      CARD_COLUMNS,
+    ].join(" "),
+    [
+      normalizedMetadata.clientUpdatedAt,
+      normalizedMetadata.clientUpdatedAt,
+      normalizedMetadata.lastModifiedByDeviceId,
+      normalizedMetadata.lastOperationId,
+      workspaceId,
+      cardId,
+    ],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new HttpError(404, "Card not found");
+  }
+
+  const card = mapCard(row);
+  await recordCardSyncChange(executor, workspaceId, card);
+  return card;
+}
+
+export async function deleteCard(
+  workspaceId: string,
+  cardId: string,
+  metadata: CardMutationMetadata,
+): Promise<Card> {
+  return transaction(async (executor) => deleteCardInExecutor(executor, workspaceId, cardId, metadata));
+}
+
+export async function deleteCards(
+  workspaceId: string,
+  items: ReadonlyArray<BulkDeleteCardItem>,
+): Promise<BulkDeleteCardsResult> {
+  validateCardBatchCount(items.length);
+  validateUniqueCardIds(items.map((item) => item.cardId));
+
+  return transaction(async (executor) => {
+    const deletedCardIds: Array<string> = [];
+    for (const item of items) {
+      const deletedCard = await deleteCardInExecutor(executor, workspaceId, item.cardId, item.metadata);
+      deletedCardIds.push(deletedCard.cardId);
+    }
+
+    return {
+      deletedCardIds,
+      deletedCount: deletedCardIds.length,
+    };
   });
 }

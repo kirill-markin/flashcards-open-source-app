@@ -99,8 +99,8 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
   list_cards: z.object({
     limit: nullableLimitValidator,
   }).strict(),
-  get_card: z.object({
-    cardId: z.string(),
+  get_cards: z.object({
+    cardIds: z.array(z.string()).min(1).max(100),
   }).strict(),
   search_cards: z.object({
     query: z.string(),
@@ -122,16 +122,11 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
   list_outbox: z.object({
     limit: nullableLimitValidator,
   }).strict(),
-  create_card: createCardValidator,
   create_cards: z.object({
     cards: z.array(createCardValidator).min(1).max(100),
   }).strict(),
-  update_card: updateCardValidator,
   update_cards: z.object({
     updates: z.array(updateCardValidator).min(1).max(100),
-  }).strict(),
-  delete_card: z.object({
-    cardId: z.string(),
   }).strict(),
   delete_cards: z.object({
     cardIds: z.array(z.string()).min(1).max(100),
@@ -188,14 +183,17 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   },
   {
     type: "function",
-    name: "get_card",
+    name: "get_cards",
     description: strictDescription(
-      "Get one card from the local device database by cardId.",
-      "Use {\"cardId\": string}."
+      "Get one or more cards from the local device database by cardId.",
+      "Use {\"cardIds\": string[]}. Include one or more cardIds."
     ),
     strict: true,
     parameters: strictObjectSchema({
-      cardId: { type: "string" },
+      cardIds: {
+        ...BULK_CARD_ARRAY_SCHEMA,
+        items: { type: "string" },
+      },
     }),
   },
   {
@@ -292,19 +290,9 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   },
   {
     type: "function",
-    name: "create_card",
-    description: strictDescription(
-      "Create one new card locally. Use create_cards for multiple cards.",
-      "Use {\"frontText\": string, \"backText\": string, \"tags\": string[], \"effortLevel\": \"fast\"|\"medium\"|\"long\"}."
-    ),
-    strict: true,
-    parameters: CARD_INPUT_SCHEMA,
-  },
-  {
-    type: "function",
     name: "create_cards",
     description: strictDescription(
-      "Create multiple new cards locally. Use only when the user clearly requested multiple cards or you already identified multiple targets.",
+      "Create one or more new cards locally.",
       "Use {\"cards\": CardInput[]} where every card object includes frontText, backText, tags, and effortLevel."
     ),
     strict: true,
@@ -317,19 +305,9 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   },
   {
     type: "function",
-    name: "update_card",
-    description: strictDescription(
-      "Update one card locally. Use update_cards for multiple cards.",
-      "Use {\"cardId\": string, \"frontText\": string|null, \"backText\": string|null, \"tags\": string[]|null, \"effortLevel\": \"fast\"|\"medium\"|\"long\"|null}. Include every property. Use null for unchanged fields."
-    ),
-    strict: true,
-    parameters: CARD_UPDATE_SCHEMA,
-  },
-  {
-    type: "function",
     name: "update_cards",
     description: strictDescription(
-      "Update multiple cards locally. Use only when the user clearly requested multiple card changes or you already identified multiple targets.",
+      "Update one or more cards locally.",
       "Use {\"updates\": UpdateCardInput[]} where every update object includes cardId, frontText, backText, tags, and effortLevel. Use null for unchanged fields."
     ),
     strict: true,
@@ -342,21 +320,9 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
   },
   {
     type: "function",
-    name: "delete_card",
-    description: strictDescription(
-      "Delete one card locally. Use delete_cards for multiple cards.",
-      "Use {\"cardId\": string}."
-    ),
-    strict: true,
-    parameters: strictObjectSchema({
-      cardId: { type: "string" },
-    }),
-  },
-  {
-    type: "function",
     name: "delete_cards",
     description: strictDescription(
-      "Delete multiple cards locally. Use only when the user clearly requested multiple deletions or you already identified multiple targets.",
+      "Delete one or more cards locally.",
       "Use {\"cardIds\": string[]}."
     ),
     strict: true,

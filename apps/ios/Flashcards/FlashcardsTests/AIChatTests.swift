@@ -156,8 +156,8 @@ private actor MutatingChatService: AIChatStreaming {
         if self.callCount == 1 {
             let toolCallRequest = AIToolCallRequest(
                 toolCallId: "tool-create-card",
-                name: "create_card",
-                input: "{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}"
+                name: "create_cards",
+                input: "{\"cards\":[{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}]}"
             )
             await onToolCallRequest(toolCallRequest)
             return AITurnStreamOutcome(
@@ -343,13 +343,14 @@ final class AIChatTests: XCTestCase {
         let createdCardResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-2",
-                name: "create_card",
-                input: "{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}"
+                name: "create_cards",
+                input: "{\"cards\":[{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}]}"
             ),
             requestId: "request-1"
         )
-        let createdCard = try JSONDecoder().decode(Card.self, from: Data(createdCardResult.output.utf8))
-        XCTAssertEqual(createdCard.frontText, "Front")
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardResult.output.utf8))
+        XCTAssertEqual(createdCards.count, 1)
+        XCTAssertEqual(createdCards[0].frontText, "Front")
         let snapshot = try await executor.loadSnapshot()
         XCTAssertEqual(snapshot.cards.count, 1)
     }
@@ -381,6 +382,59 @@ final class AIChatTests: XCTestCase {
         XCTAssertEqual(createdCards.count, 2)
         let snapshot = try await executor.loadSnapshot()
         XCTAssertEqual(snapshot.cards.count, 2)
+    }
+
+    @MainActor
+    func testLocalToolExecutorGetCardsReturnsRequestedOrderAndFailsForMissingCard() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let createdCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-create-for-get",
+                name: "create_cards",
+                input: """
+                {"cards":[
+                    {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
+                    {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
+                ]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
+
+        let fetchedCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-get-cards",
+                name: "get_cards",
+                input: """
+                {"cardIds":["\(createdCards[1].cardId)","\(createdCards[0].cardId)"]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let fetchedCards = try JSONDecoder().decode([Card].self, from: Data(fetchedCardsResult.output.utf8))
+        XCTAssertEqual(fetchedCards.map(\.cardId), [createdCards[1].cardId, createdCards[0].cardId])
+
+        do {
+            _ = try await executor.execute(
+                toolCallRequest: AIToolCallRequest(
+                    toolCallId: "call-get-missing-card",
+                    name: "get_cards",
+                    input: "{\"cardIds\":[\"missing-card\"]}"
+                ),
+                requestId: "request-1"
+            )
+            XCTFail("Expected missing card error")
+        } catch let error as LocalStoreError {
+            XCTAssertEqual(error.localizedDescription, "Card not found")
+        }
     }
 
     @MainActor
