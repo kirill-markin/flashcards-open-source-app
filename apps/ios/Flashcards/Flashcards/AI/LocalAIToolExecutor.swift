@@ -73,6 +73,10 @@ private struct CreateCardsToolInput: Decodable {
     let cards: [CreateCardToolInput]
 }
 
+private struct GetCardsToolInput: Decodable {
+    let cardIds: [String]
+}
+
 private struct UpdateCardToolInput: Decodable {
     let cardId: String
     let frontText: String?
@@ -83,10 +87,6 @@ private struct UpdateCardToolInput: Decodable {
 
 private struct UpdateCardsToolInput: Decodable {
     let updates: [UpdateCardToolInput]
-}
-
-private struct DeleteCardToolInput: Decodable {
-    let cardId: String
 }
 
 private struct DeleteCardsToolInput: Decodable {
@@ -108,10 +108,6 @@ private struct UpdateDeckToolInput: Decodable {
 
 private struct DeleteDeckToolInput: Decodable {
     let deckId: String
-}
-
-private struct GetCardToolInput: Decodable {
-    let cardId: String
 }
 
 private struct SearchCardsToolInput: Decodable {
@@ -201,11 +197,13 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 output: try self.encodeJSON(value: Array(self.currentActiveCards(snapshot: snapshot).prefix(self.normalizeLimit(input.limit)))),
                 didMutateAppState: false
             )
-        case "get_card":
-            let input = try self.decodeInput(GetCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+        case "get_cards":
+            let input = try self.decodeInput(GetCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+            try self.validateCardBatchCount(count: input.cardIds.count)
+            try self.validateUniqueCardIds(cardIds: input.cardIds)
             let snapshot = try self.loadSnapshotNow()
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: try self.findCard(snapshot: snapshot, cardId: input.cardId)),
+                output: try self.encodeJSON(value: try self.findCards(snapshot: snapshot, cardIds: input.cardIds)),
                 didMutateAppState: false
             )
         case "search_cards":
@@ -272,24 +270,6 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 ),
                 didMutateAppState: false
             )
-        case "create_card":
-            let input = try self.decodeInput(CreateCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let createdCards = try self.databaseInstance().createCards(
-                workspaceId: snapshot.workspace.workspaceId,
-                inputs: [
-                    CardEditorInput(
-                        frontText: input.frontText,
-                        backText: input.backText,
-                        tags: input.tags,
-                        effortLevel: input.effortLevel
-                    )
-                ]
-            )
-            guard let createdCard = createdCards.first else {
-                throw LocalStoreError.database("Created card could not be loaded")
-            }
-            return AIToolExecutionResult(output: try self.encodeJSON(value: createdCard), didMutateAppState: true)
         case "create_cards":
             let input = try self.decodeInput(CreateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.validateCardBatchCount(count: input.cards.count)
@@ -306,28 +286,6 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 }
             )
             return AIToolExecutionResult(output: try self.encodeJSON(value: createdCards), didMutateAppState: true)
-        case "update_card":
-            let input = try self.decodeInput(UpdateCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let existingCard = try self.findCard(snapshot: snapshot, cardId: input.cardId)
-            let updatedCards = try self.databaseInstance().updateCards(
-                workspaceId: snapshot.workspace.workspaceId,
-                updates: [
-                    CardUpdateInput(
-                        cardId: input.cardId,
-                        input: CardEditorInput(
-                            frontText: input.frontText ?? existingCard.frontText,
-                            backText: input.backText ?? existingCard.backText,
-                            tags: input.tags ?? existingCard.tags,
-                            effortLevel: input.effortLevel ?? existingCard.effortLevel
-                        )
-                    )
-                ]
-            )
-            guard let updatedCard = updatedCards.first else {
-                throw LocalStoreError.database("Updated card could not be loaded")
-            }
-            return AIToolExecutionResult(output: try self.encodeJSON(value: updatedCard), didMutateAppState: true)
         case "update_cards":
             let input = try self.decodeInput(UpdateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.validateCardBatchCount(count: input.updates.count)
@@ -350,14 +308,6 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 updates: updates
             )
             return AIToolExecutionResult(output: try self.encodeJSON(value: updatedCards), didMutateAppState: true)
-        case "delete_card":
-            let input = try self.decodeInput(DeleteCardToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            try self.databaseInstance().deleteCard(workspaceId: snapshot.workspace.workspaceId, cardId: input.cardId)
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted card \(input.cardId)")),
-                didMutateAppState: true
-            )
         case "delete_cards":
             let input = try self.decodeInput(DeleteCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             try self.validateCardBatchCount(count: input.cardIds.count)
@@ -535,6 +485,12 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         }
 
         return card
+    }
+
+    private func findCards(snapshot: AppStateSnapshot, cardIds: [String]) throws -> [Card] {
+        try cardIds.map { cardId in
+            try self.findCard(snapshot: snapshot, cardId: cardId)
+        }
     }
 
     private func findDeck(snapshot: AppStateSnapshot, deckId: String) throws -> Deck {

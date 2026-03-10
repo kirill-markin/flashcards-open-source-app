@@ -97,11 +97,27 @@ export type CreateCardInput = Readonly<{
   effortLevel: EffortLevel;
 }>;
 
+export type BulkCreateCardItem = Readonly<{
+  input: CreateCardInput;
+  metadata: CardMutationMetadata;
+}>;
+
 export type UpdateCardInput = Readonly<{
   frontText?: string;
   backText?: string;
   tags?: ReadonlyArray<string>;
   effortLevel?: EffortLevel;
+}>;
+
+export type BulkUpdateCardItem = Readonly<{
+  cardId: string;
+  input: UpdateCardInput;
+  metadata: CardMutationMetadata;
+}>;
+
+export type BulkDeleteCardItem = Readonly<{
+  cardId: string;
+  metadata: CardMutationMetadata;
 }>;
 
 export type SubmitReviewInput = Readonly<{
@@ -152,6 +168,11 @@ export type CardMutationResult = Readonly<{
   card: Card;
   applied: boolean;
   changeId: number | null;
+}>;
+
+export type BulkDeleteCardsResult = Readonly<{
+  deletedCardIds: ReadonlyArray<string>;
+  deletedCount: number;
 }>;
 
 export type ReviewEventAppendResult = Readonly<{
