@@ -35,6 +35,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       profile: {
         email: requestContext.email,
         locale: requestContext.locale,
+        createdAt: requestContext.userSettingsCreatedAt,
       },
     });
   });

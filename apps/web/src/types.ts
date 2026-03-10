@@ -27,14 +27,53 @@ export type SessionInfo = Readonly<{
   profile: Readonly<{
     email: string | null;
     locale: string;
+    createdAt: string;
   }>;
 }>;
+
+export type CloudAccountState = "disconnected" | "linking-ready" | "linked";
 
 export type WorkspaceSummary = Readonly<{
   workspaceId: string;
   name: string;
   createdAt: string;
   isSelected: boolean;
+}>;
+
+/** Mirrors the iOS local workspace payload used by local AI tools. */
+export type Workspace = Readonly<{
+  workspaceId: string;
+  name: string;
+  createdAt: string;
+}>;
+
+/** Mirrors the iOS local user settings payload used by local AI tools. */
+export type UserSettings = Readonly<{
+  userId: string;
+  workspaceId: string;
+  email: string | null;
+  locale: string;
+  createdAt: string;
+}>;
+
+/** Mirrors the iOS local cloud-settings payload used by local AI tools. */
+export type CloudSettings = Readonly<{
+  deviceId: string;
+  cloudState: CloudAccountState;
+  linkedUserId: string | null;
+  linkedWorkspaceId: string | null;
+  linkedEmail: string | null;
+  onboardingCompleted: boolean;
+  updatedAt: string;
+}>;
+
+/** Mirrors the iOS local home snapshot payload used by local AI tools. */
+export type HomeSnapshot = Readonly<{
+  deckCount: number;
+  totalCards: number;
+  dueCount: number;
+  newCount: number;
+  reviewedCount: number;
 }>;
 
 // Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::Card and apps/backend/src/cards.ts::Card.
@@ -303,6 +342,7 @@ export type FileContentPart = Readonly<{
 
 export type ToolCallContentPart = Readonly<{
   type: "tool_call";
+  toolCallId: string;
   name: string;
   status: "started" | "completed";
   input: string | null;
@@ -321,6 +361,56 @@ export type ChatStreamEvent =
   | Readonly<{ type: "tool_call"; name: string; status: "started" | "completed"; input?: string; output?: string }>
   | Readonly<{ type: "done" }>
   | Readonly<{ type: "error"; message: string }>;
+
+export type LocalAssistantToolCall = Readonly<{
+  toolCallId: string;
+  name: string;
+  input: string;
+}>;
+
+export type LocalChatMessage =
+  | Readonly<{
+    role: "user";
+    content: string;
+  }>
+  | Readonly<{
+    role: "assistant";
+    content: string;
+    toolCalls: ReadonlyArray<LocalAssistantToolCall>;
+  }>
+  | Readonly<{
+    role: "tool";
+    toolCallId: string;
+    name: string;
+    output: string;
+  }>;
+
+export type LocalChatRequestBody = Readonly<{
+  messages: ReadonlyArray<LocalChatMessage>;
+  model: string;
+  timezone: string;
+  devicePlatform: "web";
+}>;
+
+export type LocalChatStreamEvent =
+  | Readonly<{ type: "delta"; text: string }>
+  | Readonly<{ type: "tool_call_request"; toolCallId: string; name: string; input: string }>
+  | Readonly<{
+    type: "repair_attempt";
+    message: string;
+    attempt: number;
+    maxAttempts: number;
+    toolName: string | null;
+  }>
+  | Readonly<{ type: "await_tool_results" }>
+  | Readonly<{ type: "done" }>
+  | Readonly<{
+    type: "error";
+    message: string;
+    code: string;
+    stage: string;
+    requestId: string;
+  }>;
 
 export type ChatDiagnosticsStage =
   | "success"
@@ -361,4 +451,22 @@ export type ChatDiagnosticsPayload = Readonly<{
   bufferLength: number;
   errorName: string | null;
   lastEventType: string | null;
+}>;
+
+export type LocalChatDiagnosticsPayload = Readonly<{
+  clientRequestId: string;
+  backendRequestId: string | null;
+  stage: string;
+  errorKind: string;
+  statusCode: number | null;
+  eventType: string | null;
+  toolName: string | null;
+  toolCallId: string | null;
+  lineNumber: number | null;
+  rawSnippet: string | null;
+  decoderSummary: string | null;
+  selectedModel: string;
+  messageCount: number;
+  appVersion: string;
+  devicePlatform: "web";
 }>;

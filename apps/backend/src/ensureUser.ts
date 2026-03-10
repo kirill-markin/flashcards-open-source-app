@@ -9,13 +9,19 @@ export type UserProfile = Readonly<{
   selectedWorkspaceId: string | null;
   email: string | null;
   locale: string;
+  createdAt: string;
 }>;
 
 type UserSettingsRow = Readonly<{
   workspace_id: string | null;
   email: string | null;
   locale: string;
+  created_at: Date | string;
 }>;
+
+function toIsoString(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
 
 export async function ensureUserProfile(userId: string): Promise<UserProfile> {
   await query(
@@ -24,7 +30,7 @@ export async function ensureUserProfile(userId: string): Promise<UserProfile> {
   );
 
   const existing = await query<UserSettingsRow>(
-    "SELECT workspace_id, email, locale FROM org.user_settings WHERE user_id = $1",
+    "SELECT workspace_id, email, locale, created_at FROM org.user_settings WHERE user_id = $1",
     [userId],
   );
 
@@ -38,5 +44,6 @@ export async function ensureUserProfile(userId: string): Promise<UserProfile> {
     selectedWorkspaceId: settings.workspace_id,
     email: settings.email,
     locale: settings.locale,
+    createdAt: toIsoString(settings.created_at),
   };
 }

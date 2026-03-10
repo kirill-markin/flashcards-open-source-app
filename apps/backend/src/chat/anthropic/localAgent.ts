@@ -1,9 +1,4 @@
-import OpenAI from "openai";
-import type {
-  EasyInputMessage,
-  ResponseFunctionToolCall,
-  ResponseInputItem,
-} from "openai/resources/responses/responses";
+import Anthropic from "@anthropic-ai/sdk";
 import type { LocalAssistantToolCall, LocalChatMessage, LocalChatStreamEvent } from "../localTypes";
 import {
   buildLocalSystemInstructions,
@@ -12,30 +7,56 @@ import {
   MAX_LOCAL_TOOL_REPAIR_ATTEMPTS,
   toLocalAssistantToolCall,
 } from "../localRuntimeShared";
-import { OPENAI_LOCAL_FLASHCARDS_TOOLS } from "./localTools";
+import { CHAT_MODELS } from "../models";
+import { OPENAI_LOCAL_FLASHCARDS_TOOLS } from "../openai/localTools";
 
-const LOCAL_CHAT_MODEL_IDS = new Set([
-  "gpt-5.4",
-  "gpt-5.2",
-  "gpt-4.1",
-  "gpt-4.1-mini",
-  "gpt-4.1-nano",
-]);
+const LOCAL_CHAT_MODEL_IDS = new Set(
+  CHAT_MODELS
+    .filter((model) => model.vendor === "anthropic")
+    .map((model) => model.id),
+);
 
-type LocalResponseStreamEvent = Readonly<{
-  type: string;
-  delta?: string;
+type AnthropicTextDeltaEvent = Readonly<{
+  type: "content_block_delta";
+  delta: Readonly<{
+    type: "text_delta";
+    text: string;
+  }>;
 }>;
 
-type ResponseStreamLike = AsyncIterable<LocalResponseStreamEvent> & Readonly<{
-  finalResponse: () => Promise<Readonly<{
-    output: ReadonlyArray<Readonly<{ type: string }>>;
-  }>>;
+type AnthropicLocalStreamEvent = AnthropicTextDeltaEvent | Readonly<{ type: string }>;
+
+type AnthropicToolUseBlock = Readonly<{
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: unknown;
 }>;
 
-type OpenAIResponsesClient = Readonly<{
-  responses: Readonly<{
-    stream: (body: Readonly<Record<string, unknown>>) => ResponseStreamLike;
+type AnthropicTextBlock = Readonly<{
+  type: "text";
+  text: string;
+}>;
+
+type AnthropicFinalMessage = Readonly<{
+  content: ReadonlyArray<AnthropicToolUseBlock | AnthropicTextBlock | Readonly<{ type: string }>>;
+  stop_reason: string | null;
+}>;
+
+type AnthropicMessageParam = Readonly<{
+  role: "user" | "assistant";
+  content: string | ReadonlyArray<Readonly<Record<string, unknown>>>;
+}>;
+
+type AnthropicStreamLike = AsyncIterable<AnthropicLocalStreamEvent> & Readonly<{
+  finalMessage: () => Promise<AnthropicFinalMessage>;
+}>;
+
+type AnthropicMessagesClient = Readonly<{
+  beta: Readonly<{
+    messages: Readonly<{
+      stream: (body: Readonly<Record<string, unknown>>) => AnthropicStreamLike;
+    }>;
   }>;
 }>;
 
@@ -102,6 +123,10 @@ export type StreamLocalTurnParams = Readonly<{
   requestId: string;
 }>;
 
+/**
+ * Raised when the Anthropic local-turn runtime cannot recover a valid local
+ * tool request after the configured repair attempts.
+ */
 export class LocalChatRuntimeError extends Error {
   readonly code: string;
   readonly stage: string;
@@ -116,104 +141,114 @@ export class LocalChatRuntimeError extends Error {
 function logLocalChatEvent(event: LocalChatLogEvent): void {
   console.error(JSON.stringify({
     domain: "chat",
-    vendor: "openai",
+    vendor: "anthropic",
     mode: "local_client",
     ...event,
   }));
 }
 
-function mapMessage(message: LocalChatMessage): ReadonlyArray<ResponseInputItem> {
+function createClient(): AnthropicMessagesClient {
+  return new Anthropic();
+}
+
+function localAnthropicTools(): ReadonlyArray<Anthropic.Tool> {
+  return OPENAI_LOCAL_FLASHCARDS_TOOLS.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    input_schema: tool.parameters as Anthropic.Tool.InputSchema,
+  }));
+}
+
+function parseToolInput(rawInput: string): unknown {
+  return JSON.parse(rawInput) as unknown;
+}
+
+function mapMessage(message: LocalChatMessage): AnthropicMessageParam {
   if (message.role === "user") {
-    const userMessage: EasyInputMessage = {
-      type: "message",
+    return {
       role: "user",
       content: message.content,
     };
-    return [userMessage];
   }
 
   if (message.role === "assistant") {
-    const items: Array<ResponseInputItem> = [];
+    const content: Array<Readonly<Record<string, unknown>>> = [];
 
     if (message.content !== "") {
-      items.push({
-        type: "message",
-        role: "assistant",
-        content: message.content,
+      content.push({
+        type: "text",
+        text: message.content,
       });
     }
 
     for (const toolCall of message.toolCalls) {
-      items.push({
-        type: "function_call",
-        call_id: toolCall.toolCallId,
+      content.push({
+        type: "tool_use",
+        id: toolCall.toolCallId,
         name: toolCall.name,
-        arguments: toolCall.input,
+        input: parseToolInput(toolCall.input),
       });
     }
 
-    return items;
+    return {
+      role: "assistant",
+      content,
+    };
   }
 
-  return [{
-    type: "function_call_output",
-    call_id: message.toolCallId,
-    output: message.output,
-  }];
+  return {
+    role: "user",
+    content: [{
+      type: "tool_result",
+      tool_use_id: message.toolCallId,
+      content: message.output,
+    }],
+  };
 }
 
 function buildInput(
   messages: ReadonlyArray<LocalChatMessage>,
   repairState: RepairPromptState | null,
-): ReadonlyArray<ResponseInputItem> {
-  const items: Array<ResponseInputItem> = [];
-
-  for (const message of messages) {
-    items.push(...mapMessage(message));
-  }
+): ReadonlyArray<AnthropicMessageParam> {
+  const items = messages.map(mapMessage);
 
   if (repairState === null) {
     return items;
   }
 
+  const repairedItems = [...items];
   if (repairState.assistantText !== "") {
-    items.push({
-      type: "message",
+    repairedItems.push({
       role: "assistant",
       content: repairState.assistantText,
     });
   }
-
-  items.push({
-    type: "message",
+  repairedItems.push({
     role: "user",
     content: repairState.prompt,
   });
-
-  return items;
+  return repairedItems;
 }
 
-function isFunctionToolCall(
-  item: Readonly<{ type: string }>,
-): item is ResponseFunctionToolCall {
-  return item.type === "function_call";
-}
-
-function createClient(): OpenAIResponsesClient {
-  return new OpenAI();
+function isToolUseBlock(block: AnthropicFinalMessage["content"][number]): block is AnthropicToolUseBlock {
+  return block.type === "tool_use";
 }
 
 function normalizeToolCall(
-  toolCall: ResponseFunctionToolCall,
+  toolCall: AnthropicToolUseBlock,
   params: Readonly<{ requestId: string; model: string }>,
 ): ValidatedToolCall {
-  const normalizedToolCall = toLocalAssistantToolCall(toolCall.call_id, toolCall.name, toolCall.arguments);
+  const normalizedToolCall = toLocalAssistantToolCall(
+    toolCall.id,
+    toolCall.name,
+    JSON.stringify(toolCall.input),
+  );
   logLocalChatEvent({
     action: "tool_call_validated",
     requestId: params.requestId,
     model: params.model,
     toolName: toolCall.name,
-    toolCallId: toolCall.call_id,
+    toolCallId: toolCall.id,
   });
   return {
     toolCallId: normalizedToolCall.toolCallId,
@@ -223,19 +258,31 @@ function normalizeToolCall(
 }
 
 function normalizeToolCalls(
-  toolCalls: ReadonlyArray<ResponseFunctionToolCall>,
+  toolCalls: ReadonlyArray<AnthropicToolUseBlock>,
   params: Readonly<{ requestId: string; model: string }>,
 ): ReadonlyArray<LocalAssistantToolCall> {
-  return toolCalls.map((toolCall) => normalizeToolCall(toolCall, params));
+  return toolCalls.map((toolCall) => {
+    const normalizedToolCall = normalizeToolCall(toolCall, params);
+    return {
+      toolCallId: normalizedToolCall.toolCallId,
+      name: normalizedToolCall.name,
+      input: normalizedToolCall.input,
+    };
+  });
 }
 
 export function isSupportedLocalChatModel(model: string): boolean {
   return LOCAL_CHAT_MODEL_IDS.has(model);
 }
 
+/**
+ * Streams one Anthropic local-turn without executing tools on the server. The
+ * caller receives validated `tool_call_request` events and is responsible for
+ * running those tools against the client-side local database.
+ */
 export async function* streamLocalAgentTurn(
   params: StreamLocalTurnParams,
-  client: OpenAIResponsesClient,
+  client: AnthropicMessagesClient,
 ): AsyncGenerator<LocalChatStreamEvent> {
   logLocalChatEvent({
     action: "request",
@@ -248,31 +295,35 @@ export async function* streamLocalAgentTurn(
   let streamedAssistantText = "";
   let deltaCount = 0;
 
-  for (let repairAttempt = 0; repairAttempt <= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS; repairAttempt++) {
+  for (let repairAttempt = 0; repairAttempt <= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS; repairAttempt += 1) {
     logLocalChatEvent({
       action: "stream_opened",
       requestId: params.requestId,
       model: params.model,
       attempt: repairAttempt + 1,
     });
-    const stream = client.responses.stream({
+
+    const stream = client.beta.messages.stream({
       model: params.model,
-      instructions: buildLocalSystemInstructions(params.timezone, params.devicePlatform),
-      input: buildInput(params.messages, repairState),
-      tools: OPENAI_LOCAL_FLASHCARDS_TOOLS,
-      parallel_tool_calls: false,
+      max_tokens: 8_192,
+      system: buildLocalSystemInstructions(params.timezone, params.devicePlatform),
+      messages: buildInput(params.messages, repairState),
+      tools: localAnthropicTools(),
     });
 
     for await (const event of stream) {
-      if (event.type === "response.output_text.delta" && event.delta !== undefined) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
         deltaCount += 1;
-        streamedAssistantText += event.delta;
-        yield { type: "delta", text: event.delta };
+        streamedAssistantText += event.delta.text;
+        yield {
+          type: "delta",
+          text: event.delta.text,
+        };
       }
     }
 
-    const finalResponse = await stream.finalResponse();
-    const toolCalls = finalResponse.output.filter(isFunctionToolCall);
+    const finalMessage = await stream.finalMessage();
+    const toolCalls = finalMessage.content.filter(isToolUseBlock);
 
     if (toolCalls.length === 0) {
       logLocalChatEvent({

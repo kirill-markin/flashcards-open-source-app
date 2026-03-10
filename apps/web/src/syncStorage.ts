@@ -1,5 +1,6 @@
 import type {
   Card,
+  CloudSettings,
   Deck,
   ReviewEvent,
   SyncPushOperation,
@@ -27,6 +28,11 @@ type SyncStateRecord = Readonly<{
   updatedAt: string;
 }>;
 
+type CloudSettingsRecord = Readonly<{
+  key: "cloud_settings";
+  settings: CloudSettings;
+}>;
+
 type DatabaseStores = "cards" | "decks" | "reviewEvents" | "workspaceSettings" | "outbox" | "meta";
 
 type StoredRecord =
@@ -35,7 +41,10 @@ type StoredRecord =
   | ReviewEvent
   | WorkspaceSettingsRecord
   | PersistedOutboxRecord
-  | SyncStateRecord;
+  | SyncStateRecord
+  | CloudSettingsRecord;
+
+type MetaRecord = SyncStateRecord | CloudSettingsRecord;
 
 export type WebSyncCache = Readonly<{
   workspaceId: string | null;
@@ -43,19 +52,42 @@ export type WebSyncCache = Readonly<{
   decks: ReadonlyArray<Deck>;
   reviewEvents: ReadonlyArray<ReviewEvent>;
   workspaceSettings: WorkspaceSchedulerSettings | null;
+  cloudSettings: CloudSettings | null;
   outbox: ReadonlyArray<PersistedOutboxRecord>;
   lastAppliedChangeId: number;
 }>;
 
+export type PersistentStorageState = Readonly<{
+  persisted: boolean | null;
+  quota: number | null;
+  usage: number | null;
+}>;
+
 const databaseName = "flashcards-web-sync";
 const databaseVersion = 1;
+
+function isQuotaExceededError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "QuotaExceededError";
+}
+
+function describeIndexedDbError(prefix: string, error: unknown): Error {
+  if (isQuotaExceededError(error)) {
+    return new Error(`${prefix}: browser storage quota was exceeded`);
+  }
+
+  if (error instanceof Error && error.message !== "") {
+    return new Error(`${prefix}: ${error.message}`);
+  }
+
+  return new Error(`${prefix}: unknown error`);
+}
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
 
     request.onerror = () => {
-      reject(new Error(`Failed to open IndexedDB: ${request.error?.message ?? "unknown error"}`));
+      reject(describeIndexedDbError("Failed to open IndexedDB", request.error));
     };
 
     request.onupgradeneeded = () => {
@@ -104,7 +136,7 @@ function runReadonly<RequestResult>(
     const request = callback(store);
 
     request.onerror = () => {
-      reject(new Error(`IndexedDB readonly request failed: ${request.error?.message ?? "unknown error"}`));
+      reject(describeIndexedDbError("IndexedDB readonly request failed", request.error));
     };
 
     request.onsuccess = () => {
@@ -124,12 +156,12 @@ function runReadwrite<RequestResult>(
 
     if (request !== null) {
       request.onerror = () => {
-        reject(new Error(`IndexedDB write request failed: ${request.error?.message ?? "unknown error"}`));
+        reject(describeIndexedDbError("IndexedDB write request failed", request.error));
       };
     }
 
     transaction.onerror = () => {
-      reject(new Error(`IndexedDB transaction failed: ${transaction.error?.message ?? "unknown error"}`));
+      reject(describeIndexedDbError("IndexedDB transaction failed", transaction.error));
     };
 
     transaction.oncomplete = () => {
@@ -156,13 +188,14 @@ async function getFromStore<RecordType extends StoredRecord>(
 
 export async function loadWebSyncCache(): Promise<WebSyncCache> {
   const database = await openDatabase();
-  const [cards, decks, reviewEvents, workspaceSettingsRecords, outbox, syncState] = await Promise.all([
+  const [cards, decks, reviewEvents, workspaceSettingsRecords, outbox, syncState, cloudSettingsRecord] = await Promise.all([
     getAllFromStore<Card>(database, "cards"),
     getAllFromStore<Deck>(database, "decks"),
     getAllFromStore<ReviewEvent>(database, "reviewEvents"),
     getAllFromStore<WorkspaceSettingsRecord>(database, "workspaceSettings"),
     getAllFromStore<PersistedOutboxRecord>(database, "outbox"),
     getFromStore<SyncStateRecord>(database, "meta", "sync_state"),
+    getFromStore<CloudSettingsRecord>(database, "meta", "cloud_settings"),
   ]);
 
   database.close();
@@ -171,8 +204,9 @@ export async function loadWebSyncCache(): Promise<WebSyncCache> {
     workspaceId: syncState?.workspaceId ?? null,
     cards,
     decks,
-    reviewEvents,
+    reviewEvents: [...reviewEvents].sort((left: ReviewEvent, right: ReviewEvent) => right.reviewedAtServer.localeCompare(left.reviewedAtServer)),
     workspaceSettings: workspaceSettingsRecords[0]?.settings ?? null,
+    cloudSettings: cloudSettingsRecord?.settings ?? null,
     outbox: [...outbox].sort((left: PersistedOutboxRecord, right: PersistedOutboxRecord) => left.createdAt.localeCompare(right.createdAt)),
     lastAppliedChangeId: syncState?.lastAppliedChangeId ?? 0,
   };
@@ -240,6 +274,15 @@ export async function relinkWorkspaceCache(workspaceId: string): Promise<void> {
         lastAppliedChangeId: 0,
         updatedAt: new Date().toISOString(),
       } satisfies SyncStateRecord);
+      if (cache.cloudSettings !== null) {
+        metaStore.put({
+          key: "cloud_settings",
+          settings: {
+            ...cache.cloudSettings,
+            linkedWorkspaceId: cache.cloudSettings.linkedWorkspaceId === null ? null : workspaceId,
+          },
+        } satisfies CloudSettingsRecord);
+      }
       return null;
     },
   );
@@ -336,6 +379,25 @@ export async function putOutboxRecord(record: PersistedOutboxRecord): Promise<vo
   database.close();
 }
 
+/**
+ * Persists browser-local cloud metadata used by web local AI tools so those
+ * payloads can match iOS local chat without inventing values on the fly.
+ */
+export async function putCloudSettings(settings: CloudSettings): Promise<void> {
+  const database = await openDatabase();
+  await runReadwrite(database, ["meta"], (transaction) => transaction.objectStore("meta").put({
+    key: "cloud_settings",
+    settings,
+  } satisfies CloudSettingsRecord));
+  database.close();
+}
+
+export async function clearCloudSettings(): Promise<void> {
+  const database = await openDatabase();
+  await runReadwrite(database, ["meta"], (transaction) => transaction.objectStore("meta").delete("cloud_settings"));
+  database.close();
+}
+
 export async function deleteOutboxRecord(operationId: string): Promise<void> {
   const database = await openDatabase();
   await runReadwrite(database, ["outbox"], (transaction) => transaction.objectStore("outbox").delete(operationId));
@@ -360,4 +422,40 @@ export async function setLastAppliedChangeId(workspaceId: string, lastAppliedCha
     updatedAt: new Date().toISOString(),
   } satisfies SyncStateRecord));
   database.close();
+}
+
+/**
+ * Requests persistent browser storage for the local sync database when the
+ * platform exposes the Storage API. Browser storage is less durable than iOS
+ * app-sandbox SQLite, so local chat should ask for persistence proactively.
+ */
+export async function ensurePersistentStorage(): Promise<PersistentStorageState> {
+  const storageManager = navigator.storage;
+  if (storageManager === undefined) {
+    return {
+      persisted: null,
+      quota: null,
+      usage: null,
+    };
+  }
+
+  const persistedBefore = typeof storageManager.persisted === "function"
+    ? await storageManager.persisted()
+    : null;
+  if (persistedBefore === false && typeof storageManager.persist === "function") {
+    await storageManager.persist();
+  }
+
+  const persisted = typeof storageManager.persisted === "function"
+    ? await storageManager.persisted()
+    : persistedBefore;
+  const estimate = typeof storageManager.estimate === "function"
+    ? await storageManager.estimate()
+    : null;
+
+  return {
+    persisted,
+    quota: estimate?.quota ?? null,
+    usage: estimate?.usage ?? null,
+  };
 }

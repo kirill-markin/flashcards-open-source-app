@@ -155,39 +155,6 @@ private struct ListOutboxToolInput: Decodable {
     let limit: Int?
 }
 
-private struct SubmitReviewToolInput: Decodable {
-    let cardId: String
-    let rating: AIReviewRating
-}
-
-private struct UpdateSchedulerSettingsToolInput: Decodable {
-    let desiredRetention: Double
-    let learningStepsMinutes: [Int]
-    let relearningStepsMinutes: [Int]
-    let maximumIntervalDays: Int
-    let enableFuzz: Bool
-}
-
-private enum AIReviewRating: String, Decodable {
-    case again
-    case hard
-    case good
-    case easy
-
-    var reviewRating: ReviewRating {
-        switch self {
-        case .again:
-            return .again
-        case .hard:
-            return .hard
-        case .good:
-            return .good
-        case .easy:
-            return .easy
-        }
-    }
-}
-
 actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     private let databaseURL: URL
     private let encoder: JSONEncoder
@@ -413,38 +380,6 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                         deletedCount: result.deletedCount
                     )
                 ),
-                didMutateAppState: true
-            )
-        case "submit_review":
-            let input = try self.decodeInput(SubmitReviewToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            try self.databaseInstance().submitReview(
-                workspaceId: snapshot.workspace.workspaceId,
-                reviewSubmission: ReviewSubmission(
-                    cardId: input.cardId,
-                    rating: input.rating.reviewRating,
-                    reviewedAtClient: currentIsoTimestamp()
-                )
-            )
-            let refreshedSnapshot = try self.loadSnapshotNow()
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(value: try self.findCard(snapshot: refreshedSnapshot, cardId: input.cardId)),
-                didMutateAppState: true
-            )
-        case "update_scheduler_settings":
-            let input = try self.decodeInput(UpdateSchedulerSettingsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            try self.databaseInstance().updateWorkspaceSchedulerSettings(
-                workspaceId: snapshot.workspace.workspaceId,
-                desiredRetention: input.desiredRetention,
-                learningStepsMinutes: input.learningStepsMinutes,
-                relearningStepsMinutes: input.relearningStepsMinutes,
-                maximumIntervalDays: input.maximumIntervalDays,
-                enableFuzz: input.enableFuzz
-            )
-            let refreshedSnapshot = try self.loadSnapshotNow()
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(value: refreshedSnapshot.schedulerSettings),
                 didMutateAppState: true
             )
         default:

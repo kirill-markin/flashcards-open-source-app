@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLocalChatErrorEvent, parseLocalChatDiagnosticsBody, streamLocalChatResponse } from "./chat/http";
+import { buildLocalSystemInstructions } from "./chat/localRuntimeShared";
 import { HttpError } from "./errors";
 import {
-  buildLocalSystemInstructions,
   LocalChatRuntimeError,
   isSupportedLocalChatModel,
   streamLocalAgentTurn,
 } from "./chat/openai/localAgent";
+import {
+  LocalChatRuntimeError as AnthropicLocalChatRuntimeError,
+  isSupportedLocalChatModel as isSupportedAnthropicLocalChatModel,
+  streamLocalAgentTurn as streamAnthropicLocalAgentTurn,
+} from "./chat/anthropic/localAgent";
 import type { LocalChatStreamEvent } from "./chat/localTypes";
 
 type FakeStreamEvent = Readonly<{
@@ -77,6 +82,79 @@ function makeFakeClient(
   };
 }
 
+type FakeAnthropicStreamEvent =
+  | Readonly<{
+    type: "content_block_delta";
+    delta: Readonly<{
+      type: "text_delta";
+      text: string;
+    }>;
+  }>
+  | Readonly<{ type: string }>;
+
+type FakeAnthropicFinalMessage = Readonly<{
+  content: ReadonlyArray<Readonly<{
+    type: string;
+    id?: string;
+    name?: string;
+    input?: unknown;
+    text?: string;
+  }>>;
+  stop_reason: string | null;
+}>;
+
+type CapturedAnthropicStreamBody = Readonly<{
+  model: string;
+  system: string;
+  messages: ReadonlyArray<unknown>;
+  tools: ReadonlyArray<unknown>;
+}>;
+
+function makeFakeAnthropicClient(
+  attempts: ReadonlyArray<Readonly<{
+    events: ReadonlyArray<FakeAnthropicStreamEvent>;
+    finalMessage: FakeAnthropicFinalMessage;
+  }>>,
+  capturedBodies: Array<CapturedAnthropicStreamBody>,
+): Readonly<{
+  beta: Readonly<{
+    messages: Readonly<{
+      stream: (body: Readonly<Record<string, unknown>>) => AsyncIterable<FakeAnthropicStreamEvent> & Readonly<{
+        finalMessage: () => Promise<FakeAnthropicFinalMessage>;
+      }>;
+    }>;
+  }>;
+}> {
+  let attemptIndex = 0;
+
+  return {
+    beta: {
+      messages: {
+        stream(body: Readonly<Record<string, unknown>>) {
+          capturedBodies.push(body as CapturedAnthropicStreamBody);
+          const attempt = attempts[attemptIndex];
+          attemptIndex += 1;
+
+          if (attempt === undefined) {
+            throw new Error("Unexpected extra Anthropic stream attempt");
+          }
+
+          return {
+            async *[Symbol.asyncIterator](): AsyncIterableIterator<FakeAnthropicStreamEvent> {
+              for (const event of attempt.events) {
+                yield event;
+              }
+            },
+            async finalMessage(): Promise<FakeAnthropicFinalMessage> {
+              return attempt.finalMessage;
+            },
+          };
+        },
+      },
+    },
+  };
+}
+
 async function collectEvents(iterable: AsyncIterable<LocalChatStreamEvent>): Promise<Array<LocalChatStreamEvent>> {
   const events: Array<LocalChatStreamEvent> = [];
 
@@ -92,8 +170,13 @@ test("isSupportedLocalChatModel accepts only OpenAI local-chat models", () => {
   assert.equal(isSupportedLocalChatModel("claude-sonnet-4-6"), false);
 });
 
+test("isSupportedAnthropicLocalChatModel accepts only Anthropic local-chat models", () => {
+  assert.equal(isSupportedAnthropicLocalChatModel("claude-sonnet-4-6"), true);
+  assert.equal(isSupportedAnthropicLocalChatModel("gpt-5.4"), false);
+});
+
 test("buildLocalSystemInstructions includes strict tool-call rules and examples", () => {
-  const instructions = buildLocalSystemInstructions("Europe/Madrid");
+  const instructions = buildLocalSystemInstructions("Europe/Madrid", "ios");
 
   assert.match(instructions, /use this assistant on iphone\./i);
   assert.match(instructions, /the local device database is the source of truth for reads\./i);
@@ -136,6 +219,7 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
     messages: [{ role: "user", content: "hi" }],
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
+    devicePlatform: "ios",
     requestId: "request-1",
   }, client));
 
@@ -186,6 +270,7 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
     messages: [{ role: "user", content: "list my cards" }],
     model: "gpt-4.1-mini",
     timezone: "Europe/Madrid",
+    devicePlatform: "ios",
     requestId: "request-2",
   }, client));
 
@@ -248,6 +333,7 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
     messages: [{ role: "user", content: "list my cards" }],
     model: "gpt-5.4",
     timezone: "Europe/Madrid",
+    devicePlatform: "ios",
     requestId: "request-3",
   }, client));
 
@@ -302,6 +388,7 @@ test("streamLocalAgentTurn stops after three repair attempts", async () => {
         messages: [{ role: "user", content: "list my cards" }],
         model: "gpt-5.4",
         timezone: "Europe/Madrid",
+        devicePlatform: "ios",
         requestId: "request-4",
       }, client));
     },
@@ -311,14 +398,137 @@ test("streamLocalAgentTurn stops after three repair attempts", async () => {
   assert.equal(capturedBodies.length, 4);
 });
 
-test("streamLocalChatResponse rejects unknown local model", async () => {
+test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results", async () => {
+  const capturedBodies: Array<CapturedAnthropicStreamBody> = [];
+  const client = makeFakeAnthropicClient(
+    [{
+      events: [{
+        type: "content_block_delta",
+        delta: {
+          type: "text_delta",
+          text: "Inspecting local cards.",
+        },
+      }],
+      finalMessage: {
+        content: [{
+          type: "tool_use",
+          id: "toolu_1",
+          name: "list_cards",
+          input: { limit: null },
+        }],
+        stop_reason: "tool_use",
+      },
+    }],
+    capturedBodies,
+  );
+
+  const events = await collectEvents(streamAnthropicLocalAgentTurn({
+    messages: [{ role: "user", content: "list my cards" }],
+    model: "claude-sonnet-4-6",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    requestId: "request-anthropic-1",
+  }, client));
+
+  assert.deepEqual(events, [
+    { type: "delta", text: "Inspecting local cards." },
+    { type: "tool_call_request", toolCallId: "toolu_1", name: "list_cards", input: "{\"limit\":null}" },
+    { type: "await_tool_results" },
+  ]);
+  assert.equal(capturedBodies[0]?.model, "claude-sonnet-4-6");
+  assert.match(String(capturedBodies[0]?.system), /browser/i);
+});
+
+test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () => {
+  const capturedBodies: Array<CapturedAnthropicStreamBody> = [];
+  const client = makeFakeAnthropicClient(
+    [
+      {
+        events: [],
+        finalMessage: {
+          content: [{
+            type: "tool_use",
+            id: "toolu_1",
+            name: "list_cards",
+            input: {},
+          }],
+          stop_reason: "tool_use",
+        },
+      },
+      {
+        events: [],
+        finalMessage: {
+          content: [{
+            type: "tool_use",
+            id: "toolu_2",
+            name: "list_cards",
+            input: { limit: null },
+          }],
+          stop_reason: "tool_use",
+        },
+      },
+    ],
+    capturedBodies,
+  );
+
+  const events = await collectEvents(streamAnthropicLocalAgentTurn({
+    messages: [{ role: "user", content: "list my cards" }],
+    model: "claude-sonnet-4-6",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    requestId: "request-anthropic-2",
+  }, client));
+
+  assert.deepEqual(events, [
+    {
+      type: "repair_attempt",
+      message: "Assistant is correcting list_cards.",
+      attempt: 1,
+      maxAttempts: 3,
+      toolName: "list_cards",
+    },
+    { type: "tool_call_request", toolCallId: "toolu_2", name: "list_cards", input: "{\"limit\":null}" },
+    { type: "await_tool_results" },
+  ]);
+});
+
+test("streamAnthropicLocalAgentTurn stops after three repair attempts", async () => {
+  const capturedBodies: Array<CapturedAnthropicStreamBody> = [];
+  const client = makeFakeAnthropicClient(
+    [
+      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_1", name: "list_cards", input: {} }], stop_reason: "tool_use" } },
+      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_2", name: "list_cards", input: {} }], stop_reason: "tool_use" } },
+      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_3", name: "list_cards", input: {} }], stop_reason: "tool_use" } },
+      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_4", name: "list_cards", input: {} }], stop_reason: "tool_use" } },
+    ],
+    capturedBodies,
+  );
+
+  await assert.rejects(
+    async () => {
+      await collectEvents(streamAnthropicLocalAgentTurn({
+        messages: [{ role: "user", content: "list my cards" }],
+        model: "claude-sonnet-4-6",
+        timezone: "Europe/Madrid",
+        devicePlatform: "web",
+        requestId: "request-anthropic-3",
+      }, client));
+    },
+    (error: unknown) => error instanceof AnthropicLocalChatRuntimeError
+      && error.code === "LOCAL_TOOL_CALL_INVALID"
+      && error.stage === "tool_call_validation",
+  );
+});
+
+test("streamLocalChatResponse rejects only unknown local models", async () => {
   await assert.rejects(
     async () => {
       await streamLocalChatResponse(
         {
           messages: [{ role: "user", content: "hi" }],
-          model: "claude-sonnet-4-6",
+          model: "unknown-model",
           timezone: "Europe/Madrid",
+          devicePlatform: "ios",
         },
         "request-id",
       );

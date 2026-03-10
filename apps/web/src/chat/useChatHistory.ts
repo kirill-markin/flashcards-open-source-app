@@ -13,8 +13,8 @@ type ChatHistoryState = Readonly<{
   appendUserMessage: (content: ReadonlyArray<ContentPart>) => void;
   startAssistantMessage: () => void;
   appendAssistantChunk: (text: string) => void;
-  appendToolCall: (name: string) => void;
-  completeToolCall: (name: string, input: string | null, output: string | null) => void;
+  appendToolCall: (name: string, toolCallId: string) => void;
+  completeToolCall: (toolCallId: string, input: string | null, output: string | null) => void;
   finalizeAssistant: () => void;
   markAssistantError: (errorText: string) => void;
   clearHistory: () => void;
@@ -23,6 +23,96 @@ type ChatHistoryState = Readonly<{
 const STORAGE_KEY = "flashcards-chat-messages";
 const MAX_MESSAGES = 200;
 
+function isContentPart(value: unknown): value is ContentPart {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  if (!("type" in value) || typeof value.type !== "string") {
+    return false;
+  }
+
+  if (value.type === "text") {
+    return "text" in value && typeof value.text === "string";
+  }
+
+  if (value.type === "image") {
+    return "mediaType" in value
+      && typeof value.mediaType === "string"
+      && "base64Data" in value
+      && typeof value.base64Data === "string";
+  }
+
+  if (value.type === "file") {
+    return "mediaType" in value
+      && typeof value.mediaType === "string"
+      && "base64Data" in value
+      && typeof value.base64Data === "string"
+      && "fileName" in value
+      && typeof value.fileName === "string";
+  }
+
+  if (value.type === "tool_call") {
+    return "toolCallId" in value
+      && typeof value.toolCallId === "string"
+      && value.toolCallId !== ""
+      && "name" in value
+      && typeof value.name === "string"
+      && "status" in value
+      && (value.status === "started" || value.status === "completed")
+      && "input" in value
+      && (typeof value.input === "string" || value.input === null)
+      && "output" in value
+      && (typeof value.output === "string" || value.output === null);
+  }
+
+  return false;
+}
+
+function isStoredMessage(value: unknown): value is StoredMessage {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  return "role" in value
+    && (value.role === "user" || value.role === "assistant")
+    && "content" in value
+    && Array.isArray(value.content)
+    && value.content.every(isContentPart)
+    && "timestamp" in value
+    && typeof value.timestamp === "number"
+    && "isError" in value
+    && typeof value.isError === "boolean";
+}
+
+function normalizeStoredMessage(value: unknown): StoredMessage | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const contentValue = Array.isArray(record.content) ? record.content : [];
+  const normalizedContent = contentValue.filter(isContentPart);
+  const role = record.role;
+  const timestamp = record.timestamp;
+  const isError = record.isError;
+
+  if ((role !== "user" && role !== "assistant") || typeof timestamp !== "number" || typeof isError !== "boolean") {
+    return null;
+  }
+
+  return {
+    role,
+    content: normalizedContent,
+    timestamp,
+    isError,
+  };
+}
+
+export function normalizeStoredMessageForTests(value: unknown): StoredMessage | null {
+  return normalizeStoredMessage(value);
+}
+
 function loadFromStorage(): ReadonlyArray<StoredMessage> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -30,9 +120,17 @@ function loadFromStorage(): ReadonlyArray<StoredMessage> {
       return [];
     }
 
-    const parsed = JSON.parse(raw) as ReadonlyArray<StoredMessage>;
-    return parsed.slice(-MAX_MESSAGES);
-  } catch {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed) === false) {
+      return [];
+    }
+
+    return parsed
+      .map(normalizeStoredMessage)
+      .filter((message): message is StoredMessage => message !== null)
+      .slice(-MAX_MESSAGES);
+  } catch (error) {
+    console.error("Failed to load chat history", error);
     return [];
   }
 }
@@ -40,8 +138,8 @@ function loadFromStorage(): ReadonlyArray<StoredMessage> {
 function saveToStorage(messages: ReadonlyArray<StoredMessage>): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)));
-  } catch {
-    // Ignore localStorage persistence failures.
+  } catch (error) {
+    console.error("Failed to persist chat history", error);
   }
 }
 
@@ -106,7 +204,7 @@ export function useChatHistory(): ChatHistoryState {
     });
   }
 
-  function appendToolCall(name: string): void {
+  function appendToolCall(name: string, toolCallId: string): void {
     setMessages((currentMessages) => {
       if (currentMessages.length === 0) {
         return currentMessages;
@@ -123,14 +221,14 @@ export function useChatHistory(): ChatHistoryState {
           ...lastMessage,
           content: [
             ...lastMessage.content,
-            { type: "tool_call", name, status: "started", input: null, output: null },
+            { type: "tool_call", toolCallId, name, status: "started", input: null, output: null },
           ],
         },
       ];
     });
   }
 
-  function completeToolCall(name: string, input: string | null, output: string | null): void {
+  function completeToolCall(toolCallId: string, input: string | null, output: string | null): void {
     setMessages((currentMessages) => {
       if (currentMessages.length === 0) {
         return currentMessages;
@@ -145,7 +243,7 @@ export function useChatHistory(): ChatHistoryState {
       const nextContent = [...lastMessage.content]
         .reverse()
         .map((part) => {
-          if (!hasUpdated && part.type === "tool_call" && part.name === name && part.status === "started") {
+          if (!hasUpdated && part.type === "tool_call" && part.toolCallId === toolCallId && part.status === "started") {
             hasUpdated = true;
             return {
               ...part,

@@ -13,6 +13,7 @@ export type RequestContext = Readonly<{
   selectedWorkspaceId: string | null;
   email: string | null;
   locale: string;
+  userSettingsCreatedAt: string;
   transport: AuthTransport;
 }>;
 
@@ -35,6 +36,7 @@ export async function loadRequestContext(
     selectedWorkspaceId: userProfile.selectedWorkspaceId,
     email: userProfile.email,
     locale: userProfile.locale,
+    userSettingsCreatedAt: userProfile.createdAt,
     transport: auth.transport,
   };
 }

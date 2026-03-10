@@ -24,3 +24,10 @@ test("all strict local tool object schemas declare every property in required", 
     assert.deepEqual(requiredNames, [...propertyNames].sort(), `Tool ${tool.name} has mismatched required fields`);
   }
 });
+
+test("removed local write tools stay out of the canonical local tool contract", () => {
+  const toolNames = OPENAI_LOCAL_FLASHCARDS_TOOLS.map((tool) => tool.name);
+
+  assert.equal(toolNames.includes("submit_review"), false);
+  assert.equal(toolNames.includes("update_scheduler_settings"), false);
+});
