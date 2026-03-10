@@ -11,7 +11,6 @@ private let emptyBackTextPlaceholder: String = "No back text"
 struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
-    @State private var selectedCardId: String = ""
     @State private var isAnswerVisible: Bool = false
     @State private var isQueuePreviewPresented: Bool = false
     @State private var isEditorPresented: Bool = false
@@ -31,7 +30,7 @@ struct ReviewView: View {
     }
 
     private var currentCard: Card? {
-        selectedReviewCard(reviewQueue: store.reviewQueue, selectedCardId: self.selectedCardId)
+        currentReviewCard(reviewQueue: store.reviewQueue)
     }
 
     var body: some View {
@@ -43,14 +42,8 @@ struct ReviewView: View {
             }
         }
         .navigationTitle("Review")
-        .onAppear {
-            self.syncSelectedCardId()
-        }
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
-        }
-        .onChange(of: store.reviewQueue) { _, _ in
-            self.syncSelectedCardId()
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -306,7 +299,6 @@ struct ReviewView: View {
     }
 
     private func beginEditing(card: Card) {
-        self.selectedCardId = card.cardId
         self.editingCardId = card.cardId
         self.cardFormState = CardFormState(
             frontText: card.frontText,
@@ -334,7 +326,6 @@ struct ReviewView: View {
                 ),
                 editingCardId: editingCardId
             )
-            self.selectedCardId = editingCardId
             self.screenErrorMessage = ""
             self.isEditorPresented = false
         } catch {
@@ -353,17 +344,9 @@ struct ReviewView: View {
             self.screenErrorMessage = ""
             self.isEditorPresented = false
             self.editingCardId = nil
-            self.syncSelectedCardId()
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)
         }
-    }
-
-    private func syncSelectedCardId() {
-        self.selectedCardId = selectedReviewCardId(
-            reviewQueue: store.reviewQueue,
-            selectedCardId: self.selectedCardId
-        )
     }
 
     private func resolvedReviewAnswerGridOptions(card: Card) throws -> ReviewAnswerGridOptions {

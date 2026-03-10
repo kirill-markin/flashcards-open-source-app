@@ -18,9 +18,9 @@ import {
   normalizeCreateDeckInput,
   normalizeUpdateCardInput,
   normalizeUpdateDeckInput,
+  currentReviewCard,
   reviewFilterTitle,
   resolveReviewFilter,
-  selectReviewCard,
   upsertCard,
   upsertDeck,
   upsertReviewEvent,
@@ -523,7 +523,7 @@ describe("appData domain helpers", () => {
     ]);
   });
 
-  it("selects the same top review card after a remote sync reorders updatedAt values", () => {
+  it("uses the canonical queue head as the current review card", () => {
     const topQueueCard = createCard({
       cardId: "top-queue-card",
       dueAt: "2026-03-10T09:30:00.000Z",
@@ -544,9 +544,8 @@ describe("appData domain helpers", () => {
       "top-queue-card",
       "remotely-updated-card",
     ]);
-    expect(selectReviewCard(reviewQueue, "missing-card")?.cardId).toBe("top-queue-card");
-    expect(selectReviewCard(reviewQueue, "top-queue-card")?.cardId).toBe("top-queue-card");
-    expect(selectReviewCard(reviewQueue, "remotely-updated-card")?.cardId).toBe("remotely-updated-card");
+    expect(currentReviewCard(reviewQueue)?.cardId).toBe("top-queue-card");
+    expect(currentReviewCard([])).toBeNull();
   });
 
   it("does not treat future new cards as due when dueAt is in the future", () => {

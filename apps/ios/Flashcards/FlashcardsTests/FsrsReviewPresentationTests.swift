@@ -205,7 +205,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         )
     }
 
-    func testSelectedReviewCardFallsBackToCanonicalQueueHeadWhenSelectionDisappears() throws {
+    func testCurrentReviewCardUsesCanonicalQueueHead() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let reviewQueue = makeReviewQueue(
             reviewFilter: .allCards,
@@ -229,9 +229,8 @@ final class FsrsReviewPresentationTests: XCTestCase {
             now: now
         )
 
-        XCTAssertEqual(selectedReviewCard(reviewQueue: reviewQueue, selectedCardId: "missing")?.cardId, "top-queue-card")
-        XCTAssertEqual(selectedReviewCardId(reviewQueue: reviewQueue, selectedCardId: "missing"), "top-queue-card")
-        XCTAssertEqual(selectedReviewCard(reviewQueue: reviewQueue, selectedCardId: "remotely-updated-card")?.cardId, "remotely-updated-card")
+        XCTAssertEqual(currentReviewCard(reviewQueue: reviewQueue)?.cardId, "top-queue-card")
+        XCTAssertNil(currentReviewCard(reviewQueue: []))
     }
 
     func testInitialIncrementalVisibleCountShowsFirstPage() {
