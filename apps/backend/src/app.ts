@@ -39,22 +39,36 @@ function isAgentConnectionManagementPath(pathname: string): boolean {
   return pathname.endsWith("/agent-api-keys") || pathname.includes("/agent-api-keys/");
 }
 
-function createAgentInstructions(code: string | null): string {
+function createAgentInstructions(code: string | null, statusCode: number): string {
   switch (code) {
     case "AUTH_UNAUTHORIZED":
     case "AGENT_API_KEY_INVALID":
       return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
+    case "AGENT_TOOL_INPUT_INVALID":
+      return "Fix the JSON body to match the tool schema. Use error.details.validationIssues paths and messages directly, then retry the same request.";
     case "WORKSPACE_SELECTION_REQUIRED":
       return "Call GET /v1/agent/workspaces to inspect available workspaces, then select one with POST /v1/agent/workspaces/{workspaceId}/select.";
     case "WORKSPACE_ID_REQUIRED":
     case "WORKSPACE_ID_INVALID":
-      return "Provide a non-empty workspaceId in the request URL, then retry the action.";
-    default:
-      return "Retry the same request after fixing the reported input. If the issue persists, reload account context from GET /v1/agent/me or restart from GET /v1/agent.";
+      return "Provide a valid workspaceId UUID in the request URL, then retry the action.";
   }
+
+  if (statusCode >= 500) {
+    return "Retry the same request once. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.";
+  }
+
+  if (statusCode === 404) {
+    return "Verify that the referenced resource id exists in the selected workspace, then retry only after correcting the id.";
+  }
+
+  if (statusCode >= 400) {
+    return "Fix the request using error.message and any error.details.validationIssues, then retry the same request.";
+  }
+
+  return "If the issue persists, reload account context from GET /v1/agent/me or restart from GET /v1/agent.";
 }
 
-function createAgentConnectionManagementInstructions(code: string | null): string {
+function createAgentConnectionManagementInstructions(code: string | null, statusCode: number): string {
   switch (code) {
     case "AUTH_UNAUTHORIZED":
       return "Sign in with a human browser or mobile session, then retry the connection management request.";
@@ -65,9 +79,17 @@ function createAgentConnectionManagementInstructions(code: string | null): strin
     case "AGENT_API_KEY_ID_REQUIRED":
     case "AGENT_API_KEY_ID_INVALID":
       return "Provide a non-empty connectionId in the request URL, then retry the request.";
-    default:
-      return "Retry the same request after fixing the reported input. If the issue persists, refresh the settings screen and try again.";
   }
+
+  if (statusCode >= 500) {
+    return "Retry the same request once. If it fails again, treat it as a server-side error and use requestId when debugging.";
+  }
+
+  if (statusCode >= 400) {
+    return "Fix the request using the reported error details, then retry the same request.";
+  }
+
+  return "Refresh the settings screen and try again.";
 }
 
 function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
@@ -112,7 +134,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
             context.req.url,
             "AUTH_UNAUTHORIZED",
             "Authentication failed. Sign in again.",
-            createAgentInstructions("AUTH_UNAUTHORIZED"),
+            createAgentInstructions("AUTH_UNAUTHORIZED", error.statusCode),
             requestId,
           ),
         );
@@ -122,7 +144,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
           createAgentConnectionManagementErrorEnvelope(
             "AUTH_UNAUTHORIZED",
             "Authentication failed. Sign in again.",
-            createAgentConnectionManagementInstructions("AUTH_UNAUTHORIZED"),
+            createAgentConnectionManagementInstructions("AUTH_UNAUTHORIZED", error.statusCode),
             requestId,
           ),
         );
@@ -142,8 +164,9 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
             context.req.url,
             error.code ?? "REQUEST_FAILED",
             error.message,
-            createAgentInstructions(error.code),
+            createAgentInstructions(error.code, error.statusCode),
             requestId,
+            error.details ?? undefined,
           ),
         );
       }
@@ -152,7 +175,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
           createAgentConnectionManagementErrorEnvelope(
             error.code ?? "REQUEST_FAILED",
             error.message,
-            createAgentConnectionManagementInstructions(error.code),
+            createAgentConnectionManagementInstructions(error.code, error.statusCode),
             requestId,
           ),
         );
@@ -171,7 +194,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
           context.req.url,
           "INTERNAL_ERROR",
           "Request failed. Try again.",
-          createAgentInstructions("INTERNAL_ERROR"),
+          createAgentInstructions("INTERNAL_ERROR", 500),
           requestId,
         ),
       );
@@ -181,7 +204,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
         createAgentConnectionManagementErrorEnvelope(
           "INTERNAL_ERROR",
           "Request failed. Try again.",
-          createAgentConnectionManagementInstructions("INTERNAL_ERROR"),
+          createAgentConnectionManagementInstructions("INTERNAL_ERROR", 500),
           requestId,
         ),
       );

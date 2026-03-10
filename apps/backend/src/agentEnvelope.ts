@@ -46,6 +46,13 @@ export type AgentErrorEnvelope = Readonly<{
   error: Readonly<{
     code: string;
     message: string;
+    details?: Readonly<{
+      validationIssues: ReadonlyArray<Readonly<{
+        path: string;
+        code: string;
+        message: string;
+      }>>;
+    }>;
   }>;
   requestId?: string;
 }>;
@@ -98,16 +105,25 @@ export function createAgentErrorEnvelope(
   message: string,
   instructions: string,
   requestId?: string,
+  details?: Readonly<{
+    validationIssues: ReadonlyArray<Readonly<{
+      path: string;
+      code: string;
+      message: string;
+    }>>;
+  }>,
+  actions: ReadonlyArray<AgentAction> = [],
 ): AgentErrorEnvelope {
   return {
     ok: false,
     data: {},
-    actions: [],
+    actions,
     instructions,
     docs: getPublicAgentDocs(requestUrl),
     error: {
       code,
       message,
+      ...(details !== undefined ? { details } : {}),
     },
     requestId,
   };

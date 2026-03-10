@@ -6,12 +6,14 @@ import {
   createAgentErrorEnvelope,
   createAgentListToolsAction,
   createAgentListWorkspacesAction,
+  createAgentOpenApiAction,
   createAgentSelectWorkspaceAction,
   createAgentToolAction,
   type AgentEnvelope,
   type AgentErrorEnvelope,
 } from "./agentEnvelope";
 import type { AuthTransport } from "./auth";
+import type { HttpErrorDetails } from "./errors";
 import type { RequestContext } from "./server/requestContext";
 import type { WorkspaceSummary } from "./workspaces";
 
@@ -139,8 +141,15 @@ export function createAgentSetupErrorEnvelope(
   message: string,
   instructions: string,
   requestId?: string,
+  details?: HttpErrorDetails,
 ): AgentErrorEnvelope {
-  return createAgentErrorEnvelope(requestUrl, code, message, instructions, requestId);
+  const actions = code === "WORKSPACE_SELECTION_REQUIRED"
+    ? [createAgentListWorkspacesAction(requestUrl), createAgentSelectWorkspaceAction(requestUrl)]
+    : code === "AGENT_TOOL_INPUT_INVALID"
+      ? [createAgentListToolsAction(requestUrl), createAgentOpenApiAction(requestUrl)]
+      : [];
+
+  return createAgentErrorEnvelope(requestUrl, code, message, instructions, requestId, details, actions);
 }
 
 export type AgentConnectionListEnvelope = Readonly<{

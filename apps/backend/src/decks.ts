@@ -394,7 +394,7 @@ export async function getDecks(
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
-      "WHERE workspace_id = $1 AND deck_id = ANY($2::text[]) AND deleted_at IS NULL",
+      "WHERE workspace_id = $1 AND deck_id = ANY($2::uuid[]) AND deleted_at IS NULL",
     ].join(" "),
     [workspaceId, deckIds],
   );

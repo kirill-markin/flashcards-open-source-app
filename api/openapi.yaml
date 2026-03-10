@@ -175,6 +175,16 @@
         "responses": {
           "200": {
             "description": "Agent account envelope"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -192,6 +202,16 @@
         "responses": {
           "200": {
             "description": "Agent workspaces envelope"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       },
@@ -217,6 +237,16 @@
         "responses": {
           "201": {
             "description": "Workspace created"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -237,13 +267,23 @@
             "name": "workspaceId",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/UuidString"
             }
           }
         ],
         "responses": {
           "200": {
             "description": "Workspace selected"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -261,6 +301,16 @@
         "responses": {
           "200": {
             "description": "Agent tool catalog envelope"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -278,6 +328,16 @@
         "responses": {
           "200": {
             "description": "Workspace context envelope"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -305,6 +365,16 @@
         "responses": {
           "200": {
             "description": "Cards listed"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -332,6 +402,16 @@
         "responses": {
           "200": {
             "description": "Cards loaded"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -359,6 +439,16 @@
         "responses": {
           "200": {
             "description": "Cards found"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -386,6 +476,16 @@
         "responses": {
           "200": {
             "description": "Due cards listed"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -403,6 +503,16 @@
         "responses": {
           "200": {
             "description": "Decks listed"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -430,6 +540,16 @@
         "responses": {
           "200": {
             "description": "Decks loaded"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -457,6 +577,16 @@
         "responses": {
           "200": {
             "description": "Decks found"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -484,6 +614,16 @@
         "responses": {
           "200": {
             "description": "Review history listed"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -501,6 +641,16 @@
         "responses": {
           "200": {
             "description": "Scheduler settings loaded"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -528,6 +678,16 @@
         "responses": {
           "200": {
             "description": "Cards created"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -555,6 +715,16 @@
         "responses": {
           "200": {
             "description": "Cards updated"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -582,6 +752,16 @@
         "responses": {
           "200": {
             "description": "Cards deleted"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -609,6 +789,16 @@
         "responses": {
           "200": {
             "description": "Decks created"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -636,6 +826,16 @@
         "responses": {
           "200": {
             "description": "Decks updated"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -663,6 +863,16 @@
         "responses": {
           "200": {
             "description": "Decks deleted"
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -678,6 +888,95 @@
       }
     },
     "schemas": {
+      "UuidString": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "ValidationIssueSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "code", "message"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentErrorDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["validationIssues"],
+        "properties": {
+          "validationIssues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssueSummary"
+            }
+          }
+        }
+      },
+      "AgentErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "data", "actions", "instructions", "docs", "error"],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [false]
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["openapiUrl", "swaggerUrl"],
+            "properties": {
+              "openapiUrl": {
+                "type": "string"
+              },
+              "swaggerUrl": {
+                "type": "string"
+              }
+            }
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "message"],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "$ref": "#/components/schemas/AgentErrorDetails"
+              }
+            }
+          },
+          "requestId": {
+            "type": "string"
+          }
+        }
+      },
       "NullableLimit": {
         "type": ["integer", "null"],
         "minimum": 1,
@@ -716,7 +1015,7 @@
             "minItems": 1,
             "maxItems": 100,
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/UuidString"
             }
           }
         }
@@ -731,7 +1030,7 @@
             "minItems": 1,
             "maxItems": 100,
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/UuidString"
             }
           }
         }
@@ -745,7 +1044,14 @@
             "$ref": "#/components/schemas/NullableLimit"
           },
           "cardId": {
-            "type": ["string", "null"]
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UuidString"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -781,7 +1087,7 @@
         "required": ["cardId", "frontText", "backText", "tags", "effortLevel"],
         "properties": {
           "cardId": {
-            "type": "string"
+            "$ref": "#/components/schemas/UuidString"
           },
           "frontText": {
             "type": ["string", "null"]
@@ -841,7 +1147,7 @@
             "minItems": 1,
             "maxItems": 100,
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/UuidString"
             }
           }
         }
@@ -874,7 +1180,7 @@
         "required": ["deckId", "name", "effortLevels", "tags"],
         "properties": {
           "deckId": {
-            "type": "string"
+            "$ref": "#/components/schemas/UuidString"
           },
           "name": {
             "type": ["string", "null"]
@@ -933,7 +1239,7 @@
             "minItems": 1,
             "maxItems": 100,
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/UuidString"
             }
           }
         }

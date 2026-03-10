@@ -498,7 +498,7 @@ export async function getCards(
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
-        "WHERE workspace_id = $1 AND card_id = ANY($2::text[]) AND deleted_at IS NULL",
+        "WHERE workspace_id = $1 AND card_id = ANY($2::uuid[]) AND deleted_at IS NULL",
       ].join(" "),
       [workspaceId, cardIds],
     );

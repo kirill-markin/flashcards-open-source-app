@@ -211,13 +211,13 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
   assert.match(instructions, /every newly proposed card must include at least one tag/i);
   assert.match(instructions, /if the user did not provide tags for a new card, you must suggest one or more concrete tags/i);
   assert.match(instructions, /list_cards => \{"limit": 20\}/);
-  assert.match(instructions, /get_cards => \{"cardIds": \["card_123"\]\}/);
+  assert.match(instructions, /get_cards => \{"cardIds": \["123e4567-e89b-42d3-a456-426614174000"\]\}/);
   assert.match(instructions, /search_cards => \{"query": "grammar", "limit": null\}/);
   assert.match(instructions, /search_decks => \{"query": "grammar", "limit": null\}/);
-  assert.match(instructions, /get_decks => \{"deckIds": \["deck_123"\]\}/);
+  assert.match(instructions, /get_decks => \{"deckIds": \["123e4567-e89b-42d3-a456-426614174001"\]\}/);
   assert.match(instructions, /list_review_history => \{"limit": 20, "cardId": null\}/);
-  assert.match(instructions, /update_cards => \{"updates": \[\{"cardId": "card_123"/);
-  assert.match(instructions, /update_decks => \{"updates": \[\{"deckId": "deck_123"/);
+  assert.match(instructions, /update_cards => \{"updates": \[\{"cardId": "123e4567-e89b-42d3-a456-426614174000"/);
+  assert.match(instructions, /update_decks => \{"updates": \[\{"deckId": "123e4567-e89b-42d3-a456-426614174001"/);
   assert.match(instructions, /correct the tool call shape and continue without repeating earlier assistant text/i);
 });
 

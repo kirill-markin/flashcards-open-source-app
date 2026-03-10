@@ -177,26 +177,82 @@ function parseAgentToolBody<T>(toolName: ExternalAgentToolName, value: unknown):
   const validator = OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS[toolName];
   const result = validator.safeParse(value);
   if (!result.success) {
-    throw new HttpError(400, result.error.issues.map((issue) => issue.message).join("; "));
+    throw new HttpError(
+      400,
+      `Request body does not match the ${toolName} schema`,
+      "AGENT_TOOL_INPUT_INVALID",
+      {
+        validationIssues: result.error.issues.map((issue) => ({
+          path: issue.path.length > 0 ? issue.path.map((segment) => String(segment)).join(".") : "<root>",
+          code: issue.code,
+          message: issue.message,
+        })),
+      },
+    );
   }
 
   return result.data as T;
 }
 
 function toAgentToolActions(requestUrl: string, toolName: ExternalAgentToolName): ReadonlyArray<AgentAction> {
+  if (toolName === "create_cards" || toolName === "update_cards" || toolName === "delete_cards") {
+    return [
+      createAgentListToolsAction(requestUrl),
+      createAgentToolAction(requestUrl, "get_workspace_context"),
+      createAgentToolAction(requestUrl, "get_cards"),
+      createAgentToolAction(requestUrl, "list_cards"),
+    ];
+  }
+
+  if (toolName === "get_cards") {
+    return [
+      createAgentListToolsAction(requestUrl),
+      createAgentToolAction(requestUrl, "get_workspace_context"),
+      createAgentToolAction(requestUrl, "update_cards"),
+      createAgentToolAction(requestUrl, "list_cards"),
+    ];
+  }
+
   if (
-    toolName === "list_decks"
-    || toolName === "get_decks"
-    || toolName === "search_decks"
-    || toolName === "create_decks"
-    || toolName === "update_decks"
-    || toolName === "delete_decks"
+    toolName === "list_cards"
+    || toolName === "search_cards"
+    || toolName === "list_due_cards"
   ) {
     return [
       createAgentListToolsAction(requestUrl),
       createAgentToolAction(requestUrl, "get_workspace_context"),
+      createAgentToolAction(requestUrl, "get_cards"),
+      createAgentToolAction(requestUrl, "create_cards"),
+    ];
+  }
+
+  if (toolName === "create_decks" || toolName === "update_decks" || toolName === "delete_decks") {
+    return [
+      createAgentListToolsAction(requestUrl),
+      createAgentToolAction(requestUrl, "get_workspace_context"),
+      createAgentToolAction(requestUrl, "get_decks"),
+      createAgentToolAction(requestUrl, "list_decks"),
+    ];
+  }
+
+  if (toolName === "get_decks") {
+    return [
+      createAgentListToolsAction(requestUrl),
+      createAgentToolAction(requestUrl, "get_workspace_context"),
+      createAgentToolAction(requestUrl, "update_decks"),
+      createAgentToolAction(requestUrl, "list_decks"),
+    ];
+  }
+
+  if (
+    toolName === "list_decks"
+    || toolName === "search_decks"
+  ) {
+    return [
+      createAgentListToolsAction(requestUrl),
+      createAgentToolAction(requestUrl, "get_workspace_context"),
+      createAgentToolAction(requestUrl, "get_decks"),
       createAgentToolAction(requestUrl, "search_decks"),
-      createAgentToolAction(requestUrl, "create_decks"),
     ];
   }
 
