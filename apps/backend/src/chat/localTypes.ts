@@ -1,3 +1,5 @@
+export type LocalChatDevicePlatform = "ios" | "web";
+
 export type LocalAssistantToolCall = Readonly<{
   toolCallId: string;
   name: string;
@@ -25,6 +27,7 @@ export type LocalChatRequestBody = Readonly<{
   messages: ReadonlyArray<LocalChatMessage>;
   model: string;
   timezone: string;
+  devicePlatform: LocalChatDevicePlatform;
 }>;
 
 export type LocalChatStreamEvent =

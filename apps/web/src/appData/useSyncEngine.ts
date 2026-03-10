@@ -124,6 +124,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     decks: [],
     reviewEvents: [],
     workspaceSettings: null,
+    cloudSettings: null,
     outbox: [],
     lastAppliedChangeId: 0,
   });
@@ -146,6 +147,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       decks: [...cache.decks],
       reviewEvents: [...cache.reviewEvents],
       workspaceSettings: cache.workspaceSettings,
+      cloudSettings: cache.cloudSettings,
       outbox: [...cache.outbox],
       lastAppliedChangeId: cache.lastAppliedChangeId,
     });

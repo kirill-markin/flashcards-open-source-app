@@ -477,6 +477,53 @@ final class AIChatTests: XCTestCase {
     }
 
     @MainActor
+    func testLocalToolExecutorRejectsRemovedTools() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        do {
+            _ = try await executor.execute(
+                toolCallRequest: AIToolCallRequest(
+                    toolCallId: "call-submit-review",
+                    name: "submit_review",
+                    input: "{\"cardId\":\"card-1\",\"rating\":\"good\"}"
+                ),
+                requestId: "request-1"
+            )
+            XCTFail("Expected unsupported submit_review tool error")
+        } catch let error as AIToolExecutionError {
+            guard case .unsupportedTool(let toolName) = error else {
+                return XCTFail("Expected unsupported tool error, received \(error)")
+            }
+
+            XCTAssertEqual(toolName, "submit_review")
+        }
+
+        do {
+            _ = try await executor.execute(
+                toolCallRequest: AIToolCallRequest(
+                    toolCallId: "call-update-settings",
+                    name: "update_scheduler_settings",
+                    input: "{\"desiredRetention\":0.9,\"learningStepsMinutes\":[1],\"relearningStepsMinutes\":[10],\"maximumIntervalDays\":365,\"enableFuzz\":true}"
+                ),
+                requestId: "request-1"
+            )
+            XCTFail("Expected unsupported update_scheduler_settings tool error")
+        } catch let error as AIToolExecutionError {
+            guard case .unsupportedTool(let toolName) = error else {
+                return XCTFail("Expected unsupported tool error, received \(error)")
+            }
+
+            XCTAssertEqual(toolName, "update_scheduler_settings")
+        }
+    }
+
+    @MainActor
     func testLocalToolExecutorCreatesUpdatesAndDeletesCardsInBulk() async throws {
         let flashcardsStore = try self.makeStore()
         let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)

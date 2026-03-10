@@ -6,13 +6,8 @@ import {
   useState,
   type ReactElement,
 } from "react";
-import type {
-  Card,
-  Deck,
-  ReviewFilter,
-  SessionInfo,
-  WorkspaceSummary,
-} from "../types";
+import type { Card, Deck, ReviewFilter, SessionInfo, WorkspaceSummary } from "../types";
+import type { MutableSnapshot } from "./types";
 import {
   ALL_CARDS_REVIEW_FILTER,
   isReviewFilterEqual,
@@ -174,6 +169,15 @@ export function AppDataProvider(props: Props): ReactElement {
     selectReviewFilter,
     openReview,
     submitReviewItem: syncEngine.submitReviewItem,
+    getLocalSnapshot: (): MutableSnapshot => ({
+      cards: [...syncEngine.snapshotRef.current.cards],
+      decks: [...syncEngine.snapshotRef.current.decks],
+      reviewEvents: [...syncEngine.snapshotRef.current.reviewEvents],
+      workspaceSettings: syncEngine.snapshotRef.current.workspaceSettings,
+      cloudSettings: syncEngine.snapshotRef.current.cloudSettings,
+      outbox: [...syncEngine.snapshotRef.current.outbox],
+      lastAppliedChangeId: syncEngine.snapshotRef.current.lastAppliedChangeId,
+    }),
   };
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -181,11 +181,13 @@ export function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody 
   const body = expectRecord(value);
   const model = expectNonEmptyString(body.model, "model");
   const timezone = expectNonEmptyString(body.timezone, "timezone");
+  const devicePlatform = body.devicePlatform;
 
   return {
     messages: parseLocalChatMessages(body.messages),
     model,
     timezone,
+    devicePlatform: devicePlatform === "web" ? "web" : "ios",
   };
 }
 
@@ -306,7 +308,7 @@ export function logLocalChatDiagnostics(
 ): void {
   console.error(JSON.stringify({
     domain: "chat",
-    vendor: "ios_client",
+    vendor: "local_client",
     action: "local_chat_diagnostics",
     workspaceId: requestContext.selectedWorkspaceId,
     transport: requestContext.transport,
@@ -323,8 +325,8 @@ function logLocalChatTerminalError(
 ): void {
   console.error(JSON.stringify({
     domain: "chat",
-    vendor: "openai",
-    mode: "local_ios",
+    vendor: "local_client",
+    mode: "local_client",
     action: "terminal_error_emitted",
     requestId,
     code,
@@ -481,17 +483,21 @@ export async function streamLocalChatResponse(
   body: LocalChatRequestBody,
   requestId: string,
 ): Promise<Response> {
-  const validModel = CHAT_MODELS.find((model) => model.id === body.model && model.vendor === "openai");
+  const validModel = CHAT_MODELS.find((model) => model.id === body.model);
   if (validModel === undefined) {
     throw new HttpError(400, `Unknown local chat model: ${body.model}`);
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = validModel.vendor === "anthropic"
+    ? process.env.ANTHROPIC_API_KEY
+    : process.env.OPENAI_API_KEY;
   if (apiKey === undefined || apiKey === "") {
-    throw new HttpError(500, "OPENAI_API_KEY environment variable is not set");
+    throw new HttpError(500, `${validModel.vendor === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY"} environment variable is not set`);
   }
 
-  const agentModule = await import("./openai/localAgent");
+  const agentModule = validModel.vendor === "anthropic"
+    ? await import("./anthropic/localAgent")
+    : await import("./openai/localAgent");
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -500,6 +506,7 @@ export async function streamLocalChatResponse(
           messages: body.messages,
           model: body.model,
           timezone: body.timezone,
+          devicePlatform: body.devicePlatform,
           requestId,
         })) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));

@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import { ZodError } from "zod";
 import type {
   EasyInputMessage,
   ResponseFunctionToolCall,
@@ -7,21 +6,13 @@ import type {
 } from "openai/resources/responses/responses";
 import type { LocalAssistantToolCall, LocalChatMessage, LocalChatStreamEvent } from "../localTypes";
 import {
-  buildAssistantRoleSection,
-  buildConciseStyleSection,
-  buildDatetimeSection,
-  buildLocalRepairSection,
-  buildLocalToolCallExamplesSection,
-  buildLocalToolCallRulesSection,
-  buildLocalWorkspaceSection,
-  buildLocalWritePolicyLines,
-  buildPromptFromSections,
-  buildWritePolicySection,
-} from "../promptSections";
-import {
-  OPENAI_LOCAL_FLASHCARDS_TOOLS,
-  OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS,
-} from "./localTools";
+  buildLocalSystemInstructions,
+  isRepairableToolCallError,
+  makeLocalRepairStatusEvent,
+  MAX_LOCAL_TOOL_REPAIR_ATTEMPTS,
+  toLocalAssistantToolCall,
+} from "../localRuntimeShared";
+import { OPENAI_LOCAL_FLASHCARDS_TOOLS } from "./localTools";
 
 const LOCAL_CHAT_MODEL_IDS = new Set([
   "gpt-5.4",
@@ -30,8 +21,6 @@ const LOCAL_CHAT_MODEL_IDS = new Set([
   "gpt-4.1-mini",
   "gpt-4.1-nano",
 ]);
-
-const MAX_TOOL_REPAIR_ATTEMPTS = 3;
 
 type LocalResponseStreamEvent = Readonly<{
   type: string;
@@ -109,21 +98,9 @@ export type StreamLocalTurnParams = Readonly<{
   messages: ReadonlyArray<LocalChatMessage>;
   model: string;
   timezone: string;
+  devicePlatform: "ios" | "web";
   requestId: string;
 }>;
-
-class RepairableToolCallError extends Error {
-  readonly toolName: string | null;
-  readonly repairPrompt: string;
-  readonly rawDetails: string;
-
-  constructor(toolName: string | null, repairPrompt: string, rawDetails: string) {
-    super("Assistant could not prepare a valid tool call.");
-    this.toolName = toolName;
-    this.repairPrompt = repairPrompt;
-    this.rawDetails = rawDetails;
-  }
-}
 
 export class LocalChatRuntimeError extends Error {
   readonly code: string;
@@ -140,23 +117,9 @@ function logLocalChatEvent(event: LocalChatLogEvent): void {
   console.error(JSON.stringify({
     domain: "chat",
     vendor: "openai",
-    mode: "local_ios",
+    mode: "local_client",
     ...event,
   }));
-}
-
-export function buildLocalSystemInstructions(timezone: string): string {
-  return buildPromptFromSections([
-    buildAssistantRoleSection(),
-    "Use this assistant on iPhone.",
-    buildLocalWorkspaceSection(),
-    buildConciseStyleSection(),
-    buildLocalToolCallRulesSection(),
-    buildWritePolicySection(buildLocalWritePolicyLines()),
-    buildLocalToolCallExamplesSection(),
-    buildLocalRepairSection(),
-    buildDatetimeSection(timezone),
-  ]);
 }
 
 function mapMessage(message: LocalChatMessage): ReadonlyArray<ResponseInputItem> {
@@ -240,87 +203,11 @@ function createClient(): OpenAIResponsesClient {
   return new OpenAI();
 }
 
-function formatIssuePath(path: ReadonlyArray<PropertyKey>): string {
-  if (path.length === 0) {
-    return "root";
-  }
-
-  return path.map((segment) => String(segment)).join(".");
-}
-
-function formatSchemaIssues(error: ZodError): string {
-  return error.issues.map((issue) => {
-    const path = formatIssuePath(issue.path);
-
-    if (issue.code === "invalid_type" && "input" in issue && issue.input === undefined) {
-      return `${path} is required`;
-    }
-
-    if (issue.code === "unrecognized_keys") {
-      return `unexpected keys: ${issue.keys.join(", ")}`;
-    }
-
-    return `${path}: ${issue.message}`;
-  }).join("; ");
-}
-
-function buildRepairPrompt(toolName: string | null, details: string): string {
-  return [
-    "Your previous tool call arguments were invalid.",
-    toolName === null ? "Tool: unknown" : `Tool: ${toolName}`,
-    `Validation error: ${details}`,
-    "Return one corrected tool call only.",
-    "Return exactly one JSON object for the tool arguments.",
-    "Include every required property.",
-    "Use null instead of omitting semantically optional fields.",
-    "Do not repeat earlier assistant text already sent to the user.",
-  ].join("\n");
-}
-
-function validateToolArguments(
-  toolName: string,
-  rawArguments: string,
-): string {
-  let parsedArguments: unknown;
-
-  try {
-    parsedArguments = JSON.parse(rawArguments);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new RepairableToolCallError(
-      toolName,
-      buildRepairPrompt(toolName, `Invalid JSON: ${message}`),
-      `Invalid JSON: ${message}. Raw arguments: ${rawArguments}`,
-    );
-  }
-
-  const validator = OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS[toolName];
-  if (validator === undefined) {
-    throw new RepairableToolCallError(
-      toolName,
-      buildRepairPrompt(toolName, "Unknown tool name."),
-      `Unknown tool name: ${toolName}`,
-    );
-  }
-
-  const result = validator.safeParse(parsedArguments);
-  if (!result.success) {
-    const details = formatSchemaIssues(result.error);
-    throw new RepairableToolCallError(
-      toolName,
-      buildRepairPrompt(toolName, details),
-      details,
-    );
-  }
-
-  return JSON.stringify(result.data);
-}
-
 function normalizeToolCall(
   toolCall: ResponseFunctionToolCall,
   params: Readonly<{ requestId: string; model: string }>,
 ): ValidatedToolCall {
-  const normalizedInput = validateToolArguments(toolCall.name, toolCall.arguments);
+  const normalizedToolCall = toLocalAssistantToolCall(toolCall.call_id, toolCall.name, toolCall.arguments);
   logLocalChatEvent({
     action: "tool_call_validated",
     requestId: params.requestId,
@@ -329,9 +216,9 @@ function normalizeToolCall(
     toolCallId: toolCall.call_id,
   });
   return {
-    toolCallId: toolCall.call_id,
-    name: toolCall.name,
-    input: normalizedInput,
+    toolCallId: normalizedToolCall.toolCallId,
+    name: normalizedToolCall.name,
+    input: normalizedToolCall.input,
   };
 }
 
@@ -340,23 +227,6 @@ function normalizeToolCalls(
   params: Readonly<{ requestId: string; model: string }>,
 ): ReadonlyArray<LocalAssistantToolCall> {
   return toolCalls.map((toolCall) => normalizeToolCall(toolCall, params));
-}
-
-function makeRepairStatusEvent(
-  attempt: number,
-  toolName: string | null,
-): LocalChatStreamEvent {
-  const message = toolName === null
-    ? "Assistant is correcting a tool call."
-    : `Assistant is correcting ${toolName}.`;
-
-  return {
-    type: "repair_attempt",
-    message,
-    attempt,
-    maxAttempts: MAX_TOOL_REPAIR_ATTEMPTS,
-    toolName,
-  };
 }
 
 export function isSupportedLocalChatModel(model: string): boolean {
@@ -378,7 +248,7 @@ export async function* streamLocalAgentTurn(
   let streamedAssistantText = "";
   let deltaCount = 0;
 
-  for (let repairAttempt = 0; repairAttempt <= MAX_TOOL_REPAIR_ATTEMPTS; repairAttempt++) {
+  for (let repairAttempt = 0; repairAttempt <= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS; repairAttempt++) {
     logLocalChatEvent({
       action: "stream_opened",
       requestId: params.requestId,
@@ -387,7 +257,7 @@ export async function* streamLocalAgentTurn(
     });
     const stream = client.responses.stream({
       model: params.model,
-      instructions: buildLocalSystemInstructions(params.timezone),
+      instructions: buildLocalSystemInstructions(params.timezone, params.devicePlatform),
       input: buildInput(params.messages, repairState),
       tools: OPENAI_LOCAL_FLASHCARDS_TOOLS,
       parallel_tool_calls: false,
@@ -443,11 +313,11 @@ export async function* streamLocalAgentTurn(
       yield { type: "await_tool_results" };
       return;
     } catch (error) {
-      if ((error instanceof RepairableToolCallError) === false) {
+      if (isRepairableToolCallError(error) === false) {
         throw error;
       }
 
-      if (repairAttempt >= MAX_TOOL_REPAIR_ATTEMPTS) {
+      if (repairAttempt >= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS) {
         logLocalChatEvent({
           action: "repair_exhausted",
           requestId: params.requestId,
@@ -467,7 +337,7 @@ export async function* streamLocalAgentTurn(
         requestId: params.requestId,
         model: params.model,
         attempt: nextAttempt,
-        maxAttempts: MAX_TOOL_REPAIR_ATTEMPTS,
+        maxAttempts: MAX_LOCAL_TOOL_REPAIR_ATTEMPTS,
         toolName: error.toolName,
         details: error.rawDetails,
       });
@@ -475,7 +345,7 @@ export async function* streamLocalAgentTurn(
         assistantText: streamedAssistantText,
         prompt: error.repairPrompt,
       };
-      yield makeRepairStatusEvent(nextAttempt, error.toolName);
+      yield makeLocalRepairStatusEvent(nextAttempt, error.toolName);
     }
   }
 

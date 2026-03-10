@@ -3,6 +3,9 @@ import { getStableDeviceId, webAppVersion } from "./clientIdentity";
 import type {
   ChatDiagnosticsPayload,
   ChatMessage,
+  LocalChatDiagnosticsPayload,
+  LocalChatMessage,
+  LocalChatRequestBody,
   QueryCardsInput,
   QueryCardsPage,
   SessionInfo,
@@ -440,6 +443,14 @@ export async function streamChat(body: ChatRequestBody, signal: AbortSignal): Pr
   }, allowAuthRecovery);
 }
 
+export async function streamLocalChat(body: LocalChatRequestBody, signal: AbortSignal): Promise<Response> {
+  return requestResponse("/chat/local-turn", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  }, allowAuthRecovery);
+}
+
 export function createChatRequestBody(
   messages: ReadonlyArray<ChatMessage>,
   model: string,
@@ -454,8 +465,33 @@ export function createChatRequestBody(
   };
 }
 
+export function createLocalChatRequestBody(
+  messages: ReadonlyArray<LocalChatMessage>,
+  model: string,
+  timezone: string,
+): LocalChatRequestBody {
+  return {
+    messages,
+    model,
+    timezone,
+    devicePlatform: "web",
+  };
+}
+
 export async function sendChatDiagnostics(body: ChatDiagnosticsPayload): Promise<void> {
   const response = await requestResponse("/chat/diagnostics", {
+    method: "POST",
+    body: JSON.stringify(body),
+    keepalive: true,
+  }, allowAuthRecovery);
+
+  if (!response.ok) {
+    throw new ApiError(response.status, `Request failed with status ${response.status}`);
+  }
+}
+
+export async function sendLocalChatDiagnostics(body: LocalChatDiagnosticsPayload): Promise<void> {
+  const response = await requestResponse("/chat/local-turn/diagnostics", {
     method: "POST",
     body: JSON.stringify(body),
     keepalive: true,

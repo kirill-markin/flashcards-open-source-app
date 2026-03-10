@@ -18,6 +18,7 @@ function createSessionPayload(csrfToken: string): Readonly<{
   profile: Readonly<{
     email: string;
     locale: string;
+    createdAt: string;
   }>;
 }> {
   return {
@@ -28,6 +29,7 @@ function createSessionPayload(csrfToken: string): Readonly<{
     profile: {
       email: "test@example.com",
       locale: "en",
+      createdAt: "2026-03-09T00:00:00.000Z",
     },
   };
 }

@@ -42,11 +42,6 @@ const EFFORT_LEVEL_SCHEMA = {
   enum: ["fast", "medium", "long"],
 } as const;
 
-const REVIEW_RATING_SCHEMA = {
-  type: "string",
-  enum: ["again", "hard", "good", "easy"],
-} as const;
-
 const CARD_INPUT_SCHEMA = strictObjectSchema({
   frontText: { type: "string" },
   backText: { type: "string" },
@@ -187,17 +182,6 @@ export const OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS: Readonly<Record<string, z.Zo
   }).strict(),
   delete_decks: z.object({
     deckIds: z.array(z.string()).min(1).max(100),
-  }).strict(),
-  submit_review: z.object({
-    cardId: z.string(),
-    rating: z.enum(["again", "hard", "good", "easy"]),
-  }).strict(),
-  update_scheduler_settings: z.object({
-    desiredRetention: z.number().gt(0).lt(1),
-    learningStepsMinutes: z.array(z.number().int().min(1)),
-    relearningStepsMinutes: z.array(z.number().int().min(1)),
-    maximumIntervalDays: z.number().int().min(1),
-    enableFuzz: z.boolean(),
   }).strict(),
 } as const;
 
@@ -435,54 +419,6 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
         ...BULK_DECK_ARRAY_SCHEMA,
         items: { type: "string" },
       },
-    }),
-  },
-  {
-    type: "function",
-    name: "submit_review",
-    description: strictDescription(
-      "Submit a local review rating for a card.",
-      "Use {\"cardId\": string, \"rating\": \"again\"|\"hard\"|\"good\"|\"easy\"}."
-    ),
-    strict: true,
-    parameters: strictObjectSchema({
-      cardId: { type: "string" },
-      rating: REVIEW_RATING_SCHEMA,
-    }),
-  },
-  {
-    type: "function",
-    name: "update_scheduler_settings",
-    description: strictDescription(
-      "Update workspace scheduler settings locally.",
-      "Use {\"desiredRetention\": number, \"learningStepsMinutes\": integer[], \"relearningStepsMinutes\": integer[], \"maximumIntervalDays\": integer, \"enableFuzz\": boolean}. Include every property."
-    ),
-    strict: true,
-    parameters: strictObjectSchema({
-      desiredRetention: {
-        type: "number",
-        exclusiveMinimum: 0,
-        exclusiveMaximum: 1,
-      },
-      learningStepsMinutes: {
-        type: "array",
-        items: {
-          type: "integer",
-          minimum: 1,
-        },
-      },
-      relearningStepsMinutes: {
-        type: "array",
-        items: {
-          type: "integer",
-          minimum: 1,
-        },
-      },
-      maximumIntervalDays: {
-        type: "integer",
-        minimum: 1,
-      },
-      enableFuzz: { type: "boolean" },
     }),
   },
 ] as const;

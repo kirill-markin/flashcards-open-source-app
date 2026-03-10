@@ -12,13 +12,9 @@ import {
   revalidateSession as revalidateSessionRequest,
   selectWorkspace,
 } from "../api";
-import { clearWebSyncCache, relinkWorkspaceCache } from "../syncStorage";
-import type {
-  Card,
-  Deck,
-  SessionInfo,
-  WorkspaceSummary,
-} from "../types";
+import { getStableDeviceId } from "../clientIdentity";
+import { clearWebSyncCache, putCloudSettings, relinkWorkspaceCache } from "../syncStorage";
+import type { Card, CloudSettings, Deck, SessionInfo, WorkspaceSummary } from "../types";
 import {
   getErrorMessage,
   markSelectedWorkspaces,
@@ -59,6 +55,30 @@ type WorkspaceSession = Readonly<{
   createWorkspace: (name: string) => Promise<void>;
 }>;
 
+function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
+  return {
+    deviceId: getStableDeviceId(),
+    cloudState: "linking-ready",
+    linkedUserId: session.userId,
+    linkedWorkspaceId: null,
+    linkedEmail: session.profile.email,
+    onboardingCompleted: session.selectedWorkspaceId !== null,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function buildLinkedCloudSettings(session: SessionInfo, workspaceId: string): CloudSettings {
+  return {
+    deviceId: getStableDeviceId(),
+    cloudState: "linked",
+    linkedUserId: session.userId,
+    linkedWorkspaceId: workspaceId,
+    linkedEmail: session.profile.email,
+    onboardingCompleted: true,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 function consumeLoggedOutMarker(): boolean {
   const url = new URL(window.location.href);
   if (url.searchParams.get("logged_out") !== "1") {
@@ -95,6 +115,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
   ): Promise<void> {
+    await putCloudSettings(buildLinkedCloudSettings(currentSession, workspace.workspaceId));
     await relinkWorkspaceCache(workspace.workspaceId);
     await hydrateCache();
 
@@ -165,6 +186,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       }
 
       const currentSession = await getSession();
+      await putCloudSettings(buildLinkingReadyCloudSettings(currentSession));
       await resolveInitialWorkspace(currentSession);
     } catch (error) {
       if (isAuthRedirectError(error)) {
