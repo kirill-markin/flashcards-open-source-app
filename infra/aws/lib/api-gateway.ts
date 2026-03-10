@@ -241,6 +241,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const agent = restApi.root.addResource("agent");
   agent.addMethod("GET", integration);
+  agent.addResource("openapi.json").addMethod("GET", integration);
+  agent.addResource("swagger.json").addMethod("GET", integration);
+  agent.addResource("me").addMethod("GET", integration);
 
   restApi.root.addResource("openapi.json").addMethod("GET", integration);
   restApi.root.addResource("swagger.json").addMethod("GET", integration);
@@ -259,6 +262,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const workspaces = restApi.root.addResource("workspaces");
   workspaces.addMethod("GET", integration);
   workspaces.addMethod("POST", integration);
+  const agentWorkspaces = agent.addResource("workspaces");
+  agentWorkspaces.addMethod("GET", integration);
+  agentWorkspaces.addMethod("POST", integration);
 
   const agentApiKeys = restApi.root.addResource("agent-api-keys");
   agentApiKeys.addMethod("GET", integration);
@@ -271,7 +277,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // API Gateway must know each public path ahead of time, or requests will fail
   // at the edge with MissingAuthenticationTokenException before Lambda runs.
   const workspaceById = workspaces.addResource("{workspaceId}");
+  const agentWorkspaceById = agentWorkspaces.addResource("{workspaceId}");
   workspaceById.addResource("select").addMethod("POST", integration);
+  agentWorkspaceById.addResource("select").addMethod("POST", integration);
   workspaceById
     .addResource("cards")
     .addResource("query")
@@ -280,6 +288,29 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const workspaceSync = workspaceById.addResource("sync");
   workspaceSync.addResource("push").addMethod("POST", integration);
   workspaceSync.addResource("pull").addMethod("POST", integration);
+
+  const agentTools = agent.addResource("tools");
+  agentTools.addMethod("GET", integration);
+  [
+    "get_workspace_context",
+    "list_cards",
+    "get_cards",
+    "search_cards",
+    "list_due_cards",
+    "list_decks",
+    "get_decks",
+    "search_decks",
+    "list_review_history",
+    "get_scheduler_settings",
+    "create_cards",
+    "update_cards",
+    "delete_cards",
+    "create_decks",
+    "update_decks",
+    "delete_decks",
+  ].forEach((toolName) => {
+    agentTools.addResource(toolName).addMethod("POST", integration);
+  });
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);

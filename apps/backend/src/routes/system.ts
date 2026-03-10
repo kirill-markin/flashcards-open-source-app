@@ -34,7 +34,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
     );
     if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
-      return context.json(createAgentAccountEnvelope(requestContext));
+      return context.json(createAgentAccountEnvelope(context.req.url, requestContext));
     }
 
     return context.json({

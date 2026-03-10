@@ -18,9 +18,10 @@ test("shouldUseAgentSetupEnvelope only enables the envelope for api keys", () =>
 test("createAgentAccountEnvelope points the agent to load workspaces next", () => {
   process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
 
-  const envelope = createAgentAccountEnvelope({
+  const envelope = createAgentAccountEnvelope("https://api.example.com/v1/agent/me", {
     userId: "user-1",
     transport: "api_key",
+    connectionId: "connection-1",
     selectedWorkspaceId: null,
     email: "kirill@example.com",
     locale: "en",
@@ -30,7 +31,7 @@ test("createAgentAccountEnvelope points the agent to load workspaces next", () =
   assert.deepEqual(envelope.actions, [{
     name: "list_workspaces",
     method: "GET",
-    url: "https://api.example.com/v1/workspaces",
+    url: "https://api.example.com/v1/agent/workspaces",
     auth: {
       scheme: "ApiKey",
     },
@@ -40,16 +41,16 @@ test("createAgentAccountEnvelope points the agent to load workspaces next", () =
 test("createAgentWorkspacesEnvelope guides workspace creation when none exist", () => {
   process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
 
-  const envelope = createAgentWorkspacesEnvelope([]);
+  const envelope = createAgentWorkspacesEnvelope("https://api.example.com/v1/agent/workspaces", []);
 
   assert.equal(envelope.actions[0]?.name, "create_workspace");
-  assert.equal(envelope.actions[0]?.url, "https://api.example.com/v1/workspaces");
+  assert.equal(envelope.actions[0]?.url, "https://api.example.com/v1/agent/workspaces");
 });
 
 test("createAgentWorkspacesEnvelope requires selection when several workspaces exist and none is selected", () => {
   process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
 
-  const envelope = createAgentWorkspacesEnvelope([
+  const envelope = createAgentWorkspacesEnvelope("https://api.example.com/v1/agent/workspaces", [
     {
       workspaceId: "ws-1",
       name: "Spanish",
@@ -67,12 +68,14 @@ test("createAgentWorkspacesEnvelope requires selection when several workspaces e
   assert.equal(envelope.actions[0]?.name, "select_workspace");
   assert.equal(
     envelope.actions[0]?.urlTemplate,
-    "https://api.example.com/v1/workspaces/{workspaceId}/select",
+    "https://api.example.com/v1/agent/workspaces/{workspaceId}/select",
   );
 });
 
 test("createAgentWorkspaceReadyEnvelope keeps the workspace in data", () => {
-  const envelope = createAgentWorkspaceReadyEnvelope({
+  process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
+
+  const envelope = createAgentWorkspaceReadyEnvelope("https://api.example.com/v1/agent/workspaces/ws-1/select", {
     workspaceId: "ws-1",
     name: "Spanish",
     createdAt: "2026-03-10T12:00:00.000Z",
@@ -80,20 +83,24 @@ test("createAgentWorkspaceReadyEnvelope keeps the workspace in data", () => {
   });
 
   assert.equal(envelope.data.workspace.workspaceId, "ws-1");
-  assert.equal(envelope.actions.length, 0);
+  assert.equal(envelope.actions[0]?.name, "list_tools");
 });
 
 test("createAgentSetupErrorEnvelope keeps actionable retry instructions", () => {
+  process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
+
   const envelope = createAgentSetupErrorEnvelope(
+    "https://api.example.com/v1/agent/tools/list_cards",
     "WORKSPACE_SELECTION_REQUIRED",
     "Select a workspace before using this endpoint",
-    "Call GET /v1/workspaces and then POST /v1/workspaces/{workspaceId}/select.",
+    "Call GET /v1/agent/workspaces and then POST /v1/agent/workspaces/{workspaceId}/select.",
     "request-1",
   );
 
   assert.equal(envelope.ok, false);
   assert.equal(envelope.error.code, "WORKSPACE_SELECTION_REQUIRED");
   assert.equal(envelope.requestId, "request-1");
+  assert.equal(envelope.docs.openapiUrl, "https://api.example.com/v1/agent/openapi.json");
 });
 
 test("createAgentConnectionManagementErrorEnvelope includes human-session guidance", () => {

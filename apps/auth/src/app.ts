@@ -119,6 +119,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
       if (c.req.path.startsWith("/api/agent")) {
         return c.json(
           createAgentErrorEnvelope(
+            c.req.url,
             "INTERNAL_ERROR",
             "Agent authentication request failed. Try again.",
             "Retry the same action. If the issue persists, restart from GET /v1/agent on the API host and follow the returned actions.",

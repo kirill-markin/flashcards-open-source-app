@@ -1,74 +1,172 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Flashcards Open Source App API",
+    "title": "Flashcards Open Source App External AI-Agent API",
     "version": "v1",
-    "description": "Machine-facing API for flashcards-open-source-app."
+    "description": "Public machine-facing contract for external AI agents. This document intentionally excludes first-party/internal routes such as sync transport, local chat runtime endpoints, and human-only agent connection management even when those routes remain live for web or iOS clients."
   },
   "servers": [
     {
       "url": "https://api.flashcards-open-source-app.com/v1",
-      "description": "Canonical API host"
+      "description": "Canonical API host for discovery, bootstrap, docs, and external agent tools"
     },
     {
       "url": "https://auth.flashcards-open-source-app.com",
-      "description": "Auth bootstrap host"
+      "description": "Auth host for email OTP bootstrap"
+    }
+  ],
+  "tags": [
+    {
+      "name": "discovery",
+      "description": "Entry points and documentation aliases for the external AI-agent contract."
+    },
+    {
+      "name": "auth",
+      "description": "Email OTP bootstrap on the auth host. These routes issue long-lived ApiKey credentials."
+    },
+    {
+      "name": "bootstrap",
+      "description": "Agent-oriented account and workspace bootstrap after ApiKey authentication."
+    },
+    {
+      "name": "tools",
+      "description": "Compact bulk-friendly tool endpoints for the selected workspace. Internal sync mechanics stay server-side and are not part of this public contract."
     }
   ],
   "paths": {
     "/": {
       "get": {
-        "summary": "API discovery index",
+        "tags": ["discovery"],
+        "summary": "Discovery alias",
+        "description": "Primary discovery entrypoint. Returns the same compact envelope as GET /agent.",
         "responses": {
           "200": {
-            "description": "Discovery envelope"
+            "description": "Agent discovery envelope"
           }
         }
       }
     },
     "/agent": {
       "get": {
+        "tags": ["discovery"],
         "summary": "Agent discovery",
+        "description": "Discovery envelope for external AI agents. Includes auth bootstrap actions and links to the public agent-only OpenAPI document.",
         "responses": {
           "200": {
-            "description": "Discovery envelope"
+            "description": "Agent discovery envelope"
           }
         }
       }
     },
     "/openapi.json": {
       "get": {
-        "summary": "OpenAPI document",
+        "tags": ["discovery"],
+        "summary": "OpenAPI alias",
+        "description": "Alias for the same external AI-agent OpenAPI JSON document served at /agent/openapi.json.",
         "responses": {
           "200": {
-            "description": "OpenAPI JSON document"
+            "description": "External AI-agent OpenAPI JSON document"
           }
         }
       }
     },
     "/swagger.json": {
       "get": {
-        "summary": "OpenAPI document alias",
+        "tags": ["discovery"],
+        "summary": "Swagger alias",
+        "description": "Alias for the same external AI-agent OpenAPI JSON document served at /agent/openapi.json.",
         "responses": {
           "200": {
-            "description": "OpenAPI JSON document"
+            "description": "External AI-agent OpenAPI JSON document"
           }
         }
       }
     },
-    "/health": {
+    "/agent/openapi.json": {
       "get": {
-        "summary": "Health check",
+        "tags": ["discovery"],
+        "summary": "Canonical OpenAPI document",
+        "description": "Canonical external AI-agent OpenAPI JSON document. It deliberately omits internal and first-party-only routes.",
         "responses": {
           "200": {
-            "description": "Backend health"
+            "description": "External AI-agent OpenAPI JSON document"
           }
         }
       }
     },
-    "/me": {
+    "/agent/swagger.json": {
       "get": {
-        "summary": "Load account context",
+        "tags": ["discovery"],
+        "summary": "Canonical Swagger alias",
+        "description": "Alias for the same external AI-agent OpenAPI JSON document served at /agent/openapi.json.",
+        "responses": {
+          "200": {
+            "description": "External AI-agent OpenAPI JSON document"
+          }
+        }
+      }
+    },
+    "/api/agent/send-code": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Send OTP code",
+        "description": "Starts the external AI-agent auth flow by emailing an 8-digit OTP code and returning a short opaque otpSessionToken.",
+        "servers": [
+          {
+            "url": "https://auth.flashcards-open-source-app.com",
+            "description": "Auth host for email OTP bootstrap"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSendCodeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP challenge created"
+          }
+        }
+      }
+    },
+    "/api/agent/verify-code": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Verify OTP code and issue API key",
+        "description": "Completes email OTP authentication and returns a long-lived ApiKey plus a connection descriptor for the external AI agent.",
+        "servers": [
+          {
+            "url": "https://auth.flashcards-open-source-app.com",
+            "description": "Auth host for email OTP bootstrap"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentVerifyCodeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API key issued"
+          }
+        }
+      }
+    },
+    "/agent/me": {
+      "get": {
+        "tags": ["bootstrap"],
+        "summary": "Load agent account context",
+        "description": "Returns the authenticated user profile, the currently selected workspace id, and short next-step actions in the compact agent envelope.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -76,14 +174,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Account envelope"
+            "description": "Agent account envelope"
           }
         }
       }
     },
-    "/workspaces": {
+    "/agent/workspaces": {
       "get": {
-        "summary": "List workspaces",
+        "tags": ["bootstrap"],
+        "summary": "List workspaces for the external agent",
+        "description": "Lists the user's workspaces in an agent-oriented envelope and points the caller either to workspace creation, selection, or the tool surface.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -91,12 +191,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Workspace list"
+            "description": "Agent workspaces envelope"
           }
         }
       },
       "post": {
-        "summary": "Create workspace",
+        "tags": ["bootstrap"],
+        "summary": "Create workspace for the external agent",
+        "description": "Creates a workspace and immediately returns the ready-state agent envelope with short follow-up actions.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -107,13 +209,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["name"],
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/CreateWorkspaceInput"
               }
             }
           }
@@ -125,9 +221,11 @@
         }
       }
     },
-    "/workspaces/{workspaceId}/select": {
+    "/agent/workspaces/{workspaceId}/select": {
       "post": {
-        "summary": "Select workspace",
+        "tags": ["bootstrap"],
+        "summary": "Select workspace for the external agent",
+        "description": "Marks a workspace as selected for the authenticated user and returns the ready-state agent envelope for subsequent tool calls.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -145,14 +243,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Workspace ready"
+            "description": "Workspace selected"
           }
         }
       }
     },
-    "/agent-api-keys": {
+    "/agent/tools": {
       "get": {
-        "summary": "List human-managed bot connections",
+        "tags": ["tools"],
+        "summary": "List available external agent tools",
+        "description": "Returns a compact tool catalog for the currently selected workspace. Use this route for lightweight discovery instead of relying on internal endpoint families.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -160,52 +260,36 @@
         ],
         "responses": {
           "200": {
-            "description": "Connection list"
+            "description": "Agent tool catalog envelope"
           }
         }
       }
     },
-    "/agent-api-keys/{connectionId}/revoke": {
+    "/agent/tools/get_workspace_context": {
       "post": {
-        "summary": "Revoke a bot connection",
+        "tags": ["tools"],
+        "summary": "Get workspace context",
+        "description": "Loads the selected workspace summary, deck summary, and scheduler settings.",
         "security": [
           {
             "ApiKeyHeader": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "connectionId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Connection revoked"
+            "description": "Workspace context envelope"
           }
         }
       }
     },
-    "/workspaces/{workspaceId}/cards/query": {
+    "/agent/tools/list_cards": {
       "post": {
-        "summary": "Query cards in a workspace",
+        "tags": ["tools"],
+        "summary": "List cards",
+        "description": "Lists cards from the selected workspace. The server enforces a maximum response size even when limit is null.",
         "security": [
           {
             "ApiKeyHeader": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workspaceId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "requestBody": {
@@ -213,99 +297,104 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["limit"],
-                "properties": {
-                  "searchText": {
-                    "type": ["string", "null"]
-                  },
-                  "cursor": {
-                    "type": ["string", "null"]
-                  },
-                  "limit": {
-                    "type": "integer"
-                  },
-                  "sorts": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "required": ["key", "direction"],
-                      "properties": {
-                        "key": {
-                          "type": "string"
-                        },
-                        "direction": {
-                          "type": "string",
-                          "enum": ["asc", "desc"]
-                        }
-                      }
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/LimitInput"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Paged cards"
+            "description": "Cards listed"
           }
         }
       }
     },
-    "/workspaces/{workspaceId}/sync/push": {
+    "/agent/tools/get_cards": {
       "post": {
-        "summary": "Push offline sync operations",
+        "tags": ["tools"],
+        "summary": "Get cards by id",
+        "description": "Loads one or more cards from the selected workspace by cardId.",
         "security": [
           {
             "ApiKeyHeader": []
           }
         ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workspaceId",
-            "required": true,
-            "schema": {
-              "type": "string"
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetCardsInput"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "Push result"
+            "description": "Cards loaded"
           }
         }
       }
     },
-    "/workspaces/{workspaceId}/sync/pull": {
+    "/agent/tools/search_cards": {
       "post": {
-        "summary": "Pull remote sync changes",
+        "tags": ["tools"],
+        "summary": "Search cards",
+        "description": "Searches cards by text or tags within the selected workspace.",
         "security": [
           {
             "ApiKeyHeader": []
           }
         ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workspaceId",
-            "required": true,
-            "schema": {
-              "type": "string"
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchInput"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "Pull result"
+            "description": "Cards found"
           }
         }
       }
     },
-    "/chat/local-turn": {
+    "/agent/tools/list_due_cards": {
       "post": {
-        "summary": "Run a local chat turn",
+        "tags": ["tools"],
+        "summary": "List due cards",
+        "description": "Lists cards currently due for review in the selected workspace.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LimitInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Due cards listed"
+          }
+        }
+      }
+    },
+    "/agent/tools/list_decks": {
+      "post": {
+        "tags": ["tools"],
+        "summary": "List decks",
+        "description": "Lists decks from the selected workspace.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -313,42 +402,267 @@
         ],
         "responses": {
           "200": {
-            "description": "Streaming chat response"
+            "description": "Decks listed"
           }
         }
       }
     },
-    "/chat/local-turn/diagnostics": {
+    "/agent/tools/get_decks": {
       "post": {
-        "summary": "Submit chat diagnostics",
+        "tags": ["tools"],
+        "summary": "Get decks by id",
+        "description": "Loads one or more decks from the selected workspace by deckId.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetDecksInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decks loaded"
+          }
+        }
+      }
+    },
+    "/agent/tools/search_decks": {
+      "post": {
+        "tags": ["tools"],
+        "summary": "Search decks",
+        "description": "Searches decks by name, tags, or effort levels within the selected workspace.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decks found"
+          }
+        }
+      }
+    },
+    "/agent/tools/list_review_history": {
+      "post": {
+        "tags": ["tools"],
+        "summary": "List review history",
+        "description": "Lists recent review events from the selected workspace, optionally filtered by cardId.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListReviewHistoryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Review history listed"
+          }
+        }
+      }
+    },
+    "/agent/tools/get_scheduler_settings": {
+      "post": {
+        "tags": ["tools"],
+        "summary": "Get scheduler settings",
+        "description": "Loads scheduler settings for the selected workspace.",
         "security": [
           {
             "ApiKeyHeader": []
           }
         ],
         "responses": {
-          "204": {
-            "description": "Diagnostics accepted"
+          "200": {
+            "description": "Scheduler settings loaded"
           }
         }
       }
     },
-    "/api/agent/send-code": {
+    "/agent/tools/create_cards": {
       "post": {
-        "summary": "Start OTP login",
+        "tags": ["tools"],
+        "summary": "Create cards",
+        "description": "Creates one or more cards in the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCardsInput"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "OTP challenge created"
+            "description": "Cards created"
           }
         }
       }
     },
-    "/api/agent/verify-code": {
+    "/agent/tools/update_cards": {
       "post": {
-        "summary": "Finish OTP login and mint ApiKey",
+        "tags": ["tools"],
+        "summary": "Update cards",
+        "description": "Updates one or more cards in the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCardsInput"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "ApiKey issued"
+            "description": "Cards updated"
+          }
+        }
+      }
+    },
+    "/agent/tools/delete_cards": {
+      "post": {
+        "tags": ["tools"],
+        "summary": "Delete cards",
+        "description": "Deletes one or more cards from the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteCardsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cards deleted"
+          }
+        }
+      }
+    },
+    "/agent/tools/create_decks": {
+      "post": {
+        "tags": ["tools"],
+        "summary": "Create decks",
+        "description": "Creates one or more decks in the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDecksInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decks created"
+          }
+        }
+      }
+    },
+    "/agent/tools/update_decks": {
+      "post": {
+        "tags": ["tools"],
+        "summary": "Update decks",
+        "description": "Updates one or more decks in the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDecksInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decks updated"
+          }
+        }
+      }
+    },
+    "/agent/tools/delete_decks": {
+      "post": {
+        "tags": ["tools"],
+        "summary": "Delete decks",
+        "description": "Deletes one or more decks from the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteDecksInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decks deleted"
           }
         }
       }
@@ -360,7 +674,307 @@
         "type": "apiKey",
         "in": "header",
         "name": "Authorization",
-        "description": "Send the full header value as: ApiKey <key>."
+        "description": "Use the header format: Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY"
+      }
+    },
+    "schemas": {
+      "NullableLimit": {
+        "type": ["integer", "null"],
+        "minimum": 1,
+        "maximum": 100
+      },
+      "LimitInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["limit"],
+        "properties": {
+          "limit": {
+            "$ref": "#/components/schemas/NullableLimit"
+          }
+        }
+      },
+      "SearchInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["query", "limit"],
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "$ref": "#/components/schemas/NullableLimit"
+          }
+        }
+      },
+      "GetCardsInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cardIds"],
+        "properties": {
+          "cardIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "GetDecksInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["deckIds"],
+        "properties": {
+          "deckIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ListReviewHistoryInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["limit", "cardId"],
+        "properties": {
+          "limit": {
+            "$ref": "#/components/schemas/NullableLimit"
+          },
+          "cardId": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "EffortLevel": {
+        "type": "string",
+        "enum": ["fast", "medium", "long"]
+      },
+      "CreateCardBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["frontText", "backText", "tags", "effortLevel"],
+        "properties": {
+          "frontText": {
+            "type": "string"
+          },
+          "backText": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "effortLevel": {
+            "$ref": "#/components/schemas/EffortLevel"
+          }
+        }
+      },
+      "UpdateCardBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cardId", "frontText", "backText", "tags", "effortLevel"],
+        "properties": {
+          "cardId": {
+            "type": "string"
+          },
+          "frontText": {
+            "type": ["string", "null"]
+          },
+          "backText": {
+            "type": ["string", "null"]
+          },
+          "tags": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "effortLevel": {
+            "type": ["string", "null"],
+            "enum": ["fast", "medium", "long", null]
+          }
+        }
+      },
+      "CreateCardsInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cards"],
+        "properties": {
+          "cards": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/CreateCardBody"
+            }
+          }
+        }
+      },
+      "UpdateCardsInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["updates"],
+        "properties": {
+          "updates": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/UpdateCardBody"
+            }
+          }
+        }
+      },
+      "DeleteCardsInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cardIds"],
+        "properties": {
+          "cardIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CreateDeckBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "effortLevels", "tags"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "effortLevels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EffortLevel"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "UpdateDeckBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["deckId", "name", "effortLevels", "tags"],
+        "properties": {
+          "deckId": {
+            "type": "string"
+          },
+          "name": {
+            "type": ["string", "null"]
+          },
+          "effortLevels": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/EffortLevel"
+            }
+          },
+          "tags": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CreateDecksInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["decks"],
+        "properties": {
+          "decks": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/CreateDeckBody"
+            }
+          }
+        }
+      },
+      "UpdateDecksInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["updates"],
+        "properties": {
+          "updates": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/UpdateDeckBody"
+            }
+          }
+        }
+      },
+      "DeleteDecksInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["deckIds"],
+        "properties": {
+          "deckIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CreateWorkspaceInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentSendCodeInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["email"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "AgentVerifyCodeInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "otpSessionToken", "label"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{8}$"
+          },
+          "otpSessionToken": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
       }
     }
   }

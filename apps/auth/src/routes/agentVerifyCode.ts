@@ -83,6 +83,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
     } catch {
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           "INVALID_REQUEST",
           "Invalid request.",
           "Provide code, otpSessionToken, and label, then call this endpoint again.",
@@ -98,6 +99,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
     if (!CODE_RE.test(code)) {
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           "OTP_CODE_INVALID",
           "Enter a valid 8-digit code.",
           "Ask the user for the latest 8-digit email code, then retry verify_code.",
@@ -109,6 +111,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
     if (otpSessionToken === "") {
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           "OTP_SESSION_EXPIRED",
           "Code expired. Request a new one.",
           "Call POST /api/agent/send-code again to start a fresh verification flow.",
@@ -123,6 +126,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
     } catch (error) {
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           "INVALID_REQUEST",
           error instanceof Error ? error.message : "Invalid label.",
           "Provide a short human-readable label for this agent connection, then retry verify_code.",
@@ -135,6 +139,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
     if (challenge.status === "invalid" || challenge.status === "expired" || challenge.status === "used") {
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           "OTP_SESSION_EXPIRED",
           "Code expired. Request a new one.",
           "Call POST /api/agent/send-code again to request a fresh code.",
@@ -151,6 +156,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
       const apiBaseUrl = getPublicApiBaseUrl(c.req.url);
 
       return c.json(createAgentEnvelope(
+        c.req.url,
         {
           apiKey: createdKey.apiKey,
           authorizationScheme: "ApiKey",
@@ -160,12 +166,12 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
         [{
           name: "load_account",
           method: "GET",
-          url: `${apiBaseUrl}/me`,
+          url: `${apiBaseUrl}/agent/me`,
           auth: {
             scheme: "ApiKey",
           },
         }],
-        `Store this long-lived API key now and do not rely on chat history alone. A new dialog or session on the same machine will not have this key unless it was saved outside this conversation. Prefer exporting it first as FLASHCARDS_OPEN_SOURCE_API_KEY; if needed, save it in a local .env file or another local file, but ask the user for permission before writing to .env or any file. At minimum, save it somewhere persistent outside chat memory. Example: export FLASHCARDS_OPEN_SOURCE_API_KEY='<PASTE_KEY_HERE>' && curl -H 'Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY' '${apiBaseUrl}/me'. Next, call load_account.`,
+        `Store this long-lived API key now and do not rely on chat history alone. A new dialog or session on the same machine will not have this key unless it was saved outside this conversation. Prefer exporting it first as FLASHCARDS_OPEN_SOURCE_API_KEY; if needed, save it in a local .env file or another local file, but ask the user for permission before writing to .env or any file. At minimum, save it somewhere persistent outside chat memory. Example: export FLASHCARDS_OPEN_SOURCE_API_KEY='<PASTE_KEY_HERE>' && curl -H 'Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY' '${apiBaseUrl}/agent/me'. Next, call load_account.`,
       ));
     } catch (error) {
       const failure = classifyVerifyFailure(error);
@@ -180,6 +186,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
       });
       return c.json(
         createAgentErrorEnvelope(
+          c.req.url,
           failure.code,
           failure.message,
           failure.code === "OTP_CODE_INVALID"

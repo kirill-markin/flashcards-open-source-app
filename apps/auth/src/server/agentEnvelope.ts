@@ -1,3 +1,5 @@
+import { getPublicAgentDocs } from "./publicUrls.js";
+
 export type AgentAction = Readonly<{
   name: "send_code" | "verify_code" | "load_account" | "list_workspaces" | "create_workspace" | "select_workspace";
   method: "GET" | "POST";
@@ -16,6 +18,10 @@ export type AgentEnvelope<Data> = Readonly<{
   data: Data;
   actions: ReadonlyArray<AgentAction>;
   instructions: string;
+  docs: Readonly<{
+    openapiUrl: string;
+    swaggerUrl: string;
+  }>;
   error?: Readonly<{
     code: string;
     message: string;
@@ -28,6 +34,7 @@ export type AgentEnvelope<Data> = Readonly<{
  * learning a generic hypermedia standard.
  */
 export function createAgentEnvelope<Data>(
+  requestUrl: string,
   data: Data,
   actions: ReadonlyArray<AgentAction>,
   instructions: string,
@@ -37,6 +44,7 @@ export function createAgentEnvelope<Data>(
     data,
     actions,
     instructions,
+    docs: getPublicAgentDocs(requestUrl),
   };
 }
 
@@ -45,6 +53,7 @@ export function createAgentEnvelope<Data>(
  * in the same envelope shape as successful responses.
  */
 export function createAgentErrorEnvelope(
+  requestUrl: string,
   code: string,
   message: string,
   instructions: string,
@@ -54,6 +63,7 @@ export function createAgentErrorEnvelope(
     data: {},
     actions: [],
     instructions,
+    docs: getPublicAgentDocs(requestUrl),
     error: {
       code,
       message,

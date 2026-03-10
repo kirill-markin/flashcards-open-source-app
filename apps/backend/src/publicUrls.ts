@@ -8,21 +8,9 @@ function toRequestOrigin(requestUrl: string): string {
 }
 
 /**
- * Resolves the public auth base URL used inside agent-facing action payloads.
- * Local development falls back to the current request origin.
- */
-export function getPublicAuthBaseUrl(requestUrl: string): string {
-  const configuredValue = process.env.PUBLIC_AUTH_BASE_URL;
-  if (configuredValue !== undefined && configuredValue !== "") {
-    return stripTrailingSlash(configuredValue);
-  }
-
-  return stripTrailingSlash(toRequestOrigin(requestUrl));
-}
-
-/**
- * Resolves the public API base URL used inside agent-facing next-step payloads.
- * Local development defaults to the existing backend dev server.
+ * Resolves the public backend base URL used by external AI-agent responses.
+ * The public contract is versioned under `/v1`, even when the current request
+ * arrives through an alias route such as `/v1/agent`.
  */
 export function getPublicApiBaseUrl(requestUrl: string): string {
   const configuredValue = process.env.PUBLIC_API_BASE_URL;
@@ -32,15 +20,17 @@ export function getPublicApiBaseUrl(requestUrl: string): string {
 
   const requestOrigin = toRequestOrigin(requestUrl);
   const host = new URL(requestUrl).host;
-  if (host === "localhost:8081" || host === "127.0.0.1:8081") {
-    return "http://localhost:8080/v1";
+  if (host === "localhost:8080" || host === "127.0.0.1:8080") {
+    return `${requestOrigin}/v1`;
   }
 
-  return stripTrailingSlash(requestOrigin.replace("//auth.", "//api.")) + "/v1";
+  return `${stripTrailingSlash(requestOrigin)}/v1`;
 }
 
 /**
- * Builds the public AI-agent documentation URLs served by the API host.
+ * Builds the public AI-agent documentation URLs. The agent-specific aliases
+ * are the primary links surfaced inside responses, while the root aliases stay
+ * available as equivalent entrypoints.
  */
 export function getPublicAgentDocs(requestUrl: string): Readonly<{
   openapiUrl: string;

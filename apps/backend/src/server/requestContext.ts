@@ -15,6 +15,7 @@ export type RequestContext = Readonly<{
   locale: string;
   userSettingsCreatedAt: string;
   transport: AuthTransport;
+  connectionId: string | null;
 }>;
 
 export function getAllowedOrigins(): Array<string> {
@@ -38,6 +39,7 @@ export async function loadRequestContext(
     locale: userProfile.locale,
     userSettingsCreatedAt: userProfile.createdAt,
     transport: auth.transport,
+    connectionId: auth.connectionId,
   };
 }
 
@@ -84,4 +86,16 @@ export function requireSelectedWorkspaceId(requestContext: RequestContext): stri
   }
 
   return requestContext.selectedWorkspaceId;
+}
+
+export function requireAgentConnectionId(requestContext: RequestContext): string {
+  if (requestContext.transport !== "api_key" || requestContext.connectionId === null) {
+    throw new HttpError(
+      403,
+      "This endpoint requires ApiKey authentication",
+      "AGENT_API_KEY_REQUIRED",
+    );
+  }
+
+  return requestContext.connectionId;
 }

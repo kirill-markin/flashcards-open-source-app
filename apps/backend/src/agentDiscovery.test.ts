@@ -12,8 +12,8 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
   assert.equal(envelope.data.authBaseUrl, "https://auth.example.com");
   assert.equal(envelope.data.apiBaseUrl, "https://api.example.com/v1");
   assert.deepEqual(envelope.data.docs, {
-    openapiUrl: "https://api.example.com/v1/openapi.json",
-    swaggerUrl: "https://api.example.com/v1/swagger.json",
+    openapiUrl: "https://api.example.com/v1/agent/openapi.json",
+    swaggerUrl: "https://api.example.com/v1/agent/swagger.json",
   });
   assert.equal(
     envelope.data.authentication.registerAndLogin,
@@ -31,12 +31,12 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
     {
       name: "openapi",
       method: "GET",
-      url: "https://api.example.com/v1/openapi.json",
+      url: "https://api.example.com/v1/agent/openapi.json",
     },
   ]);
   assert.equal(
     envelope.instructions,
-    "Start with send_code. After login, call https://api.example.com/v1/me, then https://api.example.com/v1/workspaces before workspace-scoped actions.",
+    "Start with send_code. After login, call https://api.example.com/v1/agent/me, then https://api.example.com/v1/agent/workspaces before tool calls.",
   );
 });
 
@@ -48,5 +48,5 @@ test("createAgentDiscoveryEnvelope derives localhost URLs when public env is mis
 
   assert.equal(envelope.data.authBaseUrl, "http://localhost:8081");
   assert.equal(envelope.data.apiBaseUrl, "http://localhost:8080/v1");
-  assert.equal(envelope.data.docs.openapiUrl, "http://localhost:8080/v1/openapi.json");
+  assert.equal(envelope.data.docs.openapiUrl, "http://localhost:8080/v1/agent/openapi.json");
 });

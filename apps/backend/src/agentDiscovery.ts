@@ -1,3 +1,5 @@
+import { getPublicAgentDocs, getPublicApiBaseUrl } from "./publicUrls";
+
 type AgentDiscoveryAction = Readonly<{
   name: "send_code" | "openapi";
   method: "GET" | "POST";
@@ -40,21 +42,6 @@ function toRequestOrigin(requestUrl: string): string {
   return `${url.protocol}//${url.host}`;
 }
 
-function buildApiBaseUrl(requestUrl: string): string {
-  const configuredBaseUrl = process.env.PUBLIC_API_BASE_URL;
-  if (configuredBaseUrl !== undefined && configuredBaseUrl !== "") {
-    return stripTrailingSlash(configuredBaseUrl);
-  }
-
-  const origin = toRequestOrigin(requestUrl);
-  const host = new URL(requestUrl).host;
-  if (host === "localhost:8080" || host === "127.0.0.1:8080") {
-    return `${origin}/v1`;
-  }
-
-  return `${stripTrailingSlash(origin)}/v1`;
-}
-
 function buildAuthBaseUrl(requestUrl: string): string {
   const configuredBaseUrl = process.env.PUBLIC_AUTH_BASE_URL;
   if (configuredBaseUrl !== undefined && configuredBaseUrl !== "") {
@@ -72,9 +59,8 @@ function buildAuthBaseUrl(requestUrl: string): string {
 
 export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscoveryEnvelope {
   const authBaseUrl = buildAuthBaseUrl(requestUrl);
-  const apiBaseUrl = buildApiBaseUrl(requestUrl);
-  const openapiUrl = `${apiBaseUrl}/openapi.json`;
-  const swaggerUrl = `${apiBaseUrl}/swagger.json`;
+  const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
+  const docs = getPublicAgentDocs(requestUrl);
 
   return {
     ok: true,
@@ -91,14 +77,11 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       capabilitiesAfterLogin: [
         "Load account context",
         "Select a workspace",
-        "Search cards and use AI chat",
+        "Read and write cards and decks",
       ],
       authBaseUrl,
       apiBaseUrl,
-      docs: {
-        openapiUrl,
-        swaggerUrl,
-      },
+      docs,
     },
     actions: [
       {
@@ -112,10 +95,10 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       {
         name: "openapi",
         method: "GET",
-        url: openapiUrl,
+        url: docs.openapiUrl,
       },
     ],
     instructions:
-      `Start with send_code. After login, call ${apiBaseUrl}/me, then ${apiBaseUrl}/workspaces before workspace-scoped actions.`,
+      `Start with send_code. After login, call ${apiBaseUrl}/agent/me, then ${apiBaseUrl}/agent/workspaces before tool calls.`,
   };
 }
