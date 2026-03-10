@@ -5,6 +5,7 @@ struct CardsScreen: View {
 
     @State private var isEditorPresented: Bool = false
     @State private var editingCardId: String? = nil
+    @State private var searchText: String = ""
     @State private var cardFormState: CardFormState = CardFormState(
         frontText: "",
         backText: "",
@@ -12,6 +13,10 @@ struct CardsScreen: View {
         effortLevel: .fast
     )
     @State private var screenErrorMessage: String = ""
+
+    private var filteredCards: [Card] {
+        cardsMatchingSearchText(cards: store.cards, searchText: searchText)
+    }
 
     var body: some View {
         List {
@@ -31,9 +36,14 @@ struct CardsScreen: View {
                 if store.cards.isEmpty {
                     Text("You haven't created any cards yet.")
                         .foregroundStyle(.secondary)
+                } else if filteredCards.isEmpty {
+                    ContentUnavailableView(
+                        "No Matching Cards",
+                        systemImage: "magnifyingglass",
+                        description: Text("Try a different search.")
+                    )
                 } else {
-                    // TODO: Replace this with IncrementalItemsView when the cards list is upgraded for large collections.
-                    ForEach(store.cards) { card in
+                    ForEach(filteredCards) { card in
                         Button {
                             self.beginEditing(card: card)
                         } label: {
@@ -54,6 +64,7 @@ struct CardsScreen: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Cards")
+        .searchable(text: $searchText, prompt: "Search cards")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
