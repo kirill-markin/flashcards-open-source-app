@@ -511,6 +511,18 @@ struct CloudSettings: Codable, Hashable, Sendable {
     let updatedAt: String
 }
 
+struct AgentApiKeyConnection: Codable, Hashable, Identifiable, Sendable {
+    let connectionId: String
+    let label: String
+    let createdAt: String
+    let lastUsedAt: String?
+    let revokedAt: String?
+
+    var id: String {
+        self.connectionId
+    }
+}
+
 struct HomeSnapshot: Codable, Hashable, Sendable {
     let deckCount: Int
     let totalCards: Int

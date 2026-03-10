@@ -43,6 +43,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const preSignUpFn = preSignUp(this);
     const authResult = auth(this, { preSignUpFn });
     const authApi = authGateway(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      appDbSecret: dbResult.appDbSecret,
       baseDomain,
       authCertificateArn,
       userPoolId: authResult.userPool.userPoolId,

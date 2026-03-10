@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agentSetup";
 import { query } from "../db";
 import { getSessionCsrfToken } from "../requestSecurity";
 import { loadRequestContextFromRequest } from "../server/requestContext";
@@ -25,6 +26,10 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       context.req.raw,
       options.allowedOrigins,
     );
+    if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
+      return context.json(createAgentAccountEnvelope(requestContext));
+    }
+
     return context.json({
       userId: requestContext.userId,
       selectedWorkspaceId: requestContext.selectedWorkspaceId,

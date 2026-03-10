@@ -1,0 +1,27 @@
+.settings-page {
+  display: grid;
+  gap: 24px;
+}
+
+.settings-panel {
+  max-width: 980px;
+}
+
+.settings-connections-list {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-connection-card {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-connection-header,
+.settings-connection-meta {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}

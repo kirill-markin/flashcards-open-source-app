@@ -4,8 +4,11 @@
 type AuthAction =
   | "send_code"
   | "send_code_error"
+  | "agent_send_code_blocked_ip_limit"
+  | "agent_send_code_error"
   | "verify_code"
   | "verify_code_error"
+  | "agent_verify_code_error"
   | "refresh_token"
   | "refresh_token_error"
   | "revoke_token"
@@ -22,6 +25,7 @@ type LogEvent = Readonly<{
   code?: string;
   reasonCategory?: string;
   maskedEmail?: string;
+  ipAddress?: string;
   error?: string;
 }>;
 

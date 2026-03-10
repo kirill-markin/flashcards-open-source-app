@@ -636,6 +636,35 @@ final class FlashcardsStore: ObservableObject {
         return try database.loadOutboxEntries(workspaceId: workspaceId, limit: limit)
     }
 
+    /// Lists long-lived remote bot connections for the linked cloud account.
+    func listAgentApiKeys() async throws -> (connections: [AgentApiKeyConnection], instructions: String) {
+        guard let cloudSyncService else {
+            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
+        }
+
+        return try await self.withAuthenticatedCloudSession { session in
+            try await cloudSyncService.listAgentApiKeys(
+                apiBaseUrl: session.apiBaseUrl,
+                bearerToken: session.bearerToken
+            )
+        }
+    }
+
+    /// Revokes one long-lived remote bot connection for the linked cloud account.
+    func revokeAgentApiKey(connectionId: String) async throws -> (connection: AgentApiKeyConnection, instructions: String) {
+        guard let cloudSyncService else {
+            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
+        }
+
+        return try await self.withAuthenticatedCloudSession { session in
+            try await cloudSyncService.revokeAgentApiKey(
+                apiBaseUrl: session.apiBaseUrl,
+                bearerToken: session.bearerToken,
+                connectionId: connectionId
+            )
+        }
+    }
+
     private func applyLoadedSnapshot(snapshot: AppStateSnapshot, now: Date) {
         self.workspace = snapshot.workspace
         self.userSettings = snapshot.userSettings

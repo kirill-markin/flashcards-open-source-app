@@ -8,6 +8,9 @@
 import { randomUUID } from "node:crypto";
 import { type Context, Hono } from "hono";
 import health from "./routes/health.js";
+import agentInfo from "./routes/agentInfo.js";
+import agentSendCode from "./routes/agentSendCode.js";
+import agentVerifyCode from "./routes/agentVerifyCode.js";
 import sendCode from "./routes/sendCode.js";
 import verifyCode from "./routes/verifyCode.js";
 import loginPage from "./routes/loginPage.js";
@@ -17,6 +20,7 @@ import revokeToken from "./routes/revokeToken.js";
 import logoutPage from "./routes/logoutPage.js";
 import robots from "./routes/robots.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
+import { createAgentErrorEnvelope } from "./server/agentEnvelope.js";
 import { log } from "./server/logger.js";
 
 function getMountPaths(basePath: string): ReadonlyArray<string> {
@@ -113,6 +117,16 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
     });
 
     if (c.req.path.startsWith("/api/")) {
+      if (c.req.path.startsWith("/api/agent")) {
+        return c.json(
+          createAgentErrorEnvelope(
+            "INTERNAL_ERROR",
+            "Agent authentication request failed. Try again.",
+            "Retry the same action. If the issue persists, restart from GET /api/agent and follow the returned actions.",
+          ),
+          500,
+        );
+      }
       return jsonAuthError(c, 500, "INTERNAL_ERROR", "Authentication failed. Try again.");
     }
 
@@ -121,6 +135,9 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
 
   app.route("/", health);
   app.route("/", robots);
+  app.route("/", agentInfo);
+  app.route("/", agentSendCode);
+  app.route("/", agentVerifyCode);
   app.route("/", sendCode);
   app.route("/", verifyCode);
   app.route("/", loginPage);

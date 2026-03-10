@@ -95,6 +95,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       COGNITO_REGION: cdk.Stack.of(scope).region,
       BACKEND_ALLOWED_ORIGINS: props.allowedOrigins.join(","),
       BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
+      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
     },
   });
 
@@ -246,6 +247,13 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const workspaces = restApi.root.addResource("workspaces");
   workspaces.addMethod("GET", integration);
   workspaces.addMethod("POST", integration);
+
+  const agentApiKeys = restApi.root.addResource("agent-api-keys");
+  agentApiKeys.addMethod("GET", integration);
+  agentApiKeys
+    .addResource("{connectionId}")
+    .addResource("revoke")
+    .addMethod("POST", integration);
 
   // Keep this manual resource list aligned with apps/backend/src/routes/*.ts.
   // API Gateway must know each public path ahead of time, or requests will fail

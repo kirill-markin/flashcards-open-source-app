@@ -12,6 +12,7 @@ import { DeckDetailScreen } from "./screens/DeckDetailScreen";
 import { DeckFormScreen } from "./screens/DeckFormScreen";
 import { DecksScreen } from "./screens/DecksScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
 
 function AppShell(): ReactElement {
   const {
@@ -110,6 +111,7 @@ function AppShell(): ReactElement {
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
                 currentWorkspaceName={activeWorkspace?.name ?? "Workspace"}
                 isBusy={isChoosingWorkspace}
+                settingsUrl="/settings"
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}
                 onCreateWorkspace={createWorkspace}
@@ -177,6 +179,7 @@ export function RoutedShell(): ReactElement {
           <Route path="/decks/:deckId/edit" element={<DeckFormScreen />} />
           <Route path="/decks/:deckId" element={<DeckDetailScreen />} />
           <Route path="/review" element={<ReviewScreen />} />
+          <Route path="/settings" element={<SettingsScreen />} />
           <Route
             path="/chat"
             element={
