@@ -244,6 +244,41 @@ final class LocalDatabase {
         }
     }
 
+    func createDecks(workspaceId: String, inputs: [DeckEditorInput]) throws -> [Deck] {
+        try self.validateDeckBatchCount(count: inputs.count)
+        for input in inputs {
+            try self.deckStore.validateDeckInput(input: input)
+        }
+
+        return try self.core.inTransaction {
+            let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
+            let now = currentIsoTimestamp()
+            var createdDecks: [Deck] = []
+            createdDecks.reserveCapacity(inputs.count)
+
+            for input in inputs {
+                let operationId = UUID().uuidString.lowercased()
+                let newDeck = try self.deckStore.createDeck(
+                    workspaceId: workspaceId,
+                    input: input,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    now: now
+                )
+                try self.outboxStore.enqueueDeckUpsertOperation(
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    clientUpdatedAt: now,
+                    deck: newDeck
+                )
+                createdDecks.append(newDeck)
+            }
+
+            return createdDecks
+        }
+    }
+
     func updateDeck(workspaceId: String, deckId: String, input: DeckEditorInput) throws -> Deck {
         try self.deckStore.validateDeckInput(input: input)
 
@@ -270,6 +305,45 @@ final class LocalDatabase {
         }
     }
 
+    func updateDecks(workspaceId: String, updates: [DeckUpdateInput]) throws -> [Deck] {
+        try self.validateDeckBatchCount(count: updates.count)
+        try self.validateUniqueDeckIds(deckIds: updates.map { update in
+            update.deckId
+        })
+        for update in updates {
+            try self.deckStore.validateDeckInput(input: update.input)
+        }
+
+        return try self.core.inTransaction {
+            let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
+            let now = currentIsoTimestamp()
+            var updatedDecks: [Deck] = []
+            updatedDecks.reserveCapacity(updates.count)
+
+            for update in updates {
+                let operationId = UUID().uuidString.lowercased()
+                let updatedDeck = try self.deckStore.updateDeck(
+                    workspaceId: workspaceId,
+                    deckId: update.deckId,
+                    input: update.input,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    now: now
+                )
+                try self.outboxStore.enqueueDeckUpsertOperation(
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    clientUpdatedAt: now,
+                    deck: updatedDeck
+                )
+                updatedDecks.append(updatedDeck)
+            }
+
+            return updatedDecks
+        }
+    }
+
     func deleteDeck(workspaceId: String, deckId: String) throws -> Deck {
         return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
@@ -290,6 +364,39 @@ final class LocalDatabase {
                 deck: deletedDeck
             )
             return deletedDeck
+        }
+    }
+
+    func deleteDecks(workspaceId: String, deckIds: [String]) throws -> BulkDeleteDecksResult {
+        try self.validateDeckBatchCount(count: deckIds.count)
+        try self.validateUniqueDeckIds(deckIds: deckIds)
+
+        return try self.core.inTransaction {
+            let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
+            let now = currentIsoTimestamp()
+
+            for deckId in deckIds {
+                let operationId = UUID().uuidString.lowercased()
+                let deletedDeck = try self.deckStore.deleteDeck(
+                    workspaceId: workspaceId,
+                    deckId: deckId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    now: now
+                )
+                try self.outboxStore.enqueueDeckUpsertOperation(
+                    workspaceId: workspaceId,
+                    deviceId: cloudSettings.deviceId,
+                    operationId: operationId,
+                    clientUpdatedAt: now,
+                    deck: deletedDeck
+                )
+            }
+
+            return BulkDeleteDecksResult(
+                deletedDeckIds: deckIds,
+                deletedCount: deckIds.count
+            )
         }
     }
 
@@ -620,6 +727,23 @@ final class LocalDatabase {
         let uniqueCardIds = Set(cardIds)
         if uniqueCardIds.count != cardIds.count {
             throw LocalStoreError.validation("Card batch must not contain duplicate cardId values")
+        }
+    }
+
+    private func validateDeckBatchCount(count: Int) throws {
+        if count < 1 {
+            throw LocalStoreError.validation("Deck batch must contain at least one item")
+        }
+
+        if count > 100 {
+            throw LocalStoreError.validation("Deck batch must contain at most 100 items")
+        }
+    }
+
+    private func validateUniqueDeckIds(deckIds: [String]) throws {
+        let uniqueDeckIds = Set(deckIds)
+        if uniqueDeckIds.count != deckIds.count {
+            throw LocalStoreError.validation("Deck batch must not contain duplicate deckId values")
         }
     }
 }

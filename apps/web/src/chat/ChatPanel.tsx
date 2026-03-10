@@ -163,11 +163,17 @@ export function formatToolLabel(name: string): string {
   if (name === "get_cards") return "Get cards";
   if (name === "search_cards") return "Search cards";
   if (name === "list_due_cards") return "List due cards";
+  if (name === "list_decks") return "List decks";
+  if (name === "search_decks") return "Search decks";
+  if (name === "get_decks") return "Get decks";
   if (name === "list_review_history") return "Review history";
   if (name === "summarize_deck_state") return "Deck summary";
   if (name === "create_cards") return "Create cards";
   if (name === "update_cards") return "Update cards";
   if (name === "delete_cards") return "Delete cards";
+  if (name === "create_decks") return "Create decks";
+  if (name === "update_decks") return "Update decks";
+  if (name === "delete_decks") return "Delete decks";
   if (name === "code_execution" || name === "code_interpreter") return "Code execution";
   if (name === "web_search") return "Web search";
   return name;

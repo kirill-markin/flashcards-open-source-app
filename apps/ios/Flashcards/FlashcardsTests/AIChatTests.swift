@@ -192,6 +192,12 @@ private struct BulkDeleteCardsPayload: Decodable {
     let deletedCount: Int
 }
 
+private struct BulkDeleteDecksPayload: Decodable {
+    let ok: Bool
+    let deletedDeckIds: [String]
+    let deletedCount: Int
+}
+
 private actor DeltaRecorder {
     private var values: [String] = []
 
@@ -546,6 +552,174 @@ final class AIChatTests: XCTestCase {
     }
 
     @MainActor
+    func testLocalToolExecutorListsSearchesAndGetsDecks() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let createdDecksResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-create-decks",
+                name: "create_decks",
+                input: """
+                {"decks":[
+                    {"name":"Grammar","effortLevels":["fast"],"tags":["grammar"]},
+                    {"name":"Long reading","effortLevels":["long"],"tags":["reading"]}
+                ]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let createdDecks = try JSONDecoder().decode([Deck].self, from: Data(createdDecksResult.output.utf8))
+        XCTAssertEqual(createdDecks.count, 2)
+
+        let listedDecksResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-list-decks",
+                name: "list_decks",
+                input: "{}"
+            ),
+            requestId: "request-1"
+        )
+        let listedDecks = try JSONDecoder().decode([Deck].self, from: Data(listedDecksResult.output.utf8))
+        XCTAssertEqual(Set(listedDecks.map(\.deckId)), Set(createdDecks.map(\.deckId)))
+
+        let searchedByTagResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-search-decks-tag",
+                name: "search_decks",
+                input: "{\"query\":\"grammar\",\"limit\":null}"
+            ),
+            requestId: "request-1"
+        )
+        let searchedByTag = try JSONDecoder().decode([Deck].self, from: Data(searchedByTagResult.output.utf8))
+        XCTAssertEqual(searchedByTag.map(\.deckId), [createdDecks[0].deckId])
+
+        let searchedByEffortResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-search-decks-effort",
+                name: "search_decks",
+                input: "{\"query\":\"long\",\"limit\":null}"
+            ),
+            requestId: "request-1"
+        )
+        let searchedByEffort = try JSONDecoder().decode([Deck].self, from: Data(searchedByEffortResult.output.utf8))
+        XCTAssertEqual(searchedByEffort.map(\.deckId), [createdDecks[1].deckId])
+
+        let fetchedDecksResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-get-decks",
+                name: "get_decks",
+                input: """
+                {"deckIds":["\(createdDecks[1].deckId)","\(createdDecks[0].deckId)"]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let fetchedDecks = try JSONDecoder().decode([Deck].self, from: Data(fetchedDecksResult.output.utf8))
+        XCTAssertEqual(fetchedDecks.map(\.deckId), [createdDecks[1].deckId, createdDecks[0].deckId])
+    }
+
+    @MainActor
+    func testLocalToolExecutorGetDecksFailsForMissingDeck() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        do {
+            _ = try await executor.execute(
+                toolCallRequest: AIToolCallRequest(
+                    toolCallId: "call-get-missing-deck",
+                    name: "get_decks",
+                    input: "{\"deckIds\":[\"missing-deck\"]}"
+                ),
+                requestId: "request-1"
+            )
+            XCTFail("Expected missing deck error")
+        } catch let error as LocalStoreError {
+            XCTAssertEqual(error.localizedDescription, "Deck not found")
+        }
+    }
+
+    @MainActor
+    func testLocalToolExecutorCreatesUpdatesAndDeletesDecksInBulk() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let createdDecksResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-create-decks",
+                name: "create_decks",
+                input: """
+                {"decks":[
+                    {"name":"Grammar","effortLevels":["fast"],"tags":["grammar"]},
+                    {"name":"Reading","effortLevels":["medium"],"tags":["reading"]}
+                ]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let createdDecks = try JSONDecoder().decode([Deck].self, from: Data(createdDecksResult.output.utf8))
+        XCTAssertEqual(createdDecks.count, 2)
+        XCTAssertTrue(createdDecksResult.didMutateAppState)
+
+        let updatedDecksResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-update-decks",
+                name: "update_decks",
+                input: """
+                {"updates":[
+                    {"deckId":"\(createdDecks[0].deckId)","name":"Grammar updated","effortLevels":null,"tags":["grammar","verbs"]},
+                    {"deckId":"\(createdDecks[1].deckId)","name":null,"effortLevels":["long"],"tags":null}
+                ]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let updatedDecks = try JSONDecoder().decode([Deck].self, from: Data(updatedDecksResult.output.utf8))
+        XCTAssertEqual(updatedDecks.count, 2)
+        XCTAssertTrue(updatedDecks.contains { deck in
+            deck.deckId == createdDecks[0].deckId
+                && deck.name == "Grammar updated"
+                && deck.filterDefinition.tags == ["grammar", "verbs"]
+        })
+        XCTAssertTrue(updatedDecks.contains { deck in
+            deck.deckId == createdDecks[1].deckId
+                && deck.filterDefinition.effortLevels == [.long]
+        })
+
+        let deletedDecksResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-delete-decks",
+                name: "delete_decks",
+                input: """
+                {"deckIds":["\(createdDecks[0].deckId)","\(createdDecks[1].deckId)"]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let deletedDecksPayload = try JSONDecoder().decode(BulkDeleteDecksPayload.self, from: Data(deletedDecksResult.output.utf8))
+        XCTAssertTrue(deletedDecksPayload.ok)
+        XCTAssertEqual(deletedDecksPayload.deletedCount, 2)
+        XCTAssertEqual(Set(deletedDecksPayload.deletedDeckIds), Set(createdDecks.map(\.deckId)))
+        let snapshot = try await executor.loadSnapshot()
+        XCTAssertEqual(snapshot.decks.count, 0)
+    }
+
+    @MainActor
     func testAIChatStoreBlocksSendWhenCloudIsNotLinked() throws {
         let flashcardsStore = try self.makeStore()
         let failingToolExecutor = FailingToolExecutor()
@@ -664,6 +838,41 @@ final class AIChatTests: XCTestCase {
 
         XCTAssertEqual(chatStore.messages[1].text, String(repeating: "A", count: 20))
         XCTAssertLessThan(historyStore.saveCallCount, 20)
+    }
+
+    @MainActor
+    func testAIChatStoreAppliesCreateCardPresentationRequestAsDraftOnly() throws {
+        let flashcardsStore = try self.makeStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let persistedMessages = [
+            AIChatMessage(
+                id: "message-1",
+                role: .assistant,
+                text: "Existing history",
+                toolCalls: [],
+                timestamp: "2026-03-09T10:00:00.000Z",
+                isError: false
+            )
+        ]
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: persistedMessages, selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        flashcardsStore.openAICardCreation()
+        let request = try XCTUnwrap(flashcardsStore.aiChatPresentationRequest)
+        chatStore.applyPresentationRequest(request: request)
+        flashcardsStore.clearAIChatPresentationRequest()
+
+        XCTAssertEqual(chatStore.inputText, aiChatCreateCardDraftPrompt)
+        XCTAssertEqual(chatStore.messages, persistedMessages)
+        XCTAssertFalse(chatStore.isStreaming)
+        XCTAssertNil(flashcardsStore.aiChatPresentationRequest)
     }
 
     @MainActor

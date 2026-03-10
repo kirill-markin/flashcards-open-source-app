@@ -1,14 +1,20 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
   runCreateCardsTool,
+  runCreateDecksTool,
   runDeleteCardsTool,
+  runDeleteDecksTool,
   runGetCardsTool,
+  runGetDecksTool,
   runListCardsTool,
+  runListDecksTool,
   runListDueCardsTool,
   runListReviewHistoryTool,
   runSearchCardsTool,
+  runSearchDecksTool,
   runSummarizeDeckStateTool,
   runUpdateCardsTool,
+  runUpdateDecksTool,
 } from "../shared";
 
 export const CODE_EXECUTION_TOOL: Anthropic.Beta.Messages.BetaCodeExecutionTool20250825 = {
@@ -17,6 +23,13 @@ export const CODE_EXECUTION_TOOL: Anthropic.Beta.Messages.BetaCodeExecutionTool2
 };
 
 const CARD_ID_ARRAY_SCHEMA = {
+  type: "array",
+  items: { type: "string" },
+  minItems: 1,
+  maxItems: 100,
+} as const;
+
+const DECK_ID_ARRAY_SCHEMA = {
   type: "array",
   items: { type: "string" },
   minItems: 1,
@@ -56,6 +69,45 @@ const CARD_UPDATE_SCHEMA = {
     },
   },
   required: ["cardId"],
+} as const;
+
+const DECK_INPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    effortLevels: {
+      type: "array",
+      items: {
+        type: "string",
+        enum: ["fast", "medium", "long"],
+      },
+    },
+    tags: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["name", "effortLevels", "tags"],
+} as const;
+
+const DECK_UPDATE_SCHEMA = {
+  type: "object",
+  properties: {
+    deckId: { type: "string" },
+    name: { type: "string" },
+    effortLevels: {
+      type: "array",
+      items: {
+        type: "string",
+        enum: ["fast", "medium", "long"],
+      },
+    },
+    tags: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["deckId"],
 } as const;
 
 const LIST_CARDS_TOOL: Anthropic.Tool = {
@@ -102,6 +154,40 @@ const LIST_DUE_CARDS_TOOL: Anthropic.Tool = {
     properties: {
       limit: { type: "integer", minimum: 1, maximum: 100 },
     },
+  },
+};
+
+const LIST_DECKS_TOOL: Anthropic.Tool = {
+  name: "list_decks",
+  description: "List decks in the current workspace.",
+  input_schema: {
+    type: "object",
+    properties: {},
+  },
+};
+
+const SEARCH_DECKS_TOOL: Anthropic.Tool = {
+  name: "search_decks",
+  description: "Search decks by name, tags, or effort levels.",
+  input_schema: {
+    type: "object",
+    properties: {
+      query: { type: "string" },
+      limit: { type: "integer", minimum: 1, maximum: 100 },
+    },
+    required: ["query"],
+  },
+};
+
+const GET_DECKS_TOOL: Anthropic.Tool = {
+  name: "get_decks",
+  description: "Get one or more decks by deckId.",
+  input_schema: {
+    type: "object",
+    properties: {
+      deckIds: DECK_ID_ARRAY_SCHEMA,
+    },
+    required: ["deckIds"],
   },
 };
 
@@ -168,16 +254,64 @@ const DELETE_CARDS_TOOL: Anthropic.Tool = {
   },
 };
 
+const CREATE_DECKS_TOOL: Anthropic.Tool = {
+  name: "create_decks",
+  description: "Create one or more decks.",
+  input_schema: {
+    type: "object",
+    properties: {
+      decks: {
+        ...DECK_ID_ARRAY_SCHEMA,
+        items: DECK_INPUT_SCHEMA,
+      },
+    },
+    required: ["decks"],
+  },
+};
+
+const UPDATE_DECKS_TOOL: Anthropic.Tool = {
+  name: "update_decks",
+  description: "Update one or more decks.",
+  input_schema: {
+    type: "object",
+    properties: {
+      updates: {
+        ...DECK_ID_ARRAY_SCHEMA,
+        items: DECK_UPDATE_SCHEMA,
+      },
+    },
+    required: ["updates"],
+  },
+};
+
+const DELETE_DECKS_TOOL: Anthropic.Tool = {
+  name: "delete_decks",
+  description: "Delete one or more decks.",
+  input_schema: {
+    type: "object",
+    properties: {
+      deckIds: DECK_ID_ARRAY_SCHEMA,
+    },
+    required: ["deckIds"],
+  },
+};
+
 export const ANTHROPIC_FLASHCARDS_TOOLS: ReadonlyArray<Anthropic.Tool> = [
   LIST_CARDS_TOOL,
   GET_CARDS_TOOL,
   SEARCH_CARDS_TOOL,
   LIST_DUE_CARDS_TOOL,
+  LIST_DECKS_TOOL,
+  SEARCH_DECKS_TOOL,
+  GET_DECKS_TOOL,
   LIST_REVIEW_HISTORY_TOOL,
   SUMMARIZE_DECK_STATE_TOOL,
   CREATE_CARDS_TOOL,
   UPDATE_CARDS_TOOL,
   DELETE_CARDS_TOOL,
+  CREATE_DECKS_TOOL,
+  UPDATE_DECKS_TOOL,
+  DELETE_DECKS_TOOL,
 ];
 
 function getNumberValue(value: unknown): number | undefined {
@@ -207,6 +341,18 @@ function getStringArrayValue(value: unknown, fieldName: string): ReadonlyArray<s
 
 function getTagsValue(value: unknown): ReadonlyArray<string> {
   return getStringArrayValue(value, "tags");
+}
+
+function getEffortLevelsValue(value: unknown): ReadonlyArray<"fast" | "medium" | "long"> {
+  const items = getStringArrayValue(value, "effortLevels");
+
+  for (const item of items) {
+    if (item !== "fast" && item !== "medium" && item !== "long") {
+      throw new Error("effortLevels must contain only fast, medium, or long");
+    }
+  }
+
+  return items as ReadonlyArray<"fast" | "medium" | "long">;
 }
 
 function getCreateCardsValue(value: unknown): ReadonlyArray<Readonly<{
@@ -273,6 +419,64 @@ function getUpdateCardsValue(value: unknown): ReadonlyArray<Readonly<{
   });
 }
 
+function getCreateDecksValue(value: unknown): ReadonlyArray<Readonly<{
+  name: string;
+  effortLevels: ReadonlyArray<"fast" | "medium" | "long">;
+  tags: ReadonlyArray<string>;
+}>> {
+  if (!Array.isArray(value)) {
+    throw new Error("decks must be an array");
+  }
+
+  return value.map((item, index) => {
+    if (typeof item !== "object" || item === null) {
+      throw new Error(`decks[${index}] must be an object`);
+    }
+
+    const objectItem = item as Record<string, unknown>;
+    const name = getStringValue(objectItem.name);
+    if (name === undefined) {
+      throw new Error("Each decks item must include name, effortLevels, and tags");
+    }
+
+    return {
+      name,
+      effortLevels: getEffortLevelsValue(objectItem.effortLevels),
+      tags: getTagsValue(objectItem.tags),
+    };
+  });
+}
+
+function getUpdateDecksValue(value: unknown): ReadonlyArray<Readonly<{
+  deckId: string;
+  name: string | undefined;
+  effortLevels: ReadonlyArray<"fast" | "medium" | "long"> | undefined;
+  tags: ReadonlyArray<string> | undefined;
+}>> {
+  if (!Array.isArray(value)) {
+    throw new Error("updates must be an array");
+  }
+
+  return value.map((item, index) => {
+    if (typeof item !== "object" || item === null) {
+      throw new Error(`updates[${index}] must be an object`);
+    }
+
+    const objectItem = item as Record<string, unknown>;
+    const deckId = getStringValue(objectItem.deckId);
+    if (deckId === undefined) {
+      throw new Error("Each updates item must include deckId");
+    }
+
+    return {
+      deckId,
+      name: getStringValue(objectItem.name),
+      effortLevels: objectItem.effortLevels === undefined ? undefined : getEffortLevelsValue(objectItem.effortLevels),
+      tags: objectItem.tags === undefined ? undefined : getTagsValue(objectItem.tags),
+    };
+  });
+}
+
 export async function executeTool(
   toolUseId: string,
   toolName: string,
@@ -302,6 +506,20 @@ export async function executeTool(
       case "list_due_cards":
         content = await runListDueCardsTool(workspaceId, getNumberValue(input.limit));
         break;
+      case "list_decks":
+        content = await runListDecksTool(workspaceId);
+        break;
+      case "search_decks": {
+        const query = getStringValue(input.query);
+        if (query === undefined) {
+          throw new Error("query is required");
+        }
+        content = await runSearchDecksTool(workspaceId, query, getNumberValue(input.limit));
+        break;
+      }
+      case "get_decks":
+        content = await runGetDecksTool(workspaceId, getStringArrayValue(input.deckIds, "deckIds"));
+        break;
       case "list_review_history":
         content = await runListReviewHistoryTool(
           workspaceId,
@@ -320,6 +538,15 @@ export async function executeTool(
         break;
       case "delete_cards":
         content = await runDeleteCardsTool(workspaceId, getStringArrayValue(input.cardIds, "cardIds"), { deviceId });
+        break;
+      case "create_decks":
+        content = await runCreateDecksTool(workspaceId, getCreateDecksValue(input.decks), { deviceId });
+        break;
+      case "update_decks":
+        content = await runUpdateDecksTool(workspaceId, getUpdateDecksValue(input.updates), { deviceId });
+        break;
+      case "delete_decks":
+        content = await runDeleteDecksTool(workspaceId, getStringArrayValue(input.deckIds, "deckIds"), { deviceId });
         break;
       default:
         throw new Error(`Unknown tool: ${toolName}`);

@@ -2,18 +2,25 @@ import { tool, type RunContext } from "@openai/agents";
 import { z } from "zod";
 import {
   runCreateCardsTool,
+  runCreateDecksTool,
   runDeleteCardsTool,
+  runDeleteDecksTool,
   runGetCardsTool,
+  runGetDecksTool,
   runListCardsTool,
+  runListDecksTool,
   runListDueCardsTool,
   runListReviewHistoryTool,
   runSearchCardsTool,
+  runSearchDecksTool,
   runSummarizeDeckStateTool,
   runUpdateCardsTool,
+  runUpdateDecksTool,
   type AgentContext,
 } from "../shared";
 
 const CARD_ID_ARRAY_SCHEMA = z.array(z.string().min(1)).min(1).max(100);
+const DECK_ID_ARRAY_SCHEMA = z.array(z.string().min(1)).min(1).max(100);
 const CARD_INPUT_SCHEMA = z.object({
   frontText: z.string().min(1),
   backText: z.string(),
@@ -26,6 +33,17 @@ const CARD_UPDATE_SCHEMA = z.object({
   backText: z.string().nullable(),
   tags: z.array(z.string()).nullable(),
   effortLevel: z.enum(["fast", "medium", "long"]).nullable(),
+});
+const DECK_INPUT_SCHEMA = z.object({
+  name: z.string().min(1),
+  effortLevels: z.array(z.enum(["fast", "medium", "long"])),
+  tags: z.array(z.string()),
+});
+const DECK_UPDATE_SCHEMA = z.object({
+  deckId: z.string().min(1),
+  name: z.string().min(1).nullable(),
+  effortLevels: z.array(z.enum(["fast", "medium", "long"])).nullable(),
+  tags: z.array(z.string()).nullable(),
 });
 
 function expectRunContext(runContext: RunContext<AgentContext> | undefined): AgentContext {
@@ -88,6 +106,44 @@ export const listDueCardsTool = tool({
   },
 });
 
+export const listDecksTool = tool({
+  name: "list_decks",
+  description: "List decks in the current workspace.",
+  parameters: z.object({}),
+  execute: async (_input: Record<string, never>, runContext?: RunContext<AgentContext>): Promise<string> => {
+    const context = expectRunContext(runContext);
+    return runListDecksTool(context.workspaceId);
+  },
+});
+
+export const searchDecksTool = tool({
+  name: "search_decks",
+  description: "Search decks by name, tags, or effort levels.",
+  parameters: z.object({
+    query: z.string().min(1),
+    limit: z.number().int().min(1).max(100).nullable(),
+  }),
+  execute: async (
+    input: { query: string; limit: number | null },
+    runContext?: RunContext<AgentContext>,
+  ): Promise<string> => {
+    const context = expectRunContext(runContext);
+    return runSearchDecksTool(context.workspaceId, input.query, input.limit ?? undefined);
+  },
+});
+
+export const getDecksTool = tool({
+  name: "get_decks",
+  description: "Get one or more decks by deckId.",
+  parameters: z.object({
+    deckIds: DECK_ID_ARRAY_SCHEMA,
+  }),
+  execute: async (input: { deckIds: ReadonlyArray<string> }, runContext?: RunContext<AgentContext>): Promise<string> => {
+    const context = expectRunContext(runContext);
+    return runGetDecksTool(context.workspaceId, input.deckIds);
+  },
+});
+
 export const listReviewHistoryTool = tool({
   name: "list_review_history",
   description: "List recent review events, optionally filtered by cardId.",
@@ -136,6 +192,27 @@ export const createCardsTool = tool({
   },
 });
 
+export const createDecksTool = tool({
+  name: "create_decks",
+  description: "Create one or more decks.",
+  parameters: z.object({
+    decks: z.array(DECK_INPUT_SCHEMA).min(1).max(100),
+  }),
+  execute: async (
+    input: { decks: ReadonlyArray<{
+      name: string;
+      effortLevels: ReadonlyArray<"fast" | "medium" | "long">;
+      tags: ReadonlyArray<string>;
+    }> },
+    runContext?: RunContext<AgentContext>,
+  ): Promise<string> => {
+    const context = expectRunContext(runContext);
+    return runCreateDecksTool(context.workspaceId, input.decks, {
+      deviceId: context.deviceId,
+    });
+  },
+});
+
 export const updateCardsTool = tool({
   name: "update_cards",
   description: "Update one or more cards.",
@@ -171,6 +248,39 @@ export const updateCardsTool = tool({
   },
 });
 
+export const updateDecksTool = tool({
+  name: "update_decks",
+  description: "Update one or more decks.",
+  parameters: z.object({
+    updates: z.array(DECK_UPDATE_SCHEMA).min(1).max(100),
+  }),
+  execute: async (
+    input: {
+      updates: ReadonlyArray<{
+        deckId: string;
+        name: string | null;
+        effortLevels: ReadonlyArray<"fast" | "medium" | "long"> | null;
+        tags: ReadonlyArray<string> | null;
+      }>;
+    },
+    runContext?: RunContext<AgentContext>,
+  ): Promise<string> => {
+    const context = expectRunContext(runContext);
+    return runUpdateDecksTool(
+      context.workspaceId,
+      input.updates.map((update) => ({
+        deckId: update.deckId,
+        name: update.name ?? undefined,
+        effortLevels: update.effortLevels ?? undefined,
+        tags: update.tags ?? undefined,
+      })),
+      {
+        deviceId: context.deviceId,
+      },
+    );
+  },
+});
+
 export const deleteCardsTool = tool({
   name: "delete_cards",
   description: "Delete one or more cards.",
@@ -188,14 +298,37 @@ export const deleteCardsTool = tool({
   },
 });
 
+export const deleteDecksTool = tool({
+  name: "delete_decks",
+  description: "Delete one or more decks.",
+  parameters: z.object({
+    deckIds: DECK_ID_ARRAY_SCHEMA,
+  }),
+  execute: async (
+    input: { deckIds: ReadonlyArray<string> },
+    runContext?: RunContext<AgentContext>,
+  ): Promise<string> => {
+    const context = expectRunContext(runContext);
+    return runDeleteDecksTool(context.workspaceId, input.deckIds, {
+      deviceId: context.deviceId,
+    });
+  },
+});
+
 export const OPENAI_FLASHCARDS_TOOLS = [
   listCardsTool,
   getCardsTool,
   searchCardsTool,
   listDueCardsTool,
+  listDecksTool,
+  searchDecksTool,
+  getDecksTool,
   listReviewHistoryTool,
   summarizeDeckStateTool,
   createCardsTool,
   updateCardsTool,
   deleteCardsTool,
+  createDecksTool,
+  updateDecksTool,
+  deleteDecksTool,
 ] as const;

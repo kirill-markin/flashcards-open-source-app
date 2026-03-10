@@ -84,6 +84,15 @@ final class FlashcardsStoreTests: XCTestCase {
         XCTAssertTrue(store.reviewQueue.isEmpty)
     }
 
+    func testOpenAICardCreationSelectsAITabAndSetsPresentationRequest() throws {
+        let store = try self.makeStore()
+
+        store.openAICardCreation()
+
+        XCTAssertEqual(store.selectedTab, .ai)
+        XCTAssertEqual(store.aiChatPresentationRequest, .createCard)
+    }
+
     private func makeStore() throws -> FlashcardsStore {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)

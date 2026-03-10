@@ -62,6 +62,12 @@ private struct AIBulkDeleteCardsPayload: Encodable {
     let deletedCount: Int
 }
 
+private struct AIBulkDeleteDecksPayload: Encodable {
+    let ok: Bool
+    let deletedDeckIds: [String]
+    let deletedCount: Int
+}
+
 private struct CreateCardToolInput: Decodable {
     let frontText: String
     let backText: String
@@ -99,6 +105,10 @@ private struct CreateDeckToolInput: Decodable {
     let tags: [String]
 }
 
+private struct CreateDecksToolInput: Decodable {
+    let decks: [CreateDeckToolInput]
+}
+
 private struct UpdateDeckToolInput: Decodable {
     let deckId: String
     let name: String?
@@ -106,8 +116,12 @@ private struct UpdateDeckToolInput: Decodable {
     let tags: [String]?
 }
 
-private struct DeleteDeckToolInput: Decodable {
-    let deckId: String
+private struct UpdateDecksToolInput: Decodable {
+    let updates: [UpdateDeckToolInput]
+}
+
+private struct DeleteDecksToolInput: Decodable {
+    let deckIds: [String]
 }
 
 private struct SearchCardsToolInput: Decodable {
@@ -123,8 +137,13 @@ private struct ListDueCardsToolInput: Decodable {
     let limit: Int?
 }
 
-private struct GetDeckToolInput: Decodable {
-    let deckId: String
+private struct SearchDecksToolInput: Decodable {
+    let query: String
+    let limit: Int?
+}
+
+private struct GetDecksToolInput: Decodable {
+    let deckIds: [String]
 }
 
 private struct ListReviewHistoryToolInput: Decodable {
@@ -226,11 +245,20 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 output: try self.encodeJSON(value: self.activeDecks(snapshot: snapshot)),
                 didMutateAppState: false
             )
-        case "get_deck":
-            let input = try self.decodeInput(GetDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+        case "search_decks":
+            let input = try self.decodeInput(SearchDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: try self.findDeck(snapshot: snapshot, deckId: input.deckId)),
+                output: try self.encodeJSON(value: try self.searchDecks(snapshot: snapshot, query: input.query, limit: self.normalizeLimit(input.limit))),
+                didMutateAppState: false
+            )
+        case "get_decks":
+            let input = try self.decodeInput(GetDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+            try self.validateDeckBatchCount(count: input.deckIds.count)
+            try self.validateUniqueDeckIds(deckIds: input.deckIds)
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: try self.findDecks(snapshot: snapshot, deckIds: input.deckIds)),
                 didMutateAppState: false
             )
         case "list_review_history":
@@ -327,47 +355,64 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 ),
                 didMutateAppState: true
             )
-        case "create_deck":
-            let input = try self.decodeInput(CreateDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+        case "create_decks":
+            let input = try self.decodeInput(CreateDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+            try self.validateDeckBatchCount(count: input.decks.count)
             let snapshot = try self.loadSnapshotNow()
-            let createdDeck = try self.databaseInstance().createDeck(
+            let createdDecks = try self.databaseInstance().createDecks(
                 workspaceId: snapshot.workspace.workspaceId,
-                input: DeckEditorInput(
-                    name: input.name,
-                    filterDefinition: buildDeckFilterDefinition(
-                        effortLevels: input.effortLevels,
-                        tags: input.tags
+                inputs: input.decks.map { item in
+                    DeckEditorInput(
+                        name: item.name,
+                        filterDefinition: buildDeckFilterDefinition(
+                            effortLevels: item.effortLevels,
+                            tags: item.tags
+                        )
+                    )
+                }
+            )
+            return AIToolExecutionResult(output: try self.encodeJSON(value: createdDecks), didMutateAppState: true)
+        case "update_decks":
+            let input = try self.decodeInput(UpdateDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+            try self.validateDeckBatchCount(count: input.updates.count)
+            try self.validateUniqueDeckIds(deckIds: input.updates.map(\.deckId))
+            let snapshot = try self.loadSnapshotNow()
+            let updates = try input.updates.map { update in
+                let existingDeck = try self.findDeck(snapshot: snapshot, deckId: update.deckId)
+                let deckFilterState = self.extractDeckFilterState(deck: existingDeck)
+                return DeckUpdateInput(
+                    deckId: update.deckId,
+                    input: DeckEditorInput(
+                        name: update.name ?? existingDeck.name,
+                        filterDefinition: buildDeckFilterDefinition(
+                            effortLevels: update.effortLevels ?? deckFilterState.effortLevels,
+                            tags: update.tags ?? deckFilterState.tags
+                        )
                     )
                 )
-            )
-            return AIToolExecutionResult(output: try self.encodeJSON(value: createdDeck), didMutateAppState: true)
-        case "update_deck":
-            let input = try self.decodeInput(UpdateDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let existingDeck = try self.findDeck(snapshot: snapshot, deckId: input.deckId)
-            let deckFilterState = self.extractDeckFilterState(deck: existingDeck)
-            try self.databaseInstance().updateDeck(
+            }
+            let updatedDecks = try self.databaseInstance().updateDecks(
                 workspaceId: snapshot.workspace.workspaceId,
-                deckId: input.deckId,
-                input: DeckEditorInput(
-                    name: input.name ?? existingDeck.name,
-                    filterDefinition: buildDeckFilterDefinition(
-                        effortLevels: input.effortLevels ?? deckFilterState.effortLevels,
-                        tags: input.tags ?? deckFilterState.tags
-                    )
-                )
+                updates: updates
             )
-            let refreshedSnapshot = try self.loadSnapshotNow()
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(value: try self.findDeck(snapshot: refreshedSnapshot, deckId: input.deckId)),
-                didMutateAppState: true
-            )
-        case "delete_deck":
-            let input = try self.decodeInput(DeleteDeckToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+            return AIToolExecutionResult(output: try self.encodeJSON(value: updatedDecks), didMutateAppState: true)
+        case "delete_decks":
+            let input = try self.decodeInput(DeleteDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+            try self.validateDeckBatchCount(count: input.deckIds.count)
+            try self.validateUniqueDeckIds(deckIds: input.deckIds)
             let snapshot = try self.loadSnapshotNow()
-            try self.databaseInstance().deleteDeck(workspaceId: snapshot.workspace.workspaceId, deckId: input.deckId)
+            let result = try self.databaseInstance().deleteDecks(
+                workspaceId: snapshot.workspace.workspaceId,
+                deckIds: input.deckIds
+            )
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: AISuccessPayload(ok: true, message: "Deleted deck \(input.deckId)")),
+                output: try self.encodeJSON(
+                    value: AIBulkDeleteDecksPayload(
+                        ok: true,
+                        deletedDeckIds: result.deletedDeckIds,
+                        deletedCount: result.deletedCount
+                    )
+                ),
                 didMutateAppState: true
             )
         case "submit_review":
@@ -503,6 +548,12 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         return deck
     }
 
+    private func findDecks(snapshot: AppStateSnapshot, deckIds: [String]) throws -> [Deck] {
+        try deckIds.map { deckId in
+            try self.findDeck(snapshot: snapshot, deckId: deckId)
+        }
+    }
+
     private func searchCards(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Card] {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if normalizedQuery.isEmpty {
@@ -514,6 +565,23 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 || card.backText.lowercased().contains(normalizedQuery)
                 || card.tags.contains(where: { tag in
                     tag.lowercased().contains(normalizedQuery)
+                })
+        }.prefix(limit))
+    }
+
+    private func searchDecks(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Deck] {
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalizedQuery.isEmpty {
+            throw LocalStoreError.validation("query must not be empty")
+        }
+
+        return Array(self.activeDecks(snapshot: snapshot).filter { deck in
+            deck.name.lowercased().contains(normalizedQuery)
+                || deck.filterDefinition.tags.contains(where: { tag in
+                    tag.lowercased().contains(normalizedQuery)
+                })
+                || deck.filterDefinition.effortLevels.contains(where: { effortLevel in
+                    effortLevel.rawValue.lowercased().contains(normalizedQuery)
                 })
         }.prefix(limit))
     }
@@ -560,6 +628,23 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         let uniqueCardIds = Set(cardIds)
         if uniqueCardIds.count != cardIds.count {
             throw LocalStoreError.validation("Card batch must not contain duplicate cardId values")
+        }
+    }
+
+    private func validateDeckBatchCount(count: Int) throws {
+        if count < 1 {
+            throw LocalStoreError.validation("Deck batch must contain at least one item")
+        }
+
+        if count > 100 {
+            throw LocalStoreError.validation("Deck batch must contain at most 100 items")
+        }
+    }
+
+    private func validateUniqueDeckIds(deckIds: [String]) throws {
+        let uniqueDeckIds = Set(deckIds)
+        if uniqueDeckIds.count != deckIds.count {
+            throw LocalStoreError.validation("Deck batch must not contain duplicate deckId values")
         }
     }
 

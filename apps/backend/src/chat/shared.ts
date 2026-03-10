@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import * as cards from "../cards";
+import * as decks from "../decks";
 import type {
   BulkCreateCardItem,
   BulkDeleteCardItem,
@@ -8,6 +9,14 @@ import type {
   EffortLevel,
   UpdateCardInput,
 } from "../cards";
+import type {
+  BulkCreateDeckItem,
+  BulkDeleteDeckItem,
+  BulkUpdateDeckItem,
+  CreateDeckInput,
+  DeckFilterDefinition,
+  UpdateDeckInput,
+} from "../decks";
 import type { ChatMessage, ContentPart } from "./types";
 
 const MAX_LIST_LIMIT = 100;
@@ -24,6 +33,19 @@ export const cardsApi = {
   summarizeDeckState: cards.summarizeDeckState,
   updateCard: cards.updateCard,
   updateCards: cards.updateCards,
+} as const;
+
+export const decksApi = {
+  createDeck: decks.createDeck,
+  createDecks: decks.createDecks,
+  deleteDeck: decks.deleteDeck,
+  deleteDecks: decks.deleteDecks,
+  getDeck: decks.getDeck,
+  getDecks: decks.getDecks,
+  listDecks: decks.listDecks,
+  searchDecks: decks.searchDecks,
+  updateDeck: decks.updateDeck,
+  updateDecks: decks.updateDecks,
 } as const;
 
 export type AgentContext = Readonly<{
@@ -54,8 +76,8 @@ function formatDatetime(timezone: string): string {
 
 const BASE_SYSTEM_INSTRUCTIONS = `You are a flashcards assistant for an offline-first flashcards app.
 You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.
-You can inspect cards, review history, due cards, and deck summary through tools.
-You can also create, update, and delete cards through tools.
+You can inspect cards, decks, review history, due cards, and deck summary through tools.
+You can also create, update, and delete cards and decks through tools.
 
 Write policy:
 - Before any create, update, or delete tool call, you MUST first describe the exact changes you plan to make.
@@ -89,10 +111,23 @@ function validateCardBatchCount(count: number): void {
   }
 }
 
+function validateDeckBatchCount(count: number): void {
+  if (!Number.isInteger(count) || count < 1 || count > MAX_LIST_LIMIT) {
+    throw new Error(`Deck batch must contain between 1 and ${MAX_LIST_LIMIT} items`);
+  }
+}
+
 function validateUniqueCardIds(cardIds: ReadonlyArray<string>): void {
   const uniqueCardIds = new Set(cardIds);
   if (uniqueCardIds.size !== cardIds.length) {
     throw new Error("Card batch must not contain duplicate cardId values");
+  }
+}
+
+function validateUniqueDeckIds(deckIds: ReadonlyArray<string>): void {
+  const uniqueDeckIds = new Set(deckIds);
+  if (uniqueDeckIds.size !== deckIds.length) {
+    throw new Error("Deck batch must not contain duplicate deckId values");
   }
 }
 
@@ -126,6 +161,41 @@ export function normalizeTags(tags: ReadonlyArray<string>): ReadonlyArray<string
   }
 
   return [...uniqueTags];
+}
+
+function normalizeDeckName(name: string): string {
+  const normalizedName = name.trim();
+  if (normalizedName === "") {
+    throw new Error("name must not be empty");
+  }
+
+  return normalizedName;
+}
+
+function normalizeEffortLevels(effortLevels: ReadonlyArray<EffortLevel>): ReadonlyArray<EffortLevel> {
+  return [...new Set(effortLevels)];
+}
+
+function normalizeDeckFilterDefinition(filterDefinition: DeckFilterDefinition): DeckFilterDefinition {
+  return {
+    version: 2,
+    effortLevels: normalizeEffortLevels(filterDefinition.effortLevels),
+    tags: normalizeTags(filterDefinition.tags),
+  };
+}
+
+function validateCreateDeckInput(input: CreateDeckInput): CreateDeckInput {
+  return {
+    name: normalizeDeckName(input.name),
+    filterDefinition: normalizeDeckFilterDefinition(input.filterDefinition),
+  };
+}
+
+function validateUpdateDeckInput(input: UpdateDeckInput): UpdateDeckInput {
+  return {
+    name: normalizeDeckName(input.name),
+    filterDefinition: normalizeDeckFilterDefinition(input.filterDefinition),
+  };
 }
 
 function validateCreateInput(input: CreateCardInput): CreateCardInput {
@@ -190,6 +260,32 @@ export async function runListDueCardsTool(workspaceId: string, limit: number | u
   return stringifyResult(await cardsApi.listReviewQueue(workspaceId, normalizeLimit(limit)));
 }
 
+export async function runListDecksTool(workspaceId: string): Promise<string> {
+  return stringifyResult(await decksApi.listDecks(workspaceId));
+}
+
+export async function runSearchDecksTool(
+  workspaceId: string,
+  searchText: string,
+  limit: number | undefined,
+): Promise<string> {
+  const queryText = searchText.trim();
+  if (queryText === "") {
+    throw new Error("query must not be empty");
+  }
+
+  return stringifyResult(await decksApi.searchDecks(workspaceId, queryText, normalizeLimit(limit)));
+}
+
+export async function runGetDecksTool(
+  workspaceId: string,
+  deckIds: ReadonlyArray<string>,
+): Promise<string> {
+  validateDeckBatchCount(deckIds.length);
+  validateUniqueDeckIds(deckIds);
+  return stringifyResult(await decksApi.getDecks(workspaceId, deckIds));
+}
+
 export async function runListReviewHistoryTool(
   workspaceId: string,
   limit: number | undefined,
@@ -226,6 +322,34 @@ export async function runCreateCardsTool(
   }));
 
   return stringifyResult(await cardsApi.createCards(workspaceId, items));
+}
+
+export async function runCreateDecksTool(
+  workspaceId: string,
+  inputs: ReadonlyArray<Readonly<{
+    name: string;
+    effortLevels: ReadonlyArray<EffortLevel>;
+    tags: ReadonlyArray<string>;
+  }>>,
+  writeToolInput: WriteToolInput,
+): Promise<string> {
+  validateDeckBatchCount(inputs.length);
+
+  const validatedInputs = inputs.map((input) => validateCreateDeckInput({
+    name: input.name,
+    filterDefinition: {
+      version: 2,
+      effortLevels: input.effortLevels,
+      tags: input.tags,
+    },
+  }));
+  const metadataList = makeWriteMetadataList(writeToolInput.deviceId, validatedInputs.length);
+  const items: Array<BulkCreateDeckItem> = validatedInputs.map((input, index) => ({
+    input,
+    metadata: metadataList[index]!,
+  }));
+
+  return stringifyResult(await decksApi.createDecks(workspaceId, items));
 }
 
 export async function runUpdateCardsTool(
@@ -287,6 +411,49 @@ export async function runUpdateCardsTool(
   return stringifyResult(await cardsApi.updateCards(workspaceId, items));
 }
 
+export async function runUpdateDecksTool(
+  workspaceId: string,
+  updates: ReadonlyArray<Readonly<{
+    deckId: string;
+    name?: string;
+    effortLevels?: ReadonlyArray<EffortLevel>;
+    tags?: ReadonlyArray<string>;
+  }>>,
+  writeToolInput: WriteToolInput,
+): Promise<string> {
+  validateDeckBatchCount(updates.length);
+  validateUniqueDeckIds(updates.map((update) => update.deckId));
+
+  const existingDecks = await decksApi.getDecks(workspaceId, updates.map((update) => update.deckId));
+  const existingDecksById = new Map(existingDecks.map((deck) => [deck.deckId, deck] as const));
+  const validatedUpdates = updates.map((update) => {
+    const existingDeck = existingDecksById.get(update.deckId);
+    if (existingDeck === undefined) {
+      throw new Error(`Deck not found: ${update.deckId}`);
+    }
+
+    return {
+      deckId: update.deckId,
+      input: validateUpdateDeckInput({
+        name: update.name ?? existingDeck.name,
+        filterDefinition: {
+          version: 2,
+          effortLevels: update.effortLevels ?? existingDeck.filterDefinition.effortLevels,
+          tags: update.tags ?? existingDeck.filterDefinition.tags,
+        },
+      }),
+    };
+  });
+  const metadataList = makeWriteMetadataList(writeToolInput.deviceId, validatedUpdates.length);
+  const items: Array<BulkUpdateDeckItem> = validatedUpdates.map((update, index) => ({
+    deckId: update.deckId,
+    input: update.input,
+    metadata: metadataList[index]!,
+  }));
+
+  return stringifyResult(await decksApi.updateDecks(workspaceId, items));
+}
+
 export async function runDeleteCardsTool(
   workspaceId: string,
   cardIds: ReadonlyArray<string>,
@@ -302,6 +469,23 @@ export async function runDeleteCardsTool(
   }));
 
   return stringifyResult(await cardsApi.deleteCards(workspaceId, items));
+}
+
+export async function runDeleteDecksTool(
+  workspaceId: string,
+  deckIds: ReadonlyArray<string>,
+  writeToolInput: WriteToolInput,
+): Promise<string> {
+  validateDeckBatchCount(deckIds.length);
+  validateUniqueDeckIds(deckIds);
+
+  const metadataList = makeWriteMetadataList(writeToolInput.deviceId, deckIds.length);
+  const items: Array<BulkDeleteDeckItem> = deckIds.map((deckId, index) => ({
+    deckId,
+    metadata: metadataList[index]!,
+  }));
+
+  return stringifyResult(await decksApi.deleteDecks(workspaceId, items));
 }
 
 export function extractText(content: ReadonlyArray<ContentPart>): string {
