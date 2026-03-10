@@ -16,8 +16,9 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 - Web app: supported
 - iOS app: Swift (priority)
 - Android app: planned later
+- Terminal / AI-agent API client: supported via the discovery flow starting at `GET https://api.flashcards-open-source-app.com/v1/agent`
 
-We support both the web app and the iOS app. When making changes, we try to update both versions.
+We support the web app, the iOS app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
 Running iOS tests is a heavy operation, so do not run them automatically and only run them after the user explicitly agrees.
 If iOS tests are explicitly requested, run them only on one specific simulator image confirmed with the user or already available locally, and do not trigger extra runtime downloads automatically.
