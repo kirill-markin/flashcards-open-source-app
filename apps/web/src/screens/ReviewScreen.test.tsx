@@ -293,4 +293,119 @@ describe("ReviewScreen", () => {
     expect(container.querySelector(".review-front")?.textContent).toContain("Top queue front");
     expect(container.querySelector(".review-queue-card-active")?.textContent).toContain("Top queue front");
   });
+
+  it("renders short plain front text in centered short mode", async () => {
+    mockAppData.cards = [createCard({ frontText: "Hola" })];
+    mockAppData.reviewQueue = mockAppData.cards;
+    mockAppData.reviewTimeline = mockAppData.cards;
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const front = container.querySelector(".review-front");
+
+    expect(front?.getAttribute("data-presentation-mode")).toBe("shortPlain");
+    expect(front?.textContent).toContain("Hola");
+  });
+
+  it("keeps four-word one-line text in centered short mode", async () => {
+    mockAppData.cards = [createCard({ frontText: "one two three four" })];
+    mockAppData.reviewQueue = mockAppData.cards;
+    mockAppData.reviewTimeline = mockAppData.cards;
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelector(".review-front")?.getAttribute("data-presentation-mode")).toBe("shortPlain");
+  });
+
+  it("switches five-word text and multi-line text to paragraph mode", async () => {
+    const paragraphCard = createCard({
+      frontText: "one two three four five",
+      backText: "First line\nSecond line",
+    });
+    mockAppData.cards = [paragraphCard];
+    mockAppData.reviewQueue = [paragraphCard];
+    mockAppData.reviewTimeline = [paragraphCard];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      container.querySelector(".review-reveal-btn")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.querySelector(".review-front")?.getAttribute("data-presentation-mode")).toBe("paragraphPlain");
+    expect(container.querySelector(".review-back")?.getAttribute("data-presentation-mode")).toBe("paragraphPlain");
+  });
+
+  it("renders markdown content with semantic elements instead of centered mode", async () => {
+    const markdownCard = createCard({
+      frontText: "# Heading\n\n- item\n- item two",
+      backText: "```ts\nconst answer = 42;\n```",
+    });
+    mockAppData.cards = [markdownCard];
+    mockAppData.reviewQueue = [markdownCard];
+    mockAppData.reviewTimeline = [markdownCard];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      container.querySelector(".review-reveal-btn")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.querySelector(".review-front")?.getAttribute("data-presentation-mode")).toBe("markdown");
+    expect(container.querySelector(".review-front h1")?.textContent).toBe("Heading");
+    expect(container.querySelectorAll(".review-front ul li")).toHaveLength(2);
+    expect(container.querySelector(".review-back")?.getAttribute("data-presentation-mode")).toBe("markdown");
+    expect(container.querySelector(".review-back pre code")?.textContent).toContain("const answer = 42;");
+  });
+
+  it("renders the empty back placeholder through the adaptive content view", async () => {
+    const emptyBackCard = createCard({
+      frontText: "Front",
+      backText: "",
+    });
+    mockAppData.cards = [emptyBackCard];
+    mockAppData.reviewQueue = [emptyBackCard];
+    mockAppData.reviewTimeline = [emptyBackCard];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      container.querySelector(".review-reveal-btn")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const back = container.querySelector(".review-back");
+
+    expect(back?.textContent).toContain("No back text");
+    expect(back?.getAttribute("data-presentation-mode")).toBe("shortPlain");
+  });
 });

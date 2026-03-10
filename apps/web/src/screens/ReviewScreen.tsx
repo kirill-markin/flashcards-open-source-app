@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, type ReactElement, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { useAppData } from "../appData";
 import {
   ALL_CARDS_REVIEW_FILTER,
@@ -12,6 +13,10 @@ import {
   computeReviewSchedule,
   type ReviewRating,
 } from "../../../backend/src/schedule";
+import {
+  classifyReviewContentPresentation,
+  type ReviewContentPresentationMode,
+} from "./reviewContentPresentation";
 
 type ReviewButtonOption = Readonly<{
   title: string;
@@ -122,6 +127,74 @@ function buildReviewButtonOptions(card: Card, schedulerSettings: WorkspaceSchedu
       intervalDescription: formatReviewIntervalDescription(now, schedule.dueAt),
     };
   });
+}
+
+type ReviewCardSideProps = Readonly<{
+  label: string;
+  text: string;
+  contentClassName: string;
+  surfaceClassName?: string;
+}>;
+
+function reviewMarkdownClassName(tagName: string): string {
+  return `review-markdown-${tagName}`;
+}
+
+function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement {
+  return (
+    <ReactMarkdown
+      components={{
+        h1: ({ children }) => <h1 className={reviewMarkdownClassName("h1")}>{children}</h1>,
+        h2: ({ children }) => <h2 className={reviewMarkdownClassName("h2")}>{children}</h2>,
+        h3: ({ children }) => <h3 className={reviewMarkdownClassName("h3")}>{children}</h3>,
+        h4: ({ children }) => <h4 className={reviewMarkdownClassName("h4")}>{children}</h4>,
+        h5: ({ children }) => <h5 className={reviewMarkdownClassName("h5")}>{children}</h5>,
+        h6: ({ children }) => <h6 className={reviewMarkdownClassName("h6")}>{children}</h6>,
+        p: ({ children }) => <p className={reviewMarkdownClassName("p")}>{children}</p>,
+        ul: ({ children }) => <ul className={reviewMarkdownClassName("ul")}>{children}</ul>,
+        ol: ({ children }) => <ol className={reviewMarkdownClassName("ol")}>{children}</ol>,
+        li: ({ children }) => <li className={reviewMarkdownClassName("li")}>{children}</li>,
+        blockquote: ({ children }) => <blockquote className={reviewMarkdownClassName("blockquote")}>{children}</blockquote>,
+        hr: () => <hr className={reviewMarkdownClassName("hr")} />,
+        table: ({ children }) => <table className={reviewMarkdownClassName("table")}>{children}</table>,
+        thead: ({ children }) => <thead className={reviewMarkdownClassName("thead")}>{children}</thead>,
+        tbody: ({ children }) => <tbody className={reviewMarkdownClassName("tbody")}>{children}</tbody>,
+        tr: ({ children }) => <tr className={reviewMarkdownClassName("tr")}>{children}</tr>,
+        th: ({ children }) => <th className={reviewMarkdownClassName("th")}>{children}</th>,
+        td: ({ children }) => <td className={reviewMarkdownClassName("td")}>{children}</td>,
+        pre: ({ children }) => <pre className={reviewMarkdownClassName("pre")}>{children}</pre>,
+        code: ({ children, className }) => (
+          <code className={`${reviewMarkdownClassName("code")}${className === undefined ? "" : ` ${className}`}`}>
+            {children}
+          </code>
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
+
+function ReviewCardSide({ label, text, contentClassName, surfaceClassName }: ReviewCardSideProps): ReactElement {
+  const presentationMode = classifyReviewContentPresentation(text);
+
+  return (
+    <div className={surfaceClassName === undefined ? "review-card-surface" : surfaceClassName}>
+      <div className="review-label">{label}</div>
+      <div className="review-card-body">
+        <div
+          className={[
+            "review-card-content",
+            contentClassName,
+            `review-card-content-${presentationMode}`,
+          ].join(" ")}
+          data-presentation-mode={presentationMode}
+        >
+          {presentationMode === "markdown" ? <ReviewCardMarkdown text={text} /> : text}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ReviewScreen(): ReactElement {
@@ -333,16 +406,19 @@ export function ReviewScreen(): ReactElement {
                   </button>
                 </div>
                 <div className="review-card-stack">
-                  <div className="review-card-surface">
-                    <div className="review-label">Front</div>
-                    <div className="review-front">{selectedCard.frontText}</div>
-                  </div>
+                  <ReviewCardSide
+                    label="Front"
+                    text={selectedCard.frontText}
+                    contentClassName="review-front"
+                  />
 
                   {isAnswerVisible ? (
-                    <div className="review-card-surface review-card-answer">
-                      <div className="review-label">Back</div>
-                      <div className="review-back">{selectedCard.backText === "" ? EMPTY_BACK_TEXT_PLACEHOLDER : selectedCard.backText}</div>
-                    </div>
+                    <ReviewCardSide
+                      label="Back"
+                      text={selectedCard.backText === "" ? EMPTY_BACK_TEXT_PLACEHOLDER : selectedCard.backText}
+                      contentClassName="review-back"
+                      surfaceClassName="review-card-surface review-card-answer"
+                    />
                   ) : null}
                 </div>
 
