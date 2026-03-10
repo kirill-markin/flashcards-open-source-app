@@ -47,7 +47,12 @@ export function isCardDue(card: Card, nowTimestamp: number): boolean {
     return true;
   }
 
-  return new Date(card.dueAt).getTime() <= nowTimestamp || card.fsrsCardState === "new";
+  const dueAtTimestamp = new Date(card.dueAt).getTime();
+  if (Number.isNaN(dueAtTimestamp)) {
+    return false;
+  }
+
+  return dueAtTimestamp <= nowTimestamp;
 }
 
 export function deriveActiveCards(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
@@ -58,11 +63,50 @@ export function deriveActiveDecks(decks: ReadonlyArray<Deck>): ReadonlyArray<Dec
   return decks.filter((deck) => deck.deletedAt === null);
 }
 
-export function deriveReviewQueue(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
+function getReviewOrderDueTimestamp(card: Card): number {
+  if (card.dueAt === null) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const dueAtTimestamp = new Date(card.dueAt).getTime();
+  if (Number.isNaN(dueAtTimestamp)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return dueAtTimestamp;
+}
+
+export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowTimestamp: number): number {
+  const leftIsDue = isCardDue(leftCard, nowTimestamp);
+  const rightIsDue = isCardDue(rightCard, nowTimestamp);
+
+  if (leftIsDue !== rightIsDue) {
+    return leftIsDue ? -1 : 1;
+  }
+
+  const leftDueTimestamp = getReviewOrderDueTimestamp(leftCard);
+  const rightDueTimestamp = getReviewOrderDueTimestamp(rightCard);
+  if (leftDueTimestamp !== rightDueTimestamp) {
+    return leftDueTimestamp - rightDueTimestamp;
+  }
+
+  return new Date(rightCard.updatedAt).getTime() - new Date(leftCard.updatedAt).getTime();
+}
+
+export function deriveReviewTimeline(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
   const nowTimestamp = Date.now();
   return cards
-    .filter((card) => isCardDue(card, nowTimestamp))
-    .sort((leftCard, rightCard) => new Date(rightCard.updatedAt).getTime() - new Date(leftCard.updatedAt).getTime());
+    .filter((card) => card.deletedAt === null)
+    .sort((leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
+}
+
+export function deriveReviewQueue(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
+  const nowTimestamp = Date.now();
+  return deriveReviewTimeline(cards).filter((card) => isCardDue(card, nowTimestamp));
+}
+
+export function selectReviewCard(reviewQueue: ReadonlyArray<Card>, selectedCardId: string): Card | null {
+  return reviewQueue.find((card) => card.cardId === selectedCardId) ?? reviewQueue[0] ?? null;
 }
 
 export function compareLww(left: LastWriteWinsRecord, right: LastWriteWinsRecord): number {

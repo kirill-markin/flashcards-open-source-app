@@ -1,5 +1,10 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
+import {
+  deriveReviewTimeline,
+  isCardDue,
+  selectReviewCard,
+} from "../appData/domain";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, WorkspaceSchedulerSettings } from "../types";
 import {
@@ -35,44 +40,6 @@ function formatTimestamp(value: string | null): string {
 
 function renderTags(tags: ReadonlyArray<string>): string {
   return tags.length === 0 ? "—" : tags.join(", ");
-}
-
-function isCardDue(card: Card, nowTimestamp: number): boolean {
-  if (card.dueAt === null) {
-    return true;
-  }
-
-  return new Date(card.dueAt).getTime() <= nowTimestamp;
-}
-
-function compareCardsForReviewQueue(leftCard: Card, rightCard: Card, nowTimestamp: number): number {
-  const leftIsDue = isCardDue(leftCard, nowTimestamp);
-  const rightIsDue = isCardDue(rightCard, nowTimestamp);
-
-  if (leftIsDue !== rightIsDue) {
-    return leftIsDue ? -1 : 1;
-  }
-
-  if (leftCard.dueAt === null && rightCard.dueAt !== null) {
-    return -1;
-  }
-
-  if (leftCard.dueAt !== null && rightCard.dueAt === null) {
-    return 1;
-  }
-
-  if (leftCard.dueAt !== null && rightCard.dueAt !== null) {
-    const dueAtDifference = new Date(leftCard.dueAt).getTime() - new Date(rightCard.dueAt).getTime();
-    if (dueAtDifference !== 0) {
-      return dueAtDifference;
-    }
-  }
-
-  return new Date(rightCard.updatedAt).getTime() - new Date(leftCard.updatedAt).getTime();
-}
-
-function sortCardsForReviewQueue(cards: ReadonlyArray<Card>, nowTimestamp: number): ReadonlyArray<Card> {
-  return [...cards].sort((leftCard, rightCard) => compareCardsForReviewQueue(leftCard, rightCard, nowTimestamp));
 }
 
 function formatQueueBadge(dueCount: number, totalCount: number): string {
@@ -164,8 +131,9 @@ export function ReviewScreen(): ReactElement {
   const [editorErrorMessage, setEditorErrorMessage] = useState<string>("");
   const [isEditorSaving, setIsEditorSaving] = useState<boolean>(false);
   const nowTimestamp = Date.now();
-  const queueCards = cardsState.hasLoaded ? sortCardsForReviewQueue(cards, nowTimestamp) : reviewQueue;
-  const selectedCard = reviewQueue.find((card) => card.cardId === selectedCardId) ?? reviewQueue[0] ?? null;
+  const activeReviewQueue = reviewQueue;
+  const queueCards = cardsState.hasLoaded ? deriveReviewTimeline(cards) : reviewQueue;
+  const selectedCard = selectReviewCard(activeReviewQueue, selectedCardId);
   const editingCard = cards.find((card) => card.cardId === editingCardId && card.deletedAt === null) ?? null;
   const reviewButtonsNow = new Date();
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
@@ -187,16 +155,16 @@ export function ReviewScreen(): ReactElement {
   }, [ensureCardsLoaded, ensureReviewQueueLoaded]);
 
   useEffect(() => {
-    if (reviewQueue.length === 0) {
+    if (activeReviewQueue.length === 0) {
       setSelectedCardId("");
       return;
     }
 
-    const selectedStillExists = reviewQueue.some((card) => card.cardId === selectedCardId);
+    const selectedStillExists = activeReviewQueue.some((card) => card.cardId === selectedCardId);
     if (!selectedStillExists) {
-      setSelectedCardId(reviewQueue[0].cardId);
+      setSelectedCardId(activeReviewQueue[0].cardId);
     }
-  }, [reviewQueue, selectedCardId]);
+  }, [activeReviewQueue, selectedCardId]);
 
   useEffect(() => {
     setIsAnswerVisible(false);
@@ -312,7 +280,7 @@ export function ReviewScreen(): ReactElement {
             <h1 className="title">Review</h1>
             <p className="subtitle">Queue table plus a focused flip flow.</p>
           </div>
-          <span className="badge">{formatQueueBadge(reviewQueue.length, queueCards.length)}</span>
+          <span className="badge">{formatQueueBadge(activeReviewQueue.length, queueCards.length)}</span>
         </div>
 
         <div className="review-layout">

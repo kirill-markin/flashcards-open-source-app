@@ -31,13 +31,7 @@ struct ReviewView: View {
     }
 
     private var currentCard: Card? {
-        if let selectedCard = store.reviewQueue.first(where: { card in
-            card.cardId == self.selectedCardId
-        }) {
-            return selectedCard
-        }
-
-        return store.reviewQueue.first
+        selectedReviewCard(reviewQueue: store.reviewQueue, selectedCardId: self.selectedCardId)
     }
 
     var body: some View {
@@ -366,18 +360,10 @@ struct ReviewView: View {
     }
 
     private func syncSelectedCardId() {
-        guard store.reviewQueue.isEmpty == false else {
-            self.selectedCardId = ""
-            return
-        }
-
-        if store.reviewQueue.contains(where: { card in
-            card.cardId == self.selectedCardId
-        }) {
-            return
-        }
-
-        self.selectedCardId = store.reviewQueue[0].cardId
+        self.selectedCardId = selectedReviewCardId(
+            reviewQueue: store.reviewQueue,
+            selectedCardId: self.selectedCardId
+        )
     }
 
     private func resolvedReviewAnswerGridOptions(card: Card) throws -> ReviewAnswerGridOptions {
