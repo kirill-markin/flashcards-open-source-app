@@ -4,6 +4,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AuthError } from "./auth";
 import { HttpError } from "./errors";
 import { createChatRoutes } from "./routes/chat";
+import { createCardsRoutes } from "./routes/cards";
 import { createSyncRoutes } from "./routes/sync";
 import { createSystemRoutes } from "./routes/system";
 import { createWorkspaceRoutes } from "./routes/workspaces";
@@ -84,6 +85,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
 
   app.route("/", createSystemRoutes({ allowedOrigins }));
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
+  app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createChatRoutes({ allowedOrigins }));
   app.route("/", createSyncRoutes({ allowedOrigins }));
 
