@@ -34,6 +34,28 @@ const isAllowedRedirectUri = (uri: string): boolean => {
   }
 };
 
+function stripKnownSubdomain(hostname: string): string {
+  if (hostname.startsWith("app.")) {
+    return hostname.slice("app.".length);
+  }
+
+  if (hostname.startsWith("auth.")) {
+    return hostname.slice("auth.".length);
+  }
+
+  return hostname;
+}
+
+export function buildWebsiteHomeUrl(redirectUri: string): string {
+  const redirectUrl = new URL(redirectUri);
+  const homeUrl = new URL(redirectUrl.origin);
+  homeUrl.hostname = stripKnownSubdomain(redirectUrl.hostname);
+  homeUrl.pathname = "/";
+  homeUrl.search = "";
+  homeUrl.hash = "";
+  return homeUrl.toString();
+}
+
 app.get("/login", async (c) => {
   const redirectUri = c.req.query("redirect_uri") ?? "";
 
@@ -59,7 +81,8 @@ app.get("/login", async (c) => {
     log({ domain: "auth", action: "error", error: validation.reason });
   }
 
-  const html = renderLoginPage(redirectUri);
+  const websiteHomeUrl = buildWebsiteHomeUrl(redirectUri);
+  const html = renderLoginPage(redirectUri, websiteHomeUrl);
   return c.html(html);
 });
 

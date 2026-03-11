@@ -7,7 +7,7 @@ const AUTH_FAVICON_URL =
  * and client JS redirects to redirect_uri.
  */
 
-export const renderLoginPage = (redirectUri: string): string => {
+export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): string => {
   return `<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
@@ -18,94 +18,189 @@ export const renderLoginPage = (redirectUri: string): string => {
   <title>Sign in</title>
   <style>
     :root {
-      --bg: #ffffff;
-      --panel: #ffffff;
-      --panel-border: #232323;
-      --text: #000000;
-      --muted: #898989;
-      --accent: #232323;
+      color-scheme: dark;
+      --bg: #050505;
+      --surface: linear-gradient(180deg, rgba(24, 24, 30, 0.94), rgba(17, 17, 22, 0.98));
+      --surface-elevated: linear-gradient(180deg, rgba(30, 30, 36, 0.96), rgba(18, 18, 22, 0.98));
+      --surface-muted: rgba(255, 255, 255, 0.04);
+      --text: #f6f6f8;
+      --text-secondary: rgba(235, 235, 245, 0.66);
+      --accent: #c44b2d;
+      --accent-strong: #d65a38;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --danger: #ff4d57;
+      --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.26);
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-xl: 24px;
+      --radius-pill: 999px;
     }
 
-    * { box-sizing: border-box; }
-    *:focus { outline: none; }
-
-    html, body {
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+
+    html, body {
       height: 100%;
     }
 
+    html {
+      background:
+        radial-gradient(circle at top, rgba(196, 75, 45, 0.12), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.05), transparent 26%),
+        var(--bg);
+    }
+
     body {
-      background: var(--bg);
+      background: transparent;
       color: var(--text);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Display",
+        "SF Pro Text",
+        system-ui,
+        sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    ::selection {
+      background: rgba(196, 75, 45, 0.34);
+      color: var(--text);
     }
 
     .login-page {
-      display: flex;
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      width: 100%;
+    }
+
+    .login-back-link {
+      position: absolute;
+      top: 18px;
+      inset-inline-start: 18px;
+      z-index: 1;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 16px;
-      width: 100%;
+      min-height: 40px;
+      padding-inline: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 560;
+      letter-spacing: -0.01em;
+      text-decoration: none;
+      transition:
+        background 140ms ease,
+        border-color 140ms ease,
+        color 140ms ease,
+        transform 140ms ease;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .login-back-link:hover {
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        transform: translateY(-1px);
+      }
+    }
+
+    .login-back-link:focus-visible {
+      outline: 2px solid rgba(196, 75, 45, 0.72);
+      outline-offset: 3px;
     }
 
     .login-card {
       width: 100%;
-      max-width: 360px;
-      border: 1px solid var(--panel-border);
-      padding: 32px 28px;
-      background: var(--panel);
+      max-width: 420px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 30px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
     }
 
     .login-title {
       margin: 0 0 24px;
-      font-size: 20px;
-      font-weight: 650;
-      letter-spacing: 0.2px;
+      font-size: clamp(2rem, 4vw, 2.4rem);
+      font-weight: 760;
+      line-height: 0.96;
+      letter-spacing: -0.055em;
     }
 
     .login-label {
       display: block;
       margin-bottom: 6px;
       font-size: 13px;
-      color: var(--muted);
+      color: var(--text-secondary);
     }
 
     .login-input {
       display: block;
       width: 100%;
-      padding: 8px 10px;
+      min-height: 44px;
+      padding: 10px 12px;
       margin-bottom: 16px;
-      border: 1px solid var(--panel-border);
-      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-muted);
       color: var(--text);
       font-family: inherit;
       font-size: 14px;
+      transition:
+        border-color 140ms ease,
+        background 140ms ease,
+        box-shadow 140ms ease;
     }
 
-    .login-input:focus {
-      border-color: var(--text);
+    .login-input::placeholder {
+      color: rgba(235, 235, 245, 0.45);
+    }
+
+    .login-input:focus-visible {
+      outline: none;
+      border-color: var(--border-strong);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 0 3px rgba(196, 75, 45, 0.18);
     }
 
     .login-btn {
       display: block;
       width: 100%;
-      padding: 10px;
-      border: 1px solid var(--panel-border);
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-pill);
       background: var(--accent);
-      color: var(--bg);
+      color: #fff5f2;
       font-family: inherit;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      transition:
+        transform 140ms ease,
+        background 140ms ease,
+        opacity 140ms ease;
     }
 
-    .login-btn:hover {
-      opacity: 0.85;
+    @media (hover: hover) and (pointer: fine) {
+      .login-btn:hover {
+        background: var(--accent-strong);
+        transform: translateY(-1px);
+      }
     }
 
     .login-btn:disabled {
@@ -114,19 +209,19 @@ export const renderLoginPage = (redirectUri: string): string => {
     }
 
     .login-error {
-      color: #c0392b;
+      color: var(--danger);
       font-size: 13px;
       margin-bottom: 12px;
     }
 
     .login-hint {
-      color: var(--muted);
+      color: var(--text-secondary);
       font-size: 13px;
       margin: 0 0 16px;
     }
 
     .login-status {
-      color: var(--muted);
+      color: var(--text-secondary);
       font-size: 13px;
       margin: 0;
     }
@@ -134,21 +229,26 @@ export const renderLoginPage = (redirectUri: string): string => {
     .hidden { display: none; }
 
     @media (max-width: 768px) {
-      .login-page { padding: 0; }
+      .login-page {
+        padding: 18px 14px;
+      }
+
+      .login-back-link {
+        top: 14px;
+        inset-inline-start: 14px;
+      }
+
       .login-card {
-        border: none;
-        max-width: none;
-        padding: 32px 16px;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+        max-width: 100%;
+        border-radius: var(--radius-md);
+        padding: 24px 18px;
       }
     }
   </style>
 </head>
 <body>
   <div class="login-page">
+    <a class="login-back-link" href="${websiteHomeUrl}">Back to website</a>
     <div class="login-card">
       <h1 class="login-title">Sign in</h1>
 
