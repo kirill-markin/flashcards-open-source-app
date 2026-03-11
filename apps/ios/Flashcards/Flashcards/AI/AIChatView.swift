@@ -305,6 +305,7 @@ struct AIChatView: View {
                     } label: {
                         Image(systemName: self.chatStore.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
                             .font(.system(size: 28))
+                            .frame(width: aiChatComposerSendButtonVisualSize, height: aiChatComposerSendButtonVisualSize)
                             .foregroundStyle(self.chatStore.isStreaming ? Color.red : Color.accentColor)
                     }
                     .buttonStyle(.plain)
@@ -628,8 +629,9 @@ struct AIChatView: View {
 
 private let aiChatComposerMaximumLineCount: Int = 5
 private let aiChatComposerTopPadding: CGFloat = 8
-private let aiChatComposerSendButtonInset: CGFloat = 12
-private let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 56
+private let aiChatComposerSendButtonInset: CGFloat = 8
+private let aiChatComposerSendButtonVisualSize: CGFloat = 28
+private let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 44
 private let aiChatAutoScrollIntervalSeconds: Double = 2.0
 private let aiChatAutoScrollBottomThreshold: CGFloat = 24
 private let aiChatAutoScrollAnimationDurationSeconds: Double = 0.25
