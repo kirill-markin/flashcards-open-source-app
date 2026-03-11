@@ -36,79 +36,313 @@
   "paths": {
     "/": {
       "get": {
-        "tags": ["discovery"],
+        "tags": [
+          "discovery"
+        ],
         "summary": "Discovery alias",
         "description": "Primary discovery entrypoint. Returns the same compact envelope as GET /agent.",
         "responses": {
           "200": {
-            "description": "Agent discovery envelope"
+            "description": "Agent discovery envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDiscoveryEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "service": {
+                      "name": "flashcards-open-source-app",
+                      "version": "v1",
+                      "description": "Offline-first flashcards service with user-owned workspaces and AI-friendly API onboarding."
+                    },
+                    "authentication": {
+                      "type": "email_otp_then_api_key",
+                      "registerAndLogin": "Ask which email the user wants to use, then start the same flow for both new and existing users."
+                    },
+                    "capabilitiesAfterLogin": [
+                      "Load account context",
+                      "Select a workspace",
+                      "Read and write cards and decks"
+                    ],
+                    "authBaseUrl": "https://auth.flashcards-open-source-app.com",
+                    "apiBaseUrl": "https://api.flashcards-open-source-app.com/v1",
+                    "docs": {
+                      "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                      "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                    }
+                  },
+                  "actions": [
+                    {
+                      "name": "send_code",
+                      "method": "POST",
+                      "url": "https://auth.flashcards-open-source-app.com/api/agent/send-code",
+                      "input": {
+                        "required": [
+                          "email"
+                        ]
+                      }
+                    },
+                    {
+                      "name": "openapi",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json"
+                    }
+                  ],
+                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/agent": {
       "get": {
-        "tags": ["discovery"],
+        "tags": [
+          "discovery"
+        ],
         "summary": "Agent discovery",
         "description": "Discovery envelope for external AI agents. Includes auth bootstrap actions, explicit workspace-selection flow guidance, and links to the public agent-only OpenAPI document.",
         "responses": {
           "200": {
-            "description": "Agent discovery envelope"
+            "description": "Agent discovery envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDiscoveryEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "service": {
+                      "name": "flashcards-open-source-app",
+                      "version": "v1",
+                      "description": "Offline-first flashcards service with user-owned workspaces and AI-friendly API onboarding."
+                    },
+                    "authentication": {
+                      "type": "email_otp_then_api_key",
+                      "registerAndLogin": "Ask which email the user wants to use, then start the same flow for both new and existing users."
+                    },
+                    "capabilitiesAfterLogin": [
+                      "Load account context",
+                      "Select a workspace",
+                      "Read and write cards and decks"
+                    ],
+                    "authBaseUrl": "https://auth.flashcards-open-source-app.com",
+                    "apiBaseUrl": "https://api.flashcards-open-source-app.com/v1",
+                    "docs": {
+                      "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                      "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                    }
+                  },
+                  "actions": [
+                    {
+                      "name": "send_code",
+                      "method": "POST",
+                      "url": "https://auth.flashcards-open-source-app.com/api/agent/send-code",
+                      "input": {
+                        "required": [
+                          "email"
+                        ]
+                      }
+                    },
+                    {
+                      "name": "openapi",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json"
+                    }
+                  ],
+                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/openapi.json": {
       "get": {
-        "tags": ["discovery"],
+        "tags": [
+          "discovery"
+        ],
         "summary": "OpenAPI alias",
         "description": "Alias for the same external AI-agent OpenAPI JSON document served at /agent/openapi.json.",
         "responses": {
           "200": {
-            "description": "External AI-agent OpenAPI JSON document"
+            "description": "External AI-agent OpenAPI JSON document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenApiDocument"
+                },
+                "example": {
+                  "openapi": "3.1.0",
+                  "info": {
+                    "title": "Flashcards Open Source App External AI-Agent API",
+                    "version": "v1"
+                  },
+                  "paths": {
+                    "/agent": {
+                      "get": {
+                        "summary": "Agent discovery"
+                      }
+                    }
+                  },
+                  "components": {
+                    "schemas": {
+                      "AgentDiscoveryEnvelope": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/swagger.json": {
       "get": {
-        "tags": ["discovery"],
+        "tags": [
+          "discovery"
+        ],
         "summary": "Swagger alias",
         "description": "Alias for the same external AI-agent OpenAPI JSON document served at /agent/openapi.json.",
         "responses": {
           "200": {
-            "description": "External AI-agent OpenAPI JSON document"
+            "description": "External AI-agent OpenAPI JSON document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenApiDocument"
+                },
+                "example": {
+                  "openapi": "3.1.0",
+                  "info": {
+                    "title": "Flashcards Open Source App External AI-Agent API",
+                    "version": "v1"
+                  },
+                  "paths": {
+                    "/agent": {
+                      "get": {
+                        "summary": "Agent discovery"
+                      }
+                    }
+                  },
+                  "components": {
+                    "schemas": {
+                      "AgentDiscoveryEnvelope": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/agent/openapi.json": {
       "get": {
-        "tags": ["discovery"],
+        "tags": [
+          "discovery"
+        ],
         "summary": "Canonical OpenAPI document",
         "description": "Canonical external AI-agent OpenAPI JSON document. It deliberately omits internal and first-party-only routes.",
         "responses": {
           "200": {
-            "description": "External AI-agent OpenAPI JSON document"
+            "description": "External AI-agent OpenAPI JSON document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenApiDocument"
+                },
+                "example": {
+                  "openapi": "3.1.0",
+                  "info": {
+                    "title": "Flashcards Open Source App External AI-Agent API",
+                    "version": "v1"
+                  },
+                  "paths": {
+                    "/agent": {
+                      "get": {
+                        "summary": "Agent discovery"
+                      }
+                    }
+                  },
+                  "components": {
+                    "schemas": {
+                      "AgentDiscoveryEnvelope": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/agent/swagger.json": {
       "get": {
-        "tags": ["discovery"],
+        "tags": [
+          "discovery"
+        ],
         "summary": "Canonical Swagger alias",
         "description": "Alias for the same external AI-agent OpenAPI JSON document served at /agent/openapi.json.",
         "responses": {
           "200": {
-            "description": "External AI-agent OpenAPI JSON document"
+            "description": "External AI-agent OpenAPI JSON document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenApiDocument"
+                },
+                "example": {
+                  "openapi": "3.1.0",
+                  "info": {
+                    "title": "Flashcards Open Source App External AI-Agent API",
+                    "version": "v1"
+                  },
+                  "paths": {
+                    "/agent": {
+                      "get": {
+                        "summary": "Agent discovery"
+                      }
+                    }
+                  },
+                  "components": {
+                    "schemas": {
+                      "AgentDiscoveryEnvelope": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/agent/send-code": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Send OTP code",
         "description": "Starts the external AI-agent auth flow by emailing an 8-digit OTP code and returning a short opaque otpSessionToken.",
         "servers": [
@@ -129,14 +363,52 @@
         },
         "responses": {
           "200": {
-            "description": "OTP challenge created"
+            "description": "OTP challenge created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSendCodeEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "email": "user@example.com",
+                    "otpSessionToken": "ABCD-EFGH-IJKL-MNPQ-1234",
+                    "expiresInSeconds": 180,
+                    "authBaseUrl": "https://auth.flashcards-open-source-app.com",
+                    "apiBaseUrl": "https://api.flashcards-open-source-app.com/v1"
+                  },
+                  "actions": [
+                    {
+                      "name": "verify_code",
+                      "method": "POST",
+                      "url": "https://auth.flashcards-open-source-app.com/api/agent/verify-code",
+                      "input": {
+                        "required": [
+                          "code",
+                          "otpSessionToken",
+                          "label"
+                        ]
+                      }
+                    }
+                  ],
+                  "instructions": "A verification code has been sent. Read payload from data.* (data.otpSessionToken). Do not expect OTP fields at the top level. Use instructions to pick the next call and confirm with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/agent/verify-code": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Verify OTP code and issue API key",
         "description": "Completes email OTP authentication and returns a long-lived ApiKey plus a connection descriptor for the external AI agent, followed by explicit account/workspace bootstrap actions.",
         "servers": [
@@ -157,14 +429,87 @@
         },
         "responses": {
           "200": {
-            "description": "API key issued"
+            "description": "API key issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVerifyCodeEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "apiKey": "fca_ABCDEFGH_0123456789ABCDEFGHJKMNPQRS",
+                    "authorizationScheme": "ApiKey",
+                    "apiBaseUrl": "https://api.flashcards-open-source-app.com/v1",
+                    "connection": {
+                      "connectionId": "connection-1",
+                      "label": "codex-import-bot",
+                      "createdAt": "2026-03-11T08:55:00.000Z",
+                      "lastUsedAt": null,
+                      "revokedAt": null
+                    }
+                  },
+                  "actions": [
+                    {
+                      "name": "load_account",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/me",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_workspaces",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/workspaces",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_workspace",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/workspaces",
+                      "input": {
+                        "required": [
+                          "name"
+                        ]
+                      },
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "select_workspace",
+                      "method": "POST",
+                      "urlTemplate": "https://api.flashcards-open-source-app.com/v1/agent/workspaces/{workspaceId}/select",
+                      "input": {
+                        "required": [
+                          "workspaceId"
+                        ]
+                      },
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Store this API key securely. Read payload from data.* (data.apiKey, data.connection). Do not expect resource fields at the top level. Select next calls from instructions and confirm with actions: GET https://api.flashcards-open-source-app.com/v1/agent/me, GET https://api.flashcards-open-source-app.com/v1/agent/workspaces, then select or create workspace if needed.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/agent/me": {
       "get": {
-        "tags": ["bootstrap"],
+        "tags": [
+          "bootstrap"
+        ],
         "summary": "Load agent account context",
         "description": "Returns the authenticated user profile, the currently selected workspace id for this API key connection, and explicit next-step bootstrap actions.",
         "security": [
@@ -174,7 +519,42 @@
         ],
         "responses": {
           "200": {
-            "description": "Agent account envelope"
+            "description": "Agent account envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentAccountEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "userId": "user-1",
+                    "selectedWorkspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                    "authTransport": "api_key",
+                    "profile": {
+                      "email": "kirill@example.com",
+                      "locale": "en",
+                      "createdAt": "2026-03-07T10:40:54.589Z"
+                    }
+                  },
+                  "actions": [
+                    {
+                      "name": "list_workspaces",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/workspaces",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Call GET https://api.flashcards-open-source-app.com/v1/agent/workspaces next. Read payload from data.* (for this endpoint: data.selectedWorkspaceId, data.profile). Do not expect account fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -191,7 +571,9 @@
     },
     "/agent/workspaces": {
       "get": {
-        "tags": ["bootstrap"],
+        "tags": [
+          "bootstrap"
+        ],
         "summary": "List workspaces for the external agent",
         "description": "Lists the user's workspaces in an agent-oriented envelope and points the caller to either create a workspace, select one for the current API key connection, or continue to tools.",
         "security": [
@@ -201,7 +583,66 @@
         ],
         "responses": {
           "200": {
-            "description": "Agent workspaces envelope"
+            "description": "Agent workspaces envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWorkspacesEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "workspaces": [
+                      {
+                        "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                        "name": "Kirill Flashcards",
+                        "createdAt": "2026-03-11T08:50:55.898Z",
+                        "isSelected": true
+                      }
+                    ]
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_workspace_context",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Workspace bootstrap is complete. Read payload from data.* (data.workspaces). Do not expect workspaces at the top level. Select next endpoint from instructions and confirm with actions: GET https://api.flashcards-open-source-app.com/v1/agent/tools then POST https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -216,7 +657,9 @@
         }
       },
       "post": {
-        "tags": ["bootstrap"],
+        "tags": [
+          "bootstrap"
+        ],
         "summary": "Create workspace for the external agent",
         "description": "Creates a workspace and immediately marks it as selected for the current API key connection, then returns the ready-state agent envelope.",
         "security": [
@@ -236,7 +679,64 @@
         },
         "responses": {
           "201": {
-            "description": "Workspace created"
+            "description": "Workspace created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWorkspaceEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "workspace": {
+                      "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                      "name": "Kirill Flashcards",
+                      "createdAt": "2026-03-11T08:50:55.898Z",
+                      "isSelected": true
+                    }
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_workspace_context",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Workspace is selected. Read payload from data.* (data.workspace). Do not expect workspace at the top level. Select next endpoint from instructions and confirm with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -253,7 +753,9 @@
     },
     "/agent/workspaces/{workspaceId}/select": {
       "post": {
-        "tags": ["bootstrap"],
+        "tags": [
+          "bootstrap"
+        ],
         "summary": "Select workspace for the external agent",
         "description": "Marks a workspace as selected for the current API key connection and returns the ready-state agent envelope for subsequent tool calls.",
         "security": [
@@ -273,7 +775,64 @@
         ],
         "responses": {
           "200": {
-            "description": "Workspace selected"
+            "description": "Workspace selected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWorkspaceEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "workspace": {
+                      "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                      "name": "Kirill Flashcards",
+                      "createdAt": "2026-03-11T08:50:55.898Z",
+                      "isSelected": true
+                    }
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_workspace_context",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Workspace is selected. Read payload from data.* (data.workspace). Do not expect workspace at the top level. Select next endpoint from instructions and confirm with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -290,7 +849,9 @@
     },
     "/agent/tools": {
       "get": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "List available external agent tools",
         "description": "Returns a compact tool catalog for the workspace selected on the current API key connection. Use this route for lightweight discovery instead of relying on internal endpoint families.",
         "security": [
@@ -300,7 +861,67 @@
         ],
         "responses": {
           "200": {
-            "description": "Agent tool catalog envelope"
+            "description": "Agent tool catalog envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentToolsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "selectedWorkspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                    "tools": [
+                      {
+                        "name": "list_cards",
+                        "method": "POST",
+                        "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_cards",
+                        "description": "List cards from the selected workspace."
+                      }
+                    ]
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_workspace_context",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.tools, data.selectedWorkspaceId). Do not expect tool catalog fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -317,7 +938,9 @@
     },
     "/agent/tools/get_workspace_context": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Get workspace context",
         "description": "Loads the selected workspace summary, deck summary, and scheduler settings.",
         "security": [
@@ -327,7 +950,89 @@
         ],
         "responses": {
           "200": {
-            "description": "Workspace context envelope"
+            "description": "Workspace context envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWorkspaceContextEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "workspace": {
+                      "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                      "name": "Kirill Flashcards",
+                      "createdAt": "2026-03-11T08:50:55.898Z",
+                      "isSelected": true
+                    },
+                    "deckSummary": {
+                      "totalCards": 1676,
+                      "dueCards": 312,
+                      "newCards": 910,
+                      "reviewedCards": 766,
+                      "totalReps": 2431,
+                      "totalLapses": 121
+                    },
+                    "schedulerSettings": {
+                      "algorithm": "fsrs-6",
+                      "desiredRetention": 0.9,
+                      "learningStepsMinutes": [
+                        1,
+                        10
+                      ],
+                      "relearningStepsMinutes": [
+                        10
+                      ],
+                      "maximumIntervalDays": 36500,
+                      "enableFuzz": true,
+                      "clientUpdatedAt": "2026-03-11T08:50:55.898Z",
+                      "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                      "lastOperationId": "workspace-settings-op-1",
+                      "updatedAt": "2026-03-11T08:50:55.898Z"
+                    }
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.workspace, data.deckSummary, data.schedulerSettings). Do not expect context fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -344,7 +1049,9 @@
     },
     "/agent/tools/list_cards": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "List cards",
         "description": "Lists cards from the selected workspace. The server enforces a maximum response size even when limit is null.",
         "security": [
@@ -364,7 +1071,86 @@
         },
         "responses": {
           "200": {
-            "description": "Cards listed"
+            "description": "Cards listed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentListCardsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "cards": [
+                      {
+                        "cardId": "be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8",
+                        "frontText": "What is eventual consistency?",
+                        "backText": "A model where replicas converge to the same value over time without requiring immediate global consistency.",
+                        "tags": [
+                          "distributed-systems"
+                        ],
+                        "effortLevel": "fast",
+                        "dueAt": "2026-03-11T09:00:00.000Z",
+                        "reps": 3,
+                        "lapses": 0,
+                        "fsrsCardState": "review",
+                        "fsrsStepIndex": null,
+                        "fsrsStability": 12.34,
+                        "fsrsDifficulty": 4.56,
+                        "fsrsLastReviewedAt": "2026-03-10T09:00:00.000Z",
+                        "fsrsScheduledDays": 4,
+                        "clientUpdatedAt": "2026-03-10T09:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-op-1",
+                        "updatedAt": "2026-03-10T09:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "returnedCount": 1,
+                    "hasMore": false,
+                    "limitApplied": 100
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.cards, data.returnedCount). Do not expect cards at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -381,7 +1167,9 @@
     },
     "/agent/tools/get_cards": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Get cards by id",
         "description": "Loads one or more cards from the selected workspace by cardId.",
         "security": [
@@ -401,7 +1189,84 @@
         },
         "responses": {
           "200": {
-            "description": "Cards loaded"
+            "description": "Cards loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentGetCardsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "cards": [
+                      {
+                        "cardId": "be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8",
+                        "frontText": "What is eventual consistency?",
+                        "backText": "A model where replicas converge to the same value over time without requiring immediate global consistency.",
+                        "tags": [
+                          "distributed-systems"
+                        ],
+                        "effortLevel": "fast",
+                        "dueAt": "2026-03-11T09:00:00.000Z",
+                        "reps": 3,
+                        "lapses": 0,
+                        "fsrsCardState": "review",
+                        "fsrsStepIndex": null,
+                        "fsrsStability": 12.34,
+                        "fsrsDifficulty": 4.56,
+                        "fsrsLastReviewedAt": "2026-03-10T09:00:00.000Z",
+                        "fsrsScheduledDays": 4,
+                        "clientUpdatedAt": "2026-03-10T09:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-op-1",
+                        "updatedAt": "2026-03-10T09:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "returnedCount": 1
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "update_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/update_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "delete_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/delete_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.cards). Do not expect cards at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -418,9 +1283,11 @@
     },
     "/agent/tools/search_cards": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Search cards",
-        "description": "Searches cards by text, tags, or effort level within the selected workspace.",
+        "description": "Searches cards by text, tags, or effort level within the selected workspace. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token) and a card matches when any token matches.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -438,7 +1305,86 @@
         },
         "responses": {
           "200": {
-            "description": "Cards found"
+            "description": "Cards found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchCardsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "cards": [
+                      {
+                        "cardId": "be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8",
+                        "frontText": "What is eventual consistency?",
+                        "backText": "A model where replicas converge to the same value over time without requiring immediate global consistency.",
+                        "tags": [
+                          "distributed-systems"
+                        ],
+                        "effortLevel": "fast",
+                        "dueAt": "2026-03-11T09:00:00.000Z",
+                        "reps": 3,
+                        "lapses": 0,
+                        "fsrsCardState": "review",
+                        "fsrsStepIndex": null,
+                        "fsrsStability": 12.34,
+                        "fsrsDifficulty": 4.56,
+                        "fsrsLastReviewedAt": "2026-03-10T09:00:00.000Z",
+                        "fsrsScheduledDays": 4,
+                        "clientUpdatedAt": "2026-03-10T09:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-op-1",
+                        "updatedAt": "2026-03-10T09:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "returnedCount": 1,
+                    "hasMore": false,
+                    "limitApplied": 100
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.cards, data.returnedCount). Do not expect cards at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -455,7 +1401,9 @@
     },
     "/agent/tools/list_due_cards": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "List due cards",
         "description": "Lists cards currently due for review in the selected workspace.",
         "security": [
@@ -475,7 +1423,86 @@
         },
         "responses": {
           "200": {
-            "description": "Due cards listed"
+            "description": "Due cards listed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentListDueCardsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "cards": [
+                      {
+                        "cardId": "be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8",
+                        "frontText": "What is eventual consistency?",
+                        "backText": "A model where replicas converge to the same value over time without requiring immediate global consistency.",
+                        "tags": [
+                          "distributed-systems"
+                        ],
+                        "effortLevel": "fast",
+                        "dueAt": "2026-03-11T09:00:00.000Z",
+                        "reps": 3,
+                        "lapses": 0,
+                        "fsrsCardState": "review",
+                        "fsrsStepIndex": null,
+                        "fsrsStability": 12.34,
+                        "fsrsDifficulty": 4.56,
+                        "fsrsLastReviewedAt": "2026-03-10T09:00:00.000Z",
+                        "fsrsScheduledDays": 4,
+                        "clientUpdatedAt": "2026-03-10T09:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-op-1",
+                        "updatedAt": "2026-03-10T09:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "returnedCount": 1,
+                    "hasMore": false,
+                    "limitApplied": 100
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.cards, data.returnedCount). Do not expect cards at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -492,7 +1519,9 @@
     },
     "/agent/tools/list_decks": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "List decks",
         "description": "Lists decks from the selected workspace.",
         "security": [
@@ -502,7 +1531,83 @@
         ],
         "responses": {
           "200": {
-            "description": "Decks listed"
+            "description": "Decks listed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentListDecksEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "decks": [
+                      {
+                        "deckId": "db4e9fa3-6e56-4355-a35d-58bb0ef6f0e9",
+                        "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                        "name": "Distributed Systems",
+                        "filterDefinition": {
+                          "version": 2,
+                          "effortLevels": [
+                            "fast"
+                          ],
+                          "tags": [
+                            "distributed-systems"
+                          ]
+                        },
+                        "createdAt": "2026-03-10T10:00:00.000Z",
+                        "clientUpdatedAt": "2026-03-10T10:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-deck-op-1",
+                        "updatedAt": "2026-03-10T10:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "returnedCount": 1,
+                    "hasMore": false,
+                    "limitApplied": 100
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.decks, data.returnedCount). Do not expect decks at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -519,7 +1624,9 @@
     },
     "/agent/tools/get_decks": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Get decks by id",
         "description": "Loads one or more decks from the selected workspace by deckId.",
         "security": [
@@ -539,7 +1646,81 @@
         },
         "responses": {
           "200": {
-            "description": "Decks loaded"
+            "description": "Decks loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentGetDecksEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "decks": [
+                      {
+                        "deckId": "db4e9fa3-6e56-4355-a35d-58bb0ef6f0e9",
+                        "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                        "name": "Distributed Systems",
+                        "filterDefinition": {
+                          "version": 2,
+                          "effortLevels": [
+                            "fast"
+                          ],
+                          "tags": [
+                            "distributed-systems"
+                          ]
+                        },
+                        "createdAt": "2026-03-10T10:00:00.000Z",
+                        "clientUpdatedAt": "2026-03-10T10:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-deck-op-1",
+                        "updatedAt": "2026-03-10T10:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "returnedCount": 1
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "update_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/update_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "delete_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/delete_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.decks). Do not expect decks at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -556,9 +1737,11 @@
     },
     "/agent/tools/search_decks": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Search decks",
-        "description": "Searches decks by name, tags, or effort levels within the selected workspace.",
+        "description": "Searches decks by name, tags, or effort levels within the selected workspace. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token) and a deck matches when any token matches.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -576,7 +1759,83 @@
         },
         "responses": {
           "200": {
-            "description": "Decks found"
+            "description": "Decks found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchDecksEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "decks": [
+                      {
+                        "deckId": "db4e9fa3-6e56-4355-a35d-58bb0ef6f0e9",
+                        "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                        "name": "Distributed Systems",
+                        "filterDefinition": {
+                          "version": 2,
+                          "effortLevels": [
+                            "fast"
+                          ],
+                          "tags": [
+                            "distributed-systems"
+                          ]
+                        },
+                        "createdAt": "2026-03-10T10:00:00.000Z",
+                        "clientUpdatedAt": "2026-03-10T10:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-deck-op-1",
+                        "updatedAt": "2026-03-10T10:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "returnedCount": 1,
+                    "hasMore": false,
+                    "limitApplied": 100
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.decks, data.returnedCount). Do not expect decks at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -593,7 +1852,9 @@
     },
     "/agent/tools/list_review_history": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "List review history",
         "description": "Lists recent review events from the selected workspace, optionally filtered by cardId.",
         "security": [
@@ -613,7 +1874,73 @@
         },
         "responses": {
           "200": {
-            "description": "Review history listed"
+            "description": "Review history listed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentListReviewHistoryEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "history": [
+                      {
+                        "reviewEventId": "1f5f2d7b-0a4e-4012-a42c-8b6495a0c871",
+                        "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                        "cardId": "be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8",
+                        "deviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "clientEventId": "client-review-1",
+                        "rating": 3,
+                        "reviewedAtClient": "2026-03-10T09:00:00.000Z",
+                        "reviewedAtServer": "2026-03-10T09:00:01.000Z"
+                      }
+                    ],
+                    "returnedCount": 1,
+                    "hasMore": false,
+                    "limitApplied": 100
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_review_history",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_review_history",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "search_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.history, data.returnedCount). Do not expect history at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -630,7 +1957,9 @@
     },
     "/agent/tools/get_scheduler_settings": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Get scheduler settings",
         "description": "Loads scheduler settings for the selected workspace.",
         "security": [
@@ -640,7 +1969,75 @@
         ],
         "responses": {
           "200": {
-            "description": "Scheduler settings loaded"
+            "description": "Scheduler settings loaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentGetSchedulerSettingsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "schedulerSettings": {
+                      "algorithm": "fsrs-6",
+                      "desiredRetention": 0.9,
+                      "learningStepsMinutes": [
+                        1,
+                        10
+                      ],
+                      "relearningStepsMinutes": [
+                        10
+                      ],
+                      "maximumIntervalDays": 36500,
+                      "enableFuzz": true,
+                      "clientUpdatedAt": "2026-03-11T08:50:55.898Z",
+                      "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                      "lastOperationId": "workspace-settings-op-1",
+                      "updatedAt": "2026-03-11T08:50:55.898Z"
+                    }
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_workspace_context",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_scheduler_settings",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_scheduler_settings",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_due_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_due_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.schedulerSettings). Do not expect scheduler settings at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -657,7 +2054,9 @@
     },
     "/agent/tools/create_cards": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Create cards",
         "description": "Creates one or more cards in the selected workspace. Enforce the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example (prefer fenced markdown code block when helpful). Sync metadata is generated server-side and is intentionally hidden from the external API.",
         "security": [
@@ -677,7 +2076,84 @@
         },
         "responses": {
           "200": {
-            "description": "Cards created"
+            "description": "Cards created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCreateCardsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "cards": [
+                      {
+                        "cardId": "be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8",
+                        "frontText": "What is eventual consistency?",
+                        "backText": "A model where replicas converge to the same value over time without requiring immediate global consistency.",
+                        "tags": [
+                          "distributed-systems"
+                        ],
+                        "effortLevel": "fast",
+                        "dueAt": "2026-03-11T09:00:00.000Z",
+                        "reps": 3,
+                        "lapses": 0,
+                        "fsrsCardState": "review",
+                        "fsrsStepIndex": null,
+                        "fsrsStability": 12.34,
+                        "fsrsDifficulty": 4.56,
+                        "fsrsLastReviewedAt": "2026-03-10T09:00:00.000Z",
+                        "fsrsScheduledDays": 4,
+                        "clientUpdatedAt": "2026-03-10T09:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-op-1",
+                        "updatedAt": "2026-03-10T09:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "createdCount": 1
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "update_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/update_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.cards, data.createdCount). Do not expect mutation results at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -694,7 +2170,9 @@
     },
     "/agent/tools/update_cards": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Update cards",
         "description": "Updates one or more cards in the selected workspace. For provided text fields, enforce the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example (prefer fenced markdown code block when helpful). Sync metadata is generated server-side and is intentionally hidden from the external API.",
         "security": [
@@ -714,7 +2192,84 @@
         },
         "responses": {
           "200": {
-            "description": "Cards updated"
+            "description": "Cards updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentUpdateCardsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "cards": [
+                      {
+                        "cardId": "be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8",
+                        "frontText": "What is eventual consistency?",
+                        "backText": "A model where replicas converge to the same value over time without requiring immediate global consistency.",
+                        "tags": [
+                          "distributed-systems"
+                        ],
+                        "effortLevel": "fast",
+                        "dueAt": "2026-03-11T09:00:00.000Z",
+                        "reps": 3,
+                        "lapses": 0,
+                        "fsrsCardState": "review",
+                        "fsrsStepIndex": null,
+                        "fsrsStability": 12.34,
+                        "fsrsDifficulty": 4.56,
+                        "fsrsLastReviewedAt": "2026-03-10T09:00:00.000Z",
+                        "fsrsScheduledDays": 4,
+                        "clientUpdatedAt": "2026-03-10T09:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-op-1",
+                        "updatedAt": "2026-03-10T09:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "updatedCount": 1
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "update_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/update_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.cards, data.updatedCount). Do not expect mutation results at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -731,7 +2286,9 @@
     },
     "/agent/tools/delete_cards": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Delete cards",
         "description": "Deletes one or more cards from the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
         "security": [
@@ -751,7 +2308,62 @@
         },
         "responses": {
           "200": {
-            "description": "Cards deleted"
+            "description": "Cards deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDeleteCardsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "deletedCardIds": [
+                      "be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8"
+                    ],
+                    "deletedCount": 1
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "delete_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/delete_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.deletedCardIds, data.deletedCount). Do not expect deletion results at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -768,7 +2380,9 @@
     },
     "/agent/tools/create_decks": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Create decks",
         "description": "Creates one or more decks in the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
         "security": [
@@ -788,7 +2402,81 @@
         },
         "responses": {
           "200": {
-            "description": "Decks created"
+            "description": "Decks created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCreateDecksEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "decks": [
+                      {
+                        "deckId": "db4e9fa3-6e56-4355-a35d-58bb0ef6f0e9",
+                        "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                        "name": "Distributed Systems",
+                        "filterDefinition": {
+                          "version": 2,
+                          "effortLevels": [
+                            "fast"
+                          ],
+                          "tags": [
+                            "distributed-systems"
+                          ]
+                        },
+                        "createdAt": "2026-03-10T10:00:00.000Z",
+                        "clientUpdatedAt": "2026-03-10T10:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-deck-op-1",
+                        "updatedAt": "2026-03-10T10:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "createdCount": 1
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "update_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/update_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.decks, data.createdCount). Do not expect mutation results at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -805,7 +2493,9 @@
     },
     "/agent/tools/update_decks": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Update decks",
         "description": "Updates one or more decks in the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
         "security": [
@@ -825,7 +2515,81 @@
         },
         "responses": {
           "200": {
-            "description": "Decks updated"
+            "description": "Decks updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentUpdateDecksEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "decks": [
+                      {
+                        "deckId": "db4e9fa3-6e56-4355-a35d-58bb0ef6f0e9",
+                        "workspaceId": "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+                        "name": "Distributed Systems",
+                        "filterDefinition": {
+                          "version": 2,
+                          "effortLevels": [
+                            "fast"
+                          ],
+                          "tags": [
+                            "distributed-systems"
+                          ]
+                        },
+                        "createdAt": "2026-03-10T10:00:00.000Z",
+                        "clientUpdatedAt": "2026-03-10T10:00:00.000Z",
+                        "lastModifiedByDeviceId": "58d59a91-3210-4581-ac3a-0f850f0ced6f",
+                        "lastOperationId": "agent-deck-op-1",
+                        "updatedAt": "2026-03-10T10:00:00.000Z",
+                        "deletedAt": null
+                      }
+                    ],
+                    "updatedCount": 1
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "update_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/update_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.decks, data.updatedCount). Do not expect mutation results at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -842,7 +2606,9 @@
     },
     "/agent/tools/delete_decks": {
       "post": {
-        "tags": ["tools"],
+        "tags": [
+          "tools"
+        ],
         "summary": "Delete decks",
         "description": "Deletes one or more decks from the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
         "security": [
@@ -862,7 +2628,62 @@
         },
         "responses": {
           "200": {
-            "description": "Decks deleted"
+            "description": "Decks deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDeleteDecksEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "deletedDeckIds": [
+                      "db4e9fa3-6e56-4355-a35d-58bb0ef6f0e9"
+                    ],
+                    "deletedCount": 1
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "delete_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/delete_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_decks",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_decks",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.deletedDeckIds, data.deletedCount). Do not expect deletion results at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "description": "Agent error envelope",
@@ -895,7 +2716,11 @@
       "ValidationIssueSummary": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "code", "message"],
+        "required": [
+          "path",
+          "code",
+          "message"
+        ],
         "properties": {
           "path": {
             "type": "string"
@@ -911,7 +2736,9 @@
       "AgentErrorDetails": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["validationIssues"],
+        "required": [
+          "validationIssues"
+        ],
         "properties": {
           "validationIssues": {
             "type": "array",
@@ -924,11 +2751,20 @@
       "AgentErrorEnvelope": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["ok", "data", "actions", "instructions", "docs", "error"],
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs",
+          "error"
+        ],
         "properties": {
           "ok": {
             "type": "boolean",
-            "enum": [false]
+            "enum": [
+              false
+            ]
           },
           "data": {
             "type": "object",
@@ -946,7 +2782,10 @@
           "docs": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["openapiUrl", "swaggerUrl"],
+            "required": [
+              "openapiUrl",
+              "swaggerUrl"
+            ],
             "properties": {
               "openapiUrl": {
                 "type": "string"
@@ -959,7 +2798,10 @@
           "error": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["code", "message"],
+            "required": [
+              "code",
+              "message"
+            ],
             "properties": {
               "code": {
                 "type": "string"
@@ -978,14 +2820,19 @@
         }
       },
       "NullableLimit": {
-        "type": ["integer", "null"],
+        "type": [
+          "integer",
+          "null"
+        ],
         "minimum": 1,
         "maximum": 100
       },
       "LimitInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["limit"],
+        "required": [
+          "limit"
+        ],
         "properties": {
           "limit": {
             "$ref": "#/components/schemas/NullableLimit"
@@ -995,10 +2842,14 @@
       "SearchInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["query", "limit"],
+        "required": [
+          "query",
+          "limit"
+        ],
         "properties": {
           "query": {
-            "type": "string"
+            "type": "string",
+            "description": "Search text split by whitespace into up to 5 lowercase tokens; extra tokens are merged into the fifth token. Matching uses OR across tokens."
           },
           "limit": {
             "$ref": "#/components/schemas/NullableLimit"
@@ -1008,7 +2859,9 @@
       "GetCardsInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["cardIds"],
+        "required": [
+          "cardIds"
+        ],
         "properties": {
           "cardIds": {
             "type": "array",
@@ -1023,7 +2876,9 @@
       "GetDecksInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["deckIds"],
+        "required": [
+          "deckIds"
+        ],
         "properties": {
           "deckIds": {
             "type": "array",
@@ -1038,7 +2893,10 @@
       "ListReviewHistoryInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["limit", "cardId"],
+        "required": [
+          "limit",
+          "cardId"
+        ],
         "properties": {
           "limit": {
             "$ref": "#/components/schemas/NullableLimit"
@@ -1057,12 +2915,21 @@
       },
       "EffortLevel": {
         "type": "string",
-        "enum": ["fast", "medium", "long"]
+        "enum": [
+          "fast",
+          "medium",
+          "long"
+        ]
       },
       "CreateCardBody": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["frontText", "backText", "tags", "effortLevel"],
+        "required": [
+          "frontText",
+          "backText",
+          "tags",
+          "effortLevel"
+        ],
         "properties": {
           "frontText": {
             "type": "string",
@@ -1086,35 +2953,60 @@
       "UpdateCardBody": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["cardId", "frontText", "backText", "tags", "effortLevel"],
+        "required": [
+          "cardId",
+          "frontText",
+          "backText",
+          "tags",
+          "effortLevel"
+        ],
         "properties": {
           "cardId": {
             "$ref": "#/components/schemas/UuidString"
           },
           "frontText": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Updated front side text. When not null, must be a question-only recall prompt and must not include the answer. Use null to keep unchanged."
           },
           "backText": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Updated back side text. When not null, must contain the answer and may include a concrete example (prefer fenced markdown code block when helpful). Use null to keep unchanged."
           },
           "tags": {
-            "type": ["array", "null"],
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
           },
           "effortLevel": {
-            "type": ["string", "null"],
-            "enum": ["fast", "medium", "long", null]
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "fast",
+              "medium",
+              "long",
+              null
+            ]
           }
         }
       },
       "CreateCardsInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["cards"],
+        "required": [
+          "cards"
+        ],
         "properties": {
           "cards": {
             "type": "array",
@@ -1129,7 +3021,9 @@
       "UpdateCardsInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["updates"],
+        "required": [
+          "updates"
+        ],
         "properties": {
           "updates": {
             "type": "array",
@@ -1144,7 +3038,9 @@
       "DeleteCardsInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["cardIds"],
+        "required": [
+          "cardIds"
+        ],
         "properties": {
           "cardIds": {
             "type": "array",
@@ -1159,7 +3055,11 @@
       "CreateDeckBody": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "effortLevels", "tags"],
+        "required": [
+          "name",
+          "effortLevels",
+          "tags"
+        ],
         "properties": {
           "name": {
             "type": "string"
@@ -1181,22 +3081,36 @@
       "UpdateDeckBody": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["deckId", "name", "effortLevels", "tags"],
+        "required": [
+          "deckId",
+          "name",
+          "effortLevels",
+          "tags"
+        ],
         "properties": {
           "deckId": {
             "$ref": "#/components/schemas/UuidString"
           },
           "name": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "effortLevels": {
-            "type": ["array", "null"],
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/EffortLevel"
             }
           },
           "tags": {
-            "type": ["array", "null"],
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string"
             }
@@ -1206,7 +3120,9 @@
       "CreateDecksInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["decks"],
+        "required": [
+          "decks"
+        ],
         "properties": {
           "decks": {
             "type": "array",
@@ -1221,7 +3137,9 @@
       "UpdateDecksInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["updates"],
+        "required": [
+          "updates"
+        ],
         "properties": {
           "updates": {
             "type": "array",
@@ -1236,7 +3154,9 @@
       "DeleteDecksInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["deckIds"],
+        "required": [
+          "deckIds"
+        ],
         "properties": {
           "deckIds": {
             "type": "array",
@@ -1251,7 +3171,9 @@
       "CreateWorkspaceInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
             "type": "string"
@@ -1261,7 +3183,9 @@
       "AgentSendCodeInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["email"],
+        "required": [
+          "email"
+        ],
         "properties": {
           "email": {
             "type": "string",
@@ -1272,7 +3196,11 @@
       "AgentVerifyCodeInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code", "otpSessionToken", "label"],
+        "required": [
+          "code",
+          "otpSessionToken",
+          "label"
+        ],
         "properties": {
           "code": {
             "type": "string",
@@ -1283,6 +3211,1885 @@
           },
           "label": {
             "type": "string"
+          }
+        }
+      },
+      "AgentDocs": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "openapiUrl",
+          "swaggerUrl"
+        ],
+        "properties": {
+          "openapiUrl": {
+            "type": "string"
+          },
+          "swaggerUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentActionAuth": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scheme"
+        ],
+        "properties": {
+          "scheme": {
+            "type": "string",
+            "enum": [
+              "ApiKey"
+            ]
+          }
+        }
+      },
+      "AgentActionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "required"
+        ],
+        "properties": {
+          "required": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentAction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "method"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "send_code",
+              "verify_code",
+              "openapi",
+              "list_tools",
+              "load_account",
+              "list_workspaces",
+              "create_workspace",
+              "select_workspace",
+              "get_workspace_context",
+              "list_cards",
+              "get_cards",
+              "search_cards",
+              "list_due_cards",
+              "list_decks",
+              "get_decks",
+              "search_decks",
+              "list_review_history",
+              "get_scheduler_settings",
+              "create_cards",
+              "update_cards",
+              "delete_cards",
+              "create_decks",
+              "update_decks",
+              "delete_decks"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "urlTemplate": {
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/AgentActionInput"
+          },
+          "auth": {
+            "$ref": "#/components/schemas/AgentActionAuth"
+          }
+        }
+      },
+      "OpenApiDocument": {
+        "type": "object",
+        "required": [
+          "openapi",
+          "paths",
+          "components"
+        ],
+        "properties": {
+          "openapi": {
+            "type": "string"
+          },
+          "info": {
+            "type": "object"
+          },
+          "servers": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "paths": {
+            "type": "object"
+          },
+          "components": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      },
+      "AgentApiKeyConnection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "connectionId",
+          "label",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ],
+        "properties": {
+          "connectionId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkspaceSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspaceId",
+          "name",
+          "createdAt",
+          "isSelected"
+        ],
+        "properties": {
+          "workspaceId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isSelected": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DeckSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "totalCards",
+          "dueCards",
+          "newCards",
+          "reviewedCards",
+          "totalReps",
+          "totalLapses"
+        ],
+        "properties": {
+          "totalCards": {
+            "type": "integer"
+          },
+          "dueCards": {
+            "type": "integer"
+          },
+          "newCards": {
+            "type": "integer"
+          },
+          "reviewedCards": {
+            "type": "integer"
+          },
+          "totalReps": {
+            "type": "integer"
+          },
+          "totalLapses": {
+            "type": "integer"
+          }
+        }
+      },
+      "FsrsCardState": {
+        "type": "string",
+        "enum": [
+          "new",
+          "learning",
+          "review",
+          "relearning"
+        ]
+      },
+      "Card": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cardId",
+          "frontText",
+          "backText",
+          "tags",
+          "effortLevel",
+          "dueAt",
+          "reps",
+          "lapses",
+          "fsrsCardState",
+          "fsrsStepIndex",
+          "fsrsStability",
+          "fsrsDifficulty",
+          "fsrsLastReviewedAt",
+          "fsrsScheduledDays",
+          "clientUpdatedAt",
+          "lastModifiedByDeviceId",
+          "lastOperationId",
+          "updatedAt",
+          "deletedAt"
+        ],
+        "properties": {
+          "cardId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "frontText": {
+            "type": "string"
+          },
+          "backText": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "effortLevel": {
+            "$ref": "#/components/schemas/EffortLevel"
+          },
+          "dueAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "reps": {
+            "type": "integer"
+          },
+          "lapses": {
+            "type": "integer"
+          },
+          "fsrsCardState": {
+            "$ref": "#/components/schemas/FsrsCardState"
+          },
+          "fsrsStepIndex": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fsrsStability": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fsrsDifficulty": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fsrsLastReviewedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "fsrsScheduledDays": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "clientUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModifiedByDeviceId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "lastOperationId": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deletedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "DeckFilterDefinition": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "effortLevels",
+          "tags"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              2
+            ]
+          },
+          "effortLevels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EffortLevel"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Deck": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deckId",
+          "workspaceId",
+          "name",
+          "filterDefinition",
+          "createdAt",
+          "clientUpdatedAt",
+          "lastModifiedByDeviceId",
+          "lastOperationId",
+          "updatedAt",
+          "deletedAt"
+        ],
+        "properties": {
+          "deckId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "workspaceId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "name": {
+            "type": "string"
+          },
+          "filterDefinition": {
+            "$ref": "#/components/schemas/DeckFilterDefinition"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clientUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModifiedByDeviceId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "lastOperationId": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deletedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ReviewHistoryItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reviewEventId",
+          "workspaceId",
+          "cardId",
+          "deviceId",
+          "clientEventId",
+          "rating",
+          "reviewedAtClient",
+          "reviewedAtServer"
+        ],
+        "properties": {
+          "reviewEventId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "workspaceId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "cardId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "deviceId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "clientEventId": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "integer"
+          },
+          "reviewedAtClient": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewedAtServer": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkspaceSchedulerSettings": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "algorithm",
+          "desiredRetention",
+          "learningStepsMinutes",
+          "relearningStepsMinutes",
+          "maximumIntervalDays",
+          "enableFuzz",
+          "clientUpdatedAt",
+          "lastModifiedByDeviceId",
+          "lastOperationId",
+          "updatedAt"
+        ],
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "enum": [
+              "fsrs-6"
+            ]
+          },
+          "desiredRetention": {
+            "type": "number"
+          },
+          "learningStepsMinutes": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "relearningStepsMinutes": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "maximumIntervalDays": {
+            "type": "integer"
+          },
+          "enableFuzz": {
+            "type": "boolean"
+          },
+          "clientUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModifiedByDeviceId": {
+            "$ref": "#/components/schemas/UuidString"
+          },
+          "lastOperationId": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BulkDeleteCardsResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deletedCardIds",
+          "deletedCount"
+        ],
+        "properties": {
+          "deletedCardIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UuidString"
+            }
+          },
+          "deletedCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "BulkDeleteDecksResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deletedDeckIds",
+          "deletedCount"
+        ],
+        "properties": {
+          "deletedDeckIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UuidString"
+            }
+          },
+          "deletedCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentToolCatalogItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "method",
+          "url",
+          "description"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "get_workspace_context",
+              "list_cards",
+              "get_cards",
+              "search_cards",
+              "list_due_cards",
+              "list_decks",
+              "get_decks",
+              "search_decks",
+              "list_review_history",
+              "get_scheduler_settings",
+              "create_cards",
+              "update_cards",
+              "delete_cards",
+              "create_decks",
+              "update_decks",
+              "delete_decks"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "POST"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentDiscoveryData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "service",
+          "authentication",
+          "capabilitiesAfterLogin",
+          "authBaseUrl",
+          "apiBaseUrl",
+          "docs"
+        ],
+        "properties": {
+          "service": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version",
+              "description"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string",
+                "enum": [
+                  "v1"
+                ]
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "authentication": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "registerAndLogin"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "email_otp_then_api_key"
+                ]
+              },
+              "registerAndLogin": {
+                "type": "string"
+              }
+            }
+          },
+          "capabilitiesAfterLogin": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authBaseUrl": {
+            "type": "string"
+          },
+          "apiBaseUrl": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentSendCodeData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "otpSessionToken",
+          "expiresInSeconds",
+          "authBaseUrl",
+          "apiBaseUrl"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "otpSessionToken": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "type": "integer"
+          },
+          "authBaseUrl": {
+            "type": "string"
+          },
+          "apiBaseUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentVerifyCodeData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "apiKey",
+          "authorizationScheme",
+          "apiBaseUrl",
+          "connection"
+        ],
+        "properties": {
+          "apiKey": {
+            "type": "string"
+          },
+          "authorizationScheme": {
+            "type": "string",
+            "enum": [
+              "ApiKey"
+            ]
+          },
+          "apiBaseUrl": {
+            "type": "string"
+          },
+          "connection": {
+            "$ref": "#/components/schemas/AgentApiKeyConnection"
+          }
+        }
+      },
+      "AgentAccountData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "userId",
+          "selectedWorkspaceId",
+          "authTransport",
+          "profile"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "selectedWorkspaceId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UuidString"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "authTransport": {
+            "type": "string",
+            "enum": [
+              "api_key",
+              "bearer",
+              "session",
+              "none"
+            ]
+          },
+          "profile": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "email",
+              "locale",
+              "createdAt"
+            ],
+            "properties": {
+              "email": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "email"
+              },
+              "locale": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "AgentWorkspacesData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspaces"
+        ],
+        "properties": {
+          "workspaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceSummary"
+            }
+          }
+        }
+      },
+      "AgentWorkspaceData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspace"
+        ],
+        "properties": {
+          "workspace": {
+            "$ref": "#/components/schemas/WorkspaceSummary"
+          }
+        }
+      },
+      "AgentToolsData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "selectedWorkspaceId",
+          "tools"
+        ],
+        "properties": {
+          "selectedWorkspaceId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UuidString"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentToolCatalogItem"
+            }
+          }
+        }
+      },
+      "AgentWorkspaceContextData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workspace",
+          "deckSummary",
+          "schedulerSettings"
+        ],
+        "properties": {
+          "workspace": {
+            "$ref": "#/components/schemas/WorkspaceSummary"
+          },
+          "deckSummary": {
+            "$ref": "#/components/schemas/DeckSummary"
+          },
+          "schedulerSettings": {
+            "$ref": "#/components/schemas/WorkspaceSchedulerSettings"
+          }
+        }
+      },
+      "AgentCardsPageData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cards",
+          "returnedCount",
+          "hasMore",
+          "limitApplied"
+        ],
+        "properties": {
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Card"
+            }
+          },
+          "returnedCount": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limitApplied": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentCardsCollectionData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cards",
+          "returnedCount"
+        ],
+        "properties": {
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Card"
+            }
+          },
+          "returnedCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentDecksPageData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decks",
+          "returnedCount",
+          "hasMore",
+          "limitApplied"
+        ],
+        "properties": {
+          "decks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Deck"
+            }
+          },
+          "returnedCount": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limitApplied": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentDecksCollectionData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decks",
+          "returnedCount"
+        ],
+        "properties": {
+          "decks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Deck"
+            }
+          },
+          "returnedCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentReviewHistoryData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "history",
+          "returnedCount",
+          "hasMore",
+          "limitApplied"
+        ],
+        "properties": {
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewHistoryItem"
+            }
+          },
+          "returnedCount": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limitApplied": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentSchedulerSettingsData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schedulerSettings"
+        ],
+        "properties": {
+          "schedulerSettings": {
+            "$ref": "#/components/schemas/WorkspaceSchedulerSettings"
+          }
+        }
+      },
+      "AgentCreatedCardsData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cards",
+          "createdCount"
+        ],
+        "properties": {
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Card"
+            }
+          },
+          "createdCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentUpdatedCardsData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cards",
+          "updatedCount"
+        ],
+        "properties": {
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Card"
+            }
+          },
+          "updatedCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentDeletedCardsData": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BulkDeleteCardsResult"
+          }
+        ]
+      },
+      "AgentCreatedDecksData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decks",
+          "createdCount"
+        ],
+        "properties": {
+          "decks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Deck"
+            }
+          },
+          "createdCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentUpdatedDecksData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decks",
+          "updatedCount"
+        ],
+        "properties": {
+          "decks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Deck"
+            }
+          },
+          "updatedCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentDeletedDecksData": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BulkDeleteDecksResult"
+          }
+        ]
+      },
+      "AgentDiscoveryEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentDiscoveryData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentSendCodeEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentSendCodeData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentVerifyCodeEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentVerifyCodeData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentAccountEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentAccountData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentWorkspacesEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentWorkspacesData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentWorkspaceEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentWorkspaceData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentToolsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentToolsData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentWorkspaceContextEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentWorkspaceContextData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentListCardsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentCardsPageData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentGetCardsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentCardsCollectionData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentSearchCardsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentCardsPageData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentListDueCardsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentCardsPageData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentListDecksEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentDecksPageData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentGetDecksEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentDecksCollectionData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentSearchDecksEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentDecksPageData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentListReviewHistoryEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentReviewHistoryData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentGetSchedulerSettingsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentSchedulerSettingsData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentCreateCardsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentCreatedCardsData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentUpdateCardsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentUpdatedCardsData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentDeleteCardsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentDeletedCardsData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentCreateDecksEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentCreatedDecksData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentUpdateDecksEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentUpdatedDecksData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "AgentDeleteDecksEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentDeletedDecksData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
           }
         }
       }

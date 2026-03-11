@@ -216,10 +216,10 @@ export function createAgentToolAction(
 
 export function buildAgentNextStepsInstructions(actions: ReadonlyArray<AgentAction>): string {
   if (actions.length === 0) {
-    return "See openApiUrl for the full external AI-agent schema.";
+    return "Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions. See openApiUrl for the full external AI-agent schema.";
   }
 
-  return `Next actions: ${actions.map((action) => action.name).join(", ")}. See openApiUrl for full schema.`;
+  return `Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions. Next actions: ${actions.map((action) => action.name).join(", ")}. See openApiUrl for full schema.`;
 }
 
 export function getAgentToolDefinition(

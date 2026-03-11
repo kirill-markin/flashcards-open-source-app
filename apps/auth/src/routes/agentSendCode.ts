@@ -181,7 +181,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
           required: ["code", "otpSessionToken", "label"],
         },
       }],
-      "A verification code has been sent to the user's email. Ask for the 8-digit code from the email, then call verify_code with code, otpSessionToken, and a label for this agent connection.",
+      "A verification code has been sent to the user's email. Ask for the 8-digit code from the email, then call verify_code with code, otpSessionToken, and a label for this agent connection. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
     ));
   });
 

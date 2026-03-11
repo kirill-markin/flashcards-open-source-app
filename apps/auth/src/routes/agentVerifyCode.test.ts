@@ -87,6 +87,8 @@ test("agent verify-code returns env-var guidance with the new API key", async ()
   assert.match(body.instructions, /GET .*\/agent\/me/);
   assert.match(body.instructions, /GET .*\/agent\/workspaces/);
   assert.match(body.instructions, /POST .*\/agent\/workspaces\/\{workspaceId\}\/select/);
+  assert.match(body.instructions, /Read payload from data\.\*/);
+  assert.match(body.instructions, /confirm it with actions/i);
   assert.deepEqual(body.actions.map((action) => action.name), [
     "load_account",
     "list_workspaces",

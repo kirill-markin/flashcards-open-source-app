@@ -30,6 +30,8 @@ test("agent send-code returns a short opaque handle when OTP email is sent", asy
   assert.equal(body.ok, true);
   assert.equal(body.data.otpSessionToken, "ABCD-EFGH-IJKL-MNPQ-1234");
   assert.doesNotMatch(body.instructions, /FLASHCARDS_OPEN_SOURCE_API_KEY/);
+  assert.match(body.instructions, /Read payload from data\.\*/);
+  assert.match(body.instructions, /confirm it with actions/i);
   assert.deepEqual(calls, ["user@example.com"]);
 });
 
