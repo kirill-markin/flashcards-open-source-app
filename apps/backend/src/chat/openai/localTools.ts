@@ -234,7 +234,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "search_cards",
     description: strictDescription(
-      "Search local cards by front text, back text, tags, or effort level.",
+      "Search local cards by front text, back text, tags, or effort level. Split query by whitespace into up to 5 lowercase tokens (merge extra tokens into the fifth token) and match if any token matches.",
       "Use {\"query\": string, \"limit\": number|null}. Include both properties every time."
     ),
     strict: true,
@@ -269,7 +269,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "search_decks",
     description: strictDescription(
-      "Search local decks by name, tags, or effort levels.",
+      "Search local decks by name, tags, or effort levels. Split query by whitespace into up to 5 lowercase tokens (merge extra tokens into the fifth token) and match if any token matches.",
       "Use {\"query\": string, \"limit\": number|null}. Include both properties every time."
     ),
     strict: true,

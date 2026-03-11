@@ -6,6 +6,11 @@ import {
   normalizeIsoTimestamp,
   type LwwMetadata,
 } from "./lww";
+import {
+  buildTokenizedOrLikeClause,
+  MAX_SEARCH_TOKEN_COUNT,
+  tokenizeSearchText,
+} from "./searchTokens";
 import { findLatestSyncChangeId, insertSyncChange } from "./syncChanges";
 import type { EffortLevel } from "./cards";
 
@@ -419,12 +424,18 @@ export async function searchDecks(
   searchText: string,
   limit: number,
 ): Promise<ReadonlyArray<Deck>> {
-  const normalizedSearchText = searchText.trim();
-  if (normalizedSearchText === "") {
+  const searchTokens = tokenizeSearchText(searchText, MAX_SEARCH_TOKEN_COUNT);
+  if (searchTokens.length === 0) {
     throw createRequestError("query must not be empty");
   }
 
-  const likeValue = `%${normalizedSearchText}%`;
+  const searchClauseResult = buildTokenizedOrLikeClause(searchTokens, 1, [
+    (paramIndex) => `lower(name) LIKE $${paramIndex}`,
+    (paramIndex) => `EXISTS (SELECT 1 FROM jsonb_array_elements_text(filter_definition->'tags') AS tag WHERE lower(tag) LIKE $${paramIndex})`,
+    (paramIndex) => `EXISTS (SELECT 1 FROM jsonb_array_elements_text(filter_definition->'effortLevels') AS effort_level WHERE lower(effort_level) LIKE $${paramIndex})`,
+  ]);
+  const limitParamIndex = 1 + searchClauseResult.params.length + 1;
+
   const result = await query<DeckRow>(
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
@@ -432,15 +443,11 @@ export async function searchDecks(
       "FROM content.decks",
       "WHERE workspace_id = $1",
       "AND deleted_at IS NULL",
-      "AND (name ILIKE $2 OR EXISTS (",
-      "SELECT 1 FROM jsonb_array_elements_text(filter_definition->'tags') AS tag WHERE tag ILIKE $2",
-      ") OR EXISTS (",
-      "SELECT 1 FROM jsonb_array_elements_text(filter_definition->'effortLevels') AS effort_level WHERE effort_level ILIKE $2",
-      "))",
+      `AND (${searchClauseResult.clause})`,
       "ORDER BY updated_at DESC, created_at DESC",
-      "LIMIT $3",
+      `LIMIT $${limitParamIndex}`,
     ].join(" "),
-    [workspaceId, likeValue, limit],
+    [workspaceId, ...searchClauseResult.params, limit],
   );
 
   return result.rows.map(mapDeck);

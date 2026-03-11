@@ -20,6 +20,34 @@ final class CardsSearchTests: XCTestCase {
         XCTAssertEqual(cardsMatchingSearchText(cards: cards, searchText: "FREN").map(\.cardId), ["card-Bonjour"])
     }
 
+    func testCardsMatchingSearchTextUsesOrAcrossTokens() {
+        let cards = [
+            self.makeCard(frontText: "Hola", backText: "Hello", tags: ["spanish"]),
+            self.makeCard(frontText: "Bonjour", backText: "Hi", tags: ["french"]),
+            self.makeCard(frontText: "Ciao", backText: "Salve", tags: ["italian"])
+        ]
+
+        XCTAssertEqual(
+            cardsMatchingSearchText(cards: cards, searchText: "hola french").map(\.cardId),
+            ["card-Hola", "card-Bonjour"]
+        )
+    }
+
+    func testCardsMatchingSearchTextMergesTokensAfterFifthToken() {
+        let cards = [
+            self.makeCard(frontText: "Phrase", backText: "epsilon zeta", tags: ["combo"]),
+            self.makeCard(frontText: "Single", backText: "zeta", tags: ["single"])
+        ]
+
+        XCTAssertEqual(
+            cardsMatchingSearchText(
+                cards: cards,
+                searchText: "zztokenone zztokentwo zztokenthree zztokenfour epsilon zeta"
+            ).map(\.cardId),
+            ["card-Phrase"]
+        )
+    }
+
     private func makeCard(frontText: String, backText: String, tags: [String]) -> Card {
         Card(
             cardId: "card-\(frontText)",

@@ -160,6 +160,54 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
 
         XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
         XCTAssertEqual(searchedCards.first?.effortLevel, .medium)
+
+        let searchedOrCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-search-cards-or",
+                name: "search_cards",
+                input: "{\"query\":\"missing fast\",\"limit\":100}"
+            ),
+            requestId: "request-1"
+        )
+        let searchedOrCards = try JSONDecoder().decode([Card].self, from: Data(searchedOrCardsResult.output.utf8))
+        XCTAssertEqual(searchedOrCards.map(\.cardId), [createdCards[1].cardId])
+    }
+
+    @MainActor
+    func testLocalToolExecutorSearchCardsMergesTokensAfterFifthToken() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let createdCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-create-for-search-tail",
+                name: "create_cards",
+                input: """
+                {"cards":[
+                    {"frontText":"Phrase","backText":"epsilon zeta","tags":["combo"],"effortLevel":"medium"},
+                    {"frontText":"Single","backText":"zeta","tags":["single"],"effortLevel":"fast"}
+                ]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
+
+        let searchedCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-search-cards-tail",
+                name: "search_cards",
+                input: "{\"query\":\"zztokenone zztokentwo zztokenthree zztokenfour epsilon zeta\",\"limit\":100}"
+            ),
+            requestId: "request-1"
+        )
+        let searchedCards = try JSONDecoder().decode([Card].self, from: Data(searchedCardsResult.output.utf8))
+        XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
     }
 
     @MainActor
@@ -375,6 +423,17 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
         )
         let searchedByEffort = try JSONDecoder().decode([Deck].self, from: Data(searchedByEffortResult.output.utf8))
         XCTAssertEqual(searchedByEffort.map(\.deckId), [createdDecks[1].deckId])
+
+        let searchedByOrResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-search-decks-or",
+                name: "search_decks",
+                input: "{\"query\":\"missing grammar\",\"limit\":null}"
+            ),
+            requestId: "request-1"
+        )
+        let searchedByOr = try JSONDecoder().decode([Deck].self, from: Data(searchedByOrResult.output.utf8))
+        XCTAssertEqual(searchedByOr.map(\.deckId), [createdDecks[0].deckId])
 
         let fetchedDecksResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(

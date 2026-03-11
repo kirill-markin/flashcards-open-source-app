@@ -490,35 +490,32 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     }
 
     private func searchCards(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Card] {
-        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if normalizedQuery.isEmpty {
+        let searchTokens = tokenizeSearchText(searchText: query)
+        if searchTokens.isEmpty {
             throw LocalStoreError.validation("query must not be empty")
         }
 
         return Array(self.currentActiveCards(snapshot: snapshot).filter { card in
-            card.frontText.lowercased().contains(normalizedQuery)
-                || card.backText.lowercased().contains(normalizedQuery)
-                || card.tags.contains(where: { tag in
-                    tag.lowercased().contains(normalizedQuery)
-                })
-                || card.effortLevel.rawValue.lowercased().contains(normalizedQuery)
+            matchesAnySearchToken(
+                values: [card.frontText, card.backText] + card.tags + [card.effortLevel.rawValue],
+                searchTokens: searchTokens
+            )
         }.prefix(limit))
     }
 
     private func searchDecks(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Deck] {
-        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if normalizedQuery.isEmpty {
+        let searchTokens = tokenizeSearchText(searchText: query)
+        if searchTokens.isEmpty {
             throw LocalStoreError.validation("query must not be empty")
         }
 
         return Array(self.activeDecks(snapshot: snapshot).filter { deck in
-            deck.name.lowercased().contains(normalizedQuery)
-                || deck.filterDefinition.tags.contains(where: { tag in
-                    tag.lowercased().contains(normalizedQuery)
-                })
-                || deck.filterDefinition.effortLevels.contains(where: { effortLevel in
-                    effortLevel.rawValue.lowercased().contains(normalizedQuery)
-                })
+            matchesAnySearchToken(
+                values: [deck.name] + deck.filterDefinition.tags + deck.filterDefinition.effortLevels.map { effortLevel in
+                    effortLevel.rawValue
+                },
+                searchTokens: searchTokens
+            )
         }.prefix(limit))
     }
 
