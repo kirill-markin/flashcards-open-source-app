@@ -101,6 +101,24 @@ function compareTagSuggestions(left: TagSuggestion, right: TagSuggestion): numbe
   return left.tag.localeCompare(right.tag, undefined, { sensitivity: "base" });
 }
 
+function getSelectedTagSuggestions(
+  selectedTags: ReadonlyArray<string>,
+  suggestions: ReadonlyArray<TagSuggestion>,
+): ReadonlyArray<TagSuggestion> {
+  const suggestionsByTag = suggestions.reduce((result, suggestion) => {
+    result.set(suggestion.tag, suggestion);
+    return result;
+  }, new Map<string, TagSuggestion>());
+
+  return selectedTags
+    .map((tag) => suggestionsByTag.get(tag) ?? ({
+      tag,
+      countState: "ready",
+      cardsCount: 0,
+    } satisfies TagSuggestion))
+    .sort(compareTagSuggestions);
+}
+
 function getTagOptions(
   selectedTags: ReadonlyArray<string>,
   suggestions: ReadonlyArray<TagSuggestion>,
@@ -209,6 +227,10 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
     () => getTagOptions(selectedTags, suggestions, draftValue),
     [draftValue, selectedTags, suggestions],
   );
+  const selectedTagSuggestions = useMemo(
+    () => getSelectedTagSuggestions(selectedTags, suggestions),
+    [selectedTags, suggestions],
+  );
 
   useEffect(() => {
     if (highlightIndex >= options.length) {
@@ -281,9 +303,9 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
       return;
     }
 
-    if (event.key === "Backspace" && draftValue === "" && selectedTags.length > 0) {
+    if (event.key === "Backspace" && draftValue === "" && selectedTagSuggestions.length > 0) {
       event.preventDefault();
-      handleRemove(selectedTags[selectedTags.length - 1]);
+      handleRemove(selectedTagSuggestions[selectedTagSuggestions.length - 1].tag);
       return;
     }
 
@@ -356,17 +378,17 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
       }}
     >
       <div className="tag-input-surface">
-        {selectedTags.map((tag) => (
-          <span key={tag} className="tag-chip">
-            <span className="tag-chip-label">{tag}</span>
+        {selectedTagSuggestions.map((suggestion) => (
+          <span key={suggestion.tag} className="tag-chip">
+            <span className="tag-chip-label">{suggestion.tag}</span>
             <button
               type="button"
               className="tag-chip-remove"
-              aria-label={`Remove ${tag}`}
+              aria-label={`Remove ${suggestion.tag}`}
               onMouseDown={(event) => event.preventDefault()}
               onClick={(event) => {
                 event.stopPropagation();
-                handleRemove(tag);
+                handleRemove(suggestion.tag);
               }}
             >
               x

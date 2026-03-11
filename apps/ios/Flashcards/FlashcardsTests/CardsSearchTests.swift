@@ -52,14 +52,51 @@ final class CardsSearchTests: XCTestCase {
         )
     }
 
+    func testCardsMatchingSearchTextAndFilterAppliesBothConditions() {
+        let cards = [
+            self.makeCard(frontText: "Hola", backText: "Hello", tags: ["grammar"], effortLevel: .fast),
+            self.makeCard(frontText: "Bonjour", backText: "Hello", tags: ["grammar"], effortLevel: .medium),
+            self.makeCard(frontText: "Adios", backText: "Bye", tags: ["travel"], effortLevel: .fast)
+        ]
+
+        XCTAssertEqual(
+            cardsMatchingSearchTextAndFilter(
+                cards: cards,
+                searchText: "hello",
+                filter: CardFilter(tags: ["grammar"], effort: [.fast])
+            ).map(\.cardId),
+            ["card-Hola"]
+        )
+    }
+
+    func testFormatCardFilterSummaryDescribesEmptyAndCombinedFilters() {
+        XCTAssertEqual(formatCardFilterSummary(filter: nil), "No filters")
+        XCTAssertEqual(
+            formatCardFilterSummary(filter: CardFilter(tags: [], effort: [.fast, .medium])),
+            "effort in fast, medium"
+        )
+        XCTAssertEqual(
+            formatCardFilterSummary(filter: CardFilter(tags: ["grammar", "verbs"], effort: [])),
+            "tags contain grammar, verbs"
+        )
+        XCTAssertEqual(
+            formatCardFilterSummary(filter: CardFilter(tags: ["grammar"], effort: [.fast])),
+            "effort in fast AND tags contain grammar"
+        )
+    }
+
     private func makeCard(frontText: String, backText: String, tags: [String]) -> Card {
+        self.makeCard(frontText: frontText, backText: backText, tags: tags, effortLevel: .fast)
+    }
+
+    private func makeCard(frontText: String, backText: String, tags: [String], effortLevel: EffortLevel) -> Card {
         Card(
             cardId: "card-\(frontText)",
             workspaceId: "workspace-1",
             frontText: frontText,
             backText: backText,
             tags: tags,
-            effortLevel: .fast,
+            effortLevel: effortLevel,
             dueAt: nil,
             reps: 0,
             lapses: 0,

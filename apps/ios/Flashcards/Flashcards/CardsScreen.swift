@@ -4,8 +4,11 @@ struct CardsScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
 
     @State private var isEditorPresented: Bool = false
+    @State private var isFilterSheetPresented: Bool = false
     @State private var editingCardId: String? = nil
     @State private var searchText: String = ""
+    @State private var committedFilter: CardFilter? = nil
+    @State private var draftFilter: CardFilter? = nil
     @State private var cardFormState: CardFormState = CardFormState(
         frontText: "",
         backText: "",
@@ -14,8 +17,20 @@ struct CardsScreen: View {
     )
     @State private var screenErrorMessage: String = ""
 
+    private var availableTagSuggestions: [TagSuggestion] {
+        tagSuggestions(cards: store.cards)
+    }
+
     private var filteredCards: [Card] {
-        cardsMatchingSearchText(cards: store.cards, searchText: searchText)
+        cardsMatchingSearchTextAndFilter(
+            cards: store.cards,
+            searchText: searchText,
+            filter: committedFilter
+        )
+    }
+
+    private var activeFilterDimensionCount: Int {
+        cardFilterActiveDimensionCount(filter: committedFilter)
     }
 
     var body: some View {
@@ -39,8 +54,12 @@ struct CardsScreen: View {
                 } else if filteredCards.isEmpty {
                     ContentUnavailableView(
                         "No Matching Cards",
-                        systemImage: "magnifyingglass",
-                        description: Text("Try a different search.")
+                        systemImage: activeFilterDimensionCount == 0 ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
+                        description: Text(
+                            searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && activeFilterDimensionCount > 0
+                                ? "Try clearing filters."
+                                : "Try a different search or clear filters."
+                        )
                     )
                 } else {
                     ForEach(filteredCards) { card in
@@ -68,6 +87,17 @@ struct CardsScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    self.beginFiltering()
+                } label: {
+                    Image(systemName: activeFilterDimensionCount == 0
+                          ? "line.3.horizontal.decrease.circle"
+                          : "line.3.horizontal.decrease.circle.fill")
+                }
+                .accessibilityLabel(activeFilterDimensionCount == 0 ? "Filter cards" : "Filter cards (\(activeFilterDimensionCount) active)")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     self.beginCreating()
                 } label: {
                     Label("Add card", systemImage: "plus")
@@ -89,6 +119,20 @@ struct CardsScreen: View {
                     },
                     onDelete: {
                         self.deleteEditingCard()
+                    }
+                )
+            }
+        }
+        .sheet(isPresented: $isFilterSheetPresented) {
+            NavigationStack {
+                CardFiltersSheetView(
+                    suggestions: availableTagSuggestions,
+                    draftFilter: self.$draftFilter,
+                    onCancel: {
+                        self.isFilterSheetPresented = false
+                    },
+                    onApply: {
+                        self.applyFilters()
                     }
                 )
             }
@@ -123,6 +167,11 @@ struct CardsScreen: View {
         )
         self.screenErrorMessage = ""
         self.isEditorPresented = true
+    }
+
+    private func beginFiltering() {
+        self.draftFilter = self.committedFilter
+        self.isFilterSheetPresented = true
     }
 
     private func saveCard() {
@@ -168,6 +217,16 @@ struct CardsScreen: View {
         }
     }
 
+    private func applyFilters() {
+        self.committedFilter = buildCardFilter(
+            tags: self.draftFilter?.tags ?? [],
+            effort: self.draftFilter?.effort ?? [],
+            referenceTags: self.availableTagSuggestions.map(\.tag)
+        )
+        self.draftFilter = self.committedFilter
+        self.isFilterSheetPresented = false
+    }
+
     private func handleCardsPresentationRequest(request: CardsPresentationRequest?) {
         guard let request else {
             return
@@ -178,6 +237,106 @@ struct CardsScreen: View {
             self.beginCreating()
             store.clearCardsPresentationRequest()
         }
+    }
+}
+
+private struct CardFiltersSheetView: View {
+    let suggestions: [TagSuggestion]
+    @Binding var draftFilter: CardFilter?
+    let onCancel: () -> Void
+    let onApply: () -> Void
+
+    private var draftTags: [String] {
+        draftFilter?.tags ?? []
+    }
+
+    private var draftEffort: [EffortLevel] {
+        draftFilter?.effort ?? []
+    }
+
+    private func updateDraftFilter(tags: [String], effort: [EffortLevel]) {
+        self.draftFilter = buildCardFilter(tags: tags, effort: effort, referenceTags: suggestions.map(\.tag))
+    }
+
+    var body: some View {
+        Form {
+            Section("Effort") {
+                ForEach(EffortLevel.allCases) { effortLevel in
+                    Toggle(
+                        effortLevel.title,
+                        isOn: Binding(
+                            get: {
+                                draftEffort.contains(effortLevel)
+                            },
+                            set: { isSelected in
+                                updateDraftFilter(
+                                    tags: draftTags,
+                                    effort: toggleCardFilterEffort(
+                                        effort: draftEffort,
+                                        effortLevel: effortLevel,
+                                        isSelected: isSelected
+                                    )
+                                )
+                            }
+                        )
+                    )
+                }
+            }
+
+            Section("Tags") {
+                NavigationLink {
+                    TagPickerView(
+                        selectedTags: draftTags,
+                        suggestions: suggestions,
+                        onSave: { nextTags in
+                            updateDraftFilter(tags: nextTags, effort: draftEffort)
+                        }
+                    )
+                } label: {
+                    TagsFieldRow(summary: formatTagSelectionSummary(tags: draftTags))
+                }
+            }
+
+            Section("Summary") {
+                Text(formatCardFilterSummary(filter: draftFilter))
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Actions") {
+                Button("Clear filters") {
+                    updateDraftFilter(tags: [], effort: [])
+                }
+                .disabled(cardFilterActiveDimensionCount(filter: draftFilter) == 0)
+            }
+        }
+        .navigationTitle("Filters")
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Cancel", action: onCancel)
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Apply", action: onApply)
+            }
+        }
+    }
+}
+
+private func toggleCardFilterEffort(
+    effort: [EffortLevel],
+    effortLevel: EffortLevel,
+    isSelected: Bool
+) -> [EffortLevel] {
+    if isSelected {
+        if effort.contains(effortLevel) {
+            return effort
+        }
+
+        return effort + [effortLevel]
+    }
+
+    return effort.filter { value in
+        value != effortLevel
     }
 }
 

@@ -19,7 +19,7 @@ const {
       createdAt: "2026-03-10T00:00:00.000Z",
       isSelected: true,
     },
-    cards: [],
+    cards: [] as Array<Card>,
     ensureCardsLoaded: vi.fn(async () => undefined),
     refreshCards: vi.fn(async () => undefined),
     updateCardItem: vi.fn(async () => {
@@ -95,6 +95,19 @@ function setInputValue(input: HTMLInputElement, value: string): void {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+function clickElement(element: Element): void {
+  if (element instanceof HTMLElement) {
+    element.click();
+    return;
+  }
+
+  element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+}
+
+function keyDownElement(element: Element, key: string): void {
+  element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+}
+
 describe("buildNextCardsTableSorts", () => {
   it("adds new sort keys as primary and keeps only three user sorts", () => {
     const initialSorts = [
@@ -131,6 +144,7 @@ describe("CardsScreen", () => {
     vi.useFakeTimers();
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     queryCardsMock.mockReset();
+    mockAppData.cards = [];
     mockAppData.ensureCardsLoaded.mockClear();
     mockAppData.refreshCards.mockClear();
     mockAppData.setErrorMessage.mockClear();
@@ -256,5 +270,152 @@ describe("CardsScreen", () => {
     expect(multilineDisplays).toHaveLength(2);
     expect(frontCell?.querySelector(".cards-cell-multiline-display")?.textContent).toBe("Line 1\nLine 2\nLine 3\nLine 4");
     expect(backCell?.querySelector(".cards-cell-multiline-display")?.textContent).toBe("—");
+  });
+
+  it("applies an effort filter and reflects the active trigger state", async () => {
+    queryCardsMock.mockResolvedValue(createCardsPage());
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <CardsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const filterButton = container.querySelector(".cards-filter-trigger");
+    expect(filterButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(filterButton as Element);
+    });
+
+    const mediumOption = Array.from(container.querySelectorAll(".deck-checkbox-option"))
+      .find((element) => element.textContent?.includes("medium"));
+    const mediumCheckbox = mediumOption?.querySelector("input");
+    expect(mediumCheckbox).not.toBeNull();
+
+    await act(async () => {
+      clickElement(mediumCheckbox as Element);
+    });
+
+    const applyButton = Array.from(container.querySelectorAll("button"))
+      .find((element) => element.textContent === "Apply");
+    expect(applyButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(applyButton as Element);
+    });
+
+    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+      searchText: null,
+      cursor: null,
+      limit: 50,
+      sorts: [],
+      filter: {
+        tags: [],
+        effort: ["medium"],
+      },
+    });
+    expect(container.querySelector(".cards-filter-trigger-active")?.textContent).toContain("Filter (1)");
+  });
+
+  it("applies a tags filter, combines it with search, and can clear it back to null", async () => {
+    mockAppData.cards = [
+      createCard({ cardId: "card-1", tags: ["grammar"] }),
+      createCard({ cardId: "card-2", tags: ["verbs"] }),
+    ];
+    queryCardsMock.mockResolvedValue(createCardsPage());
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <CardsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const filterButton = container.querySelector(".cards-filter-trigger");
+    expect(filterButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(filterButton as Element);
+    });
+
+    const tagsInput = container.querySelector('input[name="cards-filter-tags"]');
+    expect(tagsInput).not.toBeNull();
+
+    await act(async () => {
+      setInputValue(tagsInput as HTMLInputElement, "grammar");
+      keyDownElement(tagsInput as Element, "Enter");
+    });
+
+    const applyButton = Array.from(container.querySelectorAll("button"))
+      .find((element) => element.textContent === "Apply");
+    expect(applyButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(applyButton as Element);
+    });
+
+    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+      searchText: null,
+      cursor: null,
+      limit: 50,
+      sorts: [],
+      filter: {
+        tags: ["grammar"],
+        effort: [],
+      },
+    });
+    expect(container.textContent).toContain("No matching cards. Try a different search or clear filters.");
+
+    const searchInput = container.querySelector('input[name="cards-search"]');
+    expect(searchInput).not.toBeNull();
+
+    await act(async () => {
+      setInputValue(searchInput as HTMLInputElement, "hola");
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+      searchText: "hola",
+      cursor: null,
+      limit: 50,
+      sorts: [],
+      filter: {
+        tags: ["grammar"],
+        effort: [],
+      },
+    });
+
+    await act(async () => {
+      clickElement(container.querySelector(".cards-filter-trigger") as Element);
+    });
+
+    const clearButton = Array.from(container.querySelectorAll("button"))
+      .find((element) => element.textContent === "Clear");
+    expect(clearButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(clearButton as Element);
+    });
+
+    const applyAfterClearButton = Array.from(container.querySelectorAll("button"))
+      .find((element) => element.textContent === "Apply");
+    expect(applyAfterClearButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(applyAfterClearButton as Element);
+    });
+
+    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+      searchText: "hola",
+      cursor: null,
+      limit: 50,
+      sorts: [],
+      filter: null,
+    });
+    expect(container.querySelector(".cards-filter-trigger-active")).toBeNull();
   });
 });

@@ -82,6 +82,7 @@ private struct TagPickerRow: View {
                     .foregroundStyle(.tint)
             }
         }
+        .contentShape(Rectangle())
     }
 }
 
