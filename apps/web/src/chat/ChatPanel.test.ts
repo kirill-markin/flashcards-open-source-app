@@ -239,8 +239,9 @@ describe("ChatPanel autoscroll", () => {
 
   afterEach(() => {
     vi.clearAllTimers();
-    if (root !== null) {
-      act(() => root.unmount());
+    const mountedRoot = root;
+    if (mountedRoot !== null) {
+      act(() => mountedRoot.unmount());
       root = null;
     }
     if (container !== null) {
@@ -259,10 +260,14 @@ describe("ChatPanel autoscroll", () => {
   }
 
   async function sendMessage(text: string): Promise<void> {
-    expect(container).not.toBeNull();
-    const textarea = container.querySelector('textarea[name="chatMessage"]');
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+    const textarea = mountedContainer.querySelector('textarea[name="chatMessage"]');
     expect(textarea).not.toBeNull();
-    const sendButton = container.querySelector(".chat-send-btn");
+    const sendButton = mountedContainer.querySelector(".chat-send-btn");
     expect(sendButton).not.toBeNull();
 
     await act(async () => {
@@ -300,8 +305,12 @@ describe("ChatPanel autoscroll", () => {
 
     await renderChatPanel();
 
-    expect(container).not.toBeNull();
-    const messagesElement = container.querySelector(".chat-messages");
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+    const messagesElement = mountedContainer.querySelector(".chat-messages");
     expect(messagesElement).not.toBeNull();
     configureMessagesScroller(messagesElement as HTMLDivElement);
     scrollToMock.mockClear();
@@ -330,8 +339,12 @@ describe("ChatPanel autoscroll", () => {
 
     await renderChatPanel();
 
-    expect(container).not.toBeNull();
-    const messagesElement = container.querySelector(".chat-messages");
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+    const messagesElement = mountedContainer.querySelector(".chat-messages");
     expect(messagesElement).not.toBeNull();
     const chatMessages = messagesElement as HTMLDivElement;
     configureMessagesScroller(chatMessages);
@@ -363,8 +376,12 @@ describe("ChatPanel autoscroll", () => {
 
     await renderChatPanel();
 
-    expect(container).not.toBeNull();
-    const messagesElement = container.querySelector(".chat-messages");
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+    const messagesElement = mountedContainer.querySelector(".chat-messages");
     expect(messagesElement).not.toBeNull();
     const chatMessages = messagesElement as HTMLDivElement;
     configureMessagesScroller(chatMessages);
