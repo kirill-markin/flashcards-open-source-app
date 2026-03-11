@@ -39,6 +39,21 @@ function parsePersistedReviewFilter(value: string | null): ReviewFilter {
       typeof parsedValue === "object"
       && parsedValue !== null
       && "kind" in parsedValue
+      && parsedValue.kind === "tag"
+      && "tag" in parsedValue
+      && typeof parsedValue.tag === "string"
+      && parsedValue.tag !== ""
+    ) {
+      return {
+        kind: "tag",
+        tag: parsedValue.tag,
+      };
+    }
+
+    if (
+      typeof parsedValue === "object"
+      && parsedValue !== null
+      && "kind" in parsedValue
       && parsedValue.kind === "deck"
       && "deckId" in parsedValue
       && typeof parsedValue.deckId === "string"
@@ -87,10 +102,10 @@ export function AppDataProvider(props: Props): ReactElement {
     setErrorMessage,
   });
 
-  const selectedReviewFilter = resolveReviewFilter(selectedReviewFilterState, decksState.items);
+  const selectedReviewFilter = resolveReviewFilter(selectedReviewFilterState, decksState.items, cardsState.items);
   const reviewQueue = makeReviewQueue(selectedReviewFilter, decksState.items, cardsState.items);
   const reviewTimeline = makeReviewTimeline(selectedReviewFilter, decksState.items, cardsState.items);
-  const selectedReviewFilterTitle = reviewFilterTitle(selectedReviewFilter, decksState.items);
+  const selectedReviewFilterTitle = reviewFilterTitle(selectedReviewFilter, decksState.items, cardsState.items);
 
   useEffect(() => {
     if (isReviewFilterEqual(selectedReviewFilterState, selectedReviewFilter)) {

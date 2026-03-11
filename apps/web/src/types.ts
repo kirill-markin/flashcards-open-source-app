@@ -233,6 +233,10 @@ export type ReviewFilter =
   | Readonly<{
     kind: "deck";
     deckId: string;
+  }>
+  | Readonly<{
+    kind: "tag";
+    tag: string;
   }>;
 
 export type ReviewEvent = Readonly<{

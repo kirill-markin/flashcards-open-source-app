@@ -146,6 +146,41 @@ final class FlashcardsStoreTests: XCTestCase {
         XCTAssertEqual(store.aiChatPresentationRequest, .createCard)
     }
 
+    func testReloadLoadsPersistedTagReviewFilterWhenTagExists() throws {
+        let environment = try self.makeStoreEnvironment()
+        let workspaceId = try environment.database.loadStateSnapshot().workspace.workspaceId
+        let card = try environment.database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back", tags: ["grammar"]),
+            cardId: nil,
+            deviceId: "device-1",
+            operationId: "operation-1",
+            now: "2026-03-10T09:00:00.000Z"
+        )
+        environment.userDefaults.set(
+            Data("{\"kind\":\"tag\",\"tag\":\"grammar\"}".utf8),
+            forKey: "selected-review-filter"
+        )
+
+        let store = self.makeStore(environment: environment)
+
+        XCTAssertEqual(store.selectedReviewFilter, .tag(tag: "grammar"))
+        XCTAssertEqual(store.selectedReviewFilterTitle, "grammar")
+        XCTAssertEqual(store.reviewQueue.map(\.cardId), [card.cardId])
+    }
+
+    func testReloadResetsPersistedTagReviewFilterWhenTagIsMissing() throws {
+        let environment = try self.makeStoreEnvironment()
+        environment.userDefaults.set(
+            Data("{\"kind\":\"tag\",\"tag\":\"missing-tag\"}".utf8),
+            forKey: "selected-review-filter"
+        )
+
+        let store = self.makeStore(environment: environment)
+
+        XCTAssertEqual(store.selectedReviewFilter, .allCards)
+    }
+
     func testEnqueueReviewSubmissionOptimisticallyRemovesCurrentCard() async throws {
         let context = try self.makeStoreContext { database in
             ScriptedReviewSubmissionExecutor(
@@ -360,19 +395,29 @@ final class FlashcardsStoreTests: XCTestCase {
         try self.makeStoreContext().store
     }
 
+    private func makeStore(
+        environment: (
+            database: LocalDatabase,
+            userDefaults: UserDefaults,
+            credentialStore: CloudCredentialStore
+        )
+    ) -> FlashcardsStore {
+        FlashcardsStore(
+            userDefaults: environment.userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: environment.database,
+            cloudAuthService: CloudAuthService(),
+            credentialStore: environment.credentialStore,
+            initialGlobalErrorMessage: ""
+        )
+    }
+
     private func makeStoreContext() throws -> StoreContext {
         let environment = try self.makeStoreEnvironment()
 
         return StoreContext(
-            store: FlashcardsStore(
-                userDefaults: environment.userDefaults,
-                encoder: JSONEncoder(),
-                decoder: JSONDecoder(),
-                database: environment.database,
-                cloudAuthService: CloudAuthService(),
-                credentialStore: environment.credentialStore,
-                initialGlobalErrorMessage: ""
-            ),
+            store: self.makeStore(environment: environment),
             database: environment.database
         )
     }

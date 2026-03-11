@@ -232,13 +232,16 @@ struct Deck: Codable, Identifiable, Hashable, Sendable {
 enum ReviewFilter: Hashable, Identifiable, Sendable {
     case allCards
     case deck(deckId: String)
+    case tag(tag: String)
 
     var id: String {
         switch self {
         case .allCards:
             return "system-all-cards"
         case .deck(let deckId):
-            return deckId
+            return "deck:\(deckId)"
+        case .tag(let tag):
+            return "tag:\(tag)"
         }
     }
 }

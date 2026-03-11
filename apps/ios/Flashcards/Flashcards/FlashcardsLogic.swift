@@ -512,7 +512,13 @@ func matchingCardsForDeck(deck: Deck, cards: [Card]) -> [Card] {
     }
 }
 
-func resolveReviewFilter(reviewFilter: ReviewFilter, decks: [Deck]) -> ReviewFilter {
+private func hasActiveTag(tag: String, cards: [Card]) -> Bool {
+    activeCards(cards: cards).contains { card in
+        card.tags.contains(tag)
+    }
+}
+
+func resolveReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]) -> ReviewFilter {
     switch reviewFilter {
     case .allCards:
         return .allCards
@@ -524,11 +530,17 @@ func resolveReviewFilter(reviewFilter: ReviewFilter, decks: [Deck]) -> ReviewFil
         }
 
         return .allCards
+    case .tag(let tag):
+        if hasActiveTag(tag: tag, cards: cards) {
+            return reviewFilter
+        }
+
+        return .allCards
     }
 }
 
 func cardsMatchingReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]) -> [Card] {
-    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks)
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
 
     switch resolvedReviewFilter {
     case .allCards:
@@ -541,11 +553,15 @@ func cardsMatchingReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards:
         }
 
         return matchingCardsForDeck(deck: deck, cards: cards)
+    case .tag(let tag):
+        return activeCards(cards: cards).filter { card in
+            card.tags.contains(tag)
+        }
     }
 }
 
-func reviewFilterTitle(reviewFilter: ReviewFilter, decks: [Deck]) -> String {
-    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks)
+func reviewFilterTitle(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]) -> String {
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
 
     switch resolvedReviewFilter {
     case .allCards:
@@ -558,6 +574,8 @@ func reviewFilterTitle(reviewFilter: ReviewFilter, decks: [Deck]) -> String {
         }
 
         return deck.name
+    case .tag(let tag):
+        return tag
     }
 }
 

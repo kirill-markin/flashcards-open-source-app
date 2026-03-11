@@ -173,6 +173,22 @@ describe("ReviewScreen", () => {
 
   it("lists All cards and deck filters and dispatches the selected deck filter", async () => {
     mockAppData.decks = [createDeck()];
+    mockAppData.cards = [
+      createCard({
+        cardId: "grammar-card",
+        tags: ["grammar", "verbs"],
+      }),
+      createCard({
+        cardId: "grammar-card-2",
+        tags: ["grammar"],
+        updatedAt: "2026-03-10T10:00:00.000Z",
+      }),
+      createCard({
+        cardId: "travel-card",
+        tags: ["travel"],
+        updatedAt: "2026-03-10T11:00:00.000Z",
+      }),
+    ];
 
     await act(async () => {
       root.render(
@@ -186,13 +202,43 @@ describe("ReviewScreen", () => {
     const options = Array.from(container.querySelectorAll(".review-filter-select option")).map((option) => option.textContent);
 
     expect(select).not.toBeNull();
-    expect(options).toEqual(["All cards", "Grammar"]);
+    expect(options).toEqual(["All cards", "Grammar", "──────────", "grammar (2)", "travel (1)", "verbs (1)"]);
 
     await act(async () => {
-      setSelectValue(select as HTMLSelectElement, "deck-1");
+      setSelectValue(select as HTMLSelectElement, "deck:deck-1");
     });
 
     expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });
+  });
+
+  it("dispatches the selected tag filter", async () => {
+    mockAppData.cards = [
+      createCard({
+        cardId: "grammar-card",
+        tags: ["grammar", "verbs"],
+      }),
+      createCard({
+        cardId: "travel-card",
+        tags: ["travel"],
+        updatedAt: "2026-03-10T11:00:00.000Z",
+      }),
+    ];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const select = container.querySelector(".review-filter-select");
+
+    await act(async () => {
+      setSelectValue(select as HTMLSelectElement, "tag:grammar");
+    });
+
+    expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tag", tag: "grammar" });
   });
 
   it("shows the review queue head as the current card", async () => {
