@@ -43,8 +43,9 @@ final class TagSuggestionsTests: XCTestCase {
 
     func testSelectedTagSuggestionsUseSavedCountOrZeroForNewDraftTag() {
         let suggestions = selectedTagSuggestions(
-            selectedTags: ["grammar", "new-tag"],
+            selectedTags: ["grammar", "new-tag", "verbs"],
             suggestions: [
+                TagSuggestion(tag: "verbs", countState: .ready(cardsCount: 3)),
                 TagSuggestion(tag: "grammar", countState: .ready(cardsCount: 2))
             ]
         )
@@ -52,6 +53,7 @@ final class TagSuggestionsTests: XCTestCase {
         XCTAssertEqual(
             suggestions,
             [
+                TagSuggestion(tag: "verbs", countState: .ready(cardsCount: 3)),
                 TagSuggestion(tag: "grammar", countState: .ready(cardsCount: 2)),
                 TagSuggestion(tag: "new-tag", countState: .ready(cardsCount: 0))
             ]

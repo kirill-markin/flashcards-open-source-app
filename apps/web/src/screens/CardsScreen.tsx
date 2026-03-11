@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { isAuthRedirectError, queryCards } from "../api";
 import { useAppData } from "../appData";
+import { formatCardFilterSummary, getCardFilterActiveDimensionCount, normalizeCardFilter } from "../cardFilters";
+import { EFFORT_LEVELS } from "../deckFilters";
+import { CardTagsInput, type CardTagsInputHandle, getTagSuggestionsFromCards } from "./CardTagsInput";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
-import { getTagSuggestionsFromCards } from "./CardTagsInput";
-import type { Card, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, UpdateCardInput } from "../types";
+import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, UpdateCardInput } from "../types";
 
 type CardsQueryState = Readonly<{
   items: ReadonlyArray<Card>;
@@ -43,6 +45,24 @@ function formatTimestamp(value: string | null): string {
 function normalizeCardsSearchText(searchText: string): string | null {
   const normalizedSearchText = searchText.trim();
   return normalizedSearchText === "" ? null : normalizedSearchText;
+}
+
+function createEmptyCardFilter(): CardFilter {
+  return {
+    tags: [],
+    effort: [],
+  };
+}
+
+function toggleCardFilterEffort(
+  effortLevels: ReadonlyArray<Card["effortLevel"]>,
+  effortLevel: Card["effortLevel"],
+): ReadonlyArray<Card["effortLevel"]> {
+  if (effortLevels.includes(effortLevel)) {
+    return effortLevels.filter((value) => value !== effortLevel);
+  }
+
+  return [...effortLevels, effortLevel];
 }
 
 export function getDefaultCardSortDirection(sortKey: CardQuerySortKey): CardQuerySortDirection {
@@ -112,14 +132,23 @@ export function CardsScreen(): ReactElement {
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
   const [sorts, setSorts] = useState<ReadonlyArray<CardQuerySort>>([]);
+  const [cardFilter, setCardFilter] = useState<CardFilter | null>(null);
+  const [draftCardFilter, setDraftCardFilter] = useState<CardFilter | null>(null);
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState<boolean>(false);
   const [savingCardId, setSavingCardId] = useState<string>("");
   const [cardsQueryState, setCardsQueryState] = useState<CardsQueryState>(createInitialCardsQueryState);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreSentinelRef = useRef<HTMLTableRowElement | null>(null);
+  const filterWrapRef = useRef<HTMLDivElement | null>(null);
+  const filterPopoverRef = useRef<HTMLDivElement | null>(null);
+  const filterTagsInputRef = useRef<CardTagsInputHandle | null>(null);
   const requestSequenceRef = useRef<number>(0);
 
   const normalizedSearchText = normalizeCardsSearchText(debouncedSearchText);
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+  const activeFilterDimensionCount = getCardFilterActiveDimensionCount(cardFilter);
+  const hasActiveSearchOrFilter = normalizedSearchText !== null || cardFilter !== null;
+  const draftFilterValue = draftCardFilter ?? createEmptyCardFilter();
 
   useEffect(() => {
     void ensureCardsLoaded();
@@ -154,7 +183,7 @@ export function CardsScreen(): ReactElement {
         cursor: null,
         limit: cardsPageSize,
         sorts,
-        filter: null,
+        filter: cardFilter,
       });
 
       if (requestSequenceRef.current !== requestSequence) {
@@ -214,7 +243,7 @@ export function CardsScreen(): ReactElement {
         cursor: currentCursor,
         limit: cardsPageSize,
         sorts,
-        filter: null,
+        filter: cardFilter,
       });
 
       if (requestSequenceRef.current !== requestSequence) {
@@ -241,7 +270,50 @@ export function CardsScreen(): ReactElement {
 
   useEffect(() => {
     void loadFirstPage();
-  }, [activeWorkspaceId, normalizedSearchText, sorts]);
+  }, [activeWorkspaceId, cardFilter, normalizedSearchText, sorts]);
+
+  useEffect(() => {
+    if (!isFilterPopoverOpen) {
+      return;
+    }
+
+    function handleMouseDown(event: MouseEvent): void {
+      const target = event.target as Node;
+      if (
+        filterWrapRef.current !== null
+        && filterWrapRef.current.contains(target)
+      ) {
+        return;
+      }
+
+      setIsFilterPopoverOpen(false);
+      setDraftCardFilter(cardFilter);
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      setIsFilterPopoverOpen(false);
+      setDraftCardFilter(cardFilter);
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [cardFilter, isFilterPopoverOpen]);
+
+  useEffect(() => {
+    if (!isFilterPopoverOpen || filterTagsInputRef.current === null) {
+      return;
+    }
+
+    filterTagsInputRef.current.focusInput();
+  }, [isFilterPopoverOpen]);
 
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
@@ -308,10 +380,46 @@ export function CardsScreen(): ReactElement {
     );
   }
 
+  function handleFilterToggle(): void {
+    if (isFilterPopoverOpen) {
+      setIsFilterPopoverOpen(false);
+      setDraftCardFilter(cardFilter);
+      return;
+    }
+
+    setDraftCardFilter(cardFilter);
+    setIsFilterPopoverOpen(true);
+  }
+
+  function handleFilterCancel(): void {
+    setIsFilterPopoverOpen(false);
+    setDraftCardFilter(cardFilter);
+  }
+
+  function handleFilterClear(): void {
+    setDraftCardFilter(null);
+  }
+
+  function handleFilterApply(): void {
+    const nextTags = filterTagsInputRef.current === null
+      ? draftFilterValue.tags
+      : filterTagsInputRef.current.flushDraft();
+    const nextFilter = normalizeCardFilter({
+      tags: nextTags,
+      effort: draftFilterValue.effort,
+    });
+    setCardFilter(nextFilter);
+    setDraftCardFilter(nextFilter);
+    setIsFilterPopoverOpen(false);
+  }
+
   const tagSuggestions = getTagSuggestionsFromCards(cards);
-  const countLabel = normalizedSearchText === null
-    ? `${cardsQueryState.totalCount} total`
-    : `${cardsQueryState.totalCount} matches`;
+  const countLabel = hasActiveSearchOrFilter
+    ? `${cardsQueryState.totalCount} matches`
+    : `${cardsQueryState.totalCount} total`;
+  const filterButtonLabel = activeFilterDimensionCount === 0
+    ? "Filter"
+    : `Filter (${activeFilterDimensionCount})`;
 
   if (cardsQueryState.isLoading && cardsQueryState.hasLoaded === false) {
     return (
@@ -365,6 +473,69 @@ export function CardsScreen(): ReactElement {
               onChange={(event) => setSearchText(event.target.value)}
             />
           </label>
+          <div ref={filterWrapRef} className="cards-filter-wrap">
+            <span className="cards-search-label">Filters</span>
+            <button
+              type="button"
+              className={`ghost-btn cards-filter-trigger${cardFilter === null ? "" : " cards-filter-trigger-active"}`}
+              aria-expanded={isFilterPopoverOpen}
+              aria-haspopup="dialog"
+              onClick={handleFilterToggle}
+            >
+              <span>{filterButtonLabel}</span>
+            </button>
+            {isFilterPopoverOpen ? (
+              <div
+                ref={filterPopoverRef}
+                className="cards-filter-popover"
+                role="dialog"
+                aria-label="Cards filters"
+              >
+                <div className="cards-filter-section">
+                  <span className="deck-form-label">Effort</span>
+                  <div className="deck-checkbox-list">
+                    {EFFORT_LEVELS.map((effortLevel) => (
+                      <label key={effortLevel} className="deck-checkbox-option">
+                        <input
+                          type="checkbox"
+                          checked={draftFilterValue.effort.includes(effortLevel)}
+                          onChange={() => setDraftCardFilter({
+                            tags: draftFilterValue.tags,
+                            effort: toggleCardFilterEffort(draftFilterValue.effort, effortLevel),
+                          })}
+                        />
+                        <span>{effortLevel}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="cards-filter-section">
+                  <span className="deck-form-label">Tags</span>
+                  <CardTagsInput
+                    ref={filterTagsInputRef}
+                    value={draftFilterValue.tags}
+                    suggestions={tagSuggestions}
+                    placeholder="Add or filter tags"
+                    inputName="cards-filter-tags"
+                    onChange={(nextTags) => setDraftCardFilter({
+                      tags: nextTags,
+                      effort: draftFilterValue.effort,
+                    })}
+                    onEscape={handleFilterCancel}
+                  />
+                </div>
+
+                <p className="subtitle cards-filter-summary">{formatCardFilterSummary(normalizeCardFilter(draftFilterValue))}</p>
+
+                <div className="cards-filter-actions">
+                  <button type="button" className="ghost-btn" onClick={handleFilterClear}>Clear</button>
+                  <button type="button" className="ghost-btn" onClick={handleFilterCancel}>Cancel</button>
+                  <button type="button" className="primary-btn" onClick={handleFilterApply}>Apply</button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div ref={scrollContainerRef} className="txn-scroll cards-scroll">
@@ -429,9 +600,9 @@ export function CardsScreen(): ReactElement {
               {cardsQueryState.items.length === 0 ? (
                 <tr>
                   <td className="txn-cell txn-empty" colSpan={9}>
-                    {normalizedSearchText === null
+                    {cards.length === 0 && hasActiveSearchOrFilter === false
                       ? "You haven't created any cards yet."
-                      : "No cards match that search yet."}
+                      : "No matching cards. Try a different search or clear filters."}
                   </td>
                 </tr>
               ) : null}

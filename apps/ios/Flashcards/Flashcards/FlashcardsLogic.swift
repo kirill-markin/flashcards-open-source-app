@@ -83,6 +83,12 @@ private func tagSuggestionReferenceTags(suggestions: [TagSuggestion]) -> [String
     suggestions.map(\.tag)
 }
 
+private func makeTagSuggestionsIndex(suggestions: [TagSuggestion]) -> [String: TagSuggestion] {
+    suggestions.reduce(into: [String: TagSuggestion]()) { result, suggestion in
+        result[normalizeTagKey(tag: suggestion.tag)] = suggestion
+    }
+}
+
 private func compareTagSuggestions(left: TagSuggestion, right: TagSuggestion) -> Bool {
     switch (left.countState, right.countState) {
     case (.ready(let leftCount), .ready(let rightCount)):
@@ -181,7 +187,7 @@ func filterTagSuggestions(suggestions: [TagSuggestion], selectedTags: [String], 
     })
     let normalizedSearchText = normalizeTag(rawValue: searchText).lowercased()
 
-    return normalizeTagSuggestions(suggestions: suggestions).filter { suggestion in
+    return suggestions.filter { suggestion in
         if selectedTagKeys.contains(normalizeTagKey(tag: suggestion.tag)) {
             return false
         }
@@ -196,11 +202,10 @@ func filterTagSuggestions(suggestions: [TagSuggestion], selectedTags: [String], 
 
 func selectedTagSuggestions(selectedTags: [String], suggestions: [TagSuggestion]) -> [TagSuggestion] {
     let referenceTags = tagSuggestionReferenceTags(suggestions: suggestions)
+    let suggestionsIndex = makeTagSuggestionsIndex(suggestions: suggestions)
 
     return normalizeTags(values: selectedTags, referenceTags: referenceTags).map { tag in
-        if let existingSuggestion = suggestions.first(where: { suggestion in
-            normalizeTagKey(tag: suggestion.tag) == normalizeTagKey(tag: tag)
-        }) {
+        if let existingSuggestion = suggestionsIndex[normalizeTagKey(tag: tag)] {
             return existingSuggestion
         }
 
@@ -208,7 +213,7 @@ func selectedTagSuggestions(selectedTags: [String], suggestions: [TagSuggestion]
             tag: tag,
             countState: .ready(cardsCount: 0)
         )
-    }
+    }.sorted(by: compareTagSuggestions)
 }
 
 func creatableTagValue(searchText: String, selectedTags: [String], suggestions: [TagSuggestion]) -> String? {
@@ -384,6 +389,65 @@ func matchesCardFilter(filter: CardFilter, card: Card) -> Bool {
     let cardTags = Set(card.tags)
     let filterTags = Set(filter.tags)
     return filterTags.isSubset(of: cardTags)
+}
+
+func buildCardFilter(tags: [String], effort: [EffortLevel], referenceTags: [String]) -> CardFilter? {
+    let normalizedTags = normalizeTags(values: tags, referenceTags: referenceTags)
+    let normalizedEffort = effort.reduce(into: [EffortLevel]()) { result, effortLevel in
+        if result.contains(effortLevel) {
+            return
+        }
+
+        result.append(effortLevel)
+    }
+
+    if normalizedTags.isEmpty && normalizedEffort.isEmpty {
+        return nil
+    }
+
+    return CardFilter(tags: normalizedTags, effort: normalizedEffort)
+}
+
+func cardFilterActiveDimensionCount(filter: CardFilter?) -> Int {
+    guard let filter else {
+        return 0
+    }
+
+    return Int(filter.effort.isEmpty == false) + Int(filter.tags.isEmpty == false)
+}
+
+func formatCardFilterSummary(filter: CardFilter?) -> String {
+    guard let filter else {
+        return "No filters"
+    }
+
+    var parts: [String] = []
+    if filter.effort.isEmpty == false {
+        parts.append("effort in \(filter.effort.map(\.rawValue).joined(separator: ", "))")
+    }
+
+    if filter.tags.isEmpty == false {
+        parts.append("tags contain \(filter.tags.joined(separator: ", "))")
+    }
+
+    if parts.isEmpty {
+        return "No filters"
+    }
+
+    return parts.joined(separator: " AND ")
+}
+
+func cardsMatchingSearchTextAndFilter(cards: [Card], searchText: String, filter: CardFilter?) -> [Card] {
+    let filteredCards: [Card]
+    if let filter {
+        filteredCards = cards.filter { card in
+            matchesCardFilter(filter: filter, card: card)
+        }
+    } else {
+        filteredCards = cards
+    }
+
+    return cardsMatchingSearchText(cards: filteredCards, searchText: searchText)
 }
 
 func buildDeckFilterDefinition(
