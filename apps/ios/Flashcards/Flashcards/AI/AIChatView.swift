@@ -8,6 +8,12 @@ struct AIChatView: View {
     @State private var isCloudSignInPresented: Bool
     @State private var isFileImporterPresented: Bool
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isAutoScrollEnabled: Bool
+    @State private var hasPendingAutoScroll: Bool
+    @State private var hasInitialBottomSnap: Bool
+    @State private var bottomMarkerMaxY: CGFloat
+    @State private var scrollViewportHeight: CGFloat
+    @State private var autoScrollTask: Task<Void, Never>?
     @FocusState private var isComposerFocused: Bool
 
     @MainActor
@@ -16,6 +22,12 @@ struct AIChatView: View {
         self.isCloudSignInPresented = false
         self.isFileImporterPresented = false
         self.selectedPhotoItem = nil
+        self.isAutoScrollEnabled = true
+        self.hasPendingAutoScroll = false
+        self.hasInitialBottomSnap = false
+        self.bottomMarkerMaxY = 0
+        self.scrollViewportHeight = 0
+        self.autoScrollTask = nil
 
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
@@ -164,29 +176,78 @@ struct AIChatView: View {
                             )
                             .id(message.id)
                         }
+
+                        Color.clear
+                            .frame(height: 1)
+                            .background(
+                                GeometryReader { geometry in
+                                    Color.clear.preference(
+                                        key: AIChatBottomMarkerPreferenceKey.self,
+                                        value: geometry.frame(in: .named(aiChatScrollCoordinateSpaceName)).maxY
+                                    )
+                                }
+                            )
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                 }
                 .defaultScrollAnchor(.bottom)
+                .coordinateSpace(name: aiChatScrollCoordinateSpaceName)
                 .background(Color(.systemGroupedBackground))
                 .contentShape(Rectangle())
                 .scrollDismissesKeyboard(.interactively)
                 .onTapGesture {
                     self.isComposerFocused = false
                 }
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: AIChatViewportHeightPreferenceKey.self,
+                            value: geometry.size.height
+                        )
+                    }
+                )
+                .onPreferenceChange(AIChatBottomMarkerPreferenceKey.self) { nextBottomMarkerMaxY in
+                    self.bottomMarkerMaxY = nextBottomMarkerMaxY
+                    self.updateAutoScrollEnabled(proxy: proxy)
+                }
+                .onPreferenceChange(AIChatViewportHeightPreferenceKey.self) { nextScrollViewportHeight in
+                    self.scrollViewportHeight = nextScrollViewportHeight
+                    self.updateAutoScrollEnabled(proxy: proxy)
+                }
+                .onAppear {
+                    self.handleInitialBottomSnap(proxy: proxy)
+                    if self.chatStore.isStreaming {
+                        self.startAutoScrollTask(proxy: proxy)
+                    }
+                }
+                .onDisappear {
+                    self.stopAutoScrollTask()
+                }
                 .onChange(of: self.chatStore.messages) { _, messages in
                     guard let lastMessage = messages.last else {
+                        self.hasPendingAutoScroll = false
                         return
                     }
 
-                    if self.chatStore.isStreaming {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                    } else {
-                        withAnimation {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
+                    self.handleInitialBottomSnap(proxy: proxy)
+                    self.hasPendingAutoScroll = true
+
+                    if self.chatStore.isStreaming == false {
+                        self.flushPendingAutoScroll(proxy: proxy, messageId: lastMessage.id)
                     }
+                }
+                .onChange(of: self.chatStore.isStreaming) { _, isStreaming in
+                    if isStreaming {
+                        self.startAutoScrollTask(proxy: proxy)
+                        return
+                    }
+
+                    self.stopAutoScrollTask()
+                    guard let lastMessageId = self.chatStore.messages.last?.id else {
+                        return
+                    }
+                    self.flushPendingAutoScroll(proxy: proxy, messageId: lastMessageId)
                 }
             }
         }
@@ -464,9 +525,118 @@ struct AIChatView: View {
         self.chatStore.sendMessage()
         self.isComposerFocused = true
     }
+
+    private func handleInitialBottomSnap(proxy: ScrollViewProxy) {
+        guard self.hasInitialBottomSnap == false else {
+            return
+        }
+
+        guard let lastMessageId = self.chatStore.messages.last?.id else {
+            self.hasInitialBottomSnap = true
+            return
+        }
+
+        self.scrollToBottomInstant(proxy: proxy, messageId: lastMessageId)
+        self.hasInitialBottomSnap = true
+        self.hasPendingAutoScroll = false
+    }
+
+    private func updateAutoScrollEnabled(proxy: ScrollViewProxy) {
+        let distanceToBottom = self.bottomMarkerMaxY - self.scrollViewportHeight
+        self.isAutoScrollEnabled = distanceToBottom <= aiChatAutoScrollBottomThreshold
+
+        guard self.isAutoScrollEnabled else {
+            return
+        }
+
+        guard self.chatStore.isStreaming == false else {
+            return
+        }
+
+        guard let lastMessageId = self.chatStore.messages.last?.id else {
+            return
+        }
+
+        self.flushPendingAutoScroll(proxy: proxy, messageId: lastMessageId)
+    }
+
+    private func flushPendingAutoScroll(proxy: ScrollViewProxy, messageId: String) {
+        guard self.isAutoScrollEnabled else {
+            return
+        }
+
+        guard self.hasPendingAutoScroll else {
+            return
+        }
+
+        self.scrollToBottomSmooth(proxy: proxy, messageId: messageId)
+        self.hasPendingAutoScroll = false
+    }
+
+    private func scrollToBottomInstant(proxy: ScrollViewProxy, messageId: String) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            proxy.scrollTo(messageId, anchor: .bottom)
+        }
+    }
+
+    private func scrollToBottomSmooth(proxy: ScrollViewProxy, messageId: String) {
+        withAnimation(.easeOut(duration: aiChatAutoScrollAnimationDurationSeconds)) {
+            proxy.scrollTo(messageId, anchor: .bottom)
+        }
+    }
+
+    private func startAutoScrollTask(proxy: ScrollViewProxy) {
+        self.stopAutoScrollTask()
+        self.autoScrollTask = Task { @MainActor in
+            while Task.isCancelled == false {
+                do {
+                    try await Task.sleep(for: .seconds(aiChatAutoScrollIntervalSeconds))
+                } catch {
+                    break
+                }
+
+                guard self.chatStore.isStreaming else {
+                    continue
+                }
+
+                guard let lastMessageId = self.chatStore.messages.last?.id else {
+                    continue
+                }
+
+                self.flushPendingAutoScroll(proxy: proxy, messageId: lastMessageId)
+            }
+        }
+    }
+
+    private func stopAutoScrollTask() {
+        self.autoScrollTask?.cancel()
+        self.autoScrollTask = nil
+    }
 }
 
 private let aiChatComposerMaximumLineCount: Int = 5
+private let aiChatAutoScrollIntervalSeconds: Double = 2.0
+private let aiChatAutoScrollBottomThreshold: CGFloat = 24
+private let aiChatAutoScrollAnimationDurationSeconds: Double = 0.25
+private let aiChatScrollCoordinateSpaceName: String = "ai-chat-scroll-view"
+
+private struct AIChatBottomMarkerPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+private struct AIChatViewportHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
 
 private func aiChatImporterContentTypes() -> [UTType] {
     let baseTypes = aiChatSupportedFileExtensions.compactMap { fileExtension in
