@@ -78,6 +78,11 @@ struct TabSelectionRequest: Equatable, Sendable {
     let tab: AppTab
 }
 
+private struct AIChatSessionPreparationState {
+    let id: String
+    let task: Task<CloudLinkedSession, Error>
+}
+
 @MainActor
 final class FlashcardsStore: ObservableObject {
     @Published private(set) var workspace: Workspace?
@@ -111,6 +116,7 @@ final class FlashcardsStore: ObservableObject {
     private(set) var selectedTab: AppTab
     private var activeCloudSession: CloudLinkedSession?
     private var activeCloudSyncTask: Task<Void, Error>?
+    private var activeAIChatSessionPreparation: AIChatSessionPreparationState?
     private var pendingCloudResync: Bool
     private var pendingReviewRequests: [ReviewSubmissionRequest]
     private var isReviewProcessorRunning: Bool
@@ -219,6 +225,7 @@ final class FlashcardsStore: ObservableObject {
         self.decoder = decoder
         self.activeCloudSession = nil
         self.activeCloudSyncTask = nil
+        self.activeAIChatSessionPreparation = nil
         self.pendingCloudResync = false
         self.pendingReviewRequests = []
         self.isReviewProcessorRunning = false
@@ -703,12 +710,25 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func authenticatedCloudSessionForAI() async throws -> CloudLinkedSession {
-        if self.activeCloudSession == nil {
-            try await self.restoreCloudLinkFromStoredCredentials()
+        try await self.prepareAuthenticatedCloudSessionForAI()
+    }
+
+    func warmUpAuthenticatedCloudSessionForAI() async {
+        guard self.cloudSettings?.cloudState == .linked else {
+            return
         }
 
-        return try await self.withAuthenticatedCloudSession { session in
-            session
+        do {
+            _ = try await self.prepareAuthenticatedCloudSessionForAI()
+        } catch {
+            logFlashcardsError(
+                domain: "chat",
+                action: "ai_chat_session_warmup_failed",
+                metadata: [
+                    "message": localizedMessage(error: error),
+                    "selectedTab": String(describing: self.selectedTab),
+                ]
+            )
         }
     }
 
@@ -998,6 +1018,39 @@ final class FlashcardsStore: ObservableObject {
         }
 
         return updatedCredentials
+    }
+
+    private func prepareAuthenticatedCloudSessionForAI() async throws -> CloudLinkedSession {
+        if let activePreparation = self.activeAIChatSessionPreparation {
+            return try await activePreparation.task.value
+        }
+
+        let preparation = AIChatSessionPreparationState(
+            id: UUID().uuidString.lowercased(),
+            task: Task { @MainActor in
+                if self.activeCloudSession == nil {
+                    try await self.restoreCloudLinkFromStoredCredentials()
+                }
+
+                return try await self.withAuthenticatedCloudSession { session in
+                    session
+                }
+            }
+        )
+        self.activeAIChatSessionPreparation = preparation
+
+        do {
+            let session = try await preparation.task.value
+            if self.activeAIChatSessionPreparation?.id == preparation.id {
+                self.activeAIChatSessionPreparation = nil
+            }
+            return session
+        } catch {
+            if self.activeAIChatSessionPreparation?.id == preparation.id {
+                self.activeAIChatSessionPreparation = nil
+            }
+            throw error
+        }
     }
 
     private func restoreCloudLinkFromStoredCredentials() async throws {

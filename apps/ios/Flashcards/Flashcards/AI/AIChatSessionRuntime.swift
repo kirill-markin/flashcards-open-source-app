@@ -10,6 +10,7 @@ actor AIChatSessionRuntime {
 
     private var persistedState: AIChatPersistedState
     private var pendingAssistantText: String
+    private var hasFlushedFirstAssistantDelta: Bool
     private var lastStreamFlushAt: Date
     private var lastHistoryCheckpointAt: Date
 
@@ -29,6 +30,7 @@ actor AIChatSessionRuntime {
         self.historyCheckpointInterval = historyCheckpointInterval
         self.persistedState = AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
         self.pendingAssistantText = ""
+        self.hasFlushedFirstAssistantDelta = false
         self.lastStreamFlushAt = .distantPast
         self.lastHistoryCheckpointAt = .distantPast
     }
@@ -142,6 +144,7 @@ actor AIChatSessionRuntime {
     private func beginRun(state: AIChatPersistedState) async {
         self.persistedState = state
         self.pendingAssistantText = ""
+        self.hasFlushedFirstAssistantDelta = false
         let now = Date()
         self.lastStreamFlushAt = now
         self.lastHistoryCheckpointAt = now
@@ -153,6 +156,11 @@ actor AIChatSessionRuntime {
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
     ) async {
         self.pendingAssistantText.append(text)
+
+        if self.hasFlushedFirstAssistantDelta == false {
+            await self.flushPendingAssistantText(eventHandler: eventHandler)
+            return
+        }
 
         let now = Date()
         if now.timeIntervalSince(self.lastStreamFlushAt) >= self.streamFlushInterval {
@@ -270,6 +278,7 @@ actor AIChatSessionRuntime {
         let text = self.pendingAssistantText
         self.pendingAssistantText = ""
         self.persistedState = appendAssistantText(state: self.persistedState, text: text)
+        self.hasFlushedFirstAssistantDelta = true
         self.lastStreamFlushAt = Date()
         await eventHandler(.appendAssistantText(text))
     }

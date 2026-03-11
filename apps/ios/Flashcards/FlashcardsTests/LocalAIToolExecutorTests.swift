@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+@MainActor
 final class LocalAIToolExecutorTests: AIChatTestCaseBase {
     func testLocalToolExecutorReadsWorkspaceContextAndCreatesConfirmedCard() async throws {
         let flashcardsStore = try self.makeStore()

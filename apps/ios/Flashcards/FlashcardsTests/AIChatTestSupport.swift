@@ -30,6 +30,7 @@ final class FailingChatService: AIChatStreaming, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
@@ -51,6 +52,7 @@ struct ThrowingChatService: AIChatStreaming, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
@@ -71,6 +73,7 @@ struct RepairingChatService: AIChatStreaming, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
@@ -124,6 +127,7 @@ struct BurstChatService: AIChatStreaming {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
@@ -148,6 +152,7 @@ actor MutatingChatService: AIChatStreaming {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
@@ -183,6 +188,7 @@ struct SuspendingChatService: AIChatStreaming, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
@@ -202,6 +208,7 @@ struct RepairingSuspendingChatService: AIChatStreaming, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
         onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
         onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
     ) async throws -> AITurnStreamOutcome {
@@ -232,6 +239,58 @@ struct StubLocalizedError: LocalizedError {
     }
 }
 
+struct DelayedBurstChatService: AIChatStreaming, @unchecked Sendable {
+    let firstDelta: String
+    let trailingDeltas: [String]
+    let pauseAfterFirstDeltaNanoseconds: UInt64
+    let pauseBeforeCompletionNanoseconds: UInt64
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        await onDelta(self.firstDelta)
+        try await Task.sleep(nanoseconds: self.pauseAfterFirstDeltaNanoseconds)
+        for delta in self.trailingDeltas {
+            await onDelta(delta)
+        }
+        try await Task.sleep(nanoseconds: self.pauseBeforeCompletionNanoseconds)
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-delayed-burst")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+}
+
+struct ToolCallOnlyChatService: AIChatStreaming, @unchecked Sendable {
+    let toolCall: AIChatToolCall
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        await onToolCall(self.toolCall)
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-tool-call-only")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+}
+
 struct BulkDeleteCardsPayload: Decodable {
     let ok: Bool
     let deletedCardIds: [String]
@@ -253,6 +312,103 @@ actor DeltaRecorder {
 
     func snapshot() -> [String] {
         self.values
+    }
+}
+
+final class RequestRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var requests: [URLRequest] = []
+
+    func append(_ request: URLRequest) {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+        self.requests.append(request)
+    }
+
+    func snapshot() -> [URLRequest] {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+        return self.requests
+    }
+}
+
+extension AIChatMessage {
+    init(
+        id: String,
+        role: AIChatRole,
+        text: String,
+        toolCalls: [AIChatToolCall],
+        timestamp: String,
+        isError: Bool
+    ) {
+        var content: [AIChatContentPart] = []
+        if text.isEmpty == false {
+            content.append(.text(text))
+        }
+        content.append(contentsOf: toolCalls.map { .toolCall($0) })
+
+        self.init(
+            id: id,
+            role: role,
+            content: content,
+            timestamp: timestamp,
+            isError: isError
+        )
+    }
+
+    var text: String {
+        self.content.reduce(into: "") { partialResult, part in
+            if case .text(let value) = part {
+                partialResult.append(value)
+            }
+        }
+    }
+
+    var toolCalls: [AIChatToolCall] {
+        self.content.compactMap { part in
+            if case .toolCall(let toolCall) = part {
+                return toolCall
+            }
+
+            return nil
+        }
+    }
+}
+
+extension AILocalChatWireMessage {
+    init(
+        role: String,
+        content: String,
+        toolCalls: [AIChatToolCall]?,
+        toolCallId: String?,
+        name: String?,
+        output: String?
+    ) {
+        var contentParts: [AIChatContentPart]? = content.isEmpty ? nil : [.text(content)]
+        if let toolCalls {
+            if contentParts == nil {
+                contentParts = []
+            }
+            contentParts?.append(contentsOf: toolCalls.map { .toolCall($0) })
+        }
+
+        self.init(
+            role: role,
+            content: contentParts,
+            toolCallId: toolCallId,
+            name: name,
+            output: output
+        )
+    }
+}
+
+extension AILocalChatRequestBody {
+    init(messages: [AILocalChatWireMessage], model: String, timezone: String) {
+        self.init(messages: messages, model: model, timezone: timezone, devicePlatform: "ios")
     }
 }
 
@@ -306,6 +462,17 @@ class AIChatTestCaseBase: XCTestCase {
 
     @MainActor
     func makeLinkedStore() throws -> FlashcardsStore {
+        try self.makeLinkedStore(
+            cloudAuthService: CloudAuthService(),
+            idTokenExpiresAt: isoTimestamp(date: Date().addingTimeInterval(3600))
+        )
+    }
+
+    @MainActor
+    func makeLinkedStore(
+        cloudAuthService: CloudAuthService,
+        idTokenExpiresAt: String
+    ) throws -> FlashcardsStore {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
         self.addTeardownBlock {
@@ -341,7 +508,7 @@ class AIChatTestCaseBase: XCTestCase {
             credentials: StoredCloudCredentials(
                 refreshToken: "refresh-token",
                 idToken: "id-token",
-                idTokenExpiresAt: isoTimestamp(date: Date().addingTimeInterval(3600))
+                idTokenExpiresAt: idTokenExpiresAt
             )
         )
 
@@ -350,7 +517,7 @@ class AIChatTestCaseBase: XCTestCase {
             encoder: encoder,
             decoder: decoder,
             database: database,
-            cloudAuthService: CloudAuthService(),
+            cloudAuthService: cloudAuthService,
             credentialStore: credentialStore,
             initialGlobalErrorMessage: ""
         )
