@@ -26,6 +26,10 @@ describe("classifyReviewContentPresentation", () => {
     expect(classifyReviewContentPresentation("```ts\nconst value = 1;\n```")).toBe("markdown");
   });
 
+  it("returns markdown when content contains inline backticks", () => {
+    expect(classifyReviewContentPresentation("Use `map` here")).toBe("markdown");
+  });
+
   it("keeps markdown precedence over short length", () => {
     expect(classifyReviewContentPresentation("> short")).toBe("markdown");
   });

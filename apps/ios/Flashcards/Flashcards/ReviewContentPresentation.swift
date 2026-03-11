@@ -21,6 +21,10 @@ private let reviewContentMarkdownExpressions: [NSRegularExpression] = [
 func classifyReviewContentPresentation(text: String) -> ReviewContentPresentationMode {
     let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
+    if trimmedText.contains("`") {
+        return .markdown
+    }
+
     if hasStrongMarkdownCue(text: trimmedText) {
         return .markdown
     }
