@@ -1,3 +1,15 @@
+/**
+ iOS-local AI tool executor.
+
+ This file mirrors the shared TypeScript contract and backend behavior defined
+ in:
+ - `apps/backend/src/aiTools/sharedToolContracts.ts`
+ - `apps/backend/src/aiTools/agentToolOperations.ts`
+
+ The mirror remains separate because iOS executes directly against local
+ SQLite-backed state. The browser-local mirror lives in
+ `apps/web/src/chat/localToolExecutor.ts`.
+ */
 import Foundation
 
 enum AIToolExecutionError: LocalizedError {
@@ -155,6 +167,13 @@ private struct ListOutboxToolInput: Decodable {
     let limit: Int?
 }
 
+/**
+ Executes local AI tools against the iOS app snapshot and local database.
+
+ This actor owns the iOS-specific mirror of the shared AI tool behavior. Keep
+ tool names, payload shapes, and visible semantics aligned with the backend and
+ browser-local counterparts referenced in the file-level docstring.
+ */
 actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     private let databaseURL: URL
     private let encoder: JSONEncoder
@@ -489,6 +508,13 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         }
     }
 
+    /**
+     Mirrors backend card-search semantics for the iOS-local runtime.
+
+     Counterparts:
+     - backend DB implementation: `apps/backend/src/cards/queries.ts`
+     - browser-local mirror: `apps/web/src/chat/localToolExecutor.ts`
+     */
     private func searchCards(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Card] {
         let searchTokens = tokenizeSearchText(searchText: query)
         if searchTokens.isEmpty {
@@ -503,6 +529,13 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         }.prefix(limit))
     }
 
+    /**
+     Mirrors backend deck-search semantics for the iOS-local runtime.
+
+     Counterparts:
+     - backend DB implementation: `apps/backend/src/decks.ts`
+     - browser-local mirror: `apps/web/src/chat/localToolExecutor.ts`
+     */
     private func searchDecks(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Deck] {
         let searchTokens = tokenizeSearchText(searchText: query)
         if searchTokens.isEmpty {

@@ -22,6 +22,17 @@ let aiChatSupportedFileExtensions: Set<String> = [
     "log",
     "docx",
 ]
+/**
+ iOS-local tool catalog.
+
+ Keep this set aligned with the browser-local mirror in
+ `apps/web/src/chat/localToolExecutor.ts`.
+
+ Shared TypeScript contracts live in
+ `apps/backend/src/aiTools/sharedToolContracts.ts`, while canonical backend
+ external-agent behavior lives in
+ `apps/backend/src/aiTools/agentToolOperations.ts`.
+ */
 let aiChatLocalToolNames: Set<String> = [
     "get_workspace_context",
     "list_cards",
