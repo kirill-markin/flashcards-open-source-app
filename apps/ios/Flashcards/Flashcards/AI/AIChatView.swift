@@ -257,33 +257,10 @@ struct AIChatView: View {
     }
 
     private var composerInset: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
             Divider()
 
             VStack(alignment: .leading, spacing: 12) {
-                if self.chatStore.isModelLocked {
-                    Text("Model: \(self.selectedModelLabel)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Picker(
-                        "Model",
-                        selection: Binding(
-                            get: {
-                                self.chatStore.selectedModelId
-                            },
-                            set: { nextModelId in
-                                self.chatStore.setSelectedModel(modelId: nextModelId)
-                            }
-                        )
-                    ) {
-                        ForEach(AIChatModelDef.all) { model in
-                            Text(model.label).tag(model.id)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
-
                 if self.chatStore.pendingAttachments.isEmpty == false {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -311,7 +288,7 @@ struct AIChatView: View {
                     }
                 }
 
-                HStack(alignment: .bottom, spacing: 12) {
+                ZStack(alignment: .bottomTrailing) {
                     TextField(
                         "Ask about cards, review history, or propose a change...",
                         text: self.$chatStore.inputText,
@@ -320,7 +297,8 @@ struct AIChatView: View {
                     .focused(self.$isComposerFocused)
                     .lineLimit(1...aiChatComposerMaximumLineCount)
                     .padding(.leading, 12)
-                    .padding(.vertical, 10)
+                    .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                    .padding(.vertical, 12)
 
                     Button {
                         self.handlePrimaryComposerAction()
@@ -332,8 +310,9 @@ struct AIChatView: View {
                     .buttonStyle(.plain)
                     .disabled(self.primaryComposerButtonDisabled)
                     .accessibilityLabel(self.chatStore.isStreaming ? "Stop response" : "Send message")
+                    .padding(.trailing, aiChatComposerSendButtonInset)
+                    .padding(.bottom, aiChatComposerSendButtonInset)
                 }
-                .padding(.trailing, 10)
                 .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
@@ -348,29 +327,60 @@ struct AIChatView: View {
                 )
 
                 HStack {
-                    PhotosPicker(
-                        selection: self.$selectedPhotoItem,
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
-                        Label("Photo", systemImage: "photo")
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(self.chatStore.isStreaming)
-
-                    Button {
-                        self.isFileImporterPresented = true
-                    } label: {
-                        Label("File", systemImage: "paperclip")
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(self.chatStore.isStreaming)
-
+                    self.composerModelControl
                     Spacer()
+
+                    HStack(spacing: 8) {
+                        PhotosPicker(
+                            selection: self.$selectedPhotoItem,
+                            matching: .images,
+                            photoLibrary: .shared()
+                        ) {
+                            Label("Photo", systemImage: "photo")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(self.chatStore.isStreaming)
+
+                        Button {
+                            self.isFileImporterPresented = true
+                        } label: {
+                            Label("File", systemImage: "paperclip")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(self.chatStore.isStreaming)
+                    }
                 }
             }
-            .padding(16)
+            .padding(.top, aiChatComposerTopPadding)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
             .background(Color(.systemBackground))
+        }
+    }
+
+    @ViewBuilder
+    private var composerModelControl: some View {
+        if self.chatStore.isModelLocked {
+            Text("Model: \(self.selectedModelLabel)")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        } else {
+            Picker(
+                "Model",
+                selection: Binding(
+                    get: {
+                        self.chatStore.selectedModelId
+                    },
+                    set: { nextModelId in
+                        self.chatStore.setSelectedModel(modelId: nextModelId)
+                    }
+                )
+            ) {
+                ForEach(AIChatModelDef.all) { model in
+                    Text(model.label).tag(model.id)
+                }
+            }
+            .pickerStyle(.menu)
         }
     }
 
@@ -617,6 +627,9 @@ struct AIChatView: View {
 }
 
 private let aiChatComposerMaximumLineCount: Int = 5
+private let aiChatComposerTopPadding: CGFloat = 8
+private let aiChatComposerSendButtonInset: CGFloat = 12
+private let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 56
 private let aiChatAutoScrollIntervalSeconds: Double = 2.0
 private let aiChatAutoScrollBottomThreshold: CGFloat = 24
 private let aiChatAutoScrollAnimationDurationSeconds: Double = 0.25
