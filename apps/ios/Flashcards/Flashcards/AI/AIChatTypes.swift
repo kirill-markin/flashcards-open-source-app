@@ -84,14 +84,14 @@ struct AIChatModelDef: Hashable, Identifiable, Sendable {
     let label: String
 
     static let all: [AIChatModelDef] = [
-        AIChatModelDef(id: "claude-opus-4-6", label: "Claude Opus 4.6"),
-        AIChatModelDef(id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6"),
-        AIChatModelDef(id: "claude-haiku-4-5", label: "Claude Haiku 4.5"),
         AIChatModelDef(id: "gpt-5.4", label: "GPT-5.4"),
         AIChatModelDef(id: "gpt-5.2", label: "GPT-5.2"),
         AIChatModelDef(id: "gpt-4.1", label: "GPT-4.1"),
         AIChatModelDef(id: "gpt-4.1-mini", label: "GPT-4.1 Mini"),
         AIChatModelDef(id: "gpt-4.1-nano", label: "GPT-4.1 Nano"),
+        AIChatModelDef(id: "claude-opus-4-6", label: "Claude Opus 4.6"),
+        AIChatModelDef(id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6"),
+        AIChatModelDef(id: "claude-haiku-4-5", label: "Claude Haiku 4.5"),
     ]
 }
 
