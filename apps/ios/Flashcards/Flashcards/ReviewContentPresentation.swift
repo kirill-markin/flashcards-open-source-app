@@ -6,6 +6,13 @@ enum ReviewContentPresentationMode: Equatable {
     case markdown
 }
 
+enum ReviewRenderedContent {
+    case shortPlain(String)
+    case paragraphPlain(String)
+    case markdown(AttributedString)
+    case markdownFailure(String)
+}
+
 private let reviewShortPlainWordLimit: Int = 4
 private let reviewShortPlainVisibleCharacterLimit: Int = 48
 private let reviewContentMarkdownExpressions: [NSRegularExpression] = [
@@ -57,6 +64,21 @@ func makeReviewMarkdownAttributedString(text: String) throws -> AttributedString
             failurePolicy: .returnPartiallyParsedIfPossible
         )
     )
+}
+
+func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
+    switch classifyReviewContentPresentation(text: text) {
+    case .shortPlain:
+        return .shortPlain(text)
+    case .paragraphPlain:
+        return .paragraphPlain(text)
+    case .markdown:
+        do {
+            return .markdown(try makeReviewMarkdownAttributedString(text: text))
+        } catch {
+            return .markdownFailure(error.localizedDescription)
+        }
+    }
 }
 
 private func hasStrongMarkdownCue(text: String) -> Bool {

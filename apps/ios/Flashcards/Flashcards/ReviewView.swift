@@ -13,6 +13,7 @@ struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
     @State private var isAnswerVisible: Bool = false
+    @State private var preparedRevealState: PreparedReviewRevealState? = nil
     @State private var isQueuePreviewPresented: Bool = false
     @State private var isEditorPresented: Bool = false
     @State private var editingCardId: String? = nil
@@ -34,6 +35,18 @@ struct ReviewView: View {
         currentReviewCard(reviewQueue: store.effectiveReviewQueue)
     }
 
+    private var preparedRevealStateTaskId: String {
+        guard let currentCard else {
+            let schedulerSettingsUpdatedAt = store.schedulerSettings?.updatedAt ?? "no-scheduler-settings"
+            return "no-card|\(schedulerSettingsUpdatedAt)"
+        }
+
+        return makePreparedReviewRevealStateId(
+            card: currentCard,
+            schedulerSettings: store.schedulerSettings
+        )
+    }
+
     var body: some View {
         Group {
             if let currentCard {
@@ -45,6 +58,9 @@ struct ReviewView: View {
         .navigationTitle("Review")
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
+        }
+        .task(id: preparedRevealStateTaskId) {
+            self.refreshPreparedRevealState(card: currentCard)
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -152,6 +168,8 @@ struct ReviewView: View {
     }
 
     private func activeCardContentView(card: Card) -> some View {
+        let preparedRevealState = self.preparedRevealState(card: card)
+
         VStack(alignment: .leading, spacing: 20) {
             if screenErrorMessage.isEmpty == false {
                 Text(screenErrorMessage)
@@ -186,7 +204,7 @@ struct ReviewView: View {
             if isAnswerVisible {
                 ReviewCardSideView(
                     label: "Back",
-                    text: card.backText.isEmpty ? emptyBackTextPlaceholder : card.backText,
+                    content: preparedRevealState.backContent,
                     surfaceStyle: .back
                 )
             }
@@ -209,7 +227,7 @@ struct ReviewView: View {
     @ViewBuilder
     private func reviewBottomBar(card: Card) -> some View {
         if isAnswerVisible {
-            if let options = try? resolvedReviewAnswerGridOptions(card: card) {
+            if let options = resolvedPreparedReviewAnswerGridOptions(card: card) {
                 reviewBottomBarContainer {
                     reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
                 }
@@ -292,12 +310,8 @@ struct ReviewView: View {
             return nil
         }
 
-        do {
-            _ = try resolvedReviewAnswerGridOptions(card: card)
-            return nil
-        } catch {
-            return localizedMessage(error: error)
-        }
+        let preparedRevealState = self.preparedRevealState(card: card)
+        return preparedRevealState.reviewAnswerOptionsErrorMessage
     }
 
     private func beginEditing(card: Card) {
@@ -351,15 +365,6 @@ struct ReviewView: View {
         }
     }
 
-    private func resolvedReviewAnswerGridOptions(card: Card) throws -> ReviewAnswerGridOptions {
-        let reviewAnswerOptionsState = self.loadReviewAnswerOptions(card: card)
-        if let errorMessage = reviewAnswerOptionsState.errorMessage {
-            throw ReviewViewError.reviewAnswerOptionsUnavailable(errorMessage)
-        }
-
-        return try ReviewAnswerGridOptions(options: reviewAnswerOptionsState.options)
-    }
-
     private var emptyStateView: some View {
         ContentUnavailableView {
             if store.cards.isEmpty {
@@ -405,16 +410,89 @@ struct ReviewView: View {
         }
     }
 
-    private func loadReviewAnswerOptions(card: Card) -> (options: [ReviewAnswerOption], errorMessage: String?) {
-        guard let schedulerSettings = store.schedulerSettings else {
-            return ([], "Scheduler settings are unavailable")
+    private func refreshPreparedRevealState(card: Card?) {
+        guard let card else {
+            self.preparedRevealState = nil
+            return
         }
 
-        do {
-            return (try makeReviewAnswerOptions(card: card, schedulerSettings: schedulerSettings, now: Date()), nil)
-        } catch {
-            return ([], localizedMessage(error: error))
+        self.preparedRevealState = makePreparedReviewRevealState(
+            card: card,
+            schedulerSettings: store.schedulerSettings,
+            now: Date()
+        )
+    }
+
+    private func preparedRevealState(card: Card) -> PreparedReviewRevealState {
+        let preparedRevealStateId = makePreparedReviewRevealStateId(
+            card: card,
+            schedulerSettings: store.schedulerSettings
+        )
+
+        if let preparedRevealState, preparedRevealState.id == preparedRevealStateId {
+            return preparedRevealState
         }
+
+        return makePreparedReviewRevealState(
+            card: card,
+            schedulerSettings: store.schedulerSettings,
+            now: Date()
+        )
+    }
+
+    private func resolvedPreparedReviewAnswerGridOptions(card: Card) -> ReviewAnswerGridOptions? {
+        let preparedRevealState = self.preparedRevealState(card: card)
+        return preparedRevealState.reviewAnswerGridOptions
+    }
+}
+
+private struct PreparedReviewRevealState {
+    let id: String
+    let backContent: ReviewRenderedContent
+    let reviewAnswerGridOptions: ReviewAnswerGridOptions?
+    let reviewAnswerOptionsErrorMessage: String?
+}
+
+private func makePreparedReviewRevealStateId(
+    card: Card,
+    schedulerSettings: WorkspaceSchedulerSettings?
+) -> String {
+    let schedulerSettingsUpdatedAt = schedulerSettings?.updatedAt ?? "no-scheduler-settings"
+    return "\(card.cardId)|\(card.updatedAt)|\(schedulerSettingsUpdatedAt)"
+}
+
+private func makePreparedReviewRevealState(
+    card: Card,
+    schedulerSettings: WorkspaceSchedulerSettings?,
+    now: Date
+) -> PreparedReviewRevealState {
+    let backText = card.backText.isEmpty ? emptyBackTextPlaceholder : card.backText
+    let backContent = makeReviewRenderedContent(text: backText)
+
+    guard let schedulerSettings else {
+        return PreparedReviewRevealState(
+            id: makePreparedReviewRevealStateId(card: card, schedulerSettings: nil),
+            backContent: backContent,
+            reviewAnswerGridOptions: nil,
+            reviewAnswerOptionsErrorMessage: "Scheduler settings are unavailable"
+        )
+    }
+
+    do {
+        let options = try makeReviewAnswerOptions(card: card, schedulerSettings: schedulerSettings, now: now)
+        return PreparedReviewRevealState(
+            id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
+            backContent: backContent,
+            reviewAnswerGridOptions: try ReviewAnswerGridOptions(options: options),
+            reviewAnswerOptionsErrorMessage: nil
+        )
+    } catch {
+        return PreparedReviewRevealState(
+            id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
+            backContent: backContent,
+            reviewAnswerGridOptions: nil,
+            reviewAnswerOptionsErrorMessage: localizedMessage(error: error)
+        )
     }
 }
 
@@ -455,14 +533,11 @@ private struct ReviewAnswerGridOptions {
 
 private enum ReviewViewError: LocalizedError {
     case missingReviewAnswerOption(ReviewRating)
-    case reviewAnswerOptionsUnavailable(String)
 
     var errorDescription: String? {
         switch self {
         case .missingReviewAnswerOption(let rating):
             return "Missing review answer option for \(rating.title)"
-        case .reviewAnswerOptionsUnavailable(let message):
-            return message
         }
     }
 }
@@ -474,11 +549,19 @@ private enum ReviewCardSurfaceStyle {
 
 private struct ReviewCardSideView: View {
     let label: String
-    let text: String
+    let content: ReviewRenderedContent
     let surfaceStyle: ReviewCardSurfaceStyle
 
-    private var presentationMode: ReviewContentPresentationMode {
-        classifyReviewContentPresentation(text: text)
+    init(label: String, text: String, surfaceStyle: ReviewCardSurfaceStyle) {
+        self.label = label
+        self.content = makeReviewRenderedContent(text: text)
+        self.surfaceStyle = surfaceStyle
+    }
+
+    init(label: String, content: ReviewRenderedContent, surfaceStyle: ReviewCardSurfaceStyle) {
+        self.label = label
+        self.content = content
+        self.surfaceStyle = surfaceStyle
     }
 
     var body: some View {
@@ -498,19 +581,24 @@ private struct ReviewCardSideView: View {
 
     @ViewBuilder
     private var contentView: some View {
-        switch presentationMode {
-        case .shortPlain:
+        switch content {
+        case .shortPlain(let text):
             Text(text)
                 .font(shortPlainFont)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        case .paragraphPlain:
+        case .paragraphPlain(let text):
             Text(text)
                 .font(.body)
                 .lineSpacing(3)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        case .markdown:
-            ReviewMarkdownText(text: text)
+        case .markdown(let attributedText):
+            ReviewMarkdownText(attributedText: attributedText)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        case .markdownFailure(let errorMessage):
+            Text("Failed to render markdown content: \(errorMessage)")
+                .font(.footnote)
+                .foregroundStyle(.red)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
@@ -535,24 +623,11 @@ private struct ReviewCardSideView: View {
 }
 
 private struct ReviewMarkdownText: View {
-    let text: String
-
-    private var renderedMarkdown: Result<AttributedString, Error> {
-        Result {
-            try makeReviewMarkdownAttributedString(text: text)
-        }
-    }
+    let attributedText: AttributedString
 
     var body: some View {
-        switch renderedMarkdown {
-        case .success(let attributedText):
-            Text(attributedText)
-                .multilineTextAlignment(.leading)
-        case .failure(let error):
-            Text("Failed to render markdown content: \(error.localizedDescription)")
-                .font(.footnote)
-                .foregroundStyle(.red)
-        }
+        Text(attributedText)
+            .multilineTextAlignment(.leading)
     }
 }
 
