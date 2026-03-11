@@ -160,11 +160,15 @@ private struct SearchCardsToolInput: Decodable {
     let query: String
     let cursor: String?
     let limit: Int
+
+    let filter: CardFilter?
 }
 
 private struct ListCardsToolInput: Decodable {
     let cursor: String?
     let limit: Int
+
+    let filter: CardFilter?
 }
 
 private struct ListDueCardsToolInput: Decodable {
@@ -200,6 +204,126 @@ private struct ListOutboxToolInput: Decodable {
 
 private struct LocalPageCursor: Codable {
     let index: Int
+}
+
+private struct DynamicCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+
+    init?(intValue: Int) {
+        self.stringValue = String(intValue)
+        self.intValue = intValue
+    }
+}
+
+private func validateObjectKeys(
+    decoder: Decoder,
+    allowedKeys: Set<String>,
+    context: String
+) throws {
+    let container = try decoder.container(keyedBy: DynamicCodingKey.self)
+    for key in container.allKeys where allowedKeys.contains(key.stringValue) == false {
+        throw LocalStoreError.validation("\(context).\(key.stringValue) is not supported")
+    }
+}
+
+private func normalizeCardFilter(filter: CardFilter?) -> CardFilter? {
+    guard let filter else {
+        return nil
+    }
+
+    let normalizedFilter = CardFilter(
+        tags: normalizeTags(values: filter.tags, referenceTags: []),
+        effort: filter.effort.reduce(into: [EffortLevel]()) { result, effortLevel in
+            if result.contains(effortLevel) {
+                return
+            }
+
+            result.append(effortLevel)
+        }
+    )
+
+    if normalizedFilter.tags.isEmpty && normalizedFilter.effort.isEmpty {
+        return nil
+    }
+
+    return normalizedFilter
+}
+
+extension CardFilter {
+    private enum CodingKeys: String, CodingKey {
+        case tags
+        case effort
+    }
+
+    init(from decoder: Decoder) throws {
+        try validateObjectKeys(
+            decoder: decoder,
+            allowedKeys: Set([CodingKeys.tags.rawValue, CodingKeys.effort.rawValue]),
+            context: "filter"
+        )
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            tags: try container.decodeIfPresent([String].self, forKey: .tags) ?? [],
+            effort: try container.decodeIfPresent([EffortLevel].self, forKey: .effort) ?? []
+        )
+    }
+}
+
+extension SearchCardsToolInput {
+    private enum CodingKeys: String, CodingKey {
+        case query
+        case cursor
+        case limit
+        case filter
+    }
+
+    init(from decoder: Decoder) throws {
+        try validateObjectKeys(
+            decoder: decoder,
+            allowedKeys: Set([
+                CodingKeys.query.rawValue,
+                CodingKeys.cursor.rawValue,
+                CodingKeys.limit.rawValue,
+                CodingKeys.filter.rawValue
+            ]),
+            context: "search_cards"
+        )
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.query = try container.decode(String.self, forKey: .query)
+        self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
+        self.limit = try container.decode(Int.self, forKey: .limit)
+        self.filter = normalizeCardFilter(filter: try container.decodeIfPresent(CardFilter.self, forKey: .filter))
+    }
+}
+
+extension ListCardsToolInput {
+    private enum CodingKeys: String, CodingKey {
+        case cursor
+        case limit
+        case filter
+    }
+
+    init(from decoder: Decoder) throws {
+        try validateObjectKeys(
+            decoder: decoder,
+            allowedKeys: Set([
+                CodingKeys.cursor.rawValue,
+                CodingKeys.limit.rawValue,
+                CodingKeys.filter.rawValue
+            ]),
+            context: "list_cards"
+        )
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
+        self.limit = try container.decode(Int.self, forKey: .limit)
+        self.filter = normalizeCardFilter(filter: try container.decodeIfPresent(CardFilter.self, forKey: .filter))
+    }
 }
 
 /**
@@ -243,7 +367,7 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
             return AIToolExecutionResult(
                 output: try self.encodeJSON(
                     value: self.makeCardsPagePayload(
-                        cards: self.currentActiveCards(snapshot: snapshot),
+                        cards: self.cardsMatchingFilter(cards: self.currentActiveCards(snapshot: snapshot), filter: input.filter),
                         startIndex: startIndex,
                         limit: try self.normalizeLimit(input.limit)
                     )
@@ -263,7 +387,7 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
             let input = try self.decodeInput(SearchCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
             let startIndex = try self.pageStartIndex(cursor: input.cursor)
-            let matchedCards = try self.searchCards(snapshot: snapshot, query: input.query, limit: Int.max)
+            let matchedCards = try self.searchCards(snapshot: snapshot, query: input.query, limit: Int.max, filter: input.filter)
             return AIToolExecutionResult(
                 output: try self.encodeJSON(
                     value: self.makeCardsPagePayload(
@@ -557,6 +681,16 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         activeCards(cards: snapshot.cards)
     }
 
+    private func cardsMatchingFilter(cards: [Card], filter: CardFilter?) -> [Card] {
+        guard let filter else {
+            return cards
+        }
+
+        return cards.filter { card in
+            matchesCardFilter(filter: filter, card: card)
+        }
+    }
+
     private func activeDecks(snapshot: AppStateSnapshot) -> [Deck] {
         snapshot.decks.filter { deck in
             deck.deletedAt == nil
@@ -606,13 +740,13 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
      - backend DB implementation: `apps/backend/src/cards/queries.ts`
      - browser-local mirror: `apps/web/src/chat/localToolExecutor.ts`
      */
-    private func searchCards(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Card] {
+    private func searchCards(snapshot: AppStateSnapshot, query: String, limit: Int, filter: CardFilter?) throws -> [Card] {
         let searchTokens = tokenizeSearchText(searchText: query)
         if searchTokens.isEmpty {
             throw LocalStoreError.validation("query must not be empty")
         }
 
-        return Array(self.currentActiveCards(snapshot: snapshot).filter { card in
+        return Array(self.cardsMatchingFilter(cards: self.currentActiveCards(snapshot: snapshot), filter: filter).filter { card in
             matchesAllSearchTokens(
                 values: [card.frontText, card.backText] + card.tags + [card.effortLevel.rawValue],
                 searchTokens: searchTokens

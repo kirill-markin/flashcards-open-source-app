@@ -296,6 +296,20 @@ func matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: C
     return filterTags.isSubset(of: cardTags)
 }
 
+func matchesCardFilter(filter: CardFilter, card: Card) -> Bool {
+    if filter.effort.isEmpty == false && filter.effort.contains(card.effortLevel) == false {
+        return false
+    }
+
+    if filter.tags.isEmpty {
+        return true
+    }
+
+    let cardTags = Set(card.tags)
+    let filterTags = Set(filter.tags)
+    return filterTags.isSubset(of: cardTags)
+}
+
 func buildDeckFilterDefinition(
     effortLevels: [EffortLevel],
     tags: [String]

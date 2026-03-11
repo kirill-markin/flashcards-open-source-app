@@ -14,6 +14,7 @@ export type {
   BulkDeleteCardsResult,
   BulkUpdateCardItem,
   Card,
+  CardFilter,
   CardMutationMetadata,
   CardMutationResult,
   CardListPage,
@@ -36,6 +37,11 @@ export type {
   WorkspaceTagSummary,
   WorkspaceTagsSummary,
 } from "./cards/types";
+
+export {
+  normalizeCardFilter,
+  parseCardFilterInput,
+} from "./cards/filters";
 
 export {
   getInvalidFsrsStateReason,

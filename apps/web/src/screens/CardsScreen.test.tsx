@@ -183,6 +183,7 @@ describe("CardsScreen", () => {
       cursor: null,
       limit: 50,
       sorts: [],
+      filter: null,
     });
   });
 
@@ -221,6 +222,7 @@ describe("CardsScreen", () => {
       cursor: "cursor-1",
       limit: 50,
       sorts: [],
+      filter: null,
     });
   });
 

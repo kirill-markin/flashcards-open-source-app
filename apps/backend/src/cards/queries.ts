@@ -11,6 +11,7 @@ import {
   tokenizeSearchText,
 } from "../searchTokens";
 import type { SearchTokenClauseFactory } from "../searchTokens";
+import { normalizeCardFilter } from "./filters";
 import { validateOrResetCardRowForRead } from "./fsrs";
 import {
   CARD_COLUMNS,
@@ -24,6 +25,7 @@ import {
 } from "./shared";
 import type {
   Card,
+  CardFilter,
   CardListPage,
   CardQuerySort,
   CardQuerySortDirection,
@@ -421,6 +423,46 @@ function buildCardsQuerySearchClause(
   };
 }
 
+export function buildCardsQueryFilterClause(
+  filter: CardFilter | null,
+  startIndex: number,
+): Readonly<{
+  clause: string;
+  params: ReadonlyArray<SqlValue>;
+}> {
+  if (filter === null) {
+    return {
+      clause: "",
+      params: [],
+    };
+  }
+
+  const clauses: Array<string> = [];
+  const params: Array<SqlValue> = [];
+
+  if (filter.tags.length > 0) {
+    params.push(filter.tags);
+    clauses.push(`tags @> $${startIndex + params.length}::text[]`);
+  }
+
+  if (filter.effort.length > 0) {
+    params.push(filter.effort);
+    clauses.push(`effort_level = ANY($${startIndex + params.length}::text[])`);
+  }
+
+  if (clauses.length === 0) {
+    return {
+      clause: "",
+      params: [],
+    };
+  }
+
+  return {
+    clause: `AND ${clauses.join(" AND ")}`,
+    params,
+  };
+}
+
 function makeCursorValueFromRow(row: QueryCardsRow, sort: InternalSort): CursorValue {
   switch (sort.key) {
   case "frontText":
@@ -471,28 +513,34 @@ export async function queryCardsPage(
   const normalizedSearchTokens = normalizeCardsQuerySearchTokens(input.searchText);
   const normalizedLimit = normalizeCardsQueryLimit(input.limit);
   const normalizedSorts = normalizeCardsQuerySorts(input.sorts);
+  const normalizedFilter = normalizeCardFilter(input.filter);
   const effectiveSorts = buildEffectiveCardsQuerySorts(normalizedSorts);
   const decodedCursor = input.cursor === null ? null : decodeCardsQueryCursor(input.cursor);
 
   return transaction(async (executor) => {
-    const searchClauseResult = buildCardsQuerySearchClause(normalizedSearchTokens, 1);
+    const filterClauseResult = buildCardsQueryFilterClause(normalizedFilter, 1);
+    const searchClauseResult = buildCardsQuerySearchClause(
+      normalizedSearchTokens,
+      1 + filterClauseResult.params.length,
+    );
     const countResult = await executor.query<QueryCardsCountRow>(
       [
         "SELECT COUNT(*)::int AS total_count",
         "FROM content.cards",
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
+        filterClauseResult.clause,
         searchClauseResult.clause,
       ].join(" "),
-      [workspaceId, ...searchClauseResult.params],
+      [workspaceId, ...filterClauseResult.params, ...searchClauseResult.params],
     );
 
     const cursorClauseResult = buildCardsQueryCursorWhereClause(
       effectiveSorts,
       decodedCursor,
-      1 + searchClauseResult.params.length,
+      1 + filterClauseResult.params.length + searchClauseResult.params.length,
     );
-    const limitParamIndex = 1 + searchClauseResult.params.length + cursorClauseResult.params.length + 1;
+    const limitParamIndex = 2 + filterClauseResult.params.length + searchClauseResult.params.length + cursorClauseResult.params.length;
 
     const pageResult = await executor.query<QueryCardsRow>(
       [
@@ -511,6 +559,7 @@ export async function queryCardsPage(
         "FROM content.cards",
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
+        filterClauseResult.clause,
         searchClauseResult.clause,
         ")",
         "SELECT *",
@@ -521,6 +570,7 @@ export async function queryCardsPage(
       ].join(" "),
       [
         workspaceId,
+        ...filterClauseResult.params,
         ...searchClauseResult.params,
         ...cursorClauseResult.params,
         normalizedLimit + 1,

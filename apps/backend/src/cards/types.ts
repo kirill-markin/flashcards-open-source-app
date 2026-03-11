@@ -9,6 +9,11 @@ export type TimestampValue = Date | string;
 
 export type EffortLevel = "fast" | "medium" | "long";
 
+export type CardFilter = Readonly<{
+  tags: ReadonlyArray<string>;
+  effort: ReadonlyArray<EffortLevel>;
+}>;
+
 export type CardRow = Readonly<{
   card_id: string;
   front_text: string;
@@ -110,6 +115,7 @@ export type QueryCardsInput = Readonly<{
   cursor: string | null;
   limit: number;
   sorts: ReadonlyArray<CardQuerySort>;
+  filter: CardFilter | null;
 }>;
 
 export type QueryCardsPage = Readonly<{

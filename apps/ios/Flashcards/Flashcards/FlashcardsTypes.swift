@@ -122,6 +122,11 @@ struct DeckFilterDefinition: Codable, Hashable, Sendable {
     let tags: [String]
 }
 
+struct CardFilter: Codable, Hashable, Sendable {
+    let tags: [String]
+    let effort: [EffortLevel]
+}
+
 struct Workspace: Codable, Hashable, Sendable {
     let workspaceId: String
     let name: String

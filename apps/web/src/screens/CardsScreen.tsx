@@ -154,6 +154,7 @@ export function CardsScreen(): ReactElement {
         cursor: null,
         limit: cardsPageSize,
         sorts,
+        filter: null,
       });
 
       if (requestSequenceRef.current !== requestSequence) {
@@ -213,6 +214,7 @@ export function CardsScreen(): ReactElement {
         cursor: currentCursor,
         limit: cardsPageSize,
         sorts,
+        filter: null,
       });
 
       if (requestSequenceRef.current !== requestSequence) {

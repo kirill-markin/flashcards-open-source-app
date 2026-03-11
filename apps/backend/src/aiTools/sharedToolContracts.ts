@@ -16,7 +16,11 @@
  */
 import type { FunctionTool } from "openai/resources/responses/responses";
 import { z } from "zod";
-import type { EffortLevel } from "../cards";
+import {
+  normalizeCardFilter,
+  type CardFilter,
+  type EffortLevel,
+} from "../cards";
 
 export type JsonSchema = Readonly<Record<string, unknown>>;
 
@@ -51,6 +55,12 @@ export type AgentToolCursorInput = Readonly<{
   limit: number;
 }>;
 
+export type AgentToolCardCursorInput = Readonly<{
+  cursor: string | null;
+  limit: number;
+  filter: CardFilter | null;
+}>;
+
 export type AgentToolGetCardsInput = Readonly<{
   cardIds: ReadonlyArray<string>;
 }>;
@@ -59,6 +69,7 @@ export type AgentToolSearchCardsInput = Readonly<{
   query: string;
   cursor: string | null;
   limit: number;
+  filter: CardFilter | null;
 }>;
 
 export type AgentToolGetDecksInput = Readonly<{
@@ -140,10 +151,17 @@ export function nullableSchema(schema: JsonSchema): Readonly<{
 export function strictObjectSchema(
   properties: Readonly<Record<string, JsonSchema>>,
 ): JsonObjectSchema {
+  return strictObjectSchemaWithRequired(properties, Object.keys(properties));
+}
+
+export function strictObjectSchemaWithRequired(
+  properties: Readonly<Record<string, JsonSchema>>,
+  required: ReadonlyArray<string>,
+): JsonObjectSchema {
   return {
     type: "object",
     properties,
-    required: Object.keys(properties),
+    required,
     additionalProperties: false,
   };
 }
@@ -170,6 +188,22 @@ const UUID_SCHEMA = {
 const EFFORT_LEVEL_SCHEMA = {
   type: "string",
   enum: ["fast", "medium", "long"],
+} as const;
+
+const CARD_FILTER_SCHEMA = {
+  anyOf: [
+    strictObjectSchemaWithRequired({
+      tags: {
+        type: "array",
+        items: { type: "string" },
+      },
+      effort: {
+        type: "array",
+        items: EFFORT_LEVEL_SCHEMA,
+      },
+    }, []),
+    { type: "null" },
+  ],
 } as const;
 
 const CARD_INPUT_SCHEMA = strictObjectSchema({
@@ -236,6 +270,13 @@ const nullableStringArrayValidator = z.array(z.string()).nullable();
 const nullableEffortLevelValidator = z.enum(["fast", "medium", "long"]).nullable();
 const uuidValidator = z.string().uuid();
 const nullableUuidValidator = uuidValidator.nullable();
+const cardFilterValidator = z.object({
+  tags: z.array(z.string()).optional().default([]),
+  effort: z.array(z.enum(["fast", "medium", "long"])).optional().default([]),
+}).strict().transform((filter) => normalizeCardFilter(filter));
+const optionalCardFilterValidator = cardFilterValidator.nullable().optional().transform((filter) => (
+  filter === undefined ? null : filter
+));
 
 const createCardValidator = z.object({
   frontText: z.string(),
@@ -298,16 +339,24 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "list_cards",
     localDescription: "List cards from the local device database.",
     externalDescription: "List cards from the selected workspace.",
-    jsonContract: "Use {\"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
-    promptExample: "{\"cursor\": null, \"limit\": 20}",
-    parameters: strictObjectSchema({
+    jsonContract: "Use {\"cursor\": string|null, \"limit\": number, \"filter\": {\"tags\": string[], \"effort\": (\"fast\"|\"medium\"|\"long\")[]} | null}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null. Omit filter or set it to null for no filter.",
+    promptExample: "{\"cursor\": null, \"limit\": 20, \"filter\": null}",
+    parameters: strictObjectSchemaWithRequired({
       cursor: CURSOR_SCHEMA,
       limit: LIMIT_SCHEMA,
-    }),
+      filter: CARD_FILTER_SCHEMA,
+    }, [
+      "cursor",
+      "limit",
+    ]),
     validator: z.object({
       cursor: nullableStringValidator,
       limit: limitValidator,
-    }).strict(),
+      filter: optionalCardFilterValidator,
+    }).strict().transform((input) => ({
+      ...input,
+      filter: input.filter ?? null,
+    })),
   },
   {
     name: "get_cards",
@@ -329,18 +378,27 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "search_cards",
     localDescription: "Search local cards by front text, back text, tags, or effort level. Split query by whitespace into up to 5 lowercase tokens (merge extra tokens into the fifth token), require every token to match, and allow each token to match any supported card field.",
     externalDescription: "Search cards by front text, back text, tags, or effort level. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field.",
-    jsonContract: "Use {\"query\": string, \"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
-    promptExample: "{\"query\": \"grammar\", \"cursor\": null, \"limit\": 20}",
-    parameters: strictObjectSchema({
+    jsonContract: "Use {\"query\": string, \"cursor\": string|null, \"limit\": number, \"filter\": {\"tags\": string[], \"effort\": (\"fast\"|\"medium\"|\"long\")[]} | null}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null. Omit filter or set it to null for no filter.",
+    promptExample: "{\"query\": \"grammar\", \"cursor\": null, \"limit\": 20, \"filter\": null}",
+    parameters: strictObjectSchemaWithRequired({
       query: { type: "string" },
       cursor: CURSOR_SCHEMA,
       limit: LIMIT_SCHEMA,
-    }),
+      filter: CARD_FILTER_SCHEMA,
+    }, [
+      "query",
+      "cursor",
+      "limit",
+    ]),
     validator: z.object({
       query: z.string(),
       cursor: nullableStringValidator,
       limit: limitValidator,
-    }).strict(),
+      filter: optionalCardFilterValidator,
+    }).strict().transform((input) => ({
+      ...input,
+      filter: input.filter ?? null,
+    })),
   },
   {
     name: "list_due_cards",

@@ -46,6 +46,7 @@ import {
 import type {
   AgentToolCreateCardsInput,
   AgentToolCreateDecksInput,
+  AgentToolCardCursorInput,
   AgentToolDeleteCardsInput,
   AgentToolDeleteDecksInput,
   AgentToolGetCardsInput,
@@ -332,11 +333,12 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/tools/list_cards", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const workspaceId = requireSelectedWorkspaceId(requestContext);
-    const body = parseAgentToolBody<AgentToolCursorInput>("list_cards", await parseJsonBody(context.req.raw));
+    const body = parseAgentToolBody<AgentToolCardCursorInput>("list_cards", await parseJsonBody(context.req.raw));
     const payload = await listAgentCardsOperation(DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES, {
       workspaceId,
       cursor: body.cursor,
       limit: body.limit,
+      filter: body.filter,
     });
     const actions = toAgentToolActions(context.req.url, "list_cards");
 
@@ -375,6 +377,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
       query: body.query,
       cursor: body.cursor,
       limit: body.limit,
+      filter: body.filter,
     });
     const actions = toAgentToolActions(context.req.url, "search_cards");
 

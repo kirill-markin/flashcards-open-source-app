@@ -1098,7 +1098,7 @@
           "tools"
         ],
         "summary": "List cards",
-        "description": "Lists cards from the selected workspace. The server enforces a maximum response size even when limit is null.",
+        "description": "Lists cards from the selected workspace. Use the optional filter to require exact tags and/or allowed effort values. The server enforces a maximum response size even when limit is null.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -1109,7 +1109,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CursorPageInput"
+                "$ref": "#/components/schemas/CardCursorPageInput"
+              },
+              "example": {
+                "cursor": null,
+                "limit": 20,
+                "filter": {
+                  "tags": [
+                    "grammar"
+                  ],
+                  "effort": [
+                    "fast"
+                  ]
+                }
               }
             }
           }
@@ -1330,7 +1342,7 @@
           "tools"
         ],
         "summary": "Search cards",
-        "description": "Searches cards by text, tags, or effort level within the selected workspace. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field.",
+        "description": "Searches cards by text, tags, or effort level within the selected workspace. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field. Use the optional filter to further require exact tags and/or allowed effort values.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -1341,7 +1353,20 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CursorSearchInput"
+                "$ref": "#/components/schemas/CardCursorSearchInput"
+              },
+              "example": {
+                "query": "grammar",
+                "cursor": null,
+                "limit": 20,
+                "filter": {
+                  "tags": [
+                    "grammar"
+                  ],
+                  "effort": [
+                    "fast"
+                  ]
+                }
               }
             }
           }
@@ -2966,6 +2991,25 @@
         "type": "string",
         "description": "Opaque cursor returned by the previous page. Treat this value as an unreadable token and pass it back unchanged."
       },
+      "CardFilter": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "effort": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EffortLevel"
+            }
+          }
+        }
+      },
       "CursorPageInput": {
         "type": "object",
         "additionalProperties": false,
@@ -2987,6 +3031,41 @@
           },
           "limit": {
             "$ref": "#/components/schemas/PageLimit"
+          }
+        }
+      },
+      "CardCursorPageInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cursor",
+          "limit"
+        ],
+        "properties": {
+          "cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque cursor from the previous page. Start with null."
+          },
+          "limit": {
+            "$ref": "#/components/schemas/PageLimit"
+          },
+          "filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CardFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional card filter. Omit or set null for no filter."
           }
         }
       },
@@ -3015,6 +3094,45 @@
           },
           "limit": {
             "$ref": "#/components/schemas/PageLimit"
+          }
+        }
+      },
+      "CardCursorSearchInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "query",
+          "cursor",
+          "limit"
+        ],
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque cursor from the previous page. Start with null."
+          },
+          "limit": {
+            "$ref": "#/components/schemas/PageLimit"
+          },
+          "filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CardFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional card filter. Omit or set null for no filter."
           }
         }
       },

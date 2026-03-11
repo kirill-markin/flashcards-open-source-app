@@ -94,7 +94,7 @@ export function buildLocalToolCallRulesSection(): string {
     "Tool-call rules:",
     "- Tool arguments must be exactly one JSON object.",
     "- Never send prose, markdown, comments, arrays, or multiple JSON objects.",
-    "- For strict schemas, every property in the tool contract must be present.",
+    "- For strict schemas, every required property in the tool contract must be present.",
     "- If a field is optional semantically, send null instead of omitting it.",
     "- For paginated tools, start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
     "- For update tools, include unchanged editable fields as null.",
