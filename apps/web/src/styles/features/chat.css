@@ -197,7 +197,7 @@
   overflow: hidden;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
-  margin: 10px 0 0;
+  margin: 10px 0 6px;
   background: rgba(255, 255, 255, 0.03);
   font-size: 12px;
 }
