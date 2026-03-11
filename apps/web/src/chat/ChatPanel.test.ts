@@ -365,7 +365,7 @@ describe("ChatPanel autoscroll", () => {
     expect(userMessage.textContent).toContain("what do you see here?");
   });
 
-  it("normalizes persisted assistant text by trimming leading and trailing whitespace only", async () => {
+  it("preserves persisted assistant text whitespace", async () => {
     localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
       role: "assistant",
       content: [{ type: "text", text: "\n\n   You're right to ask.\n\n\n\n**What I have:**   \n" }],
@@ -387,10 +387,10 @@ describe("ChatPanel autoscroll", () => {
       throw new Error("Expected assistant message");
     }
 
-    expect(assistantMessage.textContent).toBe("You're right to ask.\n\n\n\n**What I have:**");
+    expect(assistantMessage.textContent).toBe("\n\n   You're right to ask.\n\n\n\n**What I have:**   \n");
   });
 
-  it("normalizes streamed assistant text before rendering the bubble", async () => {
+  it("preserves streamed assistant text whitespace before rendering the bubble", async () => {
     streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
       { atMs: 0, payload: streamDeltaPayload("\n\n   First paragraph") },
       { atMs: 10, payload: streamDeltaPayload("\n\n\n\nSecond paragraph   \n") },
@@ -413,14 +413,73 @@ describe("ChatPanel autoscroll", () => {
     const assistantMessages = mountedContainer.querySelectorAll(".chat-msg-assistant");
     expect(assistantMessages.length).toBeGreaterThan(0);
     const assistantMessage = assistantMessages[assistantMessages.length - 1];
-    expect(assistantMessage?.textContent).toBe("First paragraph\n\n\n\nSecond paragraph");
+    expect(assistantMessage?.textContent).toBe("\n\n   First paragraph\n\n\n\nSecond paragraph   \n");
   });
 
-  it("keeps tool call blocks in order relative to normalized assistant text", async () => {
+  it("preserves paragraph boundaries between consecutive persisted assistant text parts", async () => {
     localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
       role: "assistant",
       content: [
-        { type: "text", text: "\n\n  Before tool" },
+        { type: "text", text: "Точный план изменений:\n- не менять остальные теги\n\n" },
+        { type: "text", text: "Подтверди, и я выполню объединение `DSA -> dsa`." },
+      ],
+      timestamp: 1,
+      isError: false,
+    }]));
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const assistantMessage = mountedContainer.querySelector(".chat-msg-assistant");
+    expect(assistantMessage).not.toBeNull();
+    if (assistantMessage === null) {
+      throw new Error("Expected assistant message");
+    }
+
+    expect(assistantMessage.children).toHaveLength(1);
+    expect(assistantMessage.textContent).toBe(
+      "Точный план изменений:\n- не менять остальные теги\n\nПодтверди, и я выполню объединение `DSA -> dsa`.",
+    );
+  });
+
+  it("preserves paragraph boundaries across streamed assistant deltas", async () => {
+    streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
+      { atMs: 0, payload: streamDeltaPayload("Точный план изменений:\n- не менять остальные теги\n\n") },
+      { atMs: 10, payload: streamDeltaPayload("Подтверди, и я выполню объединение `DSA -> dsa`.") },
+    ], 20));
+
+    await renderChatPanel();
+    await sendMessage("merge tags");
+
+    await act(async () => {
+      vi.advanceTimersByTime(25);
+      await Promise.resolve();
+    });
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const assistantMessages = mountedContainer.querySelectorAll(".chat-msg-assistant");
+    expect(assistantMessages.length).toBeGreaterThan(0);
+    const assistantMessage = assistantMessages[assistantMessages.length - 1];
+    expect(assistantMessage?.textContent).toBe(
+      "Точный план изменений:\n- не менять остальные теги\n\nПодтверди, и я выполню объединение `DSA -> dsa`.",
+    );
+  });
+
+  it("keeps tool call blocks in order relative to assistant text without trimming", async () => {
+    localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
+      role: "assistant",
+      content: [
+        { type: "text", text: "Before tool\n\n" },
         {
           type: "tool_call",
           toolCallId: "tool-1",
@@ -429,7 +488,7 @@ describe("ChatPanel autoscroll", () => {
           input: "{\"limit\":10}",
           output: "[{\"cardId\":\"card-1\"}]",
         },
-        { type: "text", text: "\n\n\n\nAfter tool\n\n" },
+        { type: "text", text: "\n\nAfter tool\n\n" },
       ],
       timestamp: 1,
       isError: false,
@@ -452,11 +511,11 @@ describe("ChatPanel autoscroll", () => {
     const children = [...assistantMessage.children];
     expect(children).toHaveLength(3);
     expect(children[0]?.tagName).toBe("SPAN");
-    expect(children[0]?.textContent).toBe("Before tool");
+    expect(children[0]?.textContent).toBe("Before tool\n\n");
     expect(children[1]?.tagName).toBe("DETAILS");
     expect(children[1]?.textContent).toContain("List cards");
     expect(children[2]?.tagName).toBe("SPAN");
-    expect(children[2]?.textContent).toBe("After tool");
+    expect(children[2]?.textContent).toBe("\n\nAfter tool\n\n");
   });
 
   it("batches streaming autoscroll to one smooth scroll every 2 seconds", async () => {

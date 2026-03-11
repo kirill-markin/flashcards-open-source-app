@@ -59,6 +59,25 @@ describe("localRuntime", () => {
     });
   });
 
+  it("merges adjacent assistant text parts while preserving paragraph boundaries", () => {
+    const normalizedMessage = normalizeStoredMessageForTests({
+      role: "assistant",
+      content: [
+        { type: "text", text: "Line one\r\n\r\n" },
+        { type: "text", text: "Line two" },
+      ],
+      timestamp: 1,
+      isError: false,
+    });
+
+    expect(normalizedMessage).toEqual({
+      role: "assistant",
+      content: [{ type: "text", text: "Line one\n\nLine two" }],
+      timestamp: 1,
+      isError: false,
+    });
+  });
+
   it("preserves attachments and parses local SSE lines", () => {
     expect(toLocalChatMessages([{
       role: "user",

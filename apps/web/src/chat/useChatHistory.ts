@@ -25,29 +25,36 @@ const STORAGE_KEY = "flashcards-chat-messages";
 const MAX_MESSAGES = 200;
 
 function normalizeAssistantText(text: string): string {
-  return text
-    .replace(/\r\n?/g, "\n")
-    .trim();
+  return text.replace(/\r\n?/g, "\n");
+}
+
+function appendAssistantTextContent(
+  content: ReadonlyArray<ContentPart>,
+  text: string,
+): ReadonlyArray<ContentPart> {
+  const normalizedText = normalizeAssistantText(text);
+  if (normalizedText === "") {
+    return content;
+  }
+
+  const lastPart = content[content.length - 1];
+  if (lastPart !== undefined && lastPart.type === "text") {
+    return [...content.slice(0, -1), { ...lastPart, text: lastPart.text + normalizedText }];
+  }
+
+  return [...content, { type: "text", text: normalizedText }];
 }
 
 function normalizeAssistantContent(content: ReadonlyArray<ContentPart>): ReadonlyArray<ContentPart> {
-  const normalizedContent: Array<ContentPart> = [];
+  let normalizedContent: ReadonlyArray<ContentPart> = [];
 
   for (const part of content) {
     if (part.type !== "text") {
-      normalizedContent.push(part);
+      normalizedContent = [...normalizedContent, part];
       continue;
     }
 
-    const normalizedText = normalizeAssistantText(part.text);
-    if (normalizedText === "") {
-      continue;
-    }
-
-    normalizedContent.push({
-      ...part,
-      text: normalizedText,
-    });
+    normalizedContent = appendAssistantTextContent(normalizedContent, part.text);
   }
 
   return normalizedContent;
@@ -225,20 +232,7 @@ export function useChatHistory(): ChatHistoryState {
         return currentMessages;
       }
 
-      const lastPart = lastMessage.content[lastMessage.content.length - 1];
-      const nextContent = lastPart !== undefined && lastPart.type === "text"
-        ? (() => {
-          const normalizedText = normalizeAssistantText(lastPart.text + text);
-          return normalizedText === ""
-            ? lastMessage.content.slice(0, -1)
-            : [...lastMessage.content.slice(0, -1), { ...lastPart, text: normalizedText }];
-        })()
-        : (() => {
-          const normalizedText = normalizeAssistantText(text);
-          return normalizedText === ""
-            ? lastMessage.content
-            : [...lastMessage.content, { type: "text" as const, text: normalizedText }];
-        })();
+      const nextContent = appendAssistantTextContent(lastMessage.content, text);
 
       return [...currentMessages.slice(0, -1), { ...lastMessage, content: nextContent }];
     });
