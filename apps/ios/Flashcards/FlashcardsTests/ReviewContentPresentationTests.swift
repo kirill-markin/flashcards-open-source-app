@@ -57,10 +57,39 @@ final class ReviewContentPresentationTests: XCTestCase {
         }
     }
 
-    func testMakeReviewRenderedContentReturnsMarkdownAttributedTextForHeading() {
+    func testMakeReviewRenderedContentReturnsMarkdownContentForHeading() {
         switch makeReviewRenderedContent(text: "# Heading") {
-        case .markdown(let attributedText):
-            XCTAssertTrue(String(attributedText.characters).contains("Heading"))
+        case .markdown(let markdownContent):
+            XCTAssertEqual(markdownContent.renderMarkdown(), "# Heading")
+        default:
+            XCTFail("Expected markdown rendered content")
+        }
+    }
+
+    func testMakeReviewRenderedContentKeepsInlineCodeAsMarkdownContent() {
+        switch makeReviewRenderedContent(text: "Use `map` here") {
+        case .markdown(let markdownContent):
+            XCTAssertEqual(markdownContent.renderMarkdown(), "Use `map` here")
+        default:
+            XCTFail("Expected markdown rendered content")
+        }
+    }
+
+    func testMakeReviewRenderedContentKeepsListAsMultilineMarkdownContent() {
+        switch makeReviewRenderedContent(text: "- item\n- item two") {
+        case .markdown(let markdownContent):
+            XCTAssertEqual(markdownContent.renderMarkdown(), "- item\n- item two")
+        default:
+            XCTFail("Expected markdown rendered content")
+        }
+    }
+
+    func testMakeReviewRenderedContentKeepsFencedCodeBlockLineBreaks() {
+        let fencedCodeBlock = "```swift\nlet value = 1\nprint(value)\n```"
+
+        switch makeReviewRenderedContent(text: fencedCodeBlock) {
+        case .markdown(let markdownContent):
+            XCTAssertEqual(markdownContent.renderMarkdown(), fencedCodeBlock)
         default:
             XCTFail("Expected markdown rendered content")
         }

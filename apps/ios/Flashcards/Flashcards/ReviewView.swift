@@ -1,4 +1,5 @@
 import SwiftUI
+import MarkdownUI
 
 private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
@@ -6,7 +7,6 @@ private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
-private let reviewCardContentMinHeight: CGFloat = 152
 private let emptyBackTextPlaceholder: String = "No back text"
 
 struct ReviewView: View {
@@ -14,6 +14,8 @@ struct ReviewView: View {
 
     @State private var isAnswerVisible: Bool = false
     @State private var preparedRevealState: PreparedReviewRevealState? = nil
+    // Keep the next review card warm so the next front can appear immediately after rating.
+    @State private var preparedNextRevealState: PreparedReviewRevealState? = nil
     @State private var isQueuePreviewPresented: Bool = false
     @State private var isEditorPresented: Bool = false
     @State private var editingCardId: String? = nil
@@ -35,14 +37,9 @@ struct ReviewView: View {
         currentReviewCard(reviewQueue: store.effectiveReviewQueue)
     }
 
-    private var preparedRevealStateTaskId: String {
-        guard let currentCard else {
-            let schedulerSettingsUpdatedAt = store.schedulerSettings?.updatedAt ?? "no-scheduler-settings"
-            return "no-card|\(schedulerSettingsUpdatedAt)"
-        }
-
-        return makePreparedReviewRevealStateId(
-            card: currentCard,
+    private var preparedRevealStatesTaskId: String {
+        makePreparedReviewRevealStatesTaskId(
+            reviewQueue: store.effectiveReviewQueue,
             schedulerSettings: store.schedulerSettings
         )
     }
@@ -59,8 +56,8 @@ struct ReviewView: View {
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
         }
-        .task(id: preparedRevealStateTaskId) {
-            self.refreshPreparedRevealState(card: currentCard)
+        .task(id: preparedRevealStatesTaskId) {
+            self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -170,7 +167,7 @@ struct ReviewView: View {
     private func activeCardContentView(card: Card) -> some View {
         let preparedRevealState = self.preparedRevealState(card: card)
 
-        VStack(alignment: .leading, spacing: 20) {
+        return VStack(alignment: .leading, spacing: 20) {
             if screenErrorMessage.isEmpty == false {
                 Text(screenErrorMessage)
                     .foregroundStyle(.red)
@@ -197,7 +194,7 @@ struct ReviewView: View {
 
             ReviewCardSideView(
                 label: "Front",
-                text: card.frontText,
+                content: preparedRevealState.frontContent,
                 surfaceStyle: .front
             )
 
@@ -410,17 +407,25 @@ struct ReviewView: View {
         }
     }
 
-    private func refreshPreparedRevealState(card: Card?) {
-        guard let card else {
-            self.preparedRevealState = nil
-            return
-        }
+    private func refreshPreparedRevealStates(reviewQueue: [Card]) {
+        let now = Date()
+        let currentCard = currentReviewCard(reviewQueue: reviewQueue)
+        let nextCard = nextReviewCard(reviewQueue: reviewQueue)
 
-        self.preparedRevealState = makePreparedReviewRevealState(
-            card: card,
-            schedulerSettings: store.schedulerSettings,
-            now: Date()
-        )
+        self.preparedRevealState = currentCard.map { card in
+            makePreparedReviewRevealState(
+                card: card,
+                schedulerSettings: store.schedulerSettings,
+                now: now
+            )
+        }
+        self.preparedNextRevealState = nextCard.map { card in
+            makePreparedReviewRevealState(
+                card: card,
+                schedulerSettings: store.schedulerSettings,
+                now: now
+            )
+        }
     }
 
     private func preparedRevealState(card: Card) -> PreparedReviewRevealState {
@@ -431,6 +436,9 @@ struct ReviewView: View {
 
         if let preparedRevealState, preparedRevealState.id == preparedRevealStateId {
             return preparedRevealState
+        }
+        if let preparedNextRevealState, preparedNextRevealState.id == preparedRevealStateId {
+            return preparedNextRevealState
         }
 
         return makePreparedReviewRevealState(
@@ -448,6 +456,7 @@ struct ReviewView: View {
 
 private struct PreparedReviewRevealState {
     let id: String
+    let frontContent: ReviewRenderedContent
     let backContent: ReviewRenderedContent
     let reviewAnswerGridOptions: ReviewAnswerGridOptions?
     let reviewAnswerOptionsErrorMessage: String?
@@ -461,17 +470,33 @@ private func makePreparedReviewRevealStateId(
     return "\(card.cardId)|\(card.updatedAt)|\(schedulerSettingsUpdatedAt)"
 }
 
+private func makePreparedReviewRevealStatesTaskId(
+    reviewQueue: [Card],
+    schedulerSettings: WorkspaceSchedulerSettings?
+) -> String {
+    let currentCardStateId = currentReviewCard(reviewQueue: reviewQueue).map { card in
+        makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings)
+    } ?? "no-current-card"
+    let nextCardStateId = nextReviewCard(reviewQueue: reviewQueue).map { card in
+        makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings)
+    } ?? "no-next-card"
+
+    return "\(currentCardStateId)|\(nextCardStateId)"
+}
+
 private func makePreparedReviewRevealState(
     card: Card,
     schedulerSettings: WorkspaceSchedulerSettings?,
     now: Date
 ) -> PreparedReviewRevealState {
+    let frontContent = makeReviewRenderedContent(text: card.frontText)
     let backText = card.backText.isEmpty ? emptyBackTextPlaceholder : card.backText
     let backContent = makeReviewRenderedContent(text: backText)
 
     guard let schedulerSettings else {
         return PreparedReviewRevealState(
             id: makePreparedReviewRevealStateId(card: card, schedulerSettings: nil),
+            frontContent: frontContent,
             backContent: backContent,
             reviewAnswerGridOptions: nil,
             reviewAnswerOptionsErrorMessage: "Scheduler settings are unavailable"
@@ -482,6 +507,7 @@ private func makePreparedReviewRevealState(
         let options = try makeReviewAnswerOptions(card: card, schedulerSettings: schedulerSettings, now: now)
         return PreparedReviewRevealState(
             id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
+            frontContent: frontContent,
             backContent: backContent,
             reviewAnswerGridOptions: try ReviewAnswerGridOptions(options: options),
             reviewAnswerOptionsErrorMessage: nil
@@ -489,6 +515,7 @@ private func makePreparedReviewRevealState(
     } catch {
         return PreparedReviewRevealState(
             id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
+            frontContent: frontContent,
             backContent: backContent,
             reviewAnswerGridOptions: nil,
             reviewAnswerOptionsErrorMessage: localizedMessage(error: error)
@@ -547,16 +574,226 @@ private enum ReviewCardSurfaceStyle {
     case back
 }
 
+@MainActor
+private func makeReviewMarkdownTheme(surfaceStyle: ReviewCardSurfaceStyle) -> Theme {
+    Theme.gitHub
+        .text {
+            ForegroundColor(reviewMarkdownTextColor(surfaceStyle: surfaceStyle))
+            BackgroundColor(nil)
+            FontSize(surfaceStyle == .front ? 18 : 17)
+        }
+        .code {
+            FontFamilyVariant(.monospaced)
+            FontSize(.em(0.88))
+            ForegroundColor(reviewMarkdownInlineCodeTextColor(surfaceStyle: surfaceStyle))
+            BackgroundColor(reviewMarkdownInlineCodeBackgroundColor(surfaceStyle: surfaceStyle))
+        }
+        .heading1 { configuration in
+            configuration.label
+                .relativeLineSpacing(.em(0.1))
+                .markdownMargin(top: 0, bottom: 14)
+                .markdownTextStyle {
+                    FontWeight(.bold)
+                    FontSize(.em(1.5))
+                }
+        }
+        .heading2 { configuration in
+            configuration.label
+                .relativeLineSpacing(.em(0.1))
+                .markdownMargin(top: 0, bottom: 14)
+                .markdownTextStyle {
+                    FontWeight(.bold)
+                    FontSize(.em(1.3))
+                }
+        }
+        .heading3 { configuration in
+            configuration.label
+                .relativeLineSpacing(.em(0.1))
+                .markdownMargin(top: 0, bottom: 12)
+                .markdownTextStyle {
+                    FontWeight(.semibold)
+                    FontSize(.em(1.15))
+                }
+        }
+        .heading4 { configuration in
+            configuration.label
+                .markdownMargin(top: 0, bottom: 12)
+                .markdownTextStyle {
+                    FontWeight(.semibold)
+                }
+        }
+        .heading5 { configuration in
+            configuration.label
+                .markdownMargin(top: 0, bottom: 10)
+                .markdownTextStyle {
+                    FontWeight(.semibold)
+                    FontSize(.em(0.95))
+                }
+        }
+        .heading6 { configuration in
+            configuration.label
+                .markdownMargin(top: 0, bottom: 10)
+                .markdownTextStyle {
+                    FontWeight(.semibold)
+                    FontSize(.em(0.9))
+                    ForegroundColor(reviewMarkdownSecondaryTextColor(surfaceStyle: surfaceStyle))
+                }
+        }
+        .paragraph { configuration in
+            configuration.label
+                .fixedSize(horizontal: false, vertical: true)
+                .relativeLineSpacing(.em(0.2))
+                .markdownMargin(top: 0, bottom: 14)
+        }
+        .blockquote { configuration in
+            HStack(alignment: .top, spacing: 12) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(reviewMarkdownBorderColor(surfaceStyle: surfaceStyle))
+                    .frame(width: 4)
+
+                configuration.label
+                    .fixedSize(horizontal: false, vertical: true)
+                    .markdownTextStyle {
+                        ForegroundColor(reviewMarkdownSecondaryTextColor(surfaceStyle: surfaceStyle))
+                    }
+            }
+            .padding(.vertical, 2)
+        }
+        .codeBlock { configuration in
+            ScrollView(.horizontal, showsIndicators: false) {
+                configuration.label
+                    .fixedSize(horizontal: false, vertical: true)
+                    .relativeLineSpacing(.em(0.2))
+                    .markdownTextStyle {
+                        FontFamilyVariant(.monospaced)
+                        FontSize(.em(0.88))
+                        ForegroundColor(reviewMarkdownTextColor(surfaceStyle: surfaceStyle))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+            }
+            .background(reviewMarkdownCodeBlockBackgroundColor(surfaceStyle: surfaceStyle))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(reviewMarkdownBorderColor(surfaceStyle: surfaceStyle), lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .markdownMargin(top: 0, bottom: 14)
+        }
+        .listItem { configuration in
+            configuration.label
+                .fixedSize(horizontal: false, vertical: true)
+                .markdownMargin(top: .em(0.22))
+        }
+        .table { configuration in
+            configuration.label
+                .fixedSize(horizontal: false, vertical: true)
+                .markdownTableBorderStyle(.init(color: reviewMarkdownBorderColor(surfaceStyle: surfaceStyle)))
+                .markdownTableBackgroundStyle(
+                    .alternatingRows(
+                        reviewMarkdownTablePrimaryBackgroundColor(surfaceStyle: surfaceStyle),
+                        reviewMarkdownTableSecondaryBackgroundColor(surfaceStyle: surfaceStyle)
+                    )
+                )
+                .markdownMargin(top: 0, bottom: 14)
+        }
+        .tableCell { configuration in
+            configuration.label
+                .markdownTextStyle {
+                    if configuration.row == 0 {
+                        FontWeight(.semibold)
+                    }
+
+                    BackgroundColor(nil)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .relativeLineSpacing(.em(0.2))
+        }
+        .thematicBreak {
+            Divider()
+                .overlay(reviewMarkdownBorderColor(surfaceStyle: surfaceStyle))
+                .markdownMargin(top: 16, bottom: 16)
+        }
+}
+
+private func reviewMarkdownTextColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
+    switch surfaceStyle {
+    case .front:
+        return Color.primary
+    case .back:
+        return Color(uiColor: .label)
+    }
+}
+
+private func reviewMarkdownSecondaryTextColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
+    switch surfaceStyle {
+    case .front:
+        return Color.secondary
+    case .back:
+        return Color(uiColor: .secondaryLabel)
+    }
+}
+
+private func reviewMarkdownInlineCodeTextColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
+    switch surfaceStyle {
+    case .front:
+        return Color.primary
+    case .back:
+        return Color(uiColor: .label)
+    }
+}
+
+private func reviewMarkdownInlineCodeBackgroundColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
+    switch surfaceStyle {
+    case .front:
+        return Color.white.opacity(0.4)
+    case .back:
+        return Color(uiColor: .systemBackground)
+    }
+}
+
+private func reviewMarkdownCodeBlockBackgroundColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
+    switch surfaceStyle {
+    case .front:
+        return Color.white.opacity(0.3)
+    case .back:
+        return Color(uiColor: .systemBackground)
+    }
+}
+
+private func reviewMarkdownTablePrimaryBackgroundColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
+    switch surfaceStyle {
+    case .front:
+        return Color.clear
+    case .back:
+        return Color(uiColor: .secondarySystemBackground)
+    }
+}
+
+private func reviewMarkdownTableSecondaryBackgroundColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
+    switch surfaceStyle {
+    case .front:
+        return Color.white.opacity(0.22)
+    case .back:
+        return Color(uiColor: .tertiarySystemBackground)
+    }
+}
+
+private func reviewMarkdownBorderColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
+    switch surfaceStyle {
+    case .front:
+        return Color.white.opacity(0.35)
+    case .back:
+        return Color(uiColor: .separator)
+    }
+}
+
 private struct ReviewCardSideView: View {
     let label: String
     let content: ReviewRenderedContent
     let surfaceStyle: ReviewCardSurfaceStyle
-
-    init(label: String, text: String, surfaceStyle: ReviewCardSurfaceStyle) {
-        self.label = label
-        self.content = makeReviewRenderedContent(text: text)
-        self.surfaceStyle = surfaceStyle
-    }
 
     init(label: String, content: ReviewRenderedContent, surfaceStyle: ReviewCardSurfaceStyle) {
         self.label = label
@@ -572,7 +809,7 @@ private struct ReviewCardSideView: View {
                 .foregroundStyle(.secondary)
 
             contentView
-                .frame(maxWidth: .infinity, minHeight: reviewCardContentMinHeight)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
@@ -586,20 +823,19 @@ private struct ReviewCardSideView: View {
             Text(text)
                 .font(shortPlainFont)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .frame(maxWidth: .infinity, alignment: .center)
         case .paragraphPlain(let text):
             Text(text)
                 .font(.body)
                 .lineSpacing(3)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        case .markdown(let attributedText):
-            ReviewMarkdownText(attributedText: attributedText)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        case .markdownFailure(let errorMessage):
-            Text("Failed to render markdown content: \(errorMessage)")
-                .font(.footnote)
-                .foregroundStyle(.red)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+        case .markdown(let markdownContent):
+            ReviewMarkdownText(
+                markdownContent: markdownContent,
+                surfaceStyle: surfaceStyle
+            )
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 
@@ -623,11 +859,13 @@ private struct ReviewCardSideView: View {
 }
 
 private struct ReviewMarkdownText: View {
-    let attributedText: AttributedString
+    let markdownContent: MarkdownContent
+    let surfaceStyle: ReviewCardSurfaceStyle
 
     var body: some View {
-        Text(attributedText)
-            .multilineTextAlignment(.leading)
+        Markdown(markdownContent)
+            .markdownTheme(makeReviewMarkdownTheme(surfaceStyle: surfaceStyle))
+            .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 
