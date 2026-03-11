@@ -16,6 +16,7 @@ const IP_DAY_LIMIT = 100;
 const IP_DISTINCT_HOUR_LIMIT = 5;
 const IP_DISTINCT_DAY_LIMIT = 20;
 const OTP_SESSION_TTL_MS = 180_000;
+const QUOTA_DECISIONS: ReadonlyArray<"sent" | "suppressed_email_limit" | "blocked_ip_limit"> = ["sent"];
 
 type CountRow = Readonly<{
   count: string;
@@ -84,7 +85,7 @@ async function countDistinctEmailsForIp(ipAddress: string, windowMs: number): Pr
       "AND created_at >= $2",
       "AND decision = ANY($3)",
     ].join(" "),
-    [ipAddress, new Date(Date.now() - windowMs), ["sent", "suppressed_email_limit"]],
+    [ipAddress, new Date(Date.now() - windowMs), QUOTA_DECISIONS],
   );
 
   return asCount(result.rows[0]?.count);
@@ -131,12 +132,12 @@ export async function decideOtpRateLimit(
     ipDistinctHourCount,
     ipDistinctDayCount,
   ] = await Promise.all([
-    countEvents("email", email, ["sent"], EMAIL_COOLDOWN_WINDOW_MS),
-    countEvents("email", email, ["sent"], EMAIL_SHORT_WINDOW_MS),
-    countEvents("email", email, ["sent"], EMAIL_DAY_WINDOW_MS),
-    countEvents("ip_address", ipAddress, ["sent", "suppressed_email_limit"], IP_SHORT_WINDOW_MS),
-    countEvents("ip_address", ipAddress, ["sent", "suppressed_email_limit"], IP_HOUR_WINDOW_MS),
-    countEvents("ip_address", ipAddress, ["sent", "suppressed_email_limit"], IP_DAY_WINDOW_MS),
+    countEvents("email", email, QUOTA_DECISIONS, EMAIL_COOLDOWN_WINDOW_MS),
+    countEvents("email", email, QUOTA_DECISIONS, EMAIL_SHORT_WINDOW_MS),
+    countEvents("email", email, QUOTA_DECISIONS, EMAIL_DAY_WINDOW_MS),
+    countEvents("ip_address", ipAddress, QUOTA_DECISIONS, IP_SHORT_WINDOW_MS),
+    countEvents("ip_address", ipAddress, QUOTA_DECISIONS, IP_HOUR_WINDOW_MS),
+    countEvents("ip_address", ipAddress, QUOTA_DECISIONS, IP_DAY_WINDOW_MS),
     countDistinctEmailsForIp(ipAddress, IP_HOUR_WINDOW_MS),
     countDistinctEmailsForIp(ipAddress, IP_DAY_WINDOW_MS),
   ]);

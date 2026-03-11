@@ -72,9 +72,18 @@ test("email limiter suppresses the sixth OTP send within fifteen minutes", () =>
   assert.deepEqual(decision, { kind: "suppress_email_limit" });
 });
 
-test("ip limiter still overrides email allowance", () => {
+test("email suppression stays active when IP sent quota is still below threshold", () => {
   const decision = decideOtpRateLimitFromCounts(createCounts({
-    emailCooldownCount: 2,
+    emailShortCount: 5,
+    ipShortCount: 9,
+  }));
+
+  assert.deepEqual(decision, { kind: "suppress_email_limit" });
+});
+
+test("ip limiter blocks only when sent quota reaches threshold", () => {
+  const decision = decideOtpRateLimitFromCounts(createCounts({
+    emailShortCount: 5,
     ipShortCount: 10,
   }));
 
