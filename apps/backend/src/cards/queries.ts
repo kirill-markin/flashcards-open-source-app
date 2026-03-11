@@ -1,5 +1,10 @@
 import { query, transaction, type SqlValue } from "../db";
 import { HttpError } from "../errors";
+import {
+  buildTokenizedOrLikeClause,
+  MAX_SEARCH_TOKEN_COUNT,
+  tokenizeSearchText,
+} from "../searchTokens";
 import { validateOrResetCardRowForRead } from "./fsrs";
 import {
   CARD_COLUMNS,
@@ -191,17 +196,17 @@ function normalizeCardsQueryLimit(limit: number): number {
   return limit;
 }
 
-function normalizeCardsQuerySearchText(searchText: string | null): string | null {
+function normalizeCardsQuerySearchTokens(searchText: string | null): ReadonlyArray<string> | null {
   if (searchText === null) {
     return null;
   }
 
-  const normalizedSearchText = searchText.trim();
-  if (normalizedSearchText === "") {
+  const searchTokens = tokenizeSearchText(searchText, MAX_SEARCH_TOKEN_COUNT);
+  if (searchTokens.length === 0) {
     throw createCardQueryError("searchText must not be empty");
   }
 
-  return normalizedSearchText;
+  return searchTokens;
 }
 
 function normalizeCardsQuerySorts(sorts: ReadonlyArray<CardQuerySort>): ReadonlyArray<CardQuerySort> {
@@ -323,28 +328,28 @@ function buildCardsQueryCursorWhereClause(
 }
 
 function buildCardsQuerySearchClause(
-  searchText: string | null,
+  searchTokens: ReadonlyArray<string> | null,
   startIndex: number,
 ): Readonly<{
   clause: string;
   params: ReadonlyArray<SqlValue>;
 }> {
-  if (searchText === null) {
+  if (searchTokens === null) {
     return {
       clause: "",
       params: [],
     };
   }
 
+  const tokenizedSearchClause = buildTokenizedOrLikeClause(searchTokens, startIndex, [
+    (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
+    (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
+    (paramIndex) => `lower(effort_level) LIKE $${paramIndex}`,
+  ]);
+
   return {
-    clause: [
-      "AND (",
-      `lower(front_text || ' ' || back_text) LIKE $${startIndex + 1}`,
-      `OR EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${startIndex + 1})`,
-      `OR lower(effort_level) LIKE $${startIndex + 1}`,
-      ")",
-    ].join(" "),
-    params: [`%${searchText.toLowerCase()}%`],
+    clause: `AND (${tokenizedSearchClause.clause})`,
+    params: tokenizedSearchClause.params,
   };
 }
 
@@ -395,14 +400,14 @@ export async function queryCardsPage(
   workspaceId: string,
   input: QueryCardsInput,
 ): Promise<QueryCardsPage> {
-  const normalizedSearchText = normalizeCardsQuerySearchText(input.searchText);
+  const normalizedSearchTokens = normalizeCardsQuerySearchTokens(input.searchText);
   const normalizedLimit = normalizeCardsQueryLimit(input.limit);
   const normalizedSorts = normalizeCardsQuerySorts(input.sorts);
   const effectiveSorts = buildEffectiveCardsQuerySorts(normalizedSorts);
   const decodedCursor = input.cursor === null ? null : decodeCardsQueryCursor(input.cursor);
 
   return transaction(async (executor) => {
-    const searchClauseResult = buildCardsQuerySearchClause(normalizedSearchText, 1);
+    const searchClauseResult = buildCardsQuerySearchClause(normalizedSearchTokens, 1);
     const countResult = await executor.query<QueryCardsCountRow>(
       [
         "SELECT COUNT(*)::int AS total_count",
@@ -551,25 +556,29 @@ export async function searchCards(
   searchText: string,
   limit: number,
 ): Promise<ReadonlyArray<Card>> {
-  const normalizedSearchText = searchText.trim();
-  if (normalizedSearchText === "") {
+  const searchTokens = tokenizeSearchText(searchText, MAX_SEARCH_TOKEN_COUNT);
+  if (searchTokens.length === 0) {
     throw createCardQueryError("query must not be empty");
   }
 
-  const likeValue = `%${normalizedSearchText}%`;
+  const searchClauseResult = buildTokenizedOrLikeClause(searchTokens, 1, [
+    (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
+    (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
+    (paramIndex) => `lower(effort_level) LIKE $${paramIndex}`,
+  ]);
+  const limitParamIndex = 1 + searchClauseResult.params.length + 1;
+
   return transaction(async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
-        "AND (front_text ILIKE $2 OR back_text ILIKE $2 OR EXISTS (",
-        "SELECT 1 FROM unnest(tags) AS tag WHERE tag ILIKE $2",
-        ") OR effort_level ILIKE $2)",
+        `AND (${searchClauseResult.clause})`,
         "ORDER BY updated_at DESC",
-        "LIMIT $3",
+        `LIMIT $${limitParamIndex}`,
       ].join(" "),
-      [workspaceId, likeValue, limit],
+      [workspaceId, ...searchClauseResult.params, limit],
     );
 
     const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);

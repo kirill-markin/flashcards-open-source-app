@@ -162,18 +162,52 @@ func formatTags(tags: [String]) -> String {
     tags.joined(separator: ", ")
 }
 
-func cardsMatchingSearchText(cards: [Card], searchText: String) -> [Card] {
-    let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+let maximumSearchTokenCount = 5
+
+func tokenizeSearchText(searchText: String) -> [String] {
+    let normalizedSearchText = searchText
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
     if normalizedSearchText.isEmpty {
+        return []
+    }
+
+    let tokens = normalizedSearchText
+        .split(whereSeparator: { character in
+            character.isWhitespace
+        })
+        .map(String.init)
+    if tokens.count <= maximumSearchTokenCount {
+        return tokens
+    }
+
+    return Array(tokens.prefix(maximumSearchTokenCount - 1))
+        + [tokens.dropFirst(maximumSearchTokenCount - 1).joined(separator: " ")]
+}
+
+func matchesAnySearchToken(values: [String], searchTokens: [String]) -> Bool {
+    let normalizedValues = values.map { value in
+        value.lowercased()
+    }
+
+    return searchTokens.contains { token in
+        normalizedValues.contains { value in
+            value.contains(token)
+        }
+    }
+}
+
+func cardsMatchingSearchText(cards: [Card], searchText: String) -> [Card] {
+    let searchTokens = tokenizeSearchText(searchText: searchText)
+    if searchTokens.isEmpty {
         return cards
     }
 
     return cards.filter { card in
-        card.frontText.lowercased().contains(normalizedSearchText)
-            || card.backText.lowercased().contains(normalizedSearchText)
-            || card.tags.contains(where: { tag in
-                tag.lowercased().contains(normalizedSearchText)
-            })
+        matchesAnySearchToken(
+            values: [card.frontText, card.backText] + card.tags,
+            searchTokens: searchTokens
+        )
     }
 }
 

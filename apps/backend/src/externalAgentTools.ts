@@ -43,7 +43,7 @@ export const EXTERNAL_AGENT_TOOL_DEFINITIONS: ReadonlyArray<ExternalAgentToolDef
   },
   {
     name: "search_cards",
-    description: "Search cards by front text, back text, tags, or effort level.",
+    description: "Search cards by front text, back text, tags, or effort level. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token) and matches when any token matches.",
   },
   {
     name: "list_due_cards",
@@ -59,7 +59,7 @@ export const EXTERNAL_AGENT_TOOL_DEFINITIONS: ReadonlyArray<ExternalAgentToolDef
   },
   {
     name: "search_decks",
-    description: "Search decks by name, tags, or effort levels.",
+    description: "Search decks by name, tags, or effort levels. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token) and matches when any token matches.",
   },
   {
     name: "list_review_history",
