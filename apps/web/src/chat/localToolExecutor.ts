@@ -1,3 +1,16 @@
+/**
+ * Browser-local AI tool executor.
+ *
+ * This module mirrors the shared read/write tool behavior exposed by the
+ * backend contract layers in:
+ * - `apps/backend/src/aiTools/sharedToolContracts.ts`
+ * - `apps/backend/src/aiTools/agentToolOperations.ts`
+ *
+ * The browser runtime intentionally keeps its own implementation because it
+ * executes against in-memory web app state instead of the backend database.
+ * The iOS mirror lives in
+ * `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`.
+ */
 import type { AppDataContextValue, MutableSnapshot } from "../appData/types";
 import {
   deriveActiveCards,
@@ -37,6 +50,10 @@ export type LocalToolCallRequest = Readonly<{
   input: string;
 }>;
 
+/**
+ * Browser-local tool catalog. Keep this aligned with the mirrored iOS local
+ * tool list in `apps/ios/Flashcards/Flashcards/AI/AIChatTypes.swift`.
+ */
 export const LOCAL_TOOL_NAMES = [
   "get_workspace_context",
   "list_cards",
@@ -761,6 +778,13 @@ function ensureLocalWorkspace(
 /**
  * Builds a browser-local AI tool executor that mirrors the iOS local tool
  * contract while using the web app sync snapshot and IndexedDB-backed writes.
+ *
+ * Canonical shared TypeScript tool contracts live in
+ * `apps/backend/src/aiTools/sharedToolContracts.ts`. Canonical backend
+ * external-agent behavior lives in
+ * `apps/backend/src/aiTools/agentToolOperations.ts`. This browser executor is
+ * the local-state mirror for those contracts, not the canonical backend
+ * implementation.
  */
 export function createLocalToolExecutor(
   dependencies: WebLocalToolExecutorDependencies,
