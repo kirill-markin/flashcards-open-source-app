@@ -203,6 +203,12 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
 
   assert.match(instructions, /use this assistant on iphone\./i);
   assert.match(instructions, /the local device database is the source of truth for reads\./i);
+  assert.match(instructions, /card side contract:/i);
+  assert.match(instructions, /front side must contain only a question or recall prompt\./i);
+  assert.match(instructions, /never include the answer on the front side\./i);
+  assert.match(instructions, /make the front side specific enough that it stays unambiguous among many cards\./i);
+  assert.match(instructions, /back side must contain the answer\./i);
+  assert.match(instructions, /prefer a fenced markdown code block for structured examples\./i);
   assert.match(instructions, /Tool arguments must be exactly one JSON object\./);
   assert.match(instructions, /If a field is optional semantically, send null instead of omitting it\./);
   assert.match(instructions, /wait for explicit user confirmation before executing the write tool/i);

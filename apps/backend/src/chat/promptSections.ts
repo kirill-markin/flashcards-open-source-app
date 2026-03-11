@@ -25,6 +25,16 @@ export function buildLocalWorkspaceSection(): string {
   ]);
 }
 
+export function buildCardSideContractSection(): string {
+  return joinLines([
+    "Card side contract:",
+    "- Front side must contain only a question or recall prompt. Never include the answer on the front side.",
+    "- Make the front side specific enough that it stays unambiguous among many cards.",
+    "- Back side must contain the answer.",
+    "- When helpful, include a concrete example on the back side. Prefer a fenced markdown code block for structured examples.",
+  ]);
+}
+
 export function buildWritePolicySection(lines: ReadonlyArray<string>): string {
   return joinLines([
     "Write policy:",

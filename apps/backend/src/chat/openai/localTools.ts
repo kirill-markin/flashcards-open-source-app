@@ -343,7 +343,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     name: "create_cards",
     description: strictDescription(
       "Create one or more new cards locally.",
-      "Use {\"cards\": CardInput[]} where every card object includes frontText, backText, tags, and effortLevel."
+      "Use {\"cards\": CardInput[]} where every card object includes frontText, backText, tags, and effortLevel. Enforce the card side contract: frontText must be a question-only recall prompt (no answer), and backText must contain the answer; include a concrete example on backText when helpful, preferably in a fenced markdown code block."
     ),
     strict: true,
     parameters: strictObjectSchema({
@@ -358,7 +358,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     name: "update_cards",
     description: strictDescription(
       "Update one or more cards locally.",
-      "Use {\"updates\": UpdateCardInput[]} where every update object includes cardId, frontText, backText, tags, and effortLevel. Use null for unchanged fields."
+      "Use {\"updates\": UpdateCardInput[]} where every update object includes cardId, frontText, backText, tags, and effortLevel. Use null for unchanged fields. Enforce the card side contract for any provided text: frontText must be a question-only recall prompt (no answer), and backText must contain the answer; include a concrete example on backText when helpful, preferably in a fenced markdown code block."
     ),
     strict: true,
     parameters: strictObjectSchema({

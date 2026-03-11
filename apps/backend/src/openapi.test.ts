@@ -13,6 +13,26 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
       };
     };
   };
+  const createCardBody = components.schemas.CreateCardBody as {
+    properties: {
+      frontText: {
+        description: string;
+      };
+      backText: {
+        description: string;
+      };
+    };
+  };
+  const updateCardBody = components.schemas.UpdateCardBody as {
+    properties: {
+      frontText: {
+        description: string;
+      };
+      backText: {
+        description: string;
+      };
+    };
+  };
   const agentErrorEnvelope = components.schemas.AgentErrorEnvelope as {
     properties: {
       error: Record<string, unknown>;
@@ -32,5 +52,9 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   assert.deepEqual(getCardsInput.properties.cardIds.items, {
     $ref: "#/components/schemas/UuidString",
   });
+  assert.match(createCardBody.properties.frontText.description, /question-only recall prompt/i);
+  assert.match(createCardBody.properties.backText.description, /must contain the answer/i);
+  assert.match(updateCardBody.properties.frontText.description, /question-only recall prompt/i);
+  assert.match(updateCardBody.properties.backText.description, /must contain the answer/i);
   assert.ok("error" in agentErrorEnvelope.properties);
 });

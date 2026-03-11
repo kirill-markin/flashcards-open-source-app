@@ -36,7 +36,7 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
   ]);
   assert.equal(
     envelope.instructions,
-    "Start with send_code. After login, call https://api.example.com/v1/agent/me, then https://api.example.com/v1/agent/workspaces. If no workspaces exist, call POST https://api.example.com/v1/agent/workspaces with {\"name\":\"Personal\"}. If multiple workspaces exist and no workspace is selected for this API key, call POST https://api.example.com/v1/agent/workspaces/{workspaceId}/select before tool calls.",
+    "Start with send_code. After login, call https://api.example.com/v1/agent/me, then https://api.example.com/v1/agent/workspaces. If no workspaces exist, call POST https://api.example.com/v1/agent/workspaces with {\"name\":\"Personal\"}. If multiple workspaces exist and no workspace is selected for this API key, call POST https://api.example.com/v1/agent/workspaces/{workspaceId}/select before tool calls. For card content, enforce the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example (prefer fenced markdown code block when helpful).",
   );
 });
 

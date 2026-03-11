@@ -71,11 +71,11 @@ export const EXTERNAL_AGENT_TOOL_DEFINITIONS: ReadonlyArray<ExternalAgentToolDef
   },
   {
     name: "create_cards",
-    description: "Create one or more cards in the selected workspace.",
+    description: "Create one or more cards in the selected workspace. Use the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example.",
   },
   {
     name: "update_cards",
-    description: "Update one or more cards in the selected workspace.",
+    description: "Update one or more cards in the selected workspace. For provided text fields, use the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example.",
   },
   {
     name: "delete_cards",

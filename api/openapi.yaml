@@ -659,7 +659,7 @@
       "post": {
         "tags": ["tools"],
         "summary": "Create cards",
-        "description": "Creates one or more cards in the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
+        "description": "Creates one or more cards in the selected workspace. Enforce the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example (prefer fenced markdown code block when helpful). Sync metadata is generated server-side and is intentionally hidden from the external API.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -696,7 +696,7 @@
       "post": {
         "tags": ["tools"],
         "summary": "Update cards",
-        "description": "Updates one or more cards in the selected workspace. Sync metadata is generated server-side and is intentionally hidden from the external API.",
+        "description": "Updates one or more cards in the selected workspace. For provided text fields, enforce the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example (prefer fenced markdown code block when helpful). Sync metadata is generated server-side and is intentionally hidden from the external API.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -1065,10 +1065,12 @@
         "required": ["frontText", "backText", "tags", "effortLevel"],
         "properties": {
           "frontText": {
-            "type": "string"
+            "type": "string",
+            "description": "Front side text. Must be a question-only recall prompt and must not include the answer."
           },
           "backText": {
-            "type": "string"
+            "type": "string",
+            "description": "Back side text. Must contain the answer and may include a concrete example (prefer fenced markdown code block when helpful)."
           },
           "tags": {
             "type": "array",
@@ -1090,10 +1092,12 @@
             "$ref": "#/components/schemas/UuidString"
           },
           "frontText": {
-            "type": ["string", "null"]
+            "type": ["string", "null"],
+            "description": "Updated front side text. When not null, must be a question-only recall prompt and must not include the answer. Use null to keep unchanged."
           },
           "backText": {
-            "type": ["string", "null"]
+            "type": ["string", "null"],
+            "description": "Updated back side text. When not null, must contain the answer and may include a concrete example (prefer fenced markdown code block when helpful). Use null to keep unchanged."
           },
           "tags": {
             "type": ["array", "null"],

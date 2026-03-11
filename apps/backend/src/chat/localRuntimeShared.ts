@@ -7,6 +7,7 @@ import type {
 } from "./localTypes";
 import {
   buildAssistantRoleSection,
+  buildCardSideContractSection,
   buildConciseStyleSection,
   buildDatetimeSection,
   buildLocalRepairSection,
@@ -69,6 +70,7 @@ export function buildLocalSystemInstructions(
     buildAssistantRoleSection(),
     platformPromptLabel(devicePlatform),
     buildLocalWorkspaceSection(),
+    buildCardSideContractSection(),
     buildConciseStyleSection(),
     buildLocalToolCallRulesSection(),
     buildWritePolicySection(buildLocalWritePolicyLines()),
