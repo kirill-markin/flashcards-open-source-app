@@ -9,6 +9,11 @@ export type TokenizedSearchClause = Readonly<{
   params: ReadonlyArray<SqlValue>;
 }>;
 
+/**
+ * Canonical text-search tokenization shared by card search features:
+ * trim, lowercase, split by whitespace, and keep at most five tokens by
+ * merging any overflow into the fifth token.
+ */
 export function tokenizeSearchText(
   searchText: string,
   maximumTokenCount: number,
@@ -33,18 +38,21 @@ export function tokenizeSearchText(
   ];
 }
 
-export function buildTokenizedOrLikeClause(
+function buildTokenizedLikeParts(
   searchTokens: ReadonlyArray<string>,
   startIndex: number,
   expressionFactories: ReadonlyArray<SearchTokenClauseFactory>,
-): TokenizedSearchClause {
+): Readonly<{
+  tokenClauses: ReadonlyArray<string>;
+  params: ReadonlyArray<SqlValue>;
+}> {
   if (expressionFactories.length < 1) {
     throw new Error("expressionFactories must contain at least one item");
   }
 
   if (searchTokens.length < 1) {
     return {
-      clause: "",
+      tokenClauses: [],
       params: [],
     };
   }
@@ -58,7 +66,35 @@ export function buildTokenizedOrLikeClause(
   });
 
   return {
-    clause: tokenClauses.join(" OR "),
+    tokenClauses,
     params: searchTokens.map((token) => `%${token}%`),
+  };
+}
+
+export function buildTokenizedOrLikeClause(
+  searchTokens: ReadonlyArray<string>,
+  startIndex: number,
+  expressionFactories: ReadonlyArray<SearchTokenClauseFactory>,
+): TokenizedSearchClause {
+  const parts = buildTokenizedLikeParts(searchTokens, startIndex, expressionFactories);
+  return {
+    clause: parts.tokenClauses.join(" OR "),
+    params: parts.params,
+  };
+}
+
+/**
+ * Canonical card-search semantics: all tokens are required (AND), while each
+ * token may match any supported field expression (OR).
+ */
+export function buildTokenizedAndLikeClause(
+  searchTokens: ReadonlyArray<string>,
+  startIndex: number,
+  expressionFactories: ReadonlyArray<SearchTokenClauseFactory>,
+): TokenizedSearchClause {
+  const parts = buildTokenizedLikeParts(searchTokens, startIndex, expressionFactories);
+  return {
+    clause: parts.tokenClauses.join(" AND "),
+    params: parts.params,
   };
 }

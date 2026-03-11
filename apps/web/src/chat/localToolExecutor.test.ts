@@ -292,6 +292,49 @@ describe("createLocalToolExecutor", () => {
     expect(cards.every((card) => card.effortLevel === "medium")).toBe(true);
   });
 
+  it("searches cards with AND semantics across tokenized query terms", async () => {
+    const executor = createLocalToolExecutor(makeDependencies(makeSnapshot()));
+
+    const result = await executor.execute({
+      toolCallId: "call-search-cards-and",
+      name: "search_cards",
+      input: "{\"query\":\"FRONT medium\",\"limit\":100}",
+    });
+
+    const cards = JSON.parse(result.output) as ReadonlyArray<Card>;
+    expect(cards.map((card) => card.cardId)).toEqual(["card-1"]);
+  });
+
+  it("searches cards by merging tokens after the fifth token", async () => {
+    const snapshot = makeSnapshot();
+    snapshot.cards = [
+      makeCard({
+        cardId: "card-phrase",
+        frontText: "alpha beta",
+        backText: "gamma delta epsilon zeta eta",
+        tags: ["combo"],
+        updatedAt: "2026-03-10T10:00:00.000Z",
+      }),
+      makeCard({
+        cardId: "card-single",
+        frontText: "alpha beta",
+        backText: "gamma delta epsilon zeta",
+        tags: ["single"],
+        updatedAt: "2026-03-10T09:00:00.000Z",
+      }),
+    ];
+    const executor = createLocalToolExecutor(makeDependencies(snapshot));
+
+    const result = await executor.execute({
+      toolCallId: "call-search-cards-tail",
+      name: "search_cards",
+      input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"limit\":100}",
+    });
+
+    const cards = JSON.parse(result.output) as ReadonlyArray<Card>;
+    expect(cards.map((card) => card.cardId)).toEqual(["card-phrase"]);
+  });
+
   it("resolves nullable update fields against existing local records and mutates only once per item", async () => {
     const snapshot = makeSnapshot();
     const dependencies = makeDependencies(snapshot);

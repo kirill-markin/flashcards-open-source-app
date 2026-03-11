@@ -202,6 +202,7 @@ type WebLocalToolExecutorDependencies = Pick<
 >;
 
 const MAX_BATCH_COUNT = 100;
+const MAXIMUM_SEARCH_TOKEN_COUNT = 5;
 
 function expectRecord(value: unknown, context: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -539,17 +540,40 @@ function findDeck(snapshot: MutableSnapshot, deckId: string): Deck {
   return deck;
 }
 
+// Keep in sync with apps/backend/src/searchTokens.ts::tokenizeSearchText.
+function tokenizeSearchText(searchText: string): ReadonlyArray<string> {
+  const normalizedSearchText = searchText.trim().toLowerCase();
+  if (normalizedSearchText === "") {
+    return [];
+  }
+
+  const tokens = normalizedSearchText.split(/\s+/);
+  if (tokens.length <= MAXIMUM_SEARCH_TOKEN_COUNT) {
+    return tokens;
+  }
+
+  return [
+    ...tokens.slice(0, MAXIMUM_SEARCH_TOKEN_COUNT - 1),
+    tokens.slice(MAXIMUM_SEARCH_TOKEN_COUNT - 1).join(" "),
+  ];
+}
+
+function matchesAllSearchTokensInValues(values: ReadonlyArray<string>, searchTokens: ReadonlyArray<string>): boolean {
+  const normalizedValues = values.map((value) => value.toLowerCase());
+  return searchTokens.every((token) => normalizedValues.some((value) => value.includes(token)));
+}
+
 function searchCards(snapshot: MutableSnapshot, query: string, limit: number): ReadonlyArray<Card> {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (normalizedQuery === "") {
+  const searchTokens = tokenizeSearchText(query);
+  if (searchTokens.length === 0) {
     throw new Error("query must not be empty");
   }
 
   return currentActiveCards(snapshot)
-    .filter((card) => card.frontText.toLowerCase().includes(normalizedQuery)
-      || card.backText.toLowerCase().includes(normalizedQuery)
-      || card.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery))
-      || card.effortLevel.toLowerCase().includes(normalizedQuery))
+    .filter((card) => matchesAllSearchTokensInValues(
+      [card.frontText, card.backText, ...card.tags, card.effortLevel],
+      searchTokens,
+    ))
     .slice(0, limit);
 }
 

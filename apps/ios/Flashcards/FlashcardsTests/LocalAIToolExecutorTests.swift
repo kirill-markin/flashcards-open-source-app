@@ -161,16 +161,16 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
         XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
         XCTAssertEqual(searchedCards.first?.effortLevel, .medium)
 
-        let searchedOrCardsResult = try await executor.execute(
+        let searchedAndCardsResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-search-cards-or",
+                toolCallId: "call-search-cards-and",
                 name: "search_cards",
-                input: "{\"query\":\"missing fast\",\"limit\":100}"
+                input: "{\"query\":\"front medium\",\"limit\":100}"
             ),
             requestId: "request-1"
         )
-        let searchedOrCards = try JSONDecoder().decode([Card].self, from: Data(searchedOrCardsResult.output.utf8))
-        XCTAssertEqual(searchedOrCards.map(\.cardId), [createdCards[1].cardId])
+        let searchedAndCards = try JSONDecoder().decode([Card].self, from: Data(searchedAndCardsResult.output.utf8))
+        XCTAssertEqual(searchedAndCards.map(\.cardId), [createdCards[0].cardId])
     }
 
     @MainActor
@@ -189,8 +189,8 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
                 name: "create_cards",
                 input: """
                 {"cards":[
-                    {"frontText":"Phrase","backText":"epsilon zeta","tags":["combo"],"effortLevel":"medium"},
-                    {"frontText":"Single","backText":"zeta","tags":["single"],"effortLevel":"fast"}
+                    {"frontText":"alpha beta","backText":"gamma delta epsilon zeta eta","tags":["combo"],"effortLevel":"medium"},
+                    {"frontText":"alpha beta","backText":"gamma delta epsilon zeta","tags":["single"],"effortLevel":"fast"}
                 ]}
                 """
             ),
@@ -202,7 +202,7 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-cards-tail",
                 name: "search_cards",
-                input: "{\"query\":\"zztokenone zztokentwo zztokenthree zztokenfour epsilon zeta\",\"limit\":100}"
+                input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"limit\":100}"
             ),
             requestId: "request-1"
         )

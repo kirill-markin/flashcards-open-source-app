@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildTokenizedAndLikeClause,
   buildTokenizedOrLikeClause,
   MAX_SEARCH_TOKEN_COUNT,
   tokenizeSearchText,
@@ -37,6 +38,23 @@ test("buildTokenizedOrLikeClause builds OR groups per token", () => {
   assert.equal(
     result.clause,
     "(lower(front_text) LIKE $2 OR lower(back_text) LIKE $2) OR (lower(front_text) LIKE $3 OR lower(back_text) LIKE $3)",
+  );
+  assert.deepEqual(result.params, ["%openapi%", "%swagger%"]);
+});
+
+test("buildTokenizedAndLikeClause requires every token while keeping OR within each token", () => {
+  const result = buildTokenizedAndLikeClause(
+    ["openapi", "swagger"],
+    1,
+    [
+      (paramIndex) => `lower(front_text) LIKE $${paramIndex}`,
+      (paramIndex) => `lower(back_text) LIKE $${paramIndex}`,
+    ],
+  );
+
+  assert.equal(
+    result.clause,
+    "(lower(front_text) LIKE $2 OR lower(back_text) LIKE $2) AND (lower(front_text) LIKE $3 OR lower(back_text) LIKE $3)",
   );
   assert.deepEqual(result.params, ["%openapi%", "%swagger%"]);
 });
