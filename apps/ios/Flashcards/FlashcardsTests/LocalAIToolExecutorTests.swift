@@ -124,6 +124,45 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testLocalToolExecutorSearchesCardsByEffortLevel() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let createdCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-create-for-search",
+                name: "create_cards",
+                input: """
+                {"cards":[
+                    {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
+                    {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
+                ]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
+
+        let searchedCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-search-cards-effort",
+                name: "search_cards",
+                input: "{\"query\":\"medium\",\"limit\":100}"
+            ),
+            requestId: "request-1"
+        )
+        let searchedCards = try JSONDecoder().decode([Card].self, from: Data(searchedCardsResult.output.utf8))
+
+        XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
+        XCTAssertEqual(searchedCards.first?.effortLevel, .medium)
+    }
+
+    @MainActor
     func testLocalToolExecutorWrapsInvalidInputWithDiagnostics() async throws {
         let flashcardsStore = try self.makeStore()
         let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)

@@ -234,7 +234,7 @@ export const OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> = [
     type: "function",
     name: "search_cards",
     description: strictDescription(
-      "Search local cards by front text, back text, or tags.",
+      "Search local cards by front text, back text, tags, or effort level.",
       "Use {\"query\": string, \"limit\": number|null}. Include both properties every time."
     ),
     strict: true,

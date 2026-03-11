@@ -548,7 +548,8 @@ function searchCards(snapshot: MutableSnapshot, query: string, limit: number): R
   return currentActiveCards(snapshot)
     .filter((card) => card.frontText.toLowerCase().includes(normalizedQuery)
       || card.backText.toLowerCase().includes(normalizedQuery)
-      || card.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)))
+      || card.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery))
+      || card.effortLevel.toLowerCase().includes(normalizedQuery))
     .slice(0, limit);
 }
 

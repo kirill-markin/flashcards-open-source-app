@@ -341,6 +341,7 @@ function buildCardsQuerySearchClause(
       "AND (",
       `lower(front_text || ' ' || back_text) LIKE $${startIndex + 1}`,
       `OR EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${startIndex + 1})`,
+      `OR lower(effort_level) LIKE $${startIndex + 1}`,
       ")",
     ].join(" "),
     params: [`%${searchText.toLowerCase()}%`],
@@ -550,7 +551,12 @@ export async function searchCards(
   searchText: string,
   limit: number,
 ): Promise<ReadonlyArray<Card>> {
-  const likeValue = `%${searchText}%`;
+  const normalizedSearchText = searchText.trim();
+  if (normalizedSearchText === "") {
+    throw createCardQueryError("query must not be empty");
+  }
+
+  const likeValue = `%${normalizedSearchText}%`;
   return transaction(async (executor) => {
     const result = await executor.query<CardRow>(
       [
@@ -559,7 +565,7 @@ export async function searchCards(
         "AND deleted_at IS NULL",
         "AND (front_text ILIKE $2 OR back_text ILIKE $2 OR EXISTS (",
         "SELECT 1 FROM unnest(tags) AS tag WHERE tag ILIKE $2",
-        "))",
+        ") OR effort_level ILIKE $2)",
         "ORDER BY updated_at DESC",
         "LIMIT $3",
       ].join(" "),

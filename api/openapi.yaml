@@ -420,7 +420,7 @@
       "post": {
         "tags": ["tools"],
         "summary": "Search cards",
-        "description": "Searches cards by text or tags within the selected workspace.",
+        "description": "Searches cards by text, tags, or effort level within the selected workspace.",
         "security": [
           {
             "ApiKeyHeader": []
