@@ -9,18 +9,29 @@ import {
   type KeyboardEvent,
   type ReactElement,
 } from "react";
-import type { Card } from "../types";
+import { deriveActiveCards } from "../appData/domain";
+import type { Card, TagSuggestion } from "../types";
 
-type TagOption = Readonly<{
+type ExistingTagOption = Readonly<{
   key: string;
   value: string;
   label: string;
-  kind: "create" | "existing";
+  kind: "existing";
+  suggestion: TagSuggestion;
 }>;
+
+type CreateTagOption = Readonly<{
+  key: string;
+  value: string;
+  label: string;
+  kind: "create";
+}>;
+
+type TagOption = ExistingTagOption | CreateTagOption;
 
 type CardTagsInputProps = Readonly<{
   value: ReadonlyArray<string>;
-  suggestions: ReadonlyArray<string>;
+  suggestions: ReadonlyArray<TagSuggestion>;
   placeholder: string;
   inputId?: string;
   inputName?: string;
@@ -76,20 +87,35 @@ function splitTagDraft(value: string): ReadonlyArray<string> {
     .filter((tag) => tag !== "");
 }
 
+function compareTagSuggestions(left: TagSuggestion, right: TagSuggestion): number {
+  if (left.countState === "ready" && right.countState === "ready") {
+    if (right.cardsCount !== left.cardsCount) {
+      return right.cardsCount - left.cardsCount;
+    }
+  } else if (left.countState === "ready") {
+    return -1;
+  } else if (right.countState === "ready") {
+    return 1;
+  }
+
+  return left.tag.localeCompare(right.tag, undefined, { sensitivity: "base" });
+}
+
 function getTagOptions(
   selectedTags: ReadonlyArray<string>,
-  suggestions: ReadonlyArray<string>,
+  suggestions: ReadonlyArray<TagSuggestion>,
   draftValue: string,
 ): ReadonlyArray<TagOption> {
   const normalizedDraft = normalizeTag(draftValue).toLowerCase();
   const existingOptions = suggestions
-    .filter((tag) => !hasTag(selectedTags, tag))
-    .filter((tag) => normalizedDraft === "" || tag.toLowerCase().includes(normalizedDraft))
-    .map((tag) => ({
-      key: `existing:${tag}`,
-      value: tag,
-      label: tag,
+    .filter((suggestion) => !hasTag(selectedTags, suggestion.tag))
+    .filter((suggestion) => normalizedDraft === "" || suggestion.tag.toLowerCase().includes(normalizedDraft))
+    .map((suggestion) => ({
+      key: `existing:${suggestion.tag}`,
+      value: suggestion.tag,
+      label: suggestion.tag,
       kind: "existing" as const,
+      suggestion,
     }));
 
   const draftTag = normalizeTag(draftValue);
@@ -108,24 +134,22 @@ function getTagOptions(
   ];
 }
 
-export function getTagSuggestionsFromCards(cards: ReadonlyArray<Card>): ReadonlyArray<string> {
+export function getTagSuggestionsFromCards(cards: ReadonlyArray<Card>): ReadonlyArray<TagSuggestion> {
   const counts = new Map<string, number>();
 
-  for (const card of cards) {
-    for (const tag of card.tags) {
+  for (const card of deriveActiveCards(cards)) {
+    for (const tag of new Set(card.tags)) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
   }
 
   return [...counts.entries()]
-    .sort((left, right) => {
-      if (right[1] !== left[1]) {
-        return right[1] - left[1];
-      }
-
-      return left[0].localeCompare(right[0]);
-    })
-    .map(([tag]) => tag);
+    .map(([tag, cardsCount]) => ({
+      tag,
+      countState: "ready",
+      cardsCount,
+    } satisfies TagSuggestion))
+    .sort(compareTagSuggestions);
 }
 
 export function areSameTags(left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean {
@@ -150,6 +174,26 @@ export function CardTagsValue(props: CardTagsValueProps): ReactElement {
           <span className="tag-chip-label">{tag}</span>
         </span>
       ))}
+    </span>
+  );
+}
+
+function renderTagSuggestionMeta(option: TagOption): ReactElement {
+  if (option.kind === "create") {
+    return <span className="tag-suggestion-kind">new</span>;
+  }
+
+  if (option.suggestion.countState === "loading") {
+    return (
+      <span className="tag-suggestion-meta">
+        <span className="tag-suggestion-spinner" aria-label="Loading tag count" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="tag-suggestion-meta tag-suggestion-count">
+      {option.suggestion.cardsCount}
     </span>
   );
 }
@@ -377,7 +421,7 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
                     onClick={() => handleSelect(option.value)}
                   >
                     <span className="tag-suggestion-label">{option.label}</span>
-                    <span className="tag-suggestion-kind">{option.kind === "create" ? "new" : "existing"}</span>
+                    {renderTagSuggestionMeta(option)}
                   </button>
                 );
               })

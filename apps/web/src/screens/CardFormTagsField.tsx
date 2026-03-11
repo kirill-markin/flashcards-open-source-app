@@ -8,6 +8,7 @@ import {
   type ReactElement,
 } from "react";
 import { createPortal } from "react-dom";
+import type { TagSuggestion } from "../types";
 import { areSameTags, CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "./CardTagsInput";
 
 type OverlayRect = Readonly<{
@@ -19,7 +20,7 @@ type OverlayRect = Readonly<{
 
 type CardFormTagsFieldProps = Readonly<{
   value: ReadonlyArray<string>;
-  suggestions: ReadonlyArray<string>;
+  suggestions: ReadonlyArray<TagSuggestion>;
   inputId?: string;
   inputName?: string;
   onChange: (nextValue: ReadonlyArray<string>) => void;

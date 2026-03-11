@@ -136,6 +136,37 @@
   letter-spacing: 0.08em;
 }
 
+.tag-suggestion-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  color: var(--text-secondary);
+}
+
+.tag-suggestion-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.tag-suggestion-spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-top-color: var(--text-secondary);
+  border-radius: 999px;
+  animation: tag-suggestion-spin 0.8s linear infinite;
+}
+
+@keyframes tag-suggestion-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .cell-tags-overlay {
   max-height: none;
   padding: 10px;

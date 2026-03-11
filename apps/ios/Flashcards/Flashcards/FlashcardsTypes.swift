@@ -193,6 +193,25 @@ struct WorkspaceTagsSummary: Codable, Hashable, Sendable {
     let totalCards: Int
 }
 
+enum TagSuggestionCount: Hashable, Sendable {
+    case loading
+    case ready(cardsCount: Int)
+
+    var cardsCount: Int? {
+        switch self {
+        case .loading:
+            return nil
+        case .ready(let cardsCount):
+            return cardsCount
+        }
+    }
+}
+
+struct TagSuggestion: Hashable, Sendable {
+    let tag: String
+    let countState: TagSuggestionCount
+}
+
 struct Deck: Codable, Identifiable, Hashable, Sendable {
     let deckId: String
     let workspaceId: String

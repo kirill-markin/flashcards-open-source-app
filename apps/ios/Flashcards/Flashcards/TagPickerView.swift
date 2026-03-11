@@ -45,17 +45,34 @@ private struct TagInputRow: View {
 }
 
 private struct TagPickerRow: View {
+    enum Detail: Equatable {
+        case none
+        case loading
+        case count(Int)
+        case label(String)
+    }
+
     let title: String
     let isSelected: Bool
-    let detailText: String?
+    let detail: Detail
 
     var body: some View {
         HStack {
             Text(title)
             Spacer()
 
-            if let detailText {
-                Text(detailText)
+            switch detail {
+            case .none:
+                EmptyView()
+            case .loading:
+                ProgressView()
+                    .controlSize(.small)
+            case .count(let cardsCount):
+                Text("\(cardsCount)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            case .label(let text):
+                Text(text)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -71,27 +88,36 @@ private struct TagPickerRow: View {
 struct TagPickerView: View {
     @Environment(\.dismiss) private var dismiss
 
-    let suggestions: [String]
+    let suggestions: [TagSuggestion]
     let onSave: ([String]) -> Void
 
     @State private var draftTags: [String]
     @State private var searchText: String
     @FocusState private var isInputFocused: Bool
 
-    init(selectedTags: [String], suggestions: [String], onSave: @escaping ([String]) -> Void) {
-        let normalizedSuggestions = normalizeTags(values: suggestions, referenceTags: [])
+    init(selectedTags: [String], suggestions: [TagSuggestion], onSave: @escaping ([String]) -> Void) {
+        let normalizedSuggestions = normalizeTagSuggestions(suggestions: suggestions)
         self.suggestions = normalizedSuggestions
         self.onSave = onSave
-        self._draftTags = State(initialValue: normalizeTags(values: selectedTags, referenceTags: normalizedSuggestions))
+        self._draftTags = State(
+            initialValue: normalizeTags(
+                values: selectedTags,
+                referenceTags: normalizedSuggestions.map(\.tag)
+            )
+        )
         self._searchText = State(initialValue: "")
     }
 
-    private var filteredSuggestions: [String] {
+    private var filteredSuggestions: [TagSuggestion] {
         filterTagSuggestions(
             suggestions: suggestions,
             selectedTags: draftTags,
             searchText: searchText
         )
+    }
+
+    private var selectedSuggestions: [TagSuggestion] {
+        selectedTagSuggestions(selectedTags: draftTags, suggestions: suggestions)
     }
 
     private var nextCreatableTag: String? {
@@ -116,6 +142,15 @@ struct TagPickerView: View {
         searchText = ""
     }
 
+    private func rowDetail(suggestion: TagSuggestion) -> TagPickerRow.Detail {
+        switch suggestion.countState {
+        case .loading:
+            return .loading
+        case .ready(let cardsCount):
+            return .count(cardsCount)
+        }
+    }
+
     var body: some View {
         List {
             Section {
@@ -128,15 +163,19 @@ struct TagPickerView: View {
 
             if draftTags.isEmpty == false {
                 Section("Selected") {
-                    ForEach(draftTags, id: \.self) { tag in
+                    ForEach(selectedSuggestions, id: \.tag) { suggestion in
                         Button {
                             draftTags = toggleTagSelection(
                                 selectedTags: draftTags,
-                                tag: tag,
+                                tag: suggestion.tag,
                                 suggestions: suggestions
                             )
                         } label: {
-                            TagPickerRow(title: tag, isSelected: true, detailText: nil)
+                            TagPickerRow(
+                                title: suggestion.tag,
+                                isSelected: true,
+                                detail: rowDetail(suggestion: suggestion)
+                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -156,7 +195,7 @@ struct TagPickerView: View {
                         TagPickerRow(
                             title: "Create \"\(nextCreatableTag)\"",
                             isSelected: false,
-                            detailText: "New"
+                            detail: .label("New")
                         )
                     }
                     .buttonStyle(.plain)
@@ -166,15 +205,19 @@ struct TagPickerView: View {
                     Text("No matching tags")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(filteredSuggestions, id: \.self) { tag in
+                    ForEach(filteredSuggestions, id: \.tag) { suggestion in
                         Button {
                             draftTags = toggleTagSelection(
                                 selectedTags: draftTags,
-                                tag: tag,
+                                tag: suggestion.tag,
                                 suggestions: suggestions
                             )
                         } label: {
-                            TagPickerRow(title: tag, isSelected: false, detailText: nil)
+                            TagPickerRow(
+                                title: suggestion.tag,
+                                isSelected: false,
+                                detail: rowDetail(suggestion: suggestion)
+                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -193,7 +236,7 @@ struct TagPickerView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Done") {
-                    onSave(normalizeTags(values: draftTags, referenceTags: suggestions))
+                    onSave(normalizeTags(values: draftTags, referenceTags: suggestions.map(\.tag)))
                     dismiss()
                 }
             }
