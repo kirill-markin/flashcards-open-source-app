@@ -276,6 +276,14 @@ function createRepairableToolCallError(
   };
 }
 
+function getLocalToolArgumentValidator(
+  toolName: string,
+): typeof OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS[keyof typeof OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS] | undefined {
+  return OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS[
+    toolName as keyof typeof OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS
+  ];
+}
+
 /**
  * Validates local tool arguments against the shared canonical local-tool
  * schema. The returned JSON string is normalized and safe to persist in local
@@ -295,7 +303,7 @@ export function validateLocalToolArguments(toolName: string, rawArguments: strin
     );
   }
 
-  const validator = OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS[toolName];
+  const validator = getLocalToolArgumentValidator(toolName);
   if (validator === undefined) {
     throw createRepairableToolCallError(
       toolName,

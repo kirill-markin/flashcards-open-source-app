@@ -1,3 +1,5 @@
+import { SHARED_AI_TOOL_PROMPT_EXAMPLE_LINES } from "../aiTools/sharedToolContracts";
+
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");
 }
@@ -99,17 +101,15 @@ export function buildLocalToolCallRulesSection(): string {
   ]);
 }
 
+/**
+ * Local tool-call examples are sourced from the canonical shared TypeScript
+ * contract layer in `apps/backend/src/aiTools/sharedToolContracts.ts` so
+ * prompt examples cannot drift from validator and schema definitions.
+ */
 export function buildLocalToolCallExamplesSection(): string {
   return joinLines([
     "Tool-call JSON examples:",
-    "- list_cards => {\"limit\": 20}",
-    "- get_cards => {\"cardIds\": [\"123e4567-e89b-42d3-a456-426614174000\"]}",
-    "- search_cards => {\"query\": \"grammar\", \"limit\": null}",
-    "- search_decks => {\"query\": \"grammar\", \"limit\": null}",
-    "- get_decks => {\"deckIds\": [\"123e4567-e89b-42d3-a456-426614174001\"]}",
-    "- list_review_history => {\"limit\": 20, \"cardId\": null}",
-    "- update_cards => {\"updates\": [{\"cardId\": \"123e4567-e89b-42d3-a456-426614174000\", \"frontText\": null, \"backText\": \"Updated back\", \"tags\": null, \"effortLevel\": null}]}",
-    "- update_decks => {\"updates\": [{\"deckId\": \"123e4567-e89b-42d3-a456-426614174001\", \"name\": null, \"effortLevels\": [\"fast\", \"medium\"], \"tags\": [\"grammar\"]}]}",
+    ...SHARED_AI_TOOL_PROMPT_EXAMPLE_LINES,
   ]);
 }
 
