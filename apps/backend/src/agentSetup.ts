@@ -50,7 +50,7 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
   return [
     `Call GET ${apiBaseUrl}/agent/me to load account context.`,
     `Then call GET ${apiBaseUrl}/agent/workspaces to inspect available workspaces for this API key.`,
-    `If needed, create with POST ${apiBaseUrl}/agent/workspaces or select with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select before tool calls.`,
+    `A first workspace is auto-provisioned for new users. Create additional workspaces with POST ${apiBaseUrl}/agent/workspaces or select one with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select before tool calls.`,
     "Read payload from data.* and do not expect resource fields at the top level.",
     "Select the next endpoint from instructions and confirm it with actions.",
   ].join(" ");
@@ -58,7 +58,7 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
 
 function buildNoWorkspaceInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `No workspace is available for this API key yet. Create one with POST ${apiBaseUrl}/agent/workspaces using {\"name\":\"Personal\"}, then continue with tools. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
+  return `No workspace is currently available for this API key. Create one with POST ${apiBaseUrl}/agent/workspaces using {\"name\":\"Personal\"}, then continue with tools. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
 }
 
 function buildSelectWorkspaceInstructions(requestUrl: string): string {

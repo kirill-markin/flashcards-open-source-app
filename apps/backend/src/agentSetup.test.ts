@@ -38,6 +38,7 @@ test("createAgentAccountEnvelope points the agent to load workspaces next", () =
   }]);
   assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/me/);
   assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/workspaces/);
+  assert.match(envelope.instructions, /auto-provisioned/i);
   assert.match(envelope.instructions, /Read payload from data\.\*/);
   assert.match(envelope.instructions, /confirm it with actions/i);
 });

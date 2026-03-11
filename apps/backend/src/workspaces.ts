@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { query, transaction, type DatabaseExecutor } from "./db";
 import { HttpError } from "./errors";
+import { insertSyncChange } from "./syncChanges";
 
 export const AUTO_CREATED_WORKSPACE_NAME = "Personal";
 
@@ -29,6 +30,19 @@ type AgentApiKeySelectionRow = Readonly<{
   connection_id: string;
 }>;
 
+type WorkspaceSchedulerSeedRow = Readonly<{
+  fsrs_algorithm: string;
+  fsrs_desired_retention: number;
+  fsrs_learning_steps_minutes: ReadonlyArray<number>;
+  fsrs_relearning_steps_minutes: ReadonlyArray<number>;
+  fsrs_maximum_interval_days: number;
+  fsrs_enable_fuzz: boolean;
+  fsrs_client_updated_at: Date | string;
+  fsrs_last_modified_by_device_id: string;
+  fsrs_last_operation_id: string;
+  fsrs_updated_at: Date | string;
+}>;
+
 function toIsoString(value: Date | string): string {
   if (value instanceof Date) {
     return value.toISOString();
@@ -44,6 +58,21 @@ function mapWorkspaceSummary(row: WorkspaceSummaryRow, selectedWorkspaceId: stri
     createdAt: toIsoString(row.created_at),
     isSelected: selectedWorkspaceId === row.workspace_id,
   };
+}
+
+function toWorkspaceSchedulerSyncPayloadJson(row: WorkspaceSchedulerSeedRow): string {
+  return JSON.stringify({
+    algorithm: row.fsrs_algorithm,
+    desiredRetention: row.fsrs_desired_retention,
+    learningStepsMinutes: row.fsrs_learning_steps_minutes,
+    relearningStepsMinutes: row.fsrs_relearning_steps_minutes,
+    maximumIntervalDays: row.fsrs_maximum_interval_days,
+    enableFuzz: row.fsrs_enable_fuzz,
+    clientUpdatedAt: toIsoString(row.fsrs_client_updated_at),
+    lastModifiedByDeviceId: row.fsrs_last_modified_by_device_id,
+    lastOperationId: row.fsrs_last_operation_id,
+    updatedAt: toIsoString(row.fsrs_updated_at),
+  });
 }
 
 async function ensureUserSettingsRowInExecutor(executor: DatabaseExecutor, userId: string): Promise<void> {
@@ -92,16 +121,24 @@ async function createWorkspaceInExecutor(
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
 
-  await executor.query(
+  const workspaceInsertResult = await executor.query<WorkspaceSchedulerSeedRow>(
     [
       "INSERT INTO org.workspaces",
       "(",
       "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_device_id, fsrs_last_operation_id",
       ")",
       "VALUES ($1, $2, $3, $4, $5)",
+      "RETURNING",
+      "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
+      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
+      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
     ].join(" "),
     [workspaceId, name, bootstrapTimestamp, bootstrapDeviceId, bootstrapOperationId],
   );
+  const workspaceRow = workspaceInsertResult.rows[0];
+  if (workspaceRow === undefined) {
+    throw new Error("Workspace insert did not return scheduler settings");
+  }
 
   await executor.query(
     [
@@ -121,7 +158,72 @@ async function createWorkspaceInExecutor(
     [workspaceId, userId],
   );
 
+  await insertSyncChange(
+    executor,
+    workspaceId,
+    "workspace_scheduler_settings",
+    workspaceId,
+    "upsert",
+    workspaceRow.fsrs_last_modified_by_device_id,
+    workspaceRow.fsrs_last_operation_id,
+    toWorkspaceSchedulerSyncPayloadJson(workspaceRow),
+  );
+
   return workspaceId;
+}
+
+type UserWorkspaceAccessRow = Readonly<{
+  workspace_id: string;
+}>;
+
+async function listUserWorkspaceIdsInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+): Promise<ReadonlyArray<string>> {
+  const result = await executor.query<UserWorkspaceAccessRow>(
+    [
+      "SELECT memberships.workspace_id",
+      "FROM org.workspace_memberships memberships",
+      "INNER JOIN org.workspaces workspaces ON workspaces.workspace_id = memberships.workspace_id",
+      "WHERE memberships.user_id = $1",
+      "ORDER BY workspaces.created_at ASC, workspaces.workspace_id ASC",
+    ].join(" "),
+    [userId],
+  );
+
+  return result.rows.map((row) => row.workspace_id);
+}
+
+export async function ensureUserSelectedWorkspaceInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  selectedWorkspaceId: string | null,
+): Promise<string> {
+  const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
+
+  if (workspaceIds.length === 0) {
+    const autoCreatedWorkspaceId = await createWorkspaceInExecutor(executor, userId, AUTO_CREATED_WORKSPACE_NAME);
+    await executor.query(
+      "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+      [autoCreatedWorkspaceId, userId],
+    );
+    return autoCreatedWorkspaceId;
+  }
+
+  if (selectedWorkspaceId !== null && workspaceIds.includes(selectedWorkspaceId)) {
+    return selectedWorkspaceId;
+  }
+
+  const earliestWorkspaceId = workspaceIds[0];
+  if (earliestWorkspaceId === undefined) {
+    throw new Error("Expected one accessible workspace");
+  }
+
+  await executor.query(
+    "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+    [earliestWorkspaceId, userId],
+  );
+  return earliestWorkspaceId;
 }
 
 async function setSelectedWorkspaceForApiKeyConnectionInExecutor(
