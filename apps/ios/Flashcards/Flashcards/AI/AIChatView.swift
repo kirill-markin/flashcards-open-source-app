@@ -623,7 +623,7 @@ private let aiChatAutoScrollAnimationDurationSeconds: Double = 0.25
 private let aiChatScrollCoordinateSpaceName: String = "ai-chat-scroll-view"
 
 private struct AIChatBottomMarkerPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+    static let defaultValue: CGFloat = 0
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
@@ -631,7 +631,7 @@ private struct AIChatBottomMarkerPreferenceKey: PreferenceKey {
 }
 
 private struct AIChatViewportHeightPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+    static let defaultValue: CGFloat = 0
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
