@@ -67,7 +67,12 @@ test("agent verify-code returns env-var guidance with the new API key", async ()
     otpSessionToken: "ABCD-EFGH-IJKL-MNPQ-1234",
     label: "agent",
   }));
-  const body = await response.json() as { ok: boolean; instructions: string; data: { apiKey: string } };
+  const body = await response.json() as {
+    ok: boolean;
+    instructions: string;
+    data: { apiKey: string };
+    actions: ReadonlyArray<Readonly<{ name: string }>>;
+  };
 
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
@@ -79,5 +84,13 @@ test("agent verify-code returns env-var guidance with the new API key", async ()
   assert.match(body.instructions, /ask the user for permission before writing to \.env or any file/i);
   assert.match(body.instructions, /export FLASHCARDS_OPEN_SOURCE_API_KEY=/);
   assert.match(body.instructions, /Authorization: ApiKey \$FLASHCARDS_OPEN_SOURCE_API_KEY/);
-  assert.match(body.instructions, /load_account/);
+  assert.match(body.instructions, /GET .*\/agent\/me/);
+  assert.match(body.instructions, /GET .*\/agent\/workspaces/);
+  assert.match(body.instructions, /POST .*\/agent\/workspaces\/\{workspaceId\}\/select/);
+  assert.deepEqual(body.actions.map((action) => action.name), [
+    "load_account",
+    "list_workspaces",
+    "create_workspace",
+    "select_workspace",
+  ]);
 });

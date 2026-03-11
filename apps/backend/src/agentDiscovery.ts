@@ -99,6 +99,6 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       },
     ],
     instructions:
-      `Start with send_code. After login, call ${apiBaseUrl}/agent/me, then ${apiBaseUrl}/agent/workspaces before tool calls.`,
+      `Start with send_code. After login, call ${apiBaseUrl}/agent/me, then ${apiBaseUrl}/agent/workspaces. If no workspaces exist, call POST ${apiBaseUrl}/agent/workspaces with {\"name\":\"Personal\"}. If multiple workspaces exist and no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select before tool calls.`,
   };
 }

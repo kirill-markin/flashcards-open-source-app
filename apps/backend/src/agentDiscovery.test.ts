@@ -36,7 +36,7 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
   ]);
   assert.equal(
     envelope.instructions,
-    "Start with send_code. After login, call https://api.example.com/v1/agent/me, then https://api.example.com/v1/agent/workspaces before tool calls.",
+    "Start with send_code. After login, call https://api.example.com/v1/agent/me, then https://api.example.com/v1/agent/workspaces. If no workspaces exist, call POST https://api.example.com/v1/agent/workspaces with {\"name\":\"Personal\"}. If multiple workspaces exist and no workspace is selected for this API key, call POST https://api.example.com/v1/agent/workspaces/{workspaceId}/select before tool calls.",
   );
 });
 

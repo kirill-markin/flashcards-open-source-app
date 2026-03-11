@@ -24,7 +24,7 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             try JSONSerialization.jsonObject(with: Data(workspaceContextResult.output.utf8)) as? [String: Any]
         )
         let workspace = try XCTUnwrap(workspaceContext["workspace"] as? [String: Any])
-        XCTAssertEqual(workspace["name"] as? String, "Local Workspace")
+        XCTAssertEqual(workspace["name"] as? String, "Personal")
 
         let createdCardResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(

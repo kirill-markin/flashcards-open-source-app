@@ -7,6 +7,7 @@ export type AuthResult = Readonly<{
   userId: string;
   transport: AuthTransport;
   connectionId: string | null;
+  selectedWorkspaceId: string | null;
 }>;
 
 export type AuthRequest = Readonly<{
@@ -79,23 +80,28 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
   const authMode = process.env.AUTH_MODE ?? "none";
 
   if (authMode === "none") {
-    return { userId: "local", transport: "none", connectionId: null };
+    return { userId: "local", transport: "none", connectionId: null, selectedWorkspaceId: null };
   }
 
   const parsedAuthorization = parseAuthorizationHeader(request.authorizationHeader);
   if (parsedAuthorization.scheme === "api_key") {
     const auth = await authenticateAgentApiKey(parsedAuthorization.token);
-    return { userId: auth.userId, transport: "api_key", connectionId: auth.connectionId };
+    return {
+      userId: auth.userId,
+      transport: "api_key",
+      connectionId: auth.connectionId,
+      selectedWorkspaceId: auth.selectedWorkspaceId,
+    };
   }
 
   if (parsedAuthorization.scheme === "bearer") {
     const userId = await verifyIdToken(parsedAuthorization.token);
-    return { userId, transport: "bearer", connectionId: null };
+    return { userId, transport: "bearer", connectionId: null, selectedWorkspaceId: null };
   }
 
   if (request.sessionToken !== undefined && request.sessionToken !== "") {
     const userId = await verifyIdToken(request.sessionToken);
-    return { userId, transport: "session", connectionId: null };
+    return { userId, transport: "session", connectionId: null, selectedWorkspaceId: null };
   }
 
   throw new AuthError(401, "Missing authentication token");

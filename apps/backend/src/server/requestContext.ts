@@ -31,10 +31,13 @@ export async function loadRequestContext(
 ): Promise<RequestContext> {
   const auth = await authenticateRequest(toAuthRequest(requestAuthInputs));
   const userProfile = await ensureUserProfile(auth.userId);
+  const selectedWorkspaceId = auth.transport === "api_key"
+    ? auth.selectedWorkspaceId
+    : userProfile.selectedWorkspaceId;
 
   return {
     userId: userProfile.userId,
-    selectedWorkspaceId: userProfile.selectedWorkspaceId,
+    selectedWorkspaceId,
     email: userProfile.email,
     locale: userProfile.locale,
     userSettingsCreatedAt: userProfile.createdAt,

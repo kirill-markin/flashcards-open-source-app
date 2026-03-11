@@ -10,11 +10,19 @@ import {
   listAgentApiKeyConnectionsForUser,
   revokeAgentApiKeyConnectionForUser,
 } from "../agentApiKeys";
-import { createWorkspaceForUser, listUserWorkspaces, selectWorkspaceForUser } from "../workspaces";
+import {
+  createWorkspaceForApiKeyConnection,
+  createWorkspaceForUser,
+  listUserWorkspaces,
+  listUserWorkspacesForSelectedWorkspace,
+  selectWorkspaceForApiKeyConnection,
+  selectWorkspaceForUser,
+} from "../workspaces";
 import { HttpError } from "../errors";
 import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
+  requireAgentConnectionId,
 } from "../server/requestContext";
 import {
   expectNonEmptyString,
@@ -39,7 +47,9 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     const requestId = context.get("requestId");
 
     try {
-      const workspaces = await listUserWorkspaces(requestContext.userId);
+      const workspaces = shouldUseAgentSetupEnvelope(requestContext.transport)
+        ? await listUserWorkspacesForSelectedWorkspace(requestContext.userId, requestContext.selectedWorkspaceId)
+        : await listUserWorkspaces(requestContext.userId);
       logCloudRouteEvent("workspaces_list", {
         requestId,
         route: context.req.path,
@@ -72,10 +82,14 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     const body = expectRecord(await parseJsonBody(context.req.raw));
 
     try {
-      const workspace = await createWorkspaceForUser(
-        requestContext.userId,
-        expectNonEmptyString(body.name, "name"),
-      );
+      const workspaceName = expectNonEmptyString(body.name, "name");
+      const workspace = shouldUseAgentSetupEnvelope(requestContext.transport)
+        ? await createWorkspaceForApiKeyConnection(
+          requestContext.userId,
+          requireAgentConnectionId(requestContext),
+          workspaceName,
+        )
+        : await createWorkspaceForUser(requestContext.userId, workspaceName);
       logCloudRouteEvent("workspace_create", {
         requestId,
         route: context.req.path,
@@ -106,7 +120,13 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     const requestId = context.get("requestId");
 
     try {
-      const workspace = await selectWorkspaceForUser(requestContext.userId, workspaceId);
+      const workspace = shouldUseAgentSetupEnvelope(requestContext.transport)
+        ? await selectWorkspaceForApiKeyConnection(
+          requestContext.userId,
+          requireAgentConnectionId(requestContext),
+          workspaceId,
+        )
+        : await selectWorkspaceForUser(requestContext.userId, workspaceId);
       logCloudRouteEvent("workspace_select", {
         requestId,
         route: context.req.path,

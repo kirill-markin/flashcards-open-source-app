@@ -92,7 +92,7 @@ function makeSession(): SessionInfo {
 function makeWorkspace(): WorkspaceSummary {
   return {
     workspaceId: "workspace-1",
-    name: "Local Workspace",
+    name: "Personal",
     createdAt: "2026-03-01T00:00:00.000Z",
     isSelected: true,
   };
@@ -205,7 +205,7 @@ describe("createLocalToolExecutor", () => {
     expect(workspaceContext).toEqual({
       workspace: {
         workspaceId: "workspace-1",
-        name: "Local Workspace",
+        name: "Personal",
         createdAt: "2026-03-01T00:00:00.000Z",
       },
       userSettings: {

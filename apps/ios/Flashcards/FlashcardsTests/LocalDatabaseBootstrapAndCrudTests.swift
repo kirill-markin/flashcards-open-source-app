@@ -8,7 +8,7 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
 
         let snapshot = try database.loadStateSnapshot()
 
-        XCTAssertEqual(snapshot.workspace.name, "Local Workspace")
+        XCTAssertEqual(snapshot.workspace.name, "Personal")
         XCTAssertEqual(snapshot.userSettings.userId, "local-user")
         XCTAssertEqual(snapshot.schedulerSettings.algorithm, defaultSchedulerSettingsConfig.algorithm)
         XCTAssertEqual(snapshot.cards, [])

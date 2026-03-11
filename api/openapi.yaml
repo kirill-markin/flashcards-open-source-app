@@ -26,7 +26,7 @@
     },
     {
       "name": "bootstrap",
-      "description": "Agent-oriented account and workspace bootstrap after ApiKey authentication."
+      "description": "Agent-oriented account and workspace bootstrap after ApiKey authentication, including per-connection workspace selection."
     },
     {
       "name": "tools",
@@ -50,7 +50,7 @@
       "get": {
         "tags": ["discovery"],
         "summary": "Agent discovery",
-        "description": "Discovery envelope for external AI agents. Includes auth bootstrap actions and links to the public agent-only OpenAPI document.",
+        "description": "Discovery envelope for external AI agents. Includes auth bootstrap actions, explicit workspace-selection flow guidance, and links to the public agent-only OpenAPI document.",
         "responses": {
           "200": {
             "description": "Agent discovery envelope"
@@ -138,7 +138,7 @@
       "post": {
         "tags": ["auth"],
         "summary": "Verify OTP code and issue API key",
-        "description": "Completes email OTP authentication and returns a long-lived ApiKey plus a connection descriptor for the external AI agent.",
+        "description": "Completes email OTP authentication and returns a long-lived ApiKey plus a connection descriptor for the external AI agent, followed by explicit account/workspace bootstrap actions.",
         "servers": [
           {
             "url": "https://auth.flashcards-open-source-app.com",
@@ -166,7 +166,7 @@
       "get": {
         "tags": ["bootstrap"],
         "summary": "Load agent account context",
-        "description": "Returns the authenticated user profile, the currently selected workspace id, and short next-step actions in the compact agent envelope.",
+        "description": "Returns the authenticated user profile, the currently selected workspace id for this API key connection, and explicit next-step bootstrap actions.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -193,7 +193,7 @@
       "get": {
         "tags": ["bootstrap"],
         "summary": "List workspaces for the external agent",
-        "description": "Lists the user's workspaces in an agent-oriented envelope and points the caller either to workspace creation, selection, or the tool surface.",
+        "description": "Lists the user's workspaces in an agent-oriented envelope and points the caller to either create a workspace, select one for the current API key connection, or continue to tools.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -218,7 +218,7 @@
       "post": {
         "tags": ["bootstrap"],
         "summary": "Create workspace for the external agent",
-        "description": "Creates a workspace and immediately returns the ready-state agent envelope with short follow-up actions.",
+        "description": "Creates a workspace and immediately marks it as selected for the current API key connection, then returns the ready-state agent envelope.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -255,7 +255,7 @@
       "post": {
         "tags": ["bootstrap"],
         "summary": "Select workspace for the external agent",
-        "description": "Marks a workspace as selected for the authenticated user and returns the ready-state agent envelope for subsequent tool calls.",
+        "description": "Marks a workspace as selected for the current API key connection and returns the ready-state agent envelope for subsequent tool calls.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -292,7 +292,7 @@
       "get": {
         "tags": ["tools"],
         "summary": "List available external agent tools",
-        "description": "Returns a compact tool catalog for the currently selected workspace. Use this route for lightweight discovery instead of relying on internal endpoint families.",
+        "description": "Returns a compact tool catalog for the workspace selected on the current API key connection. Use this route for lightweight discovery instead of relying on internal endpoint families.",
         "security": [
           {
             "ApiKeyHeader": []
