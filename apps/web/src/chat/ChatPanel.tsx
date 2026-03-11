@@ -23,8 +23,10 @@ import type {
 import { useChatLayout } from "./ChatLayoutContext";
 import {
   checkFileSize,
+  EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
   FileAttachment,
   prepareAttachment,
+  recompressImageAttachment,
   type PendingAttachment,
 } from "./FileAttachment";
 import { createLocalToolExecutor } from "./localToolExecutor";
@@ -37,8 +39,10 @@ type Props = Readonly<{
 }>;
 
 const STORAGE_MODEL_KEY = "flashcards-chat-model";
-const IMAGE_MEDIA_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
-const MAX_BODY_BYTES = 90 * 1024 * 1024;
+const IMAGE_MEDIA_TYPE_PREFIX = "image/";
+const ATTACHMENT_PAYLOAD_LIMIT_BYTES = 9_961_472;
+const USER_VISIBLE_ATTACHMENT_LIMIT_MB = 10;
+const ATTACHMENT_LIMIT_ERROR_MESSAGE = `Attachment payload limit is ${USER_VISIBLE_ATTACHMENT_LIMIT_MB} MB after compression.`;
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 600;
 const AUTO_SCROLL_INTERVAL_MS = 2_000;
@@ -135,7 +139,7 @@ function buildContentParts(
   const parts: Array<ContentPart> = [];
 
   for (const attachment of attachments) {
-    if (IMAGE_MEDIA_TYPES.has(attachment.mediaType)) {
+    if (attachment.mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX)) {
       parts.push({ type: "image", mediaType: attachment.mediaType, base64Data: attachment.base64Data });
       continue;
     }
@@ -153,6 +157,11 @@ function buildContentParts(
   }
 
   return parts;
+}
+
+function toRequestBodySizeBytes(requestBody: unknown): number {
+  const jsonBody = JSON.stringify(requestBody);
+  return new TextEncoder().encode(jsonBody).length;
 }
 
 function sanitizeErrorText(status: number, raw: string): string {
@@ -266,6 +275,7 @@ export function ChatPanel(props: Props): ReactElement {
 
   const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const pendingAttachmentsRef = useRef<ReadonlyArray<PendingAttachment>>([]);
   const dragCounterRef = useRef<number>(0);
   const dragWidthRef = useRef<number>(chatWidth);
   const abortRef = useRef<AbortController | null>(null);
@@ -289,6 +299,32 @@ export function ChatPanel(props: Props): ReactElement {
     hasPendingScrollRef.current = false;
   }
 
+  function setPendingAttachmentsState(nextAttachments: ReadonlyArray<PendingAttachment>): void {
+    pendingAttachmentsRef.current = nextAttachments;
+    setPendingAttachments(nextAttachments);
+  }
+
+  function buildDraftRequestBodyForAttachments(
+    attachments: ReadonlyArray<PendingAttachment>,
+    timezone: string,
+  ): ReturnType<typeof createLocalChatRequestBody> | null {
+    const draftContentParts = buildContentParts(inputText, attachments);
+    if (draftContentParts.length === 0) {
+      return null;
+    }
+
+    const draftWireMessages = toLocalChatMessages([
+      ...messages,
+      {
+        role: "user",
+        content: draftContentParts,
+        timestamp: Date.now(),
+        isError: false,
+      },
+    ]);
+    return createLocalChatRequestBody(draftWireMessages, selectedModel, timezone);
+  }
+
   useEffect(() => {
     const savedModel = localStorage.getItem(STORAGE_MODEL_KEY);
     if (savedModel !== null) {
@@ -300,6 +336,10 @@ export function ChatPanel(props: Props): ReactElement {
     setLocalWidth(chatWidth);
     dragWidthRef.current = chatWidth;
   }, [chatWidth]);
+
+  useEffect(() => {
+    pendingAttachmentsRef.current = pendingAttachments;
+  }, [pendingAttachments]);
 
   useEffect(() => {
     if (!isHydrated || hasInitialBottomSnapRef.current) {
@@ -415,12 +455,44 @@ export function ChatPanel(props: Props): ReactElement {
     localStorage.setItem(STORAGE_MODEL_KEY, modelId);
   }
 
-  function handleAttach(attachment: PendingAttachment): void {
-    setPendingAttachments((currentAttachments) => [...currentAttachments, attachment]);
+  async function handleAttach(attachment: PendingAttachment): Promise<void> {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    let finalAttachment = attachment;
+    let candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
+    let projectedRequestBody = buildDraftRequestBodyForAttachments(candidateAttachments, timezone);
+    let projectedSizeBytes = projectedRequestBody === null ? 0 : toRequestBodySizeBytes(projectedRequestBody);
+
+    if (
+      projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES
+      && attachment.mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX)
+    ) {
+      try {
+        finalAttachment = await recompressImageAttachment(
+          attachment,
+          EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        window.alert(message);
+        return;
+      }
+
+      candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
+      projectedRequestBody = buildDraftRequestBodyForAttachments(candidateAttachments, timezone);
+      projectedSizeBytes = projectedRequestBody === null ? 0 : toRequestBodySizeBytes(projectedRequestBody);
+    }
+
+    if (projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
+      window.alert(ATTACHMENT_LIMIT_ERROR_MESSAGE);
+      return;
+    }
+
+    setPendingAttachmentsState(candidateAttachments);
   }
 
   function removeAttachment(index: number): void {
-    setPendingAttachments((currentAttachments) => [
+    const currentAttachments = pendingAttachmentsRef.current;
+    setPendingAttachmentsState([
       ...currentAttachments.slice(0, index),
       ...currentAttachments.slice(index + 1),
     ]);
@@ -440,7 +512,12 @@ export function ChatPanel(props: Props): ReactElement {
         continue;
       }
 
-      handleAttach(await prepareAttachment(file));
+      try {
+        await handleAttach(await prepareAttachment(file));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        window.alert(message);
+      }
     }
   }
 
@@ -454,9 +531,25 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const initialWireMessages = toLocalChatMessages([
+      ...messages,
+      {
+        role: "user",
+        content: contentParts,
+        timestamp: Date.now(),
+        isError: false,
+      },
+    ]);
+    const initialRequestBody = createLocalChatRequestBody(initialWireMessages, selectedModel, timezone);
+    if (toRequestBodySizeBytes(initialRequestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
+      markAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
+      return;
+    }
+
     appendUserMessage(contentParts);
     setInputText("");
-    setPendingAttachments([]);
+    setPendingAttachmentsState([]);
     setIsStreaming(true);
     startAssistantMessage();
 
@@ -464,22 +557,13 @@ export function ChatPanel(props: Props): ReactElement {
     abortRef.current = abortController;
 
     try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const storageState = await ensurePersistentStorage();
       console.info("chat_local_storage_state", storageState);
 
       const localToolExecutor = createLocalToolExecutor(appData);
       const clientRequestId = globalThis.crypto.randomUUID();
       const requestStartedAt = Date.now();
-      const wireMessages = [...toLocalChatMessages([
-        ...messages,
-        {
-          role: "user",
-          content: contentParts,
-          timestamp: Date.now(),
-          isError: false,
-        },
-      ])];
+      const wireMessages = [...initialWireMessages];
       let receivedContent = false;
       let backendRequestId: string | null = null;
       let bufferLength = 0;
@@ -487,8 +571,8 @@ export function ChatPanel(props: Props): ReactElement {
 
       while (true) {
         const requestBody = createLocalChatRequestBody(wireMessages, selectedModel, timezone);
-        if (JSON.stringify(requestBody).length > MAX_BODY_BYTES) {
-          markAssistantError("Request is too large for the local chat endpoint.");
+        if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
+          markAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
           return;
         }
 

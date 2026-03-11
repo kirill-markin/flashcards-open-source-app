@@ -347,7 +347,6 @@ function messageToResponseItems(
         content.push({
           type: "input_file",
           file_id: uploadedPart.fileId,
-          filename: uploadedPart.fileName,
         });
       }
     }
