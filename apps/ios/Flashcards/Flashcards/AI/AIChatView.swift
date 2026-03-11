@@ -159,102 +159,115 @@ struct AIChatView: View {
     }
 
     private var chatContent: some View {
-        VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        if self.chatStore.messages.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Try asking")
-                                    .font(.headline)
-                                Text("Summarize weak areas from my due cards.")
-                                Text("Find cards tagged with grammar and suggest cleanup.")
-                                Text("Propose a new deck filter and explain the exact change.")
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(16)
-                            .foregroundStyle(.secondary)
-                        }
+        GeometryReader { geometry in
+            let availableWidth = max(
+                geometry.size.width - (aiChatMessageListHorizontalPadding * 2),
+                0
+            )
 
-                        ForEach(self.chatStore.messages) { message in
-                            self.messageRow(
-                                message: message,
-                                repairStatus: self.repairStatus(for: message)
-                            )
-                            .id(message.id)
-                        }
-
-                        Color.clear
-                            .frame(height: 1)
-                            .background(
-                                GeometryReader { geometry in
-                                    Color.clear.preference(
-                                        key: AIChatBottomMarkerPreferenceKey.self,
-                                        value: geometry.frame(in: .named(aiChatScrollCoordinateSpaceName)).maxY
-                                    )
+            VStack(spacing: 0) {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 12) {
+                            if self.chatStore.messages.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Try asking")
+                                        .font(.headline)
+                                    Text("Summarize weak areas from my due cards.")
+                                    Text("Find cards tagged with grammar and suggest cleanup.")
+                                    Text("Propose a new deck filter and explain the exact change.")
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(16)
+                                .foregroundStyle(.secondary)
+                            }
+
+                            ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
+                                self.messageRow(
+                                    message: message,
+                                    repairStatus: self.repairStatus(for: message),
+                                    availableWidth: availableWidth,
+                                    showsTypingIndicator: aiChatShouldShowTypingIndicator(
+                                        message: message,
+                                        isLastMessage: index == self.chatStore.messages.indices.last,
+                                        isStreaming: self.chatStore.isStreaming
+                                    )
+                                )
+                                .id(message.id)
+                            }
+
+                            Color.clear
+                                .frame(height: 1)
+                                .background(
+                                    GeometryReader { geometry in
+                                        Color.clear.preference(
+                                            key: AIChatBottomMarkerPreferenceKey.self,
+                                            value: geometry.frame(in: .named(aiChatScrollCoordinateSpaceName)).maxY
+                                        )
+                                    }
+                                )
+                        }
+                        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+                        .padding(.vertical, 12)
+                    }
+                    .defaultScrollAnchor(.bottom)
+                    .coordinateSpace(name: aiChatScrollCoordinateSpaceName)
+                    .background(Color(.systemGroupedBackground))
+                    .contentShape(Rectangle())
+                    .scrollDismissesKeyboard(.interactively)
+                    .onTapGesture {
+                        self.isComposerFocused = false
+                    }
+                    .background(
+                        GeometryReader { geometry in
+                            Color.clear.preference(
+                                key: AIChatViewportHeightPreferenceKey.self,
+                                value: geometry.size.height
                             )
+                        }
+                    )
+                    .onPreferenceChange(AIChatBottomMarkerPreferenceKey.self) { nextBottomMarkerMaxY in
+                        self.bottomMarkerMaxY = nextBottomMarkerMaxY
+                        self.updateAutoScrollEnabled(proxy: proxy)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                }
-                .defaultScrollAnchor(.bottom)
-                .coordinateSpace(name: aiChatScrollCoordinateSpaceName)
-                .background(Color(.systemGroupedBackground))
-                .contentShape(Rectangle())
-                .scrollDismissesKeyboard(.interactively)
-                .onTapGesture {
-                    self.isComposerFocused = false
-                }
-                .background(
-                    GeometryReader { geometry in
-                        Color.clear.preference(
-                            key: AIChatViewportHeightPreferenceKey.self,
-                            value: geometry.size.height
-                        )
+                    .onPreferenceChange(AIChatViewportHeightPreferenceKey.self) { nextScrollViewportHeight in
+                        self.scrollViewportHeight = nextScrollViewportHeight
+                        self.updateAutoScrollEnabled(proxy: proxy)
                     }
-                )
-                .onPreferenceChange(AIChatBottomMarkerPreferenceKey.self) { nextBottomMarkerMaxY in
-                    self.bottomMarkerMaxY = nextBottomMarkerMaxY
-                    self.updateAutoScrollEnabled(proxy: proxy)
-                }
-                .onPreferenceChange(AIChatViewportHeightPreferenceKey.self) { nextScrollViewportHeight in
-                    self.scrollViewportHeight = nextScrollViewportHeight
-                    self.updateAutoScrollEnabled(proxy: proxy)
-                }
-                .onAppear {
-                    self.handleInitialBottomSnap(proxy: proxy)
-                    if self.chatStore.isStreaming {
-                        self.startAutoScrollTask(proxy: proxy)
+                    .onAppear {
+                        self.handleInitialBottomSnap(proxy: proxy)
+                        if self.chatStore.isStreaming {
+                            self.startAutoScrollTask(proxy: proxy)
+                        }
                     }
-                }
-                .onDisappear {
-                    self.stopAutoScrollTask()
-                }
-                .onChange(of: self.chatStore.messages) { _, messages in
-                    guard let lastMessage = messages.last else {
-                        self.hasPendingAutoScroll = false
-                        return
+                    .onDisappear {
+                        self.stopAutoScrollTask()
                     }
+                    .onChange(of: self.chatStore.messages) { _, messages in
+                        guard let lastMessage = messages.last else {
+                            self.hasPendingAutoScroll = false
+                            return
+                        }
 
-                    self.handleInitialBottomSnap(proxy: proxy)
-                    self.hasPendingAutoScroll = true
+                        self.handleInitialBottomSnap(proxy: proxy)
+                        self.hasPendingAutoScroll = true
 
-                    if self.chatStore.isStreaming == false {
-                        self.flushPendingAutoScroll(proxy: proxy, messageId: lastMessage.id)
+                        if self.chatStore.isStreaming == false {
+                            self.flushPendingAutoScroll(proxy: proxy, messageId: lastMessage.id)
+                        }
                     }
-                }
-                .onChange(of: self.chatStore.isStreaming) { _, isStreaming in
-                    if isStreaming {
-                        self.startAutoScrollTask(proxy: proxy)
-                        return
-                    }
+                    .onChange(of: self.chatStore.isStreaming) { _, isStreaming in
+                        if isStreaming {
+                            self.startAutoScrollTask(proxy: proxy)
+                            return
+                        }
 
-                    self.stopAutoScrollTask()
-                    guard let lastMessageId = self.chatStore.messages.last?.id else {
-                        return
+                        self.stopAutoScrollTask()
+                        guard let lastMessageId = self.chatStore.messages.last?.id else {
+                            return
+                        }
+                        self.flushPendingAutoScroll(proxy: proxy, messageId: lastMessageId)
                     }
-                    self.flushPendingAutoScroll(proxy: proxy, messageId: lastMessageId)
                 }
             }
         }
@@ -420,7 +433,40 @@ struct AIChatView: View {
         return self.chatStore.repairStatus
     }
 
-    private func messageRow(message: AIChatMessage, repairStatus: AIChatRepairAttemptStatus?) -> some View {
+    private func messageRow(
+        message: AIChatMessage,
+        repairStatus: AIChatRepairAttemptStatus?,
+        availableWidth: CGFloat,
+        showsTypingIndicator: Bool
+    ) -> some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            if message.role == .assistant {
+                self.messageBubble(
+                    message: message,
+                    repairStatus: repairStatus,
+                    availableWidth: availableWidth,
+                    showsTypingIndicator: showsTypingIndicator
+                )
+                Spacer(minLength: 0)
+            } else {
+                Spacer(minLength: 0)
+                self.messageBubble(
+                    message: message,
+                    repairStatus: repairStatus,
+                    availableWidth: availableWidth,
+                    showsTypingIndicator: showsTypingIndicator
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func messageBubble(
+        message: AIChatMessage,
+        repairStatus: AIChatRepairAttemptStatus?,
+        availableWidth: CGFloat,
+        showsTypingIndicator: Bool
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(message.role == .user ? "You" : "Assistant")
                 .font(.caption.weight(.semibold))
@@ -439,8 +485,12 @@ struct AIChatView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            if showsTypingIndicator {
+                AIChatTypingIndicator()
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: aiChatBubbleMaxWidth(availableWidth: availableWidth), alignment: .leading)
         .padding(12)
         .background(message.role == .user ? Color.accentColor.opacity(0.12) : Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -672,10 +722,15 @@ private let aiChatComposerTopPadding: CGFloat = 8
 private let aiChatComposerSendButtonInset: CGFloat = 8
 private let aiChatComposerSendButtonVisualSize: CGFloat = 28
 private let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 44
+private let aiChatMessageListHorizontalPadding: CGFloat = 16
 private let aiChatAutoScrollIntervalSeconds: Double = 2.0
 private let aiChatAutoScrollBottomThreshold: CGFloat = 24
 private let aiChatAutoScrollAnimationDurationSeconds: Double = 0.25
 private let aiChatScrollCoordinateSpaceName: String = "ai-chat-scroll-view"
+private let aiChatBubbleWidthFraction: CGFloat = 0.88
+private let aiChatBubbleWidthMaximum: CGFloat = 720
+private let aiChatTypingIndicatorDotCount: Int = 3
+private let aiChatTypingIndicatorAnimationStepSeconds: Double = 0.3
 
 private struct AIChatBottomMarkerPreferenceKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
@@ -691,6 +746,45 @@ private struct AIChatViewportHeightPreferenceKey: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
+}
+
+private struct AIChatTypingIndicator: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds)) { context in
+            let activeDotCount = aiChatTypingIndicatorActiveDotCount(date: context.date)
+
+            HStack(spacing: 5) {
+                ForEach(0..<aiChatTypingIndicatorDotCount, id: \.self) { index in
+                    Circle()
+                        .fill(Color.secondary)
+                        .frame(width: 6, height: 6)
+                        .opacity(index < activeDotCount ? 1 : 0.25)
+                }
+            }
+            .padding(.top, 2)
+            .accessibilityLabel("Assistant is typing")
+        }
+    }
+}
+
+func aiChatBubbleMaxWidth(availableWidth: CGFloat) -> CGFloat {
+    let clampedWidth = max(availableWidth, 0)
+    return min(clampedWidth * aiChatBubbleWidthFraction, aiChatBubbleWidthMaximum)
+}
+
+func aiChatShouldShowTypingIndicator(
+    message: AIChatMessage,
+    isLastMessage: Bool,
+    isStreaming: Bool
+) -> Bool {
+    message.role == .assistant && isLastMessage && isStreaming
+}
+
+private func aiChatTypingIndicatorActiveDotCount(date: Date) -> Int {
+    let animationStep = Int(
+        floor(date.timeIntervalSinceReferenceDate / aiChatTypingIndicatorAnimationStepSeconds)
+    )
+    return animationStep.quotientAndRemainder(dividingBy: aiChatTypingIndicatorDotCount + 1).remainder
 }
 
 enum AIChatAttachmentMenuAction: String, CaseIterable, Identifiable {

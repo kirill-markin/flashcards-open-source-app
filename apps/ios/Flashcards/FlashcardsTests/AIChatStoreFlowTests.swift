@@ -303,6 +303,8 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.messages.count, 2)
         XCTAssertEqual(chatStore.messages[0].role, .user)
         XCTAssertEqual(chatStore.messages[0].content.count, 2)
+        XCTAssertEqual(chatStore.messages[1].role, .assistant)
+        XCTAssertTrue(chatStore.messages[1].content.isEmpty)
 
         chatStore.cancelStreaming()
     }

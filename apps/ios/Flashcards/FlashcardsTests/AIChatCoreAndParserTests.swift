@@ -99,6 +99,60 @@ final class AIChatCoreAndParserTests: AIChatTestCaseBase {
         }
     }
 
+    func testTypingIndicatorShowsOnlyForLastStreamingAssistantMessage() {
+        let assistantMessage = AIChatMessage(
+            id: "message-1",
+            role: .assistant,
+            text: "",
+            toolCalls: [],
+            timestamp: "2026-03-09T10:00:00.000Z",
+            isError: false
+        )
+        let userMessage = AIChatMessage(
+            id: "message-2",
+            role: .user,
+            text: "hello",
+            toolCalls: [],
+            timestamp: "2026-03-09T10:00:01.000Z",
+            isError: false
+        )
+
+        XCTAssertTrue(
+            aiChatShouldShowTypingIndicator(
+                message: assistantMessage,
+                isLastMessage: true,
+                isStreaming: true
+            )
+        )
+        XCTAssertFalse(
+            aiChatShouldShowTypingIndicator(
+                message: assistantMessage,
+                isLastMessage: false,
+                isStreaming: true
+            )
+        )
+        XCTAssertFalse(
+            aiChatShouldShowTypingIndicator(
+                message: assistantMessage,
+                isLastMessage: true,
+                isStreaming: false
+            )
+        )
+        XCTAssertFalse(
+            aiChatShouldShowTypingIndicator(
+                message: userMessage,
+                isLastMessage: true,
+                isStreaming: true
+            )
+        )
+    }
+
+    func testBubbleMaxWidthUsesChatFractionAndMaximumCap() {
+        XCTAssertEqual(aiChatBubbleMaxWidth(availableWidth: 100), 88)
+        XCTAssertEqual(aiChatBubbleMaxWidth(availableWidth: 900), 720)
+        XCTAssertEqual(aiChatBubbleMaxWidth(availableWidth: -10), 0)
+    }
+
     @MainActor
 
     func testLocalDatabaseEnablesWALForConcurrentConnections() throws {
