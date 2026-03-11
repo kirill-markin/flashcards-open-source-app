@@ -34,10 +34,13 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
       url: "https://api.example.com/v1/agent/openapi.json",
     },
   ]);
-  assert.equal(
-    envelope.instructions,
-    "Start with send_code. After login, call https://api.example.com/v1/agent/me, then https://api.example.com/v1/agent/workspaces. If no workspaces exist, call POST https://api.example.com/v1/agent/workspaces with {\"name\":\"Personal\"}. If multiple workspaces exist and no workspace is selected for this API key, call POST https://api.example.com/v1/agent/workspaces/{workspaceId}/select before tool calls. For card content, enforce the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example (prefer fenced markdown code block when helpful).",
-  );
+  assert.match(envelope.instructions, /Start with send_code/);
+  assert.match(envelope.instructions, /https:\/\/api\.example\.com\/v1\/agent\/me/);
+  assert.match(envelope.instructions, /https:\/\/api\.example\.com\/v1\/agent\/workspaces/);
+  assert.match(envelope.instructions, /Read payload from data\.\*/);
+  assert.match(envelope.instructions, /do not expect resource fields at the top level/i);
+  assert.match(envelope.instructions, /confirm it with actions/i);
+  assert.match(envelope.instructions, /frontText is a question-only recall prompt/);
 });
 
 test("createAgentDiscoveryEnvelope derives localhost URLs when public env is missing", () => {

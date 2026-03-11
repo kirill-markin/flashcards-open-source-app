@@ -38,6 +38,8 @@ test("createAgentAccountEnvelope points the agent to load workspaces next", () =
   }]);
   assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/me/);
   assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/workspaces/);
+  assert.match(envelope.instructions, /Read payload from data\.\*/);
+  assert.match(envelope.instructions, /confirm it with actions/i);
 });
 
 test("createAgentWorkspacesEnvelope guides workspace creation when none exist", () => {
@@ -49,6 +51,7 @@ test("createAgentWorkspacesEnvelope guides workspace creation when none exist", 
   assert.equal(envelope.actions[0]?.url, "https://api.example.com/v1/agent/workspaces");
   assert.match(envelope.instructions, /POST https:\/\/api\.example\.com\/v1\/agent\/workspaces/);
   assert.match(envelope.instructions, /\"name\":\"Personal\"/);
+  assert.match(envelope.instructions, /Read payload from data\.\*/);
 });
 
 test("createAgentWorkspacesEnvelope requires selection when several workspaces exist and none is selected", () => {
@@ -75,6 +78,7 @@ test("createAgentWorkspacesEnvelope requires selection when several workspaces e
     "https://api.example.com/v1/agent/workspaces/{workspaceId}/select",
   );
   assert.match(envelope.instructions, /POST https:\/\/api\.example\.com\/v1\/agent\/workspaces\/\{workspaceId\}\/select/);
+  assert.match(envelope.instructions, /Read payload from data\.\*/);
 });
 
 test("createAgentWorkspaceReadyEnvelope keeps the workspace in data", () => {
@@ -91,6 +95,7 @@ test("createAgentWorkspaceReadyEnvelope keeps the workspace in data", () => {
   assert.equal(envelope.actions[0]?.name, "list_tools");
   assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/tools/);
   assert.match(envelope.instructions, /POST https:\/\/api\.example\.com\/v1\/agent\/tools\/get_workspace_context/);
+  assert.match(envelope.instructions, /Read payload from data\.\*/);
 });
 
 test("createAgentSetupErrorEnvelope keeps actionable retry instructions", () => {

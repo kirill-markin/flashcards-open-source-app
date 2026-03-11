@@ -51,22 +51,24 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
     `Call GET ${apiBaseUrl}/agent/me to load account context.`,
     `Then call GET ${apiBaseUrl}/agent/workspaces to inspect available workspaces for this API key.`,
     `If needed, create with POST ${apiBaseUrl}/agent/workspaces or select with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select before tool calls.`,
+    "Read payload from data.* and do not expect resource fields at the top level.",
+    "Select the next endpoint from instructions and confirm it with actions.",
   ].join(" ");
 }
 
 function buildNoWorkspaceInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `No workspace is available for this API key yet. Create one with POST ${apiBaseUrl}/agent/workspaces using {\"name\":\"Personal\"}, then continue with tools.`;
+  return `No workspace is available for this API key yet. Create one with POST ${apiBaseUrl}/agent/workspaces using {\"name\":\"Personal\"}, then continue with tools. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
 }
 
 function buildSelectWorkspaceInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `Select a workspace for this API key by calling POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select after listing with GET ${apiBaseUrl}/agent/workspaces.`;
+  return `Select a workspace for this API key by calling POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select after listing with GET ${apiBaseUrl}/agent/workspaces. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
 }
 
 function buildWorkspaceReadyInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `Workspace bootstrap is complete. Call GET ${apiBaseUrl}/agent/tools and then POST ${apiBaseUrl}/agent/tools/get_workspace_context to continue.`;
+  return `Workspace bootstrap is complete. Call GET ${apiBaseUrl}/agent/tools and then POST ${apiBaseUrl}/agent/tools/get_workspace_context to continue. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
 }
 
 export function shouldUseAgentSetupEnvelope(transport: AuthTransport): boolean {
