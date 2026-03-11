@@ -994,7 +994,7 @@ export function ChatPanel(props: Props): ReactElement {
               clearHistory();
             }}
           >
-            Clear
+            New
           </button>
           {mode === "sidebar" ? (
             <button type="button" className="chat-close-btn" onClick={() => setIsOpen(false)}>
