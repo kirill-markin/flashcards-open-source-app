@@ -25,6 +25,10 @@ function hasStrongMarkdownCue(text: string): boolean {
 export function classifyReviewContentPresentation(text: string): ReviewContentPresentationMode {
   const trimmedText = text.trim();
 
+  if (trimmedText.includes("`")) {
+    return "markdown";
+  }
+
   if (hasStrongMarkdownCue(trimmedText)) {
     return "markdown";
   }

@@ -36,6 +36,10 @@ final class ReviewContentPresentationTests: XCTestCase {
         )
     }
 
+    func testClassifyReviewContentPresentationReturnsMarkdownForInlineBacktick() {
+        XCTAssertEqual(classifyReviewContentPresentation(text: "Use `map` here"), .markdown)
+    }
+
     func testClassifyReviewContentPresentationKeepsMarkdownPrecedenceOverShortLength() {
         XCTAssertEqual(classifyReviewContentPresentation(text: "> short"), .markdown)
     }
