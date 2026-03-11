@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import Anthropic, { toFile } from "@anthropic-ai/sdk";
 import type { LocalAssistantToolCall, LocalChatMessage, LocalChatStreamEvent } from "../localTypes";
 import {
+  buildInlineTextAttachmentContext,
   buildLocalSystemInstructions,
   extractLocalAssistantToolCalls,
   isLocalToolName,
@@ -352,12 +353,12 @@ function assertImageMediaType(mediaType: string): "image/jpeg" | "image/png" | "
   );
 }
 
-function mapLatestUserPartToAnthropicContentBlock(
+function mapLatestUserPartToAnthropicContentBlocks(
   message: Extract<LocalChatMessage, { role: "user" }>,
   messageIndex: number,
   partIndex: number,
   uploadPlan: UploadPlan,
-): Readonly<Record<string, unknown>> {
+): ReadonlyArray<Readonly<Record<string, unknown>>> {
   const part = message.content[partIndex];
   if (part === undefined) {
     throw new LocalChatRuntimeError(
@@ -368,23 +369,23 @@ function mapLatestUserPartToAnthropicContentBlock(
   }
 
   if (part.type === "text") {
-    return { type: "text", text: part.text };
+    return [{ type: "text", text: part.text }];
   }
 
   if (part.type === "image") {
-    return {
+    return [{
       type: "image",
       source: {
         type: "base64",
         media_type: assertImageMediaType(part.mediaType),
         data: part.base64Data,
       },
-    };
+    }];
   }
 
   if (part.type === "file") {
     if (part.mediaType === "application/pdf") {
-      return {
+      return [{
         type: "document",
         source: {
           type: "base64",
@@ -392,7 +393,7 @@ function mapLatestUserPartToAnthropicContentBlock(
           data: part.base64Data,
         },
         title: part.fileName,
-      };
+      }];
     }
 
     const uploadedPart = uploadPlan.uploadedParts.get(`${messageIndex}:${partIndex}`);
@@ -404,10 +405,19 @@ function mapLatestUserPartToAnthropicContentBlock(
       );
     }
 
-    return {
+    const blocks: Array<Readonly<Record<string, unknown>>> = [{
       type: "container_upload",
       file_id: uploadedPart.fileId,
-    };
+    }];
+    const inlineAttachmentContext = buildInlineTextAttachmentContext(part);
+    if (inlineAttachmentContext !== null) {
+      blocks.push({
+        type: "text",
+        text: inlineAttachmentContext,
+      });
+    }
+
+    return blocks;
   }
 
   throw new LocalChatRuntimeError(
@@ -437,8 +447,8 @@ function messageToAnthropicMessage(
         };
     }
 
-    const content = message.content.map((_, partIndex) =>
-      mapLatestUserPartToAnthropicContentBlock(message, messageIndex, partIndex, uploadPlan),
+    const content = message.content.flatMap((_, partIndex) =>
+      mapLatestUserPartToAnthropicContentBlocks(message, messageIndex, partIndex, uploadPlan),
     );
 
     return content.length === 0

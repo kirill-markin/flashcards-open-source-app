@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import test from "node:test";
 import { createLocalChatErrorEvent, parseLocalChatDiagnosticsBody, streamLocalChatResponse } from "./chat/http";
-import { buildLocalSystemInstructions } from "./chat/localRuntimeShared";
+import {
+  buildLocalSystemInstructions,
+  decodeInlineTextAttachment,
+  INLINE_TEXT_ATTACHMENT_MAX_BYTES,
+  isInlineTextAttachmentCandidate,
+} from "./chat/localRuntimeShared";
 import { HttpError } from "./errors";
 import {
   LocalChatRuntimeError,
@@ -226,6 +232,54 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
   assert.match(instructions, /update_cards => \{"updates": \[\{"cardId": "123e4567-e89b-42d3-a456-426614174000"/);
   assert.match(instructions, /update_decks => \{"updates": \[\{"deckId": "123e4567-e89b-42d3-a456-426614174001"/);
   assert.match(instructions, /correct the tool call shape and continue without repeating earlier assistant text/i);
+  assert.match(instructions, /mounted files are typically exposed under \/mnt\/data/i);
+  assert.match(instructions, /mounted filename may differ from the uploaded filename/i);
+  assert.match(instructions, /inspect mounted files before claiming that an attached file is missing/i);
+});
+
+test("isInlineTextAttachmentCandidate accepts supported text-like files and excludes csv", () => {
+  const supportedFiles = [
+    { fileName: "notes.txt", mediaType: "text/plain" },
+    { fileName: "notes.md", mediaType: "text/markdown" },
+    { fileName: "data.json", mediaType: "application/json" },
+    { fileName: "feed.xml", mediaType: "application/xml" },
+    { fileName: "config.yaml", mediaType: "application/yaml" },
+    { fileName: "config.yml", mediaType: "application/octet-stream" },
+    { fileName: "query.sql", mediaType: "text/x-sql" },
+    { fileName: "server.log", mediaType: "application/octet-stream" },
+  ];
+
+  for (const file of supportedFiles) {
+    assert.equal(isInlineTextAttachmentCandidate({
+      type: "file",
+      fileName: file.fileName,
+      mediaType: file.mediaType,
+      base64Data: "dGVzdA==",
+    }), true);
+  }
+
+  assert.equal(isInlineTextAttachmentCandidate({
+    type: "file",
+    fileName: "table.csv",
+    mediaType: "text/csv",
+    base64Data: "YSxiLGMKMSwyLDM=",
+  }), false);
+});
+
+test("decodeInlineTextAttachment rejects oversized or invalid utf-8 files", () => {
+  assert.equal(decodeInlineTextAttachment({
+    type: "file",
+    fileName: "big.txt",
+    mediaType: "text/plain",
+    base64Data: Buffer.alloc(INLINE_TEXT_ATTACHMENT_MAX_BYTES + 1, 65).toString("base64"),
+  }), null);
+
+  assert.equal(decodeInlineTextAttachment({
+    type: "file",
+    fileName: "broken.txt",
+    mediaType: "text/plain",
+    base64Data: Buffer.from([0xc3, 0x28]).toString("base64"),
+  }), null);
 });
 
 test("streamLocalAgentTurn emits text deltas and done when no tool calls are requested", async () => {
@@ -308,6 +362,142 @@ test("streamLocalAgentTurn maps uploaded files to input_file with file_id only",
   assert.equal(firstContentItem?.type, "input_file");
   assert.equal(firstContentItem?.file_id, "file_test_1");
   assert.equal("filename" in (firstContentItem ?? {}), false);
+});
+
+test("streamLocalAgentTurn duplicates small text attachments inline and keeps them in code interpreter", async () => {
+  const capturedBodies: Array<CapturedStreamBody> = [];
+  const client = makeFakeClient(
+    [{
+      events: [],
+      finalResponse: {
+        output: [
+          { type: "message" },
+        ],
+      },
+    }],
+    capturedBodies,
+  );
+
+  const events = await collectEvents(streamLocalAgentTurn({
+    messages: [{
+      role: "user",
+      content: [{
+        type: "file",
+        mediaType: "text/plain",
+        base64Data: Buffer.from("hello from file", "utf-8").toString("base64"),
+        fileName: "test.txt",
+      }],
+    }],
+    model: "gpt-5.2",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    requestId: "request-file-inline-1",
+  }, client));
+
+  assert.deepEqual(events, [
+    { type: "done" },
+  ]);
+
+  const firstInputItem = capturedBodies[0]?.input[0] as Readonly<{
+    content: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  }> | undefined;
+  const firstContent = firstInputItem?.content[0];
+  const secondContent = firstInputItem?.content[1];
+  const codeInterpreterTool = capturedBodies[0]?.tools.find((tool) => (
+    typeof tool === "object" && tool !== null && "type" in tool && tool.type === "code_interpreter"
+  )) as Readonly<{
+    container: Readonly<{
+      file_ids: ReadonlyArray<string>;
+    }>;
+  }> | undefined;
+
+  assert.equal(firstContent?.type, "input_file");
+  assert.equal(firstContent?.file_id, "file_test_1");
+  assert.equal(secondContent?.type, "input_text");
+  assert.match(String(secondContent?.text), /<attached_text_file name="test\.txt" media_type="text\/plain">/);
+  assert.match(String(secondContent?.text), /hello from file/);
+  assert.match(String(secondContent?.text), /mounted files are typically exposed under \/mnt\/data/i);
+  assert.deepEqual(codeInterpreterTool?.container.file_ids, ["file_test_1"]);
+});
+
+test("streamLocalAgentTurn keeps csv attachments tool-only", async () => {
+  const capturedBodies: Array<CapturedStreamBody> = [];
+  const client = makeFakeClient(
+    [{
+      events: [],
+      finalResponse: {
+        output: [
+          { type: "message" },
+        ],
+      },
+    }],
+    capturedBodies,
+  );
+
+  await collectEvents(streamLocalAgentTurn({
+    messages: [{
+      role: "user",
+      content: [{
+        type: "file",
+        mediaType: "text/csv",
+        base64Data: Buffer.from("a,b\n1,2", "utf-8").toString("base64"),
+        fileName: "table.csv",
+      }],
+    }],
+    model: "gpt-5.2",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    requestId: "request-file-csv-1",
+  }, client));
+
+  const firstInputItem = capturedBodies[0]?.input[0] as Readonly<{
+    content: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  }> | undefined;
+  assert.equal(firstInputItem?.content.length, 1);
+  assert.equal(firstInputItem?.content[0]?.type, "input_file");
+});
+
+test("streamAnthropicLocalAgentTurn duplicates small text attachments inline next to container uploads", async () => {
+  const capturedBodies: Array<CapturedAnthropicStreamBody> = [];
+  const client = makeFakeAnthropicClient(
+    [{
+      events: [],
+      finalMessage: {
+        content: [],
+        stop_reason: null,
+      },
+    }],
+    capturedBodies,
+  );
+
+  const events = await collectEvents(streamAnthropicLocalAgentTurn({
+    messages: [{
+      role: "user",
+      content: [{
+        type: "file",
+        mediaType: "text/markdown",
+        base64Data: Buffer.from("# Title", "utf-8").toString("base64"),
+        fileName: "notes.md",
+      }],
+    }],
+    model: "claude-sonnet-4-6",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    requestId: "request-anthropic-file-1",
+  }, client));
+
+  assert.deepEqual(events, [
+    { type: "done" },
+  ]);
+
+  const firstMessage = capturedBodies[0]?.messages[0] as Readonly<{
+    content: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  }> | undefined;
+  assert.equal(firstMessage?.content[0]?.type, "container_upload");
+  assert.equal(firstMessage?.content[0]?.file_id, "file_test_1");
+  assert.equal(firstMessage?.content[1]?.type, "text");
+  assert.match(String(firstMessage?.content[1]?.text), /<attached_text_file name="notes\.md" media_type="text\/markdown">/);
+  assert.match(String(firstMessage?.content[1]?.text), /The original file is also available to code execution\./);
 });
 
 test("streamLocalAgentTurn retries malformed tool arguments and emits repair_attempt", async () => {

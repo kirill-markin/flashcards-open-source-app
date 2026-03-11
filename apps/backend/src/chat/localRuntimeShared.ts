@@ -1,9 +1,11 @@
+import { Buffer } from "node:buffer";
 import { ZodError } from "zod";
 import type {
   LocalAssistantToolCall,
   LocalChatDevicePlatform,
   LocalChatStreamEvent,
   LocalContentPart,
+  LocalFileContentPart,
 } from "./localTypes";
 import {
   buildAssistantRoleSection,
@@ -22,6 +24,36 @@ import { OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS } from "./openai/localTools";
 
 export const MAX_LOCAL_TOOL_REPAIR_ATTEMPTS = 3;
 const LOCAL_TOOL_NAME_SET = new Set(Object.keys(OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS));
+export const INLINE_TEXT_ATTACHMENT_MAX_BYTES = 64 * 1024;
+
+const GENERIC_FILE_MEDIA_TYPES = new Set([
+  "",
+  "application/octet-stream",
+]);
+
+const INLINE_TEXT_MEDIA_TYPES = new Set([
+  "text/plain",
+  "text/markdown",
+  "application/json",
+  "application/xml",
+  "text/xml",
+  "application/yaml",
+  "text/yaml",
+  "text/x-yaml",
+  "application/sql",
+  "text/x-sql",
+]);
+
+const INLINE_TEXT_FILE_EXTENSIONS = new Set([
+  ".txt",
+  ".md",
+  ".json",
+  ".xml",
+  ".yaml",
+  ".yml",
+  ".sql",
+  ".log",
+]);
 
 type RepairableToolCallError = Readonly<{
   toolName: string | null;
@@ -57,10 +89,58 @@ function platformPromptLabel(devicePlatform: LocalChatDevicePlatform): string {
   return devicePlatform === "web" ? "Use this assistant in the browser." : "Use this assistant on iPhone.";
 }
 
+function normalizeMediaType(mediaType: string): string {
+  return mediaType.trim().toLowerCase();
+}
+
+function normalizeFileName(fileName: string): string {
+  return fileName.trim().toLowerCase();
+}
+
+function hasInlineTextFileExtension(fileName: string): boolean {
+  const normalizedFileName = normalizeFileName(fileName);
+  return [...INLINE_TEXT_FILE_EXTENSIONS].some((extension) => normalizedFileName.endsWith(extension));
+}
+
+function isCsvFile(mediaType: string, fileName: string): boolean {
+  const normalizedMediaType = normalizeMediaType(mediaType);
+  const normalizedFileName = normalizeFileName(fileName);
+  return normalizedMediaType === "text/csv"
+    || normalizedMediaType === "application/csv"
+    || normalizedFileName.endsWith(".csv");
+}
+
+function escapeXmlAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function escapeXmlText(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function buildLocalAttachmentHandlingSection(): string {
+  return [
+    "Attachment handling:",
+    "If a small text attachment is duplicated inline inside <attached_text_file>, read that inline text before using code execution.",
+    "When a file is available to code execution, the mounted filename may differ from the uploaded filename.",
+    "Mounted files are typically exposed under /mnt/data with generated names or prefixes.",
+    "Inspect mounted files before claiming that an attached file is missing.",
+  ].join("\n");
+}
+
 /**
  * Builds the canonical system instructions for local-turn runtimes. Every
  * local client must use the same tool-call rules and write-policy wording so
- * OpenAI and Anthropic turns produce compatible local tool requests.
+ * OpenAI and Anthropic turns produce compatible local tool requests. The
+ * attachment section documents the hybrid delivery strategy for small text
+ * files and instructs models how to find mounted files inside code execution.
  */
 export function buildLocalSystemInstructions(
   timezone: string,
@@ -76,8 +156,99 @@ export function buildLocalSystemInstructions(
     buildWritePolicySection(buildLocalWritePolicyLines()),
     buildLocalToolCallExamplesSection(),
     buildLocalRepairSection(),
+    buildLocalAttachmentHandlingSection(),
     buildDatetimeSection(timezone),
   ]);
+}
+
+/**
+ * Returns true when a file should be considered for inline text duplication in
+ * addition to tool/container delivery. CSV is intentionally excluded because
+ * it is more often processed programmatically than read conversationally.
+ */
+export function isInlineTextAttachmentCandidate(part: LocalFileContentPart): boolean {
+  if (isCsvFile(part.mediaType, part.fileName)) {
+    return false;
+  }
+
+  const normalizedMediaType = normalizeMediaType(part.mediaType);
+  if (INLINE_TEXT_MEDIA_TYPES.has(normalizedMediaType)) {
+    return true;
+  }
+
+  if (GENERIC_FILE_MEDIA_TYPES.has(normalizedMediaType)) {
+    return hasInlineTextFileExtension(part.fileName);
+  }
+
+  return normalizedMediaType === "text/plain" && hasInlineTextFileExtension(part.fileName);
+}
+
+/**
+ * Decodes a text-like attachment as strict UTF-8 when it is small enough to
+ * duplicate inline. Invalid UTF-8 and oversized files are left tool-only.
+ */
+export function decodeInlineTextAttachment(part: LocalFileContentPart): string | null {
+  if (isInlineTextAttachmentCandidate(part) === false) {
+    return null;
+  }
+
+  const bytes = Buffer.from(part.base64Data, "base64");
+  if (bytes.byteLength > INLINE_TEXT_ATTACHMENT_MAX_BYTES) {
+    return null;
+  }
+
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Formats the duplicated inline text payload so the model can read small text
+ * attachments directly from the prompt without guessing file boundaries.
+ */
+export function buildInlineTextAttachmentBlock(
+  part: LocalFileContentPart,
+  textContent: string,
+): string {
+  return [
+    `<attached_text_file name="${escapeXmlAttribute(part.fileName)}" media_type="${escapeXmlAttribute(part.mediaType)}">`,
+    escapeXmlText(textContent),
+    "</attached_text_file>",
+  ].join("\n");
+}
+
+/**
+ * Explains how the same uploaded file is exposed to code execution. The hint
+ * avoids promising an exact mounted filename while still pointing the model to
+ * the documented /mnt/data pattern.
+ */
+export function buildExecutionEnvironmentHintBlock(part: LocalFileContentPart): string {
+  return [
+    `<attached_file_execution_hint name="${escapeXmlAttribute(part.fileName)}">`,
+    "The original file is also available to code execution.",
+    "Mounted files are typically exposed under /mnt/data with generated names or prefixes.",
+    "The mounted filename may differ from the uploaded filename.",
+    "Inspect mounted files before claiming that the file is missing.",
+    "</attached_file_execution_hint>",
+  ].join("\n");
+}
+
+/**
+ * Returns the full inline attachment context for small text files. The caller
+ * can append this directly as a text block next to the uploaded file handle.
+ */
+export function buildInlineTextAttachmentContext(part: LocalFileContentPart): string | null {
+  const textContent = decodeInlineTextAttachment(part);
+  if (textContent === null) {
+    return null;
+  }
+
+  return [
+    buildInlineTextAttachmentBlock(part, textContent),
+    buildExecutionEnvironmentHintBlock(part),
+  ].join("\n");
 }
 
 function buildRepairPrompt(toolName: string | null, details: string): string {
