@@ -215,23 +215,33 @@ export function formatToolLabel(name: string): string {
 
 function renderMessageContent(message: StoredMessage): ReactElement {
   const elements: Array<ReactElement> = [];
+  let previousPartWasAttachment = false;
 
   for (let index = 0; index < message.content.length; index++) {
     const part = message.content[index];
     if (part.type === "text") {
+      if (previousPartWasAttachment) {
+        elements.push(<br key={`attachment-break-1-${index}`} />);
+        elements.push(<br key={`attachment-break-2-${index}`} />);
+      }
       elements.push(<span key={`text-${index}`}>{part.text}</span>);
+      previousPartWasAttachment = false;
       continue;
     }
 
     if (part.type === "image") {
       elements.push(<span key={`image-${index}`}>[image attached]</span>);
+      previousPartWasAttachment = true;
       continue;
     }
 
     if (part.type === "file") {
       elements.push(<span key={`file-${index}`}>[{part.fileName}]</span>);
+      previousPartWasAttachment = true;
       continue;
     }
+
+    previousPartWasAttachment = false;
 
     elements.push(
       <details

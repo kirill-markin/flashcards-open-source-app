@@ -327,6 +327,43 @@ describe("ChatPanel autoscroll", () => {
     expect(behaviors).not.toContain("smooth");
   });
 
+  it("renders a blank line between attachment markers and following text", async () => {
+    localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
+      role: "user",
+      content: [
+        {
+          type: "image",
+          mediaType: "image/jpeg",
+          base64Data: "abc",
+        },
+        {
+          type: "text",
+          text: "what do you see here?",
+        },
+      ],
+      timestamp: 1,
+      isError: false,
+    }]));
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const userMessage = mountedContainer.querySelector(".chat-msg-user");
+    expect(userMessage).not.toBeNull();
+    if (userMessage === null) {
+      throw new Error("Expected user message");
+    }
+
+    expect(userMessage.querySelectorAll("br")).toHaveLength(2);
+    expect(userMessage.textContent).toContain("[image attached]");
+    expect(userMessage.textContent).toContain("what do you see here?");
+  });
+
   it("batches streaming autoscroll to one smooth scroll every 2 seconds", async () => {
     streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
       { atMs: 100, payload: streamDeltaPayload("A") },

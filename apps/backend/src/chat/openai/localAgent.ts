@@ -6,6 +6,7 @@ import type {
 } from "openai/resources/responses/responses";
 import type { LocalAssistantToolCall, LocalChatMessage, LocalChatStreamEvent } from "../localTypes";
 import {
+  buildInlineTextAttachmentContext,
   buildLocalSystemInstructions,
   extractLocalAssistantToolCalls,
   isLocalToolName,
@@ -348,6 +349,14 @@ function messageToResponseItems(
           type: "input_file",
           file_id: uploadedPart.fileId,
         });
+
+        const inlineAttachmentContext = buildInlineTextAttachmentContext(part);
+        if (inlineAttachmentContext !== null) {
+          content.push({
+            type: "input_text",
+            text: inlineAttachmentContext,
+          });
+        }
       }
     }
 
