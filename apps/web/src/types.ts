@@ -145,7 +145,6 @@ export type QueryCardsInput = Readonly<{
 export type QueryCardsPage = Readonly<{
   cards: ReadonlyArray<Card>;
   nextCursor: string | null;
-  hasMore: boolean;
   totalCount: number;
 }>;
 

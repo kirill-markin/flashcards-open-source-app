@@ -223,12 +223,12 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
   assert.match(instructions, /every newly proposed card must include at least one tag/i);
   assert.match(instructions, /if the user did not provide tags for a new card, you must suggest one or more concrete tags/i);
   assert.match(instructions, /you must reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate/i);
-  assert.match(instructions, /list_cards => \{"limit": 20\}/);
+  assert.match(instructions, /list_cards => \{"cursor": null, "limit": 20\}/);
   assert.match(instructions, /get_cards => \{"cardIds": \["123e4567-e89b-42d3-a456-426614174000"\]\}/);
-  assert.match(instructions, /search_cards => \{"query": "grammar", "limit": null\}/);
-  assert.match(instructions, /search_decks => \{"query": "grammar", "limit": null\}/);
+  assert.match(instructions, /search_cards => \{"query": "grammar", "cursor": null, "limit": 20\}/);
+  assert.match(instructions, /search_decks => \{"query": "grammar", "cursor": null, "limit": 20\}/);
   assert.match(instructions, /get_decks => \{"deckIds": \["123e4567-e89b-42d3-a456-426614174001"\]\}/);
-  assert.match(instructions, /list_review_history => \{"limit": 20, "cardId": null\}/);
+  assert.match(instructions, /list_review_history => \{"cursor": null, "limit": 20, "cardId": null\}/);
   assert.match(instructions, /update_cards => \{"updates": \[\{"cardId": "123e4567-e89b-42d3-a456-426614174000"/);
   assert.match(instructions, /update_decks => \{"updates": \[\{"deckId": "123e4567-e89b-42d3-a456-426614174001"/);
   assert.match(instructions, /correct the tool call shape and continue without repeating earlier assistant text/i);
@@ -512,7 +512,7 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
               type: "function_call",
               call_id: "call-1",
               name: "list_cards",
-              arguments: "{\"limit\":5}\n{\"limit\":10}",
+              arguments: "{\"cursor\":null,\"limit\":5}\n{\"cursor\":null,\"limit\":10}",
             },
           ],
         },
@@ -525,7 +525,7 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
               type: "function_call",
               call_id: "call-2",
               name: "list_cards",
-              arguments: "{\"limit\":10}",
+              arguments: "{\"cursor\":null,\"limit\":10}",
             },
           ],
         },
@@ -551,7 +551,7 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
       maxAttempts: 3,
       toolName: "list_cards",
     },
-    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"limit\":10}" },
+    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"cursor\":null,\"limit\":10}" },
     { type: "await_tool_results" },
   ]);
 
@@ -588,7 +588,7 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
               type: "function_call",
               call_id: "call-2",
               name: "list_cards",
-              arguments: "{\"limit\":null}",
+              arguments: "{\"cursor\":null,\"limit\":10}",
             },
           ],
         },
@@ -613,7 +613,7 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
       maxAttempts: 3,
       toolName: "list_cards",
     },
-    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"limit\":null}" },
+    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"cursor\":null,\"limit\":10}" },
     { type: "await_tool_results" },
   ]);
 });
@@ -682,7 +682,7 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
           type: "tool_use",
           id: "toolu_1",
           name: "list_cards",
-          input: { limit: null },
+          input: { cursor: null, limit: 20 },
         }],
         stop_reason: "tool_use",
       },
@@ -700,7 +700,7 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
 
   assert.deepEqual(events, [
     { type: "delta", text: "Inspecting local cards." },
-    { type: "tool_call_request", toolCallId: "toolu_1", name: "list_cards", input: "{\"limit\":null}" },
+    { type: "tool_call_request", toolCallId: "toolu_1", name: "list_cards", input: "{\"cursor\":null,\"limit\":20}" },
     { type: "await_tool_results" },
   ]);
   assert.equal(capturedBodies[0]?.model, "claude-sonnet-4-6");
@@ -730,7 +730,7 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
             type: "tool_use",
             id: "toolu_2",
             name: "list_cards",
-            input: { limit: null },
+            input: { cursor: null, limit: 20 },
           }],
           stop_reason: "tool_use",
         },
@@ -755,7 +755,7 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
       maxAttempts: 3,
       toolName: "list_cards",
     },
-    { type: "tool_call_request", toolCallId: "toolu_2", name: "list_cards", input: "{\"limit\":null}" },
+    { type: "tool_call_request", toolCallId: "toolu_2", name: "list_cards", input: "{\"cursor\":null,\"limit\":20}" },
     { type: "await_tool_results" },
   ]);
 });

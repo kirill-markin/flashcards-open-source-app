@@ -90,7 +90,7 @@
                       "url": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json"
                     }
                   ],
-                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces. A first workspace is auto-provisioned for new users. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -158,7 +158,7 @@
                       "url": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json"
                     }
                   ],
-                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces. A first workspace is auto-provisioned for new users. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -461,7 +461,7 @@
                     {
                       "name": "list_workspaces",
                       "method": "GET",
-                      "url": "https://api.flashcards-open-source-app.com/v1/agent/workspaces",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100",
                       "auth": {
                         "scheme": "ApiKey"
                       }
@@ -493,7 +493,7 @@
                       }
                     }
                   ],
-                  "instructions": "Store this API key securely. Read payload from data.* (data.apiKey, data.connection). Do not expect resource fields at the top level. Select next calls from instructions and confirm with actions: GET https://api.flashcards-open-source-app.com/v1/agent/me, GET https://api.flashcards-open-source-app.com/v1/agent/workspaces, then select a workspace if needed. The first workspace is auto-provisioned for new users; use create only for additional workspaces.",
+                  "instructions": "Store this API key securely. Read payload from data.* (data.apiKey, data.connection). Do not expect resource fields at the top level. Select next calls from instructions and confirm with actions: GET https://api.flashcards-open-source-app.com/v1/agent/me, GET https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100, then select a workspace if needed. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. The first workspace is auto-provisioned for new users; use create only for additional workspaces.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -541,13 +541,13 @@
                     {
                       "name": "list_workspaces",
                       "method": "GET",
-                      "url": "https://api.flashcards-open-source-app.com/v1/agent/workspaces",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100",
                       "auth": {
                         "scheme": "ApiKey"
                       }
                     }
                   ],
-                  "instructions": "Call GET https://api.flashcards-open-source-app.com/v1/agent/workspaces next. A first workspace is auto-provisioned for new users. Read payload from data.* (for this endpoint: data.selectedWorkspaceId, data.profile). Do not expect account fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Call GET https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100 next. A first workspace is auto-provisioned for new users. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Read payload from data.* (for this endpoint: data.selectedWorkspaceId, data.profile). Do not expect account fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -576,6 +576,33 @@
         ],
         "summary": "List workspaces for the external agent",
         "description": "Lists the user's workspaces in an agent-oriented envelope and points the caller to either create a workspace, select one for the current API key connection, or continue to tools.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageLimit"
+            },
+            "description": "Explicit page size. Start with 100."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OpaqueCursor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "Opaque cursor from the previous page. Start with null or omit it on the first request."
+          }
+        ],
         "security": [
           {
             "ApiKeyHeader": []
@@ -599,7 +626,8 @@
                         "createdAt": "2026-03-11T08:50:55.898Z",
                         "isSelected": true
                       }
-                    ]
+                    ],
+                    "nextCursor": null
                   },
                   "actions": [
                     {
@@ -635,7 +663,7 @@
                       }
                     }
                   ],
-                  "instructions": "Workspace bootstrap is complete. Read payload from data.* (data.workspaces). Do not expect workspaces at the top level. Select next endpoint from instructions and confirm with actions: GET https://api.flashcards-open-source-app.com/v1/agent/tools then POST https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context.",
+                  "instructions": "Workspace bootstrap is complete. Read payload from data.* (data.workspaces, data.nextCursor). Do not expect workspaces at the top level. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Select next endpoint from instructions and confirm with actions: GET https://api.flashcards-open-source-app.com/v1/agent/tools then POST https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -1064,7 +1092,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LimitInput"
+                "$ref": "#/components/schemas/CursorPageInput"
               }
             }
           }
@@ -1105,9 +1133,7 @@
                         "deletedAt": null
                       }
                     ],
-                    "returnedCount": 1,
-                    "hasMore": false,
-                    "limitApplied": 100
+                    "nextCursor": null
                   },
                   "actions": [
                     {
@@ -1143,7 +1169,7 @@
                       }
                     }
                   ],
-                  "instructions": "Read payload from data.* (data.cards, data.returnedCount). Do not expect cards at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Read payload from data.* (data.cards, data.nextCursor). Do not expect cards at the top level. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -1298,7 +1324,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SearchInput"
+                "$ref": "#/components/schemas/CursorSearchInput"
               }
             }
           }
@@ -1339,9 +1365,7 @@
                         "deletedAt": null
                       }
                     ],
-                    "returnedCount": 1,
-                    "hasMore": false,
-                    "limitApplied": 100
+                    "nextCursor": null
                   },
                   "actions": [
                     {
@@ -1377,7 +1401,7 @@
                       }
                     }
                   ],
-                  "instructions": "Read payload from data.* (data.cards, data.returnedCount). Do not expect cards at the top level. Search behavior: split query into lowercase whitespace terms (up to 5; extra terms are merged into the fifth term). A card matches only when every term is found in at least one supported card field (frontText, backText, tags, or effortLevel). Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Read payload from data.* (data.cards, data.nextCursor). Do not expect cards at the top level. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Search behavior: split query into lowercase whitespace terms (up to 5; extra terms are merged into the fifth term). A card matches only when every term is found in at least one supported card field (frontText, backText, tags, or effortLevel). Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -1416,7 +1440,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LimitInput"
+                "$ref": "#/components/schemas/CursorPageInput"
               }
             }
           }
@@ -1457,9 +1481,7 @@
                         "deletedAt": null
                       }
                     ],
-                    "returnedCount": 1,
-                    "hasMore": false,
-                    "limitApplied": 100
+                    "nextCursor": null
                   },
                   "actions": [
                     {
@@ -1495,7 +1517,7 @@
                       }
                     }
                   ],
-                  "instructions": "Read payload from data.* (data.cards, data.returnedCount). Do not expect cards at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Read payload from data.* (data.cards, data.nextCursor). Do not expect cards at the top level. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -1529,6 +1551,16 @@
             "ApiKeyHeader": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CursorPageInput"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Decks listed",
@@ -1562,9 +1594,7 @@
                         "deletedAt": null
                       }
                     ],
-                    "returnedCount": 1,
-                    "hasMore": false,
-                    "limitApplied": 100
+                    "nextCursor": null
                   },
                   "actions": [
                     {
@@ -1600,7 +1630,7 @@
                       }
                     }
                   ],
-                  "instructions": "Read payload from data.* (data.decks, data.returnedCount). Do not expect decks at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Read payload from data.* (data.decks, data.nextCursor). Do not expect decks at the top level. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -1752,7 +1782,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SearchInput"
+                "$ref": "#/components/schemas/CursorSearchInput"
               }
             }
           }
@@ -1790,9 +1820,7 @@
                         "deletedAt": null
                       }
                     ],
-                    "returnedCount": 1,
-                    "hasMore": false,
-                    "limitApplied": 100
+                    "nextCursor": null
                   },
                   "actions": [
                     {
@@ -1828,7 +1856,7 @@
                       }
                     }
                   ],
-                  "instructions": "Read payload from data.* (data.decks, data.returnedCount). Do not expect decks at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Read payload from data.* (data.decks, data.nextCursor). Do not expect decks at the top level. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -1895,9 +1923,7 @@
                         "reviewedAtServer": "2026-03-10T09:00:01.000Z"
                       }
                     ],
-                    "returnedCount": 1,
-                    "hasMore": false,
-                    "limitApplied": 100
+                    "nextCursor": null
                   },
                   "actions": [
                     {
@@ -1933,7 +1959,7 @@
                       }
                     }
                   ],
-                  "instructions": "Read payload from data.* (data.history, data.returnedCount). Do not expect history at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Read payload from data.* (data.history, data.nextCursor). Do not expect history at the top level. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -2819,40 +2845,64 @@
           }
         }
       },
-      "NullableLimit": {
-        "type": [
-          "integer",
-          "null"
-        ],
+      "PageLimit": {
+        "type": "integer",
         "minimum": 1,
         "maximum": 100
       },
-      "LimitInput": {
+      "OpaqueCursor": {
+        "type": "string",
+        "description": "Opaque cursor returned by the previous page. Treat this value as an unreadable token and pass it back unchanged."
+      },
+      "CursorPageInput": {
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "cursor",
           "limit"
         ],
         "properties": {
+          "cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque cursor from the previous page. Start with null."
+          },
           "limit": {
-            "$ref": "#/components/schemas/NullableLimit"
+            "$ref": "#/components/schemas/PageLimit"
           }
         }
       },
-      "SearchInput": {
+      "CursorSearchInput": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "query",
+          "cursor",
           "limit"
         ],
         "properties": {
           "query": {
-            "type": "string",
-            "description": "Search text split by whitespace into up to 5 lowercase tokens; extra tokens are merged into the fifth token. Matching uses OR across tokens."
+            "type": "string"
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque cursor from the previous page. Start with null."
           },
           "limit": {
-            "$ref": "#/components/schemas/NullableLimit"
+            "$ref": "#/components/schemas/PageLimit"
           }
         }
       },
@@ -2894,12 +2944,24 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "cursor",
           "limit",
           "cardId"
         ],
         "properties": {
+          "cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque cursor from the previous page. Start with null."
+          },
           "limit": {
-            "$ref": "#/components/schemas/NullableLimit"
+            "$ref": "#/components/schemas/PageLimit"
           },
           "cardId": {
             "anyOf": [
@@ -4021,7 +4083,8 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "workspaces"
+          "workspaces",
+          "nextCursor"
         ],
         "properties": {
           "workspaces": {
@@ -4029,6 +4092,16 @@
             "items": {
               "$ref": "#/components/schemas/WorkspaceSummary"
             }
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -4095,9 +4168,7 @@
         "additionalProperties": false,
         "required": [
           "cards",
-          "returnedCount",
-          "hasMore",
-          "limitApplied"
+          "nextCursor"
         ],
         "properties": {
           "cards": {
@@ -4106,14 +4177,15 @@
               "$ref": "#/components/schemas/Card"
             }
           },
-          "returnedCount": {
-            "type": "integer"
-          },
-          "hasMore": {
-            "type": "boolean"
-          },
-          "limitApplied": {
-            "type": "integer"
+          "nextCursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -4141,9 +4213,7 @@
         "additionalProperties": false,
         "required": [
           "decks",
-          "returnedCount",
-          "hasMore",
-          "limitApplied"
+          "nextCursor"
         ],
         "properties": {
           "decks": {
@@ -4152,14 +4222,15 @@
               "$ref": "#/components/schemas/Deck"
             }
           },
-          "returnedCount": {
-            "type": "integer"
-          },
-          "hasMore": {
-            "type": "boolean"
-          },
-          "limitApplied": {
-            "type": "integer"
+          "nextCursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -4187,9 +4258,7 @@
         "additionalProperties": false,
         "required": [
           "history",
-          "returnedCount",
-          "hasMore",
-          "limitApplied"
+          "nextCursor"
         ],
         "properties": {
           "history": {
@@ -4198,14 +4267,15 @@
               "$ref": "#/components/schemas/ReviewHistoryItem"
             }
           },
-          "returnedCount": {
-            "type": "integer"
-          },
-          "hasMore": {
-            "type": "boolean"
-          },
-          "limitApplied": {
-            "type": "integer"
+          "nextCursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpaqueCursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },

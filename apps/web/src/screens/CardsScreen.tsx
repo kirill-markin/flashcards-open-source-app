@@ -10,7 +10,6 @@ type CardsQueryState = Readonly<{
   items: ReadonlyArray<Card>;
   totalCount: number;
   nextCursor: string | null;
-  hasMore: boolean;
   hasLoaded: boolean;
   isLoading: boolean;
   isLoadingMore: boolean;
@@ -26,7 +25,6 @@ function createInitialCardsQueryState(): CardsQueryState {
     items: [],
     totalCount: 0,
     nextCursor: null,
-    hasMore: false,
     hasLoaded: false,
     isLoading: false,
     isLoadingMore: false,
@@ -95,7 +93,6 @@ function mergeCardsPage(
     items: [...currentState.items, ...nextPage.cards],
     totalCount: nextPage.totalCount,
     nextCursor: nextPage.nextCursor,
-    hasMore: nextPage.hasMore,
     hasLoaded: true,
     isLoading: false,
     isLoadingMore: false,
@@ -167,7 +164,6 @@ export function CardsScreen(): ReactElement {
         items: nextPage.cards,
         totalCount: nextPage.totalCount,
         nextCursor: nextPage.nextCursor,
-        hasMore: nextPage.hasMore,
         hasLoaded: true,
         isLoading: false,
         isLoadingMore: false,
@@ -195,7 +191,6 @@ export function CardsScreen(): ReactElement {
   async function loadNextPage(): Promise<void> {
     if (
       activeWorkspaceId === null
-      || cardsQueryState.hasMore === false
       || cardsQueryState.nextCursor === null
       || cardsQueryState.isLoading
       || cardsQueryState.isLoadingMore
@@ -249,7 +244,7 @@ export function CardsScreen(): ReactElement {
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     const sentinel = loadMoreSentinelRef.current;
-    if (scrollContainer === null || sentinel === null || cardsQueryState.hasMore === false) {
+    if (scrollContainer === null || sentinel === null || cardsQueryState.nextCursor === null) {
       return;
     }
 
@@ -265,7 +260,7 @@ export function CardsScreen(): ReactElement {
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [cardsQueryState.hasMore, cardsQueryState.nextCursor, loadNextPage]);
+  }, [cardsQueryState.nextCursor, loadNextPage]);
 
   async function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
     setSavingCardId(card.cardId);
@@ -438,7 +433,7 @@ export function CardsScreen(): ReactElement {
                   </td>
                 </tr>
               ) : null}
-              {cardsQueryState.hasMore ? (
+              {cardsQueryState.nextCursor !== null ? (
                 <tr ref={loadMoreSentinelRef} className="cards-load-more-row" aria-hidden="true">
                   <td className="txn-cell" colSpan={9}>
                     {cardsQueryState.isLoadingMore ? "Loading more cards…" : ""}

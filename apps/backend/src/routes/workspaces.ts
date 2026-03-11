@@ -7,16 +7,18 @@ import {
   shouldUseAgentSetupEnvelope,
 } from "../agentSetup";
 import {
-  listAgentApiKeyConnectionsForUser,
+  type AgentApiKeyConnection,
+  listAgentApiKeyConnectionsPageForUser,
   revokeAgentApiKeyConnectionForUser,
 } from "../agentApiKeys";
+import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../pagination";
 import {
   createWorkspaceForApiKeyConnection,
   createWorkspaceForUser,
-  listUserWorkspaces,
-  listUserWorkspacesForSelectedWorkspace,
+  listUserWorkspacesPageForSelectedWorkspace,
   selectWorkspaceForApiKeyConnection,
   selectWorkspaceForUser,
+  type WorkspaceSummary,
 } from "../workspaces";
 import { HttpError } from "../errors";
 import {
@@ -39,29 +41,71 @@ type WorkspaceRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
 }>;
 
+type CursorQueryParams = Readonly<{
+  cursor: string | null;
+  limit: number;
+}>;
+
+type WorkspacesPageResponse = Readonly<{
+  workspaces: ReadonlyArray<WorkspaceSummary>;
+  nextCursor: string | null;
+}>;
+
+type AgentApiKeyConnectionsPageResponse = Readonly<{
+  connections: ReadonlyArray<AgentApiKeyConnection>;
+  nextCursor: string | null;
+  instructions: string;
+}>;
+
+function parseCursorQueryParams(request: Request): CursorQueryParams {
+  const url = new URL(request.url);
+  return {
+    cursor: parseOptionalCursorQuery(url.searchParams.get("cursor") ?? undefined, "cursor"),
+    limit: parseRequiredPageLimit(url.searchParams.get("limit") ?? undefined, "limit", 100),
+  };
+}
+
 export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   app.get("/workspaces", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
     const requestId = context.get("requestId");
+    const pageInput = parseCursorQueryParams(context.req.raw);
 
     try {
-      const workspaces = shouldUseAgentSetupEnvelope(requestContext.transport)
-        ? await listUserWorkspacesForSelectedWorkspace(requestContext.userId, requestContext.selectedWorkspaceId)
-        : await listUserWorkspaces(requestContext.userId);
+      const workspacesPage = shouldUseAgentSetupEnvelope(requestContext.transport)
+        ? await listUserWorkspacesPageForSelectedWorkspace(
+          requestContext.userId,
+          requestContext.selectedWorkspaceId,
+          pageInput,
+        )
+        : await listUserWorkspacesPageForSelectedWorkspace(
+          requestContext.userId,
+          requestContext.selectedWorkspaceId,
+          pageInput,
+        );
       logCloudRouteEvent("workspaces_list", {
         requestId,
         route: context.req.path,
         statusCode: 200,
         userId: requestContext.userId,
         selectedWorkspaceId: requestContext.selectedWorkspaceId,
-        workspacesCount: workspaces.length,
+        workspacesCount: workspacesPage.workspaces.length,
+        limit: pageInput.limit,
+        hasNextCursor: workspacesPage.nextCursor !== null,
       }, false);
       if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
-        return context.json(createAgentWorkspacesEnvelope(context.req.url, workspaces));
+        return context.json(createAgentWorkspacesEnvelope(
+          context.req.url,
+          workspacesPage.workspaces,
+          workspacesPage.nextCursor,
+        ));
       }
-      return context.json({ workspaces });
+      return context.json({
+        workspaces: workspacesPage.workspaces,
+        nextCursor: workspacesPage.nextCursor,
+      } satisfies WorkspacesPageResponse);
     } catch (error) {
       logCloudRouteEvent("workspaces_list_error", {
         requestId,
@@ -155,8 +199,12 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
   app.get("/agent-api-keys", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
     requireHumanManagedConnectionAccess(requestContext.transport);
-    const connections = await listAgentApiKeyConnectionsForUser(requestContext.userId);
-    return context.json(createAgentConnectionListEnvelope(connections));
+    const pageInput = parseCursorQueryParams(context.req.raw);
+    const connectionsPage = await listAgentApiKeyConnectionsPageForUser(requestContext.userId, pageInput);
+    return context.json({
+      ...createAgentConnectionListEnvelope(connectionsPage.connections),
+      nextCursor: connectionsPage.nextCursor,
+    } satisfies AgentApiKeyConnectionsPageResponse);
   });
 
   app.post("/agent-api-keys/:connectionId/revoke", async (context) => {

@@ -59,7 +59,6 @@ function createCardsPage(overrides?: Partial<QueryCardsPage>): QueryCardsPage {
   return {
     cards: [],
     nextCursor: null,
-    hasMore: false,
     totalCount: 0,
     ...overrides,
   };
@@ -192,13 +191,11 @@ describe("CardsScreen", () => {
       .mockResolvedValueOnce(createCardsPage({
         cards: [createCard()],
         nextCursor: "cursor-1",
-        hasMore: true,
         totalCount: 2,
       }))
       .mockResolvedValueOnce(createCardsPage({
         cards: [],
         nextCursor: null,
-        hasMore: false,
         totalCount: 2,
       }));
 

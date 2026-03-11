@@ -1,6 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { query } from "./db";
 import { HttpError } from "./errors";
+import {
+  decodeOpaqueCursor,
+  encodeOpaqueCursor,
+  type CursorPageInput,
+} from "./pagination";
 import { normalizeCrockfordToken } from "./crockford";
 import { ensureApiKeyWorkspaceSelection } from "./workspaces";
 
@@ -29,11 +34,23 @@ export type AgentApiKeyConnection = Readonly<{
   revokedAt: string | null;
 }>;
 
+export type AgentApiKeyConnectionPage = Readonly<{
+  connections: ReadonlyArray<AgentApiKeyConnection>;
+  nextCursor: string | null;
+}>;
+
 export type AuthenticatedAgentApiKey = Readonly<{
   userId: string;
   connectionId: string;
   selectedWorkspaceId: string | null;
 }>;
+
+type AgentApiKeyConnectionCursor = Readonly<{
+  createdAt: string;
+  connectionId: string;
+}>;
+
+const maximumAgentApiKeyConnectionPageSize = 100;
 
 function toIsoString(value: Date | string | null): string | null {
   if (value === null) {
@@ -50,6 +67,24 @@ function mapConnection(row: AgentApiKeyRow): AgentApiKeyConnection {
     createdAt: toIsoString(row.created_at) ?? "",
     lastUsedAt: toIsoString(row.last_used_at),
     revokedAt: toIsoString(row.revoked_at),
+  };
+}
+
+function decodeAgentApiKeyConnectionCursor(cursor: string): AgentApiKeyConnectionCursor {
+  const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
+  if (decodedCursor.values.length !== 2) {
+    throw new HttpError(400, "cursor does not match the requested connection order");
+  }
+
+  const createdAt = decodedCursor.values[0];
+  const connectionId = decodedCursor.values[1];
+  if (typeof createdAt !== "string" || typeof connectionId !== "string") {
+    throw new HttpError(400, "cursor does not match the requested connection order");
+  }
+
+  return {
+    createdAt,
+    connectionId,
   };
 }
 
@@ -151,18 +186,46 @@ export async function authenticateAgentApiKey(apiKey: string): Promise<Authentic
   };
 }
 
-export async function listAgentApiKeyConnectionsForUser(userId: string): Promise<ReadonlyArray<AgentApiKeyConnection>> {
+export async function listAgentApiKeyConnectionsPageForUser(
+  userId: string,
+  input: CursorPageInput,
+): Promise<AgentApiKeyConnectionPage> {
+  if (input.limit < 1 || input.limit > maximumAgentApiKeyConnectionPageSize) {
+    throw new HttpError(400, `limit must be an integer between 1 and ${maximumAgentApiKeyConnectionPageSize}`);
+  }
+
+  const decodedCursor = input.cursor === null ? null : decodeAgentApiKeyConnectionCursor(input.cursor);
+  const cursorClause = decodedCursor === null
+    ? ""
+    : "AND (created_at < $2 OR (created_at = $2 AND connection_id < $3))";
+  const params = decodedCursor === null
+    ? [userId, input.limit + 1]
+    : [userId, new Date(decodedCursor.createdAt), decodedCursor.connectionId, input.limit + 1];
+  const limitParamIndex = decodedCursor === null ? 2 : 4;
+
   const result = await query<AgentApiKeyRow>(
     [
       "SELECT connection_id, user_id, label, key_id, key_hash, selected_workspace_id, created_at, last_used_at, revoked_at",
       "FROM auth.agent_api_keys",
       "WHERE user_id = $1",
+      cursorClause,
       "ORDER BY created_at DESC, connection_id DESC",
+      `LIMIT $${limitParamIndex}`,
     ].join(" "),
-    [userId],
+    params,
   );
 
-  return result.rows.map(mapConnection);
+  const hasNextPage = result.rows.length > input.limit;
+  const visibleRows = hasNextPage ? result.rows.slice(0, input.limit) : result.rows;
+  const nextRow = hasNextPage ? visibleRows[visibleRows.length - 1] : undefined;
+
+  return {
+    connections: visibleRows.map(mapConnection),
+    nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
+      toIsoString(nextRow.created_at) ?? "",
+      nextRow.connection_id,
+    ]),
+  };
 }
 
 /**

@@ -63,6 +63,26 @@ private struct AIOutboxEntryPayload: Encodable {
     let payloadSummary: String
 }
 
+private struct LocalCardsPagePayload: Encodable {
+    let cards: [Card]
+    let nextCursor: String?
+}
+
+private struct LocalDecksPagePayload: Encodable {
+    let decks: [Deck]
+    let nextCursor: String?
+}
+
+private struct LocalReviewHistoryPagePayload: Encodable {
+    let history: [ReviewEvent]
+    let nextCursor: String?
+}
+
+private struct LocalOutboxPagePayload: Encodable {
+    let outbox: [AIOutboxEntryPayload]
+    let nextCursor: String?
+}
+
 private struct AISuccessPayload: Encodable {
     let ok: Bool
     let message: String
@@ -138,20 +158,29 @@ private struct DeleteDecksToolInput: Decodable {
 
 private struct SearchCardsToolInput: Decodable {
     let query: String
-    let limit: Int?
+    let cursor: String?
+    let limit: Int
 }
 
 private struct ListCardsToolInput: Decodable {
-    let limit: Int?
+    let cursor: String?
+    let limit: Int
 }
 
 private struct ListDueCardsToolInput: Decodable {
-    let limit: Int?
+    let cursor: String?
+    let limit: Int
+}
+
+private struct ListDecksToolInput: Decodable {
+    let cursor: String?
+    let limit: Int
 }
 
 private struct SearchDecksToolInput: Decodable {
     let query: String
-    let limit: Int?
+    let cursor: String?
+    let limit: Int
 }
 
 private struct GetDecksToolInput: Decodable {
@@ -159,12 +188,18 @@ private struct GetDecksToolInput: Decodable {
 }
 
 private struct ListReviewHistoryToolInput: Decodable {
-    let limit: Int?
+    let cursor: String?
+    let limit: Int
     let cardId: String?
 }
 
 private struct ListOutboxToolInput: Decodable {
-    let limit: Int?
+    let cursor: String?
+    let limit: Int
+}
+
+private struct LocalPageCursor: Codable {
+    let index: Int
 }
 
 /**
@@ -198,8 +233,15 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         case "list_cards":
             let input = try self.decodeInput(ListCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
+            let startIndex = try self.pageStartIndex(cursor: input.cursor)
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: Array(self.currentActiveCards(snapshot: snapshot).prefix(self.normalizeLimit(input.limit)))),
+                output: try self.encodeJSON(
+                    value: self.makeCardsPagePayload(
+                        cards: self.currentActiveCards(snapshot: snapshot),
+                        startIndex: startIndex,
+                        limit: try self.normalizeLimit(input.limit)
+                    )
+                ),
                 didMutateAppState: false
             )
         case "get_cards":
@@ -214,28 +256,59 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         case "search_cards":
             let input = try self.decodeInput(SearchCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
+            let startIndex = try self.pageStartIndex(cursor: input.cursor)
+            let matchedCards = try self.searchCards(snapshot: snapshot, query: input.query, limit: Int.max)
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: try self.searchCards(snapshot: snapshot, query: input.query, limit: self.normalizeLimit(input.limit))),
+                output: try self.encodeJSON(
+                    value: self.makeCardsPagePayload(
+                        cards: matchedCards,
+                        startIndex: startIndex,
+                        limit: try self.normalizeLimit(input.limit)
+                    )
+                ),
                 didMutateAppState: false
             )
         case "list_due_cards":
             let input = try self.decodeInput(ListDueCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
+            let startIndex = try self.pageStartIndex(cursor: input.cursor)
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: Array(self.dueCards(snapshot: snapshot).prefix(self.normalizeLimit(input.limit)))),
+                output: try self.encodeJSON(
+                    value: self.makeCardsPagePayload(
+                        cards: self.dueCards(snapshot: snapshot),
+                        startIndex: startIndex,
+                        limit: try self.normalizeLimit(input.limit)
+                    )
+                ),
                 didMutateAppState: false
             )
         case "list_decks":
+            let input = try self.decodeInput(ListDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
+            let startIndex = try self.pageStartIndex(cursor: input.cursor)
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: self.activeDecks(snapshot: snapshot)),
+                output: try self.encodeJSON(
+                    value: self.makeDecksPagePayload(
+                        decks: self.activeDecks(snapshot: snapshot),
+                        startIndex: startIndex,
+                        limit: try self.normalizeLimit(input.limit)
+                    )
+                ),
                 didMutateAppState: false
             )
         case "search_decks":
             let input = try self.decodeInput(SearchDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
+            let startIndex = try self.pageStartIndex(cursor: input.cursor)
+            let matchedDecks = try self.searchDecks(snapshot: snapshot, query: input.query, limit: Int.max)
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: try self.searchDecks(snapshot: snapshot, query: input.query, limit: self.normalizeLimit(input.limit))),
+                output: try self.encodeJSON(
+                    value: self.makeDecksPagePayload(
+                        decks: matchedDecks,
+                        startIndex: startIndex,
+                        limit: try self.normalizeLimit(input.limit)
+                    )
+                ),
                 didMutateAppState: false
             )
         case "get_decks":
@@ -250,12 +323,17 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         case "list_review_history":
             let input = try self.decodeInput(ListReviewHistoryToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
+            let startIndex = try self.pageStartIndex(cursor: input.cursor)
             return AIToolExecutionResult(
                 output: try self.encodeJSON(
-                    value: try self.loadReviewHistory(
-                        workspaceId: snapshot.workspace.workspaceId,
-                        limit: self.normalizeLimit(input.limit),
-                        cardId: input.cardId
+                    value: try self.makeReviewHistoryPagePayload(
+                        history: try self.loadReviewHistory(
+                            workspaceId: snapshot.workspace.workspaceId,
+                            limit: Int.max,
+                            cardId: input.cardId
+                        ),
+                        startIndex: startIndex,
+                        limit: try self.normalizeLimit(input.limit)
                     )
                 ),
                 didMutateAppState: false
@@ -275,11 +353,13 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         case "list_outbox":
             let input = try self.decodeInput(ListOutboxToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()
+            let startIndex = try self.pageStartIndex(cursor: input.cursor)
             return AIToolExecutionResult(
                 output: try self.encodeJSON(
                     value: try self.makeOutboxPayload(
                         workspaceId: snapshot.workspace.workspaceId,
-                        limit: self.normalizeLimit(input.limit)
+                        startIndex: startIndex,
+                        limit: try self.normalizeLimit(input.limit)
                     )
                 ),
                 didMutateAppState: false
@@ -434,21 +514,26 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         )
     }
 
-    private func makeOutboxPayload(workspaceId: String, limit: Int) throws -> [AIOutboxEntryPayload] {
-        try self.databaseInstance().loadOutboxEntries(workspaceId: workspaceId, limit: limit).map { entry in
-            AIOutboxEntryPayload(
-                operationId: entry.operationId,
-                workspaceId: entry.workspaceId,
-                entityType: entry.operation.entityType.rawValue,
-                entityId: entry.operation.entityId,
-                action: entry.operation.action.rawValue,
-                clientUpdatedAt: entry.operation.clientUpdatedAt,
-                createdAt: entry.createdAt,
-                attemptCount: entry.attemptCount,
-                lastError: entry.lastError,
-                payloadSummary: self.describeOutboxPayload(entry.operation.payload)
-            )
-        }
+    private func makeOutboxPayload(workspaceId: String, startIndex: Int, limit: Int) throws -> LocalOutboxPagePayload {
+        let entries = try self.databaseInstance().loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
+        let visibleEntries = Array(entries.dropFirst(startIndex).prefix(limit))
+        return LocalOutboxPagePayload(
+            outbox: visibleEntries.map { entry in
+                AIOutboxEntryPayload(
+                    operationId: entry.operationId,
+                    workspaceId: entry.workspaceId,
+                    entityType: entry.operation.entityType.rawValue,
+                    entityId: entry.operation.entityId,
+                    action: entry.operation.action.rawValue,
+                    clientUpdatedAt: entry.operation.clientUpdatedAt,
+                    createdAt: entry.createdAt,
+                    attemptCount: entry.attemptCount,
+                    lastError: entry.lastError,
+                    payloadSummary: self.describeOutboxPayload(entry.operation.payload)
+                )
+            },
+            nextCursor: self.nextCursor(totalCount: entries.count, startIndex: startIndex, visibleCount: visibleEntries.count)
+        )
     }
 
     private func loadReviewHistory(workspaceId: String, limit: Int, cardId: String?) throws -> [ReviewEvent] {
@@ -572,12 +657,85 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         }
     }
 
-    private func normalizeLimit(_ limit: Int?) -> Int {
-        guard let limit else {
-            return 20
+    private func normalizeLimit(_ limit: Int) throws -> Int {
+        if limit < 1 || limit > 100 {
+            throw LocalStoreError.validation("limit must be an integer between 1 and 100")
         }
 
-        return min(max(limit, 1), 100)
+        return limit
+    }
+
+    private func pageStartIndex(cursor: String?) throws -> Int {
+        guard let cursor else {
+            return 0
+        }
+
+        return try self.decodePageCursor(cursor: cursor)
+    }
+
+    private func makeCardsPagePayload(cards: [Card], startIndex: Int, limit: Int) -> LocalCardsPagePayload {
+        let visibleCards = Array(cards.dropFirst(startIndex).prefix(limit))
+        return LocalCardsPagePayload(
+            cards: visibleCards,
+            nextCursor: self.nextCursor(totalCount: cards.count, startIndex: startIndex, visibleCount: visibleCards.count)
+        )
+    }
+
+    private func makeDecksPagePayload(decks: [Deck], startIndex: Int, limit: Int) -> LocalDecksPagePayload {
+        let visibleDecks = Array(decks.dropFirst(startIndex).prefix(limit))
+        return LocalDecksPagePayload(
+            decks: visibleDecks,
+            nextCursor: self.nextCursor(totalCount: decks.count, startIndex: startIndex, visibleCount: visibleDecks.count)
+        )
+    }
+
+    private func makeReviewHistoryPagePayload(history: [ReviewEvent], startIndex: Int, limit: Int) -> LocalReviewHistoryPagePayload {
+        let visibleHistory = Array(history.dropFirst(startIndex).prefix(limit))
+        return LocalReviewHistoryPagePayload(
+            history: visibleHistory,
+            nextCursor: self.nextCursor(totalCount: history.count, startIndex: startIndex, visibleCount: visibleHistory.count)
+        )
+    }
+
+    private func nextCursor(totalCount: Int, startIndex: Int, visibleCount: Int) -> String? {
+        let nextIndex = startIndex + visibleCount
+        if nextIndex >= totalCount {
+            return nil
+        }
+
+        return self.encodePageCursor(index: nextIndex)
+    }
+
+    private func encodePageCursor(index: Int) -> String {
+        let json = "{\"index\":\(index)}"
+        let data = Data(json.utf8)
+        return data.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private func decodePageCursor(cursor: String) throws -> Int {
+        let normalizedCursor = cursor
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let paddingLength = (4 - (normalizedCursor.count % 4)) % 4
+        let paddedCursor = normalizedCursor + String(repeating: "=", count: paddingLength)
+        guard let data = Data(base64Encoded: paddedCursor) else {
+            throw LocalStoreError.validation("cursor is invalid: Cursor payload must be base64")
+        }
+
+        do {
+            let payload = try JSONDecoder().decode(LocalPageCursor.self, from: data)
+            if payload.index < 0 {
+                throw LocalStoreError.validation("cursor is invalid: Cursor index must be a non-negative integer")
+            }
+            return payload.index
+        } catch let error as LocalStoreError {
+            throw error
+        } catch {
+            throw LocalStoreError.validation("cursor is invalid: \(localizedMessage(error: error))")
+        }
     }
 
     private func validateCardBatchCount(count: Int) throws {

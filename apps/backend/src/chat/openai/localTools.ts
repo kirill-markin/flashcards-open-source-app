@@ -26,7 +26,8 @@ import {
 const LOCAL_ONLY_TOOL_ARGUMENT_VALIDATORS = {
   get_cloud_settings: z.object({}).strict(),
   list_outbox: z.object({
-    limit: z.number().int().min(1).max(100).nullable(),
+    cursor: z.string().nullable(),
+    limit: z.number().int().min(1).max(100),
   }).strict(),
 } as const;
 
@@ -46,11 +47,12 @@ const LOCAL_ONLY_OPENAI_TOOLS: ReadonlyArray<FunctionTool> = [
     name: "list_outbox",
     description: strictToolDescription(
       "List pending local outbox operations that have not synced yet.",
-      "Use {\"limit\": number|null}. Include \"limit\": null when no limit is needed.",
+      "Use {\"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
     ),
     strict: true,
     parameters: strictObjectSchema({
-      limit: nullableSchema(LIMIT_SCHEMA),
+      cursor: nullableSchema({ type: "string" }),
+      limit: LIMIT_SCHEMA,
     }),
   },
 ];

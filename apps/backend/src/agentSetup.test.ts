@@ -31,14 +31,15 @@ test("createAgentAccountEnvelope points the agent to load workspaces next", () =
   assert.deepEqual(envelope.actions, [{
     name: "list_workspaces",
     method: "GET",
-    url: "https://api.example.com/v1/agent/workspaces",
+    url: "https://api.example.com/v1/agent/workspaces?limit=100",
     auth: {
       scheme: "ApiKey",
     },
   }]);
   assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/me/);
-  assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/workspaces/);
+  assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/workspaces\?limit=100/);
   assert.match(envelope.instructions, /auto-provisioned/i);
+  assert.match(envelope.instructions, /data\.nextCursor/);
   assert.match(envelope.instructions, /Read payload from data\.\*/);
   assert.match(envelope.instructions, /confirm it with actions/i);
 });
@@ -46,7 +47,7 @@ test("createAgentAccountEnvelope points the agent to load workspaces next", () =
 test("createAgentWorkspacesEnvelope guides workspace creation when none exist", () => {
   process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
 
-  const envelope = createAgentWorkspacesEnvelope("https://api.example.com/v1/agent/workspaces", []);
+  const envelope = createAgentWorkspacesEnvelope("https://api.example.com/v1/agent/workspaces?limit=100", [], null);
 
   assert.equal(envelope.actions[0]?.name, "create_workspace");
   assert.equal(envelope.actions[0]?.url, "https://api.example.com/v1/agent/workspaces");
@@ -58,7 +59,7 @@ test("createAgentWorkspacesEnvelope guides workspace creation when none exist", 
 test("createAgentWorkspacesEnvelope requires selection when several workspaces exist and none is selected", () => {
   process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
 
-  const envelope = createAgentWorkspacesEnvelope("https://api.example.com/v1/agent/workspaces", [
+  const envelope = createAgentWorkspacesEnvelope("https://api.example.com/v1/agent/workspaces?limit=100", [
     {
       workspaceId: "ws-1",
       name: "Spanish",
@@ -71,7 +72,7 @@ test("createAgentWorkspacesEnvelope requires selection when several workspaces e
       createdAt: "2026-03-10T12:01:00.000Z",
       isSelected: false,
     },
-  ]);
+  ], null);
 
   assert.equal(envelope.actions[0]?.name, "select_workspace");
   assert.equal(
@@ -79,6 +80,7 @@ test("createAgentWorkspacesEnvelope requires selection when several workspaces e
     "https://api.example.com/v1/agent/workspaces/{workspaceId}/select",
   );
   assert.match(envelope.instructions, /POST https:\/\/api\.example\.com\/v1\/agent\/workspaces\/\{workspaceId\}\/select/);
+  assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/workspaces\?limit=100/);
   assert.match(envelope.instructions, /Read payload from data\.\*/);
 });
 
@@ -106,7 +108,7 @@ test("createAgentSetupErrorEnvelope keeps actionable retry instructions", () => 
     "https://api.example.com/v1/agent/tools/list_cards",
     "WORKSPACE_SELECTION_REQUIRED",
     "Select a workspace before using this endpoint",
-    "Call GET /v1/agent/workspaces and then POST /v1/agent/workspaces/{workspaceId}/select.",
+    "Call GET /v1/agent/workspaces?limit=100 and then POST /v1/agent/workspaces/{workspaceId}/select.",
     "request-1",
   );
 

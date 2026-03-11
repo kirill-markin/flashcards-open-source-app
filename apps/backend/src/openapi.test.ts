@@ -89,9 +89,11 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   assert.ok(workspacesExample !== undefined);
   assert.ok("data" in workspacesExample);
   assert.ok(Array.isArray((workspacesExample.data as Record<string, unknown>).workspaces));
+  assert.ok("nextCursor" in (workspacesExample.data as Record<string, unknown>));
 
   const listCardsExample = paths["/agent/tools/list_cards"]?.post?.responses?.["200"]?.content?.["application/json"]?.example;
   assert.ok(listCardsExample !== undefined);
   assert.ok("data" in listCardsExample);
   assert.ok(Array.isArray((listCardsExample.data as Record<string, unknown>).cards));
+  assert.ok("nextCursor" in (listCardsExample.data as Record<string, unknown>));
 });

@@ -108,17 +108,24 @@ function createDependencies(
     async getCards() {
       return defaultCardList;
     },
-    async listCards() {
-      return defaultCardList;
+    async listReviewHistoryPage() {
+      return {
+        history: [],
+        nextCursor: null,
+      };
     },
-    async listReviewHistory() {
-      return [];
+    async listReviewQueuePage() {
+      return {
+        cards: defaultCardList,
+        nextCursor: null,
+      };
     },
-    async listReviewQueue() {
-      return defaultCardList;
-    },
-    async searchCards() {
-      return defaultCardList;
+    async queryCardsPage() {
+      return {
+        cards: defaultCardList,
+        nextCursor: null,
+        totalCount: defaultCardList.length,
+      };
     },
     async summarizeDeckState() {
       return makeDeckSummary();
@@ -141,11 +148,17 @@ function createDependencies(
     async getDecks() {
       return defaultDeckList;
     },
-    async listDecks() {
-      return defaultDeckList;
+    async listDecksPage() {
+      return {
+        decks: defaultDeckList,
+        nextCursor: null,
+      };
     },
-    async searchDecks() {
-      return defaultDeckList;
+    async searchDecksPage() {
+      return {
+        decks: defaultDeckList,
+        nextCursor: null,
+      };
     },
     async updateDecks() {
       return defaultDeckList;
@@ -160,22 +173,27 @@ function createDependencies(
   };
 }
 
-test("listAgentCardsOperation enforces the external limit and hasMore shape", async () => {
+test("listAgentCardsOperation returns a cursor-based page payload", async () => {
   const dependencies = createDependencies({
-    async listCards() {
-      return [makeCard("card-1"), makeCard("card-2"), makeCard("card-3")];
+    async queryCardsPage(_workspaceId, input) {
+      assert.equal(input.limit, 2);
+      assert.equal(input.cursor, null);
+      return {
+        cards: [makeCard("card-1"), makeCard("card-2")],
+        nextCursor: "cursor-2",
+        totalCount: 3,
+      };
     },
   });
 
   const result = await listAgentCardsOperation(dependencies, {
     workspaceId: "workspace-1",
+    cursor: null,
     limit: 2,
   });
 
   assert.equal(result.cards.length, 2);
-  assert.equal(result.returnedCount, 2);
-  assert.equal(result.hasMore, true);
-  assert.equal(result.limitApplied, 2);
+  assert.equal(result.nextCursor, "cursor-2");
 });
 
 test("loadAgentWorkspaceContextOperation combines workspace summary, deck summary, and scheduler settings", async () => {

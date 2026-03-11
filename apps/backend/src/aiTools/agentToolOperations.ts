@@ -19,10 +19,9 @@ import {
   createCards,
   deleteCards,
   getCards,
-  listCards,
-  listReviewHistory,
-  listReviewQueue,
-  searchCards,
+  listReviewHistoryPage,
+  listReviewQueuePage,
+  queryCardsPage,
   summarizeDeckState,
   updateCards,
   type BulkCreateCardItem,
@@ -36,8 +35,8 @@ import {
   createDecks,
   deleteDecks,
   getDecks,
-  listDecks,
-  searchDecks,
+  listDecksPage,
+  searchDecksPage,
   updateDecks,
   type BulkCreateDeckItem,
   type BulkDeleteDeckItem,
@@ -60,11 +59,11 @@ import {
 import type {
   AgentToolCreateCardsInput,
   AgentToolCreateDecksInput,
+  AgentToolCursorInput,
   AgentToolDeleteCardsInput,
   AgentToolDeleteDecksInput,
   AgentToolGetCardsInput,
   AgentToolGetDecksInput,
-  AgentToolLimitInput,
   AgentToolListReviewHistoryInput,
   AgentToolSearchCardsInput,
   AgentToolSearchDecksInput,
@@ -79,18 +78,17 @@ export type AgentToolOperationDependencies = Readonly<{
   createCards: typeof createCards;
   deleteCards: typeof deleteCards;
   getCards: typeof getCards;
-  listCards: typeof listCards;
-  listReviewHistory: typeof listReviewHistory;
-  listReviewQueue: typeof listReviewQueue;
-  searchCards: typeof searchCards;
+  listReviewHistoryPage: typeof listReviewHistoryPage;
+  listReviewQueuePage: typeof listReviewQueuePage;
+  queryCardsPage: typeof queryCardsPage;
   summarizeDeckState: typeof summarizeDeckState;
   updateCards: typeof updateCards;
   ensureAgentSyncDevice: typeof ensureAgentSyncDevice;
   createDecks: typeof createDecks;
   deleteDecks: typeof deleteDecks;
   getDecks: typeof getDecks;
-  listDecks: typeof listDecks;
-  searchDecks: typeof searchDecks;
+  listDecksPage: typeof listDecksPage;
+  searchDecksPage: typeof searchDecksPage;
   updateDecks: typeof updateDecks;
   getWorkspaceSchedulerSettings: typeof getWorkspaceSchedulerSettings;
   listUserWorkspacesForSelectedWorkspace: typeof listUserWorkspacesForSelectedWorkspace;
@@ -105,13 +103,15 @@ type AgentMutationContext = Readonly<{
 
 type WorkspaceScopedLimitInput = Readonly<{
   workspaceId: string;
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 type WorkspaceScopedSearchInput = Readonly<{
   workspaceId: string;
   query: string;
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 type WorkspaceContextInput = Readonly<{
@@ -132,7 +132,8 @@ type WorkspaceScopedGetDecksInput = Readonly<{
 
 type WorkspaceScopedReviewHistoryInput = Readonly<{
   workspaceId: string;
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
   cardId: string | null;
 }>;
 
@@ -167,10 +168,8 @@ type AgentWorkspaceContextPayload = Readonly<{
 }>;
 
 type AgentLimitedCardsPayload = Readonly<{
-  cards: Awaited<ReturnType<typeof listCards>>;
-  returnedCount: number;
-  hasMore: boolean;
-  limitApplied: number;
+  cards: Awaited<ReturnType<typeof queryCardsPage>>["cards"];
+  nextCursor: string | null;
 }>;
 
 type AgentGetCardsPayload = Readonly<{
@@ -179,10 +178,8 @@ type AgentGetCardsPayload = Readonly<{
 }>;
 
 type AgentLimitedDecksPayload = Readonly<{
-  decks: Awaited<ReturnType<typeof listDecks>>;
-  returnedCount: number;
-  hasMore: boolean;
-  limitApplied: number;
+  decks: Awaited<ReturnType<typeof listDecksPage>>["decks"];
+  nextCursor: string | null;
 }>;
 
 type AgentGetDecksPayload = Readonly<{
@@ -191,10 +188,8 @@ type AgentGetDecksPayload = Readonly<{
 }>;
 
 type AgentReviewHistoryPayload = Readonly<{
-  history: Awaited<ReturnType<typeof listReviewHistory>>;
-  returnedCount: number;
-  hasMore: boolean;
-  limitApplied: number;
+  history: Awaited<ReturnType<typeof listReviewHistoryPage>>["history"];
+  nextCursor: string | null;
 }>;
 
 type AgentCreateCardsPayload = Readonly<{
@@ -227,29 +222,31 @@ export const DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES: AgentToolOperationDepend
   createCards,
   deleteCards,
   getCards,
-  listCards,
-  listReviewHistory,
-  listReviewQueue,
-  searchCards,
+  listReviewHistoryPage,
+  listReviewQueuePage,
+  queryCardsPage,
   summarizeDeckState,
   updateCards,
   ensureAgentSyncDevice,
   createDecks,
   deleteDecks,
   getDecks,
-  listDecks,
-  searchDecks,
+  listDecksPage,
+  searchDecksPage,
   updateDecks,
   getWorkspaceSchedulerSettings,
   listUserWorkspacesForSelectedWorkspace,
 });
 
 /**
- * Applies the external-agent server-side max result count when the caller
- * passes `null`, preserving the current v1 wire behavior.
+ * Validates the explicit external-agent page size.
  */
-export function normalizeAgentToolLimit(limit: number | null): number {
-  return limit ?? EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT;
+export function normalizeAgentToolLimit(limit: number): number {
+  if (limit < 1 || limit > EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT) {
+    throw new HttpError(400, `limit must be an integer between 1 and ${EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT}`);
+  }
+
+  return limit;
 }
 
 function createMutationOperationId(actionName: SharedAiToolName, index: number): string {
@@ -369,13 +366,16 @@ export async function listAgentCardsOperation(
   input: WorkspaceScopedLimitInput,
 ): Promise<AgentLimitedCardsPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  const cards = await dependencies.listCards(input.workspaceId);
+  const result = await dependencies.queryCardsPage(input.workspaceId, {
+    searchText: null,
+    cursor: input.cursor,
+    limit: limitApplied,
+    sorts: [],
+  });
 
   return {
-    cards: cards.slice(0, limitApplied),
-    returnedCount: Math.min(cards.length, limitApplied),
-    hasMore: cards.length > limitApplied,
-    limitApplied,
+    cards: result.cards,
+    nextCursor: result.nextCursor,
   };
 }
 
@@ -402,13 +402,16 @@ export async function searchAgentCardsOperation(
   input: WorkspaceScopedSearchInput,
 ): Promise<AgentLimitedCardsPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  const cards = await dependencies.searchCards(input.workspaceId, input.query, limitApplied);
+  const result = await dependencies.queryCardsPage(input.workspaceId, {
+    searchText: input.query,
+    cursor: input.cursor,
+    limit: limitApplied,
+    sorts: [],
+  });
 
   return {
-    cards,
-    returnedCount: cards.length,
-    hasMore: cards.length === limitApplied,
-    limitApplied,
+    cards: result.cards,
+    nextCursor: result.nextCursor,
   };
 }
 
@@ -420,13 +423,14 @@ export async function listAgentDueCardsOperation(
   input: WorkspaceScopedLimitInput,
 ): Promise<AgentLimitedCardsPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  const cards = await dependencies.listReviewQueue(input.workspaceId, limitApplied);
+  const result = await dependencies.listReviewQueuePage(input.workspaceId, {
+    cursor: input.cursor,
+    limit: limitApplied,
+  });
 
   return {
-    cards,
-    returnedCount: cards.length,
-    hasMore: cards.length === limitApplied,
-    limitApplied,
+    cards: result.cards,
+    nextCursor: result.nextCursor,
   };
 }
 
@@ -435,16 +439,13 @@ export async function listAgentDueCardsOperation(
  */
 export async function listAgentDecksOperation(
   dependencies: AgentToolOperationDependencies,
-  input: Readonly<{ workspaceId: string }>,
+  input: WorkspaceScopedLimitInput,
 ): Promise<AgentLimitedDecksPayload> {
-  const decks = await dependencies.listDecks(input.workspaceId);
-
-  return {
-    decks: decks.slice(0, EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT),
-    returnedCount: Math.min(decks.length, EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT),
-    hasMore: decks.length > EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT,
-    limitApplied: EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT,
-  };
+  const limitApplied = normalizeAgentToolLimit(input.limit);
+  return dependencies.listDecksPage(input.workspaceId, {
+    cursor: input.cursor,
+    limit: limitApplied,
+  });
 }
 
 /**
@@ -470,14 +471,10 @@ export async function searchAgentDecksOperation(
   input: WorkspaceScopedSearchInput,
 ): Promise<AgentLimitedDecksPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  const decks = await dependencies.searchDecks(input.workspaceId, input.query, limitApplied);
-
-  return {
-    decks,
-    returnedCount: decks.length,
-    hasMore: decks.length === limitApplied,
-    limitApplied,
-  };
+  return dependencies.searchDecksPage(input.workspaceId, input.query, {
+    cursor: input.cursor,
+    limit: limitApplied,
+  });
 }
 
 /**
@@ -490,16 +487,11 @@ export async function listAgentReviewHistoryOperation(
   input: WorkspaceScopedReviewHistoryInput,
 ): Promise<AgentReviewHistoryPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  const history = input.cardId === null
-    ? await dependencies.listReviewHistory(input.workspaceId, limitApplied)
-    : await dependencies.listReviewHistory(input.workspaceId, limitApplied, input.cardId);
-
-  return {
-    history,
-    returnedCount: history.length,
-    hasMore: history.length === limitApplied,
-    limitApplied,
-  };
+  return dependencies.listReviewHistoryPage(input.workspaceId, {
+    cursor: input.cursor,
+    limit: limitApplied,
+    cardId: input.cardId,
+  });
 }
 
 /**

@@ -243,20 +243,23 @@ describe("createLocalToolExecutor", () => {
     const outboxResult = await executor.execute({
       toolCallId: "call-4",
       name: "list_outbox",
-      input: "{\"limit\":null}",
+      input: "{\"cursor\":null,\"limit\":100}",
     });
-    expect(JSON.parse(outboxResult.output)).toEqual([{
-      operationId: "outbox-1",
-      workspaceId: "workspace-1",
-      entityType: "card",
-      entityId: "card-2",
-      action: "upsert",
-      clientUpdatedAt: "2026-03-10T08:00:00.000Z",
-      createdAt: "2026-03-10T08:00:00.000Z",
-      attemptCount: 1,
-      lastError: "Temporary failure",
-      payloadSummary: "card card-2",
-    }]);
+    expect(JSON.parse(outboxResult.output)).toEqual({
+      outbox: [{
+        operationId: "outbox-1",
+        workspaceId: "workspace-1",
+        entityType: "card",
+        entityId: "card-2",
+        action: "upsert",
+        clientUpdatedAt: "2026-03-10T08:00:00.000Z",
+        createdAt: "2026-03-10T08:00:00.000Z",
+        attemptCount: 1,
+        lastError: "Temporary failure",
+        payloadSummary: "card card-2",
+      }],
+      nextCursor: null,
+    });
   });
 
   it("keeps summarize_deck_state available in the browser local runtime", async () => {
@@ -284,12 +287,13 @@ describe("createLocalToolExecutor", () => {
     const result = await executor.execute({
       toolCallId: "call-search-cards-effort",
       name: "search_cards",
-      input: "{\"query\":\"medium\",\"limit\":100}",
+      input: "{\"query\":\"medium\",\"cursor\":null,\"limit\":100}",
     });
 
-    const cards = JSON.parse(result.output) as ReadonlyArray<Card>;
-    expect(cards).toHaveLength(2);
-    expect(cards.every((card) => card.effortLevel === "medium")).toBe(true);
+    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
+    expect(payload.cards).toHaveLength(2);
+    expect(payload.cards.every((card) => card.effortLevel === "medium")).toBe(true);
+    expect(payload.nextCursor).toBe(null);
   });
 
   it("searches cards with AND semantics across tokenized query terms", async () => {
@@ -298,11 +302,12 @@ describe("createLocalToolExecutor", () => {
     const result = await executor.execute({
       toolCallId: "call-search-cards-and",
       name: "search_cards",
-      input: "{\"query\":\"FRONT medium\",\"limit\":100}",
+      input: "{\"query\":\"FRONT medium\",\"cursor\":null,\"limit\":100}",
     });
 
-    const cards = JSON.parse(result.output) as ReadonlyArray<Card>;
-    expect(cards.map((card) => card.cardId)).toEqual(["card-1"]);
+    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
+    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-1"]);
+    expect(payload.nextCursor).toBe(null);
   });
 
   it("searches cards by merging tokens after the fifth token", async () => {
@@ -328,11 +333,12 @@ describe("createLocalToolExecutor", () => {
     const result = await executor.execute({
       toolCallId: "call-search-cards-tail",
       name: "search_cards",
-      input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"limit\":100}",
+      input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"cursor\":null,\"limit\":100}",
     });
 
-    const cards = JSON.parse(result.output) as ReadonlyArray<Card>;
-    expect(cards.map((card) => card.cardId)).toEqual(["card-phrase"]);
+    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
+    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-phrase"]);
+    expect(payload.nextCursor).toBe(null);
   });
 
   it("resolves nullable update fields against existing local records and mutates only once per item", async () => {

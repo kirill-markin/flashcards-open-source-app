@@ -16,9 +16,10 @@ import {
 } from "../agentSetup";
 import { HttpError } from "../errors";
 import { loadOpenApiDocument } from "../openapi";
+import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../pagination";
 import {
   createWorkspaceForApiKeyConnection,
-  listUserWorkspacesForSelectedWorkspace,
+  listUserWorkspacesPageForSelectedWorkspace,
   selectWorkspaceForApiKeyConnection,
 } from "../workspaces";
 import { SHARED_AI_TOOL_ARGUMENT_VALIDATORS } from "../aiTools/sharedToolContracts";
@@ -48,7 +49,7 @@ import type {
   AgentToolDeleteDecksInput,
   AgentToolGetCardsInput,
   AgentToolGetDecksInput,
-  AgentToolLimitInput,
+  AgentToolCursorInput,
   AgentToolListReviewHistoryInput,
   AgentToolSearchCardsInput,
   AgentToolSearchDecksInput,
@@ -71,6 +72,17 @@ import type { AppEnv } from "../app";
 type AgentRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
 }>;
+
+function parsePageQueryInput(request: Request): Readonly<{
+  cursor: string | null;
+  limit: number;
+}> {
+  const url = new URL(request.url);
+  return {
+    cursor: parseOptionalCursorQuery(url.searchParams.get("cursor") ?? undefined, "cursor"),
+    limit: parseRequiredPageLimit(url.searchParams.get("limit") ?? undefined, "limit", 100),
+  };
+}
 
 function parseAgentToolBody<T>(toolName: ExternalAgentToolName, value: unknown): T {
   const validator = SHARED_AI_TOOL_ARGUMENT_VALIDATORS[toolName];
@@ -228,11 +240,17 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
 
   app.get("/agent/workspaces", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
-    const workspaces = await listUserWorkspacesForSelectedWorkspace(
+    const pageInput = parsePageQueryInput(context.req.raw);
+    const workspacesPage = await listUserWorkspacesPageForSelectedWorkspace(
       requestContext.userId,
       requestContext.selectedWorkspaceId,
+      pageInput,
     );
-    return context.json(createAgentWorkspacesEnvelope(context.req.url, workspaces));
+    return context.json(createAgentWorkspacesEnvelope(
+      context.req.url,
+      workspacesPage.workspaces,
+      workspacesPage.nextCursor,
+    ));
   });
 
   app.post("/agent/workspaces", async (context) => {
@@ -294,9 +312,10 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/tools/list_cards", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const workspaceId = requireSelectedWorkspaceId(requestContext);
-    const body = parseAgentToolBody<AgentToolLimitInput>("list_cards", await parseJsonBody(context.req.raw));
+    const body = parseAgentToolBody<AgentToolCursorInput>("list_cards", await parseJsonBody(context.req.raw));
     const payload = await listAgentCardsOperation(DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES, {
       workspaceId,
+      cursor: body.cursor,
       limit: body.limit,
     });
     const actions = toAgentToolActions(context.req.url, "list_cards");
@@ -334,6 +353,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
     const payload = await searchAgentCardsOperation(DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES, {
       workspaceId,
       query: body.query,
+      cursor: body.cursor,
       limit: body.limit,
     });
     const actions = toAgentToolActions(context.req.url, "search_cards");
@@ -349,9 +369,10 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/tools/list_due_cards", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const workspaceId = requireSelectedWorkspaceId(requestContext);
-    const body = parseAgentToolBody<AgentToolLimitInput>("list_due_cards", await parseJsonBody(context.req.raw));
+    const body = parseAgentToolBody<AgentToolCursorInput>("list_due_cards", await parseJsonBody(context.req.raw));
     const payload = await listAgentDueCardsOperation(DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES, {
       workspaceId,
+      cursor: body.cursor,
       limit: body.limit,
     });
     const actions = toAgentToolActions(context.req.url, "list_due_cards");
@@ -367,8 +388,11 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/tools/list_decks", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const body = parseAgentToolBody<AgentToolCursorInput>("list_decks", await parseJsonBody(context.req.raw));
     const payload = await listAgentDecksOperation(DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES, {
       workspaceId,
+      cursor: body.cursor,
+      limit: body.limit,
     });
     const actions = toAgentToolActions(context.req.url, "list_decks");
 
@@ -405,6 +429,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
     const payload = await searchAgentDecksOperation(DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES, {
       workspaceId,
       query: body.query,
+      cursor: body.cursor,
       limit: body.limit,
     });
     const actions = toAgentToolActions(context.req.url, "search_decks");
@@ -426,6 +451,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
     );
     const payload = await listAgentReviewHistoryOperation(DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES, {
       workspaceId,
+      cursor: body.cursor,
       limit: body.limit,
       cardId: body.cardId,
     });

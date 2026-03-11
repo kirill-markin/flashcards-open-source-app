@@ -115,8 +115,12 @@ export type QueryCardsInput = Readonly<{
 export type QueryCardsPage = Readonly<{
   cards: ReadonlyArray<Card>;
   nextCursor: string | null;
-  hasMore: boolean;
   totalCount: number;
+}>;
+
+export type CardListPage = Readonly<{
+  cards: ReadonlyArray<Card>;
+  nextCursor: string | null;
 }>;
 
 export type CardMutationMetadata = LwwMetadata;
@@ -176,6 +180,11 @@ export type ReviewEvent = Readonly<{
 }>;
 
 export type ReviewHistoryItem = ReviewEvent;
+
+export type ReviewHistoryPage = Readonly<{
+  history: ReadonlyArray<ReviewHistoryItem>;
+  nextCursor: string | null;
+}>;
 
 export type CardSnapshotInput = Readonly<{
   cardId: string;
