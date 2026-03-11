@@ -5,6 +5,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct AIChatView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var flashcardsStore: FlashcardsStore
     @ObservedObject private var chatStore: AIChatStore
     @State private var isCloudSignInPresented: Bool
@@ -66,9 +67,20 @@ struct AIChatView: View {
         }
         .onAppear {
             self.handleAIChatPresentationRequest(request: self.flashcardsStore.aiChatPresentationRequest)
+            self.chatStore.warmUpSessionIfNeeded()
         }
         .onChange(of: self.flashcardsStore.aiChatPresentationRequest) { _, request in
             self.handleAIChatPresentationRequest(request: request)
+        }
+        .onChange(of: self.scenePhase) { _, nextPhase in
+            guard nextPhase == .active else {
+                return
+            }
+            guard self.flashcardsStore.selectedTab == .ai else {
+                return
+            }
+
+            self.chatStore.warmUpSessionIfNeeded()
         }
         .onChange(of: self.selectedPhotoItem) { _, newItem in
             guard let newItem else {

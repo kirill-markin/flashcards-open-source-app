@@ -109,6 +109,19 @@ final class AIChatStore: ObservableObject {
         }
     }
 
+    func warmUpSessionIfNeeded() {
+        guard self.isStreaming == false else {
+            return
+        }
+        guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
+            return
+        }
+
+        Task {
+            await self.flashcardsStore.warmUpAuthenticatedCloudSessionForAI()
+        }
+    }
+
     func sendMessage() {
         if self.isStreaming {
             return

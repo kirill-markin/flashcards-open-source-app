@@ -51,6 +51,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
                     timezone: "Europe/Madrid"
                 ),
                 onDelta: { _ in },
+                onToolCall: { _ in },
                 onToolCallRequest: { _ in },
                 onRepairAttempt: { _ in }
             )
@@ -121,6 +122,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
             onDelta: { text in
                 await recorder.append(text)
             },
+            onToolCall: { _ in },
             onToolCallRequest: { _ in },
             onRepairAttempt: { _ in }
         )
