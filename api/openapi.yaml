@@ -90,7 +90,7 @@
                       "url": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json"
                     }
                   ],
-                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces. A first workspace is auto-provisioned for new users. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -158,7 +158,7 @@
                       "url": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json"
                     }
                   ],
-                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Start with send_code. After login, call https://api.flashcards-open-source-app.com/v1/agent/me, then https://api.flashcards-open-source-app.com/v1/agent/workspaces. A first workspace is auto-provisioned for new users. Read payload from data.* (for example, data.workspaces). Do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -493,7 +493,7 @@
                       }
                     }
                   ],
-                  "instructions": "Store this API key securely. Read payload from data.* (data.apiKey, data.connection). Do not expect resource fields at the top level. Select next calls from instructions and confirm with actions: GET https://api.flashcards-open-source-app.com/v1/agent/me, GET https://api.flashcards-open-source-app.com/v1/agent/workspaces, then select or create workspace if needed.",
+                  "instructions": "Store this API key securely. Read payload from data.* (data.apiKey, data.connection). Do not expect resource fields at the top level. Select next calls from instructions and confirm with actions: GET https://api.flashcards-open-source-app.com/v1/agent/me, GET https://api.flashcards-open-source-app.com/v1/agent/workspaces, then select a workspace if needed. The first workspace is auto-provisioned for new users; use create only for additional workspaces.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
@@ -547,7 +547,7 @@
                       }
                     }
                   ],
-                  "instructions": "Call GET https://api.flashcards-open-source-app.com/v1/agent/workspaces next. Read payload from data.* (for this endpoint: data.selectedWorkspaceId, data.profile). Do not expect account fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Call GET https://api.flashcards-open-source-app.com/v1/agent/workspaces next. A first workspace is auto-provisioned for new users. Read payload from data.* (for this endpoint: data.selectedWorkspaceId, data.profile). Do not expect account fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"

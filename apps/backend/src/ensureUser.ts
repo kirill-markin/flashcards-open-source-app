@@ -1,8 +1,9 @@
 /**
- * Ensure the authenticated user has a profile row, but do not auto-create a
- * workspace. Workspace creation and selection are explicit flows now.
+ * Ensure the authenticated user has a profile row and an accessible selected
+ * workspace. New users are auto-provisioned with a default workspace.
  */
-import { query } from "./db";
+import { transaction, type DatabaseExecutor } from "./db";
+import { ensureUserSelectedWorkspaceInExecutor } from "./workspaces";
 
 export type UserProfile = Readonly<{
   userId: string;
@@ -23,13 +24,16 @@ function toIsoString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
-export async function ensureUserProfile(userId: string): Promise<UserProfile> {
-  await query(
+export async function ensureUserProfileInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+): Promise<UserProfile> {
+  await executor.query(
     "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
     [userId],
   );
 
-  const existing = await query<UserSettingsRow>(
+  const existing = await executor.query<UserSettingsRow>(
     "SELECT workspace_id, email, locale, created_at FROM org.user_settings WHERE user_id = $1",
     [userId],
   );
@@ -39,11 +43,21 @@ export async function ensureUserProfile(userId: string): Promise<UserProfile> {
   }
 
   const settings = existing.rows[0];
+  const selectedWorkspaceId = await ensureUserSelectedWorkspaceInExecutor(
+    executor,
+    userId,
+    settings.workspace_id,
+  );
+
   return {
     userId,
-    selectedWorkspaceId: settings.workspace_id,
+    selectedWorkspaceId,
     email: settings.email,
     locale: settings.locale,
     createdAt: toIsoString(settings.created_at),
   };
+}
+
+export async function ensureUserProfile(userId: string): Promise<UserProfile> {
+  return transaction(async (executor) => ensureUserProfileInExecutor(executor, userId));
 }
