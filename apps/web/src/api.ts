@@ -9,6 +9,7 @@ import type {
   SyncPullResult,
   SyncPushOperation,
   SyncPushResult,
+  AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
   AgentApiKeyRevokeResponse,
   WorkspaceSummary,
@@ -38,12 +39,15 @@ type WorkspaceEnvelope = Readonly<{
 
 type WorkspacesEnvelope = Readonly<{
   workspaces: ReadonlyArray<WorkspaceSummary>;
+  nextCursor: string | null;
 }>;
 
 type JsonObject = Record<string, unknown>;
 type SessionCsrfState = "unknown" | "session" | "non-session";
 type AuthRecoveryMode = "allow" | "skip";
 type NavigateToUrl = (url: string) => void;
+
+const collectionPageLimit = 100;
 
 let sessionCsrfToken: string | null = null;
 let sessionCsrfState: SessionCsrfState = "unknown";
@@ -353,8 +357,23 @@ async function loadSessionInfoWithRecovery(): Promise<SessionInfo> {
 }
 
 export async function listWorkspaces(): Promise<ReadonlyArray<WorkspaceSummary>> {
-  const payload = expectObject(await requestJson("/workspaces", { method: "GET" }, allowAuthRecovery)) as unknown as WorkspacesEnvelope;
-  return payload.workspaces;
+  const workspaces: Array<WorkspaceSummary> = [];
+  let nextCursor: string | null = null;
+
+  do {
+    const searchParams = new URLSearchParams({
+      limit: String(collectionPageLimit),
+    });
+    if (nextCursor !== null) {
+      searchParams.set("cursor", nextCursor);
+    }
+
+    const payload = expectObject(await requestJson(`/workspaces?${searchParams.toString()}`, { method: "GET" }, allowAuthRecovery)) as unknown as WorkspacesEnvelope;
+    workspaces.push(...payload.workspaces);
+    nextCursor = payload.nextCursor;
+  } while (nextCursor !== null);
+
+  return workspaces;
 }
 
 export async function createWorkspace(name: string): Promise<WorkspaceSummary> {
@@ -373,7 +392,30 @@ export async function selectWorkspace(workspaceId: string): Promise<WorkspaceSum
 }
 
 export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse> {
-  return expectObject(await requestJson("/agent-api-keys", { method: "GET" }, allowAuthRecovery)) as unknown as AgentApiKeyConnectionsResponse;
+  const connections: Array<AgentApiKeyConnection> = [];
+  let instructions = "";
+  let nextCursor: string | null = null;
+
+  do {
+    const searchParams = new URLSearchParams({
+      limit: String(collectionPageLimit),
+    });
+    if (nextCursor !== null) {
+      searchParams.set("cursor", nextCursor);
+    }
+
+    const payload = expectObject(
+      await requestJson(`/agent-api-keys?${searchParams.toString()}`, { method: "GET" }, allowAuthRecovery),
+    ) as unknown as AgentApiKeyConnectionsResponse & Readonly<{ nextCursor: string | null }>;
+    connections.push(...payload.connections);
+    instructions = payload.instructions;
+    nextCursor = payload.nextCursor;
+  } while (nextCursor !== null);
+
+  return {
+    connections,
+    instructions,
+  };
 }
 
 export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiKeyRevokeResponse> {

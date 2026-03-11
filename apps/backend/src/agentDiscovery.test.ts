@@ -36,8 +36,9 @@ test("createAgentDiscoveryEnvelope points agents to auth on the API custom domai
   ]);
   assert.match(envelope.instructions, /Start with send_code/);
   assert.match(envelope.instructions, /https:\/\/api\.example\.com\/v1\/agent\/me/);
-  assert.match(envelope.instructions, /https:\/\/api\.example\.com\/v1\/agent\/workspaces/);
+  assert.match(envelope.instructions, /https:\/\/api\.example\.com\/v1\/agent\/workspaces\?limit=100/);
   assert.match(envelope.instructions, /auto-provisioned/i);
+  assert.match(envelope.instructions, /data\.nextCursor/);
   assert.match(envelope.instructions, /Read payload from data\.\*/);
   assert.match(envelope.instructions, /do not expect resource fields at the top level/i);
   assert.match(envelope.instructions, /confirm it with actions/i);

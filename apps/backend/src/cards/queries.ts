@@ -1,6 +1,11 @@
 import { query, transaction, type SqlValue } from "../db";
 import { HttpError } from "../errors";
 import {
+  decodeOpaqueCursor,
+  encodeOpaqueCursor,
+  type CursorPageInput,
+} from "../pagination";
+import {
   buildTokenizedAndLikeClause,
   MAX_SEARCH_TOKEN_COUNT,
   tokenizeSearchText,
@@ -19,6 +24,7 @@ import {
 } from "./shared";
 import type {
   Card,
+  CardListPage,
   CardQuerySort,
   CardQuerySortDirection,
   CardQuerySortKey,
@@ -28,6 +34,7 @@ import type {
   QueryCardsInput,
   QueryCardsPage,
   ReviewHistoryItem,
+  ReviewHistoryPage,
   ReviewHistoryRow,
 } from "./types";
 
@@ -190,6 +197,59 @@ function decodeCardsQueryCursor(cursor: string): DecodedCursor {
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw createCardQueryError(`cursor is invalid: ${errorMessage}`);
   }
+}
+
+type DueCardsPageCursor = Readonly<{
+  dueAt: string | null;
+  updatedAt: string;
+  cardId: string;
+}>;
+
+type ReviewHistoryPageCursor = Readonly<{
+  reviewedAtServer: string;
+  reviewEventId: string;
+}>;
+
+type ReviewHistoryPageRow = ReviewHistoryRow & Readonly<{
+  reviewed_at_server: Date | string;
+}>;
+
+function decodeDueCardsPageCursor(cursor: string): DueCardsPageCursor {
+  const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
+  if (decodedCursor.values.length !== 3) {
+    throw createCardQueryError("cursor does not match the requested due-cards order");
+  }
+
+  const dueAt = decodedCursor.values[0];
+  const updatedAt = decodedCursor.values[1];
+  const cardId = decodedCursor.values[2];
+  if ((typeof dueAt !== "string" && dueAt !== null) || typeof updatedAt !== "string" || typeof cardId !== "string") {
+    throw createCardQueryError("cursor does not match the requested due-cards order");
+  }
+
+  return {
+    dueAt,
+    updatedAt,
+    cardId,
+  };
+}
+
+function decodeReviewHistoryPageCursor(cursor: string): ReviewHistoryPageCursor {
+  const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
+  if (decodedCursor.values.length !== 2) {
+    throw createCardQueryError("cursor does not match the requested review-history order");
+  }
+
+  const reviewedAtServer = decodedCursor.values[0];
+  const reviewEventId = decodedCursor.values[1];
+  if (typeof reviewedAtServer !== "string" || typeof reviewEventId !== "string") {
+    throw createCardQueryError("cursor does not match the requested review-history order");
+  }
+
+  return {
+    reviewedAtServer,
+    reviewEventId,
+  };
 }
 
 function normalizeCardsQueryLimit(limit: number): number {
@@ -477,7 +537,6 @@ export async function queryCardsPage(
     return {
       cards: repairedRows.map(mapCard),
       nextCursor,
-      hasMore,
       totalCount: toNumber(countResult.rows[0]?.total_count ?? 0),
     };
   });
@@ -532,6 +591,15 @@ export async function getCards(
   });
 }
 
+/**
+ * Materializes the full repaired due-card order for internal callers that must
+ * reason about the exact post-repair queue as one collection.
+ *
+ * Keep this helper because `listReviewQueuePage()` currently derives stable
+ * cursor pagination from the repaired in-memory due order, which depends on
+ * FSRS repair, null due dates, and `compareCardsForReviewQueue`. API-facing
+ * reads should call `listReviewQueuePage()` instead.
+ */
 export async function listReviewQueue(
   workspaceId: string,
   limit: number,
@@ -555,6 +623,40 @@ export async function listReviewQueue(
       .slice(0, limit)
       .map(mapCard);
   });
+}
+
+export async function listReviewQueuePage(
+  workspaceId: string,
+  input: CursorPageInput,
+): Promise<CardListPage> {
+  const normalizedLimit = normalizeCardsQueryLimit(input.limit);
+  const decodedCursor = input.cursor === null ? null : decodeDueCardsPageCursor(input.cursor);
+  const dueCards = await listReviewQueue(workspaceId, Number.MAX_SAFE_INTEGER);
+  const startIndex = decodedCursor === null
+    ? 0
+    : dueCards.findIndex((card) => (
+      card.dueAt === decodedCursor.dueAt
+      && card.updatedAt === decodedCursor.updatedAt
+      && card.cardId === decodedCursor.cardId
+    )) + 1;
+  if (decodedCursor !== null && startIndex === 0) {
+    throw createCardQueryError("cursor does not match the requested due-cards order");
+  }
+
+  const visibleCards = dueCards.slice(startIndex, startIndex + normalizedLimit);
+  const nextCard = dueCards[startIndex + normalizedLimit];
+  const nextCursor = nextCard === undefined
+    ? null
+    : encodeOpaqueCursor([
+      visibleCards[visibleCards.length - 1]?.dueAt ?? null,
+      visibleCards[visibleCards.length - 1]?.updatedAt ?? "",
+      visibleCards[visibleCards.length - 1]?.cardId ?? "",
+    ]);
+
+  return {
+    cards: visibleCards,
+    nextCursor,
+  };
 }
 
 export async function searchCards(
@@ -588,34 +690,51 @@ export async function searchCards(
   });
 }
 
-export async function listReviewHistory(
+export async function listReviewHistoryPage(
   workspaceId: string,
-  limit: number,
-  cardId?: string,
-): Promise<ReadonlyArray<ReviewHistoryItem>> {
-  const result = cardId === undefined
-    ? await query<ReviewHistoryRow>(
-      [
-        "SELECT review_event_id, workspace_id, device_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
-        "FROM content.review_events",
-        "WHERE workspace_id = $1",
-        "ORDER BY reviewed_at_server DESC",
-        "LIMIT $2",
-      ].join(" "),
-      [workspaceId, limit],
-    )
-    : await query<ReviewHistoryRow>(
-      [
-        "SELECT review_event_id, workspace_id, device_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
-        "FROM content.review_events",
-        "WHERE workspace_id = $1 AND card_id = $2",
-        "ORDER BY reviewed_at_server DESC",
-        "LIMIT $3",
-      ].join(" "),
-      [workspaceId, cardId, limit],
-    );
+  input: CursorPageInput & Readonly<{ cardId: string | null }>,
+): Promise<ReviewHistoryPage> {
+  const normalizedLimit = normalizeCardsQueryLimit(input.limit);
+  const decodedCursor = input.cursor === null ? null : decodeReviewHistoryPageCursor(input.cursor);
+  const cursorClause = decodedCursor === null
+    ? ""
+    : "AND (reviewed_at_server < $2 OR (reviewed_at_server = $2 AND review_event_id < $3))";
+  const cardIdClause = input.cardId === null ? "" : decodedCursor === null ? "AND card_id = $2" : "AND card_id = $4";
+  const params = input.cardId === null
+    ? decodedCursor === null
+      ? [workspaceId, normalizedLimit + 1]
+      : [workspaceId, new Date(decodedCursor.reviewedAtServer), decodedCursor.reviewEventId, normalizedLimit + 1]
+    : decodedCursor === null
+      ? [workspaceId, input.cardId, normalizedLimit + 1]
+      : [workspaceId, new Date(decodedCursor.reviewedAtServer), decodedCursor.reviewEventId, input.cardId, normalizedLimit + 1];
+  const limitParamIndex = input.cardId === null
+    ? decodedCursor === null ? 2 : 4
+    : decodedCursor === null ? 3 : 5;
 
-  return result.rows.map(mapReviewHistoryItem);
+  const result = await query<ReviewHistoryPageRow>(
+    [
+      "SELECT review_event_id, workspace_id, device_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
+      "FROM content.review_events",
+      "WHERE workspace_id = $1",
+      cursorClause,
+      cardIdClause,
+      "ORDER BY reviewed_at_server DESC, review_event_id DESC",
+      `LIMIT $${limitParamIndex}`,
+    ].join(" "),
+    params,
+  );
+
+  const hasNextPage = result.rows.length > normalizedLimit;
+  const visibleRows = hasNextPage ? result.rows.slice(0, normalizedLimit) : result.rows;
+  const nextRow = hasNextPage ? visibleRows[visibleRows.length - 1] : undefined;
+
+  return {
+    history: visibleRows.map(mapReviewHistoryItem),
+    nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
+      toIsoString(nextRow.reviewed_at_server),
+      nextRow.review_event_id,
+    ]),
+  };
 }
 
 export async function summarizeDeckState(workspaceId: string): Promise<DeckSummary> {

@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { query, transaction, type DatabaseExecutor } from "./db";
 import { HttpError } from "./errors";
+import {
+  decodeOpaqueCursor,
+  encodeOpaqueCursor,
+  type CursorPageInput,
+} from "./pagination";
 import { insertSyncChange } from "./syncChanges";
 
 export const AUTO_CREATED_WORKSPACE_NAME = "Personal";
@@ -12,6 +17,11 @@ export type WorkspaceSummary = Readonly<{
   isSelected: boolean;
 }>;
 
+export type WorkspaceSummaryPage = Readonly<{
+  workspaces: ReadonlyArray<WorkspaceSummary>;
+  nextCursor: string | null;
+}>;
+
 type WorkspaceSummaryRow = Readonly<{
   workspace_id: string;
   name: string;
@@ -20,6 +30,11 @@ type WorkspaceSummaryRow = Readonly<{
 
 type WorkspaceMembershipRow = Readonly<{
   workspace_id: string;
+}>;
+
+type WorkspacePageCursor = Readonly<{
+  createdAt: string;
+  workspaceId: string;
 }>;
 
 type UserSettingsWorkspaceRow = Readonly<{
@@ -43,6 +58,8 @@ type WorkspaceSchedulerSeedRow = Readonly<{
   fsrs_updated_at: Date | string;
 }>;
 
+const maximumWorkspacePageSize = 100;
+
 function toIsoString(value: Date | string): string {
   if (value instanceof Date) {
     return value.toISOString();
@@ -57,6 +74,24 @@ function mapWorkspaceSummary(row: WorkspaceSummaryRow, selectedWorkspaceId: stri
     name: row.name,
     createdAt: toIsoString(row.created_at),
     isSelected: selectedWorkspaceId === row.workspace_id,
+  };
+}
+
+function decodeWorkspacePageCursor(cursor: string): WorkspacePageCursor {
+  const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
+  if (decodedCursor.values.length !== 2) {
+    throw new HttpError(400, "cursor does not match the requested workspaces order");
+  }
+
+  const createdAt = decodedCursor.values[0];
+  const workspaceId = decodedCursor.values[1];
+  if (typeof createdAt !== "string" || typeof workspaceId !== "string") {
+    throw new HttpError(400, "cursor does not match the requested workspaces order");
+  }
+
+  return {
+    createdAt,
+    workspaceId,
   };
 }
 
@@ -257,16 +292,15 @@ export async function setSelectedWorkspaceForApiKeyConnection(
   });
 }
 
-export async function listUserWorkspaces(userId: string): Promise<ReadonlyArray<WorkspaceSummary>> {
-  const selectionResult = await query<UserSettingsWorkspaceRow>(
-    "SELECT workspace_id FROM org.user_settings WHERE user_id = $1",
-    [userId],
-  );
-  const selectedWorkspaceId = selectionResult.rows[0]?.workspace_id ?? null;
-
-  return listUserWorkspacesForSelectedWorkspace(userId, selectedWorkspaceId);
-}
-
+/**
+ * Returns the full visible workspace set for internal bootstrap decisions that
+ * must reason about the entire collection at once.
+ *
+ * Keep this helper because `ensureApiKeyWorkspaceSelection()` needs the full
+ * set to decide whether to auto-create, auto-select, clear selection, or keep
+ * the current selection. Transport-facing API reads should use
+ * `listUserWorkspacesPageForSelectedWorkspace()` instead.
+ */
 export async function listUserWorkspacesForSelectedWorkspace(
   userId: string,
   selectedWorkspaceId: string | null,
@@ -286,6 +320,53 @@ export async function listUserWorkspacesForSelectedWorkspace(
   );
 
   return result.rows.map((row) => mapWorkspaceSummary(row, selectedWorkspaceId));
+}
+
+export async function listUserWorkspacesPageForSelectedWorkspace(
+  userId: string,
+  selectedWorkspaceId: string | null,
+  input: CursorPageInput,
+): Promise<WorkspaceSummaryPage> {
+  if (input.limit < 1 || input.limit > maximumWorkspacePageSize) {
+    throw new HttpError(400, `limit must be an integer between 1 and ${maximumWorkspacePageSize}`);
+  }
+
+  const decodedCursor = input.cursor === null ? null : decodeWorkspacePageCursor(input.cursor);
+  const cursorClause = decodedCursor === null
+    ? ""
+    : "AND (workspaces.created_at > $2 OR (workspaces.created_at = $2 AND workspaces.workspace_id > $3))";
+  const params = decodedCursor === null
+    ? [userId, input.limit + 1]
+    : [userId, new Date(decodedCursor.createdAt), decodedCursor.workspaceId, input.limit + 1];
+  const limitParamIndex = decodedCursor === null ? 2 : 4;
+
+  const result = await query<WorkspaceSummaryRow>(
+    [
+      "SELECT",
+      "workspaces.workspace_id,",
+      "workspaces.name,",
+      "workspaces.created_at",
+      "FROM org.workspace_memberships memberships",
+      "INNER JOIN org.workspaces workspaces ON workspaces.workspace_id = memberships.workspace_id",
+      "WHERE memberships.user_id = $1",
+      cursorClause,
+      "ORDER BY workspaces.created_at ASC, workspaces.workspace_id ASC",
+      `LIMIT $${limitParamIndex}`,
+    ].join(" "),
+    params,
+  );
+
+  const hasNextPage = result.rows.length > input.limit;
+  const visibleRows = hasNextPage ? result.rows.slice(0, input.limit) : result.rows;
+  const nextRow = hasNextPage ? visibleRows[visibleRows.length - 1] : undefined;
+
+  return {
+    workspaces: visibleRows.map((row) => mapWorkspaceSummary(row, selectedWorkspaceId)),
+    nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
+      toIsoString(nextRow.created_at),
+      nextRow.workspace_id,
+    ]),
+  };
 }
 
 export async function createWorkspaceForUser(userId: string, name: string): Promise<WorkspaceSummary> {

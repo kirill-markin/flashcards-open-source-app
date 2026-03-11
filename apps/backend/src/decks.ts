@@ -11,6 +11,11 @@ import {
   MAX_SEARCH_TOKEN_COUNT,
   tokenizeSearchText,
 } from "./searchTokens";
+import {
+  decodeOpaqueCursor,
+  encodeOpaqueCursor,
+  type CursorPageInput,
+} from "./pagination";
 import { findLatestSyncChangeId, insertSyncChange } from "./syncChanges";
 import type { EffortLevel } from "./cards";
 
@@ -49,6 +54,11 @@ export type Deck = Readonly<{
   lastOperationId: string;
   updatedAt: string;
   deletedAt: string | null;
+}>;
+
+export type DeckPage = Readonly<{
+  decks: ReadonlyArray<Deck>;
+  nextCursor: string | null;
 }>;
 
 export type CreateDeckInput = Readonly<{
@@ -99,6 +109,12 @@ export type BulkDeleteDecksResult = Readonly<{
 }>;
 
 const MAX_DECK_BATCH_SIZE = 100;
+
+type DeckPageCursor = Readonly<{
+  updatedAt: string;
+  createdAt: string;
+  deckId: string;
+}>;
 
 function toIsoString(value: TimestampValue): string {
   if (value instanceof Date) {
@@ -241,6 +257,26 @@ function mapDeck(row: DeckRow): Deck {
   };
 }
 
+function decodeDeckPageCursor(cursor: string): DeckPageCursor {
+  const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
+  if (decodedCursor.values.length !== 3) {
+    throw createRequestError("cursor does not match the requested deck order");
+  }
+
+  const updatedAt = decodedCursor.values[0];
+  const createdAt = decodedCursor.values[1];
+  const deckId = decodedCursor.values[2];
+  if (typeof updatedAt !== "string" || typeof createdAt !== "string" || typeof deckId !== "string") {
+    throw createRequestError("cursor does not match the requested deck order");
+  }
+
+  return {
+    updatedAt,
+    createdAt,
+    deckId,
+  };
+}
+
 function normalizeDeckMutationMetadata(metadata: DeckMutationMetadata): DeckMutationMetadata {
   return {
     clientUpdatedAt: normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt"),
@@ -353,19 +389,48 @@ export function parseCreateDeckInput(value: unknown): CreateDeckInput {
   };
 }
 
-export async function listDecks(workspaceId: string): Promise<ReadonlyArray<Deck>> {
+export async function listDecksPage(
+  workspaceId: string,
+  input: CursorPageInput,
+): Promise<DeckPage> {
+  if (input.limit < 1 || input.limit > MAX_DECK_BATCH_SIZE) {
+    throw createRequestError(`limit must be an integer between 1 and ${MAX_DECK_BATCH_SIZE}`);
+  }
+
+  const decodedCursor = input.cursor === null ? null : decodeDeckPageCursor(input.cursor);
+  const cursorClause = decodedCursor === null
+    ? ""
+    : "AND (updated_at < $2 OR (updated_at = $2 AND (created_at < $3 OR (created_at = $3 AND deck_id < $4))))";
+  const params = decodedCursor === null
+    ? [workspaceId, input.limit + 1]
+    : [workspaceId, new Date(decodedCursor.updatedAt), new Date(decodedCursor.createdAt), decodedCursor.deckId, input.limit + 1];
+  const limitParamIndex = decodedCursor === null ? 2 : 5;
+
   const result = await query<DeckRow>(
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deleted_at IS NULL",
-      "ORDER BY updated_at DESC, created_at DESC",
+      cursorClause,
+      "ORDER BY updated_at DESC, created_at DESC, deck_id DESC",
+      `LIMIT $${limitParamIndex}`,
     ].join(" "),
-    [workspaceId],
+    params,
   );
 
-  return result.rows.map(mapDeck);
+  const hasNextPage = result.rows.length > input.limit;
+  const visibleRows = hasNextPage ? result.rows.slice(0, input.limit) : result.rows;
+  const nextRow = hasNextPage ? visibleRows[visibleRows.length - 1] : undefined;
+
+  return {
+    decks: visibleRows.map(mapDeck),
+    nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
+      toIsoString(nextRow.updated_at),
+      toIsoString(nextRow.created_at),
+      nextRow.deck_id,
+    ]),
+  };
 }
 
 export async function getDeck(workspaceId: string, deckId: string): Promise<Deck> {
@@ -419,11 +484,15 @@ export async function getDecks(
   });
 }
 
-export async function searchDecks(
+export async function searchDecksPage(
   workspaceId: string,
   searchText: string,
-  limit: number,
-): Promise<ReadonlyArray<Deck>> {
+  input: CursorPageInput,
+): Promise<DeckPage> {
+  if (input.limit < 1 || input.limit > MAX_DECK_BATCH_SIZE) {
+    throw createRequestError(`limit must be an integer between 1 and ${MAX_DECK_BATCH_SIZE}`);
+  }
+
   const searchTokens = tokenizeSearchText(searchText, MAX_SEARCH_TOKEN_COUNT);
   if (searchTokens.length === 0) {
     throw createRequestError("query must not be empty");
@@ -434,7 +503,21 @@ export async function searchDecks(
     (paramIndex) => `EXISTS (SELECT 1 FROM jsonb_array_elements_text(filter_definition->'tags') AS tag WHERE lower(tag) LIKE $${paramIndex})`,
     (paramIndex) => `EXISTS (SELECT 1 FROM jsonb_array_elements_text(filter_definition->'effortLevels') AS effort_level WHERE lower(effort_level) LIKE $${paramIndex})`,
   ]);
-  const limitParamIndex = 1 + searchClauseResult.params.length + 1;
+  const decodedCursor = input.cursor === null ? null : decodeDeckPageCursor(input.cursor);
+  const cursorClause = decodedCursor === null
+    ? ""
+    : `AND (updated_at < $${searchClauseResult.params.length + 2} OR (updated_at = $${searchClauseResult.params.length + 2} AND (created_at < $${searchClauseResult.params.length + 3} OR (created_at = $${searchClauseResult.params.length + 3} AND deck_id < $${searchClauseResult.params.length + 4}))))`;
+  const limitParamIndex = searchClauseResult.params.length + (decodedCursor === null ? 2 : 5);
+  const params = decodedCursor === null
+    ? [workspaceId, ...searchClauseResult.params, input.limit + 1]
+    : [
+      workspaceId,
+      ...searchClauseResult.params,
+      new Date(decodedCursor.updatedAt),
+      new Date(decodedCursor.createdAt),
+      decodedCursor.deckId,
+      input.limit + 1,
+    ];
 
   const result = await query<DeckRow>(
     [
@@ -444,13 +527,25 @@ export async function searchDecks(
       "WHERE workspace_id = $1",
       "AND deleted_at IS NULL",
       `AND (${searchClauseResult.clause})`,
-      "ORDER BY updated_at DESC, created_at DESC",
+      cursorClause,
+      "ORDER BY updated_at DESC, created_at DESC, deck_id DESC",
       `LIMIT $${limitParamIndex}`,
     ].join(" "),
-    [workspaceId, ...searchClauseResult.params, limit],
+    params,
   );
 
-  return result.rows.map(mapDeck);
+  const hasNextPage = result.rows.length > input.limit;
+  const visibleRows = hasNextPage ? result.rows.slice(0, input.limit) : result.rows;
+  const nextRow = hasNextPage ? visibleRows[visibleRows.length - 1] : undefined;
+
+  return {
+    decks: visibleRows.map(mapDeck),
+    nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
+      toIsoString(nextRow.updated_at),
+      toIsoString(nextRow.created_at),
+      nextRow.deck_id,
+    ]),
+  };
 }
 
 export async function createDeck(

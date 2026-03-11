@@ -44,6 +44,7 @@ private struct MeResponse: Decodable {
 
 private struct WorkspacesResponse: Decodable {
     let workspaces: [CloudWorkspaceSummary]
+    let nextCursor: String?
 }
 
 private struct WorkspaceEnvelope: Decodable {
@@ -52,6 +53,7 @@ private struct WorkspaceEnvelope: Decodable {
 
 private struct AgentApiKeyConnectionsEnvelope: Decodable {
     let connections: [AgentApiKeyConnection]
+    let nextCursor: String?
     let instructions: String
 }
 
@@ -79,6 +81,8 @@ private struct PullRequest: Encodable {
     let afterChangeId: Int64
     let limit: Int
 }
+
+private let collectionPageLimit: Int = 100
 
 private struct SyncOperationEnvelope: Encodable {
     let operation: SyncOperation
@@ -347,18 +351,12 @@ final class CloudSyncService: @unchecked Sendable {
             method: "GET",
             body: Optional<String>.none
         )
-        async let workspacesResponseTask: WorkspacesResponse = self.request(
-            apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
-            path: "/workspaces",
-            method: "GET",
-            body: Optional<String>.none
-        )
+        async let workspacesResponseTask = self.listWorkspaces(apiBaseUrl: apiBaseUrl, bearerToken: bearerToken)
 
         let meResponse = try await meResponseTask
         let workspacesResponse = try await workspacesResponseTask
         let selectedWorkspaceId = meResponse.selectedWorkspaceId
-        let workspaces = workspacesResponse.workspaces.map { workspace in
+        let workspaces = workspacesResponse.map { workspace in
             CloudWorkspaceSummary(
                 workspaceId: workspace.workspaceId,
                 name: workspace.name,
@@ -425,14 +423,24 @@ final class CloudSyncService: @unchecked Sendable {
 
     /// Loads the long-lived bot connections associated with the signed-in user.
     func listAgentApiKeys(apiBaseUrl: String, bearerToken: String) async throws -> ([AgentApiKeyConnection], String) {
-        let response: AgentApiKeyConnectionsEnvelope = try await self.request(
-            apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
-            path: "/agent-api-keys",
-            method: "GET",
-            body: Optional<String>.none
-        )
-        return (response.connections, response.instructions)
+        var connections: [AgentApiKeyConnection] = []
+        var nextCursor: String? = nil
+        var instructions: String = ""
+
+        repeat {
+            let response: AgentApiKeyConnectionsEnvelope = try await self.request(
+                apiBaseUrl: apiBaseUrl,
+                bearerToken: bearerToken,
+                path: self.paginatedPath(basePath: "/agent-api-keys", cursor: nextCursor),
+                method: "GET",
+                body: Optional<String>.none
+            )
+            connections.append(contentsOf: response.connections)
+            instructions = response.instructions
+            nextCursor = response.nextCursor
+        } while nextCursor != nil
+
+        return (connections, instructions)
     }
 
     /// Revokes one long-lived bot connection immediately by its connection identifier.
@@ -580,6 +588,40 @@ final class CloudSyncService: @unchecked Sendable {
         }
 
         return url
+    }
+
+    private func paginatedPath(basePath: String, cursor: String?) -> String {
+        guard var components = URLComponents(string: basePath) else {
+            return "\(basePath)?limit=\(collectionPageLimit)"
+        }
+
+        var queryItems = [
+            URLQueryItem(name: "limit", value: String(collectionPageLimit))
+        ]
+        if let cursor {
+            queryItems.append(URLQueryItem(name: "cursor", value: cursor))
+        }
+        components.queryItems = queryItems
+        return components.string ?? "\(basePath)?limit=\(collectionPageLimit)"
+    }
+
+    private func listWorkspaces(apiBaseUrl: String, bearerToken: String) async throws -> [CloudWorkspaceSummary] {
+        var workspaces: [CloudWorkspaceSummary] = []
+        var nextCursor: String? = nil
+
+        repeat {
+            let response: WorkspacesResponse = try await self.request(
+                apiBaseUrl: apiBaseUrl,
+                bearerToken: bearerToken,
+                path: self.paginatedPath(basePath: "/workspaces", cursor: nextCursor),
+                method: "GET",
+                body: Optional<String>.none
+            )
+            workspaces.append(contentsOf: response.workspaces)
+            nextCursor = response.nextCursor
+        } while nextCursor != nil
+
+        return workspaces
     }
 
     private func request<Response: Decodable, Body: Encodable>(

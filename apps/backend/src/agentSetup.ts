@@ -30,6 +30,7 @@ type AccountData = Readonly<{
 
 type WorkspacesData = Readonly<{
   workspaces: ReadonlyArray<WorkspaceSummary>;
+  nextCursor: string | null;
 }>;
 
 type WorkspaceData = Readonly<{
@@ -49,8 +50,9 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
   return [
     `Call GET ${apiBaseUrl}/agent/me to load account context.`,
-    `Then call GET ${apiBaseUrl}/agent/workspaces to inspect available workspaces for this API key.`,
+    `Then call GET ${apiBaseUrl}/agent/workspaces?limit=100 to inspect available workspaces for this API key.`,
     `A first workspace is auto-provisioned for new users. Create additional workspaces with POST ${apiBaseUrl}/agent/workspaces or select one with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select before tool calls.`,
+    `For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter and stop when data.nextCursor is null.`,
     "Read payload from data.* and do not expect resource fields at the top level.",
     "Select the next endpoint from instructions and confirm it with actions.",
   ].join(" ");
@@ -58,17 +60,17 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
 
 function buildNoWorkspaceInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `No workspace is currently available for this API key. Create one with POST ${apiBaseUrl}/agent/workspaces using {\"name\":\"Personal\"}, then continue with tools. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
+  return `No workspace is currently available for this API key. Create one with POST ${apiBaseUrl}/agent/workspaces using {\"name\":\"Personal\"}, then continue with tools. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter and stop when data.nextCursor is null. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
 }
 
 function buildSelectWorkspaceInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `Select a workspace for this API key by calling POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select after listing with GET ${apiBaseUrl}/agent/workspaces. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
+  return `Select a workspace for this API key by calling POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select after listing with GET ${apiBaseUrl}/agent/workspaces?limit=100. If data.nextCursor is not null, call the same endpoint again with the same limit and cursor=data.nextCursor to continue listing. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
 }
 
 function buildWorkspaceReadyInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `Workspace bootstrap is complete. Call GET ${apiBaseUrl}/agent/tools and then POST ${apiBaseUrl}/agent/tools/get_workspace_context to continue. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
+  return `Workspace bootstrap is complete. Call GET ${apiBaseUrl}/agent/tools and then POST ${apiBaseUrl}/agent/tools/get_workspace_context to continue. For paginated responses, pass data.nextCursor back unchanged as the cursor field or query parameter and stop when data.nextCursor is null. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
 }
 
 export function shouldUseAgentSetupEnvelope(transport: AuthTransport): boolean {
@@ -109,22 +111,23 @@ export function createAgentAccountEnvelope(
 export function createAgentWorkspacesEnvelope(
   requestUrl: string,
   workspaces: ReadonlyArray<WorkspaceSummary>,
+  nextCursor: string | null,
 ): AgentEnvelope<WorkspacesData> {
-  if (workspaces.length === 0) {
+  if (workspaces.length === 0 && nextCursor === null) {
     const actions = [createAgentCreateWorkspaceAction(requestUrl)];
     return createAgentEnvelope(
       requestUrl,
-      { workspaces },
+      { workspaces, nextCursor },
       actions,
       buildNoWorkspaceInstructions(requestUrl),
     );
   }
 
-  if (workspaces.length === 1 || workspaces.some((workspace) => workspace.isSelected)) {
+  if (workspaces.some((workspace) => workspace.isSelected)) {
     const actions = buildWorkspaceReadyActions(requestUrl);
     return createAgentEnvelope(
       requestUrl,
-      { workspaces },
+      { workspaces, nextCursor },
       actions,
       buildWorkspaceReadyInstructions(requestUrl),
     );
@@ -133,7 +136,7 @@ export function createAgentWorkspacesEnvelope(
   const actions = [createAgentSelectWorkspaceAction(requestUrl)];
   return createAgentEnvelope(
     requestUrl,
-    { workspaces },
+    { workspaces, nextCursor },
     actions,
     buildSelectWorkspaceInstructions(requestUrl),
   );

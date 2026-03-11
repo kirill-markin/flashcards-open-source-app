@@ -97,6 +97,26 @@ type AIOutboxEntryPayload = Readonly<{
   payloadSummary: string;
 }>;
 
+type LocalCardsPagePayload = Readonly<{
+  cards: ReadonlyArray<Card>;
+  nextCursor: string | null;
+}>;
+
+type LocalDecksPagePayload = Readonly<{
+  decks: ReadonlyArray<Deck>;
+  nextCursor: string | null;
+}>;
+
+type LocalReviewHistoryPagePayload = Readonly<{
+  history: ReadonlyArray<NonNullable<MutableSnapshot["reviewEvents"][number]>>;
+  nextCursor: string | null;
+}>;
+
+type LocalOutboxPagePayload = Readonly<{
+  outbox: ReadonlyArray<AIOutboxEntryPayload>;
+  nextCursor: string | null;
+}>;
+
 type AIBulkDeleteCardsPayload = Readonly<{
   ok: true;
   deletedCardIds: ReadonlyArray<string>;
@@ -176,20 +196,24 @@ type DeleteDecksToolInput = Readonly<{
 
 type SearchCardsToolInput = Readonly<{
   query: string;
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 type SearchDecksToolInput = Readonly<{
   query: string;
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 type ListCardsToolInput = Readonly<{
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 type ListDueCardsToolInput = Readonly<{
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 type GetDecksToolInput = Readonly<{
@@ -197,12 +221,14 @@ type GetDecksToolInput = Readonly<{
 }>;
 
 type ListReviewHistoryToolInput = Readonly<{
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
   cardId: string | null;
 }>;
 
 type ListOutboxToolInput = Readonly<{
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 type WebLocalToolExecutorDependencies = Pick<
@@ -333,12 +359,12 @@ function parseToolInput(toolCallRequest: LocalToolCallRequest): unknown {
   }
 }
 
-function normalizeLimit(limit: number | null): number {
-  if (limit === null) {
-    return 20;
+function normalizeLimit(limit: number): number {
+  if (limit < 1 || limit > 100) {
+    throw new Error("limit must be an integer between 1 and 100");
   }
 
-  return Math.min(Math.max(limit, 1), 100);
+  return limit;
 }
 
 function parseEmptyObjectInput(toolCallRequest: LocalToolCallRequest): void {
@@ -346,22 +372,24 @@ function parseEmptyObjectInput(toolCallRequest: LocalToolCallRequest): void {
   expectNoExtraKeys(body, [], toolCallRequest.name);
 }
 
-function parseListLimitInput(toolCallRequest: LocalToolCallRequest): Readonly<{ limit: number | null }> {
+function parseListPageInput(toolCallRequest: LocalToolCallRequest): Readonly<{ cursor: string | null; limit: number }> {
   const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["limit"], toolCallRequest.name);
+  expectNoExtraKeys(body, ["cursor", "limit"], toolCallRequest.name);
   return {
-    limit: expectNullableInteger(body.limit, `${toolCallRequest.name}.limit`),
+    cursor: expectNullableString(body.cursor, `${toolCallRequest.name}.cursor`),
+    limit: expectInteger(body.limit, `${toolCallRequest.name}.limit`),
   };
 }
 
-function parseQueryLimitInput(
+function parseQueryPageInput(
   toolCallRequest: LocalToolCallRequest,
-): Readonly<{ query: string; limit: number | null }> {
+): Readonly<{ query: string; cursor: string | null; limit: number }> {
   const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["query", "limit"], toolCallRequest.name);
+  expectNoExtraKeys(body, ["query", "cursor", "limit"], toolCallRequest.name);
   return {
     query: expectString(body.query, `${toolCallRequest.name}.query`),
-    limit: expectNullableInteger(body.limit, `${toolCallRequest.name}.limit`),
+    cursor: expectNullableString(body.cursor, `${toolCallRequest.name}.cursor`),
+    limit: expectInteger(body.limit, `${toolCallRequest.name}.limit`),
   };
 }
 
@@ -383,11 +411,66 @@ function parseDeckIdsInput(toolCallRequest: LocalToolCallRequest): GetDecksToolI
 
 function parseListReviewHistoryInput(toolCallRequest: LocalToolCallRequest): ListReviewHistoryToolInput {
   const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["limit", "cardId"], toolCallRequest.name);
+  expectNoExtraKeys(body, ["cursor", "limit", "cardId"], toolCallRequest.name);
   return {
-    limit: expectNullableInteger(body.limit, `${toolCallRequest.name}.limit`),
+    cursor: expectNullableString(body.cursor, `${toolCallRequest.name}.cursor`),
+    limit: expectInteger(body.limit, `${toolCallRequest.name}.limit`),
     cardId: expectNullableString(body.cardId, `${toolCallRequest.name}.cardId`),
   };
+}
+
+function encodePageCursor(index: number): string {
+  const jsonValue = JSON.stringify({ index });
+  return globalThis.btoa(jsonValue)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
+}
+
+function decodePageCursor(cursor: string): number {
+  try {
+    const normalizedCursor = cursor
+      .replaceAll("-", "+")
+      .replaceAll("_", "/");
+    const paddingLength = (4 - (normalizedCursor.length % 4)) % 4;
+    const paddedCursor = `${normalizedCursor}${"=".repeat(paddingLength)}`;
+    const parsedValue = JSON.parse(globalThis.atob(paddedCursor)) as unknown;
+    if (typeof parsedValue !== "object" || parsedValue === null || Array.isArray(parsedValue)) {
+      throw new Error("Cursor payload must be an object");
+    }
+
+    const recordValue = parsedValue as Record<string, unknown>;
+    const index = recordValue.index;
+    if (typeof index !== "number" || Number.isInteger(index) === false || index < 0) {
+      throw new Error("Cursor index must be a non-negative integer");
+    }
+
+    return index;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`cursor is invalid: ${message}`);
+  }
+}
+
+function getPageStartIndex(cursor: string | null): number {
+  if (cursor === null) {
+    return 0;
+  }
+
+  return decodePageCursor(cursor);
+}
+
+function getNextCursorForPage(
+  totalCount: number,
+  startIndex: number,
+  visibleCount: number,
+): string | null {
+  const nextIndex = startIndex + visibleCount;
+  if (nextIndex >= totalCount) {
+    return null;
+  }
+
+  return encodePageCursor(nextIndex);
 }
 
 function parseCreateCardsInput(toolCallRequest: LocalToolCallRequest): CreateCardsToolInput {
@@ -607,6 +690,42 @@ function searchDecks(snapshot: MutableSnapshot, query: string, limit: number): R
     .slice(0, limit);
 }
 
+function makeCardsPagePayload(
+  cards: ReadonlyArray<Card>,
+  startIndex: number,
+  limit: number,
+): LocalCardsPagePayload {
+  const visibleCards = cards.slice(startIndex, startIndex + limit);
+  return {
+    cards: visibleCards,
+    nextCursor: getNextCursorForPage(cards.length, startIndex, visibleCards.length),
+  };
+}
+
+function makeDecksPagePayload(
+  decks: ReadonlyArray<Deck>,
+  startIndex: number,
+  limit: number,
+): LocalDecksPagePayload {
+  const visibleDecks = decks.slice(startIndex, startIndex + limit);
+  return {
+    decks: visibleDecks,
+    nextCursor: getNextCursorForPage(decks.length, startIndex, visibleDecks.length),
+  };
+}
+
+function makeReviewHistoryPagePayload(
+  reviewEvents: ReadonlyArray<MutableSnapshot["reviewEvents"][number]>,
+  startIndex: number,
+  limit: number,
+): LocalReviewHistoryPagePayload {
+  const visibleEvents = reviewEvents.slice(startIndex, startIndex + limit);
+  return {
+    history: visibleEvents,
+    nextCursor: getNextCursorForPage(reviewEvents.length, startIndex, visibleEvents.length),
+  };
+}
+
 function describeOutboxPayload(record: PersistedOutboxRecord): string {
   if (record.operation.entityType === "card") {
     return `card ${record.operation.payload.cardId}`;
@@ -680,12 +799,13 @@ function makeWorkspaceContextPayload(
 function makeOutboxPayload(
   snapshot: MutableSnapshot,
   workspaceId: string,
+  startIndex: number,
   limit: number,
-): ReadonlyArray<AIOutboxEntryPayload> {
-  return snapshot.outbox
-    .filter((entry) => entry.workspaceId === workspaceId)
-    .slice(0, limit)
-    .map((entry) => ({
+): LocalOutboxPagePayload {
+  const workspaceEntries = snapshot.outbox.filter((entry) => entry.workspaceId === workspaceId);
+  const visibleEntries = workspaceEntries.slice(startIndex, startIndex + limit);
+  return {
+    outbox: visibleEntries.map((entry) => ({
       operationId: entry.operationId,
       workspaceId: entry.workspaceId,
       entityType: entry.operation.entityType,
@@ -696,7 +816,9 @@ function makeOutboxPayload(
       attemptCount: entry.attemptCount,
       lastError: entry.lastError,
       payloadSummary: describeOutboxPayload(entry),
-    }));
+    })),
+    nextCursor: getNextCursorForPage(workspaceEntries.length, startIndex, visibleEntries.length),
+  };
 }
 
 function makeDeckSummary(snapshot: MutableSnapshot): DeckSummaryPayload {
@@ -803,9 +925,12 @@ export function createLocalToolExecutor(
           didMutateAppState: false,
         };
       case "list_cards": {
-        const input = parseListLimitInput(toolCallRequest);
+        const input = parseListPageInput(toolCallRequest);
+        const startIndex = getPageStartIndex(input.cursor);
         return {
-          output: JSON.stringify(currentActiveCards(snapshot).slice(0, normalizeLimit(input.limit))),
+          output: JSON.stringify(
+            makeCardsPagePayload(currentActiveCards(snapshot), startIndex, normalizeLimit(input.limit)),
+          ),
           didMutateAppState: false,
         };
       }
@@ -819,29 +944,44 @@ export function createLocalToolExecutor(
         };
       }
       case "search_cards": {
-        const input = parseQueryLimitInput(toolCallRequest);
+        const input = parseQueryPageInput(toolCallRequest);
+        const startIndex = getPageStartIndex(input.cursor);
+        const matchedCards = searchCards(snapshot, input.query, Number.MAX_SAFE_INTEGER);
         return {
-          output: JSON.stringify(searchCards(snapshot, input.query, normalizeLimit(input.limit))),
+          output: JSON.stringify(
+            makeCardsPagePayload(matchedCards, startIndex, normalizeLimit(input.limit)),
+          ),
           didMutateAppState: false,
         };
       }
       case "list_due_cards": {
-        const input = parseListLimitInput(toolCallRequest);
+        const input = parseListPageInput(toolCallRequest);
+        const startIndex = getPageStartIndex(input.cursor);
         return {
-          output: JSON.stringify(dueCards(snapshot).slice(0, normalizeLimit(input.limit))),
+          output: JSON.stringify(
+            makeCardsPagePayload(dueCards(snapshot), startIndex, normalizeLimit(input.limit)),
+          ),
           didMutateAppState: false,
         };
       }
-      case "list_decks":
-        parseEmptyObjectInput(toolCallRequest);
+      case "list_decks": {
+        const input = parseListPageInput(toolCallRequest);
+        const startIndex = getPageStartIndex(input.cursor);
         return {
-          output: JSON.stringify(activeDecks(snapshot)),
+          output: JSON.stringify(
+            makeDecksPagePayload(activeDecks(snapshot), startIndex, normalizeLimit(input.limit)),
+          ),
           didMutateAppState: false,
         };
+      }
       case "search_decks": {
-        const input = parseQueryLimitInput(toolCallRequest);
+        const input = parseQueryPageInput(toolCallRequest);
+        const startIndex = getPageStartIndex(input.cursor);
+        const matchedDecks = searchDecks(snapshot, input.query, Number.MAX_SAFE_INTEGER);
         return {
-          output: JSON.stringify(searchDecks(snapshot, input.query, normalizeLimit(input.limit))),
+          output: JSON.stringify(
+            makeDecksPagePayload(matchedDecks, startIndex, normalizeLimit(input.limit)),
+          ),
           didMutateAppState: false,
         };
       }
@@ -856,11 +996,14 @@ export function createLocalToolExecutor(
       }
       case "list_review_history": {
         const input = parseListReviewHistoryInput(toolCallRequest);
+        const startIndex = getPageStartIndex(input.cursor);
         const reviewEvents = input.cardId === null
           ? snapshot.reviewEvents
           : snapshot.reviewEvents.filter((event) => event.cardId === input.cardId);
         return {
-          output: JSON.stringify(reviewEvents.slice(0, normalizeLimit(input.limit))),
+          output: JSON.stringify(
+            makeReviewHistoryPagePayload(reviewEvents, startIndex, normalizeLimit(input.limit)),
+          ),
           didMutateAppState: false,
         };
       }
@@ -885,10 +1028,11 @@ export function createLocalToolExecutor(
           didMutateAppState: false,
         };
       case "list_outbox": {
-        const input = parseListLimitInput(toolCallRequest);
+        const input = parseListPageInput(toolCallRequest);
+        const startIndex = getPageStartIndex(input.cursor);
         return {
           output: JSON.stringify(
-            makeOutboxPayload(snapshot, activeWorkspace.workspaceId, normalizeLimit(input.limit)),
+            makeOutboxPayload(snapshot, activeWorkspace.workspaceId, startIndex, normalizeLimit(input.limit)),
           ),
           didMutateAppState: false,
         };

@@ -47,7 +47,7 @@ function createAgentInstructions(code: string | null, statusCode: number): strin
     case "AGENT_TOOL_INPUT_INVALID":
       return "Fix the JSON body to match the tool schema. Use error.details.validationIssues paths and messages directly, then retry the same request.";
     case "WORKSPACE_SELECTION_REQUIRED":
-      return "Call GET /v1/agent/me, then GET /v1/agent/workspaces. A first workspace is auto-provisioned for new users. If multiple workspaces exist, select one with POST /v1/agent/workspaces/{workspaceId}/select.";
+      return "Call GET /v1/agent/me, then GET /v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. If data.nextCursor is not null, continue with the same limit and cursor=data.nextCursor. If multiple workspaces exist, select one with POST /v1/agent/workspaces/{workspaceId}/select.";
     case "WORKSPACE_ID_REQUIRED":
     case "WORKSPACE_ID_INVALID":
       return "Provide a valid workspaceId UUID in the request URL, then retry the action.";

@@ -121,7 +121,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
         hasSearch: body.searchText !== null,
         resultsCount: result.cards.length,
         totalCount: result.totalCount,
-        hasMore: result.hasMore,
+        hasMore: result.nextCursor !== null,
       }, false);
       return context.json(result);
     } catch (error) {

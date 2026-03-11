@@ -2,6 +2,16 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+private struct CardsPagePayload: Decodable {
+    let cards: [Card]
+    let nextCursor: String?
+}
+
+private struct DecksPagePayload: Decodable {
+    let decks: [Deck]
+    let nextCursor: String?
+}
+
 @MainActor
 final class LocalAIToolExecutorTests: AIChatTestCaseBase {
     func testLocalToolExecutorReadsWorkspaceContextAndCreatesConfirmedCard() async throws {
@@ -153,25 +163,29 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-cards-effort",
                 name: "search_cards",
-                input: "{\"query\":\"medium\",\"limit\":100}"
+                input: "{\"query\":\"medium\",\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-1"
         )
-        let searchedCards = try JSONDecoder().decode([Card].self, from: Data(searchedCardsResult.output.utf8))
+        let searchedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedCardsResult.output.utf8))
+        let searchedCards = searchedCardsPayload.cards
 
         XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
         XCTAssertEqual(searchedCards.first?.effortLevel, .medium)
+        XCTAssertNil(searchedCardsPayload.nextCursor)
 
         let searchedAndCardsResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-cards-and",
                 name: "search_cards",
-                input: "{\"query\":\"front medium\",\"limit\":100}"
+                input: "{\"query\":\"front medium\",\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-1"
         )
-        let searchedAndCards = try JSONDecoder().decode([Card].self, from: Data(searchedAndCardsResult.output.utf8))
+        let searchedAndCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedAndCardsResult.output.utf8))
+        let searchedAndCards = searchedAndCardsPayload.cards
         XCTAssertEqual(searchedAndCards.map(\.cardId), [createdCards[0].cardId])
+        XCTAssertNil(searchedAndCardsPayload.nextCursor)
     }
 
     @MainActor
@@ -203,12 +217,14 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-cards-tail",
                 name: "search_cards",
-                input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"limit\":100}"
+                input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-1"
         )
-        let searchedCards = try JSONDecoder().decode([Card].self, from: Data(searchedCardsResult.output.utf8))
+        let searchedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedCardsResult.output.utf8))
+        let searchedCards = searchedCardsPayload.cards
         XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
+        XCTAssertNil(searchedCardsPayload.nextCursor)
     }
 
     @MainActor
@@ -226,7 +242,7 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
                 toolCallRequest: AIToolCallRequest(
                     toolCallId: "call-invalid",
                     name: "list_cards",
-                    input: "{\"limit\":5}\n{\"limit\":10}"
+                    input: "{\"cursor\":null,\"limit\":5}\n{\"cursor\":null,\"limit\":10}"
                 ),
                 requestId: "request-123"
             )
@@ -240,7 +256,7 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             XCTAssertEqual(toolName, "list_cards")
             XCTAssertEqual(toolCallId, "call-invalid")
             XCTAssertFalse(decoderSummary.isEmpty)
-            XCTAssertEqual(rawInputSnippet, "{\"limit\":5}\n{\"limit\":10}")
+            XCTAssertEqual(rawInputSnippet, "{\"cursor\":null,\"limit\":5}\n{\"cursor\":null,\"limit\":10}")
         }
     }
 
@@ -396,45 +412,53 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-list-decks",
                 name: "list_decks",
-                input: "{}"
+                input: "{\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-1"
         )
-        let listedDecks = try JSONDecoder().decode([Deck].self, from: Data(listedDecksResult.output.utf8))
+        let listedDecksPayload = try JSONDecoder().decode(DecksPagePayload.self, from: Data(listedDecksResult.output.utf8))
+        let listedDecks = listedDecksPayload.decks
         XCTAssertEqual(Set(listedDecks.map(\.deckId)), Set(createdDecks.map(\.deckId)))
+        XCTAssertNil(listedDecksPayload.nextCursor)
 
         let searchedByTagResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-decks-tag",
                 name: "search_decks",
-                input: "{\"query\":\"grammar\",\"limit\":null}"
+                input: "{\"query\":\"grammar\",\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-1"
         )
-        let searchedByTag = try JSONDecoder().decode([Deck].self, from: Data(searchedByTagResult.output.utf8))
+        let searchedByTagPayload = try JSONDecoder().decode(DecksPagePayload.self, from: Data(searchedByTagResult.output.utf8))
+        let searchedByTag = searchedByTagPayload.decks
         XCTAssertEqual(searchedByTag.map(\.deckId), [createdDecks[0].deckId])
+        XCTAssertNil(searchedByTagPayload.nextCursor)
 
         let searchedByEffortResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-decks-effort",
                 name: "search_decks",
-                input: "{\"query\":\"long\",\"limit\":null}"
+                input: "{\"query\":\"long\",\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-1"
         )
-        let searchedByEffort = try JSONDecoder().decode([Deck].self, from: Data(searchedByEffortResult.output.utf8))
+        let searchedByEffortPayload = try JSONDecoder().decode(DecksPagePayload.self, from: Data(searchedByEffortResult.output.utf8))
+        let searchedByEffort = searchedByEffortPayload.decks
         XCTAssertEqual(searchedByEffort.map(\.deckId), [createdDecks[1].deckId])
+        XCTAssertNil(searchedByEffortPayload.nextCursor)
 
         let searchedByOrResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-decks-or",
                 name: "search_decks",
-                input: "{\"query\":\"missing grammar\",\"limit\":null}"
+                input: "{\"query\":\"missing grammar\",\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-1"
         )
-        let searchedByOr = try JSONDecoder().decode([Deck].self, from: Data(searchedByOrResult.output.utf8))
+        let searchedByOrPayload = try JSONDecoder().decode(DecksPagePayload.self, from: Data(searchedByOrResult.output.utf8))
+        let searchedByOr = searchedByOrPayload.decks
         XCTAssertEqual(searchedByOr.map(\.deckId), [createdDecks[0].deckId])
+        XCTAssertNil(searchedByOrPayload.nextCursor)
 
         let fetchedDecksResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
@@ -560,12 +584,13 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-list-initial",
                 name: "list_cards",
-                input: "{}"
+                input: "{\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-list"
         )
-        let initialCards = try JSONDecoder().decode([Card].self, from: Data(initialListResult.output.utf8))
-        XCTAssertEqual(initialCards.count, 0)
+        let initialCards = try JSONDecoder().decode(CardsPagePayload.self, from: Data(initialListResult.output.utf8))
+        XCTAssertEqual(initialCards.cards.count, 0)
+        XCTAssertNil(initialCards.nextCursor)
 
         try flashcardsStore.saveCard(
             input: CardEditorInput(
@@ -581,13 +606,14 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-list-updated",
                 name: "list_cards",
-                input: "{}"
+                input: "{\"cursor\":null,\"limit\":100}"
             ),
             requestId: "request-list"
         )
-        let updatedCards = try JSONDecoder().decode([Card].self, from: Data(updatedListResult.output.utf8))
-        XCTAssertEqual(updatedCards.count, 1)
-        XCTAssertEqual(updatedCards.first?.frontText, "Fresh Front")
+        let updatedCards = try JSONDecoder().decode(CardsPagePayload.self, from: Data(updatedListResult.output.utf8))
+        XCTAssertEqual(updatedCards.cards.count, 1)
+        XCTAssertEqual(updatedCards.cards.first?.frontText, "Fresh Front")
+        XCTAssertNil(updatedCards.nextCursor)
     }
 
 }

@@ -45,8 +45,9 @@ export type SharedAiToolName =
   | "update_decks"
   | "delete_decks";
 
-export type AgentToolLimitInput = Readonly<{
-  limit: number | null;
+export type AgentToolCursorInput = Readonly<{
+  cursor: string | null;
+  limit: number;
 }>;
 
 export type AgentToolGetCardsInput = Readonly<{
@@ -55,7 +56,8 @@ export type AgentToolGetCardsInput = Readonly<{
 
 export type AgentToolSearchCardsInput = Readonly<{
   query: string;
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 export type AgentToolGetDecksInput = Readonly<{
@@ -64,11 +66,13 @@ export type AgentToolGetDecksInput = Readonly<{
 
 export type AgentToolSearchDecksInput = Readonly<{
   query: string;
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
 }>;
 
 export type AgentToolListReviewHistoryInput = Readonly<{
-  limit: number | null;
+  cursor: string | null;
+  limit: number;
   cardId: string | null;
 }>;
 
@@ -155,6 +159,8 @@ export const LIMIT_SCHEMA = {
   maximum: 100,
 } as const;
 
+const CURSOR_SCHEMA = nullableSchema({ type: "string" });
+
 const UUID_SCHEMA = {
   type: "string",
   format: "uuid",
@@ -223,7 +229,7 @@ const BULK_DECK_ARRAY_SCHEMA = {
   maxItems: 100,
 } as const;
 
-const nullableLimitValidator = z.number().int().min(1).max(100).nullable();
+const limitValidator = z.number().int().min(1).max(100);
 const nullableStringValidator = z.string().nullable();
 const nullableStringArrayValidator = z.array(z.string()).nullable();
 const nullableEffortLevelValidator = z.enum(["fast", "medium", "long"]).nullable();
@@ -282,13 +288,15 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "list_cards",
     localDescription: "List cards from the local device database.",
     externalDescription: "List cards from the selected workspace.",
-    jsonContract: "Use {\"limit\": number|null}. Include \"limit\": null when no limit is needed.",
-    promptExample: "{\"limit\": 20}",
+    jsonContract: "Use {\"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
+    promptExample: "{\"cursor\": null, \"limit\": 20}",
     parameters: strictObjectSchema({
-      limit: nullableSchema(LIMIT_SCHEMA),
+      cursor: CURSOR_SCHEMA,
+      limit: LIMIT_SCHEMA,
     }),
     validator: z.object({
-      limit: nullableLimitValidator,
+      cursor: nullableStringValidator,
+      limit: limitValidator,
     }).strict(),
   },
   {
@@ -311,52 +319,64 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "search_cards",
     localDescription: "Search local cards by front text, back text, tags, or effort level. Split query by whitespace into up to 5 lowercase tokens (merge extra tokens into the fifth token), require every token to match, and allow each token to match any supported card field.",
     externalDescription: "Search cards by front text, back text, tags, or effort level. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field.",
-    jsonContract: "Use {\"query\": string, \"limit\": number|null}. Include both properties every time.",
-    promptExample: "{\"query\": \"grammar\", \"limit\": null}",
+    jsonContract: "Use {\"query\": string, \"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
+    promptExample: "{\"query\": \"grammar\", \"cursor\": null, \"limit\": 20}",
     parameters: strictObjectSchema({
       query: { type: "string" },
-      limit: nullableSchema(LIMIT_SCHEMA),
+      cursor: CURSOR_SCHEMA,
+      limit: LIMIT_SCHEMA,
     }),
     validator: z.object({
       query: z.string(),
-      limit: nullableLimitValidator,
+      cursor: nullableStringValidator,
+      limit: limitValidator,
     }).strict(),
   },
   {
     name: "list_due_cards",
     localDescription: "List cards currently due for review from the local device database.",
     externalDescription: "List cards currently due for review in the selected workspace.",
-    jsonContract: "Use {\"limit\": number|null}. Include \"limit\": null when no limit is needed.",
-    promptExample: "{\"limit\": 20}",
+    jsonContract: "Use {\"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
+    promptExample: "{\"cursor\": null, \"limit\": 20}",
     parameters: strictObjectSchema({
-      limit: nullableSchema(LIMIT_SCHEMA),
+      cursor: CURSOR_SCHEMA,
+      limit: LIMIT_SCHEMA,
     }),
     validator: z.object({
-      limit: nullableLimitValidator,
+      cursor: nullableStringValidator,
+      limit: limitValidator,
     }).strict(),
   },
   {
     name: "list_decks",
     localDescription: "List decks from the local device database.",
     externalDescription: "List decks from the selected workspace.",
-    jsonContract: "Use {}.",
-    promptExample: "{}",
-    parameters: EMPTY_OBJECT_SCHEMA,
-    validator: z.object({}).strict(),
+    jsonContract: "Use {\"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
+    promptExample: "{\"cursor\": null, \"limit\": 20}",
+    parameters: strictObjectSchema({
+      cursor: CURSOR_SCHEMA,
+      limit: LIMIT_SCHEMA,
+    }),
+    validator: z.object({
+      cursor: nullableStringValidator,
+      limit: limitValidator,
+    }).strict(),
   },
   {
     name: "search_decks",
     localDescription: "Search local decks by name, tags, or effort levels. Split query by whitespace into up to 5 lowercase tokens (merge extra tokens into the fifth token) and match if any token matches.",
     externalDescription: "Search decks by name, tags, or effort levels. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token) and matches when any token matches.",
-    jsonContract: "Use {\"query\": string, \"limit\": number|null}. Include both properties every time.",
-    promptExample: "{\"query\": \"grammar\", \"limit\": null}",
+    jsonContract: "Use {\"query\": string, \"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
+    promptExample: "{\"query\": \"grammar\", \"cursor\": null, \"limit\": 20}",
     parameters: strictObjectSchema({
       query: { type: "string" },
-      limit: nullableSchema(LIMIT_SCHEMA),
+      cursor: CURSOR_SCHEMA,
+      limit: LIMIT_SCHEMA,
     }),
     validator: z.object({
       query: z.string(),
-      limit: nullableLimitValidator,
+      cursor: nullableStringValidator,
+      limit: limitValidator,
     }).strict(),
   },
   {
@@ -379,14 +399,16 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "list_review_history",
     localDescription: "List recent local review events, optionally filtered by cardId.",
     externalDescription: "List recent review events, optionally filtered by cardId.",
-    jsonContract: "Use {\"limit\": number|null, \"cardId\": string|null}. Include both properties every time.",
-    promptExample: "{\"limit\": 20, \"cardId\": null}",
+    jsonContract: "Use {\"cursor\": string|null, \"limit\": number, \"cardId\": string|null}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
+    promptExample: "{\"cursor\": null, \"limit\": 20, \"cardId\": null}",
     parameters: strictObjectSchema({
-      limit: nullableSchema(LIMIT_SCHEMA),
+      cursor: CURSOR_SCHEMA,
+      limit: LIMIT_SCHEMA,
       cardId: nullableSchema({ type: "string" }),
     }),
     validator: z.object({
-      limit: nullableLimitValidator,
+      cursor: nullableStringValidator,
+      limit: limitValidator,
       cardId: nullableUuidValidator,
     }).strict(),
   },

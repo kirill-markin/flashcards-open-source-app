@@ -148,7 +148,7 @@ describe("web auth recovery", () => {
         return createJsonResponse(200, createSessionPayload("csrf-shared"));
       }
 
-      if (url === "http://localhost:8080/v1/workspaces") {
+      if (url === "http://localhost:8080/v1/workspaces?limit=100") {
         workspaceCallCount += 1;
         if (workspaceCallCount <= 2) {
           return createJsonResponse(401, { error: "Authentication failed. Sign in again." });
@@ -161,6 +161,7 @@ describe("web auth recovery", () => {
             createdAt: "2026-03-09T00:00:00.000Z",
             isSelected: true,
           }],
+          nextCursor: null,
         });
       }
 
@@ -186,7 +187,7 @@ describe("web auth recovery", () => {
 
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url === "http://localhost:8080/v1/workspaces") {
+      if (url === "http://localhost:8080/v1/workspaces?limit=100") {
         return createJsonResponse(401, { error: "Authentication failed. Sign in again." });
       }
 
@@ -208,7 +209,7 @@ describe("web auth recovery", () => {
 
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url === "http://localhost:8080/v1/workspaces") {
+      if (url === "http://localhost:8080/v1/workspaces?limit=100") {
         return createJsonResponse(500, { error: "Server failed." });
       }
 
@@ -240,7 +241,7 @@ describe("web auth recovery", () => {
         return createJsonResponse(200, createSessionPayload("csrf-reloaded"));
       }
 
-      if (url === "http://localhost:8080/v1/workspaces") {
+      if (url === "http://localhost:8080/v1/workspaces?limit=100") {
         workspaceCallCount += 1;
         return createJsonResponse(401, { error: "Authentication failed. Sign in again." });
       }
