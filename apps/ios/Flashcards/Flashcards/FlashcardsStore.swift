@@ -58,6 +58,21 @@ private func applyingDeckMutation(decks: [Deck], deck: Deck) -> [Deck] {
     return [deck] + remainingDecks
 }
 
+/// Immutable payload for one pending optimistic review submission.
+private struct ReviewSubmissionRequest: Hashable, Sendable {
+    let id: String
+    let workspaceId: String
+    let cardId: String
+    let rating: ReviewRating
+    let reviewedAtClient: String
+}
+
+/// Represents one failed optimistic review submission shown in the Review alert.
+struct ReviewSubmissionFailure: Identifiable, Hashable, Sendable {
+    let id: String
+    let message: String
+}
+
 @MainActor
 final class FlashcardsStore: ObservableObject {
     @Published private(set) var workspace: Workspace?
@@ -77,17 +92,22 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var selectedTab: AppTab
     @Published private(set) var cardsPresentationRequest: CardsPresentationRequest?
     @Published private(set) var aiChatPresentationRequest: AIChatPresentationRequest?
+    @Published private(set) var pendingReviewCardIds: Set<String>
+    @Published private(set) var reviewSubmissionFailure: ReviewSubmissionFailure?
 
     private let database: LocalDatabase?
     private let cloudAuthService: CloudAuthService
     private let cloudSyncService: CloudSyncService?
     private let credentialStore: CloudCredentialStore
+    private let reviewSubmissionExecutor: ReviewSubmissionExecuting?
     private let userDefaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private var activeCloudSession: CloudLinkedSession?
     private var activeCloudSyncTask: Task<Void, Error>?
     private var pendingCloudResync: Bool
+    private var pendingReviewRequests: [ReviewSubmissionRequest]
+    private var isReviewProcessorRunning: Bool
 
     convenience init() {
         let userDefaults = UserDefaults.standard
@@ -117,6 +137,30 @@ final class FlashcardsStore: ObservableObject {
         )
     }
 
+    convenience init(
+        userDefaults: UserDefaults,
+        encoder: JSONEncoder,
+        decoder: JSONDecoder,
+        database: LocalDatabase?,
+        cloudAuthService: CloudAuthService,
+        credentialStore: CloudCredentialStore,
+        initialGlobalErrorMessage: String
+    ) {
+        let reviewSubmissionExecutor: ReviewSubmissionExecuting? = database.map { initializedDatabase in
+            ReviewSubmissionExecutor(databaseURL: initializedDatabase.databaseURL)
+        }
+        self.init(
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder,
+            database: database,
+            cloudAuthService: cloudAuthService,
+            credentialStore: credentialStore,
+            reviewSubmissionExecutor: reviewSubmissionExecutor,
+            initialGlobalErrorMessage: initialGlobalErrorMessage
+        )
+    }
+
     init(
         userDefaults: UserDefaults,
         encoder: JSONEncoder,
@@ -124,6 +168,7 @@ final class FlashcardsStore: ObservableObject {
         database: LocalDatabase?,
         cloudAuthService: CloudAuthService,
         credentialStore: CloudCredentialStore,
+        reviewSubmissionExecutor: ReviewSubmissionExecuting?,
         initialGlobalErrorMessage: String
     ) {
         self.workspace = nil
@@ -152,18 +197,23 @@ final class FlashcardsStore: ObservableObject {
         self.selectedTab = .review
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
+        self.pendingReviewCardIds = []
+        self.reviewSubmissionFailure = nil
         self.database = database
         self.cloudAuthService = cloudAuthService
         self.cloudSyncService = database.map { initializedDatabase in
             CloudSyncService(database: initializedDatabase)
         }
         self.credentialStore = credentialStore
+        self.reviewSubmissionExecutor = reviewSubmissionExecutor
         self.userDefaults = userDefaults
         self.encoder = encoder
         self.decoder = decoder
         self.activeCloudSession = nil
         self.activeCloudSyncTask = nil
         self.pendingCloudResync = false
+        self.pendingReviewRequests = []
+        self.isReviewProcessorRunning = false
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
@@ -198,6 +248,13 @@ final class FlashcardsStore: ObservableObject {
 
     var reviewTotalCount: Int {
         self.reviewTimeline.count
+    }
+
+    /// Review queue visible to UI after optimistic removals are applied.
+    var effectiveReviewQueue: [Card] {
+        self.reviewQueue.filter { card in
+            self.pendingReviewCardIds.contains(card.cardId) == false
+        }
     }
 
     func selectTab(tab: AppTab) {
@@ -357,6 +414,46 @@ final class FlashcardsStore: ObservableObject {
         )
         self.applyCardMutation(card: updatedCard, now: Date())
         self.triggerCloudSyncIfLinked()
+    }
+
+    /// Optimistically removes a card from the review queue and schedules submit in background.
+    func enqueueReviewSubmission(cardId: String, rating: ReviewRating) throws {
+        guard self.reviewSubmissionExecutor != nil else {
+            throw LocalStoreError.uninitialized("Review submission executor is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+        guard self.cards.contains(where: { card in
+            card.cardId == cardId && card.deletedAt == nil
+        }) else {
+            throw LocalStoreError.notFound("Card not found")
+        }
+        guard self.pendingReviewCardIds.contains(cardId) == false else {
+            throw LocalStoreError.validation("Review submission is already pending for this card")
+        }
+
+        let request = ReviewSubmissionRequest(
+            id: UUID().uuidString.lowercased(),
+            workspaceId: workspaceId,
+            cardId: cardId,
+            rating: rating,
+            reviewedAtClient: currentIsoTimestamp()
+        )
+        self.pendingReviewCardIds.insert(cardId)
+        self.pendingReviewRequests.append(request)
+        self.reviewSubmissionFailure = nil
+        self.startReviewProcessorIfNeeded()
+    }
+
+    /// Returns `true` while one review submission for this card is still being processed.
+    func isReviewPending(cardId: String) -> Bool {
+        self.pendingReviewCardIds.contains(cardId)
+    }
+
+    /// Clears the currently presented review submission failure alert.
+    func dismissReviewSubmissionFailure() {
+        self.reviewSubmissionFailure = nil
     }
 
     func updateSchedulerSettings(
@@ -747,6 +844,78 @@ final class FlashcardsStore: ObservableObject {
     private func triggerCloudSyncIfLinked() {
         Task { @MainActor in
             await self.syncCloudIfLinked()
+        }
+    }
+
+    private func startReviewProcessorIfNeeded() {
+        guard self.isReviewProcessorRunning == false else {
+            return
+        }
+
+        self.isReviewProcessorRunning = true
+        Task { @MainActor in
+            await self.processPendingReviewRequests()
+        }
+    }
+
+    /// Processes enqueued review submissions serially to preserve deterministic ordering.
+    private func processPendingReviewRequests() async {
+        defer {
+            self.isReviewProcessorRunning = false
+            // Enqueue can append while the processor is suspended on awaits.
+            if self.pendingReviewRequests.isEmpty == false {
+                self.startReviewProcessorIfNeeded()
+            }
+        }
+
+        while self.pendingReviewRequests.isEmpty == false {
+            let request = self.pendingReviewRequests.removeFirst()
+            await self.processReviewSubmissionRequest(request: request)
+        }
+    }
+
+    private func processReviewSubmissionRequest(request: ReviewSubmissionRequest) async {
+        guard let reviewSubmissionExecutor else {
+            self.handleReviewSubmissionFailure(
+                request: request,
+                submissionError: LocalStoreError.uninitialized("Review submission executor is unavailable")
+            )
+            return
+        }
+
+        do {
+            let updatedCard = try await reviewSubmissionExecutor.submitReview(
+                workspaceId: request.workspaceId,
+                submission: ReviewSubmission(
+                    cardId: request.cardId,
+                    rating: request.rating,
+                    reviewedAtClient: request.reviewedAtClient
+                )
+            )
+            self.applyCardMutation(card: updatedCard, now: Date())
+            self.pendingReviewCardIds.remove(request.cardId)
+            self.triggerCloudSyncIfLinked()
+        } catch {
+            self.handleReviewSubmissionFailure(request: request, submissionError: error)
+        }
+    }
+
+    /// Restores canonical queue state after a failed optimistic review submission.
+    private func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) {
+        self.pendingReviewCardIds.remove(request.cardId)
+        let submissionErrorMessage = localizedMessage(error: submissionError)
+        do {
+            try self.reload()
+            self.reviewSubmissionFailure = ReviewSubmissionFailure(
+                id: request.id,
+                message: submissionErrorMessage
+            )
+        } catch {
+            let reloadErrorMessage = localizedMessage(error: error)
+            self.reviewSubmissionFailure = ReviewSubmissionFailure(
+                id: request.id,
+                message: "\(submissionErrorMessage)\n\nReload failed: \(reloadErrorMessage)"
+            )
         }
     }
 

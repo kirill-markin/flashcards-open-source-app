@@ -2,8 +2,61 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+private enum ScriptedReviewSubmissionOutcome: Sendable {
+    case submitToDatabase
+    case fail(message: String)
+}
+
+private actor ScriptedReviewSubmissionExecutor: ReviewSubmissionExecuting {
+    private let databaseURL: URL
+    private var database: LocalDatabase?
+    private var outcomes: [ScriptedReviewSubmissionOutcome]
+    private let delayNanoseconds: UInt64
+
+    init(databaseURL: URL, outcomes: [ScriptedReviewSubmissionOutcome], delayNanoseconds: UInt64) {
+        self.databaseURL = databaseURL
+        self.database = nil
+        self.outcomes = outcomes
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> Card {
+        if self.delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: self.delayNanoseconds)
+        }
+
+        guard self.outcomes.isEmpty == false else {
+            throw LocalStoreError.validation("Missing scripted review outcome")
+        }
+
+        let nextOutcome = self.outcomes.removeFirst()
+        switch nextOutcome {
+        case .submitToDatabase:
+            let database = try self.resolvedDatabase()
+            return try database.submitReview(workspaceId: workspaceId, reviewSubmission: submission)
+        case .fail(let message):
+            throw LocalStoreError.validation(message)
+        }
+    }
+
+    private func resolvedDatabase() throws -> LocalDatabase {
+        if let database {
+            return database
+        }
+
+        let database = try LocalDatabase(databaseURL: self.databaseURL)
+        self.database = database
+        return database
+    }
+}
+
 @MainActor
 final class FlashcardsStoreTests: XCTestCase {
+    private struct StoreContext {
+        let store: FlashcardsStore
+        let database: LocalDatabase
+    }
+
     func testSaveCardUpdatesPublishedStateImmediately() throws {
         let store = try self.makeStore()
 
@@ -93,7 +146,263 @@ final class FlashcardsStoreTests: XCTestCase {
         XCTAssertEqual(store.aiChatPresentationRequest, .createCard)
     }
 
+    func testEnqueueReviewSubmissionOptimisticallyRemovesCurrentCard() async throws {
+        let context = try self.makeStoreContext { database in
+            ScriptedReviewSubmissionExecutor(
+                databaseURL: database.databaseURL,
+                outcomes: [.submitToDatabase],
+                delayNanoseconds: 300_000_000
+            )
+        }
+        let store = context.store
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "First front", backText: "First back", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Second front", backText: "Second back", tags: ["tag-b"]),
+            editingCardId: nil
+        )
+
+        let initialQueue = store.effectiveReviewQueue
+        let firstCard = try XCTUnwrap(initialQueue.first)
+        let secondCard = try XCTUnwrap(initialQueue.dropFirst().first)
+
+        try store.enqueueReviewSubmission(cardId: firstCard.cardId, rating: .good)
+
+        XCTAssertTrue(store.isReviewPending(cardId: firstCard.cardId))
+        XCTAssertEqual(store.effectiveReviewQueue.count, 1)
+        XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, secondCard.cardId)
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewPending(cardId: firstCard.cardId) == false
+        }
+
+        XCTAssertNil(store.reviewSubmissionFailure)
+        XCTAssertEqual(
+            store.cards.first(where: { card in
+                card.cardId == firstCard.cardId
+            })?.reps,
+            1
+        )
+    }
+
+    func testEnqueueReviewSubmissionRejectsDuplicatePendingCard() async throws {
+        let context = try self.makeStoreContext { database in
+            ScriptedReviewSubmissionExecutor(
+                databaseURL: database.databaseURL,
+                outcomes: [.submitToDatabase],
+                delayNanoseconds: 300_000_000
+            )
+        }
+        let store = context.store
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Front", backText: "Back", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        let cardId = try XCTUnwrap(store.effectiveReviewQueue.first?.cardId)
+
+        try store.enqueueReviewSubmission(cardId: cardId, rating: .good)
+
+        XCTAssertThrowsError(try store.enqueueReviewSubmission(cardId: cardId, rating: .hard)) { error in
+            guard case LocalStoreError.validation(let message) = error else {
+                return XCTFail("Expected LocalStoreError.validation, got \(error)")
+            }
+            XCTAssertEqual(message, "Review submission is already pending for this card")
+        }
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewPending(cardId: cardId) == false
+        }
+    }
+
+    func testEnqueueReviewSubmissionFailureRestoresQueueAndSetsAlert() async throws {
+        let context = try self.makeStoreContext { database in
+            ScriptedReviewSubmissionExecutor(
+                databaseURL: database.databaseURL,
+                outcomes: [.fail(message: "Injected review failure")],
+                delayNanoseconds: 10_000_000
+            )
+        }
+        let store = context.store
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Front", backText: "Back", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        let cardId = try XCTUnwrap(store.effectiveReviewQueue.first?.cardId)
+
+        try store.enqueueReviewSubmission(cardId: cardId, rating: .good)
+        XCTAssertTrue(store.effectiveReviewQueue.isEmpty)
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.reviewSubmissionFailure != nil
+        }
+
+        let failure = try XCTUnwrap(store.reviewSubmissionFailure)
+        XCTAssertTrue(failure.message.contains("Injected review failure"))
+        XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, cardId)
+        XCTAssertFalse(store.isReviewPending(cardId: cardId))
+
+        store.dismissReviewSubmissionFailure()
+        XCTAssertNil(store.reviewSubmissionFailure)
+    }
+
+    func testReviewSubmissionProcessorContinuesAfterFailure() async throws {
+        let context = try self.makeStoreContext { database in
+            ScriptedReviewSubmissionExecutor(
+                databaseURL: database.databaseURL,
+                outcomes: [
+                    .fail(message: "First review failed"),
+                    .submitToDatabase
+                ],
+                delayNanoseconds: 10_000_000
+            )
+        }
+        let store = context.store
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "First front", backText: "First back", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Second front", backText: "Second back", tags: ["tag-b"]),
+            editingCardId: nil
+        )
+
+        let initialQueue = store.effectiveReviewQueue
+        let firstCardId = try XCTUnwrap(initialQueue.first?.cardId)
+        let secondCardId = try XCTUnwrap(initialQueue.dropFirst().first?.cardId)
+
+        try store.enqueueReviewSubmission(cardId: firstCardId, rating: .good)
+        try store.enqueueReviewSubmission(cardId: secondCardId, rating: .good)
+
+        await self.waitUntil(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.pendingReviewCardIds.isEmpty
+        }
+
+        let firstCard = try XCTUnwrap(store.cards.first(where: { card in
+            card.cardId == firstCardId
+        }))
+        let secondCard = try XCTUnwrap(store.cards.first(where: { card in
+            card.cardId == secondCardId
+        }))
+        let failure = try XCTUnwrap(store.reviewSubmissionFailure)
+
+        XCTAssertEqual(firstCard.reps, 0)
+        XCTAssertEqual(secondCard.reps, 1)
+        XCTAssertTrue(failure.message.contains("First review failed"))
+    }
+
+    func testApplyExternalSnapshotUpdatesEffectiveQueueDuringPendingReview() async throws {
+        let context = try self.makeStoreContext { database in
+            ScriptedReviewSubmissionExecutor(
+                databaseURL: database.databaseURL,
+                outcomes: [.submitToDatabase],
+                delayNanoseconds: 400_000_000
+            )
+        }
+        let store = context.store
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Local front", backText: "Local back", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        let pendingCardId = try XCTUnwrap(store.effectiveReviewQueue.first?.cardId)
+        try store.enqueueReviewSubmission(cardId: pendingCardId, rating: .good)
+
+        let baseSnapshot = try context.database.loadStateSnapshot()
+        let remoteCard = self.makeRemoteDueCard(
+            workspaceId: baseSnapshot.workspace.workspaceId,
+            cardId: "remote-due-card"
+        )
+        store.applyExternalSnapshot(
+            snapshot: AppStateSnapshot(
+                workspace: baseSnapshot.workspace,
+                userSettings: baseSnapshot.userSettings,
+                schedulerSettings: baseSnapshot.schedulerSettings,
+                cloudSettings: baseSnapshot.cloudSettings,
+                cards: baseSnapshot.cards + [remoteCard],
+                decks: baseSnapshot.decks
+            )
+        )
+
+        XCTAssertTrue(store.effectiveReviewQueue.contains(where: { card in
+            card.cardId == "remote-due-card"
+        }))
+        XCTAssertFalse(store.effectiveReviewQueue.contains(where: { card in
+            card.cardId == pendingCardId
+        }))
+
+        await self.waitUntil(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewPending(cardId: pendingCardId) == false
+        }
+    }
+
     private func makeStore() throws -> FlashcardsStore {
+        try self.makeStoreContext().store
+    }
+
+    private func makeStoreContext() throws -> StoreContext {
+        let environment = try self.makeStoreEnvironment()
+
+        return StoreContext(
+            store: FlashcardsStore(
+                userDefaults: environment.userDefaults,
+                encoder: JSONEncoder(),
+                decoder: JSONDecoder(),
+                database: environment.database,
+                cloudAuthService: CloudAuthService(),
+                credentialStore: environment.credentialStore,
+                initialGlobalErrorMessage: ""
+            ),
+            database: environment.database
+        )
+    }
+
+    private func makeStoreContext(
+        makeReviewSubmissionExecutor: (LocalDatabase) -> ReviewSubmissionExecuting
+    ) throws -> StoreContext {
+        let environment = try self.makeStoreEnvironment()
+        let reviewSubmissionExecutor = makeReviewSubmissionExecutor(environment.database)
+
+        return StoreContext(
+            store: FlashcardsStore(
+                userDefaults: environment.userDefaults,
+                encoder: JSONEncoder(),
+                decoder: JSONDecoder(),
+                database: environment.database,
+                cloudAuthService: CloudAuthService(),
+                credentialStore: environment.credentialStore,
+                reviewSubmissionExecutor: reviewSubmissionExecutor,
+                initialGlobalErrorMessage: ""
+            ),
+            database: environment.database
+        )
+    }
+
+    private func makeStoreEnvironment() throws -> (
+        database: LocalDatabase,
+        userDefaults: UserDefaults,
+        credentialStore: CloudCredentialStore
+    ) {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
         self.addTeardownBlock {
@@ -107,21 +416,17 @@ final class FlashcardsStoreTests: XCTestCase {
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
-        return FlashcardsStore(
-            userDefaults: userDefaults,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder(),
+        return (
             database: try LocalDatabase(
                 databaseURL: databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
             ),
-            cloudAuthService: CloudAuthService(),
+            userDefaults: userDefaults,
             credentialStore: CloudCredentialStore(
                 encoder: JSONEncoder(),
                 decoder: JSONDecoder(),
                 service: "tests-\(UUID().uuidString)",
                 account: "primary"
-            ),
-            initialGlobalErrorMessage: ""
+            )
         )
     }
 
@@ -142,5 +447,54 @@ final class FlashcardsStoreTests: XCTestCase {
                 tags: tags
             )
         )
+    }
+
+    private func makeRemoteDueCard(workspaceId: String, cardId: String) -> Card {
+        let now = currentIsoTimestamp()
+
+        return Card(
+            cardId: cardId,
+            workspaceId: workspaceId,
+            frontText: "Remote front",
+            backText: "Remote back",
+            tags: [],
+            effortLevel: .medium,
+            dueAt: nil,
+            reps: 0,
+            lapses: 0,
+            fsrsCardState: .new,
+            fsrsStepIndex: nil,
+            fsrsStability: nil,
+            fsrsDifficulty: nil,
+            fsrsLastReviewedAt: nil,
+            fsrsScheduledDays: nil,
+            clientUpdatedAt: now,
+            lastModifiedByDeviceId: "remote-device",
+            lastOperationId: "remote-operation",
+            updatedAt: now,
+            deletedAt: nil
+        )
+    }
+
+    private func waitUntil(
+        timeoutNanoseconds: UInt64,
+        pollNanoseconds: UInt64,
+        condition: () -> Bool
+    ) async {
+        let deadline = DispatchTime.now().uptimeNanoseconds + timeoutNanoseconds
+        while DispatchTime.now().uptimeNanoseconds < deadline {
+            if condition() {
+                return
+            }
+
+            do {
+                try await Task.sleep(nanoseconds: pollNanoseconds)
+            } catch {
+                XCTFail("waitUntil was unexpectedly cancelled: \(error)")
+                return
+            }
+        }
+
+        XCTFail("Timed out waiting for condition")
     }
 }
