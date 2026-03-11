@@ -365,7 +365,11 @@ export function ReviewScreen(): ReactElement {
             <h1 className="title">Review</h1>
             <p className="subtitle">Queue table plus a focused flip flow.</p>
           </div>
-          <div className="screen-actions">
+          <div className="screen-actions review-screen-actions">
+            <div className="review-filter-summary-wrap">
+              <span className="review-filter-label">Queue</span>
+              <span className="badge review-filter-summary">{formatQueueBadge(activeReviewQueue.length, queueCards.length)}</span>
+            </div>
             <label className="review-filter-select-wrap">
               <span className="review-filter-label">Deck</span>
               <select
@@ -379,7 +383,6 @@ export function ReviewScreen(): ReactElement {
                 ))}
               </select>
             </label>
-            <span className="badge">{formatQueueBadge(activeReviewQueue.length, queueCards.length)}</span>
           </div>
         </div>
 

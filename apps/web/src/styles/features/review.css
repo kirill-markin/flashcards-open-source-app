@@ -5,6 +5,11 @@
   align-items: start;
 }
 
+.review-screen-actions {
+  align-items: flex-end;
+}
+
+.review-filter-summary-wrap,
 .review-filter-select-wrap {
   display: grid;
   gap: 6px;
@@ -19,7 +24,14 @@
 }
 
 .review-filter-select {
+  min-width: 240px;
+  padding-inline: 18px 46px;
+  border-radius: var(--radius-pill);
+}
+
+.review-filter-summary {
   min-width: 180px;
+  justify-content: flex-start;
 }
 
 .review-pane,
@@ -400,6 +412,21 @@
 }
 
 @media (max-width: 768px) {
+  .review-screen-actions {
+    width: 100%;
+  }
+
+  .review-filter-summary-wrap,
+  .review-filter-select-wrap {
+    width: 100%;
+  }
+
+  .review-filter-summary,
+  .review-filter-select {
+    min-width: 0;
+    width: 100%;
+  }
+
   .review-pane,
   .review-queue-panel {
     padding: 12px;

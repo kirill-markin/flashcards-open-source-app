@@ -88,6 +88,12 @@
   justify-content: flex-end;
 }
 
+.screen-actions > .badge {
+  min-height: 46px;
+  padding: 0 18px;
+  font-size: 16px;
+}
+
 .primary-btn,
 .ghost-btn {
   display: inline-flex;
