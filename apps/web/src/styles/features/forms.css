@@ -24,7 +24,8 @@
   gap: 10px;
 }
 
-.form-label span {
+.form-label > span,
+.form-label > label > span {
   color: var(--text-tertiary);
   font-size: 11px;
   text-transform: uppercase;
@@ -39,7 +40,7 @@
   border: 1px solid var(--panel-border);
 }
 
-.deck-form-legend {
+.deck-form-label {
   padding: 0;
   color: var(--text-tertiary);
   font-size: 11px;
