@@ -19,11 +19,13 @@ import {
   isCardNew,
   isCardReviewed,
   makeDeckCardStats,
+  matchesCardFilter,
   makeWorkspaceTagsSummary,
 } from "../appData/domain";
 import type { PersistedOutboxRecord } from "../syncStorage";
 import type {
   Card,
+  CardFilter,
   CloudSettings,
   CreateCardInput,
   CreateDeckInput,
@@ -203,6 +205,7 @@ type SearchCardsToolInput = Readonly<{
   query: string;
   cursor: string | null;
   limit: number;
+  filter: CardFilter | null;
 }>;
 
 type SearchDecksToolInput = Readonly<{
@@ -214,6 +217,7 @@ type SearchDecksToolInput = Readonly<{
 type ListCardsToolInput = Readonly<{
   cursor: string | null;
   limit: number;
+  filter: CardFilter | null;
 }>;
 
 type ListDueCardsToolInput = Readonly<{
@@ -312,12 +316,61 @@ function expectEffortLevel(value: unknown, context: string): Card["effortLevel"]
   throw new Error(`${context} must be one of: fast, medium, long`);
 }
 
+function normalizeCardFilter(filter: CardFilter | null): CardFilter | null {
+  if (filter === null) {
+    return null;
+  }
+
+  const tags = filter.tags.reduce<Array<string>>((result, tag) => {
+    const normalizedTag = tag.trim();
+    const normalizedTagKey = normalizedTag.toLowerCase();
+    if (normalizedTag === "" || result.some((value) => value.toLowerCase() === normalizedTagKey)) {
+      return result;
+    }
+
+    result.push(normalizedTag);
+    return result;
+  }, []);
+  const effort = filter.effort.reduce<Array<Card["effortLevel"]>>((result, effortLevel) => {
+    if (result.includes(effortLevel)) {
+      return result;
+    }
+
+    result.push(effortLevel);
+    return result;
+  }, []);
+
+  if (tags.length === 0 && effort.length === 0) {
+    return null;
+  }
+
+  return {
+    tags,
+    effort,
+  };
+}
+
 function expectStringArray(value: unknown, context: string): ReadonlyArray<string> {
   if (Array.isArray(value) === false) {
     throw new Error(`${context} must be an array`);
   }
 
   return value.map((item, index) => expectString(item, `${context}[${index}]`));
+}
+
+function expectCardFilter(value: unknown, context: string): CardFilter | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const record = expectRecord(value, context);
+  expectNoExtraKeys(record, ["tags", "effort"], context);
+  return normalizeCardFilter({
+    tags: record.tags === undefined ? [] : expectStringArray(record.tags, `${context}.tags`),
+    effort: record.effort === undefined
+      ? []
+      : expectStringArray(record.effort, `${context}.effort`).map((entry, index) => expectEffortLevel(entry, `${context}.effort[${index}]`)),
+  });
 }
 
 function expectNullableStringArray(value: unknown, context: string): ReadonlyArray<string> | null {
@@ -377,24 +430,26 @@ function parseEmptyObjectInput(toolCallRequest: LocalToolCallRequest): void {
   expectNoExtraKeys(body, [], toolCallRequest.name);
 }
 
-function parseListPageInput(toolCallRequest: LocalToolCallRequest): Readonly<{ cursor: string | null; limit: number }> {
+function parseListPageInput(toolCallRequest: LocalToolCallRequest): Readonly<{ cursor: string | null; limit: number; filter: CardFilter | null }> {
   const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["cursor", "limit"], toolCallRequest.name);
+  expectNoExtraKeys(body, ["cursor", "limit", "filter"], toolCallRequest.name);
   return {
     cursor: expectNullableString(body.cursor, `${toolCallRequest.name}.cursor`),
     limit: expectInteger(body.limit, `${toolCallRequest.name}.limit`),
+    filter: expectCardFilter(body.filter, `${toolCallRequest.name}.filter`),
   };
 }
 
 function parseQueryPageInput(
   toolCallRequest: LocalToolCallRequest,
-): Readonly<{ query: string; cursor: string | null; limit: number }> {
+): Readonly<{ query: string; cursor: string | null; limit: number; filter: CardFilter | null }> {
   const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["query", "cursor", "limit"], toolCallRequest.name);
+  expectNoExtraKeys(body, ["query", "cursor", "limit", "filter"], toolCallRequest.name);
   return {
     query: expectString(body.query, `${toolCallRequest.name}.query`),
     cursor: expectNullableString(body.cursor, `${toolCallRequest.name}.cursor`),
     limit: expectInteger(body.limit, `${toolCallRequest.name}.limit`),
+    filter: expectCardFilter(body.filter, `${toolCallRequest.name}.filter`),
   };
 }
 
@@ -608,6 +663,14 @@ function currentActiveCards(snapshot: MutableSnapshot): ReadonlyArray<Card> {
   return [...deriveActiveCards(snapshot.cards)].sort(compareCardsByUpdatedAt);
 }
 
+function cardsMatchingFilter(cards: ReadonlyArray<Card>, filter: CardFilter | null): ReadonlyArray<Card> {
+  if (filter === null) {
+    return cards;
+  }
+
+  return cards.filter((card) => matchesCardFilter(filter, card));
+}
+
 function activeDecks(snapshot: MutableSnapshot): ReadonlyArray<Deck> {
   return [...deriveActiveDecks(snapshot.decks)].sort(compareDecksByUpdatedAt);
 }
@@ -668,13 +731,18 @@ function matchesAllSearchTokensInValues(values: ReadonlyArray<string>, searchTok
   return searchTokens.every((token) => normalizedValues.some((value) => value.includes(token)));
 }
 
-function searchCards(snapshot: MutableSnapshot, query: string, limit: number): ReadonlyArray<Card> {
+function searchCards(
+  snapshot: MutableSnapshot,
+  query: string,
+  limit: number,
+  filter: CardFilter | null,
+): ReadonlyArray<Card> {
   const searchTokens = tokenizeSearchText(query);
   if (searchTokens.length === 0) {
     throw new Error("query must not be empty");
   }
 
-  return currentActiveCards(snapshot)
+  return cardsMatchingFilter(currentActiveCards(snapshot), filter)
     .filter((card) => matchesAllSearchTokensInValues(
       [card.frontText, card.backText, ...card.tags, card.effortLevel],
       searchTokens,
@@ -940,7 +1008,11 @@ export function createLocalToolExecutor(
         const startIndex = getPageStartIndex(input.cursor);
         return {
           output: JSON.stringify(
-            makeCardsPagePayload(currentActiveCards(snapshot), startIndex, normalizeLimit(input.limit)),
+            makeCardsPagePayload(
+              cardsMatchingFilter(currentActiveCards(snapshot), input.filter),
+              startIndex,
+              normalizeLimit(input.limit),
+            ),
           ),
           didMutateAppState: false,
         };
@@ -957,7 +1029,7 @@ export function createLocalToolExecutor(
       case "search_cards": {
         const input = parseQueryPageInput(toolCallRequest);
         const startIndex = getPageStartIndex(input.cursor);
-        const matchedCards = searchCards(snapshot, input.query, Number.MAX_SAFE_INTEGER);
+        const matchedCards = searchCards(snapshot, input.query, Number.MAX_SAFE_INTEGER, input.filter);
         return {
           output: JSON.stringify(
             makeCardsPagePayload(matchedCards, startIndex, normalizeLimit(input.limit)),

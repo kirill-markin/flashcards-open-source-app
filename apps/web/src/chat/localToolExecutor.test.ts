@@ -300,7 +300,7 @@ describe("createLocalToolExecutor", () => {
     const result = await executor.execute({
       toolCallId: "call-search-cards-effort",
       name: "search_cards",
-      input: "{\"query\":\"medium\",\"cursor\":null,\"limit\":100}",
+      input: "{\"query\":\"medium\",\"cursor\":null,\"limit\":100,\"filter\":null}",
     });
 
     const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
@@ -315,7 +315,7 @@ describe("createLocalToolExecutor", () => {
     const result = await executor.execute({
       toolCallId: "call-search-cards-and",
       name: "search_cards",
-      input: "{\"query\":\"FRONT medium\",\"cursor\":null,\"limit\":100}",
+      input: "{\"query\":\"FRONT medium\",\"cursor\":null,\"limit\":100,\"filter\":null}",
     });
 
     const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
@@ -346,7 +346,7 @@ describe("createLocalToolExecutor", () => {
     const result = await executor.execute({
       toolCallId: "call-search-cards-tail",
       name: "search_cards",
-      input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"cursor\":null,\"limit\":100}",
+      input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"cursor\":null,\"limit\":100,\"filter\":null}",
     });
 
     const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
@@ -372,5 +372,45 @@ describe("createLocalToolExecutor", () => {
       tags: ["tag-a"],
       effortLevel: "medium",
     });
+  });
+
+  it("filters listed cards by tags and effort before pagination", async () => {
+    const snapshot = makeSnapshot();
+    snapshot.cards = [
+      makeCard({ cardId: "card-1", tags: ["grammar", "verbs"], effortLevel: "fast", updatedAt: "2026-03-10T09:00:00.000Z" }),
+      makeCard({ cardId: "card-2", tags: ["grammar"], effortLevel: "fast", updatedAt: "2026-03-10T08:00:00.000Z" }),
+      makeCard({ cardId: "card-3", tags: ["grammar", "verbs"], effortLevel: "medium", updatedAt: "2026-03-10T07:00:00.000Z" }),
+    ];
+    const executor = createLocalToolExecutor(makeDependencies(snapshot));
+
+    const result = await executor.execute({
+      toolCallId: "call-list-cards-filter",
+      name: "list_cards",
+      input: "{\"cursor\":null,\"limit\":100,\"filter\":{\"tags\":[\" grammar \",\"verbs\"],\"effort\":[\"fast\",\"fast\"]}}",
+    });
+
+    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
+    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-1"]);
+    expect(payload.nextCursor).toBe(null);
+  });
+
+  it("applies filter and query together when searching cards", async () => {
+    const snapshot = makeSnapshot();
+    snapshot.cards = [
+      makeCard({ cardId: "card-1", frontText: "Grammar front", tags: ["grammar"], effortLevel: "fast", updatedAt: "2026-03-10T09:00:00.000Z" }),
+      makeCard({ cardId: "card-2", frontText: "Grammar front", tags: ["grammar"], effortLevel: "medium", updatedAt: "2026-03-10T08:00:00.000Z" }),
+      makeCard({ cardId: "card-3", frontText: "Other", tags: ["grammar"], effortLevel: "fast", updatedAt: "2026-03-10T07:00:00.000Z" }),
+    ];
+    const executor = createLocalToolExecutor(makeDependencies(snapshot));
+
+    const result = await executor.execute({
+      toolCallId: "call-search-cards-filter",
+      name: "search_cards",
+      input: "{\"query\":\"front\",\"cursor\":null,\"limit\":100,\"filter\":{\"tags\":[\"grammar\"],\"effort\":[\"fast\"]}}",
+    });
+
+    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
+    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-1"]);
+    expect(payload.nextCursor).toBe(null);
   });
 });

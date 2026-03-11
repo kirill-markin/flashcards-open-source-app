@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import {
+  parseCardFilterInput,
   listWorkspaceTagsSummary,
   queryCardsPage,
+  type CardFilter,
   type CardQuerySort,
   type CardQuerySortDirection,
   type CardQuerySortKey,
@@ -13,7 +15,6 @@ import {
   parseWorkspaceIdParam,
 } from "../server/requestContext";
 import {
-  expectNonEmptyString,
   expectNullableNonEmptyString,
   expectRecord,
   parseJsonBody,
@@ -34,6 +35,7 @@ type QueryCardsRequestBody = Readonly<{
   cursor: string | null;
   limit: number;
   sorts: ReadonlyArray<CardQuerySort>;
+  filter: CardFilter | null;
 }>;
 
 type WorkspaceTagsSummaryResponse = WorkspaceTagsSummary;
@@ -99,6 +101,7 @@ export function parseQueryCardsRequestBody(value: unknown): QueryCardsRequestBod
       : expectNullableNonEmptyString(record.cursor, "cursor"),
     limit: limitValue,
     sorts: record.sorts === undefined ? [] : expectSorts(record.sorts),
+    filter: record.filter === undefined ? null : parseCardFilterInput(record.filter, "filter"),
   };
 }
 
@@ -156,6 +159,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
         limit: body.limit,
         sortsCount: body.sorts.length,
         hasSearch: body.searchText !== null,
+        hasFilter: body.filter !== null,
         resultsCount: result.cards.length,
         totalCount: result.totalCount,
         hasMore: result.nextCursor !== null,
@@ -171,6 +175,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
         limit: body.limit,
         sortsCount: body.sorts.length,
         hasSearch: body.searchText !== null,
+        hasFilter: body.filter !== null,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: getInternalErrorMessage(error),
         validationIssues: summarizeValidationIssues(error),

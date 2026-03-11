@@ -4,6 +4,7 @@ import {
   listAgentCardsOperation,
   listAgentTagsOperation,
   loadAgentWorkspaceContextOperation,
+  searchAgentCardsOperation,
   updateAgentDecksOperation,
   type AgentToolOperationDependencies,
 } from "./agentToolOperations";
@@ -188,6 +189,7 @@ test("listAgentCardsOperation returns a cursor-based page payload", async () => 
     async queryCardsPage(_workspaceId, input) {
       assert.equal(input.limit, 2);
       assert.equal(input.cursor, null);
+      assert.equal(input.filter, null);
       return {
         cards: [makeCard("card-1"), makeCard("card-2")],
         nextCursor: "cursor-2",
@@ -200,10 +202,42 @@ test("listAgentCardsOperation returns a cursor-based page payload", async () => 
     workspaceId: "workspace-1",
     cursor: null,
     limit: 2,
+    filter: null,
   });
 
   assert.equal(result.cards.length, 2);
   assert.equal(result.nextCursor, "cursor-2");
+});
+
+test("searchAgentCardsOperation forwards card filters to queryCardsPage", async () => {
+  const dependencies = createDependencies({
+    async queryCardsPage(_workspaceId, input) {
+      assert.equal(input.searchText, "grammar");
+      assert.deepEqual(input.filter, {
+        tags: ["grammar"],
+        effort: ["fast"],
+      });
+      return {
+        cards: [makeCard("card-1")],
+        nextCursor: null,
+        totalCount: 1,
+      };
+    },
+  });
+
+  const result = await searchAgentCardsOperation(dependencies, {
+    workspaceId: "workspace-1",
+    query: "grammar",
+    cursor: null,
+    limit: 20,
+    filter: {
+      tags: ["grammar"],
+      effort: ["fast"],
+    },
+  });
+
+  assert.equal(result.cards.length, 1);
+  assert.equal(result.nextCursor, null);
 });
 
 test("loadAgentWorkspaceContextOperation combines workspace summary, deck summary, and scheduler settings", async () => {

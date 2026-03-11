@@ -28,6 +28,7 @@ import {
   type BulkCreateCardItem,
   type BulkDeleteCardItem,
   type BulkUpdateCardItem,
+  type CardFilter,
   type CreateCardInput,
   type DeckSummary,
   type UpdateCardInput,
@@ -61,7 +62,6 @@ import {
 import type {
   AgentToolCreateCardsInput,
   AgentToolCreateDecksInput,
-  AgentToolCursorInput,
   AgentToolDeleteCardsInput,
   AgentToolDeleteDecksInput,
   AgentToolGetCardsInput,
@@ -110,11 +110,26 @@ type WorkspaceScopedLimitInput = Readonly<{
   limit: number;
 }>;
 
+type WorkspaceScopedCardLimitInput = Readonly<{
+  workspaceId: string;
+  cursor: string | null;
+  limit: number;
+  filter: CardFilter | null;
+}>;
+
 type WorkspaceScopedSearchInput = Readonly<{
   workspaceId: string;
   query: string;
   cursor: string | null;
   limit: number;
+}>;
+
+type WorkspaceScopedCardSearchInput = Readonly<{
+  workspaceId: string;
+  query: string;
+  cursor: string | null;
+  limit: number;
+  filter: CardFilter | null;
 }>;
 
 type WorkspaceContextInput = Readonly<{
@@ -379,7 +394,7 @@ export async function listAgentTagsOperation(
  */
 export async function listAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
-  input: WorkspaceScopedLimitInput,
+  input: WorkspaceScopedCardLimitInput,
 ): Promise<AgentLimitedCardsPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
   const result = await dependencies.queryCardsPage(input.workspaceId, {
@@ -387,6 +402,7 @@ export async function listAgentCardsOperation(
     cursor: input.cursor,
     limit: limitApplied,
     sorts: [],
+    filter: input.filter,
   });
 
   return {
@@ -415,7 +431,7 @@ export async function getAgentCardsOperation(
  */
 export async function searchAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
-  input: WorkspaceScopedSearchInput,
+  input: WorkspaceScopedCardSearchInput,
 ): Promise<AgentLimitedCardsPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
   const result = await dependencies.queryCardsPage(input.workspaceId, {
@@ -423,6 +439,7 @@ export async function searchAgentCardsOperation(
     cursor: input.cursor,
     limit: limitApplied,
     sorts: [],
+    filter: input.filter,
   });
 
   return {

@@ -13,6 +13,7 @@ test("parseQueryCardsRequestBody normalizes optional empty fields to null", () =
       cursor: null,
       limit: 50,
       sorts: [],
+      filter: null,
     },
   );
 });
@@ -50,6 +51,57 @@ test("parseQueryCardsRequestBody preserves valid sorts and cursor", () => {
       cursor: "cursor-1",
       limit: 25,
       sorts: [{ key: "updatedAt", direction: "desc" }],
+      filter: null,
     },
+  );
+});
+
+test("parseQueryCardsRequestBody normalizes card filters", () => {
+  assert.deepEqual(
+    parseQueryCardsRequestBody({
+      limit: 25,
+      sorts: [],
+      filter: {
+        tags: [" grammar ", "", "grammar", "verbs"],
+        effort: ["fast", "fast", "medium"],
+      },
+    }),
+    {
+      searchText: null,
+      cursor: null,
+      limit: 25,
+      sorts: [],
+      filter: {
+        tags: ["grammar", "verbs"],
+        effort: ["fast", "medium"],
+      },
+    },
+  );
+});
+
+test("parseQueryCardsRequestBody rejects unsupported filter keys", () => {
+  assert.throws(
+    () => parseQueryCardsRequestBody({
+      limit: 25,
+      sorts: [],
+      filter: {
+        effortLevels: ["fast"],
+      },
+    }),
+    /filter\.effortLevels is not supported/,
+  );
+});
+
+test("parseQueryCardsRequestBody rejects invalid filter effort values", () => {
+  assert.throws(
+    () => parseQueryCardsRequestBody({
+      limit: 25,
+      sorts: [],
+      filter: {
+        tags: [],
+        effort: ["hard"],
+      },
+    }),
+    /filter\.effort\[0\] must be one of: fast, medium, long/,
   );
 });

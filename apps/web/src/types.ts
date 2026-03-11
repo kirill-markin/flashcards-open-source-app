@@ -13,6 +13,11 @@ export type EffortLevel = "fast" | "medium" | "long";
 // Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::FsrsCardState and apps/backend/src/schedule.ts::FsrsCardState.
 export type FsrsCardState = "new" | "learning" | "review" | "relearning";
 
+export type CardFilter = Readonly<{
+  tags: ReadonlyArray<string>;
+  effort: ReadonlyArray<EffortLevel>;
+}>;
+
 export type DeckFilterDefinition = Readonly<{
   version: 2;
   effortLevels: ReadonlyArray<EffortLevel>;
@@ -140,6 +145,7 @@ export type QueryCardsInput = Readonly<{
   cursor: string | null;
   limit: number;
   sorts: ReadonlyArray<CardQuerySort>;
+  filter: CardFilter | null;
 }>;
 
 export type QueryCardsPage = Readonly<{

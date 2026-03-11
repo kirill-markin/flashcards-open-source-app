@@ -3,6 +3,7 @@ import type {
 } from "../../../backend/src/schedule";
 import type {
   Card,
+  CardFilter,
   CreateCardInput,
   CreateDeckInput,
   DeckFilterDefinition,
@@ -118,6 +119,19 @@ export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefiniti
 
   const cardTags = new Set(card.tags);
   return filterDefinition.tags.every((tag) => cardTags.has(tag));
+}
+
+export function matchesCardFilter(filter: CardFilter, card: Card): boolean {
+  if (filter.effort.length > 0 && filter.effort.includes(card.effortLevel) === false) {
+    return false;
+  }
+
+  if (filter.tags.length === 0) {
+    return true;
+  }
+
+  const cardTags = new Set(card.tags);
+  return filter.tags.every((tag) => cardTags.has(tag));
 }
 
 /** Returns only active cards that belong to the provided persisted deck. */

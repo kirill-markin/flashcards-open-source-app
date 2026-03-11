@@ -5,6 +5,12 @@ import { loadOpenApiDocument } from "./openapi";
 test("loadOpenApiDocument returns the canonical v1 spec", () => {
   const document = loadOpenApiDocument();
   const paths = document.paths as Record<string, Record<string, {
+    requestBody?: {
+      content?: Record<string, {
+        schema?: Record<string, unknown>;
+        example?: Record<string, unknown>;
+      }>;
+    };
     responses?: Record<string, {
       content?: Record<string, {
         schema?: Record<string, unknown>;
@@ -97,6 +103,12 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   assert.ok("data" in listCardsExample);
   assert.ok(Array.isArray((listCardsExample.data as Record<string, unknown>).cards));
   assert.ok("nextCursor" in (listCardsExample.data as Record<string, unknown>));
+
+  const listCardsRequestSchema = paths["/agent/tools/list_cards"]?.post?.requestBody?.content?.["application/json"]?.schema;
+  assert.deepEqual(listCardsRequestSchema, { $ref: "#/components/schemas/CardCursorPageInput" });
+
+  const searchCardsRequestSchema = paths["/agent/tools/search_cards"]?.post?.requestBody?.content?.["application/json"]?.schema;
+  assert.deepEqual(searchCardsRequestSchema, { $ref: "#/components/schemas/CardCursorSearchInput" });
 
   const listTagsExample = paths["/agent/tools/list_tags"]?.post?.responses?.["200"]?.content?.["application/json"]?.example;
   assert.ok(listTagsExample !== undefined);

@@ -224,9 +224,9 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
   assert.match(instructions, /if the user did not provide tags for a new card, you must suggest one or more concrete tags/i);
   assert.match(instructions, /you must reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate/i);
   assert.match(instructions, /list_tags => \{\}/);
-  assert.match(instructions, /list_cards => \{"cursor": null, "limit": 20\}/);
+  assert.match(instructions, /list_cards => \{"cursor": null, "limit": 20, "filter": null\}/);
   assert.match(instructions, /get_cards => \{"cardIds": \["123e4567-e89b-42d3-a456-426614174000"\]\}/);
-  assert.match(instructions, /search_cards => \{"query": "grammar", "cursor": null, "limit": 20\}/);
+  assert.match(instructions, /search_cards => \{"query": "grammar", "cursor": null, "limit": 20, "filter": null\}/);
   assert.match(instructions, /search_decks => \{"query": "grammar", "cursor": null, "limit": 20\}/);
   assert.match(instructions, /get_decks => \{"deckIds": \["123e4567-e89b-42d3-a456-426614174001"\]\}/);
   assert.match(instructions, /list_review_history => \{"cursor": null, "limit": 20, "cardId": null\}/);
@@ -552,7 +552,7 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
       maxAttempts: 3,
       toolName: "list_cards",
     },
-    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"cursor\":null,\"limit\":10}" },
+    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"cursor\":null,\"limit\":10,\"filter\":null}" },
     { type: "await_tool_results" },
   ]);
 
@@ -614,7 +614,7 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
       maxAttempts: 3,
       toolName: "list_cards",
     },
-    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"cursor\":null,\"limit\":10}" },
+    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"cursor\":null,\"limit\":10,\"filter\":null}" },
     { type: "await_tool_results" },
   ]);
 });
@@ -701,7 +701,7 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
 
   assert.deepEqual(events, [
     { type: "delta", text: "Inspecting local cards." },
-    { type: "tool_call_request", toolCallId: "toolu_1", name: "list_cards", input: "{\"cursor\":null,\"limit\":20}" },
+    { type: "tool_call_request", toolCallId: "toolu_1", name: "list_cards", input: "{\"cursor\":null,\"limit\":20,\"filter\":null}" },
     { type: "await_tool_results" },
   ]);
   assert.equal(capturedBodies[0]?.model, "claude-sonnet-4-6");
@@ -756,7 +756,7 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
       maxAttempts: 3,
       toolName: "list_cards",
     },
-    { type: "tool_call_request", toolCallId: "toolu_2", name: "list_cards", input: "{\"cursor\":null,\"limit\":20}" },
+    { type: "tool_call_request", toolCallId: "toolu_2", name: "list_cards", input: "{\"cursor\":null,\"limit\":20,\"filter\":null}" },
     { type: "await_tool_results" },
   ]);
 });

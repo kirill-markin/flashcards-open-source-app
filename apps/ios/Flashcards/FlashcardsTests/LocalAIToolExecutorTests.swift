@@ -163,7 +163,7 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-cards-effort",
                 name: "search_cards",
-                input: "{\"query\":\"medium\",\"cursor\":null,\"limit\":100}"
+                input: "{\"query\":\"medium\",\"cursor\":null,\"limit\":100,\"filter\":null}"
             ),
             requestId: "request-1"
         )
@@ -178,7 +178,7 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-cards-and",
                 name: "search_cards",
-                input: "{\"query\":\"front medium\",\"cursor\":null,\"limit\":100}"
+                input: "{\"query\":\"front medium\",\"cursor\":null,\"limit\":100,\"filter\":null}"
             ),
             requestId: "request-1"
         )
@@ -217,13 +217,64 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallRequest: AIToolCallRequest(
                 toolCallId: "call-search-cards-tail",
                 name: "search_cards",
-                input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"cursor\":null,\"limit\":100}"
+                input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"cursor\":null,\"limit\":100,\"filter\":null}"
             ),
             requestId: "request-1"
         )
         let searchedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedCardsResult.output.utf8))
         let searchedCards = searchedCardsPayload.cards
         XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
+        XCTAssertNil(searchedCardsPayload.nextCursor)
+    }
+
+    @MainActor
+    func testLocalToolExecutorFiltersListedAndSearchedCards() async throws {
+        let flashcardsStore = try self.makeStore()
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let executor = LocalAIToolExecutor(
+            databaseURL: databaseURL,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let createdCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-create-cards-filter",
+                name: "create_cards",
+                input: """
+                {"cards":[
+                    {"frontText":"Grammar front","backText":"Back 1","tags":["grammar","verbs"],"effortLevel":"fast"},
+                    {"frontText":"Grammar front","backText":"Back 2","tags":["grammar"],"effortLevel":"fast"},
+                    {"frontText":"Grammar front","backText":"Back 3","tags":["grammar","verbs"],"effortLevel":"medium"}
+                ]}
+                """
+            ),
+            requestId: "request-1"
+        )
+        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
+
+        let listedCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-list-cards-filter",
+                name: "list_cards",
+                input: "{\"cursor\":null,\"limit\":100,\"filter\":{\"tags\":[\" grammar \",\"verbs\"],\"effort\":[\"fast\",\"fast\"]}}"
+            ),
+            requestId: "request-1"
+        )
+        let listedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(listedCardsResult.output.utf8))
+        XCTAssertEqual(listedCardsPayload.cards.map(\.cardId), [createdCards[0].cardId])
+        XCTAssertNil(listedCardsPayload.nextCursor)
+
+        let searchedCardsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(
+                toolCallId: "call-search-cards-filter",
+                name: "search_cards",
+                input: "{\"query\":\"grammar\",\"cursor\":null,\"limit\":100,\"filter\":{\"tags\":[\"grammar\"],\"effort\":[\"fast\"]}}"
+            ),
+            requestId: "request-1"
+        )
+        let searchedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedCardsResult.output.utf8))
+        XCTAssertEqual(searchedCardsPayload.cards.map(\.cardId), [createdCards[0].cardId, createdCards[1].cardId])
         XCTAssertNil(searchedCardsPayload.nextCursor)
     }
 

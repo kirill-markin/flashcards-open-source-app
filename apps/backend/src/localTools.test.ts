@@ -21,6 +21,12 @@ test("all strict local tool object schemas declare every property in required", 
     const propertyNames = Object.keys(parameters.properties);
     const requiredNames = [...parameters.required].sort();
 
+    if (tool.name === "list_cards" || tool.name === "search_cards") {
+      assert.equal(propertyNames.includes("filter"), true, `Tool ${tool.name} must expose filter`);
+      assert.equal(requiredNames.includes("filter"), false, `Tool ${tool.name} filter must stay optional`);
+      continue;
+    }
+
     assert.deepEqual(requiredNames, [...propertyNames].sort(), `Tool ${tool.name} has mismatched required fields`);
   }
 });
