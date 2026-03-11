@@ -20,14 +20,9 @@ import {
 import {
   buildAgentNextStepsInstructions,
   buildAgentToolCatalog,
-  createAgentCreateWorkspaceAction,
   createAgentEnvelope,
-  createAgentErrorEnvelope,
   createAgentListToolsAction,
   createAgentListWorkspacesAction,
-  createAgentLoadAccountAction,
-  createAgentOpenApiAction,
-  createAgentSelectWorkspaceAction,
   createAgentToolAction,
   type AgentAction,
 } from "../agentEnvelope";
@@ -59,10 +54,9 @@ import { HttpError } from "../errors";
 import { loadOpenApiDocument } from "../openapi";
 import { getWorkspaceSchedulerSettings } from "../workspaceSchedulerSettings";
 import {
-  assertUserHasWorkspaceAccess,
-  createWorkspaceForUser,
-  listUserWorkspaces,
-  selectWorkspaceForUser,
+  createWorkspaceForApiKeyConnection,
+  listUserWorkspacesForSelectedWorkspace,
+  selectWorkspaceForApiKeyConnection,
   type WorkspaceSummary,
 } from "../workspaces";
 import { OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS } from "../chat/openai/localTools";
@@ -310,8 +304,9 @@ async function loadAgentRequest(
 async function loadSelectedWorkspaceSummary(
   userId: string,
   workspaceId: string,
+  selectedWorkspaceId: string | null,
 ): Promise<WorkspaceSummary> {
-  const workspaces = await listUserWorkspaces(userId);
+  const workspaces = await listUserWorkspacesForSelectedWorkspace(userId, selectedWorkspaceId);
   const selectedWorkspace = workspaces.find((workspace) => workspace.workspaceId === workspaceId);
   if (selectedWorkspace === undefined) {
     throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
@@ -404,21 +399,28 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
 
   app.get("/agent/workspaces", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
-    const workspaces = await listUserWorkspaces(requestContext.userId);
+    const workspaces = await listUserWorkspacesForSelectedWorkspace(
+      requestContext.userId,
+      requestContext.selectedWorkspaceId,
+    );
     return context.json(createAgentWorkspacesEnvelope(context.req.url, workspaces));
   });
 
   app.post("/agent/workspaces", async (context) => {
-    const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const body = expectRecord(await parseJsonBody(context.req.raw));
-    const workspace = await createWorkspaceForUser(requestContext.userId, expectNonEmptyString(body.name, "name"));
+    const workspace = await createWorkspaceForApiKeyConnection(
+      requestContext.userId,
+      connectionId,
+      expectNonEmptyString(body.name, "name"),
+    );
     return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace), 201);
   });
 
   app.post("/agent/workspaces/:workspaceId/select", async (context) => {
-    const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-    const workspace = await selectWorkspaceForUser(requestContext.userId, workspaceId);
+    const workspace = await selectWorkspaceForApiKeyConnection(requestContext.userId, connectionId, workspaceId);
     return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace));
   });
 
@@ -442,7 +444,11 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/tools/get_workspace_context", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const workspaceId = requireSelectedWorkspaceId(requestContext);
-    const workspace = await loadSelectedWorkspaceSummary(requestContext.userId, workspaceId);
+    const workspace = await loadSelectedWorkspaceSummary(
+      requestContext.userId,
+      workspaceId,
+      requestContext.selectedWorkspaceId,
+    );
     const deckSummary = await summarizeDeckState(workspaceId);
     const schedulerSettings = await getWorkspaceSchedulerSettings(workspaceId);
     const actions = toAgentToolActions(context.req.url, "get_workspace_context");

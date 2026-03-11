@@ -1,20 +1,26 @@
 import { createHash, randomUUID } from "node:crypto";
-import { transaction, query } from "../db.js";
+import { transaction, query, type DatabaseExecutor } from "../db.js";
 import { verifySessionTokenSubject } from "./browserSession.js";
 import { createCrockfordToken } from "./crockford.js";
 
 const AGENT_API_KEY_PREFIX = "fca";
 const AGENT_API_KEY_ID_LENGTH = 8;
 const AGENT_API_KEY_SECRET_LENGTH = 26;
+const AUTO_CREATED_WORKSPACE_NAME = "Personal";
 
 type AgentApiKeyRow = Readonly<{
   connection_id: string;
   user_id: string;
   label: string;
   key_id: string;
+  selected_workspace_id: string | null;
   created_at: Date | string;
   last_used_at: Date | string | null;
   revoked_at: Date | string | null;
+}>;
+
+type WorkspaceMembershipRow = Readonly<{
+  workspace_id: string;
 }>;
 
 export type AgentApiKeyConnection = Readonly<{
@@ -71,6 +77,47 @@ function formatAgentApiKey(keyId: string, secret: string): string {
   return `${AGENT_API_KEY_PREFIX}_${keyId}_${secret}`;
 }
 
+async function createWorkspaceInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+): Promise<string> {
+  const workspaceId = randomUUID();
+  const bootstrapDeviceId = randomUUID();
+  const bootstrapTimestamp = new Date().toISOString();
+  const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
+
+  await executor.query(
+    [
+      "INSERT INTO org.workspaces",
+      "(",
+      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_device_id, fsrs_last_operation_id",
+      ")",
+      "VALUES ($1, $2, $3, $4, $5)",
+    ].join(" "),
+    [workspaceId, AUTO_CREATED_WORKSPACE_NAME, bootstrapTimestamp, bootstrapDeviceId, bootstrapOperationId],
+  );
+
+  await executor.query(
+    [
+      "INSERT INTO sync.devices",
+      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
+      "VALUES ($1, $2, $3, 'ios', $4, now())",
+    ].join(" "),
+    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
+  );
+
+  await executor.query(
+    [
+      "INSERT INTO org.workspace_memberships",
+      "(workspace_id, user_id, role)",
+      "VALUES ($1, $2, 'owner')",
+    ].join(" "),
+    [workspaceId, userId],
+  );
+
+  return workspaceId;
+}
+
 function mapConnection(row: AgentApiKeyRow): AgentApiKeyConnection {
   return {
     connectionId: row.connection_id,
@@ -98,14 +145,36 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
       "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
       [userId],
     );
+    const membershipResult = await executor.query<WorkspaceMembershipRow>(
+      [
+        "SELECT workspace_id",
+        "FROM org.workspace_memberships",
+        "WHERE user_id = $1",
+        "ORDER BY created_at ASC, workspace_id ASC",
+      ].join(" "),
+      [userId],
+    );
+    let selectedWorkspaceId: string | null;
+    if (membershipResult.rows.length === 0) {
+      selectedWorkspaceId = await createWorkspaceInExecutor(executor, userId);
+    } else if (membershipResult.rows.length === 1) {
+      const onlyWorkspace = membershipResult.rows[0];
+      if (onlyWorkspace === undefined) {
+        throw new Error("Expected one workspace membership row");
+      }
+      selectedWorkspaceId = onlyWorkspace.workspace_id;
+    } else {
+      selectedWorkspaceId = null;
+    }
+
     const inserted = await executor.query<AgentApiKeyRow>(
       [
         "INSERT INTO auth.agent_api_keys",
-        "(connection_id, user_id, label, key_id, key_hash)",
-        "VALUES ($1, $2, $3, $4, $5)",
-        "RETURNING connection_id, user_id, label, key_id, created_at, last_used_at, revoked_at",
+        "(connection_id, user_id, label, key_id, key_hash, selected_workspace_id)",
+        "VALUES ($1, $2, $3, $4, $5, $6)",
+        "RETURNING connection_id, user_id, label, key_id, selected_workspace_id, created_at, last_used_at, revoked_at",
       ].join(" "),
-      [connectionId, userId, normalizedLabel, keyId, keyHash],
+      [connectionId, userId, normalizedLabel, keyId, keyHash, selectedWorkspaceId],
     );
     const row = inserted.rows[0];
     if (row === undefined) {
@@ -124,7 +193,7 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
 export async function listAgentApiKeyConnectionsForUser(userId: string): Promise<ReadonlyArray<AgentApiKeyConnection>> {
   const result = await query<AgentApiKeyRow>(
     [
-      "SELECT connection_id, user_id, label, key_id, created_at, last_used_at, revoked_at",
+      "SELECT connection_id, user_id, label, key_id, selected_workspace_id, created_at, last_used_at, revoked_at",
       "FROM auth.agent_api_keys",
       "WHERE user_id = $1",
       "ORDER BY created_at DESC, connection_id DESC",

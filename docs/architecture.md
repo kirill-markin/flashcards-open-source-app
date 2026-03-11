@@ -43,7 +43,7 @@ Apex fallback          -> Cloudflare -> <domain> -> CloudFront redirect -> app.<
 - Browser login still uses one shared domain-wide session cookie so sign-in works across `auth.<domain>` and `app.<domain>` without a second login.
 - Backend Lambda verifies JWT from `Authorization: Bearer` header via `aws-jwt-verify`.
 - `AUTH_MODE=none` for local dev (no auth, `userId=local`), `AUTH_MODE=cognito` in production.
-- First authenticated request auto-provisions only the `user_settings` row. Workspace creation and selection are explicit.
+- First authenticated request auto-provisions only the `user_settings` row for human sessions. ApiKey agent connections may auto-provision a first `Personal` workspace and store selection per connection.
 
 ## Security
 

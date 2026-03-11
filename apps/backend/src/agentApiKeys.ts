@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { query } from "./db";
 import { HttpError } from "./errors";
 import { normalizeCrockfordToken } from "./crockford";
+import { ensureApiKeyWorkspaceSelection } from "./workspaces";
 
 const AGENT_API_KEY_PREFIX = "fca";
 const AGENT_API_KEY_ID_LENGTH = 8;
@@ -14,6 +15,7 @@ type AgentApiKeyRow = Readonly<{
   label: string;
   key_id: string;
   key_hash: string;
+  selected_workspace_id: string | null;
   created_at: Date | string;
   last_used_at: Date | string | null;
   revoked_at: Date | string | null;
@@ -30,6 +32,7 @@ export type AgentApiKeyConnection = Readonly<{
 export type AuthenticatedAgentApiKey = Readonly<{
   userId: string;
   connectionId: string;
+  selectedWorkspaceId: string | null;
 }>;
 
 function toIsoString(value: Date | string | null): string | null {
@@ -106,7 +109,7 @@ export async function authenticateAgentApiKey(apiKey: string): Promise<Authentic
   const parsedKey = parseAgentApiKey(apiKey);
   const result = await query<AgentApiKeyRow>(
     [
-      "SELECT connection_id, user_id, label, key_id, key_hash, created_at, last_used_at, revoked_at",
+      "SELECT connection_id, user_id, label, key_id, key_hash, selected_workspace_id, created_at, last_used_at, revoked_at",
       "FROM auth.agent_api_keys",
       "WHERE key_id = $1",
     ].join(" "),
@@ -120,6 +123,12 @@ export async function authenticateAgentApiKey(apiKey: string): Promise<Authentic
   if (isEqualHash(row.key_hash, hashSecret(parsedKey.secret)) === false) {
     throw new HttpError(401, "Invalid API key", "AGENT_API_KEY_INVALID");
   }
+
+  const selectedWorkspaceId = await ensureApiKeyWorkspaceSelection(
+    row.user_id,
+    row.connection_id,
+    row.selected_workspace_id,
+  );
 
   const now = Date.now();
   const lastUsedAtMs = row.last_used_at === null ? null : new Date(row.last_used_at).getTime();
@@ -138,13 +147,14 @@ export async function authenticateAgentApiKey(apiKey: string): Promise<Authentic
   return {
     userId: row.user_id,
     connectionId: row.connection_id,
+    selectedWorkspaceId,
   };
 }
 
 export async function listAgentApiKeyConnectionsForUser(userId: string): Promise<ReadonlyArray<AgentApiKeyConnection>> {
   const result = await query<AgentApiKeyRow>(
     [
-      "SELECT connection_id, user_id, label, key_id, key_hash, created_at, last_used_at, revoked_at",
+      "SELECT connection_id, user_id, label, key_id, key_hash, selected_workspace_id, created_at, last_used_at, revoked_at",
       "FROM auth.agent_api_keys",
       "WHERE user_id = $1",
       "ORDER BY created_at DESC, connection_id DESC",
@@ -165,7 +175,7 @@ export async function revokeAgentApiKeyConnectionForUser(userId: string, connect
       "UPDATE auth.agent_api_keys",
       "SET revoked_at = COALESCE(revoked_at, now())",
       "WHERE user_id = $1 AND connection_id = $2",
-      "RETURNING connection_id, user_id, label, key_id, key_hash, created_at, last_used_at, revoked_at",
+      "RETURNING connection_id, user_id, label, key_id, key_hash, selected_workspace_id, created_at, last_used_at, revoked_at",
     ].join(" "),
     [userId, connectionId],
   );

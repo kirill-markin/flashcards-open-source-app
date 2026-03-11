@@ -1,6 +1,5 @@
 import type { AgentApiKeyConnection } from "./agentApiKeys";
 import {
-  buildAgentNextStepsInstructions,
   createAgentCreateWorkspaceAction,
   createAgentEnvelope,
   createAgentErrorEnvelope,
@@ -14,6 +13,7 @@ import {
 } from "./agentEnvelope";
 import type { AuthTransport } from "./auth";
 import type { HttpErrorDetails } from "./errors";
+import { getPublicApiBaseUrl } from "./publicUrls";
 import type { RequestContext } from "./server/requestContext";
 import type { WorkspaceSummary } from "./workspaces";
 
@@ -45,6 +45,30 @@ function buildWorkspaceReadyActions(requestUrl: string) {
   ] as const;
 }
 
+function buildAccountBootstrapInstructions(requestUrl: string): string {
+  const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
+  return [
+    `Call GET ${apiBaseUrl}/agent/me to load account context.`,
+    `Then call GET ${apiBaseUrl}/agent/workspaces to inspect available workspaces for this API key.`,
+    `If needed, create with POST ${apiBaseUrl}/agent/workspaces or select with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select before tool calls.`,
+  ].join(" ");
+}
+
+function buildNoWorkspaceInstructions(requestUrl: string): string {
+  const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
+  return `No workspace is available for this API key yet. Create one with POST ${apiBaseUrl}/agent/workspaces using {\"name\":\"Personal\"}, then continue with tools.`;
+}
+
+function buildSelectWorkspaceInstructions(requestUrl: string): string {
+  const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
+  return `Select a workspace for this API key by calling POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select after listing with GET ${apiBaseUrl}/agent/workspaces.`;
+}
+
+function buildWorkspaceReadyInstructions(requestUrl: string): string {
+  const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
+  return `Workspace bootstrap is complete. Call GET ${apiBaseUrl}/agent/tools and then POST ${apiBaseUrl}/agent/tools/get_workspace_context to continue.`;
+}
+
 export function shouldUseAgentSetupEnvelope(transport: AuthTransport): boolean {
   return transport === "api_key";
 }
@@ -72,7 +96,7 @@ export function createAgentAccountEnvelope(
       },
     },
     actions,
-    buildAgentNextStepsInstructions(actions),
+    buildAccountBootstrapInstructions(requestUrl),
   );
 }
 
@@ -90,7 +114,7 @@ export function createAgentWorkspacesEnvelope(
       requestUrl,
       { workspaces },
       actions,
-      buildAgentNextStepsInstructions(actions),
+      buildNoWorkspaceInstructions(requestUrl),
     );
   }
 
@@ -100,7 +124,7 @@ export function createAgentWorkspacesEnvelope(
       requestUrl,
       { workspaces },
       actions,
-      buildAgentNextStepsInstructions(actions),
+      buildWorkspaceReadyInstructions(requestUrl),
     );
   }
 
@@ -109,7 +133,7 @@ export function createAgentWorkspacesEnvelope(
     requestUrl,
     { workspaces },
     actions,
-    buildAgentNextStepsInstructions(actions),
+    buildSelectWorkspaceInstructions(requestUrl),
   );
 }
 
@@ -127,7 +151,7 @@ export function createAgentWorkspaceReadyEnvelope(
     requestUrl,
     { workspace },
     actions,
-    buildAgentNextStepsInstructions(actions),
+    buildWorkspaceReadyInstructions(requestUrl),
   );
 }
 

@@ -29,7 +29,7 @@ import type {
   SessionLoadState,
 } from "./types";
 
-const defaultWorkspaceName = "My Flashcards";
+const defaultWorkspaceName = "Personal";
 
 type UseWorkspaceSessionParams = Readonly<{
   sessionLoadState: SessionLoadState;

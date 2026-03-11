@@ -163,15 +163,47 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
           apiBaseUrl,
           connection: createdKey.connection,
         },
-        [{
-          name: "load_account",
-          method: "GET",
-          url: `${apiBaseUrl}/agent/me`,
-          auth: {
-            scheme: "ApiKey",
+        [
+          {
+            name: "load_account",
+            method: "GET",
+            url: `${apiBaseUrl}/agent/me`,
+            auth: {
+              scheme: "ApiKey",
+            },
           },
-        }],
-        `Store this long-lived API key now and do not rely on chat history alone. A new dialog or session on the same machine will not have this key unless it was saved outside this conversation. Prefer exporting it first as FLASHCARDS_OPEN_SOURCE_API_KEY; if needed, save it in a local .env file or another local file, but ask the user for permission before writing to .env or any file. At minimum, save it somewhere persistent outside chat memory. Example: export FLASHCARDS_OPEN_SOURCE_API_KEY='<PASTE_KEY_HERE>' && curl -H 'Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY' '${apiBaseUrl}/agent/me'. Next, call load_account.`,
+          {
+            name: "list_workspaces",
+            method: "GET",
+            url: `${apiBaseUrl}/agent/workspaces`,
+            auth: {
+              scheme: "ApiKey",
+            },
+          },
+          {
+            name: "create_workspace",
+            method: "POST",
+            url: `${apiBaseUrl}/agent/workspaces`,
+            input: {
+              required: ["name"],
+            },
+            auth: {
+              scheme: "ApiKey",
+            },
+          },
+          {
+            name: "select_workspace",
+            method: "POST",
+            urlTemplate: `${apiBaseUrl}/agent/workspaces/{workspaceId}/select`,
+            input: {
+              required: ["workspaceId"],
+            },
+            auth: {
+              scheme: "ApiKey",
+            },
+          },
+        ],
+        `Store this long-lived API key now and do not rely on chat history alone. A new dialog or session on the same machine will not have this key unless it was saved outside this conversation. Prefer exporting it first as FLASHCARDS_OPEN_SOURCE_API_KEY; if needed, save it in a local .env file or another local file, but ask the user for permission before writing to .env or any file. At minimum, save it somewhere persistent outside chat memory. Then bootstrap workspace selection with explicit endpoints: GET ${apiBaseUrl}/agent/me, GET ${apiBaseUrl}/agent/workspaces, and if selection is required call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select (or POST ${apiBaseUrl}/agent/workspaces with {\"name\":\"Personal\"} when no workspaces exist). Example: export FLASHCARDS_OPEN_SOURCE_API_KEY='<PASTE_KEY_HERE>' && curl -H 'Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY' '${apiBaseUrl}/agent/me'.`,
       ));
     } catch (error) {
       const failure = classifyVerifyFailure(error);

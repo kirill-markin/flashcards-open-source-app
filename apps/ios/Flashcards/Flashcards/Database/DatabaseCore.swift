@@ -444,7 +444,7 @@ final class DatabaseCore {
                 """,
                 values: [
                     .text(workspaceId),
-                    .text("Local Workspace"),
+                    .text("Personal"),
                     .text(now),
                     .text(now),
                     .text(deviceId),
