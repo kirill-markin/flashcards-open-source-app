@@ -43,7 +43,7 @@ export const EXTERNAL_AGENT_TOOL_DEFINITIONS: ReadonlyArray<ExternalAgentToolDef
   },
   {
     name: "search_cards",
-    description: "Search cards by front text, back text, or tags.",
+    description: "Search cards by front text, back text, tags, or effort level.",
   },
   {
     name: "list_due_cards",

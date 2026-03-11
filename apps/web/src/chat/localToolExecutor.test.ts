@@ -278,6 +278,20 @@ describe("createLocalToolExecutor", () => {
     });
   });
 
+  it("searches cards by effort level", async () => {
+    const executor = createLocalToolExecutor(makeDependencies(makeSnapshot()));
+
+    const result = await executor.execute({
+      toolCallId: "call-search-cards-effort",
+      name: "search_cards",
+      input: "{\"query\":\"medium\",\"limit\":100}",
+    });
+
+    const cards = JSON.parse(result.output) as ReadonlyArray<Card>;
+    expect(cards).toHaveLength(2);
+    expect(cards.every((card) => card.effortLevel === "medium")).toBe(true);
+  });
+
   it("resolves nullable update fields against existing local records and mutates only once per item", async () => {
     const snapshot = makeSnapshot();
     const dependencies = makeDependencies(snapshot);

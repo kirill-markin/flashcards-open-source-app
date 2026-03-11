@@ -501,6 +501,7 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 || card.tags.contains(where: { tag in
                     tag.lowercased().contains(normalizedQuery)
                 })
+                || card.effortLevel.rawValue.lowercased().contains(normalizedQuery)
         }.prefix(limit))
     }
 
