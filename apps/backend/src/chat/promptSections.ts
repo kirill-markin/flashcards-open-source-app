@@ -49,6 +49,8 @@ export function buildSharedWritePolicyLines(): ReadonlyArray<string> {
     "- You MUST summarize what you found and discuss possible duplicates or overlap with the user before proposing a creation plan.",
     "- Every newly proposed card must include at least one tag.",
     "- If the user did not provide tags for a new card, you MUST suggest one or more concrete tags and include them in the proposed card draft before asking for confirmation.",
+    "- Keep tags minimal: use the smallest useful set per card and prefer 1-2 tags unless the user explicitly asks for more.",
+    "- You MUST reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate.",
     "- You MUST then wait for explicit user confirmation before executing the write tool.",
   ];
 }
@@ -69,6 +71,8 @@ export function buildLocalWritePolicyLines(): ReadonlyArray<string> {
     "- You must summarize what you found and discuss possible duplicates or overlap with the user before proposing a creation plan.",
     "- Every newly proposed card must include at least one tag.",
     "- If the user did not provide tags for a new card, you must suggest one or more concrete tags and include them in the proposed card draft before asking for confirmation.",
+    "- Keep tags minimal: use the smallest useful set per card and prefer 1-2 tags unless the user explicitly asks for more.",
+    "- You must reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate.",
     "- You must then wait for explicit user confirmation before executing the write tool.",
     "- Use write tools only after the latest user message clearly confirms the exact proposed change.",
     "- Never mutate hidden FSRS fields, sync metadata, outbox rows, cloud settings, or arbitrary local tables directly.",
