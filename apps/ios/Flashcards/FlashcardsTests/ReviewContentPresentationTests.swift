@@ -47,4 +47,22 @@ final class ReviewContentPresentationTests: XCTestCase {
     func testClassifyReviewContentPresentationReturnsParagraphPlainForPlaceholderText() {
         XCTAssertEqual(classifyReviewContentPresentation(text: "No back text"), .shortPlain)
     }
+
+    func testMakeReviewRenderedContentReturnsShortPlainForShortText() {
+        switch makeReviewRenderedContent(text: "Hola") {
+        case .shortPlain(let text):
+            XCTAssertEqual(text, "Hola")
+        default:
+            XCTFail("Expected short plain rendered content")
+        }
+    }
+
+    func testMakeReviewRenderedContentReturnsMarkdownAttributedTextForHeading() {
+        switch makeReviewRenderedContent(text: "# Heading") {
+        case .markdown(let attributedText):
+            XCTAssertTrue(String(attributedText.characters).contains("Heading"))
+        default:
+            XCTFail("Expected markdown rendered content")
+        }
+    }
 }
