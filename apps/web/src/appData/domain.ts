@@ -278,6 +278,17 @@ export function markSelectedWorkspaces(
   }));
 }
 
+export function findWorkspaceById(
+  workspaces: ReadonlyArray<WorkspaceSummary>,
+  workspaceId: string | null,
+): WorkspaceSummary | null {
+  if (workspaceId === null) {
+    return null;
+  }
+
+  return workspaces.find((workspace) => workspace.workspaceId === workspaceId) ?? null;
+}
+
 export function upsertWorkspaceSummary(
   workspaces: ReadonlyArray<WorkspaceSummary>,
   workspace: WorkspaceSummary,

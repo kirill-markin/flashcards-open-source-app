@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Card, Deck, ReviewEvent } from "../types";
+import type { Card, Deck, ReviewEvent, WorkspaceSummary } from "../types";
 import {
   ALL_CARDS_REVIEW_FILTER,
   buildDeletedDeck,
   cardsMatchingDeck,
   cardsMatchingReviewFilter,
   deriveReviewTimeline,
+  findWorkspaceById,
   compareLww,
   deriveReviewQueue,
   isCardNew,
@@ -85,6 +86,16 @@ function createReviewEvent(overrides: Partial<ReviewEvent>): ReviewEvent {
   };
 }
 
+function createWorkspaceSummary(overrides: Partial<WorkspaceSummary>): WorkspaceSummary {
+  return {
+    workspaceId: "workspace-1",
+    name: "Personal",
+    createdAt: "2026-03-10T09:00:00.000Z",
+    isSelected: false,
+    ...overrides,
+  };
+}
+
 describe("appData domain helpers", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -147,6 +158,23 @@ describe("appData domain helpers", () => {
         updatedReviewEvent,
       ),
     ).toEqual([updatedReviewEvent, createReviewEvent({ reviewEventId: "review-2" })]);
+  });
+
+  it("finds persisted selected workspace only when it exists in available items", () => {
+    const workspaces = [
+      createWorkspaceSummary({
+        workspaceId: "workspace-1",
+        name: "Personal",
+      }),
+      createWorkspaceSummary({
+        workspaceId: "workspace-2",
+        name: "Flash Cards",
+      }),
+    ];
+
+    expect(findWorkspaceById(workspaces, "workspace-2")).toEqual(workspaces[1]);
+    expect(findWorkspaceById(workspaces, "workspace-3")).toBeNull();
+    expect(findWorkspaceById(workspaces, null)).toBeNull();
   });
 
   it("normalizes create and update card input", () => {

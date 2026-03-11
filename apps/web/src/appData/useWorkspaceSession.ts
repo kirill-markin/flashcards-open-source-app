@@ -16,6 +16,7 @@ import { getStableDeviceId } from "../clientIdentity";
 import { clearWebSyncCache, putCloudSettings, relinkWorkspaceCache } from "../syncStorage";
 import type { Card, CloudSettings, Deck, SessionInfo, WorkspaceSummary } from "../types";
 import {
+  findWorkspaceById,
   getErrorMessage,
   markSelectedWorkspaces,
   upsertWorkspaceSummary,
@@ -155,12 +156,16 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       return;
     }
 
+    const selectedWorkspace = findWorkspaceById(workspaces, currentSession.selectedWorkspaceId);
+    if (selectedWorkspace !== null) {
+      await activateWorkspace(currentSession, workspaces, selectedWorkspace);
+      return;
+    }
+
     if (workspaces.length === 1) {
       const onlyWorkspace = workspaces[0];
-      const selectedWorkspace = currentSession.selectedWorkspaceId === onlyWorkspace.workspaceId
-        ? onlyWorkspace
-        : await selectWorkspace(onlyWorkspace.workspaceId);
-      await activateWorkspace(currentSession, [selectedWorkspace], selectedWorkspace);
+      const selectedOnlyWorkspace = await selectWorkspace(onlyWorkspace.workspaceId);
+      await activateWorkspace(currentSession, [selectedOnlyWorkspace], selectedOnlyWorkspace);
       return;
     }
 
