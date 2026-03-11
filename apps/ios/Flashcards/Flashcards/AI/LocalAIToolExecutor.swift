@@ -456,7 +456,7 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
             let startIndex = try self.pageStartIndex(cursor: input.cursor)
             return AIToolExecutionResult(
                 output: try self.encodeJSON(
-                    value: try self.makeReviewHistoryPagePayload(
+                    value: self.makeReviewHistoryPagePayload(
                         history: try self.loadReviewHistory(
                             workspaceId: snapshot.workspace.workspaceId,
                             limit: Int.max,
