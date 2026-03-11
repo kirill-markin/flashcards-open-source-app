@@ -1287,7 +1287,7 @@
           "tools"
         ],
         "summary": "Search cards",
-        "description": "Searches cards by text, tags, or effort level within the selected workspace. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token) and a card matches when any token matches.",
+        "description": "Searches cards by text, tags, or effort level within the selected workspace. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -1377,7 +1377,7 @@
                       }
                     }
                   ],
-                  "instructions": "Read payload from data.* (data.cards, data.returnedCount). Do not expect cards at the top level. Select the next endpoint from instructions and confirm it with actions.",
+                  "instructions": "Read payload from data.* (data.cards, data.returnedCount). Do not expect cards at the top level. Search behavior: split query into lowercase whitespace terms (up to 5; extra terms are merged into the fifth term). A card matches only when every term is found in at least one supported card field (frontText, backText, tags, or effortLevel). Select the next endpoint from instructions and confirm it with actions.",
                   "docs": {
                     "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
                     "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
