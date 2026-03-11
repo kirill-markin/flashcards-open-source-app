@@ -1,4 +1,9 @@
 import Foundation
+// `MarkdownUI` pulls in `NetworkImage` transitively:
+// https://github.com/gonzalezreal/NetworkImage
+// The package is relatively niche, but it is maintained by the same author as `MarkdownUI`,
+// which is why we accept it as part of the iOS markdown rendering stack.
+import MarkdownUI
 
 enum ReviewContentPresentationMode: Equatable {
     case shortPlain
@@ -9,8 +14,7 @@ enum ReviewContentPresentationMode: Equatable {
 enum ReviewRenderedContent {
     case shortPlain(String)
     case paragraphPlain(String)
-    case markdown(AttributedString)
-    case markdownFailure(String)
+    case markdown(MarkdownContent)
 }
 
 private let reviewShortPlainWordLimit: Int = 4
@@ -56,14 +60,8 @@ func classifyReviewContentPresentation(text: String) -> ReviewContentPresentatio
     return .shortPlain
 }
 
-func makeReviewMarkdownAttributedString(text: String) throws -> AttributedString {
-    try AttributedString(
-        markdown: text,
-        options: AttributedString.MarkdownParsingOptions(
-            interpretedSyntax: .full,
-            failurePolicy: .returnPartiallyParsedIfPossible
-        )
-    )
+func makeReviewMarkdownContent(text: String) -> MarkdownContent {
+    MarkdownContent(text)
 }
 
 func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
@@ -73,11 +71,7 @@ func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
     case .paragraphPlain:
         return .paragraphPlain(text)
     case .markdown:
-        do {
-            return .markdown(try makeReviewMarkdownAttributedString(text: text))
-        } catch {
-            return .markdownFailure(error.localizedDescription)
-        }
+        return .markdown(makeReviewMarkdownContent(text: text))
     }
 }
 

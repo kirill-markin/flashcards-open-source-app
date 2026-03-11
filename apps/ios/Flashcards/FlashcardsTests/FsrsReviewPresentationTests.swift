@@ -233,6 +233,35 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertNil(currentReviewCard(reviewQueue: []))
     }
 
+    func testNextReviewCardUsesCanonicalQueueSecondPosition() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let reviewQueue = makeReviewQueue(
+            reviewFilter: .allCards,
+            decks: [],
+            cards: [
+                FsrsSchedulerTestSupport.makeTestCard(
+                    cardId: "top-queue-card",
+                    tags: [],
+                    effortLevel: .fast,
+                    dueAt: "2026-03-09T08:00:00.000Z",
+                    updatedAt: "2026-03-09T06:00:00.000Z"
+                ),
+                FsrsSchedulerTestSupport.makeTestCard(
+                    cardId: "second-queue-card",
+                    tags: [],
+                    effortLevel: .fast,
+                    dueAt: "2026-03-09T08:30:00.000Z",
+                    updatedAt: "2026-03-09T08:00:00.000Z"
+                )
+            ],
+            now: now
+        )
+
+        XCTAssertEqual(nextReviewCard(reviewQueue: reviewQueue)?.cardId, "second-queue-card")
+        XCTAssertNil(nextReviewCard(reviewQueue: Array(reviewQueue.prefix(1))))
+        XCTAssertNil(nextReviewCard(reviewQueue: []))
+    }
+
     func testInitialIncrementalVisibleCountShowsFirstPage() {
         XCTAssertEqual(initialIncrementalVisibleCount(totalCount: 120, initialCount: 50), 50)
     }

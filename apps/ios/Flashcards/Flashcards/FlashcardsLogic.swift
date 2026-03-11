@@ -467,6 +467,10 @@ func currentReviewCard(reviewQueue: [Card]) -> Card? {
     return reviewQueue.first
 }
 
+func nextReviewCard(reviewQueue: [Card]) -> Card? {
+    return reviewQueue.dropFirst().first
+}
+
 func initialIncrementalVisibleCount(totalCount: Int, initialCount: Int) -> Int {
     precondition(initialCount > 0, "Incremental list initialCount must be greater than zero")
     return min(totalCount, initialCount)
