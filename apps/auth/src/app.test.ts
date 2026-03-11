@@ -45,6 +45,25 @@ test("same-site refresh requests from the app origin stay allowed", async () => 
   assert.equal(response.headers.get("Access-Control-Allow-Credentials"), "true");
 });
 
+test("same-origin auth requests stay allowed even when auth origin is absent in redirect allowlist", async () => {
+  const app = createAuthApp();
+
+  const response = await app.request("https://auth.flashcards-open-source-app.com/api/refresh-session", {
+    method: "POST",
+    headers: {
+      Origin: "https://auth.flashcards-open-source-app.com",
+      "Sec-Fetch-Site": "same-origin",
+    },
+  });
+
+  assert.equal(response.status, 401);
+  assert.equal(
+    response.headers.get("Access-Control-Allow-Origin"),
+    "https://auth.flashcards-open-source-app.com",
+  );
+  assert.equal(response.headers.get("Access-Control-Allow-Credentials"), "true");
+});
+
 test("foreign origins stay blocked", async () => {
   const app = createAuthApp();
 

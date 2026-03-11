@@ -79,7 +79,9 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.use("/api/*", async (c, next) => {
     const origin = c.req.header("origin");
     if (origin !== undefined) {
-      if (!allowedApiOrigins.includes(origin)) {
+      const requestOrigin = new URL(c.req.url).origin;
+      const isSameOriginRequest = origin === requestOrigin;
+      if (!isSameOriginRequest && !allowedApiOrigins.includes(origin)) {
         return c.json({ error: "Origin is not allowed" }, 403);
       }
       setApiCorsHeaders(c, origin);
