@@ -413,7 +413,7 @@ func cardFilterActiveDimensionCount(filter: CardFilter?) -> Int {
         return 0
     }
 
-    return Int(filter.effort.isEmpty == false) + Int(filter.tags.isEmpty == false)
+    return (filter.effort.isEmpty == false ? 1 : 0) + (filter.tags.isEmpty == false ? 1 : 0)
 }
 
 func formatCardFilterSummary(filter: CardFilter?) -> String {
