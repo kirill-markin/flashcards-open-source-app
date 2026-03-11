@@ -73,6 +73,11 @@ struct ReviewSubmissionFailure: Identifiable, Hashable, Sendable {
     let message: String
 }
 
+struct TabSelectionRequest: Equatable, Sendable {
+    let id: String
+    let tab: AppTab
+}
+
 @MainActor
 final class FlashcardsStore: ObservableObject {
     @Published private(set) var workspace: Workspace?
@@ -89,7 +94,7 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var globalErrorMessage: String
     @Published private(set) var syncStatus: SyncStatus
     @Published private(set) var lastSuccessfulCloudSyncAt: String?
-    @Published private(set) var selectedTab: AppTab
+    @Published private(set) var tabSelectionRequest: TabSelectionRequest?
     @Published private(set) var cardsPresentationRequest: CardsPresentationRequest?
     @Published private(set) var aiChatPresentationRequest: AIChatPresentationRequest?
     @Published private(set) var pendingReviewCardIds: Set<String>
@@ -103,11 +108,13 @@ final class FlashcardsStore: ObservableObject {
     private let userDefaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private(set) var selectedTab: AppTab
     private var activeCloudSession: CloudLinkedSession?
     private var activeCloudSyncTask: Task<Void, Error>?
     private var pendingCloudResync: Bool
     private var pendingReviewRequests: [ReviewSubmissionRequest]
     private var isReviewProcessorRunning: Bool
+    lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
 
     convenience init() {
         let userDefaults = UserDefaults.standard
@@ -195,6 +202,7 @@ final class FlashcardsStore: ObservableObject {
         self.syncStatus = .idle
         self.lastSuccessfulCloudSyncAt = nil
         self.selectedTab = .review
+        self.tabSelectionRequest = nil
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
         self.pendingReviewCardIds = []
@@ -268,16 +276,16 @@ final class FlashcardsStore: ObservableObject {
 
     func openReview(reviewFilter: ReviewFilter) {
         self.selectReviewFilter(reviewFilter: reviewFilter)
-        self.selectTab(tab: .review)
+        self.requestTabSelection(tab: .review)
     }
 
     func openCardCreation() {
-        self.selectTab(tab: .cards)
+        self.requestTabSelection(tab: .cards)
         self.cardsPresentationRequest = .createCard
     }
 
     func openAICardCreation() {
-        self.selectTab(tab: .ai)
+        self.requestTabSelection(tab: .ai)
         self.aiChatPresentationRequest = .createCard
     }
 
@@ -839,6 +847,45 @@ final class FlashcardsStore: ObservableObject {
             userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
             return .allCards
         }
+    }
+
+    private func requestTabSelection(tab: AppTab) {
+        self.selectedTab = tab
+        self.tabSelectionRequest = TabSelectionRequest(
+            id: UUID().uuidString.lowercased(),
+            tab: tab
+        )
+    }
+
+    private func makeAIChatStore() -> AIChatStore {
+        let historyStore = AIChatHistoryStore(
+            userDefaults: UserDefaults.standard,
+            encoder: self.encoder,
+            decoder: self.decoder
+        )
+        let chatService = AIChatService(
+            session: URLSession.shared,
+            encoder: self.encoder,
+            decoder: self.decoder
+        )
+        let workspaceRuntime: any AIToolExecuting & AIChatSnapshotLoading
+        if let databaseURL = self.localDatabaseURL {
+            workspaceRuntime = LocalAIToolExecutor(
+                databaseURL: databaseURL,
+                encoder: self.encoder,
+                decoder: self.decoder
+            )
+        } else {
+            workspaceRuntime = UnavailableAIToolExecutor()
+        }
+
+        return AIChatStore(
+            flashcardsStore: self,
+            historyStore: historyStore,
+            chatService: chatService,
+            toolExecutor: workspaceRuntime,
+            snapshotLoader: workspaceRuntime
+        )
     }
 
     private func triggerCloudSyncIfLinked() {

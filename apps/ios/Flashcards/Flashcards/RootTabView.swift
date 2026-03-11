@@ -2,13 +2,15 @@ import SwiftUI
 
 struct RootTabView: View {
     @EnvironmentObject private var store: FlashcardsStore
+    @State private var selectedTab: AppTab = .review
 
     var body: some View {
         TabView(selection: Binding(
             get: {
-                store.selectedTab
+                self.selectedTab
             },
             set: { nextTab in
+                self.selectedTab = nextTab
                 store.selectTab(tab: nextTab)
             }
         )) {
@@ -37,7 +39,7 @@ struct RootTabView: View {
             .tag(AppTab.cards)
 
             NavigationStack {
-                AIChatView(flashcardsStore: store)
+                AIChatView(flashcardsStore: store, chatStore: store.aiChatStore)
             }
             .tabItem {
                 Label("AI", systemImage: "sparkles.rectangle.stack")
@@ -51,6 +53,16 @@ struct RootTabView: View {
                 Label("Settings", systemImage: "gearshape")
             }
             .tag(AppTab.settings)
+        }
+        .onAppear {
+            self.selectedTab = store.selectedTab
+        }
+        .onChange(of: store.tabSelectionRequest) { _, request in
+            guard let request else {
+                return
+            }
+
+            self.selectedTab = request.tab
         }
     }
 }

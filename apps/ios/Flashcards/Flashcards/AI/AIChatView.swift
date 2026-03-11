@@ -1,12 +1,16 @@
+import AVFoundation
 import PhotosUI
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 struct AIChatView: View {
     @ObservedObject private var flashcardsStore: FlashcardsStore
-    @StateObject private var chatStore: AIChatStore
+    @ObservedObject private var chatStore: AIChatStore
     @State private var isCloudSignInPresented: Bool
+    @State private var isCameraPresented: Bool
     @State private var isFileImporterPresented: Bool
+    @State private var isPhotoPickerPresented: Bool
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isAutoScrollEnabled: Bool
     @State private var hasPendingAutoScroll: Bool
@@ -17,10 +21,13 @@ struct AIChatView: View {
     @FocusState private var isComposerFocused: Bool
 
     @MainActor
-    init(flashcardsStore: FlashcardsStore) {
+    init(flashcardsStore: FlashcardsStore, chatStore: AIChatStore) {
         self.flashcardsStore = flashcardsStore
+        self.chatStore = chatStore
         self.isCloudSignInPresented = false
+        self.isCameraPresented = false
         self.isFileImporterPresented = false
+        self.isPhotoPickerPresented = false
         self.selectedPhotoItem = nil
         self.isAutoScrollEnabled = true
         self.hasPendingAutoScroll = false
@@ -28,38 +35,6 @@ struct AIChatView: View {
         self.bottomMarkerMaxY = 0
         self.scrollViewportHeight = 0
         self.autoScrollTask = nil
-
-        let encoder = JSONEncoder()
-        let decoder = JSONDecoder()
-        let historyStore = AIChatHistoryStore(
-            userDefaults: UserDefaults.standard,
-            encoder: encoder,
-            decoder: decoder
-        )
-        let chatService = AIChatService(
-            session: URLSession.shared,
-            encoder: encoder,
-            decoder: decoder
-        )
-        let workspaceRuntime: any AIToolExecuting & AIChatSnapshotLoading
-        if let databaseURL = flashcardsStore.localDatabaseURL {
-            workspaceRuntime = LocalAIToolExecutor(
-                databaseURL: databaseURL,
-                encoder: encoder,
-                decoder: decoder
-            )
-        } else {
-            workspaceRuntime = UnavailableAIToolExecutor()
-        }
-        _chatStore = StateObject(
-            wrappedValue: AIChatStore(
-                flashcardsStore: flashcardsStore,
-                historyStore: historyStore,
-                chatService: chatService,
-                toolExecutor: workspaceRuntime,
-                snapshotLoader: workspaceRuntime
-            )
-        )
     }
 
     var body: some View {
@@ -117,6 +92,28 @@ struct AIChatView: View {
             case .failure(let error):
                 self.chatStore.showError(message: localizedMessage(error: error))
             }
+        }
+        .photosPicker(
+            isPresented: self.$isPhotoPickerPresented,
+            selection: self.$selectedPhotoItem,
+            matching: .images,
+            preferredItemEncoding: .current,
+            photoLibrary: .shared()
+        )
+        .sheet(isPresented: self.$isCameraPresented) {
+            AIChatCameraPicker(
+                onCapture: { data in
+                    self.isCameraPresented = false
+                    self.handleCapturedPhotoData(data)
+                },
+                onFailure: { error in
+                    self.isCameraPresented = false
+                    self.chatStore.showError(message: localizedMessage(error: error))
+                },
+                onCancel: {
+                    self.isCameraPresented = false
+                }
+            )
         }
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet()
@@ -329,25 +326,22 @@ struct AIChatView: View {
                     self.composerModelControl
                     Spacer()
 
-                    HStack(spacing: 8) {
-                        PhotosPicker(
-                            selection: self.$selectedPhotoItem,
-                            matching: .images,
-                            photoLibrary: .shared()
-                        ) {
-                            Label("Photo", systemImage: "photo")
+                    Menu {
+                        ForEach(aiChatAttachmentMenuActions()) { action in
+                            Button {
+                                self.handleAttachmentMenuAction(action)
+                            } label: {
+                                Label(action.title, systemImage: action.systemImage)
+                            }
                         }
-                        .buttonStyle(.bordered)
-                        .disabled(self.chatStore.isStreaming)
-
-                        Button {
-                            self.isFileImporterPresented = true
-                        } label: {
-                            Label("File", systemImage: "paperclip")
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(self.chatStore.isStreaming)
+                    } label: {
+                        Image(systemName: "paperclip")
                     }
+                    .buttonStyle(.bordered)
+                    .disabled(self.chatStore.isStreaming)
+                    .accessibilityLabel("Add attachment")
+                    .accessibilityHint("Take a photo, choose a photo, or select a file")
+                    .menuOrder(.fixed)
                 }
             }
             .padding(.top, aiChatComposerTopPadding)
@@ -496,22 +490,32 @@ struct AIChatView: View {
                 return
             }
 
-            try aiChatValidateAttachmentSize(data: data)
             let mediaType = item.supportedContentTypes.first?.preferredMIMEType ?? "image/jpeg"
             let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension ?? "jpg"
-            self.chatStore.appendAttachment(
-                AIChatAttachment(
-                    id: UUID().uuidString.lowercased(),
-                    fileName: "photo.\(fileExtension)",
-                    mediaType: mediaType,
-                    base64Data: data.base64EncodedString()
-                )
+            let attachment = try aiChatMakeImageAttachment(
+                data: data,
+                fileName: "photo.\(fileExtension)",
+                mediaType: mediaType
             )
+            self.chatStore.appendAttachment(attachment)
         } catch {
             self.chatStore.showError(message: localizedMessage(error: error))
         }
 
         self.selectedPhotoItem = nil
+    }
+
+    private func handleCapturedPhotoData(_ data: Data) {
+        do {
+            let attachment = try aiChatMakeImageAttachment(
+                data: data,
+                fileName: "photo.jpg",
+                mediaType: "image/jpeg"
+            )
+            self.chatStore.appendAttachment(attachment)
+        } catch {
+            self.chatStore.showError(message: localizedMessage(error: error))
+        }
     }
 
     private func handleImportedFiles(_ urls: [URL]) async {
@@ -533,6 +537,32 @@ struct AIChatView: View {
 
         self.chatStore.sendMessage()
         self.isComposerFocused = true
+    }
+
+    private func handleAttachmentMenuAction(_ action: AIChatAttachmentMenuAction) {
+        self.isComposerFocused = false
+
+        switch action {
+        case .takePhoto:
+            Task {
+                await self.presentCameraIfAvailable()
+            }
+        case .choosePhoto:
+            self.selectedPhotoItem = nil
+            self.isPhotoPickerPresented = true
+        case .chooseFile:
+            self.isFileImporterPresented = true
+        }
+    }
+
+    @MainActor
+    private func presentCameraIfAvailable() async {
+        do {
+            try await aiChatEnsureCameraIsAvailable()
+            self.isCameraPresented = true
+        } catch {
+            self.chatStore.showError(message: localizedMessage(error: error))
+        }
     }
 
     private func handleInitialBottomSnap(proxy: ScrollViewProxy) {
@@ -651,6 +681,46 @@ private struct AIChatViewportHeightPreferenceKey: PreferenceKey {
     }
 }
 
+enum AIChatAttachmentMenuAction: String, CaseIterable, Identifiable {
+    case takePhoto
+    case choosePhoto
+    case chooseFile
+
+    var id: String {
+        self.rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .takePhoto:
+            return "Take Photo"
+        case .choosePhoto:
+            return "Choose Photo"
+        case .chooseFile:
+            return "Choose File"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .takePhoto:
+            return "camera"
+        case .choosePhoto:
+            return "photo"
+        case .chooseFile:
+            return "doc"
+        }
+    }
+}
+
+func aiChatAttachmentMenuActions() -> [AIChatAttachmentMenuAction] {
+    [
+        .takePhoto,
+        .choosePhoto,
+        .chooseFile,
+    ]
+}
+
 private func aiChatImporterContentTypes() -> [UTType] {
     let baseTypes = aiChatSupportedFileExtensions.compactMap { fileExtension in
         UTType(filenameExtension: fileExtension)
@@ -688,6 +758,66 @@ private func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
         mediaType: contentType?.preferredMIMEType ?? "application/octet-stream",
         base64Data: data.base64EncodedString()
     )
+}
+
+func aiChatMakeImageAttachment(data: Data, fileName: String, mediaType: String) throws -> AIChatAttachment {
+    try aiChatValidateAttachmentSize(data: data)
+
+    return AIChatAttachment(
+        id: UUID().uuidString.lowercased(),
+        fileName: fileName,
+        mediaType: mediaType,
+        base64Data: data.base64EncodedString()
+    )
+}
+
+private enum AIChatCameraAvailabilityError: LocalizedError {
+    case unavailable
+    case accessRestricted
+    case accessDenied
+
+    var errorDescription: String? {
+        switch self {
+        case .unavailable:
+            return "Camera is not available on this device."
+        case .accessRestricted:
+            return "Camera access is restricted on this device."
+        case .accessDenied:
+            return "Camera access is turned off for Flashcards. Enable it in Settings > Privacy & Security > Camera."
+        }
+    }
+}
+
+@MainActor
+private func aiChatEnsureCameraIsAvailable() async throws {
+    guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+        throw AIChatCameraAvailabilityError.unavailable
+    }
+
+    let authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
+    switch authorizationStatus {
+    case .authorized:
+        return
+    case .notDetermined:
+        let isGranted = await aiChatRequestCameraAccess()
+        if isGranted == false {
+            throw AIChatCameraAvailabilityError.accessDenied
+        }
+    case .restricted:
+        throw AIChatCameraAvailabilityError.accessRestricted
+    case .denied:
+        throw AIChatCameraAvailabilityError.accessDenied
+    @unknown default:
+        throw AIChatCameraAvailabilityError.accessDenied
+    }
+}
+
+private func aiChatRequestCameraAccess() async -> Bool {
+    await withCheckedContinuation { continuation in
+        AVCaptureDevice.requestAccess(for: .video) { isGranted in
+            continuation.resume(returning: isGranted)
+        }
+    }
 }
 
 private func aiChatValidateAttachmentSize(data: Data) throws {
