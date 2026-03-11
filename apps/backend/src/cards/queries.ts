@@ -1,10 +1,11 @@
 import { query, transaction, type SqlValue } from "../db";
 import { HttpError } from "../errors";
 import {
-  buildTokenizedOrLikeClause,
+  buildTokenizedAndLikeClause,
   MAX_SEARCH_TOKEN_COUNT,
   tokenizeSearchText,
 } from "../searchTokens";
+import type { SearchTokenClauseFactory } from "../searchTokens";
 import { validateOrResetCardRowForRead } from "./fsrs";
 import {
   CARD_COLUMNS,
@@ -33,6 +34,11 @@ import type {
 const defaultCardsQueryPageSize = 50;
 const maximumCardsQueryPageSize = 100;
 const maximumCardsQuerySortCount = 3;
+const cardSearchExpressionFactories: ReadonlyArray<SearchTokenClauseFactory> = [
+  (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
+  (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
+  (paramIndex) => `lower(effort_level) LIKE $${paramIndex}`,
+];
 
 type CursorValue = string | number | null;
 
@@ -341,11 +347,11 @@ function buildCardsQuerySearchClause(
     };
   }
 
-  const tokenizedSearchClause = buildTokenizedOrLikeClause(searchTokens, startIndex, [
-    (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
-    (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
-    (paramIndex) => `lower(effort_level) LIKE $${paramIndex}`,
-  ]);
+  const tokenizedSearchClause = buildTokenizedAndLikeClause(
+    searchTokens,
+    startIndex,
+    cardSearchExpressionFactories,
+  );
 
   return {
     clause: `AND (${tokenizedSearchClause.clause})`,
@@ -561,11 +567,7 @@ export async function searchCards(
     throw createCardQueryError("query must not be empty");
   }
 
-  const searchClauseResult = buildTokenizedOrLikeClause(searchTokens, 1, [
-    (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
-    (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
-    (paramIndex) => `lower(effort_level) LIKE $${paramIndex}`,
-  ]);
+  const searchClauseResult = buildCardsQuerySearchClause(searchTokens, 1);
   const limitParamIndex = 1 + searchClauseResult.params.length + 1;
 
   return transaction(async (executor) => {
@@ -574,7 +576,7 @@ export async function searchCards(
         CARD_SELECT,
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
-        `AND (${searchClauseResult.clause})`,
+        searchClauseResult.clause,
         "ORDER BY updated_at DESC",
         `LIMIT $${limitParamIndex}`,
       ].join(" "),

@@ -18,9 +18,13 @@ final class CardsSearchTests: XCTestCase {
         XCTAssertEqual(cardsMatchingSearchText(cards: cards, searchText: "hola").map(\.cardId), ["card-Hola"])
         XCTAssertEqual(cardsMatchingSearchText(cards: cards, searchText: "HELLO").map(\.cardId), ["card-Hola", "card-Bonjour"])
         XCTAssertEqual(cardsMatchingSearchText(cards: cards, searchText: "FREN").map(\.cardId), ["card-Bonjour"])
+        XCTAssertEqual(
+            cardsMatchingSearchText(cards: cards, searchText: "FAST").map(\.cardId),
+            ["card-Hola", "card-Bonjour", "card-Ciao"]
+        )
     }
 
-    func testCardsMatchingSearchTextUsesOrAcrossTokens() {
+    func testCardsMatchingSearchTextRequiresEveryToken() {
         let cards = [
             self.makeCard(frontText: "Hola", backText: "Hello", tags: ["spanish"]),
             self.makeCard(frontText: "Bonjour", backText: "Hi", tags: ["french"]),
@@ -28,23 +32,23 @@ final class CardsSearchTests: XCTestCase {
         ]
 
         XCTAssertEqual(
-            cardsMatchingSearchText(cards: cards, searchText: "hola french").map(\.cardId),
-            ["card-Hola", "card-Bonjour"]
+            cardsMatchingSearchText(cards: cards, searchText: "hola spanish").map(\.cardId),
+            ["card-Hola"]
         )
     }
 
     func testCardsMatchingSearchTextMergesTokensAfterFifthToken() {
         let cards = [
-            self.makeCard(frontText: "Phrase", backText: "epsilon zeta", tags: ["combo"]),
-            self.makeCard(frontText: "Single", backText: "zeta", tags: ["single"])
+            self.makeCard(frontText: "alpha beta", backText: "gamma delta epsilon zeta eta", tags: ["combo"]),
+            self.makeCard(frontText: "alpha beta", backText: "gamma delta epsilon zeta", tags: ["single"])
         ]
 
         XCTAssertEqual(
             cardsMatchingSearchText(
                 cards: cards,
-                searchText: "zztokenone zztokentwo zztokenthree zztokenfour epsilon zeta"
+                searchText: "alpha beta gamma delta epsilon zeta eta"
             ).map(\.cardId),
-            ["card-Phrase"]
+            ["card-alpha beta"]
         )
     }
 

@@ -496,7 +496,7 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         }
 
         return Array(self.currentActiveCards(snapshot: snapshot).filter { card in
-            matchesAnySearchToken(
+            matchesAllSearchTokens(
                 values: [card.frontText, card.backText] + card.tags + [card.effortLevel.rawValue],
                 searchTokens: searchTokens
             )

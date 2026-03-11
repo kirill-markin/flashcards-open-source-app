@@ -164,6 +164,7 @@ func formatTags(tags: [String]) -> String {
 
 let maximumSearchTokenCount = 5
 
+// Keep in sync with apps/backend/src/searchTokens.ts::tokenizeSearchText.
 func tokenizeSearchText(searchText: String) -> [String] {
     let normalizedSearchText = searchText
         .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -197,6 +198,18 @@ func matchesAnySearchToken(values: [String], searchTokens: [String]) -> Bool {
     }
 }
 
+func matchesAllSearchTokens(values: [String], searchTokens: [String]) -> Bool {
+    let normalizedValues = values.map { value in
+        value.lowercased()
+    }
+
+    return searchTokens.allSatisfy { token in
+        normalizedValues.contains { value in
+            value.contains(token)
+        }
+    }
+}
+
 func cardsMatchingSearchText(cards: [Card], searchText: String) -> [Card] {
     let searchTokens = tokenizeSearchText(searchText: searchText)
     if searchTokens.isEmpty {
@@ -204,8 +217,8 @@ func cardsMatchingSearchText(cards: [Card], searchText: String) -> [Card] {
     }
 
     return cards.filter { card in
-        matchesAnySearchToken(
-            values: [card.frontText, card.backText] + card.tags,
+        matchesAllSearchTokens(
+            values: [card.frontText, card.backText] + card.tags + [card.effortLevel.rawValue],
             searchTokens: searchTokens
         )
     }
