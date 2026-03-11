@@ -156,3 +156,31 @@
 .card-form-tags-overlay {
   max-height: none;
 }
+
+.tags-page {
+  display: grid;
+}
+
+.tags-screen-panel {
+  max-width: 980px;
+}
+
+.tags-summary-list {
+  display: grid;
+  gap: 14px;
+}
+
+.tags-summary-card,
+.tags-total-card {
+  display: grid;
+  gap: 10px;
+}
+
+.tags-summary-card-head,
+.tags-total-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}

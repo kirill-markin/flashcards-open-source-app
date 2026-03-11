@@ -942,6 +942,8 @@ private func aiChatToolLabel(name: String) -> String {
     switch name {
     case "get_workspace_context":
         return "Workspace context"
+    case "list_tags":
+        return "List tags"
     case "list_cards":
         return "List cards"
     case "get_cards":

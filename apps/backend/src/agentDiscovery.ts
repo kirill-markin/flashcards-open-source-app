@@ -77,6 +77,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       capabilitiesAfterLogin: [
         "Load account context",
         "Select a workspace",
+        "Read workspace tags and counts",
         "Read and write cards and decks",
       ],
       authBaseUrl,

@@ -48,6 +48,10 @@ vi.mock("./screens/ReviewScreen", () => ({
   ReviewScreen: () => <div>review-screen</div>,
 }));
 
+vi.mock("./screens/TagsScreen", () => ({
+  TagsScreen: () => <div>tags-screen</div>,
+}));
+
 describe("RoutedShell", () => {
   let container: HTMLDivElement;
   let root: ReactDOM.Root;

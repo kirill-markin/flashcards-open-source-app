@@ -13,6 +13,7 @@ import { DeckFormScreen } from "./screens/DeckFormScreen";
 import { DecksScreen } from "./screens/DecksScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { TagsScreen } from "./screens/TagsScreen";
 
 function AppShell(): ReactElement {
   const {
@@ -98,6 +99,9 @@ function AppShell(): ReactElement {
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/decks">
                 Decks
               </NavLink>
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/tags">
+                Tags
+              </NavLink>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to="/review">
                 Review
               </NavLink>
@@ -178,6 +182,7 @@ export function RoutedShell(): ReactElement {
           <Route path="/decks/new" element={<DeckFormScreen />} />
           <Route path="/decks/:deckId/edit" element={<DeckFormScreen />} />
           <Route path="/decks/:deckId" element={<DeckDetailScreen />} />
+          <Route path="/tags" element={<TagsScreen />} />
           <Route path="/review" element={<ReviewScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route

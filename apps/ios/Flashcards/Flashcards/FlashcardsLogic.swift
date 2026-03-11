@@ -97,6 +97,28 @@ func tagSuggestions(cards: [Card]) -> [String] {
     }
 }
 
+func workspaceTagsSummary(cards: [Card]) -> WorkspaceTagsSummary {
+    let activeCards = cards.filter { card in
+        card.deletedAt == nil
+    }
+    let counts = activeCards.reduce(into: [String: Int]()) { result, card in
+        for tag in card.tags {
+            result[tag, default: 0] += 1
+        }
+    }
+    let tags = counts.map { entry in
+        WorkspaceTagSummary(tag: entry.key, cardsCount: entry.value)
+    }.sorted { leftTag, rightTag in
+        if leftTag.cardsCount != rightTag.cardsCount {
+            return leftTag.cardsCount > rightTag.cardsCount
+        }
+
+        return leftTag.tag.localizedCaseInsensitiveCompare(rightTag.tag) == .orderedAscending
+    }
+
+    return WorkspaceTagsSummary(tags: tags, totalCards: activeCards.count)
+}
+
 func filterTagSuggestions(suggestions: [String], selectedTags: [String], searchText: String) -> [String] {
     let selectedTagKeys = Set(selectedTags.map { tag in
         normalizeTagKey(tag: tag)

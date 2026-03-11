@@ -25,6 +25,7 @@ test("shared AI tool exports stay aligned across names, validators, local tools,
 
 test("shared AI tool prompt examples keep the canonical JSON shapes used in local instructions", () => {
   assert.deepEqual(SHARED_AI_TOOL_PROMPT_EXAMPLE_LINES, [
+    "- list_tags => {}",
     "- list_cards => {\"cursor\": null, \"limit\": 20}",
     "- get_cards => {\"cardIds\": [\"123e4567-e89b-42d3-a456-426614174000\"]}",
     "- search_cards => {\"query\": \"grammar\", \"cursor\": null, \"limit\": 20}",

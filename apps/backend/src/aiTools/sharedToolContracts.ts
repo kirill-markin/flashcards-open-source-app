@@ -29,6 +29,7 @@ type JsonObjectSchema = Readonly<{
 
 export type SharedAiToolName =
   | "get_workspace_context"
+  | "list_tags"
   | "list_cards"
   | "get_cards"
   | "search_cards"
@@ -279,6 +280,15 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "get_workspace_context",
     localDescription: "Get workspace, cloud, scheduler, and top-level study counts from the local device database.",
     externalDescription: "Load the selected workspace summary, deck summary, and scheduler settings.",
+    jsonContract: "Use {}.",
+    promptExample: "{}",
+    parameters: EMPTY_OBJECT_SCHEMA,
+    validator: z.object({}).strict(),
+  },
+  {
+    name: "list_tags",
+    localDescription: "List all local workspace tags with per-tag card counts and the total active card count. Tag counts can overlap because one card may have multiple tags.",
+    externalDescription: "List all selected-workspace tags with per-tag card counts and the total active card count. Tag counts can overlap because one card may have multiple tags.",
     jsonContract: "Use {}.",
     promptExample: "{}",
     parameters: EMPTY_OBJECT_SCHEMA,
@@ -548,6 +558,7 @@ export const SHARED_EXTERNAL_AGENT_TOOL_DEFINITIONS: ReadonlyArray<Readonly<{
 }));
 
 const SHARED_AI_TOOL_PROMPT_EXAMPLE_NAMES: ReadonlyArray<SharedAiToolName> = [
+  "list_tags",
   "list_cards",
   "get_cards",
   "search_cards",

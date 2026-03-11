@@ -17,6 +17,7 @@ enum AppTab: Hashable, CaseIterable, Sendable {
     case review
     case decks
     case cards
+    case tags
     case ai
     case settings
 }
@@ -175,6 +176,16 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     var id: String {
         cardId
     }
+}
+
+struct WorkspaceTagSummary: Codable, Hashable, Sendable {
+    let tag: String
+    let cardsCount: Int
+}
+
+struct WorkspaceTagsSummary: Codable, Hashable, Sendable {
+    let tags: [WorkspaceTagSummary]
+    let totalCards: Int
 }
 
 struct Deck: Codable, Identifiable, Hashable, Sendable {

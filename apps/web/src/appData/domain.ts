@@ -12,6 +12,8 @@ import type {
   SyncPushOperation,
   UpdateCardInput,
   UpdateDeckInput,
+  WorkspaceTagSummary,
+  WorkspaceTagsSummary,
   WorkspaceSummary,
 } from "../types";
 import { ALL_CARDS_DECK_LABEL } from "../deckFilters";
@@ -130,6 +132,35 @@ export function makeDeckCardStats(cards: ReadonlyArray<Card>, nowTimestamp: numb
     dueCards: cards.filter((card) => isCardDue(card, nowTimestamp)).length,
     newCards: cards.filter((card) => isCardNew(card)).length,
     reviewedCards: cards.filter((card) => isCardReviewed(card)).length,
+  };
+}
+
+export function makeWorkspaceTagsSummary(cards: ReadonlyArray<Card>): WorkspaceTagsSummary {
+  const activeCards = deriveActiveCards(cards);
+  const counts = activeCards.reduce((result, card) => {
+    for (const tag of card.tags) {
+      result.set(tag, (result.get(tag) ?? 0) + 1);
+    }
+
+    return result;
+  }, new Map<string, number>());
+
+  const tags: ReadonlyArray<WorkspaceTagSummary> = [...counts.entries()]
+    .map(([tag, cardsCount]) => ({
+      tag,
+      cardsCount,
+    }))
+    .sort((leftTag, rightTag) => {
+      if (leftTag.cardsCount !== rightTag.cardsCount) {
+        return rightTag.cardsCount - leftTag.cardsCount;
+      }
+
+      return leftTag.tag.localeCompare(rightTag.tag, undefined, { sensitivity: "base" });
+    });
+
+  return {
+    tags,
+    totalCards: activeCards.length,
   };
 }
 

@@ -223,6 +223,7 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
   assert.match(instructions, /every newly proposed card must include at least one tag/i);
   assert.match(instructions, /if the user did not provide tags for a new card, you must suggest one or more concrete tags/i);
   assert.match(instructions, /you must reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate/i);
+  assert.match(instructions, /list_tags => \{\}/);
   assert.match(instructions, /list_cards => \{"cursor": null, "limit": 20\}/);
   assert.match(instructions, /get_cards => \{"cardIds": \["123e4567-e89b-42d3-a456-426614174000"\]\}/);
   assert.match(instructions, /search_cards => \{"query": "grammar", "cursor": null, "limit": 20\}/);

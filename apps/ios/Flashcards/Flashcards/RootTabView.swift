@@ -39,6 +39,14 @@ struct RootTabView: View {
             .tag(AppTab.cards)
 
             NavigationStack {
+                TagsScreen()
+            }
+            .tabItem {
+                Label("Tags", systemImage: "tag")
+            }
+            .tag(AppTab.tags)
+
+            NavigationStack {
                 AIChatView(flashcardsStore: store, chatStore: store.aiChatStore)
             }
             .tabItem {

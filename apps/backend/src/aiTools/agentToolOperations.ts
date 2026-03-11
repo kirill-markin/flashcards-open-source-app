@@ -21,6 +21,7 @@ import {
   getCards,
   listReviewHistoryPage,
   listReviewQueuePage,
+  listWorkspaceTagsSummary,
   queryCardsPage,
   summarizeDeckState,
   updateCards,
@@ -30,6 +31,7 @@ import {
   type CreateCardInput,
   type DeckSummary,
   type UpdateCardInput,
+  type WorkspaceTagsSummary,
 } from "../cards";
 import {
   createDecks,
@@ -80,6 +82,7 @@ export type AgentToolOperationDependencies = Readonly<{
   getCards: typeof getCards;
   listReviewHistoryPage: typeof listReviewHistoryPage;
   listReviewQueuePage: typeof listReviewQueuePage;
+  listWorkspaceTagsSummary: typeof listWorkspaceTagsSummary;
   queryCardsPage: typeof queryCardsPage;
   summarizeDeckState: typeof summarizeDeckState;
   updateCards: typeof updateCards;
@@ -167,6 +170,8 @@ type AgentWorkspaceContextPayload = Readonly<{
   schedulerSettings: WorkspaceSchedulerSettings;
 }>;
 
+type AgentWorkspaceTagsPayload = WorkspaceTagsSummary;
+
 type AgentLimitedCardsPayload = Readonly<{
   cards: Awaited<ReturnType<typeof queryCardsPage>>["cards"];
   nextCursor: string | null;
@@ -224,6 +229,7 @@ export const DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES: AgentToolOperationDepend
   getCards,
   listReviewHistoryPage,
   listReviewQueuePage,
+  listWorkspaceTagsSummary,
   queryCardsPage,
   summarizeDeckState,
   updateCards,
@@ -356,6 +362,16 @@ export async function loadAgentWorkspaceContextOperation(
     deckSummary,
     schedulerSettings,
   };
+}
+
+/**
+ * Canonical backend implementation of the external `list_tags` tool.
+ */
+export async function listAgentTagsOperation(
+  dependencies: AgentToolOperationDependencies,
+  input: Readonly<{ workspaceId: string }>,
+): Promise<AgentWorkspaceTagsPayload> {
+  return dependencies.listWorkspaceTagsSummary(input.workspaceId);
 }
 
 /**
