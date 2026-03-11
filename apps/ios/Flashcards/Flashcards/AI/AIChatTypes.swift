@@ -35,6 +35,7 @@ let aiChatSupportedFileExtensions: Set<String> = [
  */
 let aiChatLocalToolNames: Set<String> = [
     "get_workspace_context",
+    "list_tags",
     "list_cards",
     "get_cards",
     "search_cards",

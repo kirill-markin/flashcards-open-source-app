@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import {
+  listWorkspaceTagsSummary,
   queryCardsPage,
   type CardQuerySort,
   type CardQuerySortDirection,
   type CardQuerySortKey,
+  type WorkspaceTagsSummary,
 } from "../cards";
 import { HttpError } from "../errors";
 import {
@@ -33,6 +35,8 @@ type QueryCardsRequestBody = Readonly<{
   limit: number;
   sorts: ReadonlyArray<CardQuerySort>;
 }>;
+
+type WorkspaceTagsSummaryResponse = WorkspaceTagsSummary;
 
 const allowedCardQuerySortKeys: ReadonlyArray<CardQuerySortKey> = [
   "frontText",
@@ -100,6 +104,39 @@ export function parseQueryCardsRequestBody(value: unknown): QueryCardsRequestBod
 
 export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+
+  app.get("/workspaces/:workspaceId/tags", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
+    const requestId = context.get("requestId");
+
+    try {
+      const result = await listWorkspaceTagsSummary(workspaceId);
+      logCloudRouteEvent("workspace_tags_list", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+        tagsCount: result.tags.length,
+        totalCards: result.totalCards,
+      }, false);
+      return context.json(result satisfies WorkspaceTagsSummaryResponse);
+    } catch (error) {
+      logCloudRouteEvent("workspace_tags_list_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        message: getInternalErrorMessage(error),
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
+  });
 
   app.post("/workspaces/:workspaceId/cards/query", async (context) => {
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);

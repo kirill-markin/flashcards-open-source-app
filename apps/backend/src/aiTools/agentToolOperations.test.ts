@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   listAgentCardsOperation,
+  listAgentTagsOperation,
   loadAgentWorkspaceContextOperation,
   updateAgentDecksOperation,
   type AgentToolOperationDependencies,
@@ -120,6 +121,15 @@ function createDependencies(
         nextCursor: null,
       };
     },
+    async listWorkspaceTagsSummary() {
+      return {
+        tags: [{
+          tag: "grammar",
+          cardsCount: 1,
+        }],
+        totalCards: 1,
+      };
+    },
     async queryCardsPage() {
       return {
         cards: defaultCardList,
@@ -215,6 +225,33 @@ test("loadAgentWorkspaceContextOperation combines workspace summary, deck summar
   assert.equal(result.workspace.workspaceId, "workspace-2");
   assert.deepEqual(result.deckSummary, makeDeckSummary());
   assert.deepEqual(result.schedulerSettings, makeSchedulerSettings());
+});
+
+test("listAgentTagsOperation returns workspace tags with per-tag counts and total cards", async () => {
+  const dependencies = createDependencies({
+    async listWorkspaceTagsSummary(workspaceId) {
+      assert.equal(workspaceId, "workspace-1");
+      return {
+        tags: [
+          { tag: "grammar", cardsCount: 3 },
+          { tag: "verbs", cardsCount: 2 },
+        ],
+        totalCards: 4,
+      };
+    },
+  });
+
+  const result = await listAgentTagsOperation(dependencies, {
+    workspaceId: "workspace-1",
+  });
+
+  assert.deepEqual(result, {
+    tags: [
+      { tag: "grammar", cardsCount: 3 },
+      { tag: "verbs", cardsCount: 2 },
+    ],
+    totalCards: 4,
+  });
 });
 
 test("updateAgentDecksOperation preserves current deck fields for null updates and forwards mutation metadata", async () => {

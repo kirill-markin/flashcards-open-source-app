@@ -132,6 +132,7 @@
                     "capabilitiesAfterLogin": [
                       "Load account context",
                       "Select a workspace",
+                      "Read workspace tags and counts",
                       "Read and write cards and decks"
                     ],
                     "authBaseUrl": "https://auth.flashcards-open-source-app.com",
@@ -926,6 +927,14 @@
                       }
                     },
                     {
+                      "name": "list_tags",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_tags",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
                       "name": "search_cards",
                       "method": "POST",
                       "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards",
@@ -1024,6 +1033,14 @@
                       "name": "list_tools",
                       "method": "GET",
                       "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "list_tags",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/list_tags",
                       "auth": {
                         "scheme": "ApiKey"
                       }
@@ -2723,6 +2740,101 @@
           }
         }
       }
+    },
+    "/agent/tools/list_tags": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "List tags",
+        "description": "Lists all selected-workspace tags with per-tag card counts and the total active card count. Tag counts can overlap because one card may have multiple tags.",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace tags listed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentListTagsEnvelope"
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "tags": [
+                      {
+                        "tag": "grammar",
+                        "cardsCount": 128
+                      },
+                      {
+                        "tag": "verbs",
+                        "cardsCount": 74
+                      },
+                      {
+                        "tag": "spanish",
+                        "cardsCount": 61
+                      }
+                    ],
+                    "totalCards": 143
+                  },
+                  "actions": [
+                    {
+                      "name": "list_tools",
+                      "method": "GET",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_workspace_context",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "get_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/get_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    },
+                    {
+                      "name": "create_cards",
+                      "method": "POST",
+                      "url": "https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards",
+                      "auth": {
+                        "scheme": "ApiKey"
+                      }
+                    }
+                  ],
+                  "instructions": "Read payload from data.* (data.tags, data.totalCards). Do not expect tag fields at the top level. Tag counts can overlap because one card may have multiple tags. Select the next endpoint from instructions and confirm it with actions.",
+                  "docs": {
+                    "openapiUrl": "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+                    "swaggerUrl": "https://api.flashcards-open-source-app.com/v1/agent/swagger.json"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Agent error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3342,6 +3454,7 @@
               "create_workspace",
               "select_workspace",
               "get_workspace_context",
+              "list_tags",
               "list_cards",
               "get_cards",
               "search_cards",
@@ -3862,6 +3975,7 @@
             "type": "string",
             "enum": [
               "get_workspace_context",
+              "list_tags",
               "list_cards",
               "get_cards",
               "search_cards",
@@ -5148,6 +5262,75 @@
           },
           "data": {
             "$ref": "#/components/schemas/AgentDeletedDecksData"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentAction"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "docs": {
+            "$ref": "#/components/schemas/AgentDocs"
+          }
+        }
+      },
+      "WorkspaceTagSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tag",
+          "cardsCount"
+        ],
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "cardsCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentWorkspaceTagsData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tags",
+          "totalCards"
+        ],
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceTagSummary"
+            }
+          },
+          "totalCards": {
+            "type": "integer"
+          }
+        }
+      },
+      "AgentListTagsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "data",
+          "actions",
+          "instructions",
+          "docs"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentWorkspaceTagsData"
           },
           "actions": {
             "type": "array",

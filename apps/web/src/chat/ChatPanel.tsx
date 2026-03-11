@@ -190,6 +190,7 @@ function scrollToBottomSmooth(element: HTMLDivElement): void {
 
 export function formatToolLabel(name: string): string {
   if (name === "get_workspace_context") return "Workspace context";
+  if (name === "list_tags") return "List tags";
   if (name === "list_cards") return "List cards";
   if (name === "get_cards") return "Get cards";
   if (name === "search_cards") return "Search cards";

@@ -36,6 +36,7 @@ import {
   listAgentDecksOperation,
   listAgentDueCardsOperation,
   listAgentReviewHistoryOperation,
+  listAgentTagsOperation,
   loadAgentWorkspaceContextOperation,
   searchAgentCardsOperation,
   searchAgentDecksOperation,
@@ -125,7 +126,8 @@ function toAgentToolActions(requestUrl: string, toolName: ExternalAgentToolName)
   }
 
   if (
-    toolName === "list_cards"
+    toolName === "list_tags"
+    || toolName === "list_cards"
     || toolName === "search_cards"
     || toolName === "list_due_cards"
   ) {
@@ -179,6 +181,7 @@ function toAgentToolActions(requestUrl: string, toolName: ExternalAgentToolName)
   if (toolName === "get_workspace_context") {
     return [
       createAgentListToolsAction(requestUrl),
+      createAgentToolAction(requestUrl, "list_tags"),
       createAgentToolAction(requestUrl, "list_cards"),
       createAgentToolAction(requestUrl, "list_decks"),
       createAgentToolAction(requestUrl, "create_cards"),
@@ -197,6 +200,7 @@ function createAgentWorkspaceActions(requestUrl: string): ReadonlyArray<AgentAct
   return [
     createAgentListToolsAction(requestUrl),
     createAgentToolAction(requestUrl, "get_workspace_context"),
+    createAgentToolAction(requestUrl, "list_tags"),
     createAgentToolAction(requestUrl, "search_cards"),
     createAgentToolAction(requestUrl, "create_cards"),
   ];
@@ -300,6 +304,22 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
       },
     );
     const actions = toAgentToolActions(context.req.url, "get_workspace_context");
+
+    return context.json(createAgentEnvelope(
+      context.req.url,
+      payload,
+      actions,
+      buildAgentNextStepsInstructions(actions),
+    ));
+  });
+
+  app.post("/agent/tools/list_tags", async (context) => {
+    const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const payload = await listAgentTagsOperation(DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES, {
+      workspaceId,
+    });
+    const actions = toAgentToolActions(context.req.url, "list_tags");
 
     return context.json(createAgentEnvelope(
       context.req.url,

@@ -226,6 +226,19 @@ describe("createLocalToolExecutor", () => {
       },
     });
 
+    const tagsResult = await executor.execute({
+      toolCallId: "call-1b",
+      name: "list_tags",
+      input: "{}",
+    });
+    expect(JSON.parse(tagsResult.output)).toEqual({
+      tags: [{
+        tag: "tag-a",
+        cardsCount: 2,
+      }],
+      totalCards: 2,
+    });
+
     const schedulerResult = await executor.execute({
       toolCallId: "call-2",
       name: "get_scheduler_settings",

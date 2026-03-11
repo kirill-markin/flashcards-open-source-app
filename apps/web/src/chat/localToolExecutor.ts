@@ -19,6 +19,7 @@ import {
   isCardNew,
   isCardReviewed,
   makeDeckCardStats,
+  makeWorkspaceTagsSummary,
 } from "../appData/domain";
 import type { PersistedOutboxRecord } from "../syncStorage";
 import type {
@@ -34,6 +35,7 @@ import type {
   UserSettings,
   Workspace,
   WorkspaceSchedulerSettings,
+  WorkspaceTagsSummary,
   WorkspaceSummary,
 } from "../types";
 
@@ -56,6 +58,7 @@ export type LocalToolCallRequest = Readonly<{
  */
 export const LOCAL_TOOL_NAMES = [
   "get_workspace_context",
+  "list_tags",
   "list_cards",
   "get_cards",
   "search_cards",
@@ -83,6 +86,8 @@ type AIWorkspaceContextPayload = Readonly<{
   cloudSettings: CloudSettings;
   homeSnapshot: HomeSnapshot;
 }>;
+
+type AIWorkspaceTagsPayload = WorkspaceTagsSummary;
 
 type AIOutboxEntryPayload = Readonly<{
   operationId: string;
@@ -922,6 +927,12 @@ export function createLocalToolExecutor(
         parseEmptyObjectInput(toolCallRequest);
         return {
           output: JSON.stringify(makeWorkspaceContextPayload(session, activeWorkspace, snapshot)),
+          didMutateAppState: false,
+        };
+      case "list_tags":
+        parseEmptyObjectInput(toolCallRequest);
+        return {
+          output: JSON.stringify(makeWorkspaceTagsSummary(currentActiveCards(snapshot)) satisfies AIWorkspaceTagsPayload),
           didMutateAppState: false,
         };
       case "list_cards": {

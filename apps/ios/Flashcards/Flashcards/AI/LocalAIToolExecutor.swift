@@ -230,6 +230,12 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 output: try self.encodeJSON(value: self.makeWorkspaceContextPayload(snapshot: snapshot)),
                 didMutateAppState: false
             )
+        case "list_tags":
+            let snapshot = try self.loadSnapshotNow()
+            return AIToolExecutionResult(
+                output: try self.encodeJSON(value: workspaceTagsSummary(cards: snapshot.cards)),
+                didMutateAppState: false
+            )
         case "list_cards":
             let input = try self.decodeInput(ListCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let snapshot = try self.loadSnapshotNow()

@@ -36,6 +36,8 @@ import type {
   ReviewHistoryItem,
   ReviewHistoryPage,
   ReviewHistoryRow,
+  WorkspaceTagSummary,
+  WorkspaceTagsSummary,
 } from "./types";
 
 const defaultCardsQueryPageSize = 50;
@@ -759,4 +761,44 @@ export async function summarizeDeckState(workspaceId: string): Promise<DeckSumma
   }
 
   return mapDeckSummary(row);
+}
+
+export async function listWorkspaceTagsSummary(workspaceId: string): Promise<WorkspaceTagsSummary> {
+  const totalCardsResult = await query<Readonly<{ total_cards: string | number }>>(
+    [
+      "SELECT COUNT(*)::int AS total_cards",
+      "FROM content.cards",
+      "WHERE workspace_id = $1 AND deleted_at IS NULL",
+    ].join(" "),
+    [workspaceId],
+  );
+  const totalCardsRow = totalCardsResult.rows[0];
+  if (totalCardsRow === undefined) {
+    throw new Error("Workspace tag summary count query did not return a row");
+  }
+
+  const tagRowsResult = await query<Readonly<{ tag: string; cards_count: string | number }>>(
+    [
+      "SELECT tag_counts.tag, tag_counts.cards_count",
+      "FROM (",
+      "SELECT tag, COUNT(*)::int AS cards_count",
+      "FROM content.cards cards",
+      "CROSS JOIN LATERAL unnest(cards.tags) AS tag",
+      "WHERE cards.workspace_id = $1 AND cards.deleted_at IS NULL",
+      "GROUP BY tag",
+      ") AS tag_counts",
+      "ORDER BY tag_counts.cards_count DESC, lower(tag_counts.tag) ASC, tag_counts.tag ASC",
+    ].join(" "),
+    [workspaceId],
+  );
+
+  const tags: ReadonlyArray<WorkspaceTagSummary> = tagRowsResult.rows.map((row) => ({
+    tag: row.tag,
+    cardsCount: toNumber(row.cards_count),
+  }));
+
+  return {
+    tags,
+    totalCards: toNumber(totalCardsRow.total_cards),
+  };
 }

@@ -171,6 +171,7 @@ function createMemoryStorage(): Storage {
 
 describe("formatToolLabel", () => {
   it("renders plural-only card and deck tool labels", () => {
+    expect(formatToolLabel("list_tags")).toBe("List tags");
     expect(formatToolLabel("get_cards")).toBe("Get cards");
     expect(formatToolLabel("create_cards")).toBe("Create cards");
     expect(formatToolLabel("update_cards")).toBe("Update cards");

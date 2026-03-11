@@ -148,6 +148,16 @@ export type QueryCardsPage = Readonly<{
   totalCount: number;
 }>;
 
+export type WorkspaceTagSummary = Readonly<{
+  tag: string;
+  cardsCount: number;
+}>;
+
+export type WorkspaceTagsSummary = Readonly<{
+  tags: ReadonlyArray<WorkspaceTagSummary>;
+  totalCards: number;
+}>;
+
 // Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::WorkspaceSchedulerSettings and apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings.
 export type WorkspaceSchedulerSettings = Readonly<{
   algorithm: "fsrs-6";

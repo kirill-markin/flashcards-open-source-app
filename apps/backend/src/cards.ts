@@ -33,6 +33,8 @@ export type {
   ReviewResult,
   SubmitReviewInput,
   UpdateCardInput,
+  WorkspaceTagSummary,
+  WorkspaceTagsSummary,
 } from "./cards/types";
 
 export {
@@ -57,6 +59,7 @@ export {
   listCards,
   listReviewHistoryPage,
   listReviewQueuePage,
+  listWorkspaceTagsSummary,
   queryCardsPage,
   listReviewQueue,
   searchCards,

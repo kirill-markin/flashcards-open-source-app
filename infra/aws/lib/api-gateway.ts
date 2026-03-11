@@ -286,6 +286,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const agentWorkspaceById = agentWorkspaces.addResource("{workspaceId}");
   workspaceById.addResource("select").addMethod("POST", integration);
   agentWorkspaceById.addResource("select").addMethod("POST", integration);
+  workspaceById.addResource("tags").addMethod("GET", integration);
   workspaceById
     .addResource("cards")
     .addResource("query")
@@ -299,6 +300,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   agentTools.addMethod("GET", integration);
   [
     "get_workspace_context",
+    "list_tags",
     "list_cards",
     "get_cards",
     "search_cards",

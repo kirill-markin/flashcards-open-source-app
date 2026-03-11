@@ -50,6 +50,7 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   assert.ok(document.paths);
   assert.ok(document.components);
   assert.ok("/" in paths);
+  assert.ok("/agent/tools/list_tags" in paths);
   assert.ok("/agent/tools/list_cards" in paths);
   assert.ok("/agent/workspaces" in paths);
   assert.equal("/workspaces/{workspaceId}/cards/query" in paths, false);
@@ -96,4 +97,10 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   assert.ok("data" in listCardsExample);
   assert.ok(Array.isArray((listCardsExample.data as Record<string, unknown>).cards));
   assert.ok("nextCursor" in (listCardsExample.data as Record<string, unknown>));
+
+  const listTagsExample = paths["/agent/tools/list_tags"]?.post?.responses?.["200"]?.content?.["application/json"]?.example;
+  assert.ok(listTagsExample !== undefined);
+  assert.ok("data" in listTagsExample);
+  assert.ok(Array.isArray((listTagsExample.data as Record<string, unknown>).tags));
+  assert.ok("totalCards" in (listTagsExample.data as Record<string, unknown>));
 });

@@ -118,6 +118,16 @@ export type QueryCardsPage = Readonly<{
   totalCount: number;
 }>;
 
+export type WorkspaceTagSummary = Readonly<{
+  tag: string;
+  cardsCount: number;
+}>;
+
+export type WorkspaceTagsSummary = Readonly<{
+  tags: ReadonlyArray<WorkspaceTagSummary>;
+  totalCards: number;
+}>;
+
 export type CardListPage = Readonly<{
   cards: ReadonlyArray<Card>;
   nextCursor: string | null;
