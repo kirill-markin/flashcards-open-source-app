@@ -31,7 +31,7 @@ struct ReviewView: View {
     }
 
     private var currentCard: Card? {
-        currentReviewCard(reviewQueue: store.reviewQueue)
+        currentReviewCard(reviewQueue: store.effectiveReviewQueue)
     }
 
     var body: some View {
@@ -55,13 +55,13 @@ struct ReviewView: View {
                 Button {
                     self.isQueuePreviewPresented = true
                 } label: {
-                    Text("\(store.reviewQueue.count) / \(store.reviewTotalCount)")
+                    Text("\(store.effectiveReviewQueue.count) / \(store.reviewTotalCount)")
                         .font(.subheadline.monospacedDigit())
                         .padding(.horizontal, 6)
                         .foregroundStyle(.secondary)
                 }
                 .disabled(store.reviewTotalCount == 0)
-                .accessibilityLabel("Review queue \(store.reviewQueue.count) active of \(store.reviewTotalCount) total")
+                .accessibilityLabel("Review queue \(store.effectiveReviewQueue.count) active of \(store.reviewTotalCount) total")
             }
         }
         .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
@@ -69,7 +69,7 @@ struct ReviewView: View {
                 ReviewQueuePreviewScreen(
                     title: store.selectedReviewFilterTitle,
                     cards: store.reviewTimeline,
-                    activeCount: store.reviewQueue.count,
+                    activeCount: store.effectiveReviewQueue.count,
                     currentCardId: currentCard?.cardId
                 )
             }
@@ -92,6 +92,25 @@ struct ReviewView: View {
                     }
                 )
             }
+        }
+        .alert(
+            "Review wasn't saved",
+            isPresented: Binding(
+                get: {
+                    store.reviewSubmissionFailure != nil
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        store.dismissReviewSubmissionFailure()
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                store.dismissReviewSubmissionFailure()
+            }
+        } message: {
+            Text(store.reviewSubmissionFailure?.message ?? "")
         }
     }
 
@@ -250,6 +269,7 @@ struct ReviewView: View {
             .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .center)
         }
         .buttonStyle(.borderedProminent)
+        .disabled(store.isReviewPending(cardId: cardId))
     }
 
     private func reviewBottomBarContainer<Content: View>(
@@ -378,7 +398,7 @@ struct ReviewView: View {
 
     private func submitReview(cardId: String, rating: ReviewRating) {
         do {
-            try store.submitReview(cardId: cardId, rating: rating)
+            try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
             self.screenErrorMessage = ""
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)
