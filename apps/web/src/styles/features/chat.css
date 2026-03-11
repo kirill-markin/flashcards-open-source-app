@@ -345,6 +345,11 @@
   color: var(--text-secondary);
 }
 
+.chat-model-label {
+  display: inline-flex;
+  align-items: center;
+}
+
 .chat-attachment-preview {
   display: flex;
   gap: 8px;
