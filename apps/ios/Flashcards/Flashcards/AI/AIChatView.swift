@@ -80,6 +80,15 @@ struct AIChatView: View {
             }
         }
         .navigationTitle("AI")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("New") {
+                    self.chatStore.clearHistory()
+                }
+                .disabled(self.isNewChatDisabled)
+            }
+        }
         .onAppear {
             self.handleAIChatPresentationRequest(request: self.flashcardsStore.aiChatPresentationRequest)
         }
@@ -115,6 +124,13 @@ struct AIChatView: View {
         }
     }
 
+    private var isNewChatDisabled: Bool {
+        self.chatStore.messages.isEmpty
+            && self.chatStore.pendingAttachments.isEmpty
+            && self.chatStore.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && self.chatStore.isStreaming == false
+    }
+
     private var signInGate: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -135,24 +151,6 @@ struct AIChatView: View {
 
     private var chatContent: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Local workspace AI")
-                    .font(.headline)
-                Spacer()
-                Button("Clear") {
-                    self.chatStore.clearHistory()
-                }
-                .disabled(self.chatStore.messages.isEmpty)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                self.isComposerFocused = false
-            }
-
-            Divider()
-
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
