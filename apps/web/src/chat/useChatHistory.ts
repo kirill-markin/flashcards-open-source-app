@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ContentPart } from "../types";
 
 export type StoredMessage = Readonly<{
@@ -10,6 +10,7 @@ export type StoredMessage = Readonly<{
 
 type ChatHistoryState = Readonly<{
   messages: ReadonlyArray<StoredMessage>;
+  isHydrated: boolean;
   appendUserMessage: (content: ReadonlyArray<ContentPart>) => void;
   startAssistantMessage: () => void;
   appendAssistantChunk: (text: string) => void;
@@ -145,20 +146,20 @@ function saveToStorage(messages: ReadonlyArray<StoredMessage>): void {
 
 export function useChatHistory(): ChatHistoryState {
   const [messages, setMessages] = useState<ReadonlyArray<StoredMessage>>([]);
-  const loadedRef = useRef<boolean>(false);
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
 
   useEffect(() => {
     setMessages(loadFromStorage());
-    loadedRef.current = true;
+    setIsHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!loadedRef.current) {
+    if (!isHydrated) {
       return;
     }
 
     saveToStorage(messages);
-  }, [messages]);
+  }, [isHydrated, messages]);
 
   function appendUserMessage(content: ReadonlyArray<ContentPart>): void {
     setMessages((currentMessages) => [
@@ -302,6 +303,7 @@ export function useChatHistory(): ChatHistoryState {
 
   return {
     messages,
+    isHydrated,
     appendUserMessage,
     startAssistantMessage,
     appendAssistantChunk,

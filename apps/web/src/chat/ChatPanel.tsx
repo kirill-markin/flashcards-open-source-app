@@ -41,6 +41,8 @@ const IMAGE_MEDIA_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "imag
 const MAX_BODY_BYTES = 90 * 1024 * 1024;
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 600;
+const AUTO_SCROLL_INTERVAL_MS = 2_000;
+const AUTO_SCROLL_BOTTOM_THRESHOLD_PX = 24;
 
 type ChatResponseMetadata = Readonly<{
   statusCode: number | null;
@@ -165,6 +167,18 @@ function sanitizeErrorText(status: number, raw: string): string {
   return raw;
 }
 
+function isNearBottom(element: HTMLDivElement): boolean {
+  return element.scrollHeight - element.scrollTop - element.clientHeight <= AUTO_SCROLL_BOTTOM_THRESHOLD_PX;
+}
+
+function scrollToBottomInstant(element: HTMLDivElement): void {
+  element.scrollTo({ top: element.scrollHeight, behavior: "auto" });
+}
+
+function scrollToBottomSmooth(element: HTMLDivElement): void {
+  element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
+}
+
 export function formatToolLabel(name: string): string {
   if (name === "get_workspace_context") return "Workspace context";
   if (name === "list_cards") return "List cards";
@@ -233,6 +247,7 @@ export function ChatPanel(props: Props): ReactElement {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const {
     messages,
+    isHydrated,
     appendUserMessage,
     startAssistantMessage,
     appendAssistantChunk,
@@ -254,6 +269,25 @@ export function ChatPanel(props: Props): ReactElement {
   const dragCounterRef = useRef<number>(0);
   const dragWidthRef = useRef<number>(chatWidth);
   const abortRef = useRef<AbortController | null>(null);
+  const isAutoScrollEnabledRef = useRef<boolean>(true);
+  const hasPendingScrollRef = useRef<boolean>(false);
+  const autoScrollIntervalIdRef = useRef<number | null>(null);
+  const hasInitialBottomSnapRef = useRef<boolean>(false);
+  const shouldSkipNextMessageSyncRef = useRef<boolean>(false);
+
+  function flushPendingAutoScroll(): void {
+    const element = messagesRef.current;
+    if (element === null) {
+      return;
+    }
+
+    if (isAutoScrollEnabledRef.current === false || hasPendingScrollRef.current === false) {
+      return;
+    }
+
+    scrollToBottomSmooth(element);
+    hasPendingScrollRef.current = false;
+  }
 
   useEffect(() => {
     const savedModel = localStorage.getItem(STORAGE_MODEL_KEY);
@@ -268,11 +302,72 @@ export function ChatPanel(props: Props): ReactElement {
   }, [chatWidth]);
 
   useEffect(() => {
-    const element = messagesRef.current;
-    if (element !== null) {
-      element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
+    if (!isHydrated || hasInitialBottomSnapRef.current) {
+      return;
     }
-  }, [messages, isStreaming]);
+
+    const element = messagesRef.current;
+    if (element === null) {
+      return;
+    }
+
+    scrollToBottomInstant(element);
+    hasInitialBottomSnapRef.current = true;
+    shouldSkipNextMessageSyncRef.current = true;
+    isAutoScrollEnabledRef.current = isNearBottom(element);
+    hasPendingScrollRef.current = false;
+  }, [isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated || hasInitialBottomSnapRef.current === false) {
+      return;
+    }
+
+    if (shouldSkipNextMessageSyncRef.current) {
+      shouldSkipNextMessageSyncRef.current = false;
+      return;
+    }
+
+    hasPendingScrollRef.current = true;
+    if (isStreaming === false) {
+      flushPendingAutoScroll();
+    }
+  }, [isHydrated, isStreaming, messages]);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    if (isStreaming) {
+      const intervalId = window.setInterval(() => {
+        flushPendingAutoScroll();
+      }, AUTO_SCROLL_INTERVAL_MS);
+      autoScrollIntervalIdRef.current = intervalId;
+      return () => {
+        window.clearInterval(intervalId);
+        if (autoScrollIntervalIdRef.current === intervalId) {
+          autoScrollIntervalIdRef.current = null;
+        }
+      };
+    }
+
+    if (autoScrollIntervalIdRef.current !== null) {
+      window.clearInterval(autoScrollIntervalIdRef.current);
+      autoScrollIntervalIdRef.current = null;
+    }
+
+    flushPendingAutoScroll();
+  }, [isHydrated, isStreaming]);
+
+  useEffect(() => {
+    return () => {
+      if (autoScrollIntervalIdRef.current !== null) {
+        window.clearInterval(autoScrollIntervalIdRef.current);
+        autoScrollIntervalIdRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isDragging) {
@@ -744,6 +839,18 @@ export function ChatPanel(props: Props): ReactElement {
 
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
 
+  function handleMessagesScroll(): void {
+    const element = messagesRef.current;
+    if (element === null) {
+      return;
+    }
+
+    isAutoScrollEnabledRef.current = isNearBottom(element);
+    if (isAutoScrollEnabledRef.current && !isStreaming) {
+      flushPendingAutoScroll();
+    }
+  }
+
   return (
     <div
       ref={rootRef}
@@ -803,7 +910,7 @@ export function ChatPanel(props: Props): ReactElement {
         </div>
       </div>
 
-      <div className="chat-messages" ref={messagesRef}>
+      <div className="chat-messages" ref={messagesRef} onScroll={handleMessagesScroll}>
         {messages.length === 0 ? (
           <div className="chat-empty">
             <p className="chat-empty-title">Try asking:</p>
