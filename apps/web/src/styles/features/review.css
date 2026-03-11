@@ -31,7 +31,10 @@
 
 .review-filter-summary {
   min-width: 180px;
+  min-height: 46px;
+  padding: 0 18px;
   justify-content: flex-start;
+  font-size: 16px;
 }
 
 .review-pane,
