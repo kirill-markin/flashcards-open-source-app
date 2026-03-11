@@ -79,22 +79,78 @@ func normalizeTags(values: [String], referenceTags: [String]) -> [String] {
     }
 }
 
-func tagSuggestions(cards: [Card]) -> [String] {
-    let counts = cards.reduce(into: [String: Int]()) { result, card in
+private func tagSuggestionReferenceTags(suggestions: [TagSuggestion]) -> [String] {
+    suggestions.map(\.tag)
+}
+
+private func compareTagSuggestions(left: TagSuggestion, right: TagSuggestion) -> Bool {
+    switch (left.countState, right.countState) {
+    case (.ready(let leftCount), .ready(let rightCount)):
+        if leftCount != rightCount {
+            return leftCount > rightCount
+        }
+    case (.ready, .loading):
+        return true
+    case (.loading, .ready):
+        return false
+    case (.loading, .loading):
+        break
+    }
+
+    return left.tag.localizedCaseInsensitiveCompare(right.tag) == .orderedAscending
+}
+
+func normalizeTagSuggestions(suggestions: [TagSuggestion]) -> [TagSuggestion] {
+    suggestions.reduce(into: [TagSuggestion]()) { result, suggestion in
+        guard let canonicalTag = canonicalTagValue(
+            rawValue: suggestion.tag,
+            referenceTags: tagSuggestionReferenceTags(suggestions: result)
+        ) else {
+            return
+        }
+
+        let nextSuggestion = TagSuggestion(
+            tag: canonicalTag,
+            countState: suggestion.countState
+        )
+        let canonicalKey = normalizeTagKey(tag: canonicalTag)
+        if let existingIndex = result.firstIndex(where: { existingSuggestion in
+            normalizeTagKey(tag: existingSuggestion.tag) == canonicalKey
+        }) {
+            switch (result[existingIndex].countState, nextSuggestion.countState) {
+            case (.loading, .ready):
+                result[existingIndex] = nextSuggestion
+            case (.ready(let existingCount), .ready(let nextCount)):
+                if nextCount > existingCount {
+                    result[existingIndex] = nextSuggestion
+                }
+            case (.ready, .loading), (.loading, .loading):
+                break
+            }
+
+            return
+        }
+
+        result.append(nextSuggestion)
+    }.sorted(by: compareTagSuggestions)
+}
+
+func tagSuggestions(cards: [Card]) -> [TagSuggestion] {
+    let activeCards = cards.filter { card in
+        card.deletedAt == nil
+    }
+    let counts = activeCards.reduce(into: [String: Int]()) { result, card in
         for tag in normalizeTags(values: card.tags, referenceTags: []) {
             result[tag, default: 0] += 1
         }
     }
 
-    return counts.keys.sorted { leftTag, rightTag in
-        let leftCount = counts[leftTag] ?? 0
-        let rightCount = counts[rightTag] ?? 0
-        if leftCount != rightCount {
-            return leftCount > rightCount
-        }
-
-        return leftTag.localizedCaseInsensitiveCompare(rightTag) == .orderedAscending
-    }
+    return counts.map { entry in
+        TagSuggestion(
+            tag: entry.key,
+            countState: .ready(cardsCount: entry.value)
+        )
+    }.sorted(by: compareTagSuggestions)
 }
 
 func workspaceTagsSummary(cards: [Card]) -> WorkspaceTagsSummary {
@@ -119,14 +175,14 @@ func workspaceTagsSummary(cards: [Card]) -> WorkspaceTagsSummary {
     return WorkspaceTagsSummary(tags: tags, totalCards: activeCards.count)
 }
 
-func filterTagSuggestions(suggestions: [String], selectedTags: [String], searchText: String) -> [String] {
+func filterTagSuggestions(suggestions: [TagSuggestion], selectedTags: [String], searchText: String) -> [TagSuggestion] {
     let selectedTagKeys = Set(selectedTags.map { tag in
         normalizeTagKey(tag: tag)
     })
     let normalizedSearchText = normalizeTag(rawValue: searchText).lowercased()
 
-    return normalizeTags(values: suggestions, referenceTags: []).filter { suggestion in
-        if selectedTagKeys.contains(normalizeTagKey(tag: suggestion)) {
+    return normalizeTagSuggestions(suggestions: suggestions).filter { suggestion in
+        if selectedTagKeys.contains(normalizeTagKey(tag: suggestion.tag)) {
             return false
         }
 
@@ -134,18 +190,35 @@ func filterTagSuggestions(suggestions: [String], selectedTags: [String], searchT
             return true
         }
 
-        return suggestion.lowercased().contains(normalizedSearchText)
+        return suggestion.tag.lowercased().contains(normalizedSearchText)
     }
 }
 
-func creatableTagValue(searchText: String, selectedTags: [String], suggestions: [String]) -> String? {
+func selectedTagSuggestions(selectedTags: [String], suggestions: [TagSuggestion]) -> [TagSuggestion] {
+    let referenceTags = tagSuggestionReferenceTags(suggestions: suggestions)
+
+    return normalizeTags(values: selectedTags, referenceTags: referenceTags).map { tag in
+        if let existingSuggestion = suggestions.first(where: { suggestion in
+            normalizeTagKey(tag: suggestion.tag) == normalizeTagKey(tag: tag)
+        }) {
+            return existingSuggestion
+        }
+
+        return TagSuggestion(
+            tag: tag,
+            countState: .ready(cardsCount: 0)
+        )
+    }
+}
+
+func creatableTagValue(searchText: String, selectedTags: [String], suggestions: [TagSuggestion]) -> String? {
     let normalizedSearchText = normalizeTag(rawValue: searchText)
     if normalizedSearchText.isEmpty {
         return nil
     }
 
     let normalizedSearchKey = normalizeTagKey(tag: normalizedSearchText)
-    let existingTags = selectedTags + suggestions
+    let existingTags = selectedTags + tagSuggestionReferenceTags(suggestions: suggestions)
     if existingTags.contains(where: { tag in
         normalizeTagKey(tag: tag) == normalizedSearchKey
     }) {
@@ -155,7 +228,7 @@ func creatableTagValue(searchText: String, selectedTags: [String], suggestions: 
     return normalizedSearchText
 }
 
-func toggleTagSelection(selectedTags: [String], tag: String, suggestions: [String]) -> [String] {
+func toggleTagSelection(selectedTags: [String], tag: String, suggestions: [TagSuggestion]) -> [String] {
     let tagKey = normalizeTagKey(tag: tag)
     if selectedTags.contains(where: { selectedTag in
         normalizeTagKey(tag: selectedTag) == tagKey
@@ -165,7 +238,10 @@ func toggleTagSelection(selectedTags: [String], tag: String, suggestions: [Strin
         }
     }
 
-    return normalizeTags(values: selectedTags + [tag], referenceTags: suggestions)
+    return normalizeTags(
+        values: selectedTags + [tag],
+        referenceTags: tagSuggestionReferenceTags(suggestions: suggestions)
+    )
 }
 
 func formatTagSelectionSummary(tags: [String]) -> String {

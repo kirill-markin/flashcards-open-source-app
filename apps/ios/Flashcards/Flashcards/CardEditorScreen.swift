@@ -19,7 +19,7 @@ struct CardEditorScreen: View {
     let onSave: () -> Void
     let onDelete: () -> Void
 
-    private var availableTagSuggestions: [String] {
+    private var availableTagSuggestions: [TagSuggestion] {
         tagSuggestions(cards: store.cards)
     }
 

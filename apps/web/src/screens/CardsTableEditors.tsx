@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import type { EffortLevel } from "../types";
+import type { EffortLevel, TagSuggestion } from "../types";
 import { areSameTags, CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
 
 type OverlayRect = Readonly<{
@@ -39,7 +39,7 @@ type EditableEffortCellProps = Readonly<{
 
 type EditableTagsCellProps = Readonly<{
   value: ReadonlyArray<string>;
-  suggestions: ReadonlyArray<string>;
+  suggestions: ReadonlyArray<TagSuggestion>;
   saving: boolean;
   onCommit: (nextValue: ReadonlyArray<string>) => Promise<void>;
   cellClassName: string;

@@ -434,7 +434,7 @@ private struct DeckEditorView: View {
     let onCancel: () -> Void
     let onSave: () -> Void
 
-    private var availableTagSuggestions: [String] {
+    private var availableTagSuggestions: [TagSuggestion] {
         tagSuggestions(cards: store.cards)
     }
 
