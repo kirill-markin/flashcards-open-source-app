@@ -20,6 +20,7 @@ import {
   normalizeUpdateCardInput,
   normalizeUpdateDeckInput,
   currentReviewCard,
+  isReviewFilterEqual,
   reviewFilterTitle,
   resolveReviewFilter,
   upsertCard,
@@ -326,6 +327,18 @@ describe("appData domain helpers", () => {
       deckId: "missing-deck",
     }, [
       createDeck({ deckId: "deck-1" }),
+    ], [])).toEqual(ALL_CARDS_REVIEW_FILTER);
+  });
+
+  it("resolves missing tag review filters back to All cards", () => {
+    expect(resolveReviewFilter({
+      kind: "tag",
+      tag: "missing-tag",
+    }, [], [
+      createCard({
+        cardId: "card-1",
+        tags: ["grammar"],
+      }),
     ])).toEqual(ALL_CARDS_REVIEW_FILTER);
   });
 
@@ -361,11 +374,41 @@ describe("appData domain helpers", () => {
       grammarCard,
       travelCard,
     ])).toEqual([grammarCard]);
-    expect(reviewFilterTitle(ALL_CARDS_REVIEW_FILTER, [grammarDeck])).toBe("All cards");
+    expect(cardsMatchingReviewFilter({
+      kind: "tag",
+      tag: "verbs",
+    }, [grammarDeck], [
+      grammarCard,
+      travelCard,
+    ])).toEqual([grammarCard]);
+    expect(reviewFilterTitle(ALL_CARDS_REVIEW_FILTER, [grammarDeck], [
+      grammarCard,
+      travelCard,
+    ])).toBe("All cards");
     expect(reviewFilterTitle({
       kind: "deck",
       deckId: "grammar",
-    }, [grammarDeck])).toBe("Grammar");
+    }, [grammarDeck], [
+      grammarCard,
+      travelCard,
+    ])).toBe("Grammar");
+    expect(reviewFilterTitle({
+      kind: "tag",
+      tag: "verbs",
+    }, [grammarDeck], [
+      grammarCard,
+      travelCard,
+    ])).toBe("verbs");
+  });
+
+  it("distinguishes deck and tag review filters with the same identifier text", () => {
+    expect(isReviewFilterEqual({
+      kind: "deck",
+      deckId: "grammar",
+    }, {
+      kind: "tag",
+      tag: "grammar",
+    })).toBe(false);
   });
 
   it("builds filtered review timeline and queue from the selected review filter", () => {

@@ -3,11 +3,13 @@ import Foundation
 private enum PersistedReviewFilterKind: String, Codable {
     case allCards
     case deck
+    case tag
 }
 
 private struct PersistedReviewFilter: Codable, Hashable {
     let kind: PersistedReviewFilterKind
     let deckId: String?
+    let tag: String?
 }
 
 private let selectedReviewFilterUserDefaultsKey: String = "selected-review-filter"
@@ -15,9 +17,11 @@ private let selectedReviewFilterUserDefaultsKey: String = "selected-review-filte
 private func makePersistedReviewFilter(reviewFilter: ReviewFilter) -> PersistedReviewFilter {
     switch reviewFilter {
     case .allCards:
-        return PersistedReviewFilter(kind: .allCards, deckId: nil)
+        return PersistedReviewFilter(kind: .allCards, deckId: nil, tag: nil)
     case .deck(let deckId):
-        return PersistedReviewFilter(kind: .deck, deckId: deckId)
+        return PersistedReviewFilter(kind: .deck, deckId: deckId, tag: nil)
+    case .tag(let tag):
+        return PersistedReviewFilter(kind: .tag, deckId: nil, tag: tag)
     }
 }
 
@@ -31,6 +35,12 @@ private func makeReviewFilter(persistedReviewFilter: PersistedReviewFilter) thro
         }
 
         return .deck(deckId: deckId)
+    case .tag:
+        guard let tag = persistedReviewFilter.tag, tag.isEmpty == false else {
+            throw LocalStoreError.validation("Persisted review filter is missing tag")
+        }
+
+        return .tag(tag: tag)
     }
 }
 
@@ -258,7 +268,7 @@ final class FlashcardsStore: ObservableObject {
     }
 
     var selectedReviewFilterTitle: String {
-        reviewFilterTitle(reviewFilter: self.selectedReviewFilter, decks: self.decks)
+        reviewFilterTitle(reviewFilter: self.selectedReviewFilter, decks: self.decks, cards: self.cards)
     }
 
     var reviewTotalCount: Int {
@@ -803,7 +813,7 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func refreshReviewState(now: Date) {
-        let resolvedReviewFilter = resolveReviewFilter(reviewFilter: self.selectedReviewFilter, decks: self.decks)
+        let resolvedReviewFilter = resolveReviewFilter(reviewFilter: self.selectedReviewFilter, decks: self.decks, cards: self.cards)
         self.selectedReviewFilter = resolvedReviewFilter
         self.persistSelectedReviewFilter(reviewFilter: resolvedReviewFilter)
         self.reviewQueue = makeReviewQueue(

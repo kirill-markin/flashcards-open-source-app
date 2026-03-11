@@ -104,6 +104,10 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
     return left.deckId === right.deckId;
   }
 
+  if (left.kind === "tag" && right.kind === "tag") {
+    return left.tag === right.tag;
+  }
+
   return false;
 }
 
@@ -178,13 +182,29 @@ export function makeWorkspaceTagsSummary(cards: ReadonlyArray<Card>): WorkspaceT
   };
 }
 
-export function resolveReviewFilter(reviewFilter: ReviewFilter, decks: ReadonlyArray<Deck>): ReviewFilter {
+function hasActiveTag(tag: string, cards: ReadonlyArray<Card>): boolean {
+  return deriveActiveCards(cards).some((card) => card.tags.includes(tag));
+}
+
+export function resolveReviewFilter(
+  reviewFilter: ReviewFilter,
+  decks: ReadonlyArray<Deck>,
+  cards: ReadonlyArray<Card>,
+): ReviewFilter {
   if (reviewFilter.kind === "allCards") {
     return ALL_CARDS_REVIEW_FILTER;
   }
 
-  const activeDeck = deriveActiveDecks(decks).find((deck) => deck.deckId === reviewFilter.deckId);
-  if (activeDeck === undefined) {
+  if (reviewFilter.kind === "deck") {
+    const activeDeck = deriveActiveDecks(decks).find((deck) => deck.deckId === reviewFilter.deckId);
+    if (activeDeck === undefined) {
+      return ALL_CARDS_REVIEW_FILTER;
+    }
+
+    return reviewFilter;
+  }
+
+  if (hasActiveTag(reviewFilter.tag, cards) === false) {
     return ALL_CARDS_REVIEW_FILTER;
   }
 
@@ -196,27 +216,39 @@ export function cardsMatchingReviewFilter(
   decks: ReadonlyArray<Deck>,
   cards: ReadonlyArray<Card>,
 ): ReadonlyArray<Card> {
-  const resolvedReviewFilter = resolveReviewFilter(reviewFilter, decks);
+  const resolvedReviewFilter = resolveReviewFilter(reviewFilter, decks, cards);
   if (resolvedReviewFilter.kind === "allCards") {
     return deriveActiveCards(cards);
   }
 
-  const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
-  if (deck === undefined) {
-    return [];
+  if (resolvedReviewFilter.kind === "deck") {
+    const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
+    if (deck === undefined) {
+      return [];
+    }
+
+    return cardsMatchingDeck(deck, cards);
   }
 
-  return cardsMatchingDeck(deck, cards);
+  return deriveActiveCards(cards).filter((card) => card.tags.includes(resolvedReviewFilter.tag));
 }
 
-export function reviewFilterTitle(reviewFilter: ReviewFilter, decks: ReadonlyArray<Deck>): string {
-  const resolvedReviewFilter = resolveReviewFilter(reviewFilter, decks);
+export function reviewFilterTitle(
+  reviewFilter: ReviewFilter,
+  decks: ReadonlyArray<Deck>,
+  cards: ReadonlyArray<Card>,
+): string {
+  const resolvedReviewFilter = resolveReviewFilter(reviewFilter, decks, cards);
   if (resolvedReviewFilter.kind === "allCards") {
     return ALL_CARDS_DECK_LABEL;
   }
 
-  const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
-  return deck?.name ?? ALL_CARDS_DECK_LABEL;
+  if (resolvedReviewFilter.kind === "deck") {
+    const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
+    return deck?.name ?? ALL_CARDS_DECK_LABEL;
+  }
+
+  return resolvedReviewFilter.tag;
 }
 
 function getReviewOrderDueTimestamp(card: Card): number {

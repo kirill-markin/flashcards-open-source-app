@@ -5,6 +5,7 @@ import {
   ALL_CARDS_REVIEW_FILTER,
   currentReviewCard,
   isCardDue,
+  makeWorkspaceTagsSummary,
 } from "../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../deckFilters";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
@@ -26,6 +27,9 @@ type ReviewButtonOption = Readonly<{
 
 const EMPTY_BACK_TEXT_PLACEHOLDER = "No back text";
 const REVIEW_BUTTONS_PER_COLUMN = 2;
+const REVIEW_FILTER_DECK_PREFIX = "deck:";
+const REVIEW_FILTER_TAG_PREFIX = "tag:";
+const REVIEW_FILTER_SEPARATOR_VALUE = "__review-filter-separator__";
 
 const reviewAnswerOptions: ReadonlyArray<Readonly<{
   title: string;
@@ -50,7 +54,15 @@ function renderTags(tags: ReadonlyArray<string>): string {
 }
 
 function toReviewFilterSelectValue(reviewFilter: ReviewFilter): string {
-  return reviewFilter.kind === "allCards" ? ALL_CARDS_DECK_SLUG : reviewFilter.deckId;
+  if (reviewFilter.kind === "allCards") {
+    return ALL_CARDS_DECK_SLUG;
+  }
+
+  if (reviewFilter.kind === "deck") {
+    return `${REVIEW_FILTER_DECK_PREFIX}${reviewFilter.deckId}`;
+  }
+
+  return `${REVIEW_FILTER_TAG_PREFIX}${reviewFilter.tag}`;
 }
 
 function parseReviewFilterSelectValue(value: string): ReviewFilter {
@@ -58,10 +70,21 @@ function parseReviewFilterSelectValue(value: string): ReviewFilter {
     return ALL_CARDS_REVIEW_FILTER;
   }
 
-  return {
-    kind: "deck",
-    deckId: value,
-  };
+  if (value.startsWith(REVIEW_FILTER_DECK_PREFIX)) {
+    return {
+      kind: "deck",
+      deckId: value.slice(REVIEW_FILTER_DECK_PREFIX.length),
+    };
+  }
+
+  if (value.startsWith(REVIEW_FILTER_TAG_PREFIX)) {
+    return {
+      kind: "tag",
+      tag: value.slice(REVIEW_FILTER_TAG_PREFIX.length),
+    };
+  }
+
+  throw new Error(`Unsupported review filter select value: ${value}`);
 }
 
 function formatQueueBadge(dueCount: number, totalCount: number): string {
@@ -230,6 +253,7 @@ export function ReviewScreen(): ReactElement {
   const queueCards = cardsState.hasLoaded ? reviewTimeline : reviewQueue;
   const selectedCard = currentReviewCard(activeReviewQueue);
   const editingCard = cards.find((card) => card.cardId === editingCardId && card.deletedAt === null) ?? null;
+  const reviewTagSummaries = makeWorkspaceTagsSummary(cards).tags;
   const reviewButtonsNow = new Date();
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
   let reviewButtonErrorMessage: string = "";
@@ -379,7 +403,18 @@ export function ReviewScreen(): ReactElement {
               >
                 <option value={ALL_CARDS_DECK_SLUG}>All cards</option>
                 {decks.map((deck) => (
-                  <option key={deck.deckId} value={deck.deckId}>{deck.name}</option>
+                  <option key={deck.deckId} value={`${REVIEW_FILTER_DECK_PREFIX}${deck.deckId}`}>{deck.name}</option>
+                ))}
+                {reviewTagSummaries.length > 0 ? (
+                  <option disabled value={REVIEW_FILTER_SEPARATOR_VALUE}>──────────</option>
+                ) : null}
+                {reviewTagSummaries.map((tagSummary) => (
+                  <option
+                    key={tagSummary.tag}
+                    value={`${REVIEW_FILTER_TAG_PREFIX}${tagSummary.tag}`}
+                  >
+                    {`${tagSummary.tag} (${tagSummary.cardsCount})`}
+                  </option>
                 ))}
               </select>
             </label>

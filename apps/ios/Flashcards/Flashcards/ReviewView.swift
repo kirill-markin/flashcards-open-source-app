@@ -27,9 +27,22 @@ struct ReviewView: View {
     )
     @State private var screenErrorMessage: String = ""
 
-    private var reviewFilterOptions: [ReviewFilter] {
-        [.allCards] + store.decks.map { deck in
-            .deck(deckId: deck.deckId)
+    private var reviewTagSummaries: [WorkspaceTagSummary] {
+        workspaceTagsSummary(cards: store.cards).tags
+    }
+
+    private func reviewFilterMenuItemLabel(reviewFilter: ReviewFilter) -> String {
+        switch reviewFilter {
+        case .allCards, .deck:
+            return reviewFilterTitle(reviewFilter: reviewFilter, decks: store.decks, cards: store.cards)
+        case .tag(let tag):
+            guard let tagSummary = reviewTagSummaries.first(where: { summary in
+                summary.tag == tag
+            }) else {
+                return tag
+            }
+
+            return "\(tagSummary.tag) (\(tagSummary.cardsCount))"
         }
     }
 
@@ -129,17 +142,40 @@ struct ReviewView: View {
 
     private var reviewFilterMenu: some View {
         Menu {
-            ForEach(reviewFilterOptions) { reviewFilter in
+            ForEach([ReviewFilter.allCards] + store.decks.map { deck in
+                .deck(deckId: deck.deckId)
+            }) { reviewFilter in
                 Button {
                     store.selectReviewFilter(reviewFilter: reviewFilter)
                 } label: {
                     if reviewFilter == store.selectedReviewFilter {
                         Label(
-                            reviewFilterTitle(reviewFilter: reviewFilter, decks: store.decks),
+                            reviewFilterMenuItemLabel(reviewFilter: reviewFilter),
                             systemImage: "checkmark"
                         )
                     } else {
-                        Text(reviewFilterTitle(reviewFilter: reviewFilter, decks: store.decks))
+                        Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
+                    }
+                }
+            }
+
+            if reviewTagSummaries.isEmpty == false {
+                Divider()
+
+                ForEach(reviewTagSummaries, id: \.tag) { tagSummary in
+                    let reviewFilter = ReviewFilter.tag(tag: tagSummary.tag)
+
+                    Button {
+                        store.selectReviewFilter(reviewFilter: reviewFilter)
+                    } label: {
+                        if reviewFilter == store.selectedReviewFilter {
+                            Label(
+                                reviewFilterMenuItemLabel(reviewFilter: reviewFilter),
+                                systemImage: "checkmark"
+                            )
+                        } else {
+                            Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
+                        }
                     }
                 }
             }
