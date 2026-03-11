@@ -13,6 +13,9 @@ const {
   streamLocalChatMock,
   ensurePersistentStorageMock,
   executeLocalToolMock,
+  checkFileSizeMock,
+  prepareAttachmentMock,
+  recompressImageAttachmentMock,
 } = vi.hoisted(() => ({
   useChatLayoutMock: vi.fn(),
   useAppDataMock: vi.fn(),
@@ -21,6 +24,9 @@ const {
   streamLocalChatMock: vi.fn(),
   ensurePersistentStorageMock: vi.fn(),
   executeLocalToolMock: vi.fn(),
+  checkFileSizeMock: vi.fn(),
+  prepareAttachmentMock: vi.fn(),
+  recompressImageAttachmentMock: vi.fn(),
 }));
 
 vi.mock("../appData", () => ({
@@ -50,6 +56,17 @@ vi.mock("./localToolExecutor", async (importOriginal) => {
     }),
   };
 });
+
+vi.mock("./FileAttachment", () => ({
+  checkFileSize: checkFileSizeMock,
+  prepareAttachment: prepareAttachmentMock,
+  recompressImageAttachment: recompressImageAttachmentMock,
+  EXTRA_AGGRESSIVE_IMAGE_COMPRESSION: {
+    maxSidePixels: 1_280,
+    quality: 0.55,
+  },
+  FileAttachment: () => createElement("button", { type: "button", className: "chat-attach-btn" }, "Attach"),
+}));
 
 function setTextareaValue(textarea: HTMLTextAreaElement, value: string): void {
   const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
@@ -188,6 +205,9 @@ describe("ChatPanel autoscroll", () => {
     streamLocalChatMock.mockReset();
     ensurePersistentStorageMock.mockReset();
     executeLocalToolMock.mockReset();
+    checkFileSizeMock.mockReset();
+    prepareAttachmentMock.mockReset();
+    recompressImageAttachmentMock.mockReset();
 
     useChatLayoutMock.mockReturnValue({
       isOpen: true,
@@ -213,6 +233,17 @@ describe("ChatPanel autoscroll", () => {
     streamLocalChatMock.mockResolvedValue(
       createTimedStreamResponse([{ atMs: 0, payload: streamDeltaPayload("done") }], 1),
     );
+    checkFileSizeMock.mockReturnValue(null);
+    prepareAttachmentMock.mockResolvedValue({
+      fileName: "test-file.txt",
+      mediaType: "application/pdf",
+      base64Data: "dGVzdA==",
+    });
+    recompressImageAttachmentMock.mockResolvedValue({
+      fileName: "test-image.jpg",
+      mediaType: "image/jpeg",
+      base64Data: "dGVzdA==",
+    });
 
     scrollToMock = vi.fn(function thisBoundScrollTo(
       this: HTMLElement,
@@ -414,6 +445,76 @@ describe("ChatPanel autoscroll", () => {
     });
 
     expect(countSmoothCalls(scrollToMock.mock.calls)).toBe(1);
+  });
+
+  it("blocks send before network when post-compression payload exceeds the 9.5 MB safety limit", async () => {
+    const oversizedPayload = "x".repeat(10_100_000);
+    createLocalChatRequestBodyMock.mockImplementation(
+      (messages: ReadonlyArray<unknown>, model: string, timezone: string) => ({
+        messages,
+        model,
+        timezone,
+        oversizedPayload,
+      }),
+    );
+
+    await renderChatPanel();
+    await sendMessage("trigger limit");
+
+    expect(streamLocalChatMock).not.toHaveBeenCalled();
+    expect(ensurePersistentStorageMock).not.toHaveBeenCalled();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+    expect(mountedContainer.textContent).toContain("Attachment payload limit is 10 MB after compression.");
+  });
+
+  it("rejects oversized projected attachment payload before send and keeps pending list unchanged", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    prepareAttachmentMock.mockResolvedValue({
+      fileName: "photo.png",
+      mediaType: "image/jpeg",
+      base64Data: "x".repeat(9_970_000),
+    });
+    recompressImageAttachmentMock.mockResolvedValue({
+      fileName: "photo.png",
+      mediaType: "image/jpeg",
+      base64Data: "x".repeat(9_970_000),
+    });
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const chatRoot = mountedContainer.querySelector(".chat-sidebar-fullscreen");
+    expect(chatRoot).not.toBeNull();
+    if (chatRoot === null) {
+      throw new Error("Expected chat root");
+    }
+
+    await act(async () => {
+      const file = new File(["123"], "photo.png", { type: "image/png" });
+      const dropEvent = new Event("drop", { bubbles: true, cancelable: true }) as DragEvent;
+      Object.defineProperty(dropEvent, "dataTransfer", {
+        value: {
+          files: [file],
+        },
+      });
+      chatRoot.dispatchEvent(dropEvent);
+      await Promise.resolve();
+    });
+
+    expect(recompressImageAttachmentMock).toHaveBeenCalledTimes(1);
+    expect(alertSpy).toHaveBeenCalledWith("Attachment payload limit is 10 MB after compression.");
+    expect(mountedContainer.querySelector(".chat-attachment-chip")).toBeNull();
+    alertSpy.mockRestore();
   });
 });
 

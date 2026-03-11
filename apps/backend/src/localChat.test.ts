@@ -262,6 +262,54 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
   assert.equal(capturedBodies[0]?.parallel_tool_calls, false);
 });
 
+test("streamLocalAgentTurn maps uploaded files to input_file with file_id only", async () => {
+  const capturedBodies: Array<CapturedStreamBody> = [];
+  const client = makeFakeClient(
+    [{
+      events: [],
+      finalResponse: {
+        output: [
+          { type: "message" },
+        ],
+      },
+    }],
+    capturedBodies,
+  );
+
+  const events = await collectEvents(streamLocalAgentTurn({
+    messages: [{
+      role: "user",
+      content: [{
+        type: "file",
+        mediaType: "text/plain",
+        base64Data: "dGVzdA==",
+        fileName: "test.txt",
+      }],
+    }],
+    model: "gpt-5.2",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    requestId: "request-file-1",
+  }, client));
+
+  assert.deepEqual(events, [
+    { type: "done" },
+  ]);
+
+  const firstInputItem = capturedBodies[0]?.input[0] as Readonly<{
+    type: string;
+    role: string;
+    content: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  }> | undefined;
+  const firstContentItem = firstInputItem?.content[0];
+
+  assert.equal(firstInputItem?.type, "message");
+  assert.equal(firstInputItem?.role, "user");
+  assert.equal(firstContentItem?.type, "input_file");
+  assert.equal(firstContentItem?.file_id, "file_test_1");
+  assert.equal("filename" in (firstContentItem ?? {}), false);
+});
+
 test("streamLocalAgentTurn retries malformed tool arguments and emits repair_attempt", async () => {
   const capturedBodies: Array<CapturedStreamBody> = [];
   const client = makeFakeClient(
