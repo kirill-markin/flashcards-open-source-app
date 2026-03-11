@@ -1,5 +1,7 @@
 // Copy this file to Local.xcconfig for personal machine-only overrides.
 // Local.xcconfig is gitignored and should never be committed.
+// Xcode Cloud can generate the same file from workflow environment variables
+// in apps/ios/Flashcards/ci_scripts/ci_post_clone.sh.
 
 // Uncomment and replace with your Apple Developer Team ID when you need
 // to run on a physical device or archive the app.
@@ -16,3 +18,9 @@
 // `https:/$()/host` instead of literal `https://host`.
 // API_BASE_URL = https:/$()/api.example.com/v1
 // AUTH_BASE_URL = https:/$()/auth.example.com
+
+// Recommended Xcode Cloud variables:
+// XCODE_CLOUD_DEVELOPMENT_TEAM
+// XCODE_CLOUD_APP_BUNDLE_IDENTIFIER
+// XCODE_CLOUD_API_BASE_URL
+// XCODE_CLOUD_AUTH_BASE_URL
