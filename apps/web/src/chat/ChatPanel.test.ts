@@ -364,6 +364,100 @@ describe("ChatPanel autoscroll", () => {
     expect(userMessage.textContent).toContain("what do you see here?");
   });
 
+  it("normalizes persisted assistant text by trimming leading and trailing whitespace only", async () => {
+    localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
+      role: "assistant",
+      content: [{ type: "text", text: "\n\n   You're right to ask.\n\n\n\n**What I have:**   \n" }],
+      timestamp: 1,
+      isError: false,
+    }]));
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const assistantMessage = mountedContainer.querySelector(".chat-msg-assistant");
+    expect(assistantMessage).not.toBeNull();
+    if (assistantMessage === null) {
+      throw new Error("Expected assistant message");
+    }
+
+    expect(assistantMessage.textContent).toBe("You're right to ask.\n\n\n\n**What I have:**");
+  });
+
+  it("normalizes streamed assistant text before rendering the bubble", async () => {
+    streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
+      { atMs: 0, payload: streamDeltaPayload("\n\n   First paragraph") },
+      { atMs: 10, payload: streamDeltaPayload("\n\n\n\nSecond paragraph   \n") },
+    ], 20));
+
+    await renderChatPanel();
+    await sendMessage("normalize assistant");
+
+    await act(async () => {
+      vi.advanceTimersByTime(25);
+      await Promise.resolve();
+    });
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const assistantMessages = mountedContainer.querySelectorAll(".chat-msg-assistant");
+    expect(assistantMessages.length).toBeGreaterThan(0);
+    const assistantMessage = assistantMessages[assistantMessages.length - 1];
+    expect(assistantMessage?.textContent).toBe("First paragraph\n\n\n\nSecond paragraph");
+  });
+
+  it("keeps tool call blocks in order relative to normalized assistant text", async () => {
+    localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
+      role: "assistant",
+      content: [
+        { type: "text", text: "\n\n  Before tool" },
+        {
+          type: "tool_call",
+          toolCallId: "tool-1",
+          name: "list_cards",
+          status: "completed",
+          input: "{\"limit\":10}",
+          output: "[{\"cardId\":\"card-1\"}]",
+        },
+        { type: "text", text: "\n\n\n\nAfter tool\n\n" },
+      ],
+      timestamp: 1,
+      isError: false,
+    }]));
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const assistantMessage = mountedContainer.querySelector(".chat-msg-assistant");
+    expect(assistantMessage).not.toBeNull();
+    if (assistantMessage === null) {
+      throw new Error("Expected assistant message");
+    }
+
+    const children = [...assistantMessage.children];
+    expect(children).toHaveLength(3);
+    expect(children[0]?.tagName).toBe("SPAN");
+    expect(children[0]?.textContent).toBe("Before tool");
+    expect(children[1]?.tagName).toBe("DETAILS");
+    expect(children[1]?.textContent).toContain("List cards");
+    expect(children[2]?.tagName).toBe("SPAN");
+    expect(children[2]?.textContent).toBe("After tool");
+  });
+
   it("batches streaming autoscroll to one smooth scroll every 2 seconds", async () => {
     streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
       { atMs: 100, payload: streamDeltaPayload("A") },
