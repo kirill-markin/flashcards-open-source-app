@@ -1,0 +1,52 @@
+get:
+  tags:
+    - bootstrap
+  summary: Load agent account context
+  description: >-
+    Returns the authenticated user profile, the currently selected workspace id
+    for this API key connection, and explicit next-step bootstrap actions.
+  security:
+    - ApiKeyHeader: []
+  responses:
+    '200':
+      description: Agent account envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentAccountEnvelope.yaml
+          example:
+            ok: true
+            data:
+              userId: user-1
+              selectedWorkspaceId: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+              authTransport: api_key
+              profile:
+                email: kirill@example.com
+                locale: en
+                createdAt: '2026-03-07T10:40:54.589Z'
+            actions:
+              - name: list_workspaces
+                method: GET
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100
+                auth:
+                  scheme: ApiKey
+            instructions: >-
+              Call GET
+              https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100
+              next. A first workspace is auto-provisioned for new users. For
+              paginated responses, pass data.nextCursor back unchanged as the
+              cursor query parameter or JSON field and stop when data.nextCursor
+              is null. Read payload from data.* (for this endpoint:
+              data.selectedWorkspaceId, data.profile). Do not expect account
+              fields at the top level. Select the next endpoint from
+              instructions and confirm it with actions.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

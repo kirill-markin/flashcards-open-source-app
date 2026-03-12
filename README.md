@@ -37,12 +37,13 @@ The discovery response tells agents to ask for the user's email first, and the s
 
 1. `cp .env.example .env`
 2. `make db-up`
-3. `npm install --prefix apps/auth`
-4. `npm install --prefix apps/backend`
-5. `npm install --prefix apps/web`
-6. `make auth-dev`
-7. `make backend-dev`
-8. `make web-dev`
+3. `npm install --prefix api`
+4. `npm install --prefix apps/auth`
+5. `npm install --prefix apps/backend`
+6. `npm install --prefix apps/web`
+7. `make auth-dev`
+8. `make backend-dev`
+9. `make web-dev`
 
 Local URLs:
 

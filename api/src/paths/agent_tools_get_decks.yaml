@@ -1,0 +1,77 @@
+post:
+  tags:
+    - tools
+  summary: Get decks by id
+  description: Loads one or more decks from the selected workspace by deckId.
+  security:
+    - ApiKeyHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/GetDecksInput.yaml
+  responses:
+    '200':
+      description: Decks loaded
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentGetDecksEnvelope.yaml
+          example:
+            ok: true
+            data:
+              decks:
+                - deckId: db4e9fa3-6e56-4355-a35d-58bb0ef6f0e9
+                  workspaceId: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                  name: Distributed Systems
+                  filterDefinition:
+                    version: 2
+                    effortLevels:
+                      - fast
+                    tags:
+                      - distributed-systems
+                  createdAt: '2026-03-10T10:00:00.000Z'
+                  clientUpdatedAt: '2026-03-10T10:00:00.000Z'
+                  lastModifiedByDeviceId: 58d59a91-3210-4581-ac3a-0f850f0ced6f
+                  lastOperationId: agent-deck-op-1
+                  updatedAt: '2026-03-10T10:00:00.000Z'
+                  deletedAt: null
+              returnedCount: 1
+            actions:
+              - name: list_tools
+                method: GET
+                url: https://api.flashcards-open-source-app.com/v1/agent/tools
+                auth:
+                  scheme: ApiKey
+              - name: get_decks
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/get_decks
+                auth:
+                  scheme: ApiKey
+              - name: update_decks
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/update_decks
+                auth:
+                  scheme: ApiKey
+              - name: delete_decks
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/delete_decks
+                auth:
+                  scheme: ApiKey
+            instructions: >-
+              Read payload from data.* (data.decks). Do not expect decks at the
+              top level. Select the next endpoint from instructions and confirm
+              it with actions.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

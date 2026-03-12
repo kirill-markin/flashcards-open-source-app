@@ -1,0 +1,82 @@
+type: object
+additionalProperties: false
+required:
+  - cardId
+  - frontText
+  - backText
+  - tags
+  - effortLevel
+  - dueAt
+  - reps
+  - lapses
+  - fsrsCardState
+  - fsrsStepIndex
+  - fsrsStability
+  - fsrsDifficulty
+  - fsrsLastReviewedAt
+  - fsrsScheduledDays
+  - clientUpdatedAt
+  - lastModifiedByDeviceId
+  - lastOperationId
+  - updatedAt
+  - deletedAt
+properties:
+  cardId:
+    $ref: ./UuidString.yaml
+  frontText:
+    type: string
+  backText:
+    type: string
+  tags:
+    type: array
+    items:
+      type: string
+  effortLevel:
+    $ref: ./EffortLevel.yaml
+  dueAt:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  reps:
+    type: integer
+  lapses:
+    type: integer
+  fsrsCardState:
+    $ref: ./FsrsCardState.yaml
+  fsrsStepIndex:
+    type:
+      - integer
+      - 'null'
+  fsrsStability:
+    type:
+      - number
+      - 'null'
+  fsrsDifficulty:
+    type:
+      - number
+      - 'null'
+  fsrsLastReviewedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  fsrsScheduledDays:
+    type:
+      - integer
+      - 'null'
+  clientUpdatedAt:
+    type: string
+    format: date-time
+  lastModifiedByDeviceId:
+    $ref: ./UuidString.yaml
+  lastOperationId:
+    type: string
+  updatedAt:
+    type: string
+    format: date-time
+  deletedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time

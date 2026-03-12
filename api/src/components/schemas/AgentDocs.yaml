@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - openapiUrl
+  - swaggerUrl
+properties:
+  openapiUrl:
+    type: string
+  swaggerUrl:
+    type: string

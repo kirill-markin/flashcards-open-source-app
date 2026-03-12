@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - selectedWorkspaceId
+  - tools
+properties:
+  selectedWorkspaceId:
+    anyOf:
+      - $ref: ./UuidString.yaml
+      - type: 'null'
+  tools:
+    type: array
+    items:
+      $ref: ./AgentToolCatalogItem.yaml

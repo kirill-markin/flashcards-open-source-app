@@ -1,0 +1,39 @@
+type: object
+additionalProperties: false
+required:
+  - userId
+  - selectedWorkspaceId
+  - authTransport
+  - profile
+properties:
+  userId:
+    type: string
+  selectedWorkspaceId:
+    anyOf:
+      - $ref: ./UuidString.yaml
+      - type: 'null'
+  authTransport:
+    type: string
+    enum:
+      - api_key
+      - bearer
+      - session
+      - none
+  profile:
+    type: object
+    additionalProperties: false
+    required:
+      - email
+      - locale
+      - createdAt
+    properties:
+      email:
+        type:
+          - string
+          - 'null'
+        format: email
+      locale:
+        type: string
+      createdAt:
+        type: string
+        format: date-time

@@ -5,9 +5,9 @@ type OpenApiDocument = Readonly<Record<string, unknown>>;
 
 const findOpenApiPath = (): string => {
   const candidates = [
-    path.resolve(process.cwd(), "api/openapi.yaml"),
-    path.resolve(process.cwd(), "../../api/openapi.yaml"),
-    path.resolve(__dirname, "../../../api/openapi.yaml"),
+    path.resolve(process.cwd(), "api/dist/openapi.json"),
+    path.resolve(process.cwd(), "../../api/dist/openapi.json"),
+    path.resolve(__dirname, "../../../api/dist/openapi.json"),
   ];
 
   for (const candidate of candidates) {
@@ -16,7 +16,7 @@ const findOpenApiPath = (): string => {
     }
   }
 
-  throw new Error("Could not locate api/openapi.yaml");
+  throw new Error("Could not locate api/dist/openapi.json. Run `npm run bundle --prefix api` from the repository root.");
 };
 
 let cachedDocument: OpenApiDocument | null = null;

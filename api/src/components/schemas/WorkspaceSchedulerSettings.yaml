@@ -1,0 +1,42 @@
+type: object
+additionalProperties: false
+required:
+  - algorithm
+  - desiredRetention
+  - learningStepsMinutes
+  - relearningStepsMinutes
+  - maximumIntervalDays
+  - enableFuzz
+  - clientUpdatedAt
+  - lastModifiedByDeviceId
+  - lastOperationId
+  - updatedAt
+properties:
+  algorithm:
+    type: string
+    enum:
+      - fsrs-6
+  desiredRetention:
+    type: number
+  learningStepsMinutes:
+    type: array
+    items:
+      type: integer
+  relearningStepsMinutes:
+    type: array
+    items:
+      type: integer
+  maximumIntervalDays:
+    type: integer
+  enableFuzz:
+    type: boolean
+  clientUpdatedAt:
+    type: string
+    format: date-time
+  lastModifiedByDeviceId:
+    $ref: ./UuidString.yaml
+  lastOperationId:
+    type: string
+  updatedAt:
+    type: string
+    format: date-time

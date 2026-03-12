@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required:
+  - frontText
+  - backText
+  - tags
+  - effortLevel
+properties:
+  frontText:
+    type: string
+    description: >-
+      Front side text. Must be a question-only recall prompt and must not
+      include the answer.
+  backText:
+    type: string
+    description: >-
+      Back side text. Must contain the answer and may include a concrete example
+      (prefer fenced markdown code block when helpful).
+  tags:
+    type: array
+    items:
+      type: string
+  effortLevel:
+    $ref: ./EffortLevel.yaml

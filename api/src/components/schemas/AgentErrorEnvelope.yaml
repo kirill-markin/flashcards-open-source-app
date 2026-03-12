@@ -1,0 +1,49 @@
+type: object
+additionalProperties: false
+required:
+  - ok
+  - data
+  - actions
+  - instructions
+  - docs
+  - error
+properties:
+  ok:
+    type: boolean
+    enum:
+      - false
+  data:
+    type: object
+    additionalProperties: false
+  actions:
+    type: array
+    items:
+      type: object
+  instructions:
+    type: string
+  docs:
+    type: object
+    additionalProperties: false
+    required:
+      - openapiUrl
+      - swaggerUrl
+    properties:
+      openapiUrl:
+        type: string
+      swaggerUrl:
+        type: string
+  error:
+    type: object
+    additionalProperties: false
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+      details:
+        $ref: ./AgentErrorDetails.yaml
+  requestId:
+    type: string

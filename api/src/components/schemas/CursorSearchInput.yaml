@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - query
+  - cursor
+  - limit
+properties:
+  query:
+    type: string
+  cursor:
+    anyOf:
+      - $ref: ./OpaqueCursor.yaml
+      - type: 'null'
+    description: Opaque cursor from the previous page. Start with null.
+  limit:
+    $ref: ./PageLimit.yaml

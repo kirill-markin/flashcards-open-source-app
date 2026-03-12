@@ -16,6 +16,8 @@ dev:
 	docker compose -f $(COMPOSE_FILE) up --build
 
 build:
+	npm ci --prefix api
+	npm run lint --prefix api
 	npm ci --prefix apps/auth
 	npm run build --prefix apps/auth
 	npm ci --prefix apps/backend
@@ -26,6 +28,8 @@ build:
 	npm run build --prefix infra/aws
 
 lint:
+	npm ci --prefix api
+	npm run lint --prefix api
 	npm run build --prefix apps/auth
 	npm run lint --prefix apps/backend
 	npm run build --prefix apps/web
@@ -47,7 +51,7 @@ auth-dev:
 	cd apps/auth && node --env-file=../../.env ./node_modules/tsx/dist/cli.mjs watch src/index.ts
 
 backend-dev:
-	cd apps/backend && node --env-file=../../.env ./node_modules/tsx/dist/cli.mjs watch src/index.ts
+	npm run dev --prefix apps/backend
 
 web-dev:
 	cd apps/web && node --env-file=../../.env ./node_modules/vite/bin/vite.js

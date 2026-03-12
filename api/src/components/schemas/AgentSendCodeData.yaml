@@ -1,0 +1,20 @@
+type: object
+additionalProperties: false
+required:
+  - email
+  - otpSessionToken
+  - expiresInSeconds
+  - authBaseUrl
+  - apiBaseUrl
+properties:
+  email:
+    type: string
+    format: email
+  otpSessionToken:
+    type: string
+  expiresInSeconds:
+    type: integer
+  authBaseUrl:
+    type: string
+  apiBaseUrl:
+    type: string

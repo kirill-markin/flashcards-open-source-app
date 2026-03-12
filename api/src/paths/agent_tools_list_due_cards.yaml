@@ -1,0 +1,86 @@
+post:
+  tags:
+    - tools
+  summary: List due cards
+  description: Lists cards currently due for review in the selected workspace.
+  security:
+    - ApiKeyHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CursorPageInput.yaml
+  responses:
+    '200':
+      description: Due cards listed
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentListDueCardsEnvelope.yaml
+          example:
+            ok: true
+            data:
+              cards:
+                - cardId: be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8
+                  frontText: What is eventual consistency?
+                  backText: >-
+                    A model where replicas converge to the same value over time
+                    without requiring immediate global consistency.
+                  tags:
+                    - distributed-systems
+                  effortLevel: fast
+                  dueAt: '2026-03-11T09:00:00.000Z'
+                  reps: 3
+                  lapses: 0
+                  fsrsCardState: review
+                  fsrsStepIndex: null
+                  fsrsStability: 12.34
+                  fsrsDifficulty: 4.56
+                  fsrsLastReviewedAt: '2026-03-10T09:00:00.000Z'
+                  fsrsScheduledDays: 4
+                  clientUpdatedAt: '2026-03-10T09:00:00.000Z'
+                  lastModifiedByDeviceId: 58d59a91-3210-4581-ac3a-0f850f0ced6f
+                  lastOperationId: agent-op-1
+                  updatedAt: '2026-03-10T09:00:00.000Z'
+                  deletedAt: null
+              nextCursor: null
+            actions:
+              - name: list_tools
+                method: GET
+                url: https://api.flashcards-open-source-app.com/v1/agent/tools
+                auth:
+                  scheme: ApiKey
+              - name: search_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards
+                auth:
+                  scheme: ApiKey
+              - name: get_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/get_cards
+                auth:
+                  scheme: ApiKey
+              - name: create_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards
+                auth:
+                  scheme: ApiKey
+            instructions: >-
+              Read payload from data.* (data.cards, data.nextCursor). Do not
+              expect cards at the top level. For paginated responses, pass
+              data.nextCursor back unchanged as the cursor query parameter or
+              JSON field and stop when data.nextCursor is null. Select the next
+              endpoint from instructions and confirm it with actions.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

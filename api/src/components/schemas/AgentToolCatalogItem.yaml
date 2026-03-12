@@ -1,0 +1,36 @@
+type: object
+additionalProperties: false
+required:
+  - name
+  - method
+  - url
+  - description
+properties:
+  name:
+    type: string
+    enum:
+      - get_workspace_context
+      - list_tags
+      - list_cards
+      - get_cards
+      - search_cards
+      - list_due_cards
+      - list_decks
+      - get_decks
+      - search_decks
+      - list_review_history
+      - get_scheduler_settings
+      - create_cards
+      - update_cards
+      - delete_cards
+      - create_decks
+      - update_decks
+      - delete_decks
+  method:
+    type: string
+    enum:
+      - POST
+  url:
+    type: string
+  description:
+    type: string

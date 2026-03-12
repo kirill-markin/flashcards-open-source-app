@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "dev": "npm run bundle --prefix ../../api && tsx watch src/index.ts",
+    "build": "npm run bundle --prefix ../../api && tsc",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit",
-    "test": "node --test --import tsx src/*.test.ts src/**/*.test.ts"
+    "test": "npm run bundle --prefix ../../api && node --test --import tsx src/*.test.ts src/**/*.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

@@ -1,0 +1,30 @@
+type: object
+additionalProperties: false
+required:
+  - reviewEventId
+  - workspaceId
+  - cardId
+  - deviceId
+  - clientEventId
+  - rating
+  - reviewedAtClient
+  - reviewedAtServer
+properties:
+  reviewEventId:
+    $ref: ./UuidString.yaml
+  workspaceId:
+    $ref: ./UuidString.yaml
+  cardId:
+    $ref: ./UuidString.yaml
+  deviceId:
+    $ref: ./UuidString.yaml
+  clientEventId:
+    type: string
+  rating:
+    type: integer
+  reviewedAtClient:
+    type: string
+    format: date-time
+  reviewedAtServer:
+    type: string
+    format: date-time

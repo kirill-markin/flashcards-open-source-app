@@ -1,0 +1,40 @@
+type: object
+additionalProperties: false
+required:
+  - deckId
+  - workspaceId
+  - name
+  - filterDefinition
+  - createdAt
+  - clientUpdatedAt
+  - lastModifiedByDeviceId
+  - lastOperationId
+  - updatedAt
+  - deletedAt
+properties:
+  deckId:
+    $ref: ./UuidString.yaml
+  workspaceId:
+    $ref: ./UuidString.yaml
+  name:
+    type: string
+  filterDefinition:
+    $ref: ./DeckFilterDefinition.yaml
+  createdAt:
+    type: string
+    format: date-time
+  clientUpdatedAt:
+    type: string
+    format: date-time
+  lastModifiedByDeviceId:
+    $ref: ./UuidString.yaml
+  lastOperationId:
+    type: string
+  updatedAt:
+    type: string
+    format: date-time
+  deletedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time

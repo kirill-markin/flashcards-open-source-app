@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - code
+  - otpSessionToken
+  - label
+properties:
+  code:
+    type: string
+    pattern: ^\d{8}$
+  otpSessionToken:
+    type: string
+  label:
+    type: string

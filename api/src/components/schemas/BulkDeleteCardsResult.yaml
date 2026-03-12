@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - deletedCardIds
+  - deletedCount
+properties:
+  deletedCardIds:
+    type: array
+    items:
+      $ref: ./UuidString.yaml
+  deletedCount:
+    type: integer

@@ -1,0 +1,18 @@
+type: object
+additionalProperties: false
+required:
+  - apiKey
+  - authorizationScheme
+  - apiBaseUrl
+  - connection
+properties:
+  apiKey:
+    type: string
+  authorizationScheme:
+    type: string
+    enum:
+      - ApiKey
+  apiBaseUrl:
+    type: string
+  connection:
+    $ref: ./AgentApiKeyConnection.yaml

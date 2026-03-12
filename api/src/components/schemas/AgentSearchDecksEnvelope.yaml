@@ -1,0 +1,23 @@
+type: object
+additionalProperties: false
+required:
+  - ok
+  - data
+  - actions
+  - instructions
+  - docs
+properties:
+  ok:
+    type: boolean
+    enum:
+      - true
+  data:
+    $ref: ./AgentDecksPageData.yaml
+  actions:
+    type: array
+    items:
+      $ref: ./AgentAction.yaml
+  instructions:
+    type: string
+  docs:
+    $ref: ./AgentDocs.yaml

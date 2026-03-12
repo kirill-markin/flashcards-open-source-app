@@ -1,0 +1,22 @@
+type: object
+additionalProperties: false
+required:
+  - totalCards
+  - dueCards
+  - newCards
+  - reviewedCards
+  - totalReps
+  - totalLapses
+properties:
+  totalCards:
+    type: integer
+  dueCards:
+    type: integer
+  newCards:
+    type: integer
+  reviewedCards:
+    type: integer
+  totalReps:
+    type: integer
+  totalLapses:
+    type: integer

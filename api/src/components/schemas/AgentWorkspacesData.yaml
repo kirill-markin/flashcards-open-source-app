@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - workspaces
+  - nextCursor
+properties:
+  workspaces:
+    type: array
+    items:
+      $ref: ./WorkspaceSummary.yaml
+  nextCursor:
+    anyOf:
+      - $ref: ./OpaqueCursor.yaml
+      - type: 'null'

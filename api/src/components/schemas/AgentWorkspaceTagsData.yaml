@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - tags
+  - totalCards
+properties:
+  tags:
+    type: array
+    items:
+      $ref: ./WorkspaceTagSummary.yaml
+  totalCards:
+    type: integer
