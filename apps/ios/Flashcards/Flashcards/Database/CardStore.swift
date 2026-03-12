@@ -1,5 +1,10 @@
 import Foundation
 
+private struct ReviewQuerySQL {
+    let clause: String
+    let values: [SQLiteValue]
+}
+
 struct CardStore {
     let core: DatabaseCore
 
@@ -237,6 +242,105 @@ struct CardStore {
                 reviewedAtServer: DatabaseCore.columnText(statement: statement, index: 7)
             )
         }
+    }
+
+    func loadReviewCounts(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date
+    ) throws -> ReviewCounts {
+        let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+
+        let counts = try self.core.query(
+            sql: """
+            SELECT
+                COUNT(*) AS total_count,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN due_at IS NULL OR due_at <= ? THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS due_count
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
+            """,
+            values: [.text(isoTimestamp(date: now)), .text(workspaceId)] + querySQL.values
+        ) { statement in
+            ReviewCounts(
+                dueCount: Int(DatabaseCore.columnInt64(statement: statement, index: 1)),
+                totalCount: Int(DatabaseCore.columnInt64(statement: statement, index: 0))
+            )
+        }
+
+        guard let reviewCounts = counts.first else {
+            throw LocalStoreError.database("Expected review counts query to return one row")
+        }
+
+        return reviewCounts
+    }
+
+    func loadReviewTimelinePage(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int,
+        offset: Int
+    ) throws -> ReviewTimelinePage {
+        precondition(limit > 0, "Review timeline page limit must be greater than zero")
+        precondition(offset >= 0, "Review timeline page offset must not be negative")
+
+        let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+        let pageRows = try self.core.query(
+            sql: """
+            SELECT
+                card_id,
+                workspace_id,
+                front_text,
+                back_text,
+                tags_json,
+                effort_level,
+                due_at,
+                reps,
+                lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
+                client_updated_at,
+                last_modified_by_device_id,
+                last_operation_id,
+                updated_at,
+                deleted_at
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
+            ORDER BY
+                CASE
+                    WHEN due_at IS NULL THEN 0
+                    WHEN due_at <= ? THEN 1
+                    ELSE 2
+                END ASC,
+                due_at ASC,
+                updated_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            values: [.text(workspaceId)] + querySQL.values + [
+                .text(isoTimestamp(date: now)),
+                .integer(Int64(limit + 1)),
+                .integer(Int64(offset))
+            ]
+        ) { statement in
+            try self.mapCard(statement: statement)
+        }
+
+        return ReviewTimelinePage(
+            cards: Array(pageRows.prefix(limit)),
+            hasMoreCards: pageRows.count > limit
+        )
     }
 
     func saveCard(
@@ -536,6 +640,66 @@ struct CardStore {
         }
 
         return repairedCard
+    }
+
+    private func makeReviewQuerySQL(reviewQueryDefinition: ReviewQueryDefinition) throws -> ReviewQuerySQL {
+        switch reviewQueryDefinition {
+        case .allCards:
+            return ReviewQuerySQL(clause: "", values: [])
+        case .tag(let tag):
+            return ReviewQuerySQL(
+                clause: """
+                 AND EXISTS (
+                    SELECT 1
+                    FROM json_each(cards.tags_json) AS review_tag
+                    WHERE review_tag.value = ?
+                )
+                """,
+                values: [.text(tag)]
+            )
+        case .deck(let filterDefinition):
+            var predicates: [String] = []
+            var values: [SQLiteValue] = []
+
+            if filterDefinition.effortLevels.isEmpty == false {
+                let effortPlaceholders = Array(
+                    repeating: "?",
+                    count: filterDefinition.effortLevels.count
+                ).joined(separator: ", ")
+                predicates.append("cards.effort_level IN (\(effortPlaceholders))")
+                values.append(contentsOf: filterDefinition.effortLevels.map { effortLevel in
+                    .text(effortLevel.rawValue)
+                })
+            }
+
+            if filterDefinition.tags.isEmpty == false {
+                let tagPlaceholders = Array(
+                    repeating: "?",
+                    count: filterDefinition.tags.count
+                ).joined(separator: ", ")
+                predicates.append(
+                    """
+                    EXISTS (
+                        SELECT 1
+                        FROM json_each(cards.tags_json) AS review_tag
+                        WHERE review_tag.value IN (\(tagPlaceholders))
+                    )
+                    """
+                )
+                values.append(contentsOf: filterDefinition.tags.map { tag in
+                    .text(tag)
+                })
+            }
+
+            guard predicates.isEmpty == false else {
+                return ReviewQuerySQL(clause: "", values: [])
+            }
+
+            return ReviewQuerySQL(
+                clause: " AND " + predicates.joined(separator: " AND "),
+                values: values
+            )
+        }
     }
 }
 

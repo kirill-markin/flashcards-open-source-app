@@ -62,6 +62,34 @@ final class LocalDatabase {
         )
     }
 
+    func loadReviewCounts(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date
+    ) throws -> ReviewCounts {
+        try self.cardStore.loadReviewCounts(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now
+        )
+    }
+
+    func loadReviewTimelinePage(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int,
+        offset: Int
+    ) throws -> ReviewTimelinePage {
+        try self.cardStore.loadReviewTimelinePage(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit,
+            offset: offset
+        )
+    }
+
     func saveCard(workspaceId: String, input: CardEditorInput, cardId: String?) throws -> Card {
         try self.cardStore.validateCardInput(input: input)
 

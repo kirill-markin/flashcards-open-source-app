@@ -67,18 +67,49 @@ private func makeDelayedReviewHeadLoader(delayNanoseconds: UInt64) -> ReviewHead
     }
 }
 
-private func makeDelayedReviewStateLoader(delayNanoseconds: UInt64) -> ReviewStateLoader {
-    return { reviewFilter, decks, cards, now in
+private func makeDelayedReviewCountsLoader(delayNanoseconds: UInt64) -> ReviewCountsLoader {
+    return { databaseURL, workspaceId, reviewQueryDefinition, now in
         if delayNanoseconds > 0 {
             try await Task.sleep(nanoseconds: delayNanoseconds)
         }
 
         try Task.checkCancellation()
-        return makeReviewComputedState(
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        return try database.loadReviewCounts(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now
+        )
+    }
+}
+
+private func makeDelayedReviewQueueChunkLoader(delayNanoseconds: UInt64) -> ReviewQueueChunkLoader {
+    return { reviewFilter, decks, cards, excludedCardIds, now, chunkSize in
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+
+        try Task.checkCancellation()
+        return makeReviewQueueChunkLoadState(
             reviewFilter: reviewFilter,
             decks: decks,
             cards: cards,
-            now: now
+            now: now,
+            limit: chunkSize,
+            excludedCardIds: excludedCardIds
+        )
+    }
+}
+
+private func makeReviewTimelinePageLoader() -> ReviewTimelinePageLoader {
+    return { databaseURL, workspaceId, reviewQueryDefinition, now, limit, offset in
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        return try database.loadReviewTimelinePage(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit,
+            offset: offset
         )
     }
 }
@@ -226,10 +257,10 @@ final class FlashcardsStoreTests: XCTestCase {
         XCTAssertEqual(store.selectedReviewFilter, .allCards)
     }
 
-    func testSelectReviewFilterEntersTwoPhaseLoadingAndPublishesHeadBeforeTimeline() async throws {
+    func testSelectReviewFilterPublishesHeadBeforeCounts() async throws {
         let context = try self.makeStoreContext(
             reviewHeadDelayNanoseconds: 150_000_000,
-            reviewStateDelayNanoseconds: 500_000_000
+            reviewCountsDelayNanoseconds: 500_000_000
         )
         let store = context.store
 
@@ -255,9 +286,9 @@ final class FlashcardsStoreTests: XCTestCase {
         XCTAssertEqual(store.selectedReviewFilter, .deck(deckId: targetDeckId))
         XCTAssertEqual(store.selectedReviewFilterTitle, "Target deck")
         XCTAssertTrue(store.isReviewHeadLoading)
-        XCTAssertTrue(store.isReviewTimelineLoading)
+        XCTAssertTrue(store.isReviewCountsLoading)
         XCTAssertTrue(store.reviewQueue.isEmpty)
-        XCTAssertTrue(store.reviewTimeline.isEmpty)
+        XCTAssertEqual(store.reviewTotalCount, 0)
 
         await self.waitUntil(
             timeoutNanoseconds: 2_000_000_000,
@@ -267,23 +298,24 @@ final class FlashcardsStoreTests: XCTestCase {
         }
 
         XCTAssertEqual(store.reviewQueue.map(\.frontText), ["Target first", "Target second"])
-        XCTAssertTrue(store.reviewTimeline.isEmpty)
-        XCTAssertTrue(store.isReviewTimelineLoading)
+        XCTAssertTrue(store.isReviewCountsLoading)
+        XCTAssertEqual(store.reviewTotalCount, 0)
 
         await self.waitUntil(
             timeoutNanoseconds: 2_000_000_000,
             pollNanoseconds: 20_000_000
         ) {
-            store.isReviewTimelineLoading == false
+            store.isReviewCountsLoading == false
         }
 
-        XCTAssertEqual(store.reviewTimeline.map(\.frontText), ["Target first", "Target second"])
+        XCTAssertEqual(store.displayedReviewDueCount, 2)
+        XCTAssertEqual(store.reviewTotalCount, 2)
     }
 
     func testSelectReviewFilterDiscardsStaleAsyncResults() async throws {
         let context = try self.makeStoreContext(
             reviewHeadDelayNanoseconds: 200_000_000,
-            reviewStateDelayNanoseconds: 400_000_000
+            reviewCountsDelayNanoseconds: 400_000_000
         )
         let store = context.store
 
@@ -316,16 +348,17 @@ final class FlashcardsStoreTests: XCTestCase {
             timeoutNanoseconds: 2_000_000_000,
             pollNanoseconds: 20_000_000
         ) {
-            store.isReviewTimelineLoading == false
+            store.isReviewCountsLoading == false
         }
 
         XCTAssertEqual(store.selectedReviewFilter, .deck(deckId: betaDeckId))
         XCTAssertEqual(store.selectedReviewFilterTitle, "Beta deck")
         XCTAssertEqual(store.reviewQueue.map(\.frontText), ["Beta"])
-        XCTAssertEqual(store.reviewTimeline.map(\.frontText), ["Beta"])
+        XCTAssertEqual(store.displayedReviewDueCount, 1)
+        XCTAssertEqual(store.reviewTotalCount, 1)
     }
 
-    func testSeedQueueAdvancesImmediatelyWhileFullTimelineStillLoads() async throws {
+    func testSeedQueueAdvancesImmediatelyWhileCountsStillLoad() async throws {
         let context = try self.makeStoreContext(
             makeReviewSubmissionExecutor: { database in
                 ScriptedReviewSubmissionExecutor(
@@ -335,7 +368,7 @@ final class FlashcardsStoreTests: XCTestCase {
                 )
             },
             reviewHeadDelayNanoseconds: 50_000_000,
-            reviewStateDelayNanoseconds: 500_000_000
+            reviewCountsDelayNanoseconds: 500_000_000
         )
         let store = context.store
 
@@ -365,13 +398,13 @@ final class FlashcardsStoreTests: XCTestCase {
             store.isReviewHeadLoading == false
         }
 
-        XCTAssertTrue(store.isReviewTimelineLoading)
+        XCTAssertTrue(store.isReviewCountsLoading)
         let firstCard = try XCTUnwrap(store.effectiveReviewQueue.first)
         let secondCard = try XCTUnwrap(store.effectiveReviewQueue.dropFirst().first)
 
         try store.enqueueReviewSubmission(cardId: firstCard.cardId, rating: .good)
 
-        XCTAssertTrue(store.isReviewTimelineLoading)
+        XCTAssertTrue(store.isReviewCountsLoading)
         XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, secondCard.cardId)
 
         await self.waitUntil(
@@ -382,6 +415,61 @@ final class FlashcardsStoreTests: XCTestCase {
         }
 
         XCTAssertNil(store.reviewSubmissionFailure)
+    }
+
+    func testReviewQueueReplenishesWhenVisibleQueueDropsToThreshold() async throws {
+        let context = try self.makeStoreContext(
+            makeReviewSubmissionExecutor: { database in
+                ScriptedReviewSubmissionExecutor(
+                    databaseURL: database.databaseURL,
+                    outcomes: Array(repeating: .submitToDatabase, count: 4),
+                    delayNanoseconds: 600_000_000
+                )
+            },
+            reviewHeadDelayNanoseconds: 0,
+            reviewCountsDelayNanoseconds: 0
+        )
+        let store = context.store
+
+        for index in 1...10 {
+            try store.saveCard(
+                input: self.makeCardInput(
+                    frontText: "Card \(index)",
+                    backText: "Back \(index)",
+                    tags: ["target"]
+                ),
+                editingCardId: nil
+            )
+        }
+        try store.createDeck(
+            input: self.makeDeckInput(name: "Target deck", tags: ["target"])
+        )
+        let targetDeckId = try XCTUnwrap(store.decks.first?.deckId)
+
+        store.selectReviewFilter(reviewFilter: .deck(deckId: targetDeckId))
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewHeadLoading == false
+        }
+
+        XCTAssertEqual(store.reviewQueue.count, 8)
+
+        let cardsToSubmit = Array(store.effectiveReviewQueue.prefix(4))
+        for card in cardsToSubmit {
+            try store.enqueueReviewSubmission(cardId: card.cardId, rating: .good)
+        }
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewQueueChunkLoading == false && store.effectiveReviewQueue.count == 6
+        }
+
+        XCTAssertEqual(store.reviewQueue.count, 10)
     }
 
     func testEnqueueReviewSubmissionOptimisticallyRemovesCurrentCard() async throws {
@@ -411,6 +499,7 @@ final class FlashcardsStoreTests: XCTestCase {
 
         XCTAssertTrue(store.isReviewPending(cardId: firstCard.cardId))
         XCTAssertEqual(store.effectiveReviewQueue.count, 1)
+        XCTAssertEqual(store.displayedReviewDueCount, 1)
         XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, secondCard.cardId)
 
         await self.waitUntil(
@@ -614,7 +703,9 @@ final class FlashcardsStoreTests: XCTestCase {
             credentialStore: environment.credentialStore,
             reviewSubmissionExecutor: ReviewSubmissionExecutor(databaseURL: environment.database.databaseURL),
             reviewHeadLoader: makeDelayedReviewHeadLoader(delayNanoseconds: 0),
-            reviewStateLoader: makeDelayedReviewStateLoader(delayNanoseconds: 0),
+            reviewCountsLoader: makeDelayedReviewCountsLoader(delayNanoseconds: 0),
+            reviewQueueChunkLoader: makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
+            reviewTimelinePageLoader: makeReviewTimelinePageLoader(),
             initialGlobalErrorMessage: ""
         )
     }
@@ -626,7 +717,7 @@ final class FlashcardsStoreTests: XCTestCase {
             credentialStore: CloudCredentialStore
         ),
         reviewHeadDelayNanoseconds: UInt64,
-        reviewStateDelayNanoseconds: UInt64
+        reviewCountsDelayNanoseconds: UInt64
     ) -> FlashcardsStore {
         FlashcardsStore(
             userDefaults: environment.userDefaults,
@@ -637,14 +728,16 @@ final class FlashcardsStoreTests: XCTestCase {
             credentialStore: environment.credentialStore,
             reviewSubmissionExecutor: ReviewSubmissionExecutor(databaseURL: environment.database.databaseURL),
             reviewHeadLoader: makeDelayedReviewHeadLoader(delayNanoseconds: reviewHeadDelayNanoseconds),
-            reviewStateLoader: makeDelayedReviewStateLoader(delayNanoseconds: reviewStateDelayNanoseconds),
+            reviewCountsLoader: makeDelayedReviewCountsLoader(delayNanoseconds: reviewCountsDelayNanoseconds),
+            reviewQueueChunkLoader: makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
+            reviewTimelinePageLoader: makeReviewTimelinePageLoader(),
             initialGlobalErrorMessage: ""
         )
     }
 
     private func makeStoreContext(
         reviewHeadDelayNanoseconds: UInt64,
-        reviewStateDelayNanoseconds: UInt64
+        reviewCountsDelayNanoseconds: UInt64
     ) throws -> StoreContext {
         let environment = try self.makeStoreEnvironment()
 
@@ -652,7 +745,7 @@ final class FlashcardsStoreTests: XCTestCase {
             store: self.makeStore(
                 environment: environment,
                 reviewHeadDelayNanoseconds: reviewHeadDelayNanoseconds,
-                reviewStateDelayNanoseconds: reviewStateDelayNanoseconds
+                reviewCountsDelayNanoseconds: reviewCountsDelayNanoseconds
             ),
             database: environment.database
         )
@@ -661,7 +754,7 @@ final class FlashcardsStoreTests: XCTestCase {
     private func makeStoreContext(
         makeReviewSubmissionExecutor: (LocalDatabase) -> ReviewSubmissionExecuting,
         reviewHeadDelayNanoseconds: UInt64,
-        reviewStateDelayNanoseconds: UInt64
+        reviewCountsDelayNanoseconds: UInt64
     ) throws -> StoreContext {
         let environment = try self.makeStoreEnvironment()
         let reviewSubmissionExecutor = makeReviewSubmissionExecutor(environment.database)
@@ -676,7 +769,9 @@ final class FlashcardsStoreTests: XCTestCase {
                 credentialStore: environment.credentialStore,
                 reviewSubmissionExecutor: reviewSubmissionExecutor,
                 reviewHeadLoader: makeDelayedReviewHeadLoader(delayNanoseconds: reviewHeadDelayNanoseconds),
-                reviewStateLoader: makeDelayedReviewStateLoader(delayNanoseconds: reviewStateDelayNanoseconds),
+                reviewCountsLoader: makeDelayedReviewCountsLoader(delayNanoseconds: reviewCountsDelayNanoseconds),
+                reviewQueueChunkLoader: makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
+                reviewTimelinePageLoader: makeReviewTimelinePageLoader(),
                 initialGlobalErrorMessage: ""
             ),
             database: environment.database
@@ -708,7 +803,9 @@ final class FlashcardsStoreTests: XCTestCase {
                 credentialStore: environment.credentialStore,
                 reviewSubmissionExecutor: reviewSubmissionExecutor,
                 reviewHeadLoader: makeDelayedReviewHeadLoader(delayNanoseconds: 0),
-                reviewStateLoader: makeDelayedReviewStateLoader(delayNanoseconds: 0),
+                reviewCountsLoader: makeDelayedReviewCountsLoader(delayNanoseconds: 0),
+                reviewQueueChunkLoader: makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
+                reviewTimelinePageLoader: makeReviewTimelinePageLoader(),
                 initialGlobalErrorMessage: ""
             ),
             database: environment.database
