@@ -34,7 +34,7 @@ export async function ensureUserProfileInExecutor(
   );
 
   const existing = await executor.query<UserSettingsRow>(
-    "SELECT workspace_id, email, locale, created_at FROM org.user_settings WHERE user_id = $1",
+    "SELECT workspace_id, email, locale, created_at FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
     [userId],
   );
 
