@@ -1,6 +1,11 @@
 import { Buffer } from "node:buffer";
 import Anthropic, { toFile } from "@anthropic-ai/sdk";
-import type { LocalAssistantToolCall, LocalChatMessage, LocalChatStreamEvent } from "../localTypes";
+import type {
+  LocalAssistantToolCall,
+  LocalChatMessage,
+  LocalChatStreamEvent,
+  LocalChatUserContext,
+} from "../localTypes";
 import {
   buildInlineTextAttachmentContext,
   buildLocalSystemInstructions,
@@ -208,6 +213,7 @@ export type StreamLocalTurnParams = Readonly<{
   model: string;
   timezone: string;
   devicePlatform: "ios" | "web";
+  userContext: LocalChatUserContext;
   requestId: string;
 }>;
 
@@ -668,7 +674,7 @@ export async function* streamLocalAgentTurn(
     const stream = client.beta.messages.stream({
       model: params.model,
       max_tokens: MAX_TOKENS,
-      system: buildLocalSystemInstructions(params.timezone, params.devicePlatform),
+      system: buildLocalSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
       messages: buildInput(params.messages, uploadPlan, repairState),
       tools: localAnthropicTools(),
       betas: [FILES_BETA],

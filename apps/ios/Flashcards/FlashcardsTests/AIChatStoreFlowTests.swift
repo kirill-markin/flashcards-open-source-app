@@ -516,6 +516,8 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         let requests = await chatService.snapshotRequests()
         XCTAssertEqual(requests.count, 2)
+        XCTAssertEqual(requests[0].userContext.totalCards, 1)
+        XCTAssertEqual(requests[1].userContext.totalCards, 1)
         XCTAssertEqual(requests[1].messages.count, 3)
         XCTAssertEqual(requests[1].messages[1].role, "assistant")
         XCTAssertEqual(requests[1].messages[1].content?.count, 1)

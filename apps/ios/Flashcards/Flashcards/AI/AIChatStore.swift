@@ -127,6 +127,8 @@ final class AIChatStore: ObservableObject {
             return
         }
 
+        let tapStartedAt = Date()
+
         let content = self.makeOutgoingContent()
         if content.isEmpty {
             return
@@ -173,6 +175,7 @@ final class AIChatStore: ObservableObject {
                 let result = await self.runtime.run(
                     session: session,
                     initialState: initialState,
+                    tapStartedAt: tapStartedAt,
                     eventHandler: { [weak self] event in
                         await self?.handleRuntimeEvent(event, conversationId: conversationId)
                     }
@@ -180,6 +183,11 @@ final class AIChatStore: ObservableObject {
                 if let diagnosticsBody = result.failureReportBody, let diagnosticsSession {
                     Task {
                         await self.chatService.reportFailureDiagnostics(session: diagnosticsSession, body: diagnosticsBody)
+                    }
+                }
+                if let latencyReportBody = result.latencyReportBody, let diagnosticsSession {
+                    Task {
+                        await self.chatService.reportLatencyDiagnostics(session: diagnosticsSession, body: latencyReportBody)
                     }
                 }
             } catch is CancellationError {

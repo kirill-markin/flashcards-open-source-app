@@ -25,15 +25,84 @@ final class InMemoryHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 }
 
+func makeStubAIChatSnapshot(totalCards: Int) -> AppStateSnapshot {
+    let cards = (0..<totalCards).map { index in
+        Card(
+            cardId: "card-\(index)",
+            workspaceId: "workspace-1",
+            frontText: "Question \(index)",
+            backText: "Answer \(index)",
+            tags: ["tag"],
+            effortLevel: .medium,
+            dueAt: nil,
+            reps: 0,
+            lapses: 0,
+            fsrsCardState: .learning,
+            fsrsStepIndex: 0,
+            fsrsStability: nil,
+            fsrsDifficulty: nil,
+            fsrsLastReviewedAt: nil,
+            fsrsScheduledDays: nil,
+            clientUpdatedAt: "2026-03-09T00:00:00.000Z",
+            lastModifiedByDeviceId: "device-1",
+            lastOperationId: "operation-\(index)",
+            updatedAt: "2026-03-09T00:00:00.000Z",
+            deletedAt: nil
+        )
+    }
+
+    return AppStateSnapshot(
+        workspace: Workspace(
+            workspaceId: "workspace-1",
+            name: "Workspace",
+            createdAt: "2026-03-09T00:00:00.000Z"
+        ),
+        userSettings: UserSettings(
+            userId: "user-1",
+            workspaceId: "workspace-1",
+            email: "user@example.com",
+            locale: "en",
+            createdAt: "2026-03-09T00:00:00.000Z"
+        ),
+        schedulerSettings: WorkspaceSchedulerSettings(
+            algorithm: "fsrs-6",
+            desiredRetention: 0.9,
+            learningStepsMinutes: [1, 10],
+            relearningStepsMinutes: [10],
+            maximumIntervalDays: 36500,
+            enableFuzz: true,
+            clientUpdatedAt: "2026-03-09T00:00:00.000Z",
+            lastModifiedByDeviceId: "device-1",
+            lastOperationId: "operation-settings",
+            updatedAt: "2026-03-09T00:00:00.000Z"
+        ),
+        cloudSettings: CloudSettings(
+            deviceId: "device-1",
+            cloudState: .linked,
+            linkedUserId: "user-1",
+            linkedWorkspaceId: "workspace-1",
+            linkedEmail: "user@example.com",
+            onboardingCompleted: true,
+            updatedAt: "2026-03-09T00:00:00.000Z"
+        ),
+        cards: cards,
+        decks: []
+    )
+}
+
 final class FailingChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         XCTFail("streamTurn should not be called in this test")
         return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: nil)
     }
@@ -41,6 +110,12 @@ final class FailingChatService: AIChatStreaming, @unchecked Sendable {
     func reportFailureDiagnostics(
         session: CloudLinkedSession,
         body: AIChatFailureReportBody
+    ) async {
+    }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
     ) async {
     }
 }
@@ -51,17 +126,27 @@ struct ThrowingChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         throw self.error
     }
 
     func reportFailureDiagnostics(
         session: CloudLinkedSession,
         body: AIChatFailureReportBody
+    ) async {
+    }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
     ) async {
     }
 }
@@ -72,11 +157,15 @@ struct RepairingChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         await onDelta("Checking")
         await onRepairAttempt(
             AIChatRepairAttemptStatus(
@@ -106,6 +195,12 @@ struct RepairingChatService: AIChatStreaming, @unchecked Sendable {
         body: AIChatFailureReportBody
     ) async {
     }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+    }
 }
 
 struct FailingToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
@@ -115,8 +210,7 @@ struct FailingToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     }
 
     func loadSnapshot() async throws -> AppStateSnapshot {
-        XCTFail("loadSnapshot should not be called in this test")
-        throw LocalStoreError.uninitialized("Snapshot should not be requested")
+        return makeStubAIChatSnapshot(totalCards: 1)
     }
 }
 
@@ -132,11 +226,15 @@ actor RecoveringToolFailureChatService: AIChatStreaming {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         self.requests.append(request)
         self.callCount += 1
 
@@ -164,6 +262,12 @@ actor RecoveringToolFailureChatService: AIChatStreaming {
     ) async {
     }
 
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+    }
+
     func snapshotRequests() -> [AILocalChatRequestBody] {
         self.requests
     }
@@ -181,11 +285,15 @@ actor RepeatingToolFailureChatService: AIChatStreaming {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         self.requests.append(request)
         self.callCount += 1
 
@@ -205,6 +313,12 @@ actor RepeatingToolFailureChatService: AIChatStreaming {
     func reportFailureDiagnostics(
         session: CloudLinkedSession,
         body: AIChatFailureReportBody
+    ) async {
+    }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
     ) async {
     }
 
@@ -230,7 +344,7 @@ actor RecoveringToolFailureExecutor: AIToolExecuting, AIChatSnapshotLoading {
     }
 
     func loadSnapshot() async throws -> AppStateSnapshot {
-        throw LocalStoreError.uninitialized("Snapshot should not be requested")
+        return makeStubAIChatSnapshot(totalCards: 1)
     }
 }
 
@@ -240,7 +354,7 @@ actor AlwaysFailingToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     }
 
     func loadSnapshot() async throws -> AppStateSnapshot {
-        throw LocalStoreError.uninitialized("Snapshot should not be requested")
+        return makeStubAIChatSnapshot(totalCards: 1)
     }
 }
 
@@ -250,11 +364,15 @@ struct BurstChatService: AIChatStreaming {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         for delta in self.deltas {
             await onDelta(delta)
         }
@@ -267,6 +385,12 @@ struct BurstChatService: AIChatStreaming {
         body: AIChatFailureReportBody
     ) async {
     }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+    }
 }
 
 actor MutatingChatService: AIChatStreaming {
@@ -275,11 +399,15 @@ actor MutatingChatService: AIChatStreaming {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         self.callCount += 1
 
         if self.callCount == 1 {
@@ -305,6 +433,12 @@ actor MutatingChatService: AIChatStreaming {
         body: AIChatFailureReportBody
     ) async {
     }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+    }
 }
 
 actor DelayedToolCompletionChatService: AIChatStreaming {
@@ -313,11 +447,15 @@ actor DelayedToolCompletionChatService: AIChatStreaming {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         self.callCount += 1
 
         if self.callCount == 1 {
@@ -343,6 +481,12 @@ actor DelayedToolCompletionChatService: AIChatStreaming {
         body: AIChatFailureReportBody
     ) async {
     }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+    }
 }
 
 struct SlowSuccessToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
@@ -354,7 +498,7 @@ struct SlowSuccessToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     }
 
     func loadSnapshot() async throws -> AppStateSnapshot {
-        throw LocalStoreError.uninitialized("Snapshot should not be requested")
+        return makeStubAIChatSnapshot(totalCards: 1)
     }
 }
 
@@ -362,11 +506,15 @@ struct SuspendingChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         try await Task.sleep(nanoseconds: 10_000_000_000)
         return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-suspending")
     }
@@ -376,17 +524,27 @@ struct SuspendingChatService: AIChatStreaming, @unchecked Sendable {
         body: AIChatFailureReportBody
     ) async {
     }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+    }
 }
 
 struct RepairingSuspendingChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         await onRepairAttempt(
             AIChatRepairAttemptStatus(
                 message: "Assistant is correcting sql.",
@@ -402,6 +560,12 @@ struct RepairingSuspendingChatService: AIChatStreaming, @unchecked Sendable {
     func reportFailureDiagnostics(
         session: CloudLinkedSession,
         body: AIChatFailureReportBody
+    ) async {
+    }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
     ) async {
     }
 }
@@ -423,11 +587,15 @@ struct DelayedBurstChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         await onDelta(self.firstDelta)
         try await Task.sleep(nanoseconds: self.pauseAfterFirstDeltaNanoseconds)
         for delta in self.trailingDeltas {
@@ -442,6 +610,12 @@ struct DelayedBurstChatService: AIChatStreaming, @unchecked Sendable {
         body: AIChatFailureReportBody
     ) async {
     }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+    }
 }
 
 struct ToolCallOnlyChatService: AIChatStreaming, @unchecked Sendable {
@@ -450,11 +624,15 @@ struct ToolCallOnlyChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onLatencyReported
         await onToolCall(self.toolCall)
         return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-tool-call-only")
     }
@@ -462,6 +640,12 @@ struct ToolCallOnlyChatService: AIChatStreaming, @unchecked Sendable {
     func reportFailureDiagnostics(
         session: CloudLinkedSession,
         body: AIChatFailureReportBody
+    ) async {
+    }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
     ) async {
     }
 }

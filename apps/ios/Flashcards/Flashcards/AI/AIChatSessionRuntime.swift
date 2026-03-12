@@ -22,6 +22,20 @@ private struct AIChatRuntimeFailure: LocalizedError, AIChatFailureDiagnosticProv
     }
 }
 
+private actor AIChatLatencyCapture {
+    private var body: AIChatLatencyReportBody?
+
+    func capture(_ nextBody: AIChatLatencyReportBody) {
+        if self.body == nil {
+            self.body = nextBody
+        }
+    }
+
+    func snapshot() -> AIChatLatencyReportBody? {
+        self.body
+    }
+}
+
 actor AIChatSessionRuntime {
     private let historyStore: any AIChatHistoryStoring
     private let chatService: any AIChatStreaming
@@ -62,16 +76,20 @@ actor AIChatSessionRuntime {
     func run(
         session: CloudLinkedSession,
         initialState: AIChatPersistedState,
+        tapStartedAt: Date,
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
     ) async -> AIChatRuntimeResult {
         await self.beginRun(state: initialState)
+        let latencyCapture = AIChatLatencyCapture()
+        var shouldTrackFirstRequestLatency = true
 
         do {
             while true {
-                let request = self.makeRequestBody()
+                let request = try await self.makeRequestBody()
                 let outcome = try await self.chatService.streamTurn(
                     session: session,
                     request: request,
+                    tapStartedAt: shouldTrackFirstRequestLatency ? tapStartedAt : nil,
                     onDelta: { [weak self] text in
                         guard let self else {
                             return
@@ -99,12 +117,19 @@ actor AIChatSessionRuntime {
                         }
 
                         await self.handleRepairStatus(status: status, eventHandler: eventHandler)
+                    },
+                    onLatencyReported: { latencyBody in
+                        await latencyCapture.capture(latencyBody)
                     }
                 )
+                shouldTrackFirstRequestLatency = false
                 await self.flushPendingAssistantText(eventHandler: eventHandler)
                 if outcome.awaitsToolResults == false {
                     await self.finish(eventHandler: eventHandler)
-                    return AIChatRuntimeResult(failureReportBody: nil)
+                    return AIChatRuntimeResult(
+                        failureReportBody: nil,
+                        latencyReportBody: await latencyCapture.snapshot()
+                    )
                 }
 
                 let requestedToolCalls = outcome.requestedToolCalls
@@ -167,9 +192,16 @@ actor AIChatSessionRuntime {
             }
         } catch is CancellationError {
             await self.cancel(eventHandler: eventHandler)
-            return AIChatRuntimeResult(failureReportBody: nil)
+            return AIChatRuntimeResult(
+                failureReportBody: nil,
+                latencyReportBody: await latencyCapture.snapshot()
+            )
         } catch {
-            return await self.fail(error: error, eventHandler: eventHandler)
+            return await self.fail(
+                error: error,
+                eventHandler: eventHandler,
+                latencyReportBody: await latencyCapture.snapshot()
+            )
         }
     }
 
@@ -289,7 +321,8 @@ actor AIChatSessionRuntime {
 
     private func fail(
         error: Error,
-        eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
+        eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void,
+        latencyReportBody: AIChatLatencyReportBody?
     ) async -> AIChatRuntimeResult {
         await self.flushPendingAssistantText(eventHandler: eventHandler)
         let failureReportBody = self.makeFailureReportBody(error: error)
@@ -298,7 +331,10 @@ actor AIChatSessionRuntime {
         await self.historyStore.saveState(state: self.persistedState)
         await eventHandler(.setRepairStatus(nil))
         await eventHandler(.fail(message))
-        return AIChatRuntimeResult(failureReportBody: failureReportBody)
+        return AIChatRuntimeResult(
+            failureReportBody: failureReportBody,
+            latencyReportBody: latencyReportBody
+        )
     }
 
     private func flushPendingAssistantText(
@@ -324,8 +360,12 @@ actor AIChatSessionRuntime {
         return appendAssistantText(state: self.persistedState, text: self.pendingAssistantText)
     }
 
-    private func makeRequestBody() -> AILocalChatRequestBody {
-        makeRuntimeRequestBody(state: self.persistedState)
+    private func makeRequestBody() async throws -> AILocalChatRequestBody {
+        let snapshot = try await self.snapshotLoader.loadSnapshot()
+        return makeRuntimeRequestBody(
+            state: self.persistedState,
+            userContext: makeAIChatUserContext(cards: snapshot.cards)
+        )
     }
 
     private func makeFailureReportBody(error: Error) -> AIChatFailureReportBody? {
@@ -359,6 +399,7 @@ actor AIChatSessionRuntime {
         }
 
         return AIChatFailureReportBody(
+            kind: "failure",
             clientRequestId: diagnostics.clientRequestId,
             backendRequestId: diagnostics.backendRequestId,
             stage: diagnostics.stage.rawValue,
@@ -371,7 +412,7 @@ actor AIChatSessionRuntime {
             rawSnippet: diagnostics.rawSnippet,
             decoderSummary: diagnostics.decoderSummary,
             selectedModel: self.persistedState.selectedModelId,
-            messageCount: self.makeRequestBody().messages.count,
+            messageCount: runtimeMessageCount(state: self.persistedState),
             appVersion: aiChatAppVersion(),
             devicePlatform: "ios"
         )
@@ -417,15 +458,29 @@ private func makeTerminalToolExecutionFailure(
     )
 }
 
-private func makeRuntimeRequestBody(state: AIChatPersistedState) -> AILocalChatRequestBody {
+func makeAIChatUserContext(cards: [Card]) -> AILocalChatUserContext {
+    AILocalChatUserContext(totalCards: activeCards(cards: cards).count)
+}
+
+private func makeRuntimeRequestBody(
+    state: AIChatPersistedState,
+    userContext: AILocalChatUserContext
+) -> AILocalChatRequestBody {
     AILocalChatRequestBody(
         messages: state.messages.flatMap { message in
             makeWireMessages(message: message)
         },
         model: state.selectedModelId,
         timezone: TimeZone.current.identifier,
-        devicePlatform: "ios"
+        devicePlatform: "ios",
+        userContext: userContext
     )
+}
+
+private func runtimeMessageCount(state: AIChatPersistedState) -> Int {
+    state.messages.flatMap { message in
+        makeWireMessages(message: message)
+    }.count
 }
 
 private func makeWireMessages(message: AIChatMessage) -> [AILocalChatWireMessage] {

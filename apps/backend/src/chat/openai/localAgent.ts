@@ -4,7 +4,12 @@ import type {
   ResponseFunctionToolCall,
   ResponseInputItem,
 } from "openai/resources/responses/responses";
-import type { LocalAssistantToolCall, LocalChatMessage, LocalChatStreamEvent } from "../localTypes";
+import type {
+  LocalAssistantToolCall,
+  LocalChatMessage,
+  LocalChatStreamEvent,
+  LocalChatUserContext,
+} from "../localTypes";
 import {
   buildInlineTextAttachmentContext,
   buildLocalSystemInstructions,
@@ -163,6 +168,7 @@ export type StreamLocalTurnParams = Readonly<{
   model: string;
   timezone: string;
   devicePlatform: "ios" | "web";
+  userContext: LocalChatUserContext;
   requestId: string;
 }>;
 
@@ -527,7 +533,7 @@ export async function* streamLocalAgentTurn(
     const startedProviderTools = new Set<string>();
     const stream = client.responses.stream({
       model: params.model,
-      instructions: buildLocalSystemInstructions(params.timezone, params.devicePlatform),
+      instructions: buildLocalSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
       input: buildInput(params.messages, uploadPlan, repairState),
       tools: [
         ...OPENAI_LOCAL_FLASHCARDS_TOOLS,

@@ -7,9 +7,11 @@ import {
   type ReactElement,
 } from "react";
 import { createLocalChatRequestBody, streamLocalChat } from "../api";
+import type { MutableSnapshot } from "../appData/types";
 import { webAppVersion } from "../clientIdentity";
 import { DEFAULT_MODEL_ID } from "../chatModels";
 import { useAppData } from "../appData";
+import { deriveActiveCards } from "../appData/domain";
 import { ensurePersistentStorage } from "../syncStorage";
 import { useChatLayout } from "./ChatLayoutContext";
 import {
@@ -43,6 +45,12 @@ import { useChatHistory } from "./useChatHistory";
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
 }>;
+
+function buildLocalChatUserContext(snapshot: MutableSnapshot): Readonly<{ totalCards: number }> {
+  return {
+    totalCards: deriveActiveCards(snapshot.cards).length,
+  };
+}
 
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
@@ -108,7 +116,12 @@ export function ChatPanel(props: Props): ReactElement {
         isError: false,
       },
     ]);
-    return createLocalChatRequestBody(draftWireMessages, selectedModel, timezone);
+    return createLocalChatRequestBody(
+      draftWireMessages,
+      selectedModel,
+      timezone,
+      buildLocalChatUserContext(appData.getLocalSnapshot()),
+    );
   }
 
   useEffect(() => {
@@ -256,6 +269,8 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
+    const tapStartedAt = Date.now();
+
     const contentParts = buildContentParts(inputText, pendingAttachments);
     if (contentParts.length === 0) {
       return;
@@ -271,7 +286,12 @@ export function ChatPanel(props: Props): ReactElement {
         isError: false,
       },
     ]);
-    const initialRequestBody = createLocalChatRequestBody(initialWireMessages, selectedModel, timezone);
+    const initialRequestBody = createLocalChatRequestBody(
+      initialWireMessages,
+      selectedModel,
+      timezone,
+      buildLocalChatUserContext(appData.getLocalSnapshot()),
+    );
     if (toRequestBodySizeBytes(initialRequestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       markAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
       return;
@@ -299,7 +319,16 @@ export function ChatPanel(props: Props): ReactElement {
       const localToolExecutor = createLocalToolExecutor(appData);
       await runLocalChatRuntime(
         {
-          createRequestBody: createLocalChatRequestBody,
+          createRequestBody: (
+            runtimeMessages: ReadonlyArray<ReturnType<typeof toLocalChatMessages>[number]>,
+            runtimeModel: string,
+            runtimeTimezone: string,
+          ) => createLocalChatRequestBody(
+            runtimeMessages,
+            runtimeModel,
+            runtimeTimezone,
+            buildLocalChatUserContext(appData.getLocalSnapshot()),
+          ),
           streamChat: streamLocalChat,
           executeTool: localToolExecutor.execute,
           reportDiagnostics: reportLocalChatDiagnostics,
@@ -312,6 +341,7 @@ export function ChatPanel(props: Props): ReactElement {
           initialMessages: initialWireMessages,
           selectedModel,
           timezone,
+          tapStartedAt,
           signal: abortController.signal,
           callbacks: {
             onAssistantStarted: () => {

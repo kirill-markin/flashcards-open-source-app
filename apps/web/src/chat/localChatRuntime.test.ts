@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { runLocalChatRuntime, type LocalChatRuntimeCallbacks, type LocalChatRuntimeDependencies } from "./localChatRuntime";
-import type { LocalChatDiagnosticsPayload, LocalChatMessage, LocalChatRequestBody } from "../types";
+import type {
+  LocalChatDiagnosticsPayload,
+  LocalChatFailureDiagnosticsPayload,
+  LocalChatLatencyDiagnosticsPayload,
+  LocalChatMessage,
+  LocalChatRequestBody,
+} from "../types";
 
 type RuntimeHarness = Readonly<{
   dependencies: LocalChatRuntimeDependencies;
@@ -41,6 +47,32 @@ function createStreamResponse(payloads: ReadonlyArray<string>, status: number = 
   });
 }
 
+function createFailingStreamResponse(
+  payloads: ReadonlyArray<string>,
+  error: Error,
+): Response {
+  const encoder = new TextEncoder();
+  let nextIndex = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller): void {
+      if (nextIndex < payloads.length) {
+        controller.enqueue(encoder.encode(payloads[nextIndex]));
+        nextIndex += 1;
+        return;
+      }
+
+      controller.error(error);
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "x-chat-request-id": "backend-request-1",
+    },
+  });
+}
+
 function createRuntimeHarness(): RuntimeHarness {
   const createRequestBodyMock = vi.fn((
     messages: ReadonlyArray<LocalChatMessage>,
@@ -51,6 +83,9 @@ function createRuntimeHarness(): RuntimeHarness {
     model,
     timezone,
     devicePlatform: "web",
+    userContext: {
+      totalCards: 3,
+    },
   }));
   const streamChatMock = vi.fn();
   const executeToolMock = vi.fn().mockResolvedValue({
@@ -110,6 +145,7 @@ async function runHarness(harness: RuntimeHarness): Promise<void> {
       }],
       selectedModel: "test-model",
       timezone: "Europe/Madrid",
+      tapStartedAt: 900,
       signal: new AbortController().signal,
       callbacks: harness.callbacks,
     },
@@ -137,6 +173,22 @@ function readDiagnosticsPayloadAt(
   return call[0] as LocalChatDiagnosticsPayload;
 }
 
+function readFailureDiagnosticsPayloads(
+  mock: ReturnType<typeof vi.fn>,
+): ReadonlyArray<LocalChatFailureDiagnosticsPayload> {
+  return mock.mock.calls
+    .map((call) => call[0] as LocalChatDiagnosticsPayload)
+    .filter((payload): payload is LocalChatFailureDiagnosticsPayload => payload.kind === "failure");
+}
+
+function readLatencyDiagnosticsPayloads(
+  mock: ReturnType<typeof vi.fn>,
+): ReadonlyArray<LocalChatLatencyDiagnosticsPayload> {
+  return mock.mock.calls
+    .map((call) => call[0] as LocalChatDiagnosticsPayload)
+    .filter((payload): payload is LocalChatLatencyDiagnosticsPayload => payload.kind === "latency");
+}
+
 describe("runLocalChatRuntime", () => {
   it("streams assistant deltas without normalizing whitespace", async () => {
     const harness = createRuntimeHarness();
@@ -155,6 +207,22 @@ describe("runLocalChatRuntime", () => {
     ]);
     expect(harness.onAssistantCompletedMock).toHaveBeenCalledTimes(1);
     expect(harness.onAssistantErrorMock).not.toHaveBeenCalled();
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        stage: "success",
+        eventType: "done",
+        selectedModel: "test-model",
+      }),
+    ]);
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "success",
+        firstEventType: "delta",
+        didReceiveFirstSseLine: true,
+        didReceiveFirstDelta: true,
+        tapToRequestStartMs: 100,
+      }),
+    ]);
     expect(readDiagnosticsPayload(harness.onDiagnosticsMock)).toMatchObject({
       stage: "success",
       eventType: "done",
@@ -276,16 +344,24 @@ describe("runLocalChatRuntime", () => {
         output: "{\"ok\":false,\"error\":{\"code\":\"LOCAL_TOOL_EXECUTION_FAILED\",\"message\":\"Unsupported SELECT statement\"}}",
       },
     ]);
-    expect(readDiagnosticsPayloadAt(harness.onDiagnosticsMock, 0)).toMatchObject({
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)[0]).toMatchObject({
       stage: "tool_execution",
       errorKind: "tool_execution_failed",
       toolName: "sql",
       toolCallId: "tool-1",
     });
-    expect(readDiagnosticsPayloadAt(harness.onDiagnosticsMock, 1)).toMatchObject({
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)[1]).toMatchObject({
       stage: "success",
       eventType: "done",
     });
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "success",
+        firstEventType: "tool_call_request",
+        didReceiveFirstSseLine: true,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
     expect(harness.onAssistantCompletedMock).toHaveBeenCalledTimes(1);
   });
 
@@ -319,12 +395,20 @@ describe("runLocalChatRuntime", () => {
       "Tool execution failed 3 times in a row. Last error: Unsupported SELECT statement",
     );
     expect(harness.onAssistantCompletedMock).not.toHaveBeenCalled();
-    expect(harness.onDiagnosticsMock).toHaveBeenCalledTimes(3);
-    expect(readDiagnosticsPayloadAt(harness.onDiagnosticsMock, 2)).toMatchObject({
+    expect(harness.onDiagnosticsMock).toHaveBeenCalledTimes(4);
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)[2]).toMatchObject({
       stage: "tool_execution",
       errorKind: "tool_execution_failed",
       toolCallId: "tool-3",
     });
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "success",
+        firstEventType: "tool_call_request",
+        didReceiveFirstSseLine: true,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
   });
 
   it("reports invalid SSE payloads as decoding failures", async () => {
@@ -342,6 +426,13 @@ describe("runLocalChatRuntime", () => {
       rawSnippet: "data: {not-valid-json}",
       lineNumber: 1,
     });
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "stream_error_before_first_delta",
+        didReceiveFirstSseLine: true,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
   });
 
   it("treats stream error events as terminal", async () => {
@@ -368,6 +459,14 @@ describe("runLocalChatRuntime", () => {
       eventType: "error",
       lineNumber: 1,
     });
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "stream_error_before_first_delta",
+        firstEventType: "error",
+        didReceiveFirstSseLine: true,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
   });
 
   it("sanitizes non-ok HTML error responses", async () => {
@@ -390,6 +489,14 @@ describe("runLocalChatRuntime", () => {
       stage: "response_not_ok",
       errorKind: "response_not_ok",
     });
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "response_not_ok",
+        statusCode: 502,
+        didReceiveFirstSseLine: false,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
   });
 
   it("treats successful streams without content as empty responses", async () => {
@@ -403,6 +510,13 @@ describe("runLocalChatRuntime", () => {
       stage: "empty_response",
       errorKind: "empty_response",
     });
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "empty_response",
+        didReceiveFirstSseLine: false,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
   });
 
   it("reports tool execution failures without stopping the turn immediately", async () => {
@@ -421,12 +535,132 @@ describe("runLocalChatRuntime", () => {
     await runHarness(harness);
 
     expect(harness.onAssistantErrorMock).not.toHaveBeenCalled();
-    expect(readDiagnosticsPayloadAt(harness.onDiagnosticsMock, 0)).toMatchObject({
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)[0]).toMatchObject({
       stage: "tool_execution",
       errorKind: "tool_execution_failed",
       toolName: "sql",
       toolCallId: "tool-1",
     });
     expect(harness.createRequestBodyMock).toHaveBeenCalledTimes(2);
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "success",
+        firstEventType: "tool_call_request",
+        didReceiveFirstSseLine: true,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
+  });
+
+  it("reports missing response readers in latency diagnostics", async () => {
+    const harness = createRuntimeHarness();
+    harness.streamChatMock.mockResolvedValueOnce(new Response(null, {
+      status: 200,
+      headers: {
+        "x-chat-request-id": "backend-request-1",
+      },
+    }));
+
+    await runHarness(harness);
+
+    expect(harness.onAssistantErrorMock).toHaveBeenCalledWith("The local chat response stream is missing.");
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        stage: "missing_reader",
+        errorKind: "missing_reader",
+      }),
+    ]);
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "missing_reader",
+        didReceiveFirstSseLine: false,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
+  });
+
+  it("reports cancellation before headers in latency diagnostics", async () => {
+    const harness = createRuntimeHarness();
+    harness.streamChatMock.mockRejectedValueOnce(new DOMException("Aborted", "AbortError"));
+
+    await expect(runHarness(harness)).rejects.toThrow("Aborted");
+
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "cancelled_before_headers",
+        didReceiveFirstSseLine: false,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)).toHaveLength(0);
+  });
+
+  it("reports cancellation after headers before the first SSE line", async () => {
+    const harness = createRuntimeHarness();
+    const abortError = new DOMException("Aborted", "AbortError");
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller): void {
+        controller.error(abortError);
+      },
+    });
+    harness.streamChatMock.mockResolvedValueOnce(new Response(stream, {
+      status: 200,
+      headers: {
+        "x-chat-request-id": "backend-request-1",
+      },
+    }));
+
+    await expect(runHarness(harness)).rejects.toThrow("Aborted");
+
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "cancelled_before_first_sse_line",
+        didReceiveFirstSseLine: false,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)).toHaveLength(0);
+  });
+
+  it("reports cancellation after the first SSE line but before the first delta", async () => {
+    const harness = createRuntimeHarness();
+    harness.streamChatMock.mockResolvedValueOnce(createFailingStreamResponse([
+      createSSELine({
+        type: "repair_attempt",
+        message: "Retrying tool call",
+        attempt: 1,
+        maxAttempts: 3,
+        toolName: "sql",
+      }),
+    ], new DOMException("Aborted", "AbortError")));
+
+    await expect(runHarness(harness)).rejects.toThrow("Aborted");
+
+    expect(readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        result: "cancelled_before_first_delta",
+        firstEventType: "repair_attempt",
+        didReceiveFirstSseLine: true,
+        didReceiveFirstDelta: false,
+      }),
+    ]);
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)).toHaveLength(0);
+  });
+
+  it("keeps latency diagnostics privacy-safe", async () => {
+    const harness = createRuntimeHarness();
+    harness.streamChatMock.mockResolvedValueOnce(createStreamResponse([
+      createSSELine({ type: "delta", text: "Top secret answer" }),
+      createSSELine({ type: "done" }),
+    ]));
+
+    await runHarness(harness);
+
+    const latencyPayload = readLatencyDiagnosticsPayloads(harness.onDiagnosticsMock)[0];
+    expect(latencyPayload).toBeDefined();
+    expect("rawSnippet" in latencyPayload).toBe(false);
+    expect("decoderSummary" in latencyPayload).toBe(false);
+    expect(JSON.stringify(latencyPayload)).not.toContain("hello");
+    expect(JSON.stringify(latencyPayload)).not.toContain("Top secret answer");
   });
 });

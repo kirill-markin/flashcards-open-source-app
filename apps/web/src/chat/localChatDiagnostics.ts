@@ -71,15 +71,19 @@ export function buildChatResponseMetadata(response: Response | null): ChatRespon
  * user-facing runtime flow.
  */
 export async function reportLocalChatDiagnostics(payload: LocalChatDiagnosticsPayload): Promise<void> {
-  console.info("chat_local_frontend_diagnostics", payload);
+  const localAction = payload.kind === "latency"
+    ? "chat_local_latency"
+    : "chat_local_frontend_diagnostics";
+  console.info(localAction, payload);
 
   try {
     await postLocalChatDiagnostics(payload);
   } catch (error) {
     console.error("chat_local_frontend_diagnostics_failed", {
+      kind: payload.kind,
       clientRequestId: payload.clientRequestId,
       backendRequestId: payload.backendRequestId,
-      stage: payload.stage,
+      stage: payload.kind === "failure" ? payload.stage : payload.result,
       errorName: error instanceof Error ? error.name : null,
       errorMessage: error instanceof Error ? error.message : String(error),
     });

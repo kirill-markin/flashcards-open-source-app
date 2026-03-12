@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import test from "node:test";
-import { createLocalChatErrorEvent, parseLocalChatDiagnosticsBody, streamLocalChatResponse } from "./chat/http";
+import {
+  createLocalChatErrorEvent,
+  parseLocalChatDiagnosticsBody,
+  parseLocalChatRequestBody,
+  streamLocalChatResponse,
+} from "./chat/http";
 import {
   buildLocalSystemInstructions,
   decodeInlineTextAttachment,
@@ -20,6 +25,10 @@ import {
   streamLocalAgentTurn as streamAnthropicLocalAgentTurn,
 } from "./chat/anthropic/localAgent";
 import type { LocalChatStreamEvent, LocalContentPart } from "./chat/localTypes";
+
+const testUserContext = {
+  totalCards: 42,
+} as const;
 
 type FakeStreamEvent = Readonly<{
   type: "response.output_text.delta";
@@ -204,10 +213,12 @@ test("isSupportedAnthropicLocalChatModel accepts only Anthropic local-chat model
   assert.equal(isSupportedAnthropicLocalChatModel("gpt-5.4"), false);
 });
 
-test("buildLocalSystemInstructions includes strict tool-call rules and examples", () => {
-  const instructions = buildLocalSystemInstructions("Europe/Madrid", "ios");
+test("buildLocalSystemInstructions includes strict tool-call rules, examples, and user context", () => {
+  const instructions = buildLocalSystemInstructions("Europe/Madrid", "ios", testUserContext);
 
   assert.match(instructions, /use this assistant on iphone\./i);
+  assert.match(instructions, /User context:/);
+  assert.match(instructions, /The current workspace has 42 cards\./);
   assert.match(instructions, /the local device database is the source of truth for reads\./i);
   assert.match(instructions, /card side contract:/i);
   assert.match(instructions, /front side must contain only a question or recall prompt\./i);
@@ -302,6 +313,7 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
+    userContext: testUserContext,
     requestId: "request-1",
   }, client));
 
@@ -312,6 +324,7 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
   ]);
   assert.equal(capturedBodies[0]?.model, "gpt-5.2");
   assert.equal(capturedBodies[0]?.parallel_tool_calls, false);
+  assert.match(String(capturedBodies[0]?.instructions), /The current workspace has 42 cards\./);
 });
 
 test("streamLocalAgentTurn maps uploaded files to input_file with file_id only", async () => {
@@ -341,6 +354,7 @@ test("streamLocalAgentTurn maps uploaded files to input_file with file_id only",
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    userContext: testUserContext,
     requestId: "request-file-1",
   }, client));
 
@@ -389,6 +403,7 @@ test("streamLocalAgentTurn duplicates small text attachments inline and keeps th
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    userContext: testUserContext,
     requestId: "request-file-inline-1",
   }, client));
 
@@ -445,6 +460,7 @@ test("streamLocalAgentTurn keeps csv attachments tool-only", async () => {
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    userContext: testUserContext,
     requestId: "request-file-csv-1",
   }, client));
 
@@ -481,6 +497,7 @@ test("streamAnthropicLocalAgentTurn duplicates small text attachments inline nex
     model: "claude-sonnet-4-6",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    userContext: testUserContext,
     requestId: "request-anthropic-file-1",
   }, client));
 
@@ -537,6 +554,7 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
     model: "gpt-4.1-mini",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
+    userContext: testUserContext,
     requestId: "request-2",
   }, client));
 
@@ -600,6 +618,7 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
     model: "gpt-5.4",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
+    userContext: testUserContext,
     requestId: "request-3",
   }, client));
 
@@ -655,6 +674,7 @@ test("streamLocalAgentTurn stops after three repair attempts", async () => {
         model: "gpt-5.4",
         timezone: "Europe/Madrid",
         devicePlatform: "ios",
+        userContext: testUserContext,
         requestId: "request-4",
       }, client));
     },
@@ -693,6 +713,7 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
     model: "claude-sonnet-4-6",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    userContext: testUserContext,
     requestId: "request-anthropic-1",
   }, client));
 
@@ -703,6 +724,7 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
   ]);
   assert.equal(capturedBodies[0]?.model, "claude-sonnet-4-6");
   assert.match(String(capturedBodies[0]?.system), /browser/i);
+  assert.match(String(capturedBodies[0]?.system), /The current workspace has 42 cards\./);
 });
 
 test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () => {
@@ -742,6 +764,7 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
     model: "claude-sonnet-4-6",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    userContext: testUserContext,
     requestId: "request-anthropic-2",
   }, client));
 
@@ -777,6 +800,7 @@ test("streamAnthropicLocalAgentTurn stops after three repair attempts", async ()
         model: "claude-sonnet-4-6",
         timezone: "Europe/Madrid",
         devicePlatform: "web",
+        userContext: testUserContext,
         requestId: "request-anthropic-3",
       }, client));
     },
@@ -795,11 +819,56 @@ test("streamLocalChatResponse rejects only unknown local models", async () => {
           model: "unknown-model",
           timezone: "Europe/Madrid",
           devicePlatform: "ios",
+          userContext: testUserContext,
         },
         "request-id",
       );
     },
     (error: unknown) => error instanceof HttpError && error.statusCode === 400,
+  );
+});
+
+test("parseLocalChatRequestBody requires a non-negative user card count", () => {
+  const parsedBody = parseLocalChatRequestBody({
+    messages: [{ role: "user", content: userTextContent("hi") }],
+    model: "gpt-5.4",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    userContext: {
+      totalCards: 7,
+    },
+  });
+
+  assert.equal(parsedBody.userContext.totalCards, 7);
+
+  assert.throws(
+    () => {
+      parseLocalChatRequestBody({
+        messages: [{ role: "user", content: userTextContent("hi") }],
+        model: "gpt-5.4",
+        timezone: "Europe/Madrid",
+        devicePlatform: "web",
+        userContext: {
+          totalCards: -1,
+        },
+      });
+    },
+    (error: unknown) => error instanceof HttpError && error.message === "userContext.totalCards must be a non-negative integer",
+  );
+
+  assert.throws(
+    () => {
+      parseLocalChatRequestBody({
+        messages: [{ role: "user", content: userTextContent("hi") }],
+        model: "gpt-5.4",
+        timezone: "Europe/Madrid",
+        devicePlatform: "web",
+        userContext: {
+          totalCards: "7",
+        },
+      });
+    },
+    (error: unknown) => error instanceof HttpError && error.message === "userContext.totalCards must be a non-negative integer",
   );
 });
 
@@ -818,6 +887,7 @@ test("createLocalChatErrorEvent includes machine-readable diagnostics fields", (
 
 test("parseLocalChatDiagnosticsBody accepts the local iOS diagnostics payload", () => {
   const body = parseLocalChatDiagnosticsBody({
+    kind: "failure",
     clientRequestId: "client-1",
     backendRequestId: "backend-1",
     stage: "decoding_event_json",
@@ -835,7 +905,45 @@ test("parseLocalChatDiagnosticsBody accepts the local iOS diagnostics payload", 
     devicePlatform: "ios",
   });
 
+  assert.equal(body.kind, "failure");
   assert.equal(body.clientRequestId, "client-1");
   assert.equal(body.backendRequestId, "backend-1");
+  if (body.kind !== "failure") {
+    throw new Error("Expected failure diagnostics payload");
+  }
   assert.equal(body.errorKind, "invalid_sse_event_json");
+});
+
+test("parseLocalChatDiagnosticsBody accepts local chat latency diagnostics payloads", () => {
+  const body = parseLocalChatDiagnosticsBody({
+    kind: "latency",
+    clientRequestId: "client-1",
+    backendRequestId: "backend-1",
+    selectedModel: "gpt-5.4",
+    messageCount: 2,
+    appVersion: "0.1.0",
+    devicePlatform: "web",
+    result: "cancelled_before_first_delta",
+    statusCode: 200,
+    firstEventType: "repair_attempt",
+    didReceiveFirstSseLine: true,
+    didReceiveFirstDelta: false,
+    tapToRequestStartMs: 10,
+    requestStartToHeadersMs: 20,
+    headersToFirstSseLineMs: 30,
+    firstSseLineToFirstDeltaMs: null,
+    requestStartToFirstDeltaMs: null,
+    tapToFirstDeltaMs: null,
+    requestStartToTerminalMs: 60,
+    tapToTerminalMs: 70,
+  });
+
+  assert.equal(body.kind, "latency");
+  if (body.kind !== "latency") {
+    throw new Error("Expected latency diagnostics payload");
+  }
+  assert.equal(body.result, "cancelled_before_first_delta");
+  assert.equal(body.firstEventType, "repair_attempt");
+  assert.equal(body.didReceiveFirstSseLine, true);
+  assert.equal(body.didReceiveFirstDelta, false);
 });

@@ -17,6 +17,9 @@ import type { LocalToolCallRequest } from "./localToolExecutor";
 import type {
   ContentPart,
   LocalChatDiagnosticsPayload,
+  LocalChatFailureDiagnosticsPayload,
+  LocalChatLatencyDiagnosticsPayload,
+  LocalChatLatencyResult,
   LocalChatMessage,
   LocalChatRequestBody,
   LocalChatStreamEvent,
@@ -73,6 +76,7 @@ export type LocalChatRuntimeRequest = Readonly<{
   initialMessages: ReadonlyArray<LocalChatMessage>;
   selectedModel: string;
   timezone: string;
+  tapStartedAt: number;
   signal: AbortSignal;
   callbacks: LocalChatRuntimeCallbacks;
 }>;
@@ -94,6 +98,18 @@ export type LocalChatRuntimeEffect =
 const LOCAL_TOOL_EXECUTION_ERROR_CODE = "LOCAL_TOOL_EXECUTION_FAILED";
 const MAX_CONSECUTIVE_TOOL_EXECUTION_FAILURES = 3;
 
+type LocalChatLatencyTracker = {
+  tapStartedAt: number;
+  requestStartAt: number | null;
+  headersReceivedAt: number | null;
+  firstSseLineAt: number | null;
+  firstDeltaAt: number | null;
+  firstEventType: string | null;
+  didReceiveFirstSseLine: boolean;
+  didReceiveFirstDelta: boolean;
+  emitted: boolean;
+};
+
 function buildLocalToolExecutionErrorOutput(message: string): string {
   return JSON.stringify({
     ok: false,
@@ -106,6 +122,103 @@ function buildLocalToolExecutionErrorOutput(message: string): string {
 
 function buildTerminalToolExecutionFailureMessage(message: string): string {
   return `Tool execution failed ${MAX_CONSECUTIVE_TOOL_EXECUTION_FAILURES} times in a row. Last error: ${message}`;
+}
+
+function buildLocalChatFailureDiagnosticsPayload(
+  details: LocalChatRuntimeDiagnosticDetails,
+  context: Readonly<{
+    clientRequestId: string;
+    backendRequestId: string | null;
+    selectedModel: string;
+    messageCount: number;
+    appVersion: string;
+    devicePlatform: "web";
+  }>,
+): LocalChatFailureDiagnosticsPayload {
+  return {
+    kind: "failure",
+    clientRequestId: context.clientRequestId,
+    backendRequestId: context.backendRequestId,
+    stage: details.stage,
+    errorKind: details.errorKind,
+    statusCode: null,
+    eventType: details.eventType,
+    toolName: details.toolName,
+    toolCallId: details.toolCallId,
+    lineNumber: details.lineNumber,
+    rawSnippet: details.rawSnippet,
+    decoderSummary: details.decoderSummary,
+    selectedModel: context.selectedModel,
+    messageCount: context.messageCount,
+    appVersion: context.appVersion,
+    devicePlatform: context.devicePlatform,
+  };
+}
+
+function createLocalChatLatencyTracker(tapStartedAt: number): LocalChatLatencyTracker {
+  return {
+    tapStartedAt,
+    requestStartAt: null,
+    headersReceivedAt: null,
+    firstSseLineAt: null,
+    firstDeltaAt: null,
+    firstEventType: null,
+    didReceiveFirstSseLine: false,
+    didReceiveFirstDelta: false,
+    emitted: false,
+  };
+}
+
+function durationBetween(start: number | null, end: number | null): number | null {
+  if (start === null || end === null) {
+    return null;
+  }
+
+  return Math.max(end - start, 0);
+}
+
+function buildLocalChatLatencyDiagnosticsPayload(
+  tracker: LocalChatLatencyTracker,
+  context: Readonly<{
+    clientRequestId: string;
+    backendRequestId: string | null;
+    selectedModel: string;
+    messageCount: number;
+    appVersion: string;
+    devicePlatform: "web";
+    result: LocalChatLatencyResult;
+    statusCode: number | null;
+    terminalAt: number;
+  }>,
+): LocalChatLatencyDiagnosticsPayload {
+  return {
+    kind: "latency",
+    clientRequestId: context.clientRequestId,
+    backendRequestId: context.backendRequestId,
+    selectedModel: context.selectedModel,
+    messageCount: context.messageCount,
+    appVersion: context.appVersion,
+    devicePlatform: context.devicePlatform,
+    result: context.result,
+    statusCode: context.statusCode,
+    firstEventType: tracker.firstEventType,
+    didReceiveFirstSseLine: tracker.didReceiveFirstSseLine,
+    didReceiveFirstDelta: tracker.didReceiveFirstDelta,
+    tapToRequestStartMs: durationBetween(tracker.tapStartedAt, tracker.requestStartAt),
+    requestStartToHeadersMs: durationBetween(tracker.requestStartAt, tracker.headersReceivedAt),
+    headersToFirstSseLineMs: durationBetween(tracker.headersReceivedAt, tracker.firstSseLineAt),
+    firstSseLineToFirstDeltaMs: durationBetween(tracker.firstSseLineAt, tracker.firstDeltaAt),
+    requestStartToFirstDeltaMs: durationBetween(tracker.requestStartAt, tracker.firstDeltaAt),
+    tapToFirstDeltaMs: durationBetween(tracker.tapStartedAt, tracker.firstDeltaAt),
+    requestStartToTerminalMs: durationBetween(tracker.requestStartAt, context.terminalAt),
+    tapToTerminalMs: durationBetween(tracker.tapStartedAt, context.terminalAt),
+  };
+}
+
+function isAbortLikeError(error: unknown, signal: AbortSignal): boolean {
+  return signal.aborted
+    || (error instanceof DOMException && error.name === "AbortError")
+    || (error instanceof Error && error.name === "AbortError");
 }
 
 /**
@@ -294,16 +407,16 @@ export async function runLocalChatRuntime(
   dependencies: LocalChatRuntimeDependencies,
   request: LocalChatRuntimeRequest,
 ): Promise<void> {
-  const { callbacks, initialMessages, selectedModel, signal, timezone } = request;
+  const { callbacks, initialMessages, selectedModel, signal, tapStartedAt, timezone } = request;
   callbacks.onAssistantStarted();
 
   const clientRequestId = dependencies.generateRequestId();
-  const requestStartedAt = dependencies.now();
   const wireMessages = [...initialMessages];
   let backendRequestId: string | null = null;
   let bufferLength = 0;
   let lastEventType: string | null = null;
   let consecutiveToolExecutionFailures = 0;
+  let shouldTrackLatency = true;
 
   while (true) {
     const requestBody = dependencies.createRequestBody(wireMessages, selectedModel, timezone);
@@ -317,6 +430,15 @@ export async function runLocalChatRuntime(
     let buffer = "";
     let lineNumber = 0;
     let state = createInitialLocalChatRuntimeState();
+    const latencyTracker = shouldTrackLatency
+      ? createLocalChatLatencyTracker(tapStartedAt)
+      : null;
+    shouldTrackLatency = false;
+
+    const emitPayload = (payload: LocalChatDiagnosticsPayload): void => {
+      callbacks.onDiagnostics(payload);
+      void dependencies.reportDiagnostics(payload);
+    };
 
     const emitDiagnostics = (details: LocalChatRuntimeDiagnosticDetails): void => {
       const responseMetadata = buildChatResponseMetadata(response);
@@ -325,236 +447,315 @@ export async function runLocalChatRuntime(
       bufferLength = buffer.length;
       lastEventType = details.eventType;
 
-      const payload: LocalChatDiagnosticsPayload = {
-        clientRequestId,
-        backendRequestId: responseMetadata.responseRequestId,
-        stage: details.stage,
-        errorKind: details.errorKind,
+      const payload = {
+        ...buildLocalChatFailureDiagnosticsPayload(details, {
+          clientRequestId,
+          backendRequestId: responseMetadata.responseRequestId,
+          selectedModel,
+          messageCount: requestBody.messages.length,
+          appVersion: dependencies.appVersion,
+          devicePlatform: dependencies.devicePlatform,
+        }),
         statusCode: responseMetadata.statusCode,
-        eventType: details.eventType,
-        toolName: details.toolName,
-        toolCallId: details.toolCallId,
-        lineNumber: details.lineNumber,
-        rawSnippet: details.rawSnippet,
-        decoderSummary: details.decoderSummary,
+      } satisfies LocalChatFailureDiagnosticsPayload;
+
+      emitPayload(payload);
+    };
+
+    const emitLatency = (result: LocalChatLatencyResult): void => {
+      if (latencyTracker === null || latencyTracker.emitted) {
+        return;
+      }
+
+      latencyTracker.emitted = true;
+      emitPayload(buildLocalChatLatencyDiagnosticsPayload(latencyTracker, {
+        clientRequestId,
+        backendRequestId,
         selectedModel,
         messageCount: requestBody.messages.length,
         appVersion: dependencies.appVersion,
         devicePlatform: dependencies.devicePlatform,
-      };
-
-      callbacks.onDiagnostics(payload);
-      void dependencies.reportDiagnostics(payload);
+        result,
+        statusCode: responseStatusCode,
+        terminalAt: dependencies.now(),
+      }));
     };
 
-    response = await dependencies.streamChat(requestBody, signal);
-    responseStatusCode = response.status;
-    backendRequestId = buildChatResponseMetadata(response).responseRequestId;
-
-    if (!response.ok) {
-      const message = `Error ${response.status}: ${sanitizeErrorText(response.status, await response.text())}`;
-      callbacks.onAssistantError(message);
-      emitDiagnostics({
-        stage: "response_not_ok",
-        errorKind: "response_not_ok",
-        eventType: null,
-        toolName: null,
-        toolCallId: null,
-        lineNumber: null,
-        rawSnippet: null,
-        decoderSummary: message,
-      });
-      return;
-    }
-
-    const reader = response.body?.getReader();
-    if (reader === undefined) {
-      callbacks.onAssistantError("The local chat response stream is missing.");
-      emitDiagnostics({
-        stage: "missing_reader",
-        errorKind: "missing_reader",
-        eventType: null,
-        toolName: null,
-        toolCallId: null,
-        lineNumber: null,
-        rawSnippet: null,
-        decoderSummary: "ReadableStream reader is unavailable",
-      });
-      return;
-    }
-
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) {
-        break;
+    try {
+      if (latencyTracker !== null) {
+        latencyTracker.requestStartAt = dependencies.now();
       }
 
-      buffer += decoder.decode(chunk.value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const turnShouldStop = applyStreamLine({
-          line,
-          lineNumber,
-          state,
-          callbacks,
-          emitDiagnostics,
-        });
-        lineNumber = turnShouldStop.nextLineNumber;
-        state = turnShouldStop.nextState;
-        lastEventType = state.lastEventType;
-
-        if (turnShouldStop.shouldStop) {
-          return;
-        }
+      response = await dependencies.streamChat(requestBody, signal);
+      responseStatusCode = response.status;
+      backendRequestId = buildChatResponseMetadata(response).responseRequestId;
+      if (latencyTracker !== null) {
+        latencyTracker.headersReceivedAt = dependencies.now();
       }
-    }
 
-    buffer += decoder.decode();
-    if (buffer !== "") {
-      const lines = buffer.split("\n");
-      buffer = "";
-
-      for (const line of lines) {
-        const turnShouldStop = applyStreamLine({
-          line,
-          lineNumber,
-          state,
-          callbacks,
-          emitDiagnostics,
-        });
-        lineNumber = turnShouldStop.nextLineNumber;
-        state = turnShouldStop.nextState;
-        lastEventType = state.lastEventType;
-
-        if (turnShouldStop.shouldStop) {
-          return;
-        }
-      }
-    }
-
-    if (state.shouldAwaitToolResults) {
-      if (state.pendingToolCalls.length === 0) {
-        callbacks.onAssistantError("The local chat runtime requested tool results without any tool call.");
+      if (!response.ok) {
+        const message = `Error ${response.status}: ${sanitizeErrorText(response.status, await response.text())}`;
+        callbacks.onAssistantError(message);
         emitDiagnostics({
-          stage: "await_tool_results",
-          errorKind: "missing_tool_call_request",
-          eventType: "await_tool_results",
+          stage: "response_not_ok",
+          errorKind: "response_not_ok",
+          eventType: null,
           toolName: null,
           toolCallId: null,
           lineNumber: null,
           rawSnippet: null,
-          decoderSummary: "await_tool_results without tool_call_request",
+          decoderSummary: message,
         });
+        emitLatency("response_not_ok");
         return;
       }
 
-      wireMessages.push({
-        role: "assistant",
-        content: state.assistantContentParts,
-      });
+      const reader = response.body?.getReader();
+      if (reader === undefined) {
+        callbacks.onAssistantError("The local chat response stream is missing.");
+        emitDiagnostics({
+          stage: "missing_reader",
+          errorKind: "missing_reader",
+          eventType: null,
+          toolName: null,
+          toolCallId: null,
+          lineNumber: null,
+          rawSnippet: null,
+          decoderSummary: "ReadableStream reader is unavailable",
+        });
+        emitLatency("missing_reader");
+        return;
+      }
 
-      let terminalToolExecutionMessage: string | null = null;
-      for (const toolCall of state.pendingToolCalls) {
-        try {
-          const result = await dependencies.executeTool({
-            toolCallId: toolCall.toolCallId,
-            name: toolCall.name,
-            input: toolCall.input,
-          });
-          consecutiveToolExecutionFailures = 0;
-          callbacks.onToolCallCompleted(toolCall.toolCallId, toolCall.input, result.output);
-          wireMessages.push({
-            role: "tool",
-            toolCallId: toolCall.toolCallId,
-            name: toolCall.name,
-            output: result.output,
-          });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          const errorOutput = buildLocalToolExecutionErrorOutput(message);
-          consecutiveToolExecutionFailures += 1;
-          callbacks.onToolCallCompleted(toolCall.toolCallId, toolCall.input, errorOutput);
-          wireMessages.push({
-            role: "tool",
-            toolCallId: toolCall.toolCallId,
-            name: toolCall.name,
-            output: errorOutput,
-          });
-          emitDiagnostics({
-            stage: "tool_execution",
-            errorKind: "tool_execution_failed",
-            eventType: "tool_call_request",
-            toolName: toolCall.name,
-            toolCallId: toolCall.toolCallId,
-            lineNumber: null,
-            rawSnippet: toolCall.input,
-            decoderSummary: message,
-          });
+      const decoder = new TextDecoder();
 
-          if (consecutiveToolExecutionFailures >= MAX_CONSECUTIVE_TOOL_EXECUTION_FAILURES) {
-            terminalToolExecutionMessage = buildTerminalToolExecutionFailureMessage(message);
-            break;
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) {
+          break;
+        }
+
+        buffer += decoder.decode(chunk.value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (latencyTracker !== null && trimmedLine !== "") {
+            latencyTracker.didReceiveFirstSseLine = true;
+            if (latencyTracker.firstSseLineAt === null) {
+              latencyTracker.firstSseLineAt = dependencies.now();
+            }
+            const parsedLatencyEvent = parseLocalSSELine(trimmedLine);
+            if (parsedLatencyEvent !== null) {
+              if (latencyTracker.firstEventType === null) {
+                latencyTracker.firstEventType = parsedLatencyEvent.type;
+              }
+              if (parsedLatencyEvent.type === "delta" && latencyTracker.firstDeltaAt === null) {
+                latencyTracker.firstDeltaAt = dependencies.now();
+                latencyTracker.didReceiveFirstDelta = true;
+              }
+            }
+          }
+
+          const turnShouldStop = applyStreamLine({
+            line,
+            lineNumber,
+            state,
+            callbacks,
+            emitDiagnostics,
+          });
+          lineNumber = turnShouldStop.nextLineNumber;
+          state = turnShouldStop.nextState;
+          lastEventType = state.lastEventType;
+
+          if (turnShouldStop.shouldStop) {
+            emitLatency(latencyTracker?.didReceiveFirstDelta === true ? "success" : "stream_error_before_first_delta");
+            return;
           }
         }
       }
 
-      if (terminalToolExecutionMessage !== null) {
-        callbacks.onAssistantError(terminalToolExecutionMessage);
+      buffer += decoder.decode();
+      if (buffer !== "") {
+        const lines = buffer.split("\n");
+        buffer = "";
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (latencyTracker !== null && trimmedLine !== "") {
+            latencyTracker.didReceiveFirstSseLine = true;
+            if (latencyTracker.firstSseLineAt === null) {
+              latencyTracker.firstSseLineAt = dependencies.now();
+            }
+            const parsedLatencyEvent = parseLocalSSELine(trimmedLine);
+            if (parsedLatencyEvent !== null) {
+              if (latencyTracker.firstEventType === null) {
+                latencyTracker.firstEventType = parsedLatencyEvent.type;
+              }
+              if (parsedLatencyEvent.type === "delta" && latencyTracker.firstDeltaAt === null) {
+                latencyTracker.firstDeltaAt = dependencies.now();
+                latencyTracker.didReceiveFirstDelta = true;
+              }
+            }
+          }
+
+          const turnShouldStop = applyStreamLine({
+            line,
+            lineNumber,
+            state,
+            callbacks,
+            emitDiagnostics,
+          });
+          lineNumber = turnShouldStop.nextLineNumber;
+          state = turnShouldStop.nextState;
+          lastEventType = state.lastEventType;
+
+          if (turnShouldStop.shouldStop) {
+            emitLatency(latencyTracker?.didReceiveFirstDelta === true ? "success" : "stream_error_before_first_delta");
+            return;
+          }
+        }
+      }
+
+      if (state.shouldAwaitToolResults) {
+        if (state.pendingToolCalls.length === 0) {
+          callbacks.onAssistantError("The local chat runtime requested tool results without any tool call.");
+          emitDiagnostics({
+            stage: "await_tool_results",
+            errorKind: "missing_tool_call_request",
+            eventType: "await_tool_results",
+            toolName: null,
+            toolCallId: null,
+            lineNumber: null,
+            rawSnippet: null,
+            decoderSummary: "await_tool_results without tool_call_request",
+          });
+          emitLatency(latencyTracker?.didReceiveFirstDelta === true ? "success" : "stream_error_before_first_delta");
+          return;
+        }
+
+        wireMessages.push({
+          role: "assistant",
+          content: state.assistantContentParts,
+        });
+
+        let terminalToolExecutionMessage: string | null = null;
+        for (const toolCall of state.pendingToolCalls) {
+          try {
+            const result = await dependencies.executeTool({
+              toolCallId: toolCall.toolCallId,
+              name: toolCall.name,
+              input: toolCall.input,
+            });
+            consecutiveToolExecutionFailures = 0;
+            callbacks.onToolCallCompleted(toolCall.toolCallId, toolCall.input, result.output);
+            wireMessages.push({
+              role: "tool",
+              toolCallId: toolCall.toolCallId,
+              name: toolCall.name,
+              output: result.output,
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            const errorOutput = buildLocalToolExecutionErrorOutput(message);
+            consecutiveToolExecutionFailures += 1;
+            callbacks.onToolCallCompleted(toolCall.toolCallId, toolCall.input, errorOutput);
+            wireMessages.push({
+              role: "tool",
+              toolCallId: toolCall.toolCallId,
+              name: toolCall.name,
+              output: errorOutput,
+            });
+            emitDiagnostics({
+              stage: "tool_execution",
+              errorKind: "tool_execution_failed",
+              eventType: "tool_call_request",
+              toolName: toolCall.name,
+              toolCallId: toolCall.toolCallId,
+              lineNumber: null,
+              rawSnippet: toolCall.input,
+              decoderSummary: message,
+            });
+
+            if (consecutiveToolExecutionFailures >= MAX_CONSECUTIVE_TOOL_EXECUTION_FAILURES) {
+              terminalToolExecutionMessage = buildTerminalToolExecutionFailureMessage(message);
+              break;
+            }
+          }
+        }
+
+        if (terminalToolExecutionMessage !== null) {
+          callbacks.onAssistantError(terminalToolExecutionMessage);
+          emitLatency(latencyTracker?.didReceiveFirstDelta === true ? "success" : "stream_error_before_first_delta");
+          return;
+        }
+
+        emitLatency("success");
+        continue;
+      }
+
+      if (state.receivedContent) {
+        callbacks.onAssistantCompleted();
+        emitPayload({
+          kind: "failure",
+          clientRequestId,
+          backendRequestId,
+          stage: "success",
+          errorKind: "success",
+          statusCode: responseStatusCode,
+          eventType: lastEventType,
+          toolName: null,
+          toolCallId: null,
+          lineNumber: null,
+          rawSnippet: null,
+          decoderSummary: null,
+          selectedModel,
+          messageCount: requestBody.messages.length,
+          appVersion: dependencies.appVersion,
+          devicePlatform: dependencies.devicePlatform,
+        });
+        emitLatency("success");
         return;
       }
 
-      continue;
-    }
-
-    if (state.receivedContent) {
-      callbacks.onAssistantCompleted();
-      const payload: LocalChatDiagnosticsPayload = {
+      callbacks.onAssistantError("The assistant returned an empty response.");
+      emitPayload({
+        kind: "failure",
         clientRequestId,
         backendRequestId,
-        stage: "success",
-        errorKind: "success",
+        stage: "empty_response",
+        errorKind: "empty_response",
         statusCode: responseStatusCode,
         eventType: lastEventType,
         toolName: null,
         toolCallId: null,
         lineNumber: null,
         rawSnippet: null,
-        decoderSummary: null,
+        decoderSummary: `Empty local response after ${bufferLength} buffered chars`,
         selectedModel,
         messageCount: requestBody.messages.length,
         appVersion: dependencies.appVersion,
         devicePlatform: dependencies.devicePlatform,
-      };
-      callbacks.onDiagnostics(payload);
-      void dependencies.reportDiagnostics(payload);
+      });
+      emitLatency("empty_response");
       return;
-    }
+    } catch (error) {
+      if (latencyTracker !== null) {
+        const latencyResult = latencyTracker.didReceiveFirstDelta
+          ? "success"
+          : isAbortLikeError(error, signal)
+            ? response === null
+              ? "cancelled_before_headers"
+              : latencyTracker.didReceiveFirstSseLine
+                ? "cancelled_before_first_delta"
+                : "cancelled_before_first_sse_line"
+            : "stream_error_before_first_delta";
+        emitLatency(latencyResult);
+      }
 
-    callbacks.onAssistantError("The assistant returned an empty response.");
-    const payload: LocalChatDiagnosticsPayload = {
-      clientRequestId,
-      backendRequestId,
-      stage: "empty_response",
-      errorKind: "empty_response",
-      statusCode: responseStatusCode,
-      eventType: lastEventType,
-      toolName: null,
-      toolCallId: null,
-      lineNumber: null,
-      rawSnippet: null,
-      decoderSummary: `Empty local response after ${dependencies.now() - requestStartedAt}ms with buffer length ${bufferLength}`,
-      selectedModel,
-      messageCount: requestBody.messages.length,
-      appVersion: dependencies.appVersion,
-      devicePlatform: dependencies.devicePlatform,
-    };
-    callbacks.onDiagnostics(payload);
-    void dependencies.reportDiagnostics(payload);
-    return;
+      throw error;
+    }
   }
 }
 

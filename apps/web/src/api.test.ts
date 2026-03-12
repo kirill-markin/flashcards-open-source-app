@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthRedirectError, createWorkspace, getSession, listWorkspaces, resetApiClientStateForTests, setNavigationHandlerForTests } from "./api";
+import {
+  AuthRedirectError,
+  createLocalChatRequestBody,
+  createWorkspace,
+  getSession,
+  listWorkspaces,
+  resetApiClientStateForTests,
+  setNavigationHandlerForTests,
+} from "./api";
 
 function createJsonResponse(statusCode: number, payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
@@ -262,5 +270,32 @@ describe("web auth recovery", () => {
     expect(meCallCount).toBe(1);
     expect(refreshCallCount).toBe(1);
     expect(redirectUrls).toEqual([]);
+  });
+});
+
+describe("createLocalChatRequestBody", () => {
+  it("includes the required user context block payload", () => {
+    expect(createLocalChatRequestBody(
+      [{
+        role: "user",
+        content: [{ type: "text", text: "hello" }],
+      }],
+      "gpt-5.4",
+      "Europe/Madrid",
+      {
+        totalCards: 3,
+      },
+    )).toEqual({
+      messages: [{
+        role: "user",
+        content: [{ type: "text", text: "hello" }],
+      }],
+      model: "gpt-5.4",
+      timezone: "Europe/Madrid",
+      devicePlatform: "web",
+      userContext: {
+        totalCards: 3,
+      },
+    });
   });
 });

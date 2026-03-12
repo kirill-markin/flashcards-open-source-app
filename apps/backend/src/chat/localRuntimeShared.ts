@@ -4,6 +4,7 @@ import type {
   LocalAssistantToolCall,
   LocalChatDevicePlatform,
   LocalChatStreamEvent,
+  LocalChatUserContext,
   LocalContentPart,
   LocalFileContentPart,
 } from "./localTypes";
@@ -18,6 +19,7 @@ import {
   buildLocalWorkspaceSection,
   buildLocalWritePolicyLines,
   buildPromptFromSections,
+  buildUserContextSection,
   buildWritePolicySection,
 } from "./promptSections";
 import { OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS } from "./openai/localTools";
@@ -148,10 +150,12 @@ function buildLocalAttachmentHandlingSection(): string {
 export function buildLocalSystemInstructions(
   timezone: string,
   devicePlatform: LocalChatDevicePlatform,
+  userContext: LocalChatUserContext,
 ): string {
   return buildPromptFromSections([
     buildAssistantRoleSection(),
     platformPromptLabel(devicePlatform),
+    buildUserContextSection(userContext.totalCards),
     buildLocalWorkspaceSection(),
     buildCardSideContractSection(),
     buildConciseStyleSection(),
