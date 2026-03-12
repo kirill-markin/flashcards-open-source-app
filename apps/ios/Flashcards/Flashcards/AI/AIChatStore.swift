@@ -1,5 +1,37 @@
 import Foundation
 
+enum AIChatDictationAlert: Identifiable, Equatable {
+    case microphoneSettings
+    case transcriptionFailure(message: String)
+
+    var id: String {
+        switch self {
+        case .microphoneSettings:
+            return "microphone-settings"
+        case .transcriptionFailure(let message):
+            return "transcription-failure-\(message)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .microphoneSettings:
+            return "Microphone Access Needed"
+        case .transcriptionFailure:
+            return "Dictation Failed"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .microphoneSettings:
+            return "Microphone access is turned off for Flashcards. Open Settings to allow it."
+        case .transcriptionFailure(let message):
+            return message
+        }
+    }
+}
+
 @MainActor
 final class AIChatStore: ObservableObject {
     @Published var inputText: String
@@ -9,6 +41,7 @@ final class AIChatStore: ObservableObject {
     @Published private(set) var isStreaming: Bool
     @Published private(set) var dictationState: AIChatDictationState
     @Published private(set) var errorMessage: String
+    @Published private(set) var dictationAlert: AIChatDictationAlert?
     @Published private(set) var repairStatus: AIChatRepairAttemptStatus?
 
     private let flashcardsStore: FlashcardsStore
@@ -70,6 +103,7 @@ final class AIChatStore: ObservableObject {
         self.isStreaming = false
         self.dictationState = .idle
         self.errorMessage = ""
+        self.dictationAlert = nil
         self.repairStatus = nil
         self.activeDictationTask = nil
         self.activeConversationId = nil
@@ -118,6 +152,7 @@ final class AIChatStore: ObservableObject {
         self.messages = []
         self.pendingAttachments = []
         self.errorMessage = ""
+        self.dictationAlert = nil
         self.repairStatus = nil
         self.activeConversationId = nil
         Task {
@@ -148,6 +183,10 @@ final class AIChatStore: ObservableObject {
         self.activeDictationTask = nil
         self.voiceRecorder.cancelRecording()
         self.dictationState = .idle
+    }
+
+    func dismissDictationAlert() {
+        self.dictationAlert = nil
     }
 
     func applyPresentationRequest(request: AIChatPresentationRequest) {
@@ -268,7 +307,7 @@ final class AIChatStore: ObservableObject {
             return
         }
 
-        self.errorMessage = ""
+        self.dictationAlert = nil
         self.dictationState = .requestingPermission
         self.activeDictationTask = Task { @MainActor in
             defer {
@@ -280,9 +319,12 @@ final class AIChatStore: ObservableObject {
                 self.dictationState = .recording
             } catch is CancellationError {
                 self.dictationState = .idle
+            } catch let recorderError as AIChatVoiceRecorderError {
+                self.dictationState = .idle
+                self.handleStartDictationError(recorderError)
             } catch {
                 self.dictationState = .idle
-                self.errorMessage = localizedMessage(error: error)
+                self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: error))
             }
         }
     }
@@ -316,17 +358,38 @@ final class AIChatStore: ObservableObject {
                     recordedAudio: recordedAudio
                 )
                 self.inputText = mergeAIChatDictationTranscript(draft: self.inputText, transcript: transcript)
-                self.errorMessage = ""
             } catch is CancellationError {
             } catch let recorderError as AIChatVoiceRecorderError {
-                if recorderError != .emptyRecording {
-                    self.errorMessage = localizedMessage(error: recorderError)
-                }
+                self.handleFinishDictationError(recorderError)
+            } catch let transcriptionError as AIChatTranscriptionError {
+                self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: transcriptionError))
             } catch {
-                self.errorMessage = localizedMessage(error: error)
+                self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: error))
             }
 
             self.dictationState = .idle
+        }
+    }
+
+    private func handleStartDictationError(_ error: AIChatVoiceRecorderError) {
+        switch error {
+        case .microphoneDenied:
+            return
+        case .microphoneBlocked:
+            self.dictationAlert = .microphoneSettings
+        default:
+            self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: error))
+        }
+    }
+
+    private func handleFinishDictationError(_ error: AIChatVoiceRecorderError) {
+        switch error {
+        case .emptyRecording:
+            return
+        case .microphoneBlocked:
+            self.dictationAlert = .microphoneSettings
+        default:
+            self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: error))
         }
     }
 

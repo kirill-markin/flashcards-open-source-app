@@ -43,7 +43,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.errorMessage, "")
     }
 
-    func testAIChatStoreDictationShowsPermissionDeniedMessage() async throws {
+    func testAIChatStoreSilentlyStopsWhenMicrophonePermissionIsDeniedFromPrompt() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()
         let recorder = StubVoiceRecorder(mode: .permissionDenied)
@@ -63,9 +63,61 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         chatStore.toggleDictation()
         try await self.waitForDictationState(chatStore: chatStore, state: .idle)
 
+        XCTAssertEqual(chatStore.errorMessage, "")
+        XCTAssertNil(chatStore.dictationAlert)
+    }
+
+    func testAIChatStoreShowsSettingsAlertWhenMicrophonePermissionIsBlocked() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let recorder = StubVoiceRecorder(mode: .permissionBlocked)
+        let transcriber = StubAudioTranscriber(result: .success("ignored"))
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor,
+            voiceRecorder: recorder,
+            audioTranscriber: transcriber
+        )
+
+        chatStore.toggleDictation()
+        try await self.waitForDictationState(chatStore: chatStore, state: .idle)
+
+        XCTAssertEqual(chatStore.errorMessage, "")
+        XCTAssertEqual(chatStore.dictationAlert, .microphoneSettings)
+    }
+
+    func testAIChatStoreShowsAlertForTranscriptionFailuresInsteadOfBanner() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let recorder = StubVoiceRecorder(mode: .success)
+        let transcriber = StubAudioTranscriber(result: .failure(AIChatTranscriptionError.invalidAudio))
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor,
+            voiceRecorder: recorder,
+            audioTranscriber: transcriber
+        )
+
+        chatStore.toggleDictation()
+        try await self.waitForDictationState(chatStore: chatStore, state: .recording)
+
+        chatStore.toggleDictation()
+        try await self.waitForDictationState(chatStore: chatStore, state: .idle)
+
+        XCTAssertEqual(chatStore.errorMessage, "")
         XCTAssertEqual(
-            chatStore.errorMessage,
-            "Microphone access is turned off for Flashcards. Enable it in Settings > Privacy & Security > Microphone."
+            chatStore.dictationAlert,
+            .transcriptionFailure(message: "We couldn’t process that recording. Please try again.")
         )
     }
 
@@ -123,6 +175,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 private enum StubVoiceRecorderMode {
     case success
     case permissionDenied
+    case permissionBlocked
 }
 
 @MainActor
@@ -140,6 +193,8 @@ private final class StubVoiceRecorder: AIChatVoiceRecording {
             return
         case .permissionDenied:
             throw AIChatVoiceRecorderError.microphoneDenied
+        case .permissionBlocked:
+            throw AIChatVoiceRecorderError.microphoneBlocked
         }
     }
 
@@ -152,7 +207,7 @@ private final class StubVoiceRecorder: AIChatVoiceRecording {
         return AIChatRecordedAudio(
             fileUrl: fileUrl,
             fileName: "chat-dictation.m4a",
-            mediaType: "audio/m4a"
+            mediaType: "audio/mp4"
         )
     }
 

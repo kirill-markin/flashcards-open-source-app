@@ -71,6 +71,26 @@ function stopMediaStream(stream: MediaStream | null): void {
   }
 }
 
+function chooseSupportedRecordingMimeType(): string | null {
+  if (typeof MediaRecorder.isTypeSupported !== "function") {
+    return null;
+  }
+
+  const supportedMimeTypes = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+  ];
+
+  for (const mimeType of supportedMimeTypes) {
+    if (MediaRecorder.isTypeSupported(mimeType)) {
+      return mimeType;
+    }
+  }
+
+  return null;
+}
+
 function cleanupDictationResources(
   mediaRecorderRef: MutableRefObject<MediaRecorder | null>,
   mediaStreamRef: MutableRefObject<MediaStream | null>,
@@ -135,7 +155,6 @@ export function ChatPanel(props: Props): ReactElement {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
-  const [composerErrorMessage, setComposerErrorMessage] = useState<string>("");
 
   const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -334,23 +353,25 @@ export function ChatPanel(props: Props): ReactElement {
     }
 
     if (typeof MediaRecorder === "undefined") {
-      setComposerErrorMessage("Microphone recording is unavailable in this browser.");
+      window.alert("Microphone recording is unavailable in this browser.");
       return;
     }
 
     const mediaDevices = navigator.mediaDevices;
     if (mediaDevices === undefined || typeof mediaDevices.getUserMedia !== "function") {
-      setComposerErrorMessage("Microphone recording is unavailable in this browser.");
+      window.alert("Microphone recording is unavailable in this browser.");
       return;
     }
 
-    setComposerErrorMessage("");
     setDictationState("requesting_permission");
 
     let stream: MediaStream | null = null;
     try {
       stream = await mediaDevices.getUserMedia({ audio: true, video: false });
-      const recorder = new MediaRecorder(stream);
+      const recorderMimeType = chooseSupportedRecordingMimeType();
+      const recorder = recorderMimeType === null
+        ? new MediaRecorder(stream)
+        : new MediaRecorder(stream, { mimeType: recorderMimeType });
       recordedChunksRef.current = [];
       recorder.addEventListener("dataavailable", (event: BlobEvent) => {
         if (event.data.size > 0) {
@@ -368,7 +389,7 @@ export function ChatPanel(props: Props): ReactElement {
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
       const permissionState = await queryBrowserPermissionState("microphone");
       if (isMountedRef.current) {
-        setComposerErrorMessage(explainBrowserMediaPermissionError("microphone", error, permissionState));
+        window.alert(explainBrowserMediaPermissionError("microphone", error, permissionState));
         setDictationState("idle");
       }
     }
@@ -397,11 +418,10 @@ export function ChatPanel(props: Props): ReactElement {
       const transcript = await transcribeChatAudio(audioBlob, "web");
       if (isMountedRef.current) {
         setInputText((currentText) => mergeDictationTranscriptIntoDraft(currentText, transcript));
-        setComposerErrorMessage("");
       }
     } catch (error) {
       if (isMountedRef.current) {
-        setComposerErrorMessage(error instanceof Error ? error.message : String(error));
+        window.alert(error instanceof Error ? error.message : String(error));
       }
     } finally {
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
@@ -483,7 +503,6 @@ export function ChatPanel(props: Props): ReactElement {
     appendUserMessage(contentParts);
     setInputText("");
     setPendingAttachmentsState([]);
-    setComposerErrorMessage("");
     setIsStreaming(true);
 
     let hasStartedAssistant = false;
@@ -688,8 +707,6 @@ export function ChatPanel(props: Props): ReactElement {
           </div>
         ) : null}
 
-        {composerErrorMessage !== "" ? <p className="error-banner chat-composer-error">{composerErrorMessage}</p> : null}
-
         {isDictationVisible ? (
           <div className={`chat-dictation-surface chat-dictation-surface-${dictationState}`} aria-live="polite">
             <div className="chat-dictation-wave" aria-hidden="true">
@@ -728,7 +745,25 @@ export function ChatPanel(props: Props): ReactElement {
               onClick={() => void handleMicrophoneClick()}
               disabled={dictationState === "requesting_permission" || dictationState === "transcribing"}
             >
-              <span className="chat-mic-btn-icon" aria-hidden="true" />
+              {dictationState === "recording" ? (
+                <span className="chat-stop-btn-icon" aria-hidden="true" />
+              ) : (
+                <svg
+                  className="chat-mic-btn-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3.75a3 3 0 0 1 3 3v5.5a3 3 0 1 1-6 0v-5.5a3 3 0 0 1 3-3Z" />
+                  <path d="M6.75 11.5a5.25 5.25 0 0 0 10.5 0" />
+                  <path d="M12 16.75v3.5" />
+                  <path d="M9.25 20.25h5.5" />
+                </svg>
+              )}
             </button>
             {isStreaming ? (
               <button

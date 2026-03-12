@@ -120,3 +120,23 @@ test("chat transcriptions route surfaces upstream failures as 503", async () => 
     code: "CHAT_TRANSCRIPTION_UNAVAILABLE",
   });
 });
+
+test("chat transcriptions route surfaces invalid audio failures as 422", async () => {
+  const app = createChatTestApp(async () => {
+    throw new HttpError(422, "We couldn’t process that recording. Please try again.", "CHAT_TRANSCRIPTION_INVALID_AUDIO");
+  });
+  const formData = new FormData();
+  formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
+  formData.append("source", "web");
+
+  const response = await app.request("https://api.example.com/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  });
+
+  assert.equal(response.status, 422);
+  assert.deepEqual(await response.json(), {
+    error: "We couldn’t process that recording. Please try again.",
+    code: "CHAT_TRANSCRIPTION_INVALID_AUDIO",
+  });
+});
