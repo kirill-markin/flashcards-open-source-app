@@ -337,9 +337,9 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
   },
   {
     name: "list_cards",
-    localDescription: "List cards from the local device database.",
-    externalDescription: "List cards from the selected workspace.",
-    jsonContract: "Use {\"cursor\": string|null, \"limit\": number, \"filter\": {\"tags\": string[], \"effort\": (\"fast\"|\"medium\"|\"long\")[]} | null}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null. Omit filter or set it to null for no filter.",
+    localDescription: "List cards from the local device database. If a filter is present, tags match any selected tag, effort matches any selected effort value, and the two dimensions combine with AND.",
+    externalDescription: "List cards from the selected workspace. If a filter is present, tags match any selected tag, effort matches any selected effort value, and the two dimensions combine with AND.",
+    jsonContract: "Use {\"cursor\": string|null, \"limit\": number, \"filter\": {\"tags\": string[], \"effort\": (\"fast\"|\"medium\"|\"long\")[]} | null}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null. Omit filter or set it to null for no filter. Inside filter, tags match any selected tag, effort matches any selected effort value, and the two dimensions combine with AND.",
     promptExample: "{\"cursor\": null, \"limit\": 20, \"filter\": null}",
     parameters: strictObjectSchemaWithRequired({
       cursor: CURSOR_SCHEMA,
@@ -376,9 +376,9 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
   },
   {
     name: "search_cards",
-    localDescription: "Search local cards by front text, back text, tags, or effort level. Split query by whitespace into up to 5 lowercase tokens (merge extra tokens into the fifth token), require every token to match, and allow each token to match any supported card field.",
-    externalDescription: "Search cards by front text, back text, tags, or effort level. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field.",
-    jsonContract: "Use {\"query\": string, \"cursor\": string|null, \"limit\": number, \"filter\": {\"tags\": string[], \"effort\": (\"fast\"|\"medium\"|\"long\")[]} | null}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null. Omit filter or set it to null for no filter.",
+    localDescription: "Search local cards by front text, back text, tags, or effort level. Split query by whitespace into up to 5 lowercase tokens (merge extra tokens into the fifth token), require every token to match, and allow each token to match any supported card field. If a filter is present, tags match any selected tag, effort matches any selected effort value, and the two dimensions combine with AND.",
+    externalDescription: "Search cards by front text, back text, tags, or effort level. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field. If a filter is present, tags match any selected tag, effort matches any selected effort value, and the two dimensions combine with AND.",
+    jsonContract: "Use {\"query\": string, \"cursor\": string|null, \"limit\": number, \"filter\": {\"tags\": string[], \"effort\": (\"fast\"|\"medium\"|\"long\")[]} | null}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null. Omit filter or set it to null for no filter. Inside filter, tags match any selected tag, effort matches any selected effort value, and the two dimensions combine with AND.",
     promptExample: "{\"query\": \"grammar\", \"cursor\": null, \"limit\": 20, \"filter\": null}",
     parameters: strictObjectSchemaWithRequired({
       query: { type: "string" },

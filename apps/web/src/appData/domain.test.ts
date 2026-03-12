@@ -14,6 +14,7 @@ import {
   makeDeckCardStats,
   makeReviewQueue,
   makeReviewTimeline,
+  matchesCardFilter,
   matchesDeckFilterDefinition,
   normalizeCreateCardInput,
   normalizeCreateDeckInput,
@@ -226,21 +227,21 @@ describe("appData domain helpers", () => {
     })).toThrow("Deck name must not be empty");
   });
 
-  it("matches deck filters using effort inclusion and tag subset semantics", () => {
+  it("matches deck filters using effort inclusion and tag overlap semantics", () => {
     const matchingCard = createCard({
       cardId: "matching-card",
       effortLevel: "fast",
-      tags: ["grammar", "verbs", "spanish"],
+      tags: ["grammar", "spanish"],
     });
     const wrongEffortCard = createCard({
       cardId: "wrong-effort-card",
       effortLevel: "long",
-      tags: ["grammar", "verbs", "spanish"],
+      tags: ["verbs", "spanish"],
     });
     const missingTagCard = createCard({
       cardId: "missing-tag-card",
       effortLevel: "fast",
-      tags: ["grammar"],
+      tags: ["travel"],
     });
     const deck = createDeck({
       filterDefinition: {
@@ -253,6 +254,44 @@ describe("appData domain helpers", () => {
     expect(matchesDeckFilterDefinition(deck.filterDefinition, matchingCard)).toBe(true);
     expect(matchesDeckFilterDefinition(deck.filterDefinition, wrongEffortCard)).toBe(false);
     expect(matchesDeckFilterDefinition(deck.filterDefinition, missingTagCard)).toBe(false);
+  });
+
+  it("matches card filters when any selected tag overlaps and effort also matches", () => {
+    expect(matchesCardFilter(
+      {
+        tags: ["grammar", "verbs"],
+        effort: ["fast"],
+      },
+      createCard({
+        cardId: "matching-card",
+        effortLevel: "fast",
+        tags: ["verbs"],
+      }),
+    )).toBe(true);
+
+    expect(matchesCardFilter(
+      {
+        tags: ["grammar", "verbs"],
+        effort: ["fast"],
+      },
+      createCard({
+        cardId: "wrong-tag-card",
+        effortLevel: "fast",
+        tags: ["travel"],
+      }),
+    )).toBe(false);
+
+    expect(matchesCardFilter(
+      {
+        tags: ["grammar", "verbs"],
+        effort: ["fast"],
+      },
+      createCard({
+        cardId: "wrong-effort-card",
+        effortLevel: "medium",
+        tags: ["grammar"],
+      }),
+    )).toBe(false);
   });
 
   it("derives deck card stats using iOS parity helpers", () => {

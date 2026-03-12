@@ -442,7 +442,7 @@ export function buildCardsQueryFilterClause(
 
   if (filter.tags.length > 0) {
     params.push(filter.tags);
-    clauses.push(`tags @> $${startIndex + params.length}::text[]`);
+    clauses.push(`tags && $${startIndex + params.length}::text[]`);
   }
 
   if (filter.effort.length > 0) {

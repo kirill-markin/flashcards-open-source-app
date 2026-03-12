@@ -60,7 +60,7 @@ export function formatCardFilterSummary(filter: CardFilter | null): string {
   }
 
   if (filter.tags.length > 0) {
-    parts.push(`tags contain ${filter.tags.join(", ")}`);
+    parts.push(`tags any of ${filter.tags.join(", ")}`);
   }
 
   if (parts.length === 0) {

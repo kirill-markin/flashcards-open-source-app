@@ -1098,7 +1098,7 @@
           "tools"
         ],
         "summary": "List cards",
-        "description": "Lists cards from the selected workspace. Use the optional filter to require exact tags and/or allowed effort values. The server enforces a maximum response size even when limit is null.",
+        "description": "Lists cards from the selected workspace. Use the optional filter to match any selected tag and/or any selected effort value; when both dimensions are present, the server requires both. The server enforces a maximum response size even when limit is null.",
         "security": [
           {
             "ApiKeyHeader": []
@@ -1342,7 +1342,7 @@
           "tools"
         ],
         "summary": "Search cards",
-        "description": "Searches cards by text, tags, or effort level within the selected workspace. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field. Use the optional filter to further require exact tags and/or allowed effort values.",
+        "description": "Searches cards by text, tags, or effort level within the selected workspace. The query is split by whitespace into up to 5 lowercase tokens (extra tokens are merged into the fifth token), every token must match, and each token may match any supported card field. Use the optional filter to further match any selected tag and/or any selected effort value; when both dimensions are present, the server requires both.",
         "security": [
           {
             "ApiKeyHeader": []

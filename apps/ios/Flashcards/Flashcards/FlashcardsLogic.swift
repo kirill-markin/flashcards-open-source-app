@@ -373,8 +373,9 @@ func matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: C
     }
 
     let cardTags = Set(card.tags)
-    let filterTags = Set(filterDefinition.tags)
-    return filterTags.isSubset(of: cardTags)
+    return filterDefinition.tags.contains { tag in
+        cardTags.contains(tag)
+    }
 }
 
 func matchesCardFilter(filter: CardFilter, card: Card) -> Bool {
@@ -387,8 +388,9 @@ func matchesCardFilter(filter: CardFilter, card: Card) -> Bool {
     }
 
     let cardTags = Set(card.tags)
-    let filterTags = Set(filter.tags)
-    return filterTags.isSubset(of: cardTags)
+    return filter.tags.contains { tag in
+        cardTags.contains(tag)
+    }
 }
 
 func buildCardFilter(tags: [String], effort: [EffortLevel], referenceTags: [String]) -> CardFilter? {
@@ -427,7 +429,7 @@ func formatCardFilterSummary(filter: CardFilter?) -> String {
     }
 
     if filter.tags.isEmpty == false {
-        parts.append("tags contain \(filter.tags.joined(separator: ", "))")
+        parts.append("tags any of \(filter.tags.joined(separator: ", "))")
     }
 
     if parts.isEmpty {
@@ -469,7 +471,7 @@ func formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition) -> Strin
     }
 
     if filterDefinition.tags.isEmpty == false {
-        parts.append("tags contain \(filterDefinition.tags.joined(separator: ", "))")
+        parts.append("tags any of \(filterDefinition.tags.joined(separator: ", "))")
     }
 
     if parts.isEmpty {

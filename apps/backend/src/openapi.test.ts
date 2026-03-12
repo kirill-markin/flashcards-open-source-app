@@ -106,9 +106,19 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
 
   const listCardsRequestSchema = paths["/agent/tools/list_cards"]?.post?.requestBody?.content?.["application/json"]?.schema;
   assert.deepEqual(listCardsRequestSchema, { $ref: "#/components/schemas/CardCursorPageInput" });
+  const listCardsOperation = paths["/agent/tools/list_cards"]?.post as Record<string, unknown> | undefined;
+  assert.match(
+    String(listCardsOperation?.description),
+    /match any selected tag.*selected effort value.*server requires both/i,
+  );
 
   const searchCardsRequestSchema = paths["/agent/tools/search_cards"]?.post?.requestBody?.content?.["application/json"]?.schema;
   assert.deepEqual(searchCardsRequestSchema, { $ref: "#/components/schemas/CardCursorSearchInput" });
+  const searchCardsOperation = paths["/agent/tools/search_cards"]?.post as Record<string, unknown> | undefined;
+  assert.match(
+    String(searchCardsOperation?.description),
+    /match any selected tag.*selected effort value.*server requires both/i,
+  );
 
   const listTagsExample = paths["/agent/tools/list_tags"]?.post?.responses?.["200"]?.content?.["application/json"]?.example;
   assert.ok(listTagsExample !== undefined);
