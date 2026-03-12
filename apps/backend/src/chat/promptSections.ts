@@ -15,7 +15,7 @@ export function buildAssistantRoleSection(): string {
 export function buildCloudWorkspaceSection(): string {
   return joinLines([
     "You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.",
-    "You can inspect cards, decks, review history, due cards, tags, scheduler settings, and workspace context through SQL.",
+    "You can inspect workspace, cards, decks, and review events through SQL.",
     "You can also create, update, and delete cards and decks through SQL.",
   ]);
 }

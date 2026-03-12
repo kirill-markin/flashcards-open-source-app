@@ -202,10 +202,24 @@ describe("createLocalToolExecutor", () => {
       input: "{\"sql\":\"SHOW TABLES\"}",
     });
     const tablesPayload = JSON.parse(tablesResult.output) as Readonly<{ rows: ReadonlyArray<Readonly<Record<string, unknown>>> }>;
+    expect(tablesPayload.rows.some((row) => row.table_name === "workspace")).toBe(true);
     expect(tablesPayload.rows.some((row) => row.table_name === "cards")).toBe(true);
+    expect(tablesPayload.rows.some((row) => row.table_name === "review_events")).toBe(true);
+
+    const workspaceResult = await executor.execute({
+      toolCallId: "call-2",
+      name: "sql",
+      input: "{\"sql\":\"SELECT * FROM workspace LIMIT 1 OFFSET 0\"}",
+    });
+    const workspacePayload = JSON.parse(workspaceResult.output) as Readonly<{ rows: ReadonlyArray<Readonly<Record<string, unknown>>> }>;
+    expect(workspacePayload.rows[0]).toMatchObject({
+      workspace_id: "workspace-1",
+      name: "Personal",
+      algorithm: "fsrs-6",
+    });
 
     const cardsResult = await executor.execute({
-      toolCallId: "call-2",
+      toolCallId: "call-3",
       name: "sql",
       input: "{\"sql\":\"SELECT * FROM cards ORDER BY updated_at DESC LIMIT 1 OFFSET 0\"}",
     });
@@ -215,6 +229,17 @@ describe("createLocalToolExecutor", () => {
     expect(cardsPayload.offset).toBe(0);
     expect(cardsPayload.rows[0]).toMatchObject({
       card_id: "card-1",
+    });
+
+    const aggregateResult = await executor.execute({
+      toolCallId: "call-4",
+      name: "sql",
+      input: "{\"sql\":\"SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS tag GROUP BY tag ORDER BY cards_count DESC LIMIT 20 OFFSET 0\"}",
+    });
+    const aggregatePayload = JSON.parse(aggregateResult.output) as Readonly<{ rows: ReadonlyArray<Readonly<Record<string, unknown>>> }>;
+    expect(aggregatePayload.rows[0]).toMatchObject({
+      tag: "tag-a",
+      cards_count: 2,
     });
   });
 

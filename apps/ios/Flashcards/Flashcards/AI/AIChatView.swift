@@ -534,7 +534,9 @@ struct AIChatView: View {
                 .padding(.top, 4)
             } label: {
                 HStack {
-                    Text(aiChatToolLabel(name: toolCall.name))
+                    let toolLabel = aiChatToolLabel(name: toolCall.name)
+                    let toolPreview = aiChatToolPreview(name: toolCall.name, input: toolCall.input)
+                    Text(toolPreview.map { "\(toolLabel): \($0)" } ?? toolLabel)
                     Spacer()
                     Text(toolCall.status == .started ? "Running" : "Done")
                         .foregroundStyle(.secondary)
@@ -939,7 +941,10 @@ private func aiChatValidateAttachmentSize(data: Data) throws {
 }
 
 /**
- Mirrors `apps/web/src/chat/chatMessageContent.tsx::formatToolLabel`.
+ Mirrors:
+ - `apps/web/src/chat/chatMessageContent.tsx::formatToolLabel`
+ - `apps/web/src/chat/chatMessageContent.tsx::extractToolCallPreview`
+
  Keep user-facing local tool labels aligned across web and iOS chat UIs.
  */
 private func aiChatToolLabel(name: String) -> String {
@@ -957,4 +962,23 @@ private func aiChatToolLabel(name: String) -> String {
     default:
         return name.replacingOccurrences(of: "_", with: " ").capitalized
     }
+}
+
+private func aiChatToolPreview(name: String, input: String?) -> String? {
+    guard let input, input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        return nil
+    }
+
+    if name != "sql" {
+        return input
+    }
+
+    guard let data = input.data(using: .utf8),
+          let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let sql = payload["sql"] as? String else {
+        return input
+    }
+
+    let trimmedSql = sql.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmedSql.isEmpty ? input : trimmedSql
 }

@@ -175,6 +175,19 @@ private struct LocalAISqlExecutionResult {
     let didMutateAppState: Bool
 }
 
+private struct LocalAISqlSelectExecutionResult {
+    let rows: [LocalAISqlRow]
+    let rowCount: Int
+    let limit: Int
+    let offset: Int
+    let hasMore: Bool
+}
+
+private struct LocalAISqlGroupedRows {
+    let groupRow: LocalAISqlRow
+    let groupedRows: [LocalAISqlRow]
+}
+
 private let maxLocalAISqlLimit: Int = 100
 
 private func validateObjectKeys(
@@ -284,10 +297,6 @@ private func currentActiveCards(snapshot: AppStateSnapshot) -> [Card] {
     activeCards(cards: snapshot.cards).sorted(by: compareCardsByUpdatedAt)
 }
 
-private func dueCards(snapshot: AppStateSnapshot) -> [Card] {
-    sortCardsForReviewQueue(cards: currentActiveCards(snapshot: snapshot), now: Date())
-}
-
 private func activeDecks(snapshot: AppStateSnapshot) -> [Deck] {
     snapshot.decks.filter { deck in
         deck.deletedAt == nil
@@ -307,6 +316,20 @@ private func toSqlRowValue(literal: LocalAISqlLiteralValue) -> LocalAISqlRowValu
     case .null:
         return .null
     }
+}
+
+private func toSqlWorkspaceRow(snapshot: AppStateSnapshot) -> LocalAISqlRow {
+    [
+        "workspace_id": .string(snapshot.workspace.workspaceId),
+        "name": .string(snapshot.workspace.name),
+        "created_at": .string(snapshot.workspace.createdAt),
+        "algorithm": .string(snapshot.schedulerSettings.algorithm),
+        "desired_retention": .number(snapshot.schedulerSettings.desiredRetention),
+        "learning_steps_minutes": .integerArray(snapshot.schedulerSettings.learningStepsMinutes),
+        "relearning_steps_minutes": .integerArray(snapshot.schedulerSettings.relearningStepsMinutes),
+        "maximum_interval_days": .integer(snapshot.schedulerSettings.maximumIntervalDays),
+        "enable_fuzz": .boolean(snapshot.schedulerSettings.enableFuzz),
+    ]
 }
 
 private func toSqlCardRow(card: Card) -> LocalAISqlRow {
@@ -342,6 +365,18 @@ private func toSqlDeckRow(deck: Deck) -> LocalAISqlRow {
     ]
 }
 
+private func toSqlReviewEventRow(event: ReviewEvent) -> LocalAISqlRow {
+    [
+        "review_event_id": .string(event.reviewEventId),
+        "card_id": .string(event.cardId),
+        "device_id": .string(event.deviceId),
+        "client_event_id": .string(event.clientEventId),
+        "rating": .integer(event.rating.rawValue),
+        "reviewed_at_client": .string(event.reviewedAtClient),
+        "reviewed_at_server": .string(event.reviewedAtServer),
+    ]
+}
+
 private func compareRowValues(
     left: LocalAISqlRowValue?,
     right: LocalAISqlRowValue?
@@ -369,6 +404,12 @@ private func compareRowValues(
         return leftValue == rightValue ? 0 : (leftValue < rightValue ? -1 : 1)
     case (.some(.number(let leftValue)), .some(.number(let rightValue))):
         return leftValue == rightValue ? 0 : (leftValue < rightValue ? -1 : 1)
+    case (.some(.integer(let leftValue)), .some(.number(let rightValue))):
+        let leftNumber = Double(leftValue)
+        return leftNumber == rightValue ? 0 : (leftNumber < rightValue ? -1 : 1)
+    case (.some(.number(let leftValue)), .some(.integer(let rightValue))):
+        let rightNumber = Double(rightValue)
+        return leftValue == rightNumber ? 0 : (leftValue < rightNumber ? -1 : 1)
     case (.some(.boolean(let leftValue)), .some(.boolean(let rightValue))):
         let leftNumber = leftValue ? 1 : 0
         let rightNumber = rightValue ? 1 : 0
@@ -395,6 +436,10 @@ private func valuesEqual(
         return leftValue == rightValue
     case (.some(.number(let leftValue)), .number(let rightValue)):
         return leftValue == rightValue
+    case (.some(.integer(let leftValue)), .number(let rightValue)):
+        return Double(leftValue) == rightValue
+    case (.some(.number(let leftValue)), .integer(let rightValue)):
+        return leftValue == Double(rightValue)
     case (.some(.boolean(let leftValue)), .boolean(let rightValue)):
         return leftValue == rightValue
     case (.some(.null), .null):
@@ -404,12 +449,62 @@ private func valuesEqual(
     }
 }
 
+private func compareScalarValues(
+    left: LocalAISqlRowValue?,
+    right: LocalAISqlLiteralValue
+) -> Int? {
+    switch (left, right) {
+    case (.some(.string(let leftValue)), .string(let rightValue)):
+        return leftValue.localizedStandardCompare(rightValue).comparisonNumber
+    case (.some(.integer(let leftValue)), .integer(let rightValue)):
+        return leftValue == rightValue ? 0 : (leftValue < rightValue ? -1 : 1)
+    case (.some(.number(let leftValue)), .number(let rightValue)):
+        return leftValue == rightValue ? 0 : (leftValue < rightValue ? -1 : 1)
+    case (.some(.integer(let leftValue)), .number(let rightValue)):
+        let leftNumber = Double(leftValue)
+        return leftNumber == rightValue ? 0 : (leftNumber < rightValue ? -1 : 1)
+    case (.some(.number(let leftValue)), .integer(let rightValue)):
+        let rightNumber = Double(rightValue)
+        return leftValue == rightNumber ? 0 : (leftValue < rightNumber ? -1 : 1)
+    case (.some(.boolean(let leftValue)), .boolean(let rightValue)):
+        let leftNumber = leftValue ? 1 : 0
+        let rightNumber = rightValue ? 1 : 0
+        return leftNumber == rightNumber ? 0 : (leftNumber < rightNumber ? -1 : 1)
+    default:
+        return nil
+    }
+}
+
 private func normalizeStringArray(value: LocalAISqlRowValue?) -> [String] {
     switch value {
     case .stringArray(let values):
         return values
     default:
         return []
+    }
+}
+
+private func normalizeAggregateNumbers(rows: [LocalAISqlRow], columnName: String) -> [Double] {
+    rows.compactMap { row in
+        switch row[columnName] {
+        case .integer(let value):
+            return Double(value)
+        case .number(let value):
+            return value
+        default:
+            return nil
+        }
+    }
+}
+
+private func normalizeAggregateComparableValues(rows: [LocalAISqlRow], columnName: String) -> [LocalAISqlRowValue] {
+    rows.compactMap { row in
+        switch row[columnName] {
+        case .string, .integer, .number, .boolean:
+            return row[columnName]
+        default:
+            return nil
+        }
     }
 }
 
@@ -432,6 +527,15 @@ private func normalizeSearchableText(value: LocalAISqlRowValue) -> String {
     }
 }
 
+private func resolvePredicateValue(_ value: LocalAISqlPredicateValue) -> LocalAISqlLiteralValue {
+    switch value {
+    case .literal(let literal):
+        return literal
+    case .now:
+        return .string(currentIsoTimestamp())
+    }
+}
+
 private func rowMatchesPredicate(
     row: LocalAISqlRow,
     predicate: LocalAISqlPredicate
@@ -445,8 +549,27 @@ private func rowMatchesPredicate(
         return row.values.contains { value in
             normalizeSearchableText(value: value).contains(normalizedQuery)
         }
-    case .comparison(let columnName, let value):
-        return valuesEqual(left: row[columnName], right: value)
+    case .comparison(let columnName, let comparisonOperator, let predicateValue):
+        let resolvedPredicateValue = resolvePredicateValue(predicateValue)
+        if comparisonOperator == .equals {
+            return valuesEqual(left: row[columnName], right: resolvedPredicateValue)
+        }
+
+        guard let comparison = compareScalarValues(left: row[columnName], right: resolvedPredicateValue) else {
+            return false
+        }
+        switch comparisonOperator {
+        case .equals:
+            return comparison == 0
+        case .lessThan:
+            return comparison < 0
+        case .lessThanOrEqual:
+            return comparison <= 0
+        case .greaterThan:
+            return comparison > 0
+        case .greaterThanOrEqual:
+            return comparison >= 0
+        }
     case .in(let columnName, let values):
         return values.contains { value in
             valuesEqual(left: row[columnName], right: value)
@@ -456,6 +579,11 @@ private func rowMatchesPredicate(
             return true
         }
         return false
+    case .isNotNull(let columnName):
+        if case .some(.null) = row[columnName] {
+            return false
+        }
+        return row[columnName] != nil
     case .overlap(let columnName, let values):
         return normalizeStringArray(value: row[columnName]).contains { item in
             values.contains(item)
@@ -463,36 +591,59 @@ private func rowMatchesPredicate(
     }
 }
 
-private func applyPredicates(
-    resourceName: LocalAISqlResourceName,
+private func validatePredicate(
+    source: LocalAISqlFromSource,
+    predicate: LocalAISqlPredicate
+) throws {
+    if case .match = predicate {
+        return
+    }
+
+    let columnName: String
+    switch predicate {
+    case .comparison(let predicateColumnName, _, _):
+        columnName = predicateColumnName
+    case .in(let predicateColumnName, _):
+        columnName = predicateColumnName
+    case .overlap(let predicateColumnName, _):
+        columnName = predicateColumnName
+    case .isNull(let predicateColumnName):
+        columnName = predicateColumnName
+    case .isNotNull(let predicateColumnName):
+        columnName = predicateColumnName
+    case .match:
+        return
+    }
+
+    let descriptors = try localAISqlSourceColumnDescriptors(source: source)
+    guard let descriptor = descriptors[columnName] else {
+        throw LocalStoreError.validation("Unknown column for \(source.resourceName.rawValue): \(columnName)")
+    }
+    if descriptor.filterable == false {
+        throw LocalStoreError.validation("Column is not filterable: \(columnName)")
+    }
+}
+
+private func applyPredicateClauses(
+    source: LocalAISqlFromSource,
     rows: [LocalAISqlRow],
-    predicates: [LocalAISqlPredicate]
+    predicateClauses: [LocalAISqlPredicateClause]
 ) throws -> [LocalAISqlRow] {
-    for predicate in predicates {
-        switch predicate {
-        case .match:
-            continue
-        case .comparison(let columnName, _),
-                .in(let columnName, _),
-                .overlap(let columnName, _),
-                .isNull(let columnName):
-            let descriptor = try localAISqlColumnDescriptor(
-                resourceName: resourceName,
-                columnName: columnName
-            )
-            if descriptor.filterable == false {
-                throw LocalStoreError.validation("Column is not filterable: \(columnName)")
-            }
+    for clause in predicateClauses {
+        for predicate in clause {
+            try validatePredicate(source: source, predicate: predicate)
         }
     }
 
-    if predicates.isEmpty {
+    if predicateClauses.isEmpty {
         return rows
     }
 
     return try rows.filter { row in
-        try predicates.allSatisfy { predicate in
-            try rowMatchesPredicate(row: row, predicate: predicate)
+        try predicateClauses.contains { clause in
+            try clause.allSatisfy { predicate in
+                try rowMatchesPredicate(row: row, predicate: predicate)
+            }
         }
     }
 }
@@ -507,7 +658,7 @@ private func applyOrderBy(
 
     return rows.sorted { left, right in
         for item in orderBy {
-            let comparison = compareRowValues(left: left[item.columnName], right: right[item.columnName])
+            let comparison = compareRowValues(left: left[item.expressionName], right: right[item.expressionName])
             if comparison != 0 {
                 return item.direction == .desc ? comparison > 0 : comparison < 0
             }
@@ -546,88 +697,270 @@ private func regexMatches(
     return expression.firstMatch(in: value, options: [], range: fullRange) != nil
 }
 
-private func localAISqlColumnDescriptor(
-    resourceName: LocalAISqlResourceName,
-    columnName: String
-) throws -> LocalAISqlColumnDescriptor {
-    guard let resourceDescriptor = localAISqlResourceDescriptors().first(where: { descriptor in
-        descriptor.resourceName == resourceName
-    }) else {
-        throw LocalStoreError.validation("Unknown resource: \(resourceName.rawValue)")
-    }
-    guard let columnDescriptor = resourceDescriptor.columns.first(where: { descriptor in
-        descriptor.columnName == columnName
-    }) else {
-        throw LocalStoreError.validation("Unknown column for \(resourceName.rawValue): \(columnName)")
-    }
-    return columnDescriptor
-}
-
 private func loadSelectRows(
     database: LocalDatabase,
     snapshot: AppStateSnapshot,
     resourceName: LocalAISqlResourceName
 ) throws -> [LocalAISqlRow] {
     switch resourceName {
-    case .workspaceContext:
-        let homeSnapshot = makeHomeSnapshot(
-            cards: snapshot.cards,
-            deckCount: snapshot.decks.count,
-            now: Date()
-        )
-        return [[
-            "workspace_id": .string(snapshot.workspace.workspaceId),
-            "workspace_name": .string(snapshot.workspace.name),
-            "total_cards": .integer(homeSnapshot.totalCards),
-            "due_cards": .integer(homeSnapshot.dueCount),
-            "new_cards": .integer(homeSnapshot.newCount),
-            "reviewed_cards": .integer(homeSnapshot.reviewedCount),
-        ]]
-    case .schedulerSettings:
-        return [[
-            "algorithm": .string(snapshot.schedulerSettings.algorithm),
-            "desired_retention": .number(snapshot.schedulerSettings.desiredRetention),
-            "learning_steps_minutes": .integerArray(snapshot.schedulerSettings.learningStepsMinutes),
-            "relearning_steps_minutes": .integerArray(snapshot.schedulerSettings.relearningStepsMinutes),
-            "maximum_interval_days": .integer(snapshot.schedulerSettings.maximumIntervalDays),
-            "enable_fuzz": .boolean(snapshot.schedulerSettings.enableFuzz),
-        ]]
-    case .tagsSummary:
-        let payload = workspaceTagsSummary(cards: currentActiveCards(snapshot: snapshot))
-        return payload.tags.map { tag in
-            [
-                "tag": .string(tag.tag),
-                "cards_count": .integer(tag.cardsCount),
-                "total_cards": .integer(payload.totalCards),
-            ]
-        }
+    case .workspace:
+        return [toSqlWorkspaceRow(snapshot: snapshot)]
     case .cards:
         return currentActiveCards(snapshot: snapshot).map(toSqlCardRow)
-    case .dueCards:
-        return dueCards(snapshot: snapshot).map(toSqlCardRow)
     case .decks:
         return activeDecks(snapshot: snapshot).map(toSqlDeckRow)
-    case .reviewHistory:
-        return try loadReviewRows(database: database, snapshot: snapshot)
+    case .reviewEvents:
+        return try database.loadReviewEvents(workspaceId: snapshot.workspace.workspaceId).map(toSqlReviewEventRow)
     }
 }
 
-private func loadReviewRows(
-    database: LocalDatabase,
-    snapshot: AppStateSnapshot
-) throws -> [LocalAISqlRow] {
-    let events = try database.loadReviewEvents(workspaceId: snapshot.workspace.workspaceId)
-    return events.map { event in
-        [
-            "review_event_id": .string(event.reviewEventId),
-            "card_id": .string(event.cardId),
-            "device_id": .string(event.deviceId),
-            "client_event_id": .string(event.clientEventId),
-            "rating": .integer(event.rating.rawValue),
-            "reviewed_at_client": .string(event.reviewedAtClient),
-            "reviewed_at_server": .string(event.reviewedAtServer),
-        ]
+private func expandRowsForSource(
+    source: LocalAISqlFromSource,
+    rows: [LocalAISqlRow]
+) -> [LocalAISqlRow] {
+    guard let unnestAlias = source.unnestAlias,
+          let unnestColumnName = source.unnestColumnName else {
+        return rows
     }
+
+    return rows.flatMap { row in
+        normalizeStringArray(value: row[unnestColumnName]).map { value in
+            var expandedRow = row
+            expandedRow[unnestAlias] = .string(value)
+            return expandedRow
+        }
+    }
+}
+
+private func defaultAggregateAlias(
+    functionName: LocalAISqlAggregateFunctionName,
+    columnName: String?
+) -> String {
+    if functionName == .count {
+        return "count"
+    }
+    return "\(functionName.rawValue)_\(columnName ?? "value")"
+}
+
+private func validateRowOrderBy(
+    source: LocalAISqlFromSource,
+    orderBy: [LocalAISqlSelectOrderBy]
+) throws {
+    let descriptors = try localAISqlSourceColumnDescriptors(source: source)
+    for item in orderBy {
+        guard let descriptor = descriptors[item.expressionName] else {
+            throw LocalStoreError.validation("Unknown ORDER BY target: \(item.expressionName)")
+        }
+        if descriptor.sortable == false {
+            throw LocalStoreError.validation("Column is not sortable: \(item.expressionName)")
+        }
+    }
+}
+
+private func validateAggregateSelect(
+    statement: LocalAISqlSelectStatement
+) throws {
+    let descriptors = try localAISqlSourceColumnDescriptors(source: statement.source)
+    for groupColumn in statement.groupBy where descriptors[groupColumn] == nil {
+        throw LocalStoreError.validation("Unknown GROUP BY column: \(groupColumn)")
+    }
+
+    var outputNames = Set<String>()
+    for item in statement.selectItems {
+        switch item {
+        case .wildcard:
+            throw LocalStoreError.validation("SELECT * cannot be mixed with aggregate projections")
+        case .column(let columnName, let alias):
+            if statement.groupBy.contains(columnName) == false {
+                throw LocalStoreError.validation("Grouped SELECT must list \(columnName) in GROUP BY")
+            }
+            outputNames.insert(alias ?? columnName)
+        case .aggregate(let functionName, let columnName, let alias):
+            let outputName = alias ?? defaultAggregateAlias(functionName: functionName, columnName: columnName)
+            outputNames.insert(outputName)
+            if functionName == .count {
+                continue
+            }
+            guard let aggregateColumnName = columnName,
+                  let descriptor = descriptors[aggregateColumnName] else {
+                throw LocalStoreError.validation("Unknown aggregate column: \(columnName ?? "")")
+            }
+            if functionName == .avg || functionName == .sum {
+                if descriptor.type != LocalAISqlColumnType.integer && descriptor.type != LocalAISqlColumnType.number {
+                    throw LocalStoreError.validation("\(functionName.rawValue.uppercased()) only supports numeric columns")
+                }
+            }
+        }
+    }
+
+    for item in statement.orderBy where outputNames.contains(item.expressionName) == false && statement.groupBy.contains(item.expressionName) == false {
+        throw LocalStoreError.validation("Unknown ORDER BY target: \(item.expressionName)")
+    }
+}
+
+private func groupRowsForAggregateSelect(
+    rows: [LocalAISqlRow],
+    groupBy: [String],
+    shouldReturnSingleAggregateRow: Bool
+) -> [LocalAISqlGroupedRows] {
+    if groupBy.isEmpty {
+        if rows.isEmpty && shouldReturnSingleAggregateRow == false {
+            return []
+        }
+        return [LocalAISqlGroupedRows(groupRow: [:], groupedRows: rows)]
+    }
+
+    var groupedRowsByKey: [String: LocalAISqlGroupedRows] = [:]
+    var orderedKeys: [String] = []
+
+    for row in rows {
+        let keyValues = groupBy.map { columnName in
+            row[columnName] ?? .null
+        }
+        let key = keyValues.map(String.init(describing:)).joined(separator: "\u{0001}")
+        if let existing = groupedRowsByKey[key] {
+            groupedRowsByKey[key] = LocalAISqlGroupedRows(
+                groupRow: existing.groupRow,
+                groupedRows: existing.groupedRows + [row]
+            )
+            continue
+        }
+
+        let groupRow = Dictionary(uniqueKeysWithValues: groupBy.map { columnName in
+            (columnName, row[columnName] ?? .null)
+        })
+        groupedRowsByKey[key] = LocalAISqlGroupedRows(groupRow: groupRow, groupedRows: [row])
+        orderedKeys.append(key)
+    }
+
+    return orderedKeys.compactMap { key in
+        groupedRowsByKey[key]
+    }
+}
+
+private func buildAggregateOutputRow(
+    groupRow: LocalAISqlRow,
+    groupedRows: [LocalAISqlRow],
+    selectItems: [LocalAISqlSelectItem]
+) throws -> LocalAISqlRow {
+    var outputRow: LocalAISqlRow = [:]
+
+    for item in selectItems {
+        switch item {
+        case .wildcard:
+            throw LocalStoreError.validation("Aggregate SELECT cannot project *")
+        case .column(let columnName, let alias):
+            outputRow[alias ?? columnName] = groupRow[columnName] ?? .null
+        case .aggregate(let functionName, let columnName, let alias):
+            let outputName = alias ?? defaultAggregateAlias(functionName: functionName, columnName: columnName)
+            if functionName == .count {
+                outputRow[outputName] = .integer(groupedRows.count)
+                continue
+            }
+
+            guard let aggregateColumnName = columnName else {
+                throw LocalStoreError.validation("Aggregate column is required")
+            }
+
+            if functionName == .sum {
+                let values = normalizeAggregateNumbers(rows: groupedRows, columnName: aggregateColumnName)
+                outputRow[outputName] = .number(values.reduce(0, +))
+                continue
+            }
+
+            if functionName == .avg {
+                let values = normalizeAggregateNumbers(rows: groupedRows, columnName: aggregateColumnName)
+                if values.isEmpty {
+                    outputRow[outputName] = .null
+                } else {
+                    outputRow[outputName] = .number(values.reduce(0, +) / Double(values.count))
+                }
+                continue
+            }
+
+            let comparableValues = normalizeAggregateComparableValues(rows: groupedRows, columnName: aggregateColumnName)
+            if comparableValues.isEmpty {
+                outputRow[outputName] = .null
+                continue
+            }
+
+            let sortedValues = comparableValues.sorted { left, right in
+                compareRowValues(left: left, right: right) < 0
+            }
+            outputRow[outputName] = functionName == .min ? sortedValues.first ?? .null : sortedValues.last ?? .null
+        }
+    }
+
+    return outputRow
+}
+
+private func executeAggregateSelect(
+    statement: LocalAISqlSelectStatement,
+    rows: [LocalAISqlRow]
+) throws -> [LocalAISqlRow] {
+    try validateAggregateSelect(statement: statement)
+    let groups = groupRowsForAggregateSelect(
+        rows: rows,
+        groupBy: statement.groupBy,
+        shouldReturnSingleAggregateRow: statement.selectItems.contains { item in
+            if case .aggregate = item {
+                return true
+            }
+            return false
+        }
+    )
+    let aggregateRows = try groups.map { group in
+        try buildAggregateOutputRow(
+            groupRow: group.groupRow,
+            groupedRows: group.groupedRows,
+            selectItems: statement.selectItems
+        )
+    }
+    return applyOrderBy(rows: aggregateRows, orderBy: statement.orderBy)
+}
+
+private func isWildcardSelect(_ statement: LocalAISqlSelectStatement) -> Bool {
+    if statement.selectItems.count != 1 {
+        return false
+    }
+    if case .wildcard = statement.selectItems[0] {
+        return true
+    }
+    return false
+}
+
+/**
+ Mirrors `apps/backend/src/aiTools/sqlDialect.ts::executeSqlSelect`.
+ Keep aggregate execution, `NOW()` filtering, and `UNNEST tags AS tag`
+ semantics aligned across backend and iOS-local SQL runtimes.
+ */
+private func executeSqlSelect(
+    statement: LocalAISqlSelectStatement,
+    rows: [LocalAISqlRow]
+) throws -> LocalAISqlSelectExecutionResult {
+    let limit = try normalizeSqlLimit(statement.limit)
+    let offset = try normalizeSqlOffset(statement.offset)
+    let expandedRows = expandRowsForSource(source: statement.source, rows: rows)
+    let filteredRows = try applyPredicateClauses(
+        source: statement.source,
+        rows: expandedRows,
+        predicateClauses: statement.predicateClauses
+    )
+    let orderedRows: [LocalAISqlRow]
+    if isWildcardSelect(statement) {
+        try validateRowOrderBy(source: statement.source, orderBy: statement.orderBy)
+        orderedRows = applyOrderBy(rows: filteredRows, orderBy: statement.orderBy)
+    } else {
+        orderedRows = try executeAggregateSelect(statement: statement, rows: filteredRows)
+    }
+    let paginatedRows = paginateRows(rows: orderedRows, limit: limit, offset: offset)
+    return LocalAISqlSelectExecutionResult(
+        rows: paginatedRows.rows,
+        rowCount: paginatedRows.rows.count,
+        limit: limit,
+        offset: offset,
+        hasMore: paginatedRows.hasMore
+    )
 }
 
 private func statementValueString(
@@ -636,12 +969,10 @@ private func statementValueString(
     guard let value else {
         return nil
     }
-    switch value {
-    case .literal(.string(let rawValue)):
+    if case .literal(.string(let rawValue)) = value {
         return rawValue
-    default:
-        return nil
     }
+    return nil
 }
 
 private func statementValueEffortLevel(
@@ -659,12 +990,10 @@ private func statementValueStringArray(
     guard let value else {
         return nil
     }
-    switch value {
-    case .stringArray(let rawValue):
+    if case .stringArray(let rawValue) = value {
         return rawValue
-    default:
-        return nil
     }
+    return nil
 }
 
 private func rowFromInsert(
@@ -771,8 +1100,8 @@ private func describeOutboxPayload(_ payload: SyncOperationPayload) -> String {
 
 /**
  Mirrors `apps/web/src/chat/localToolExecutor.ts::executeSqlLocally`.
- Keep SQL payload shapes and mutation behavior aligned across browser-local and
- iOS-local runtimes.
+ Keep SQL payload shapes, aggregate semantics, and mutation behavior aligned
+ across browser-local and iOS-local runtimes.
  */
 private func executeSqlLocally(
     database: LocalDatabase,
@@ -790,9 +1119,9 @@ private func executeSqlLocally(
                 return true
             }
             return regexMatches(expression: likeExpression, value: descriptor.resourceName.rawValue)
-        }.map { descriptor -> LocalAISqlRow in
-            return [
-                "table_name": .string(descriptor.resourceName.rawValue),
+        }.map { descriptor in
+            [
+                "table_name": LocalAISqlRowValue.string(descriptor.resourceName.rawValue),
                 "writable": .boolean(descriptor.writable),
                 "description": .string(descriptor.description),
             ]
@@ -815,14 +1144,10 @@ private func executeSqlLocally(
             didMutateAppState: false
         )
     case .describe(let describeStatement):
-        guard let descriptor = localAISqlResourceDescriptors().first(where: { candidate in
-            candidate.resourceName == describeStatement.resourceName
-        }) else {
-            throw LocalStoreError.validation("Unknown resource: \(describeStatement.resourceName.rawValue)")
-        }
-        let rows = descriptor.columns.map { column -> LocalAISqlRow in
-            return [
-                "column_name": .string(column.columnName),
+        let descriptor = try localAISqlResourceDescriptor(resourceName: describeStatement.resourceName)
+        let rows = descriptor.columns.map { column in
+            [
+                "column_name": LocalAISqlRowValue.string(column.columnName),
                 "type": .string(column.type.rawValue),
                 "nullable": .boolean(column.nullable),
                 "read_only": .boolean(column.readOnly),
@@ -849,32 +1174,26 @@ private func executeSqlLocally(
             didMutateAppState: false
         )
     case .select(let selectStatement):
-        let limit = try normalizeSqlLimit(selectStatement.limit)
-        let offset = try normalizeSqlOffset(selectStatement.offset)
-        let rows = try loadSelectRows(
-            database: database,
-            snapshot: snapshot,
-            resourceName: selectStatement.resourceName
+        let result = try executeSqlSelect(
+            statement: selectStatement,
+            rows: try loadSelectRows(
+                database: database,
+                snapshot: snapshot,
+                resourceName: selectStatement.source.resourceName
+            )
         )
-        let filteredRows = try applyPredicates(
-            resourceName: selectStatement.resourceName,
-            rows: rows,
-            predicates: selectStatement.predicates
-        )
-        let orderedRows = applyOrderBy(rows: filteredRows, orderBy: selectStatement.orderBy)
-        let paginatedRows = paginateRows(rows: orderedRows, limit: limit, offset: offset)
         return LocalAISqlExecutionResult(
             output: try encodeJSON(
                 value: LocalAISqlReadPayload(
                     statementType: "select",
-                    resource: selectStatement.resourceName.rawValue,
+                    resource: selectStatement.source.resourceName.rawValue,
                     sql: sql,
                     normalizedSql: selectStatement.normalizedSql,
-                    rows: paginatedRows.rows,
-                    rowCount: paginatedRows.rows.count,
-                    limit: limit,
-                    offset: offset,
-                    hasMore: paginatedRows.hasMore
+                    rows: result.rows,
+                    rowCount: result.rowCount,
+                    limit: result.limit,
+                    offset: result.offset,
+                    hasMore: result.hasMore
                 ),
                 encoder: encoder
             ),
@@ -925,21 +1244,21 @@ private func executeSqlLocally(
             didMutateAppState: true
         )
     case .update(let updateStatement):
-        let currentRows = try applyPredicates(
-            resourceName: updateStatement.resourceName,
+        let matchingRows = try applyPredicateClauses(
+            source: LocalAISqlFromSource(resourceName: updateStatement.resourceName, unnestColumnName: nil, unnestAlias: nil),
             rows: try loadSelectRows(
                 database: database,
                 snapshot: snapshot,
                 resourceName: updateStatement.resourceName
             ),
-            predicates: updateStatement.predicates
+            predicateClauses: updateStatement.predicateClauses
         )
         let assignmentRow = Dictionary(uniqueKeysWithValues: updateStatement.assignments.map { assignment in
             (assignment.columnName, assignment.value)
         })
 
         if updateStatement.resourceName == .cards {
-            let updates = try currentRows.map { row in
+            let updates = try matchingRows.map { row in
                 guard case .string(let cardId) = row["card_id"] else {
                     throw LocalStoreError.validation("Expected card_id in selected row")
                 }
@@ -951,10 +1270,7 @@ private func executeSqlLocally(
                     )
                 )
             }
-            let updatedCards = try database.updateCards(
-                workspaceId: snapshot.workspace.workspaceId,
-                updates: updates
-            )
+            let updatedCards = try database.updateCards(workspaceId: snapshot.workspace.workspaceId, updates: updates)
             return LocalAISqlExecutionResult(
                 output: try encodeJSON(
                     value: LocalAISqlMutationPayload(
@@ -971,7 +1287,7 @@ private func executeSqlLocally(
             )
         }
 
-        let updates = try currentRows.map { row in
+        let updates = try matchingRows.map { row in
             guard case .string(let deckId) = row["deck_id"] else {
                 throw LocalStoreError.validation("Expected deck_id in selected row")
             }
@@ -983,10 +1299,7 @@ private func executeSqlLocally(
                 )
             )
         }
-        let updatedDecks = try database.updateDecks(
-            workspaceId: snapshot.workspace.workspaceId,
-            updates: updates
-        )
+        let updatedDecks = try database.updateDecks(workspaceId: snapshot.workspace.workspaceId, updates: updates)
         return LocalAISqlExecutionResult(
             output: try encodeJSON(
                 value: LocalAISqlMutationPayload(
@@ -1002,18 +1315,18 @@ private func executeSqlLocally(
             didMutateAppState: true
         )
     case .delete(let deleteStatement):
-        let currentRows = try applyPredicates(
-            resourceName: deleteStatement.resourceName,
+        let matchingRows = try applyPredicateClauses(
+            source: LocalAISqlFromSource(resourceName: deleteStatement.resourceName, unnestColumnName: nil, unnestAlias: nil),
             rows: try loadSelectRows(
                 database: database,
                 snapshot: snapshot,
                 resourceName: deleteStatement.resourceName
             ),
-            predicates: deleteStatement.predicates
+            predicateClauses: deleteStatement.predicateClauses
         )
 
         if deleteStatement.resourceName == .cards {
-            let cardIds = try currentRows.map { row in
+            let cardIds = try matchingRows.map { row in
                 guard case .string(let cardId) = row["card_id"] else {
                     throw LocalStoreError.validation("Expected card_id in selected row")
                 }
@@ -1036,7 +1349,7 @@ private func executeSqlLocally(
             )
         }
 
-        let deckIds = try currentRows.map { row in
+        let deckIds = try matchingRows.map { row in
             guard case .string(let deckId) = row["deck_id"] else {
                 throw LocalStoreError.validation("Expected deck_id in selected row")
             }

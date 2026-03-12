@@ -506,7 +506,7 @@ describe("ChatPanel autoscroll", () => {
     expect(children[0]?.tagName).toBe("SPAN");
     expect(children[0]?.textContent).toBe("Before tool\n\n");
     expect(children[1]?.tagName).toBe("DETAILS");
-    expect(children[1]?.textContent).toContain("SQL");
+    expect(children[1]?.textContent).toContain("SQL: SHOW TABLES");
     expect(children[2]?.tagName).toBe("SPAN");
     expect(children[2]?.textContent).toBe("\n\nAfter tool\n\n");
   });
