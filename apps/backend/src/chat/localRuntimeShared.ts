@@ -141,6 +141,9 @@ function buildLocalAttachmentHandlingSection(): string {
  * OpenAI and Anthropic turns produce compatible local tool requests. The
  * attachment section documents the hybrid delivery strategy for small text
  * files and instructs models how to find mounted files inside code execution.
+ *
+ * iOS consumer:
+ * `apps/ios/Flashcards/Flashcards/AI/AIChatSessionRuntime.swift`
  */
 export function buildLocalSystemInstructions(
   timezone: string,

@@ -1,20 +1,20 @@
+import Foundation
+
 /**
  iOS-local AI tool executor.
 
- This file mirrors legacy local tool behavior while the backend has already
- moved to the SQL-based shared contract in:
+ Shared workspace access is intentionally collapsed to the single `sql` tool
+ so the iOS-local runtime mirrors the public agent surface and the browser
+ local mirror.
+
+ Keep this file aligned with:
+ - `apps/web/src/chat/localToolExecutor.ts`
  - `apps/backend/src/aiTools/agentSql.ts`
  - `apps/backend/src/aiTools/sqlDialect.ts`
-
- The mirror remains separate because iOS executes directly against local
- SQLite-backed state. The browser-local mirror lives in
- `apps/web/src/chat/localToolExecutor.ts`.
  */
-import Foundation
 
 enum AIToolExecutionError: LocalizedError {
     case unsupportedTool(String)
-    case missingWorkspace
     case invalidToolInput(
         requestId: String?,
         toolName: String,
@@ -28,8 +28,6 @@ enum AIToolExecutionError: LocalizedError {
         switch self {
         case .unsupportedTool(let name):
             return "Unsupported AI tool: \(name)"
-        case .missingWorkspace:
-            return "Workspace is unavailable"
         case .invalidToolInput(let requestId, let toolName, let toolCallId, _, _, _):
             let reference = requestId?.isEmpty == false ? requestId ?? toolCallId : toolCallId
             return [
@@ -40,14 +38,6 @@ enum AIToolExecutionError: LocalizedError {
             ].joined(separator: "\n")
         }
     }
-}
-
-private struct AIWorkspaceContextPayload: Encodable {
-    let workspace: Workspace
-    let userSettings: UserSettings
-    let schedulerSettings: WorkspaceSchedulerSettings
-    let cloudSettings: CloudSettings
-    let homeSnapshot: HomeSnapshot
 }
 
 private struct AIOutboxEntryPayload: Encodable {
@@ -63,143 +53,48 @@ private struct AIOutboxEntryPayload: Encodable {
     let payloadSummary: String
 }
 
-private struct LocalCardsPagePayload: Encodable {
-    let cards: [Card]
-    let nextCursor: String?
-}
-
-private struct LocalDecksPagePayload: Encodable {
-    let decks: [Deck]
-    let nextCursor: String?
-}
-
-private struct LocalReviewHistoryPagePayload: Encodable {
-    let history: [ReviewEvent]
-    let nextCursor: String?
-}
-
 private struct LocalOutboxPagePayload: Encodable {
     let outbox: [AIOutboxEntryPayload]
     let nextCursor: String?
 }
 
-private struct AISuccessPayload: Encodable {
-    let ok: Bool
-    let message: String
-}
+private struct SqlToolInput: Decodable {
+    let sql: String
 
-private struct AIBulkDeleteCardsPayload: Encodable {
-    let ok: Bool
-    let deletedCardIds: [String]
-    let deletedCount: Int
-}
+    private enum CodingKeys: String, CodingKey {
+        case sql
+    }
 
-private struct AIBulkDeleteDecksPayload: Encodable {
-    let ok: Bool
-    let deletedDeckIds: [String]
-    let deletedCount: Int
-}
-
-private struct CreateCardToolInput: Decodable {
-    let frontText: String
-    let backText: String
-    let tags: [String]
-    let effortLevel: EffortLevel
-}
-
-private struct CreateCardsToolInput: Decodable {
-    let cards: [CreateCardToolInput]
-}
-
-private struct GetCardsToolInput: Decodable {
-    let cardIds: [String]
-}
-
-private struct UpdateCardToolInput: Decodable {
-    let cardId: String
-    let frontText: String?
-    let backText: String?
-    let tags: [String]?
-    let effortLevel: EffortLevel?
-}
-
-private struct UpdateCardsToolInput: Decodable {
-    let updates: [UpdateCardToolInput]
-}
-
-private struct DeleteCardsToolInput: Decodable {
-    let cardIds: [String]
-}
-
-private struct CreateDeckToolInput: Decodable {
-    let name: String
-    let effortLevels: [EffortLevel]
-    let tags: [String]
-}
-
-private struct CreateDecksToolInput: Decodable {
-    let decks: [CreateDeckToolInput]
-}
-
-private struct UpdateDeckToolInput: Decodable {
-    let deckId: String
-    let name: String?
-    let effortLevels: [EffortLevel]?
-    let tags: [String]?
-}
-
-private struct UpdateDecksToolInput: Decodable {
-    let updates: [UpdateDeckToolInput]
-}
-
-private struct DeleteDecksToolInput: Decodable {
-    let deckIds: [String]
-}
-
-private struct SearchCardsToolInput: Decodable {
-    let query: String
-    let cursor: String?
-    let limit: Int
-
-    let filter: CardFilter?
-}
-
-private struct ListCardsToolInput: Decodable {
-    let cursor: String?
-    let limit: Int
-
-    let filter: CardFilter?
-}
-
-private struct ListDueCardsToolInput: Decodable {
-    let cursor: String?
-    let limit: Int
-}
-
-private struct ListDecksToolInput: Decodable {
-    let cursor: String?
-    let limit: Int
-}
-
-private struct SearchDecksToolInput: Decodable {
-    let query: String
-    let cursor: String?
-    let limit: Int
-}
-
-private struct GetDecksToolInput: Decodable {
-    let deckIds: [String]
-}
-
-private struct ListReviewHistoryToolInput: Decodable {
-    let cursor: String?
-    let limit: Int
-    let cardId: String?
+    init(from decoder: Decoder) throws {
+        try validateObjectKeys(
+            decoder: decoder,
+            allowedKeys: Set([CodingKeys.sql.rawValue]),
+            context: "sql"
+        )
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.sql = try container.decode(String.self, forKey: .sql).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
 
 private struct ListOutboxToolInput: Decodable {
     let cursor: String?
     let limit: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case cursor
+        case limit
+    }
+
+    init(from decoder: Decoder) throws {
+        try validateObjectKeys(
+            decoder: decoder,
+            allowedKeys: Set([CodingKeys.cursor.rawValue, CodingKeys.limit.rawValue]),
+            context: "list_outbox"
+        )
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
+        self.limit = try container.decode(Int.self, forKey: .limit)
+    }
 }
 
 private struct LocalPageCursor: Codable {
@@ -221,6 +116,67 @@ private struct DynamicCodingKey: CodingKey {
     }
 }
 
+private enum LocalAISqlRowValue: Encodable {
+    case string(String)
+    case integer(Int)
+    case number(Double)
+    case boolean(Bool)
+    case null
+    case stringArray([String])
+    case integerArray([Int])
+
+    func encode(to encoder: Encoder) throws {
+        var singleValueContainer = encoder.singleValueContainer()
+
+        switch self {
+        case .string(let value):
+            try singleValueContainer.encode(value)
+        case .integer(let value):
+            try singleValueContainer.encode(value)
+        case .number(let value):
+            try singleValueContainer.encode(value)
+        case .boolean(let value):
+            try singleValueContainer.encode(value)
+        case .null:
+            try singleValueContainer.encodeNil()
+        case .stringArray(let value):
+            try singleValueContainer.encode(value)
+        case .integerArray(let value):
+            try singleValueContainer.encode(value)
+        }
+    }
+}
+
+private typealias LocalAISqlRow = [String: LocalAISqlRowValue]
+
+private struct LocalAISqlReadPayload: Encodable {
+    let statementType: String
+    let resource: String?
+    let sql: String
+    let normalizedSql: String
+    let rows: [LocalAISqlRow]
+    let rowCount: Int
+    let limit: Int?
+    let offset: Int?
+    let hasMore: Bool
+}
+
+private struct LocalAISqlMutationPayload: Encodable {
+    let statementType: String
+    let resource: String
+    let sql: String
+    let normalizedSql: String
+    let rows: [LocalAISqlRow]
+    let affectedCount: Int
+}
+
+private struct LocalAISqlExecutionResult {
+    let output: String
+    let didMutateAppState: Bool
+}
+
+private let maxLocalAISqlLimit: Int = 100
+
 private func validateObjectKeys(
     decoder: Decoder,
     allowedKeys: Set<String>,
@@ -232,157 +188,895 @@ private func validateObjectKeys(
     }
 }
 
-private func normalizeCardFilter(filter: CardFilter?) -> CardFilter? {
-    guard let filter else {
-        return nil
+private func encodePageCursor(index: Int) -> String {
+    let json = "{\"index\":\(index)}"
+    let data = Data(json.utf8)
+    return data.base64EncodedString()
+        .replacingOccurrences(of: "+", with: "-")
+        .replacingOccurrences(of: "/", with: "_")
+        .replacingOccurrences(of: "=", with: "")
+}
+
+private func decodePageCursor(cursor: String) throws -> Int {
+    let normalizedCursor = cursor
+        .replacingOccurrences(of: "-", with: "+")
+        .replacingOccurrences(of: "_", with: "/")
+    let paddingLength = (4 - (normalizedCursor.count % 4)) % 4
+    let paddedCursor = normalizedCursor + String(repeating: "=", count: paddingLength)
+    guard let data = Data(base64Encoded: paddedCursor) else {
+        throw LocalStoreError.validation("cursor is invalid: Cursor payload must be base64")
     }
 
-    let normalizedFilter = CardFilter(
-        tags: normalizeTags(values: filter.tags, referenceTags: []),
-        effort: filter.effort.reduce(into: [EffortLevel]()) { result, effortLevel in
-            if result.contains(effortLevel) {
-                return
-            }
-
-            result.append(effortLevel)
+    do {
+        let payload = try JSONDecoder().decode(LocalPageCursor.self, from: data)
+        if payload.index < 0 {
+            throw LocalStoreError.validation("cursor is invalid: Cursor index must be a non-negative integer")
         }
-    )
+        return payload.index
+    } catch let error as LocalStoreError {
+        throw error
+    } catch {
+        throw LocalStoreError.validation("cursor is invalid: \(localizedMessage(error: error))")
+    }
+}
 
-    if normalizedFilter.tags.isEmpty && normalizedFilter.effort.isEmpty {
+private func pageStartIndex(cursor: String?) throws -> Int {
+    guard let cursor else {
+        return 0
+    }
+    return try decodePageCursor(cursor: cursor)
+}
+
+private func nextCursor(totalCount: Int, startIndex: Int, visibleCount: Int) -> String? {
+    let nextIndex = startIndex + visibleCount
+    if nextIndex >= totalCount {
         return nil
     }
-
-    return normalizedFilter
+    return encodePageCursor(index: nextIndex)
 }
 
-extension CardFilter {
-    private enum CodingKeys: String, CodingKey {
-        case tags
-        case effort
+private func normalizeOutboxLimit(_ limit: Int) throws -> Int {
+    if limit < 1 || limit > 100 {
+        throw LocalStoreError.validation("limit must be an integer between 1 and 100")
     }
 
-    init(from decoder: Decoder) throws {
-        try validateObjectKeys(
-            decoder: decoder,
-            allowedKeys: Set([CodingKeys.tags.rawValue, CodingKeys.effort.rawValue]),
-            context: "filter"
-        )
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(
-            tags: try container.decodeIfPresent([String].self, forKey: .tags) ?? [],
-            effort: try container.decodeIfPresent([EffortLevel].self, forKey: .effort) ?? []
-        )
-    }
+    return limit
 }
 
-extension CreateCardToolInput {
-    private enum CodingKeys: String, CodingKey {
-        case frontText
-        case backText
-        case tags
-        case effortLevel
+private func normalizeSqlLimit(_ limit: Int?) throws -> Int {
+    guard let limit else {
+        return maxLocalAISqlLimit
     }
-
-    init(from decoder: Decoder) throws {
-        try validateObjectKeys(
-            decoder: decoder,
-            allowedKeys: Set([
-                CodingKeys.frontText.rawValue,
-                CodingKeys.backText.rawValue,
-                CodingKeys.tags.rawValue,
-                CodingKeys.effortLevel.rawValue
-            ]),
-            context: "create_cards.cards[]"
-        )
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.frontText = try container.decode(String.self, forKey: .frontText)
-        self.backText = try container.decode(String.self, forKey: .backText)
-        self.tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
-        self.effortLevel = try container.decode(EffortLevel.self, forKey: .effortLevel)
+    if limit < 1 {
+        throw LocalStoreError.validation("LIMIT must be greater than 0")
     }
+    return min(limit, maxLocalAISqlLimit)
 }
 
-extension CreateDeckToolInput {
-    private enum CodingKeys: String, CodingKey {
-        case name
-        case effortLevels
-        case tags
+private func normalizeSqlOffset(_ offset: Int?) throws -> Int {
+    guard let offset else {
+        return 0
     }
-
-    init(from decoder: Decoder) throws {
-        try validateObjectKeys(
-            decoder: decoder,
-            allowedKeys: Set([
-                CodingKeys.name.rawValue,
-                CodingKeys.effortLevels.rawValue,
-                CodingKeys.tags.rawValue
-            ]),
-            context: "create_decks.decks[]"
-        )
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.name = try container.decode(String.self, forKey: .name)
-        self.effortLevels = try container.decodeIfPresent([EffortLevel].self, forKey: .effortLevels) ?? []
-        self.tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+    if offset < 0 {
+        throw LocalStoreError.validation("OFFSET must be a non-negative integer")
     }
+    return offset
 }
 
-extension SearchCardsToolInput {
-    private enum CodingKeys: String, CodingKey {
-        case query
-        case cursor
-        case limit
-        case filter
+private func compareCardsByUpdatedAt(left: Card, right: Card) -> Bool {
+    left.updatedAt > right.updatedAt
+}
+
+private func compareDecksByUpdatedAt(left: Deck, right: Deck) -> Bool {
+    if left.updatedAt != right.updatedAt {
+        return left.updatedAt > right.updatedAt
     }
 
-    init(from decoder: Decoder) throws {
-        try validateObjectKeys(
-            decoder: decoder,
-            allowedKeys: Set([
-                CodingKeys.query.rawValue,
-                CodingKeys.cursor.rawValue,
-                CodingKeys.limit.rawValue,
-                CodingKeys.filter.rawValue
-            ]),
-            context: "search_cards"
-        )
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.query = try container.decode(String.self, forKey: .query)
-        self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
-        self.limit = try container.decode(Int.self, forKey: .limit)
-        self.filter = normalizeCardFilter(filter: try container.decodeIfPresent(CardFilter.self, forKey: .filter))
+    return left.createdAt > right.createdAt
+}
+
+/**
+ Mirrors `apps/web/src/chat/localToolExecutor.ts::currentActiveCards`.
+ Keep the default card ordering aligned across browser-local and iOS-local SQL
+ reads so the same SQL query returns rows in the same implicit order.
+ */
+private func currentActiveCards(snapshot: AppStateSnapshot) -> [Card] {
+    activeCards(cards: snapshot.cards).sorted(by: compareCardsByUpdatedAt)
+}
+
+private func dueCards(snapshot: AppStateSnapshot) -> [Card] {
+    sortCardsForReviewQueue(cards: currentActiveCards(snapshot: snapshot), now: Date())
+}
+
+private func activeDecks(snapshot: AppStateSnapshot) -> [Deck] {
+    snapshot.decks.filter { deck in
+        deck.deletedAt == nil
+    }.sorted(by: compareDecksByUpdatedAt)
+}
+
+private func toSqlRowValue(literal: LocalAISqlLiteralValue) -> LocalAISqlRowValue {
+    switch literal {
+    case .string(let value):
+        return .string(value)
+    case .integer(let value):
+        return .integer(value)
+    case .number(let value):
+        return .number(value)
+    case .boolean(let value):
+        return .boolean(value)
+    case .null:
+        return .null
     }
 }
 
-extension ListCardsToolInput {
-    private enum CodingKeys: String, CodingKey {
-        case cursor
-        case limit
-        case filter
+private func toSqlCardRow(card: Card) -> LocalAISqlRow {
+    [
+        "card_id": .string(card.cardId),
+        "front_text": .string(card.frontText),
+        "back_text": .string(card.backText),
+        "tags": .stringArray(card.tags),
+        "effort_level": .string(card.effortLevel.rawValue),
+        "due_at": card.dueAt.map(LocalAISqlRowValue.string) ?? .null,
+        "reps": .integer(card.reps),
+        "lapses": .integer(card.lapses),
+        "updated_at": .string(card.updatedAt),
+        "deleted_at": card.deletedAt.map(LocalAISqlRowValue.string) ?? .null,
+        "fsrs_card_state": .string(card.fsrsCardState.rawValue),
+        "fsrs_step_index": card.fsrsStepIndex.map(LocalAISqlRowValue.integer) ?? .null,
+        "fsrs_stability": card.fsrsStability.map(LocalAISqlRowValue.number) ?? .null,
+        "fsrs_difficulty": card.fsrsDifficulty.map(LocalAISqlRowValue.number) ?? .null,
+        "fsrs_last_reviewed_at": card.fsrsLastReviewedAt.map(LocalAISqlRowValue.string) ?? .null,
+        "fsrs_scheduled_days": card.fsrsScheduledDays.map(LocalAISqlRowValue.integer) ?? .null,
+    ]
+}
+
+private func toSqlDeckRow(deck: Deck) -> LocalAISqlRow {
+    [
+        "deck_id": .string(deck.deckId),
+        "name": .string(deck.name),
+        "tags": .stringArray(deck.filterDefinition.tags),
+        "effort_levels": .stringArray(deck.filterDefinition.effortLevels.map(\.rawValue)),
+        "created_at": .string(deck.createdAt),
+        "updated_at": .string(deck.updatedAt),
+        "deleted_at": deck.deletedAt.map(LocalAISqlRowValue.string) ?? .null,
+    ]
+}
+
+private func compareRowValues(
+    left: LocalAISqlRowValue?,
+    right: LocalAISqlRowValue?
+) -> Int {
+    if left == nil && right == nil {
+        return 0
+    }
+    if left == nil {
+        return -1
+    }
+    if right == nil {
+        return 1
     }
 
-    init(from decoder: Decoder) throws {
-        try validateObjectKeys(
-            decoder: decoder,
-            allowedKeys: Set([
-                CodingKeys.cursor.rawValue,
-                CodingKeys.limit.rawValue,
-                CodingKeys.filter.rawValue
-            ]),
-            context: "list_cards"
-        )
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
-        self.limit = try container.decode(Int.self, forKey: .limit)
-        self.filter = normalizeCardFilter(filter: try container.decodeIfPresent(CardFilter.self, forKey: .filter))
+    switch (left, right) {
+    case (.some(.null), .some(.null)):
+        return 0
+    case (.some(.null), _):
+        return -1
+    case (_, .some(.null)):
+        return 1
+    case (.some(.string(let leftValue)), .some(.string(let rightValue))):
+        return leftValue.localizedStandardCompare(rightValue).comparisonNumber
+    case (.some(.integer(let leftValue)), .some(.integer(let rightValue))):
+        return leftValue == rightValue ? 0 : (leftValue < rightValue ? -1 : 1)
+    case (.some(.number(let leftValue)), .some(.number(let rightValue))):
+        return leftValue == rightValue ? 0 : (leftValue < rightValue ? -1 : 1)
+    case (.some(.boolean(let leftValue)), .some(.boolean(let rightValue))):
+        let leftNumber = leftValue ? 1 : 0
+        let rightNumber = rightValue ? 1 : 0
+        return leftNumber == rightNumber ? 0 : (leftNumber < rightNumber ? -1 : 1)
+    case (.some(.stringArray(let leftValue)), .some(.stringArray(let rightValue))):
+        return leftValue.joined(separator: "\u{0000}").localizedStandardCompare(rightValue.joined(separator: "\u{0000}")).comparisonNumber
+    case (.some(.integerArray(let leftValue)), .some(.integerArray(let rightValue))):
+        let leftText = leftValue.map(String.init).joined(separator: "\u{0000}")
+        let rightText = rightValue.map(String.init).joined(separator: "\u{0000}")
+        return leftText.localizedStandardCompare(rightText).comparisonNumber
+    default:
+        return String(describing: left!).localizedStandardCompare(String(describing: right!)).comparisonNumber
     }
+}
+
+private func valuesEqual(
+    left: LocalAISqlRowValue?,
+    right: LocalAISqlLiteralValue
+) -> Bool {
+    switch (left, right) {
+    case (.some(.string(let leftValue)), .string(let rightValue)):
+        return leftValue == rightValue
+    case (.some(.integer(let leftValue)), .integer(let rightValue)):
+        return leftValue == rightValue
+    case (.some(.number(let leftValue)), .number(let rightValue)):
+        return leftValue == rightValue
+    case (.some(.boolean(let leftValue)), .boolean(let rightValue)):
+        return leftValue == rightValue
+    case (.some(.null), .null):
+        return true
+    default:
+        return false
+    }
+}
+
+private func normalizeStringArray(value: LocalAISqlRowValue?) -> [String] {
+    switch value {
+    case .stringArray(let values):
+        return values
+    default:
+        return []
+    }
+}
+
+private func normalizeSearchableText(value: LocalAISqlRowValue) -> String {
+    switch value {
+    case .string(let rawValue):
+        return rawValue.lowercased()
+    case .integer(let rawValue):
+        return String(rawValue)
+    case .number(let rawValue):
+        return String(rawValue)
+    case .boolean(let rawValue):
+        return rawValue ? "true" : "false"
+    case .null:
+        return ""
+    case .stringArray(let rawValue):
+        return rawValue.joined(separator: " ").lowercased()
+    case .integerArray(let rawValue):
+        return rawValue.map(String.init).joined(separator: " ")
+    }
+}
+
+private func rowMatchesPredicate(
+    row: LocalAISqlRow,
+    predicate: LocalAISqlPredicate
+) throws -> Bool {
+    switch predicate {
+    case .match(let query):
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalizedQuery.isEmpty {
+            throw LocalStoreError.validation("MATCH query must not be empty")
+        }
+        return row.values.contains { value in
+            normalizeSearchableText(value: value).contains(normalizedQuery)
+        }
+    case .comparison(let columnName, let value):
+        return valuesEqual(left: row[columnName], right: value)
+    case .in(let columnName, let values):
+        return values.contains { value in
+            valuesEqual(left: row[columnName], right: value)
+        }
+    case .isNull(let columnName):
+        if case .some(.null) = row[columnName] {
+            return true
+        }
+        return false
+    case .overlap(let columnName, let values):
+        return normalizeStringArray(value: row[columnName]).contains { item in
+            values.contains(item)
+        }
+    }
+}
+
+private func applyPredicates(
+    resourceName: LocalAISqlResourceName,
+    rows: [LocalAISqlRow],
+    predicates: [LocalAISqlPredicate]
+) throws -> [LocalAISqlRow] {
+    for predicate in predicates {
+        switch predicate {
+        case .match:
+            continue
+        case .comparison(let columnName, _),
+                .in(let columnName, _),
+                .overlap(let columnName, _),
+                .isNull(let columnName):
+            let descriptor = try localAISqlColumnDescriptor(
+                resourceName: resourceName,
+                columnName: columnName
+            )
+            if descriptor.filterable == false {
+                throw LocalStoreError.validation("Column is not filterable: \(columnName)")
+            }
+        }
+    }
+
+    if predicates.isEmpty {
+        return rows
+    }
+
+    return try rows.filter { row in
+        try predicates.allSatisfy { predicate in
+            try rowMatchesPredicate(row: row, predicate: predicate)
+        }
+    }
+}
+
+private func applyOrderBy(
+    rows: [LocalAISqlRow],
+    orderBy: [LocalAISqlSelectOrderBy]
+) -> [LocalAISqlRow] {
+    if orderBy.isEmpty {
+        return rows
+    }
+
+    return rows.sorted { left, right in
+        for item in orderBy {
+            let comparison = compareRowValues(left: left[item.columnName], right: right[item.columnName])
+            if comparison != 0 {
+                return item.direction == .desc ? comparison > 0 : comparison < 0
+            }
+        }
+
+        return false
+    }
+}
+
+private func paginateRows(
+    rows: [LocalAISqlRow],
+    limit: Int,
+    offset: Int
+) -> (rows: [LocalAISqlRow], hasMore: Bool) {
+    if offset >= rows.count {
+        return ([], false)
+    }
+
+    let endIndex = min(offset + limit, rows.count)
+    let pagedRows = Array(rows[offset..<endIndex])
+    return (pagedRows, endIndex < rows.count)
+}
+
+private func likePatternToRegex(_ value: String) throws -> NSRegularExpression {
+    let escapedValue = NSRegularExpression.escapedPattern(for: value)
+        .replacingOccurrences(of: "%", with: ".*")
+        .replacingOccurrences(of: "_", with: ".")
+    return try NSRegularExpression(pattern: "^\(escapedValue)$", options: [.caseInsensitive])
+}
+
+private func regexMatches(
+    expression: NSRegularExpression,
+    value: String
+) -> Bool {
+    let fullRange = NSRange(value.startIndex..<value.endIndex, in: value)
+    return expression.firstMatch(in: value, options: [], range: fullRange) != nil
+}
+
+private func localAISqlColumnDescriptor(
+    resourceName: LocalAISqlResourceName,
+    columnName: String
+) throws -> LocalAISqlColumnDescriptor {
+    guard let resourceDescriptor = localAISqlResourceDescriptors().first(where: { descriptor in
+        descriptor.resourceName == resourceName
+    }) else {
+        throw LocalStoreError.validation("Unknown resource: \(resourceName.rawValue)")
+    }
+    guard let columnDescriptor = resourceDescriptor.columns.first(where: { descriptor in
+        descriptor.columnName == columnName
+    }) else {
+        throw LocalStoreError.validation("Unknown column for \(resourceName.rawValue): \(columnName)")
+    }
+    return columnDescriptor
+}
+
+private func loadSelectRows(
+    database: LocalDatabase,
+    snapshot: AppStateSnapshot,
+    resourceName: LocalAISqlResourceName
+) throws -> [LocalAISqlRow] {
+    switch resourceName {
+    case .workspaceContext:
+        let homeSnapshot = makeHomeSnapshot(
+            cards: snapshot.cards,
+            deckCount: snapshot.decks.count,
+            now: Date()
+        )
+        return [[
+            "workspace_id": .string(snapshot.workspace.workspaceId),
+            "workspace_name": .string(snapshot.workspace.name),
+            "total_cards": .integer(homeSnapshot.totalCards),
+            "due_cards": .integer(homeSnapshot.dueCount),
+            "new_cards": .integer(homeSnapshot.newCount),
+            "reviewed_cards": .integer(homeSnapshot.reviewedCount),
+        ]]
+    case .schedulerSettings:
+        return [[
+            "algorithm": .string(snapshot.schedulerSettings.algorithm),
+            "desired_retention": .number(snapshot.schedulerSettings.desiredRetention),
+            "learning_steps_minutes": .integerArray(snapshot.schedulerSettings.learningStepsMinutes),
+            "relearning_steps_minutes": .integerArray(snapshot.schedulerSettings.relearningStepsMinutes),
+            "maximum_interval_days": .integer(snapshot.schedulerSettings.maximumIntervalDays),
+            "enable_fuzz": .boolean(snapshot.schedulerSettings.enableFuzz),
+        ]]
+    case .tagsSummary:
+        let payload = workspaceTagsSummary(cards: currentActiveCards(snapshot: snapshot))
+        return payload.tags.map { tag in
+            [
+                "tag": .string(tag.tag),
+                "cards_count": .integer(tag.cardsCount),
+                "total_cards": .integer(payload.totalCards),
+            ]
+        }
+    case .cards:
+        return currentActiveCards(snapshot: snapshot).map(toSqlCardRow)
+    case .dueCards:
+        return dueCards(snapshot: snapshot).map(toSqlCardRow)
+    case .decks:
+        return activeDecks(snapshot: snapshot).map(toSqlDeckRow)
+    case .reviewHistory:
+        return try loadReviewRows(database: database, snapshot: snapshot)
+    }
+}
+
+private func loadReviewRows(
+    database: LocalDatabase,
+    snapshot: AppStateSnapshot
+) throws -> [LocalAISqlRow] {
+    let events = try database.loadReviewEvents(workspaceId: snapshot.workspace.workspaceId)
+    return events.map { event in
+        [
+            "review_event_id": .string(event.reviewEventId),
+            "card_id": .string(event.cardId),
+            "device_id": .string(event.deviceId),
+            "client_event_id": .string(event.clientEventId),
+            "rating": .integer(event.rating.rawValue),
+            "reviewed_at_client": .string(event.reviewedAtClient),
+            "reviewed_at_server": .string(event.reviewedAtServer),
+        ]
+    }
+}
+
+private func statementValueString(
+    _ value: LocalAISqlStatementValue?
+) -> String? {
+    guard let value else {
+        return nil
+    }
+    switch value {
+    case .literal(.string(let rawValue)):
+        return rawValue
+    default:
+        return nil
+    }
+}
+
+private func statementValueEffortLevel(
+    _ value: LocalAISqlStatementValue?
+) -> EffortLevel? {
+    guard let rawValue = statementValueString(value) else {
+        return nil
+    }
+    return EffortLevel(rawValue: rawValue)
+}
+
+private func statementValueStringArray(
+    _ value: LocalAISqlStatementValue?
+) -> [String]? {
+    guard let value else {
+        return nil
+    }
+    switch value {
+    case .stringArray(let rawValue):
+        return rawValue
+    default:
+        return nil
+    }
+}
+
+private func rowFromInsert(
+    columnNames: [String],
+    values: [LocalAISqlStatementValue]
+) -> [String: LocalAISqlStatementValue] {
+    Dictionary(uniqueKeysWithValues: columnNames.enumerated().compactMap { index, columnName in
+        guard let value = values[safe: index] else {
+            return nil
+        }
+        return (columnName, value)
+    })
+}
+
+private func toCreateCardInput(row: [String: LocalAISqlStatementValue]) throws -> CardEditorInput {
+    guard let frontText = statementValueString(row["front_text"]),
+          let backText = statementValueString(row["back_text"]) else {
+        throw LocalStoreError.validation("INSERT INTO cards requires front_text and back_text")
+    }
+    guard let effortLevel = statementValueEffortLevel(row["effort_level"]) else {
+        throw LocalStoreError.validation("INSERT INTO cards requires effort_level to be fast, medium, or long")
+    }
+
+    return CardEditorInput(
+        frontText: frontText,
+        backText: backText,
+        tags: statementValueStringArray(row["tags"]) ?? [],
+        effortLevel: effortLevel
+    )
+}
+
+private func toCreateDeckInput(row: [String: LocalAISqlStatementValue]) throws -> DeckEditorInput {
+    guard let name = statementValueString(row["name"]) else {
+        throw LocalStoreError.validation("INSERT INTO decks requires name")
+    }
+
+    let effortLevels = (statementValueStringArray(row["effort_levels"]) ?? []).compactMap(EffortLevel.init(rawValue:))
+
+    return DeckEditorInput(
+        name: name,
+        filterDefinition: buildDeckFilterDefinition(
+            effortLevels: effortLevels,
+            tags: statementValueStringArray(row["tags"]) ?? []
+        )
+    )
+}
+
+private func toResolvedCardUpdateInput(
+    existingCard: Card,
+    row: [String: LocalAISqlStatementValue]
+) -> CardEditorInput {
+    CardEditorInput(
+        frontText: statementValueString(row["front_text"]) ?? existingCard.frontText,
+        backText: statementValueString(row["back_text"]) ?? existingCard.backText,
+        tags: statementValueStringArray(row["tags"]) ?? existingCard.tags,
+        effortLevel: statementValueEffortLevel(row["effort_level"]) ?? existingCard.effortLevel
+    )
+}
+
+private func toResolvedDeckUpdateInput(
+    existingDeck: Deck,
+    row: [String: LocalAISqlStatementValue]
+) -> DeckEditorInput {
+    DeckEditorInput(
+        name: statementValueString(row["name"]) ?? existingDeck.name,
+        filterDefinition: buildDeckFilterDefinition(
+            effortLevels: statementValueStringArray(row["effort_levels"])?.compactMap(EffortLevel.init(rawValue:))
+                ?? existingDeck.filterDefinition.effortLevels,
+            tags: statementValueStringArray(row["tags"]) ?? existingDeck.filterDefinition.tags
+        )
+    )
+}
+
+private func findCard(snapshot: AppStateSnapshot, cardId: String) throws -> Card {
+    guard let card = snapshot.cards.first(where: { item in
+        item.cardId == cardId && item.deletedAt == nil
+    }) else {
+        throw LocalStoreError.notFound("Card not found")
+    }
+    return card
+}
+
+private func findDeck(snapshot: AppStateSnapshot, deckId: String) throws -> Deck {
+    guard let deck = snapshot.decks.first(where: { item in
+        item.deckId == deckId && item.deletedAt == nil
+    }) else {
+        throw LocalStoreError.notFound("Deck not found")
+    }
+    return deck
+}
+
+private func describeOutboxPayload(_ payload: SyncOperationPayload) -> String {
+    switch payload {
+    case .card(let cardPayload):
+        return "card \(cardPayload.cardId)"
+    case .deck(let deckPayload):
+        return "deck \(deckPayload.deckId)"
+    case .workspaceSchedulerSettings:
+        return "workspace scheduler settings"
+    case .reviewEvent(let reviewEventPayload):
+        return "review event \(reviewEventPayload.reviewEventId)"
+    }
+}
+
+/**
+ Mirrors `apps/web/src/chat/localToolExecutor.ts::executeSqlLocally`.
+ Keep SQL payload shapes and mutation behavior aligned across browser-local and
+ iOS-local runtimes.
+ */
+private func executeSqlLocally(
+    database: LocalDatabase,
+    snapshot: AppStateSnapshot,
+    sql: String,
+    encoder: JSONEncoder
+) throws -> LocalAISqlExecutionResult {
+    let statement = try localAISqlParseStatement(sql)
+
+    switch statement {
+    case .showTables(let showTablesStatement):
+        let likeExpression = try showTablesStatement.likePattern.map(likePatternToRegex)
+        let rows = localAISqlResourceDescriptors().filter { descriptor in
+            guard let likeExpression else {
+                return true
+            }
+            return regexMatches(expression: likeExpression, value: descriptor.resourceName.rawValue)
+        }.map { descriptor -> LocalAISqlRow in
+            return [
+                "table_name": .string(descriptor.resourceName.rawValue),
+                "writable": .boolean(descriptor.writable),
+                "description": .string(descriptor.description),
+            ]
+        }
+        return LocalAISqlExecutionResult(
+            output: try encodeJSON(
+                value: LocalAISqlReadPayload(
+                    statementType: "show_tables",
+                    resource: nil,
+                    sql: sql,
+                    normalizedSql: showTablesStatement.normalizedSql,
+                    rows: rows,
+                    rowCount: rows.count,
+                    limit: nil,
+                    offset: nil,
+                    hasMore: false
+                ),
+                encoder: encoder
+            ),
+            didMutateAppState: false
+        )
+    case .describe(let describeStatement):
+        guard let descriptor = localAISqlResourceDescriptors().first(where: { candidate in
+            candidate.resourceName == describeStatement.resourceName
+        }) else {
+            throw LocalStoreError.validation("Unknown resource: \(describeStatement.resourceName.rawValue)")
+        }
+        let rows = descriptor.columns.map { column -> LocalAISqlRow in
+            return [
+                "column_name": .string(column.columnName),
+                "type": .string(column.type.rawValue),
+                "nullable": .boolean(column.nullable),
+                "read_only": .boolean(column.readOnly),
+                "filterable": .boolean(column.filterable),
+                "sortable": .boolean(column.sortable),
+                "description": .string(column.description),
+            ]
+        }
+        return LocalAISqlExecutionResult(
+            output: try encodeJSON(
+                value: LocalAISqlReadPayload(
+                    statementType: "describe",
+                    resource: describeStatement.resourceName.rawValue,
+                    sql: sql,
+                    normalizedSql: describeStatement.normalizedSql,
+                    rows: rows,
+                    rowCount: rows.count,
+                    limit: nil,
+                    offset: nil,
+                    hasMore: false
+                ),
+                encoder: encoder
+            ),
+            didMutateAppState: false
+        )
+    case .select(let selectStatement):
+        let limit = try normalizeSqlLimit(selectStatement.limit)
+        let offset = try normalizeSqlOffset(selectStatement.offset)
+        let rows = try loadSelectRows(
+            database: database,
+            snapshot: snapshot,
+            resourceName: selectStatement.resourceName
+        )
+        let filteredRows = try applyPredicates(
+            resourceName: selectStatement.resourceName,
+            rows: rows,
+            predicates: selectStatement.predicates
+        )
+        let orderedRows = applyOrderBy(rows: filteredRows, orderBy: selectStatement.orderBy)
+        let paginatedRows = paginateRows(rows: orderedRows, limit: limit, offset: offset)
+        return LocalAISqlExecutionResult(
+            output: try encodeJSON(
+                value: LocalAISqlReadPayload(
+                    statementType: "select",
+                    resource: selectStatement.resourceName.rawValue,
+                    sql: sql,
+                    normalizedSql: selectStatement.normalizedSql,
+                    rows: paginatedRows.rows,
+                    rowCount: paginatedRows.rows.count,
+                    limit: limit,
+                    offset: offset,
+                    hasMore: paginatedRows.hasMore
+                ),
+                encoder: encoder
+            ),
+            didMutateAppState: false
+        )
+    case .insert(let insertStatement):
+        if insertStatement.resourceName == .cards {
+            let createdCards = try database.createCards(
+                workspaceId: snapshot.workspace.workspaceId,
+                inputs: try insertStatement.rows.map { values in
+                    try toCreateCardInput(row: rowFromInsert(columnNames: insertStatement.columnNames, values: values))
+                }
+            )
+            return LocalAISqlExecutionResult(
+                output: try encodeJSON(
+                    value: LocalAISqlMutationPayload(
+                        statementType: "insert",
+                        resource: insertStatement.resourceName.rawValue,
+                        sql: sql,
+                        normalizedSql: insertStatement.normalizedSql,
+                        rows: createdCards.map(toSqlCardRow),
+                        affectedCount: createdCards.count
+                    ),
+                    encoder: encoder
+                ),
+                didMutateAppState: true
+            )
+        }
+
+        let createdDecks = try database.createDecks(
+            workspaceId: snapshot.workspace.workspaceId,
+            inputs: try insertStatement.rows.map { values in
+                try toCreateDeckInput(row: rowFromInsert(columnNames: insertStatement.columnNames, values: values))
+            }
+        )
+        return LocalAISqlExecutionResult(
+            output: try encodeJSON(
+                value: LocalAISqlMutationPayload(
+                    statementType: "insert",
+                    resource: insertStatement.resourceName.rawValue,
+                    sql: sql,
+                    normalizedSql: insertStatement.normalizedSql,
+                    rows: createdDecks.map(toSqlDeckRow),
+                    affectedCount: createdDecks.count
+                ),
+                encoder: encoder
+            ),
+            didMutateAppState: true
+        )
+    case .update(let updateStatement):
+        let currentRows = try applyPredicates(
+            resourceName: updateStatement.resourceName,
+            rows: try loadSelectRows(
+                database: database,
+                snapshot: snapshot,
+                resourceName: updateStatement.resourceName
+            ),
+            predicates: updateStatement.predicates
+        )
+        let assignmentRow = Dictionary(uniqueKeysWithValues: updateStatement.assignments.map { assignment in
+            (assignment.columnName, assignment.value)
+        })
+
+        if updateStatement.resourceName == .cards {
+            let updates = try currentRows.map { row in
+                guard case .string(let cardId) = row["card_id"] else {
+                    throw LocalStoreError.validation("Expected card_id in selected row")
+                }
+                return CardUpdateInput(
+                    cardId: cardId,
+                    input: toResolvedCardUpdateInput(
+                        existingCard: try findCard(snapshot: snapshot, cardId: cardId),
+                        row: assignmentRow
+                    )
+                )
+            }
+            let updatedCards = try database.updateCards(
+                workspaceId: snapshot.workspace.workspaceId,
+                updates: updates
+            )
+            return LocalAISqlExecutionResult(
+                output: try encodeJSON(
+                    value: LocalAISqlMutationPayload(
+                        statementType: "update",
+                        resource: updateStatement.resourceName.rawValue,
+                        sql: sql,
+                        normalizedSql: updateStatement.normalizedSql,
+                        rows: updatedCards.map(toSqlCardRow),
+                        affectedCount: updatedCards.count
+                    ),
+                    encoder: encoder
+                ),
+                didMutateAppState: true
+            )
+        }
+
+        let updates = try currentRows.map { row in
+            guard case .string(let deckId) = row["deck_id"] else {
+                throw LocalStoreError.validation("Expected deck_id in selected row")
+            }
+            return DeckUpdateInput(
+                deckId: deckId,
+                input: toResolvedDeckUpdateInput(
+                    existingDeck: try findDeck(snapshot: snapshot, deckId: deckId),
+                    row: assignmentRow
+                )
+            )
+        }
+        let updatedDecks = try database.updateDecks(
+            workspaceId: snapshot.workspace.workspaceId,
+            updates: updates
+        )
+        return LocalAISqlExecutionResult(
+            output: try encodeJSON(
+                value: LocalAISqlMutationPayload(
+                    statementType: "update",
+                    resource: updateStatement.resourceName.rawValue,
+                    sql: sql,
+                    normalizedSql: updateStatement.normalizedSql,
+                    rows: updatedDecks.map(toSqlDeckRow),
+                    affectedCount: updatedDecks.count
+                ),
+                encoder: encoder
+            ),
+            didMutateAppState: true
+        )
+    case .delete(let deleteStatement):
+        let currentRows = try applyPredicates(
+            resourceName: deleteStatement.resourceName,
+            rows: try loadSelectRows(
+                database: database,
+                snapshot: snapshot,
+                resourceName: deleteStatement.resourceName
+            ),
+            predicates: deleteStatement.predicates
+        )
+
+        if deleteStatement.resourceName == .cards {
+            let cardIds = try currentRows.map { row in
+                guard case .string(let cardId) = row["card_id"] else {
+                    throw LocalStoreError.validation("Expected card_id in selected row")
+                }
+                return cardId
+            }
+            _ = try database.deleteCards(workspaceId: snapshot.workspace.workspaceId, cardIds: cardIds)
+            return LocalAISqlExecutionResult(
+                output: try encodeJSON(
+                    value: LocalAISqlMutationPayload(
+                        statementType: "delete",
+                        resource: deleteStatement.resourceName.rawValue,
+                        sql: sql,
+                        normalizedSql: deleteStatement.normalizedSql,
+                        rows: [],
+                        affectedCount: cardIds.count
+                    ),
+                    encoder: encoder
+                ),
+                didMutateAppState: true
+            )
+        }
+
+        let deckIds = try currentRows.map { row in
+            guard case .string(let deckId) = row["deck_id"] else {
+                throw LocalStoreError.validation("Expected deck_id in selected row")
+            }
+            return deckId
+        }
+        _ = try database.deleteDecks(workspaceId: snapshot.workspace.workspaceId, deckIds: deckIds)
+        return LocalAISqlExecutionResult(
+            output: try encodeJSON(
+                value: LocalAISqlMutationPayload(
+                    statementType: "delete",
+                    resource: deleteStatement.resourceName.rawValue,
+                    sql: sql,
+                    normalizedSql: deleteStatement.normalizedSql,
+                    rows: [],
+                    affectedCount: deckIds.count
+                ),
+                encoder: encoder
+            ),
+            didMutateAppState: true
+        )
+    }
+}
+
+private func encodeJSON<Value: Encodable>(
+    value: Value,
+    encoder: JSONEncoder
+) throws -> String {
+    let data = try encoder.encode(value)
+    guard let stringValue = String(data: data, encoding: .utf8) else {
+        throw LocalStoreError.validation("Encoded JSON payload is not UTF-8")
+    }
+    return stringValue
 }
 
 /**
  Executes local AI tools against the iOS app snapshot and local database.
 
- This actor owns the iOS-specific mirror of the shared AI tool behavior. Keep
- tool names, payload shapes, and visible semantics aligned with the backend and
- browser-local counterparts referenced in the file-level docstring.
+ Mirrors:
+ - `apps/web/src/chat/localToolExecutor.ts::createLocalToolExecutor`
+ - `apps/backend/src/chat/openai/localTools.ts`
  */
 actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     private let databaseURL: URL
@@ -398,269 +1092,41 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     }
 
     func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
+        let database = try self.databaseInstance()
+        let snapshot = try database.loadStateSnapshot()
+
         switch toolCallRequest.name {
-        case "get_workspace_context":
-            let snapshot = try self.loadSnapshotNow()
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(value: self.makeWorkspaceContextPayload(snapshot: snapshot)),
-                didMutateAppState: false
+        case "sql":
+            let input = try self.decodeInput(SqlToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
+            let result = try executeSqlLocally(
+                database: database,
+                snapshot: snapshot,
+                sql: input.sql,
+                encoder: self.encoder
             )
-        case "list_tags":
-            let snapshot = try self.loadSnapshotNow()
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: workspaceTagsSummary(cards: snapshot.cards)),
-                didMutateAppState: false
-            )
-        case "list_cards":
-            let input = try self.decodeInput(ListCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let startIndex = try self.pageStartIndex(cursor: input.cursor)
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(
-                    value: self.makeCardsPagePayload(
-                        cards: self.cardsMatchingFilter(cards: self.currentActiveCards(snapshot: snapshot), filter: input.filter),
-                        startIndex: startIndex,
-                        limit: try self.normalizeLimit(input.limit)
-                    )
-                ),
-                didMutateAppState: false
-            )
-        case "get_cards":
-            let input = try self.decodeInput(GetCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.validateCardBatchCount(count: input.cardIds.count)
-            try self.validateUniqueCardIds(cardIds: input.cardIds)
-            let snapshot = try self.loadSnapshotNow()
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(value: try self.findCards(snapshot: snapshot, cardIds: input.cardIds)),
-                didMutateAppState: false
-            )
-        case "search_cards":
-            let input = try self.decodeInput(SearchCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let startIndex = try self.pageStartIndex(cursor: input.cursor)
-            let matchedCards = try self.searchCards(snapshot: snapshot, query: input.query, limit: Int.max, filter: input.filter)
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(
-                    value: self.makeCardsPagePayload(
-                        cards: matchedCards,
-                        startIndex: startIndex,
-                        limit: try self.normalizeLimit(input.limit)
-                    )
-                ),
-                didMutateAppState: false
-            )
-        case "list_due_cards":
-            let input = try self.decodeInput(ListDueCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let startIndex = try self.pageStartIndex(cursor: input.cursor)
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(
-                    value: self.makeCardsPagePayload(
-                        cards: self.dueCards(snapshot: snapshot),
-                        startIndex: startIndex,
-                        limit: try self.normalizeLimit(input.limit)
-                    )
-                ),
-                didMutateAppState: false
-            )
-        case "list_decks":
-            let input = try self.decodeInput(ListDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let startIndex = try self.pageStartIndex(cursor: input.cursor)
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(
-                    value: self.makeDecksPagePayload(
-                        decks: self.activeDecks(snapshot: snapshot),
-                        startIndex: startIndex,
-                        limit: try self.normalizeLimit(input.limit)
-                    )
-                ),
-                didMutateAppState: false
-            )
-        case "search_decks":
-            let input = try self.decodeInput(SearchDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let startIndex = try self.pageStartIndex(cursor: input.cursor)
-            let matchedDecks = try self.searchDecks(snapshot: snapshot, query: input.query, limit: Int.max)
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(
-                    value: self.makeDecksPagePayload(
-                        decks: matchedDecks,
-                        startIndex: startIndex,
-                        limit: try self.normalizeLimit(input.limit)
-                    )
-                ),
-                didMutateAppState: false
-            )
-        case "get_decks":
-            let input = try self.decodeInput(GetDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.validateDeckBatchCount(count: input.deckIds.count)
-            try self.validateUniqueDeckIds(deckIds: input.deckIds)
-            let snapshot = try self.loadSnapshotNow()
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(value: try self.findDecks(snapshot: snapshot, deckIds: input.deckIds)),
-                didMutateAppState: false
-            )
-        case "list_review_history":
-            let input = try self.decodeInput(ListReviewHistoryToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let startIndex = try self.pageStartIndex(cursor: input.cursor)
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(
-                    value: self.makeReviewHistoryPagePayload(
-                        history: try self.loadReviewHistory(
-                            workspaceId: snapshot.workspace.workspaceId,
-                            limit: Int.max,
-                            cardId: input.cardId
-                        ),
-                        startIndex: startIndex,
-                        limit: try self.normalizeLimit(input.limit)
-                    )
-                ),
-                didMutateAppState: false
-            )
-        case "get_scheduler_settings":
-            let snapshot = try self.loadSnapshotNow()
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(value: snapshot.schedulerSettings),
-                didMutateAppState: false
+                output: result.output,
+                didMutateAppState: result.didMutateAppState
             )
         case "get_cloud_settings":
-            let snapshot = try self.loadSnapshotNow()
+            _ = try self.decodeInput(EmptyToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return AIToolExecutionResult(
-                output: try self.encodeJSON(value: snapshot.cloudSettings),
+                output: try encodeJSON(value: snapshot.cloudSettings, encoder: self.encoder),
                 didMutateAppState: false
             )
         case "list_outbox":
             let input = try self.decodeInput(ListOutboxToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let snapshot = try self.loadSnapshotNow()
-            let startIndex = try self.pageStartIndex(cursor: input.cursor)
             return AIToolExecutionResult(
-                output: try self.encodeJSON(
+                output: try encodeJSON(
                     value: try self.makeOutboxPayload(
+                        database: database,
                         workspaceId: snapshot.workspace.workspaceId,
-                        startIndex: startIndex,
-                        limit: try self.normalizeLimit(input.limit)
-                    )
+                        startIndex: try pageStartIndex(cursor: input.cursor),
+                        limit: try normalizeOutboxLimit(input.limit)
+                    ),
+                    encoder: self.encoder
                 ),
                 didMutateAppState: false
-            )
-        case "create_cards":
-            let input = try self.decodeInput(CreateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.validateCardBatchCount(count: input.cards.count)
-            let snapshot = try self.loadSnapshotNow()
-            let createdCards = try self.databaseInstance().createCards(
-                workspaceId: snapshot.workspace.workspaceId,
-                inputs: input.cards.map { item in
-                    CardEditorInput(
-                        frontText: item.frontText,
-                        backText: item.backText,
-                        tags: item.tags,
-                        effortLevel: item.effortLevel
-                    )
-                }
-            )
-            return AIToolExecutionResult(output: try self.encodeJSON(value: createdCards), didMutateAppState: true)
-        case "update_cards":
-            let input = try self.decodeInput(UpdateCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.validateCardBatchCount(count: input.updates.count)
-            try self.validateUniqueCardIds(cardIds: input.updates.map(\.cardId))
-            let snapshot = try self.loadSnapshotNow()
-            let updates = try input.updates.map { update in
-                let existingCard = try self.findCard(snapshot: snapshot, cardId: update.cardId)
-                return CardUpdateInput(
-                    cardId: update.cardId,
-                    input: CardEditorInput(
-                        frontText: update.frontText ?? existingCard.frontText,
-                        backText: update.backText ?? existingCard.backText,
-                        tags: update.tags ?? existingCard.tags,
-                        effortLevel: update.effortLevel ?? existingCard.effortLevel
-                    )
-                )
-            }
-            let updatedCards = try self.databaseInstance().updateCards(
-                workspaceId: snapshot.workspace.workspaceId,
-                updates: updates
-            )
-            return AIToolExecutionResult(output: try self.encodeJSON(value: updatedCards), didMutateAppState: true)
-        case "delete_cards":
-            let input = try self.decodeInput(DeleteCardsToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.validateCardBatchCount(count: input.cardIds.count)
-            try self.validateUniqueCardIds(cardIds: input.cardIds)
-            let snapshot = try self.loadSnapshotNow()
-            let result = try self.databaseInstance().deleteCards(
-                workspaceId: snapshot.workspace.workspaceId,
-                cardIds: input.cardIds
-            )
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(
-                    value: AIBulkDeleteCardsPayload(
-                        ok: true,
-                        deletedCardIds: result.deletedCardIds,
-                        deletedCount: result.deletedCount
-                    )
-                ),
-                didMutateAppState: true
-            )
-        case "create_decks":
-            let input = try self.decodeInput(CreateDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.validateDeckBatchCount(count: input.decks.count)
-            let snapshot = try self.loadSnapshotNow()
-            let createdDecks = try self.databaseInstance().createDecks(
-                workspaceId: snapshot.workspace.workspaceId,
-                inputs: input.decks.map { item in
-                    DeckEditorInput(
-                        name: item.name,
-                        filterDefinition: buildDeckFilterDefinition(
-                            effortLevels: item.effortLevels,
-                            tags: item.tags
-                        )
-                    )
-                }
-            )
-            return AIToolExecutionResult(output: try self.encodeJSON(value: createdDecks), didMutateAppState: true)
-        case "update_decks":
-            let input = try self.decodeInput(UpdateDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.validateDeckBatchCount(count: input.updates.count)
-            try self.validateUniqueDeckIds(deckIds: input.updates.map(\.deckId))
-            let snapshot = try self.loadSnapshotNow()
-            let updates = try input.updates.map { update in
-                let existingDeck = try self.findDeck(snapshot: snapshot, deckId: update.deckId)
-                let deckFilterState = self.extractDeckFilterState(deck: existingDeck)
-                return DeckUpdateInput(
-                    deckId: update.deckId,
-                    input: DeckEditorInput(
-                        name: update.name ?? existingDeck.name,
-                        filterDefinition: buildDeckFilterDefinition(
-                            effortLevels: update.effortLevels ?? deckFilterState.effortLevels,
-                            tags: update.tags ?? deckFilterState.tags
-                        )
-                    )
-                )
-            }
-            let updatedDecks = try self.databaseInstance().updateDecks(
-                workspaceId: snapshot.workspace.workspaceId,
-                updates: updates
-            )
-            return AIToolExecutionResult(output: try self.encodeJSON(value: updatedDecks), didMutateAppState: true)
-        case "delete_decks":
-            let input = try self.decodeInput(DeleteDecksToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            try self.validateDeckBatchCount(count: input.deckIds.count)
-            try self.validateUniqueDeckIds(deckIds: input.deckIds)
-            let snapshot = try self.loadSnapshotNow()
-            let result = try self.databaseInstance().deleteDecks(
-                workspaceId: snapshot.workspace.workspaceId,
-                deckIds: input.deckIds
-            )
-            return AIToolExecutionResult(
-                output: try self.encodeJSON(
-                    value: AIBulkDeleteDecksPayload(
-                        ok: true,
-                        deletedDeckIds: result.deletedDeckIds,
-                        deletedCount: result.deletedCount
-                    )
-                ),
-                didMutateAppState: true
             )
         default:
             throw AIToolExecutionError.unsupportedTool(toolCallRequest.name)
@@ -685,18 +1151,13 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         try self.databaseInstance().loadStateSnapshot()
     }
 
-    private func makeWorkspaceContextPayload(snapshot: AppStateSnapshot) -> AIWorkspaceContextPayload {
-        AIWorkspaceContextPayload(
-            workspace: snapshot.workspace,
-            userSettings: snapshot.userSettings,
-            schedulerSettings: snapshot.schedulerSettings,
-            cloudSettings: snapshot.cloudSettings,
-            homeSnapshot: makeHomeSnapshot(cards: snapshot.cards, deckCount: snapshot.decks.count, now: Date())
-        )
-    }
-
-    private func makeOutboxPayload(workspaceId: String, startIndex: Int, limit: Int) throws -> LocalOutboxPagePayload {
-        let entries = try self.databaseInstance().loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
+    private func makeOutboxPayload(
+        database: LocalDatabase,
+        workspaceId: String,
+        startIndex: Int,
+        limit: Int
+    ) throws -> LocalOutboxPagePayload {
+        let entries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
         let visibleEntries = Array(entries.dropFirst(startIndex).prefix(limit))
         return LocalOutboxPagePayload(
             outbox: visibleEntries.map { entry in
@@ -710,257 +1171,15 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                     createdAt: entry.createdAt,
                     attemptCount: entry.attemptCount,
                     lastError: entry.lastError,
-                    payloadSummary: self.describeOutboxPayload(entry.operation.payload)
+                    payloadSummary: describeOutboxPayload(entry.operation.payload)
                 )
             },
-            nextCursor: self.nextCursor(totalCount: entries.count, startIndex: startIndex, visibleCount: visibleEntries.count)
-        )
-    }
-
-    private func loadReviewHistory(workspaceId: String, limit: Int, cardId: String?) throws -> [ReviewEvent] {
-        let events = try self.databaseInstance().loadReviewEvents(workspaceId: workspaceId)
-        let filteredEvents = cardId == nil
-            ? events
-            : events.filter { event in
-                event.cardId == cardId
-            }
-
-        return Array(filteredEvents.prefix(limit))
-    }
-
-    private func currentActiveCards(snapshot: AppStateSnapshot) -> [Card] {
-        activeCards(cards: snapshot.cards)
-    }
-
-    private func cardsMatchingFilter(cards: [Card], filter: CardFilter?) -> [Card] {
-        guard let filter else {
-            return cards
-        }
-
-        return cards.filter { card in
-            matchesCardFilter(filter: filter, card: card)
-        }
-    }
-
-    private func activeDecks(snapshot: AppStateSnapshot) -> [Deck] {
-        snapshot.decks.filter { deck in
-            deck.deletedAt == nil
-        }
-    }
-
-    private func dueCards(snapshot: AppStateSnapshot) -> [Card] {
-        sortCardsForReviewQueue(cards: self.currentActiveCards(snapshot: snapshot), now: Date())
-    }
-
-    private func findCard(snapshot: AppStateSnapshot, cardId: String) throws -> Card {
-        guard let card = snapshot.cards.first(where: { item in
-            item.cardId == cardId && item.deletedAt == nil
-        }) else {
-            throw LocalStoreError.notFound("Card not found")
-        }
-
-        return card
-    }
-
-    private func findCards(snapshot: AppStateSnapshot, cardIds: [String]) throws -> [Card] {
-        try cardIds.map { cardId in
-            try self.findCard(snapshot: snapshot, cardId: cardId)
-        }
-    }
-
-    private func findDeck(snapshot: AppStateSnapshot, deckId: String) throws -> Deck {
-        guard let deck = snapshot.decks.first(where: { item in
-            item.deckId == deckId && item.deletedAt == nil
-        }) else {
-            throw LocalStoreError.notFound("Deck not found")
-        }
-
-        return deck
-    }
-
-    private func findDecks(snapshot: AppStateSnapshot, deckIds: [String]) throws -> [Deck] {
-        try deckIds.map { deckId in
-            try self.findDeck(snapshot: snapshot, deckId: deckId)
-        }
-    }
-
-    /**
-     Mirrors backend card-search semantics for the iOS-local runtime.
-
-     Counterparts:
-     - backend DB implementation: `apps/backend/src/cards/queries.ts`
-     - browser-local mirror: `apps/web/src/chat/localToolExecutor.ts`
-     */
-    private func searchCards(snapshot: AppStateSnapshot, query: String, limit: Int, filter: CardFilter?) throws -> [Card] {
-        let searchTokens = tokenizeSearchText(searchText: query)
-        if searchTokens.isEmpty {
-            throw LocalStoreError.validation("query must not be empty")
-        }
-
-        return Array(self.cardsMatchingFilter(cards: self.currentActiveCards(snapshot: snapshot), filter: filter).filter { card in
-            matchesAllSearchTokens(
-                values: [card.frontText, card.backText] + card.tags + [card.effortLevel.rawValue],
-                searchTokens: searchTokens
+            nextCursor: nextCursor(
+                totalCount: entries.count,
+                startIndex: startIndex,
+                visibleCount: visibleEntries.count
             )
-        }.prefix(limit))
-    }
-
-    /**
-     Mirrors backend deck-search semantics for the iOS-local runtime.
-
-     Counterparts:
-     - backend DB implementation: `apps/backend/src/decks.ts`
-     - browser-local mirror: `apps/web/src/chat/localToolExecutor.ts`
-     */
-    private func searchDecks(snapshot: AppStateSnapshot, query: String, limit: Int) throws -> [Deck] {
-        let searchTokens = tokenizeSearchText(searchText: query)
-        if searchTokens.isEmpty {
-            throw LocalStoreError.validation("query must not be empty")
-        }
-
-        return Array(self.activeDecks(snapshot: snapshot).filter { deck in
-            matchesAnySearchToken(
-                values: [deck.name] + deck.filterDefinition.tags + deck.filterDefinition.effortLevels.map { effortLevel in
-                    effortLevel.rawValue
-                },
-                searchTokens: searchTokens
-            )
-        }.prefix(limit))
-    }
-
-    private func extractDeckFilterState(deck: Deck) -> (effortLevels: [EffortLevel], tags: [String]) {
-        (
-            effortLevels: deck.filterDefinition.effortLevels,
-            tags: deck.filterDefinition.tags
         )
-    }
-
-    private func describeOutboxPayload(_ payload: SyncOperationPayload) -> String {
-        switch payload {
-        case .card(let cardPayload):
-            return "card \(cardPayload.cardId)"
-        case .deck(let deckPayload):
-            return "deck \(deckPayload.deckId)"
-        case .workspaceSchedulerSettings:
-            return "workspace scheduler settings"
-        case .reviewEvent(let reviewEventPayload):
-            return "review event \(reviewEventPayload.reviewEventId)"
-        }
-    }
-
-    private func normalizeLimit(_ limit: Int) throws -> Int {
-        if limit < 1 || limit > 100 {
-            throw LocalStoreError.validation("limit must be an integer between 1 and 100")
-        }
-
-        return limit
-    }
-
-    private func pageStartIndex(cursor: String?) throws -> Int {
-        guard let cursor else {
-            return 0
-        }
-
-        return try self.decodePageCursor(cursor: cursor)
-    }
-
-    private func makeCardsPagePayload(cards: [Card], startIndex: Int, limit: Int) -> LocalCardsPagePayload {
-        let visibleCards = Array(cards.dropFirst(startIndex).prefix(limit))
-        return LocalCardsPagePayload(
-            cards: visibleCards,
-            nextCursor: self.nextCursor(totalCount: cards.count, startIndex: startIndex, visibleCount: visibleCards.count)
-        )
-    }
-
-    private func makeDecksPagePayload(decks: [Deck], startIndex: Int, limit: Int) -> LocalDecksPagePayload {
-        let visibleDecks = Array(decks.dropFirst(startIndex).prefix(limit))
-        return LocalDecksPagePayload(
-            decks: visibleDecks,
-            nextCursor: self.nextCursor(totalCount: decks.count, startIndex: startIndex, visibleCount: visibleDecks.count)
-        )
-    }
-
-    private func makeReviewHistoryPagePayload(history: [ReviewEvent], startIndex: Int, limit: Int) -> LocalReviewHistoryPagePayload {
-        let visibleHistory = Array(history.dropFirst(startIndex).prefix(limit))
-        return LocalReviewHistoryPagePayload(
-            history: visibleHistory,
-            nextCursor: self.nextCursor(totalCount: history.count, startIndex: startIndex, visibleCount: visibleHistory.count)
-        )
-    }
-
-    private func nextCursor(totalCount: Int, startIndex: Int, visibleCount: Int) -> String? {
-        let nextIndex = startIndex + visibleCount
-        if nextIndex >= totalCount {
-            return nil
-        }
-
-        return self.encodePageCursor(index: nextIndex)
-    }
-
-    private func encodePageCursor(index: Int) -> String {
-        let json = "{\"index\":\(index)}"
-        let data = Data(json.utf8)
-        return data.base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
-    }
-
-    private func decodePageCursor(cursor: String) throws -> Int {
-        let normalizedCursor = cursor
-            .replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-        let paddingLength = (4 - (normalizedCursor.count % 4)) % 4
-        let paddedCursor = normalizedCursor + String(repeating: "=", count: paddingLength)
-        guard let data = Data(base64Encoded: paddedCursor) else {
-            throw LocalStoreError.validation("cursor is invalid: Cursor payload must be base64")
-        }
-
-        do {
-            let payload = try JSONDecoder().decode(LocalPageCursor.self, from: data)
-            if payload.index < 0 {
-                throw LocalStoreError.validation("cursor is invalid: Cursor index must be a non-negative integer")
-            }
-            return payload.index
-        } catch let error as LocalStoreError {
-            throw error
-        } catch {
-            throw LocalStoreError.validation("cursor is invalid: \(localizedMessage(error: error))")
-        }
-    }
-
-    private func validateCardBatchCount(count: Int) throws {
-        if count < 1 {
-            throw LocalStoreError.validation("Card batch must contain at least one item")
-        }
-
-        if count > 100 {
-            throw LocalStoreError.validation("Card batch must contain at most 100 items")
-        }
-    }
-
-    private func validateUniqueCardIds(cardIds: [String]) throws {
-        let uniqueCardIds = Set(cardIds)
-        if uniqueCardIds.count != cardIds.count {
-            throw LocalStoreError.validation("Card batch must not contain duplicate cardId values")
-        }
-    }
-
-    private func validateDeckBatchCount(count: Int) throws {
-        if count < 1 {
-            throw LocalStoreError.validation("Deck batch must contain at least one item")
-        }
-
-        if count > 100 {
-            throw LocalStoreError.validation("Deck batch must contain at most 100 items")
-        }
-    }
-
-    private func validateUniqueDeckIds(deckIds: [String]) throws {
-        let uniqueDeckIds = Set(deckIds)
-        if uniqueDeckIds.count != deckIds.count {
-            throw LocalStoreError.validation("Deck batch must not contain duplicate deckId values")
-        }
     }
 
     private func decodeInput<Input: Decodable>(
@@ -978,10 +1197,10 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 domain: "chat",
                 action: "local_tool_input_decode_failed",
                 metadata: [
-                    "requestId": requestId ?? "-",
+                    "requestId": requestId ?? "",
                     "toolName": toolCallRequest.name,
                     "toolCallId": toolCallRequest.toolCallId,
-                    "expectedInputType": String(describing: type),
+                    "expectedInputType": String(describing: Input.self),
                     "decoderSummary": summary,
                     "rawInputSnippet": rawInputSnippet,
                 ]
@@ -990,29 +1209,51 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 requestId: requestId,
                 toolName: toolCallRequest.name,
                 toolCallId: toolCallRequest.toolCallId,
-                expectedInputType: String(describing: type),
+                expectedInputType: String(describing: Input.self),
                 decoderSummary: summary,
                 rawInputSnippet: rawInputSnippet
             )
         }
     }
-
-    private func encodeJSON<Value: Encodable>(value: Value) throws -> String {
-        let data = try self.encoder.encode(value)
-        guard let json = String(data: data, encoding: .utf8) else {
-            throw LocalStoreError.database("Failed to encode AI tool output")
-        }
-
-        return json
-    }
 }
 
-actor UnavailableAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+struct UnavailableAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
-        throw LocalStoreError.uninitialized("Local database is unavailable")
+        _ = toolCallRequest
+        _ = requestId
+        throw LocalStoreError.uninitialized("AI tool executor is unavailable")
     }
 
     func loadSnapshot() async throws -> AppStateSnapshot {
-        throw LocalStoreError.uninitialized("Local database is unavailable")
+        throw LocalStoreError.uninitialized("AI tool executor is unavailable")
+    }
+}
+
+private struct EmptyToolInput: Decodable {
+    init(from decoder: Decoder) throws {
+        try validateObjectKeys(decoder: decoder, allowedKeys: Set(), context: "empty")
+    }
+}
+
+private extension ComparisonResult {
+    var comparisonNumber: Int {
+        switch self {
+        case .orderedAscending:
+            return -1
+        case .orderedSame:
+            return 0
+        case .orderedDescending:
+            return 1
+        }
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        if indices.contains(index) {
+            return self[index]
+        }
+
+        return nil
     }
 }

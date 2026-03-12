@@ -4,6 +4,9 @@ import type { StoredMessage } from "./useChatHistory";
 /**
  * Maps machine-oriented tool names into short user-facing labels while keeping
  * unsupported or future tool names visible instead of dropping them.
+ *
+ * Mirror:
+ * `apps/ios/Flashcards/Flashcards/AI/AIChatView.swift::aiChatToolLabel`
  */
 export function formatToolLabel(name: string): string {
   if (name === "sql") return "SQL";

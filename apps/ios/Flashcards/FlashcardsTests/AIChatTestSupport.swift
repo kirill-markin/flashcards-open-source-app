@@ -80,10 +80,10 @@ struct RepairingChatService: AIChatStreaming, @unchecked Sendable {
         await onDelta("Checking")
         await onRepairAttempt(
             AIChatRepairAttemptStatus(
-                message: "Assistant is correcting list_cards.",
+                message: "Assistant is correcting sql.",
                 attempt: 1,
                 maxAttempts: 3,
-                toolName: "list_cards"
+                toolName: "sql"
             )
         )
 
@@ -94,8 +94,8 @@ struct RepairingChatService: AIChatStreaming, @unchecked Sendable {
         await onToolCallRequest(
             AIToolCallRequest(
                 toolCallId: "call-1",
-                name: "list_cards",
-                input: "{\"limit\":null}"
+                name: "sql",
+                input: "{\"sql\":null}"
             )
         )
         return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-123")
@@ -161,8 +161,8 @@ actor MutatingChatService: AIChatStreaming {
         if self.callCount == 1 {
             let toolCallRequest = AIToolCallRequest(
                 toolCallId: "tool-create-card",
-                name: "create_cards",
-                input: "{\"cards\":[{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}]}"
+                name: "sql",
+                input: "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('Front', 'Back', ('tag-a'), 'medium')\"}"
             )
             await onToolCallRequest(toolCallRequest)
             return AITurnStreamOutcome(
@@ -214,10 +214,10 @@ struct RepairingSuspendingChatService: AIChatStreaming, @unchecked Sendable {
     ) async throws -> AITurnStreamOutcome {
         await onRepairAttempt(
             AIChatRepairAttemptStatus(
-                message: "Assistant is correcting list_cards.",
+                message: "Assistant is correcting sql.",
                 attempt: 1,
                 maxAttempts: 3,
-                toolName: "list_cards"
+                toolName: "sql"
             )
         )
         try await Task.sleep(nanoseconds: 10_000_000_000)
