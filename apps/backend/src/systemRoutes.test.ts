@@ -1,8 +1,63 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { afterEach, test } from "node:test";
+import { resetAuthConfigForTests } from "./authConfig";
 import { createApp } from "./app";
 
+const originalAuthMode = process.env.AUTH_MODE;
+const originalAllowInsecureLocalAuth = process.env.ALLOW_INSECURE_LOCAL_AUTH;
+const originalPublicApiBaseUrl = process.env.PUBLIC_API_BASE_URL;
+const originalPublicAuthBaseUrl = process.env.PUBLIC_AUTH_BASE_URL;
+
+function restoreEnvironment(): void {
+  if (originalAuthMode === undefined) {
+    delete process.env.AUTH_MODE;
+  } else {
+    process.env.AUTH_MODE = originalAuthMode;
+  }
+
+  if (originalAllowInsecureLocalAuth === undefined) {
+    delete process.env.ALLOW_INSECURE_LOCAL_AUTH;
+  } else {
+    process.env.ALLOW_INSECURE_LOCAL_AUTH = originalAllowInsecureLocalAuth;
+  }
+
+  if (originalPublicApiBaseUrl === undefined) {
+    delete process.env.PUBLIC_API_BASE_URL;
+  } else {
+    process.env.PUBLIC_API_BASE_URL = originalPublicApiBaseUrl;
+  }
+
+  if (originalPublicAuthBaseUrl === undefined) {
+    delete process.env.PUBLIC_AUTH_BASE_URL;
+  } else {
+    process.env.PUBLIC_AUTH_BASE_URL = originalPublicAuthBaseUrl;
+  }
+
+  resetAuthConfigForTests();
+}
+
+function setCognitoAuthMode(): void {
+  process.env.AUTH_MODE = "cognito";
+  delete process.env.ALLOW_INSECURE_LOCAL_AUTH;
+  resetAuthConfigForTests();
+}
+
+afterEach(restoreEnvironment);
+
+test("createApp rejects missing AUTH_MODE at startup", () => {
+  delete process.env.AUTH_MODE;
+  delete process.env.ALLOW_INSECURE_LOCAL_AUTH;
+  resetAuthConfigForTests();
+
+  assert.throws(
+    () => createApp(""),
+    (error: unknown) => error instanceof Error
+      && error.message === 'AUTH_MODE is required and must be set to "cognito" or "none"',
+  );
+});
+
 test("root discovery matches /agent", async () => {
+  setCognitoAuthMode();
   process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
   process.env.PUBLIC_AUTH_BASE_URL = "https://auth.example.com";
 
@@ -16,6 +71,7 @@ test("root discovery matches /agent", async () => {
 });
 
 test("v1 root discovery accepts a trailing slash", async () => {
+  setCognitoAuthMode();
   process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
   process.env.PUBLIC_AUTH_BASE_URL = "https://auth.example.com";
 
@@ -29,6 +85,7 @@ test("v1 root discovery accepts a trailing slash", async () => {
 });
 
 test("openapi endpoints return the same JSON document", async () => {
+  setCognitoAuthMode();
   const app = createApp("");
   const openapiResponse = await app.request("https://api.example.com/v1/openapi.json");
   const swaggerResponse = await app.request("https://api.example.com/v1/swagger.json");

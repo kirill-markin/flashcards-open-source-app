@@ -1,5 +1,6 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { authenticateAgentApiKey } from "./agentApiKeys";
+import { getAuthConfig } from "./authConfig";
 
 export type AuthTransport = "none" | "bearer" | "session" | "api_key";
 
@@ -76,10 +77,15 @@ async function verifyIdToken(token: string): Promise<string> {
   }
 }
 
+/**
+ * Authenticates one request using the validated backend auth config rather
+ * than raw env defaults. App startup must already have rejected missing or
+ * unsafe auth configuration before any request reaches this function.
+ */
 export async function authenticateRequest(request: AuthRequest): Promise<AuthResult> {
-  const authMode = process.env.AUTH_MODE ?? "none";
+  const authConfig = getAuthConfig();
 
-  if (authMode === "none") {
+  if (authConfig.mode === "none") {
     return { userId: "local", transport: "none", connectionId: null, selectedWorkspaceId: null };
   }
 
