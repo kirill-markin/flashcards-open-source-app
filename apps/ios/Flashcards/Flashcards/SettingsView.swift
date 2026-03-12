@@ -61,6 +61,16 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Access") {
+                NavigationLink(value: SettingsNavigationDestination.access) {
+                    SettingsNavigationRow(
+                        title: "Access",
+                        value: "3 items",
+                        systemImage: "hand.raised"
+                    )
+                }
+            }
+
             Section("Scheduler") {
                 if let schedulerSettings = store.schedulerSettings {
                     NavigationLink {

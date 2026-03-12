@@ -2,7 +2,7 @@ import { useEffect, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { makeWorkspaceTagsSummary } from "../appData/domain";
 import { useAppData } from "../appData";
-import { settingsDecksRoute, settingsTagsRoute } from "../routes";
+import { settingsAccessRoute, settingsDecksRoute, settingsTagsRoute } from "../routes";
 
 type SettingsNavigationCardProps = Readonly<{
   title: string;
@@ -119,6 +119,12 @@ export function SettingsScreen(): ReactElement {
         </div>
 
         <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title="Access"
+            description="Review browser permissions for camera, microphone, and file picker flows."
+            value="3 items"
+            to={settingsAccessRoute}
+          />
           <SettingsNavigationCard
             title="Decks"
             description="Create, edit, and review reusable study scopes."

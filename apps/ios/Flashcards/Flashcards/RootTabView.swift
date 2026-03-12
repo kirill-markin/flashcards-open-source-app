@@ -49,6 +49,8 @@ struct RootTabView: View {
                             TagsScreen()
                         case .account:
                             AccountSettingsView()
+                        case .access:
+                            AccessSettingsView()
                         }
                     }
             }

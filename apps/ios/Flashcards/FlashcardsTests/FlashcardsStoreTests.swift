@@ -220,9 +220,9 @@ final class FlashcardsStoreTests: XCTestCase {
     }
 
     func testSettingsNavigationDestinationsIncludeAccount() {
-        let destinations: [SettingsNavigationDestination] = [.decks, .tags, .account]
+        let destinations: [SettingsNavigationDestination] = [.decks, .tags, .account, .access]
 
-        XCTAssertEqual(destinations, [.decks, .tags, .account])
+        XCTAssertEqual(destinations, [.decks, .tags, .account, .access])
     }
 
     func testReloadLoadsPersistedTagReviewFilterWhenTagExists() throws {

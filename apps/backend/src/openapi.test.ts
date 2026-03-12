@@ -83,4 +83,5 @@ test("loadOpenApiDocument returns the canonical v1 spec with the SQL surface", (
   assert.deepEqual(sqlRequestSchema, { $ref: "#/components/schemas/AgentSqlRequest" });
   const sqlExamples = paths["/agent/sql"]?.post?.responses?.["200"]?.content?.["application/json"]?.examples;
   assert.ok(sqlExamples !== undefined);
+
 });

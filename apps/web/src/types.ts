@@ -64,6 +64,12 @@ export type AgentApiKeyRevokeResponse = Readonly<{
   instructions: string;
 }>;
 
+export type ChatTranscriptionSource = "ios" | "web";
+
+export type ChatTranscriptionResponse = Readonly<{
+  text: string;
+}>;
+
 /** Mirrors the iOS local workspace payload used by local AI tools. */
 export type Workspace = Readonly<{
   workspaceId: string;

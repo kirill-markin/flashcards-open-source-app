@@ -7,26 +7,52 @@ final class AIChatStore: ObservableObject {
     @Published private(set) var pendingAttachments: [AIChatAttachment]
     @Published private(set) var selectedModelId: String
     @Published private(set) var isStreaming: Bool
+    @Published private(set) var dictationState: AIChatDictationState
     @Published private(set) var errorMessage: String
     @Published private(set) var repairStatus: AIChatRepairAttemptStatus?
 
     private let flashcardsStore: FlashcardsStore
     private let historyStore: any AIChatHistoryStoring
     private let chatService: any AIChatStreaming
+    private let voiceRecorder: any AIChatVoiceRecording
+    private let audioTranscriber: any AIChatAudioTranscribing
     private let runtime: AIChatSessionRuntime
     private var activeSendTask: Task<Void, Never>?
+    private var activeDictationTask: Task<Void, Never>?
     private var activeConversationId: String?
 
-    init(
+    convenience init(
         flashcardsStore: FlashcardsStore,
         historyStore: any AIChatHistoryStoring,
         chatService: any AIChatStreaming,
         toolExecutor: any AIToolExecuting,
         snapshotLoader: any AIChatSnapshotLoading
     ) {
+        self.init(
+            flashcardsStore: flashcardsStore,
+            historyStore: historyStore,
+            chatService: chatService,
+            toolExecutor: toolExecutor,
+            snapshotLoader: snapshotLoader,
+            voiceRecorder: AIChatDisabledVoiceRecorder(),
+            audioTranscriber: AIChatDisabledAudioTranscriber()
+        )
+    }
+
+    init(
+        flashcardsStore: FlashcardsStore,
+        historyStore: any AIChatHistoryStoring,
+        chatService: any AIChatStreaming,
+        toolExecutor: any AIToolExecuting,
+        snapshotLoader: any AIChatSnapshotLoading,
+        voiceRecorder: any AIChatVoiceRecording,
+        audioTranscriber: any AIChatAudioTranscribing
+    ) {
         self.flashcardsStore = flashcardsStore
         self.historyStore = historyStore
         self.chatService = chatService
+        self.voiceRecorder = voiceRecorder
+        self.audioTranscriber = audioTranscriber
         self.runtime = AIChatSessionRuntime(
             historyStore: historyStore,
             chatService: chatService,
@@ -42,8 +68,10 @@ final class AIChatStore: ObservableObject {
         self.pendingAttachments = []
         self.selectedModelId = persistedState.selectedModelId
         self.isStreaming = false
+        self.dictationState = .idle
         self.errorMessage = ""
         self.repairStatus = nil
+        self.activeDictationTask = nil
         self.activeConversationId = nil
     }
 
@@ -53,6 +81,7 @@ final class AIChatStore: ObservableObject {
 
     var canSendMessage: Bool {
         self.isStreaming == false
+            && self.dictationState == .idle
             && self.flashcardsStore.cloudSettings?.cloudState == .linked
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
     }
@@ -85,6 +114,7 @@ final class AIChatStore: ObservableObject {
 
     func clearHistory() {
         self.cancelStreaming()
+        self.cancelDictation()
         self.messages = []
         self.pendingAttachments = []
         self.errorMessage = ""
@@ -100,6 +130,24 @@ final class AIChatStore: ObservableObject {
         self.activeSendTask = nil
         self.isStreaming = false
         self.repairStatus = nil
+    }
+
+    func toggleDictation() {
+        switch self.dictationState {
+        case .idle:
+            self.startDictation()
+        case .recording:
+            self.finishDictation()
+        case .requestingPermission, .transcribing:
+            return
+        }
+    }
+
+    func cancelDictation() {
+        self.activeDictationTask?.cancel()
+        self.activeDictationTask = nil
+        self.voiceRecorder.cancelRecording()
+        self.dictationState = .idle
     }
 
     func applyPresentationRequest(request: AIChatPresentationRequest) {
@@ -123,7 +171,7 @@ final class AIChatStore: ObservableObject {
     }
 
     func sendMessage() {
-        if self.isStreaming {
+        if self.isStreaming || self.dictationState != .idle {
             return
         }
 
@@ -213,6 +261,73 @@ final class AIChatStore: ObservableObject {
 
     private func trimmedInputText() -> String {
         self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func startDictation() {
+        if self.dictationState != .idle {
+            return
+        }
+
+        self.errorMessage = ""
+        self.dictationState = .requestingPermission
+        self.activeDictationTask = Task { @MainActor in
+            defer {
+                self.activeDictationTask = nil
+            }
+
+            do {
+                try await self.voiceRecorder.startRecording()
+                self.dictationState = .recording
+            } catch is CancellationError {
+                self.dictationState = .idle
+            } catch {
+                self.dictationState = .idle
+                self.errorMessage = localizedMessage(error: error)
+            }
+        }
+    }
+
+    private func finishDictation() {
+        if self.dictationState != .recording {
+            return
+        }
+
+        self.dictationState = .transcribing
+        self.activeDictationTask = Task { @MainActor in
+            defer {
+                self.activeDictationTask = nil
+            }
+
+            do {
+                guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
+                    self.dictationState = .idle
+                    self.errorMessage = "AI chat requires cloud sign-in."
+                    return
+                }
+
+                let session = try await self.flashcardsStore.authenticatedCloudSessionForAI()
+                let recordedAudio = try await self.voiceRecorder.stopRecording()
+                defer {
+                    try? FileManager.default.removeItem(at: recordedAudio.fileUrl)
+                }
+
+                let transcript = try await self.audioTranscriber.transcribe(
+                    session: session,
+                    recordedAudio: recordedAudio
+                )
+                self.inputText = mergeAIChatDictationTranscript(draft: self.inputText, transcript: transcript)
+                self.errorMessage = ""
+            } catch is CancellationError {
+            } catch let recorderError as AIChatVoiceRecorderError {
+                if recorderError != .emptyRecording {
+                    self.errorMessage = localizedMessage(error: recorderError)
+                }
+            } catch {
+                self.errorMessage = localizedMessage(error: error)
+            }
+
+            self.dictationState = .idle
+        }
     }
 
     private func makeOutgoingContent() -> [AIChatContentPart] {

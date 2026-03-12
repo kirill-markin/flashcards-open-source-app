@@ -8,6 +8,11 @@ import {
   parseLocalChatRequestBody,
   streamLocalChatResponse,
 } from "../chat/http";
+import {
+  parseChatTranscriptionUpload,
+  transcribeChatAudioUpload,
+  type ChatTranscriptionUpload,
+} from "../chat/transcriptions";
 import { HttpError } from "../errors";
 import { loadRequestContextFromRequest } from "../server/requestContext";
 import { parseJsonBody } from "../server/requestParsing";
@@ -15,6 +20,8 @@ import type { AppEnv } from "../app";
 
 type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
+  loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  transcribeAudioFn?: (upload: ChatTranscriptionUpload) => Promise<string>;
 }>;
 
 function getInternalErrorMessage(error: unknown): string {
@@ -23,12 +30,14 @@ function getInternalErrorMessage(error: unknown): string {
 
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
+  const transcribeAudioFn = options.transcribeAudioFn ?? transcribeChatAudioUpload;
 
   app.post("/chat/local-turn", async (context) => {
     const requestId = randomUUID();
 
     try {
-      await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+      await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
       const body = parseLocalChatRequestBody(await parseJsonBody(context.req.raw));
       return await streamLocalChatResponse(body, requestId);
     } catch (error) {
@@ -45,8 +54,15 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     }
   });
 
+  app.post("/chat/transcriptions", async (context) => {
+    await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+    const upload = await parseChatTranscriptionUpload(context.req.raw);
+    const text = await transcribeAudioFn(upload);
+    return context.json({ text });
+  });
+
   app.post("/chat/local-turn/diagnostics", async (context) => {
-    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const body = parseLocalChatDiagnosticsBody(await parseJsonBody(context.req.raw));
     logLocalChatDiagnostics(requestContext, body);
     return new Response(null, { status: 204 });

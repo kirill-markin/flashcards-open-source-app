@@ -4,15 +4,20 @@ import {
   useState,
   type DragEvent,
   type KeyboardEvent,
+  type MutableRefObject,
   type ReactElement,
 } from "react";
-import { createLocalChatRequestBody, streamLocalChat } from "../api";
+import { createLocalChatRequestBody, streamLocalChat, transcribeChatAudio } from "../api";
 import type { MutableSnapshot } from "../appData/types";
 import { webAppVersion } from "../clientIdentity";
 import { DEFAULT_MODEL_ID } from "../chatModels";
 import { useAppData } from "../appData";
 import { deriveActiveCards } from "../appData/domain";
 import { ensurePersistentStorage } from "../syncStorage";
+import {
+  explainBrowserMediaPermissionError,
+  queryBrowserPermissionState,
+} from "../access/browserAccess";
 import { useChatLayout } from "./ChatLayoutContext";
 import {
   checkFileSize,
@@ -41,6 +46,10 @@ import { toLocalChatMessages } from "./localRuntime";
 import { ModelSelector } from "./ModelSelector";
 import { useChatAutoScroll } from "./useChatAutoScroll";
 import { useChatHistory } from "./useChatHistory";
+import {
+  mergeDictationTranscriptIntoDraft,
+  type ChatDictationState,
+} from "./chatDictation";
 
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
@@ -50,6 +59,55 @@ function buildLocalChatUserContext(snapshot: MutableSnapshot): Readonly<{ totalC
   return {
     totalCards: deriveActiveCards(snapshot.cards).length,
   };
+}
+
+function stopMediaStream(stream: MediaStream | null): void {
+  if (stream === null) {
+    return;
+  }
+
+  for (const track of stream.getTracks()) {
+    track.stop();
+  }
+}
+
+function cleanupDictationResources(
+  mediaRecorderRef: MutableRefObject<MediaRecorder | null>,
+  mediaStreamRef: MutableRefObject<MediaStream | null>,
+  recordedChunksRef: MutableRefObject<Array<Blob>>,
+): void {
+  stopMediaStream(mediaStreamRef.current);
+  mediaRecorderRef.current = null;
+  mediaStreamRef.current = null;
+  recordedChunksRef.current = [];
+}
+
+function stopMediaRecorder(
+  recorder: MediaRecorder,
+  recordedChunksRef: MutableRefObject<Array<Blob>>,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    function handleStop(): void {
+      recorder.removeEventListener("error", handleError as EventListener);
+      resolve(new Blob(recordedChunksRef.current, {
+        type: recorder.mimeType === "" ? "audio/webm" : recorder.mimeType,
+      }));
+    }
+
+    function handleError(event: Event): void {
+      recorder.removeEventListener("stop", handleStop);
+      if (event instanceof ErrorEvent && event.error instanceof Error) {
+        reject(event.error);
+        return;
+      }
+
+      reject(new Error("Microphone recording failed."));
+    }
+
+    recorder.addEventListener("stop", handleStop, { once: true });
+    recorder.addEventListener("error", handleError as EventListener, { once: true });
+    recorder.stop();
+  });
 }
 
 export function ChatPanel(props: Props): ReactElement {
@@ -76,6 +134,8 @@ export function ChatPanel(props: Props): ReactElement {
   const [pendingAttachments, setPendingAttachments] = useState<ReadonlyArray<PendingAttachment>>([]);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
+  const [composerErrorMessage, setComposerErrorMessage] = useState<string>("");
 
   const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -85,6 +145,10 @@ export function ChatPanel(props: Props): ReactElement {
   const abortRef = useRef<AbortController | null>(null);
   const activeStreamIdRef = useRef<number>(0);
   const nextStreamIdRef = useRef<number>(1);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<Array<Blob>>([]);
+  const isMountedRef = useRef<boolean>(true);
 
   const { handleMessagesScroll } = useChatAutoScroll({
     isHydrated,
@@ -139,6 +203,17 @@ export function ChatPanel(props: Props): ReactElement {
   useEffect(() => {
     pendingAttachmentsRef.current = pendingAttachments;
   }, [pendingAttachments]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      const recorder = mediaRecorderRef.current;
+      if (recorder !== null && recorder.state !== "inactive") {
+        recorder.stop();
+      }
+      cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isDragging) {
@@ -241,6 +316,114 @@ export function ChatPanel(props: Props): ReactElement {
     setIsStreaming(false);
   }
 
+  function discardDictation(): void {
+    const recorder = mediaRecorderRef.current;
+    if (recorder !== null && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+
+    cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+    if (isMountedRef.current) {
+      setDictationState("idle");
+    }
+  }
+
+  async function startDictation(): Promise<void> {
+    if (dictationState !== "idle") {
+      return;
+    }
+
+    if (typeof MediaRecorder === "undefined") {
+      setComposerErrorMessage("Microphone recording is unavailable in this browser.");
+      return;
+    }
+
+    const mediaDevices = navigator.mediaDevices;
+    if (mediaDevices === undefined || typeof mediaDevices.getUserMedia !== "function") {
+      setComposerErrorMessage("Microphone recording is unavailable in this browser.");
+      return;
+    }
+
+    setComposerErrorMessage("");
+    setDictationState("requesting_permission");
+
+    let stream: MediaStream | null = null;
+    try {
+      stream = await mediaDevices.getUserMedia({ audio: true, video: false });
+      const recorder = new MediaRecorder(stream);
+      recordedChunksRef.current = [];
+      recorder.addEventListener("dataavailable", (event: BlobEvent) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      });
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      mediaStreamRef.current = stream;
+      if (isMountedRef.current) {
+        setDictationState("recording");
+      }
+    } catch (error) {
+      stopMediaStream(stream);
+      cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+      const permissionState = await queryBrowserPermissionState("microphone");
+      if (isMountedRef.current) {
+        setComposerErrorMessage(explainBrowserMediaPermissionError("microphone", error, permissionState));
+        setDictationState("idle");
+      }
+    }
+  }
+
+  async function stopDictation(): Promise<void> {
+    const recorder = mediaRecorderRef.current;
+    if (recorder === null || recorder.state === "inactive") {
+      cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+      setDictationState("idle");
+      return;
+    }
+
+    setDictationState("transcribing");
+
+    try {
+      const audioBlob = await stopMediaRecorder(recorder, recordedChunksRef);
+      stopMediaStream(mediaStreamRef.current);
+      if (audioBlob.size <= 0) {
+        if (isMountedRef.current) {
+          setDictationState("idle");
+        }
+        return;
+      }
+
+      const transcript = await transcribeChatAudio(audioBlob, "web");
+      if (isMountedRef.current) {
+        setInputText((currentText) => mergeDictationTranscriptIntoDraft(currentText, transcript));
+        setComposerErrorMessage("");
+      }
+    } catch (error) {
+      if (isMountedRef.current) {
+        setComposerErrorMessage(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+      if (isMountedRef.current) {
+        setDictationState("idle");
+      }
+    }
+  }
+
+  async function handleMicrophoneClick(): Promise<void> {
+    if (dictationState === "recording") {
+      await stopDictation();
+      return;
+    }
+
+    if (dictationState !== "idle") {
+      return;
+    }
+
+    await startDictation();
+  }
+
   async function handleDrop(event: DragEvent<HTMLDivElement>): Promise<void> {
     event.preventDefault();
     dragCounterRef.current = 0;
@@ -265,7 +448,7 @@ export function ChatPanel(props: Props): ReactElement {
   }
 
   async function sendMessage(): Promise<void> {
-    if (isStreaming) {
+    if (isStreaming || dictationState !== "idle") {
       return;
     }
 
@@ -300,6 +483,7 @@ export function ChatPanel(props: Props): ReactElement {
     appendUserMessage(contentParts);
     setInputText("");
     setPendingAttachmentsState([]);
+    setComposerErrorMessage("");
     setIsStreaming(true);
 
     let hasStartedAssistant = false;
@@ -385,6 +569,14 @@ export function ChatPanel(props: Props): ReactElement {
   }
 
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
+  const isDictationVisible = dictationState !== "idle";
+  const isDraftInputBlocked = dictationState !== "idle";
+  const microphoneAriaLabel = dictationState === "recording" ? "Stop dictation" : "Start dictation";
+  const dictationStatusLabel = dictationState === "requesting_permission"
+    ? "Waiting for microphone access..."
+    : dictationState === "recording"
+      ? "Listening..."
+      : "Transcribing...";
 
   return (
     <div
@@ -427,6 +619,7 @@ export function ChatPanel(props: Props): ReactElement {
             type="button"
             className="chat-close-btn"
             onClick={() => {
+              discardDictation();
               stopActiveStream();
               clearHistory();
             }}
@@ -495,24 +688,48 @@ export function ChatPanel(props: Props): ReactElement {
           </div>
         ) : null}
 
-        <textarea
-          name="chatMessage"
-          className="chat-textarea"
-          placeholder="Ask about cards, review history, or attach notes..."
-          value={inputText}
-          rows={1}
-          onChange={(event) => setInputText(event.target.value)}
-          onKeyDown={handleKeyDown}
-        />
+        {composerErrorMessage !== "" ? <p className="error-banner chat-composer-error">{composerErrorMessage}</p> : null}
+
+        {isDictationVisible ? (
+          <div className={`chat-dictation-surface chat-dictation-surface-${dictationState}`} aria-live="polite">
+            <div className="chat-dictation-wave" aria-hidden="true">
+              <span className="chat-dictation-bar" />
+              <span className="chat-dictation-bar" />
+              <span className="chat-dictation-bar" />
+              <span className="chat-dictation-bar" />
+              <span className="chat-dictation-bar" />
+            </div>
+            <span className="chat-dictation-label">{dictationStatusLabel}</span>
+          </div>
+        ) : (
+          <textarea
+            name="chatMessage"
+            className="chat-textarea"
+            placeholder="Ask about cards, review history, or attach notes..."
+            value={inputText}
+            rows={1}
+            onChange={(event) => setInputText(event.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        )}
 
         <div className="chat-controls">
           <ModelSelector
             value={selectedModel}
             onChange={handleModelChange}
-            locked={messages.length > 0 || isStreaming}
+            locked={messages.length > 0 || isDraftInputBlocked}
           />
           <div className="chat-controls-right">
-            <FileAttachment onAttach={handleAttach} />
+            <FileAttachment onAttach={handleAttach} disabled={isDraftInputBlocked} />
+            <button
+              type="button"
+              className={`chat-mic-btn${dictationState === "recording" ? " chat-mic-btn-recording" : ""}`}
+              aria-label={microphoneAriaLabel}
+              onClick={() => void handleMicrophoneClick()}
+              disabled={dictationState === "requesting_permission" || dictationState === "transcribing"}
+            >
+              <span className="chat-mic-btn-icon" aria-hidden="true" />
+            </button>
             {isStreaming ? (
               <button
                 type="button"
@@ -528,6 +745,7 @@ export function ChatPanel(props: Props): ReactElement {
                 className="chat-send-btn"
                 aria-label="Send message"
                 onClick={() => void sendMessage()}
+                disabled={dictationState !== "idle"}
               >
                 Send
               </button>

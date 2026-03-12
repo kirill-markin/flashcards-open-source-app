@@ -66,6 +66,14 @@ vi.mock("./screens/SettingsScreen", () => ({
   SettingsScreen: () => <div>workspace-settings-screen</div>,
 }));
 
+vi.mock("./screens/AccessSettingsScreen", () => ({
+  AccessSettingsScreen: () => <div>access-settings-screen</div>,
+}));
+
+vi.mock("./screens/AccessPermissionDetailScreen", () => ({
+  AccessPermissionDetailScreen: () => <div>access-permission-detail-screen</div>,
+}));
+
 vi.mock("./screens/AccountSettingsScreen", () => ({
   AccountSettingsScreen: () => <div>account-settings-screen</div>,
 }));

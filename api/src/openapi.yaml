@@ -3,10 +3,9 @@ info:
   title: Flashcards Open Source App External AI-Agent API
   version: v1
   description: >-
-    Public machine-facing contract for external AI agents. This document
-    intentionally excludes first-party/internal routes such as sync transport,
-    local chat runtime endpoints, and human-only agent connection management
-    even when those routes remain live for web or iOS clients.
+    Public API contract for external AI agents. This document excludes internal
+    sync transport, local chat runtime endpoints, and human-only agent
+    connection management.
 servers:
   - url: https://api.flashcards-open-source-app.com/v1
     description: >-

@@ -13,11 +13,15 @@ import {
   cardsRoute,
   chatRoute,
   reviewRoute,
+  settingsAccessRoute,
+  settingsAccessDetailRoutePattern,
   settingsDeckNewRoute,
   settingsDecksRoute,
   settingsTagsRoute,
   workspaceSettingsRoute,
 } from "./routes";
+import { AccessPermissionDetailScreen } from "./screens/AccessPermissionDetailScreen";
+import { AccessSettingsScreen } from "./screens/AccessSettingsScreen";
 import { AccountSettingsScreen } from "./screens/AccountSettingsScreen";
 import { CardFormScreen } from "./screens/CardFormScreen";
 import { CardsScreen } from "./screens/CardsScreen";
@@ -215,6 +219,8 @@ export function RoutedShell(): ReactElement {
           <Route path="/tags" element={<Navigate replace to={settingsTagsRoute} />} />
           <Route path={reviewRoute} element={<ReviewScreen />} />
           <Route path={workspaceSettingsRoute} element={<SettingsScreen />} />
+          <Route path={settingsAccessRoute} element={<AccessSettingsScreen />} />
+          <Route path={settingsAccessDetailRoutePattern} element={<AccessPermissionDetailScreen />} />
           <Route path={settingsDecksRoute} element={<DecksScreen />} />
           <Route path={settingsDeckNewRoute} element={<DeckFormScreen />} />
           <Route path={`${settingsDecksRoute}/:deckId/edit`} element={<DeckFormScreen />} />

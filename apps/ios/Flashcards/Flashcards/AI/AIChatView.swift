@@ -74,6 +74,7 @@ struct AIChatView: View {
         }
         .onChange(of: self.scenePhase) { _, nextPhase in
             guard nextPhase == .active else {
+                self.chatStore.cancelDictation()
                 return
             }
             guard self.flashcardsStore.selectedTab == .ai else {
@@ -81,6 +82,13 @@ struct AIChatView: View {
             }
 
             self.chatStore.warmUpSessionIfNeeded()
+        }
+        .onChange(of: self.flashcardsStore.selectedTab) { _, nextTab in
+            guard nextTab != .ai else {
+                return
+            }
+
+            self.chatStore.cancelDictation()
         }
         .onChange(of: self.selectedPhotoItem) { _, newItem in
             guard let newItem else {
@@ -138,6 +146,7 @@ struct AIChatView: View {
             && self.chatStore.pendingAttachments.isEmpty
             && self.chatStore.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && self.chatStore.isStreaming == false
+            && self.chatStore.dictationState == .idle
     }
 
     private var signInGate: some View {
@@ -309,16 +318,22 @@ struct AIChatView: View {
                 }
 
                 ZStack(alignment: .bottomTrailing) {
-                    TextField(
-                        "Ask about cards, review history, or propose a change...",
-                        text: self.$chatStore.inputText,
-                        axis: .vertical
-                    )
-                    .focused(self.$isComposerFocused)
-                    .lineLimit(1...aiChatComposerMaximumLineCount)
-                    .padding(.leading, 12)
-                    .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                    .padding(.vertical, 12)
+                    if self.chatStore.dictationState == .idle {
+                        TextField(
+                            "Ask about cards, review history, or propose a change...",
+                            text: self.$chatStore.inputText,
+                            axis: .vertical
+                        )
+                        .focused(self.$isComposerFocused)
+                        .lineLimit(1...aiChatComposerMaximumLineCount)
+                        .padding(.leading, 12)
+                        .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                        .padding(.vertical, 12)
+                    } else {
+                        AIChatDictationWaveform(statusText: self.dictationStatusText)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 12)
+                    }
 
                     Button {
                         self.handlePrimaryComposerAction()
@@ -343,7 +358,7 @@ struct AIChatView: View {
                 .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .simultaneousGesture(
                     TapGesture().onEnded {
-                        self.isComposerFocused = true
+                        self.isComposerFocused = self.chatStore.dictationState == .idle
                     }
                 )
 
@@ -351,21 +366,34 @@ struct AIChatView: View {
                     self.composerModelControl
                     Spacer()
 
-                    Menu {
-                        ForEach(aiChatAttachmentMenuActions()) { action in
-                            Button {
-                                self.handleAttachmentMenuAction(action)
-                            } label: {
-                                Label(action.title, systemImage: action.systemImage)
+                    HStack(spacing: 8) {
+                        Menu {
+                            ForEach(aiChatAttachmentMenuActions()) { action in
+                                Button {
+                                    self.handleAttachmentMenuAction(action)
+                                } label: {
+                                    Label(action.title, systemImage: action.systemImage)
+                                }
                             }
+                        } label: {
+                            Image(systemName: "paperclip")
                         }
-                    } label: {
-                        Image(systemName: "paperclip")
+                        .buttonStyle(.bordered)
+                        .disabled(self.chatStore.dictationState != .idle)
+                        .accessibilityLabel("Add attachment")
+                        .accessibilityHint("Take a photo, choose a photo, or select a file")
+                        .menuOrder(.fixed)
+
+                        Button {
+                            self.chatStore.toggleDictation()
+                        } label: {
+                            Image(systemName: self.chatStore.dictationState == .recording ? "stop.circle.fill" : "mic.circle")
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
+                        .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
+                        .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
                     }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Add attachment")
-                    .accessibilityHint("Take a photo, choose a photo, or select a file")
-                    .menuOrder(.fixed)
                 }
             }
             .padding(.top, aiChatComposerTopPadding)
@@ -375,9 +403,22 @@ struct AIChatView: View {
         }
     }
 
+    private var dictationStatusText: String {
+        switch self.chatStore.dictationState {
+        case .idle:
+            return ""
+        case .requestingPermission:
+            return "Waiting for microphone access..."
+        case .recording:
+            return "Listening..."
+        case .transcribing:
+            return "Transcribing..."
+        }
+    }
+
     @ViewBuilder
     private var composerModelControl: some View {
-        if self.chatStore.isModelLocked {
+        if self.chatStore.isModelLocked || self.chatStore.dictationState != .idle {
             Text("Model: \(self.selectedModelLabel)")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -784,6 +825,30 @@ private struct AIChatViewportHeightPreferenceKey: PreferenceKey {
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+private struct AIChatDictationWaveform: View {
+    let statusText: String
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds)) { context in
+            let activeDotCount = aiChatTypingIndicatorActiveDotCount(date: context.date)
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .bottom, spacing: 8) {
+                    ForEach(0..<5, id: \.self) { index in
+                        Capsule()
+                            .fill(Color.accentColor.opacity(index < activeDotCount + 1 ? 0.95 : 0.35))
+                            .frame(width: 8, height: index < activeDotCount + 1 ? 28 : 16)
+                    }
+                }
+                Text(self.statusText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 

@@ -10,6 +10,8 @@ export const cardsRoute: string = "/cards";
 export const chatRoute: string = "/chat";
 export const workspaceSettingsRoute: string = "/settings";
 export const accountSettingsRoute: string = "/account";
+export const settingsAccessRoute: string = "/settings/access";
+export const settingsAccessDetailRoutePattern: string = "/settings/access/:accessKind";
 export const settingsDecksRoute: string = "/settings/decks";
 export const settingsDeckNewRoute: string = "/settings/decks/new";
 export const settingsTagsRoute: string = "/settings/tags";
@@ -20,4 +22,8 @@ export function buildSettingsDeckDetailRoute(deckId: string): string {
 
 export function buildSettingsDeckEditRoute(deckId: string): string {
   return `${settingsDecksRoute}/${deckId}/edit`;
+}
+
+export function buildSettingsAccessDetailRoute(accessKind: "camera" | "microphone" | "photos-and-files"): string {
+  return `${settingsAccessRoute}/${accessKind}`;
 }
