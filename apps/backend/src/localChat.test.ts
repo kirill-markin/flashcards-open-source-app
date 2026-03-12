@@ -225,6 +225,7 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
   assert.match(instructions, /sql => \{"sql": "SHOW TABLES"\}/);
   assert.match(instructions, /sql => \{"sql": "DESCRIBE workspace"\}/);
   assert.match(instructions, /sql => \{"sql": "SELECT \* FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET 0"\}/);
+  assert.match(instructions, /sql => \{"sql": "SELECT card_id, front_text, back_text, tags FROM cards ORDER BY RANDOM\(\) LIMIT 3 OFFSET 0"\}/);
   assert.match(instructions, /sql => \{"sql": "SELECT \* FROM cards WHERE due_at IS NULL OR due_at <= NOW\(\) ORDER BY due_at ASC, updated_at DESC LIMIT 20 OFFSET 0"\}/);
   assert.match(instructions, /sql => \{"sql": "SELECT tag, COUNT\(\*\) AS cards_count FROM cards UNNEST tags AS tag GROUP BY tag ORDER BY cards_count DESC LIMIT 100 OFFSET 0"\}/);
   assert.match(instructions, /sql => \{"sql": "UPDATE cards SET back_text = 'Updated answer' WHERE card_id = '00000000-0000-4000-8000-000000000000'"\}/);

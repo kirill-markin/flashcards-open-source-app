@@ -289,6 +289,84 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
         XCTAssertTrue(selectPayload.rows.first?["tags"]?.stringArrayValue?.contains("grammar") == true)
     }
 
+    func testLocalToolExecutorSupportsStandaloneOrderByRandom() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        _ = try await self.executeSql(
+            executor: executor,
+            sql: """
+            INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES
+            ('Front 1', 'Back 1', ('grammar'), 'fast'),
+            ('Front 2', 'Back 2', ('verbs'), 'medium'),
+            ('Front 3', 'Back 3', ('reading'), 'long')
+            """,
+            toolCallId: "call-insert-random-cards"
+        )
+
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT card_id, front_text, back_text, tags FROM cards ORDER BY RANDOM () LIMIT 2 OFFSET 1",
+            toolCallId: "call-select-random-cards"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.statementType, "select")
+        XCTAssertEqual(selectPayload.resource, "cards")
+        XCTAssertEqual(selectPayload.rowCount, 2)
+        XCTAssertEqual(selectPayload.limit, 2)
+        XCTAssertEqual(selectPayload.offset, 1)
+        for row in selectPayload.rows {
+            XCTAssertNotNil(row["card_id"]?.stringValue)
+            XCTAssertNotNil(row["front_text"]?.stringValue)
+            XCTAssertNotNil(row["back_text"]?.stringValue)
+            XCTAssertNotNil(row["tags"]?.stringArrayValue)
+        }
+
+        let aggregateResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT COUNT (*) AS total FROM cards ORDER BY RANDOM() LIMIT 1 OFFSET 0",
+            toolCallId: "call-select-random-aggregate"
+        )
+        let aggregatePayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(aggregateResult.output.utf8))
+        XCTAssertEqual(aggregatePayload.rowCount, 1)
+        XCTAssertEqual(aggregatePayload.rows.first?["total"]?.integerValue, 3)
+    }
+
+    func testLocalToolExecutorRejectsInvalidStandaloneOrderByRandomForms() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        do {
+            _ = try await self.executeSql(
+                executor: executor,
+                sql: "SELECT card_id FROM cards ORDER BY RANDOM(), updated_at DESC LIMIT 3 OFFSET 0",
+                toolCallId: "call-random-mixed-order"
+            )
+            XCTFail("Expected RANDOM() ordering validation error")
+        } catch let error as LocalStoreError {
+            guard case .validation(let message) = error else {
+                return XCTFail("Expected LocalStoreError.validation, received \(error)")
+            }
+
+            XCTAssertEqual(message, "RANDOM() must be the only ORDER BY item")
+        }
+
+        do {
+            _ = try await self.executeSql(
+                executor: executor,
+                sql: "SELECT card_id FROM cards ORDER BY RANDOM() DESC LIMIT 3 OFFSET 0",
+                toolCallId: "call-random-direction-order"
+            )
+            XCTFail("Expected RANDOM() direction validation error")
+        } catch let error as LocalStoreError {
+            guard case .validation(let message) = error else {
+                return XCTFail("Expected LocalStoreError.validation, received \(error)")
+            }
+
+            XCTAssertEqual(message, "RANDOM() does not support ASC or DESC")
+        }
+    }
+
     func testLocalToolExecutorCreatesDeletesAndReadsDecksThroughSql() async throws {
         let flashcardsStore = try self.makeStore()
         let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)

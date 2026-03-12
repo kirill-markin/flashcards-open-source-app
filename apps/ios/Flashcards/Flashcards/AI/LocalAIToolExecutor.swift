@@ -695,11 +695,20 @@ private func applyOrderBy(
         return rows
     }
 
+    if orderBy.count == 1, case .random = orderBy[0] {
+        var shuffledRows = rows
+        shuffledRows.shuffle()
+        return shuffledRows
+    }
+
     return rows.sorted { left, right in
         for item in orderBy {
-            let comparison = compareRowValues(left: left[item.expressionName], right: right[item.expressionName])
+            guard case .column(let expressionName, let direction) = item else {
+                return false
+            }
+            let comparison = compareRowValues(left: left[expressionName], right: right[expressionName])
             if comparison != 0 {
-                return item.direction == .desc ? comparison > 0 : comparison < 0
+                return direction == .desc ? comparison > 0 : comparison < 0
             }
         }
 
@@ -787,11 +796,14 @@ private func validateRowOrderBy(
 ) throws {
     let descriptors = try localAISqlSourceColumnDescriptors(source: source)
     for item in orderBy {
-        guard let descriptor = descriptors[item.expressionName] else {
-            throw LocalStoreError.validation("Unknown ORDER BY target: \(item.expressionName)")
+        guard case .column(let expressionName, _) = item else {
+            continue
+        }
+        guard let descriptor = descriptors[expressionName] else {
+            throw LocalStoreError.validation("Unknown ORDER BY target: \(expressionName)")
         }
         if descriptor.sortable == false {
-            throw LocalStoreError.validation("Column is not sortable: \(item.expressionName)")
+            throw LocalStoreError.validation("Column is not sortable: \(expressionName)")
         }
     }
 }
@@ -832,8 +844,13 @@ private func validateAggregateSelect(
         }
     }
 
-    for item in statement.orderBy where outputNames.contains(item.expressionName) == false && statement.groupBy.contains(item.expressionName) == false {
-        throw LocalStoreError.validation("Unknown ORDER BY target: \(item.expressionName)")
+    for item in statement.orderBy {
+        guard case .column(let expressionName, _) = item else {
+            continue
+        }
+        if outputNames.contains(expressionName) == false && statement.groupBy.contains(expressionName) == false {
+            throw LocalStoreError.validation("Unknown ORDER BY target: \(expressionName)")
+        }
     }
 }
 

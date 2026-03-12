@@ -7,7 +7,8 @@ post:
     workspace. This is not full PostgreSQL. Supported statements include SHOW
     TABLES, DESCRIBE, SELECT, INSERT, UPDATE, and DELETE across published
     logical resources only. SELECT supports projected column lists, LIKE,
-    aggregates, GROUP BY, NOW(), and cards UNNEST tags AS tag.
+    aggregates, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards
+    UNNEST tags AS tag.
   security:
     - ApiKeyHeader: []
   requestBody:
@@ -149,6 +150,37 @@ post:
                 instructions: >-
                   Read rows from data.rows. No further rows are available for
                   this query. LIMIT defaults to 100 and is capped at 100.
+                  Prefer a stable ORDER BY clause when paginating. This
+                  endpoint supports the published SQL dialect, not full
+                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            randomCards:
+              value:
+                ok: true
+                data:
+                  statementType: select
+                  resource: cards
+                  sql: >-
+                    SELECT card_id, front_text, back_text, tags FROM cards
+                    ORDER BY RANDOM() LIMIT 3 OFFSET 0
+                  normalizedSql: >-
+                    SELECT card_id, front_text, back_text, tags FROM cards
+                    ORDER BY RANDOM() LIMIT 3 OFFSET 0
+                  rows:
+                    - card_id: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                      front_text: Example question
+                      back_text: Example answer
+                      tags:
+                        - english
+                        - examples
+                  rowCount: 1
+                  limit: 3
+                  offset: 0
+                  hasMore: true
+                instructions: >-
+                  Repeat the same query with a larger OFFSET to continue
+                  pagination. LIMIT defaults to 100 and is capped at 100.
                   Prefer a stable ORDER BY clause when paginating. This
                   endpoint supports the published SQL dialect, not full
                   PostgreSQL. Use docs.openapiUrl for the full contract.

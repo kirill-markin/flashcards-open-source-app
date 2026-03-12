@@ -95,9 +95,9 @@ enum LocalAISqlPredicate: Sendable {
 
 typealias LocalAISqlPredicateClause = [LocalAISqlPredicate]
 
-struct LocalAISqlSelectOrderBy: Sendable {
-    let expressionName: String
-    let direction: LocalAISqlOrderDirection
+enum LocalAISqlSelectOrderBy: Sendable {
+    case column(expressionName: String, direction: LocalAISqlOrderDirection)
+    case random
 }
 
 enum LocalAISqlSelectItem: Sendable {
@@ -734,15 +734,35 @@ private func localAISqlParsePredicateClauses(
 }
 
 private func localAISqlParseOrderBy(value: String) throws -> [LocalAISqlSelectOrderBy] {
-    try localAISqlSplitTopLevel(value: value, separator: ",").map { item in
+    let items = try localAISqlSplitTopLevel(value: value, separator: ",").map { item in
+        item.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    if items.count == 1,
+       let firstItem = items.first,
+       localAISqlMatch(pattern: #"^RANDOM\s*\(\s*\)$"#, value: firstItem) != nil {
+        return [.random]
+    }
+
+    for item in items where localAISqlMatch(pattern: #"^RANDOM\s*\(\s*\)\s+(ASC|DESC)$"#, value: item) != nil {
+        throw LocalStoreError.validation("RANDOM() does not support ASC or DESC")
+    }
+
+    if items.contains(where: { item in
+        localAISqlMatch(pattern: #"^RANDOM\s*\(\s*\)$"#, value: item) != nil
+    }) {
+        throw LocalStoreError.validation("RANDOM() must be the only ORDER BY item")
+    }
+
+    return try items.map { item in
         guard let groups = localAISqlMatch(
             pattern: #"^([a-z_][a-z0-9_]*)(?:\s+(ASC|DESC))?$"#,
-            value: item.trimmingCharacters(in: .whitespacesAndNewlines)
+            value: item
         ) else {
             throw LocalStoreError.validation("Unsupported ORDER BY item: \(item)")
         }
 
-        return LocalAISqlSelectOrderBy(
+        return .column(
             expressionName: groups[1].lowercased(),
             direction: (groups.count > 2 && groups[2].isEmpty == false ? groups[2].lowercased() : "asc") == "desc" ? .desc : .asc
         )
