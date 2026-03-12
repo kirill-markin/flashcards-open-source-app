@@ -1,10 +1,10 @@
 /**
  iOS-local AI tool executor.
 
- This file mirrors the shared TypeScript contract and backend behavior defined
- in:
- - `apps/backend/src/aiTools/sharedToolContracts.ts`
- - `apps/backend/src/aiTools/agentToolOperations.ts`
+ This file mirrors legacy local tool behavior while the backend has already
+ moved to the SQL-based shared contract in:
+ - `apps/backend/src/aiTools/agentSql.ts`
+ - `apps/backend/src/aiTools/sqlDialect.ts`
 
  The mirror remains separate because iOS executes directly against local
  SQLite-backed state. The browser-local mirror lives in

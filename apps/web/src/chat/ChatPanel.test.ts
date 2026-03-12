@@ -172,19 +172,10 @@ function createMemoryStorage(): Storage {
 }
 
 describe("formatToolLabel", () => {
-  it("renders plural-only card and deck tool labels", () => {
-    expect(formatToolLabel("list_tags")).toBe("List tags");
-    expect(formatToolLabel("get_cards")).toBe("Get cards");
-    expect(formatToolLabel("create_cards")).toBe("Create cards");
-    expect(formatToolLabel("update_cards")).toBe("Update cards");
-    expect(formatToolLabel("delete_cards")).toBe("Delete cards");
-    expect(formatToolLabel("list_decks")).toBe("List decks");
-    expect(formatToolLabel("search_decks")).toBe("Search decks");
-    expect(formatToolLabel("get_decks")).toBe("Get decks");
-    expect(formatToolLabel("create_decks")).toBe("Create decks");
-    expect(formatToolLabel("update_decks")).toBe("Update decks");
-    expect(formatToolLabel("delete_decks")).toBe("Delete decks");
-    expect(formatToolLabel("summarize_deck_state")).toBe("Deck summary");
+  it("renders labels for the reduced local tool surface", () => {
+    expect(formatToolLabel("sql")).toBe("SQL");
+    expect(formatToolLabel("get_cloud_settings")).toBe("Cloud settings");
+    expect(formatToolLabel("list_outbox")).toBe("Outbox");
   });
 });
 
@@ -485,10 +476,10 @@ describe("ChatPanel autoscroll", () => {
         {
           type: "tool_call",
           toolCallId: "tool-1",
-          name: "list_cards",
+          name: "sql",
           status: "completed",
-          input: "{\"limit\":10}",
-          output: "[{\"cardId\":\"card-1\"}]",
+          input: "{\"sql\":\"SHOW TABLES\"}",
+          output: "{\"rows\":[{\"table_name\":\"cards\"}]}",
         },
         { type: "text", text: "\n\nAfter tool\n\n" },
       ],
@@ -515,7 +506,7 @@ describe("ChatPanel autoscroll", () => {
     expect(children[0]?.tagName).toBe("SPAN");
     expect(children[0]?.textContent).toBe("Before tool\n\n");
     expect(children[1]?.tagName).toBe("DETAILS");
-    expect(children[1]?.textContent).toContain("List cards");
+    expect(children[1]?.textContent).toContain("SQL");
     expect(children[2]?.tagName).toBe("SPAN");
     expect(children[2]?.textContent).toBe("\n\nAfter tool\n\n");
   });

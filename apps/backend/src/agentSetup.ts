@@ -1,13 +1,7 @@
 import type { AgentApiKeyConnection } from "./agentApiKeys";
 import {
-  createAgentCreateWorkspaceAction,
   createAgentEnvelope,
   createAgentErrorEnvelope,
-  createAgentListToolsAction,
-  createAgentListWorkspacesAction,
-  createAgentOpenApiAction,
-  createAgentSelectWorkspaceAction,
-  createAgentToolAction,
   type AgentEnvelope,
   type AgentErrorEnvelope,
 } from "./agentEnvelope";
@@ -37,56 +31,57 @@ type WorkspaceData = Readonly<{
   workspace: WorkspaceSummary;
 }>;
 
-function buildWorkspaceReadyActions(requestUrl: string) {
-  return [
-    createAgentListToolsAction(requestUrl),
-    createAgentToolAction(requestUrl, "get_workspace_context"),
-    createAgentToolAction(requestUrl, "search_cards"),
-    createAgentToolAction(requestUrl, "create_cards"),
-  ] as const;
-}
-
 function buildAccountBootstrapInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
   return [
-    `Call GET ${apiBaseUrl}/agent/me to load account context.`,
-    `Then call GET ${apiBaseUrl}/agent/workspaces?limit=100 to inspect available workspaces for this API key.`,
-    `A first workspace is auto-provisioned for new users. Create additional workspaces with POST ${apiBaseUrl}/agent/workspaces or select one with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select before tool calls.`,
-    `For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter and stop when data.nextCursor is null.`,
-    "Read payload from data.* and do not expect resource fields at the top level.",
-    "Select the next endpoint from instructions and confirm it with actions.",
+    `Next call GET ${apiBaseUrl}/agent/workspaces?limit=100 to inspect available workspaces for this API key.`,
+    `If data.nextCursor is not null, continue with the same endpoint and cursor=data.nextCursor until it becomes null.`,
+    `If no workspace is selected, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select.`,
+    `If no workspace exists, create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}.`,
+    `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
+    "Read payload from data.* and use docs.openapiUrl for the full contract.",
   ].join(" ");
 }
 
 function buildNoWorkspaceInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `No workspace is currently available for this API key. Create one with POST ${apiBaseUrl}/agent/workspaces using {\"name\":\"Personal\"}, then continue with tools. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter and stop when data.nextCursor is null. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
+  return [
+    `No workspace is currently available for this API key.`,
+    `Create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}.`,
+    `After the workspace is created, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
+    "Read payload from data.* and use docs.openapiUrl for the full contract.",
+  ].join(" ");
 }
 
 function buildSelectWorkspaceInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `Select a workspace for this API key by calling POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select after listing with GET ${apiBaseUrl}/agent/workspaces?limit=100. If data.nextCursor is not null, call the same endpoint again with the same limit and cursor=data.nextCursor to continue listing. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
+  return [
+    `Select a workspace with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select.`,
+    `If data.nextCursor is not null, continue listing with GET ${apiBaseUrl}/agent/workspaces?limit=100 and cursor=data.nextCursor until it becomes null.`,
+    `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
+    "Read payload from data.* and use docs.openapiUrl for the full contract.",
+  ].join(" ");
 }
 
 function buildWorkspaceReadyInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `Workspace bootstrap is complete. Call GET ${apiBaseUrl}/agent/tools and then POST ${apiBaseUrl}/agent/tools/get_workspace_context to continue. For paginated responses, pass data.nextCursor back unchanged as the cursor field or query parameter and stop when data.nextCursor is null. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.`;
+  return [
+    `Workspace bootstrap is complete.`,
+    `Use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
+    `Start discovery with SHOW TABLES or DESCRIBE cards when helpful.`,
+    "This endpoint accepts the published SQL dialect, not full PostgreSQL.",
+    "Read payload from data.* and use docs.openapiUrl for the full contract.",
+  ].join(" ");
 }
 
 export function shouldUseAgentSetupEnvelope(transport: AuthTransport): boolean {
   return transport === "api_key";
 }
 
-/**
- * Returns the authenticated account context plus the next recommended action
- * for an ApiKey-based external AI agent.
- */
 export function createAgentAccountEnvelope(
   requestUrl: string,
   requestContext: RequestContext,
 ): AgentEnvelope<AccountData> {
-  const actions = [createAgentListWorkspacesAction(requestUrl)];
-
   return createAgentEnvelope(
     requestUrl,
     {
@@ -99,71 +94,49 @@ export function createAgentAccountEnvelope(
         createdAt: requestContext.userSettingsCreatedAt,
       },
     },
-    actions,
     buildAccountBootstrapInstructions(requestUrl),
   );
 }
 
-/**
- * Guides an ApiKey-authenticated external AI agent toward creating or
- * selecting a workspace before calling tool endpoints.
- */
 export function createAgentWorkspacesEnvelope(
   requestUrl: string,
   workspaces: ReadonlyArray<WorkspaceSummary>,
   nextCursor: string | null,
 ): AgentEnvelope<WorkspacesData> {
   if (workspaces.length === 0 && nextCursor === null) {
-    const actions = [createAgentCreateWorkspaceAction(requestUrl)];
     return createAgentEnvelope(
       requestUrl,
       { workspaces, nextCursor },
-      actions,
       buildNoWorkspaceInstructions(requestUrl),
     );
   }
 
   if (workspaces.some((workspace) => workspace.isSelected)) {
-    const actions = buildWorkspaceReadyActions(requestUrl);
     return createAgentEnvelope(
       requestUrl,
       { workspaces, nextCursor },
-      actions,
       buildWorkspaceReadyInstructions(requestUrl),
     );
   }
 
-  const actions = [createAgentSelectWorkspaceAction(requestUrl)];
   return createAgentEnvelope(
     requestUrl,
     { workspaces, nextCursor },
-    actions,
     buildSelectWorkspaceInstructions(requestUrl),
   );
 }
 
-/**
- * Confirms that workspace bootstrap is complete and points the external AI
- * agent at the compact tool surface.
- */
 export function createAgentWorkspaceReadyEnvelope(
   requestUrl: string,
   workspace: WorkspaceSummary,
 ): AgentEnvelope<WorkspaceData> {
-  const actions = buildWorkspaceReadyActions(requestUrl);
-
   return createAgentEnvelope(
     requestUrl,
     { workspace },
-    actions,
     buildWorkspaceReadyInstructions(requestUrl),
   );
 }
 
-/**
- * Builds a deterministic error payload for ApiKey-authenticated bootstrap and
- * tool onboarding requests.
- */
 export function createAgentSetupErrorEnvelope(
   requestUrl: string,
   code: string,
@@ -172,13 +145,7 @@ export function createAgentSetupErrorEnvelope(
   requestId?: string,
   details?: HttpErrorDetails,
 ): AgentErrorEnvelope {
-  const actions = code === "WORKSPACE_SELECTION_REQUIRED"
-    ? [createAgentListWorkspacesAction(requestUrl), createAgentSelectWorkspaceAction(requestUrl)]
-    : code === "AGENT_TOOL_INPUT_INVALID"
-      ? [createAgentListToolsAction(requestUrl), createAgentOpenApiAction(requestUrl)]
-      : [];
-
-  return createAgentErrorEnvelope(requestUrl, code, message, instructions, requestId, details, actions);
+  return createAgentErrorEnvelope(requestUrl, code, message, instructions, requestId, details);
 }
 
 export type AgentConnectionListEnvelope = Readonly<{
@@ -211,14 +178,6 @@ export type AgentConnectionManagementErrorEnvelope = Readonly<{
   requestId?: string;
 }>;
 
-export function createAgentConnectionRevokeEnvelope(connection: AgentApiKeyConnection): AgentConnectionRevokeEnvelope {
-  return {
-    ok: true,
-    connection,
-    instructions: "This bot connection has been revoked. Its API key is no longer valid for future requests.",
-  };
-}
-
 export function createAgentConnectionManagementErrorEnvelope(
   code: string,
   message: string,
@@ -233,5 +192,13 @@ export function createAgentConnectionManagementErrorEnvelope(
     },
     instructions,
     requestId,
+  };
+}
+
+export function createAgentConnectionRevokeEnvelope(connection: AgentApiKeyConnection): AgentConnectionRevokeEnvelope {
+  return {
+    ok: true,
+    connection,
+    instructions: "This bot connection has been revoked. Its API key is no longer valid for future requests.",
   };
 }

@@ -1,13 +1,10 @@
 /**
  * Browser-local AI tool executor.
  *
- * This module mirrors the shared read/write tool behavior exposed by the
- * backend contract layers in:
- * - `apps/backend/src/aiTools/sharedToolContracts.ts`
- * - `apps/backend/src/aiTools/agentToolOperations.ts`
+ * Shared workspace access is intentionally collapsed to the single `sql` tool
+ * so the browser-local runtime mirrors the public agent surface. Local-only
+ * runtime utilities remain separate.
  *
- * The browser runtime intentionally keeps its own implementation because it
- * executes against in-memory web app state instead of the backend database.
  * The iOS mirror lives in
  * `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`.
  */
@@ -18,14 +15,11 @@ import {
   isCardDue,
   isCardNew,
   isCardReviewed,
-  makeDeckCardStats,
-  matchesCardFilter,
   makeWorkspaceTagsSummary,
 } from "../appData/domain";
 import type { PersistedOutboxRecord } from "../syncStorage";
 import type {
   Card,
-  CardFilter,
   CloudSettings,
   CreateCardInput,
   CreateDeckInput,
@@ -34,12 +28,21 @@ import type {
   SessionInfo,
   UpdateCardInput,
   UpdateDeckInput,
-  UserSettings,
   Workspace,
-  WorkspaceSchedulerSettings,
-  WorkspaceTagsSummary,
   WorkspaceSummary,
 } from "../types";
+import {
+  getSqlResourceDescriptors,
+  parseSqlStatement,
+  type ParsedSqlStatement,
+  type SqlPredicate,
+  type SqlResourceName,
+  type SqlSelectOrderBy,
+} from "../../../backend/src/aiTools/sqlDialect";
+
+type SqlRowScalar = string | number | boolean | null;
+type SqlRowValue = SqlRowScalar | ReadonlyArray<string> | ReadonlyArray<number>;
+type SqlRow = Readonly<Record<string, SqlRowValue>>;
 
 type Nullable<T> = T | null;
 
@@ -59,37 +62,10 @@ export type LocalToolCallRequest = Readonly<{
  * tool list in `apps/ios/Flashcards/Flashcards/AI/AIChatTypes.swift`.
  */
 export const LOCAL_TOOL_NAMES = [
-  "get_workspace_context",
-  "list_tags",
-  "list_cards",
-  "get_cards",
-  "search_cards",
-  "list_due_cards",
-  "list_decks",
-  "search_decks",
-  "get_decks",
-  "list_review_history",
-  "get_scheduler_settings",
+  "sql",
   "get_cloud_settings",
   "list_outbox",
-  "summarize_deck_state",
-  "create_cards",
-  "update_cards",
-  "delete_cards",
-  "create_decks",
-  "update_decks",
-  "delete_decks",
 ] as const;
-
-type AIWorkspaceContextPayload = Readonly<{
-  workspace: Workspace;
-  userSettings: UserSettings;
-  schedulerSettings: WorkspaceSchedulerSettings;
-  cloudSettings: CloudSettings;
-  homeSnapshot: HomeSnapshot;
-}>;
-
-type AIWorkspaceTagsPayload = WorkspaceTagsSummary;
 
 type AIOutboxEntryPayload = Readonly<{
   operationId: string;
@@ -104,140 +80,9 @@ type AIOutboxEntryPayload = Readonly<{
   payloadSummary: string;
 }>;
 
-type LocalCardsPagePayload = Readonly<{
-  cards: ReadonlyArray<Card>;
-  nextCursor: string | null;
-}>;
-
-type LocalDecksPagePayload = Readonly<{
-  decks: ReadonlyArray<Deck>;
-  nextCursor: string | null;
-}>;
-
-type LocalReviewHistoryPagePayload = Readonly<{
-  history: ReadonlyArray<NonNullable<MutableSnapshot["reviewEvents"][number]>>;
-  nextCursor: string | null;
-}>;
-
 type LocalOutboxPagePayload = Readonly<{
   outbox: ReadonlyArray<AIOutboxEntryPayload>;
   nextCursor: string | null;
-}>;
-
-type AIBulkDeleteCardsPayload = Readonly<{
-  ok: true;
-  deletedCardIds: ReadonlyArray<string>;
-  deletedCount: number;
-}>;
-
-type AIBulkDeleteDecksPayload = Readonly<{
-  ok: true;
-  deletedDeckIds: ReadonlyArray<string>;
-  deletedCount: number;
-}>;
-
-type DeckSummaryPayload = Readonly<{
-  totalCards: number;
-  dueCards: number;
-  newCards: number;
-  reviewedCards: number;
-  totalReps: number;
-  totalLapses: number;
-}>;
-
-type CreateCardToolInput = Readonly<{
-  frontText: string;
-  backText: string;
-  tags: ReadonlyArray<string>;
-  effortLevel: Card["effortLevel"];
-}>;
-
-type CreateCardsToolInput = Readonly<{
-  cards: ReadonlyArray<CreateCardToolInput>;
-}>;
-
-type GetCardsToolInput = Readonly<{
-  cardIds: ReadonlyArray<string>;
-}>;
-
-type UpdateCardToolInput = Readonly<{
-  cardId: string;
-  frontText: Nullable<string>;
-  backText: Nullable<string>;
-  tags: Nullable<ReadonlyArray<string>>;
-  effortLevel: Nullable<Card["effortLevel"]>;
-}>;
-
-type UpdateCardsToolInput = Readonly<{
-  updates: ReadonlyArray<UpdateCardToolInput>;
-}>;
-
-type DeleteCardsToolInput = Readonly<{
-  cardIds: ReadonlyArray<string>;
-}>;
-
-type CreateDeckToolInput = Readonly<{
-  name: string;
-  effortLevels: ReadonlyArray<Card["effortLevel"]>;
-  tags: ReadonlyArray<string>;
-}>;
-
-type CreateDecksToolInput = Readonly<{
-  decks: ReadonlyArray<CreateDeckToolInput>;
-}>;
-
-type UpdateDeckToolInput = Readonly<{
-  deckId: string;
-  name: Nullable<string>;
-  effortLevels: Nullable<ReadonlyArray<Card["effortLevel"]>>;
-  tags: Nullable<ReadonlyArray<string>>;
-}>;
-
-type UpdateDecksToolInput = Readonly<{
-  updates: ReadonlyArray<UpdateDeckToolInput>;
-}>;
-
-type DeleteDecksToolInput = Readonly<{
-  deckIds: ReadonlyArray<string>;
-}>;
-
-type SearchCardsToolInput = Readonly<{
-  query: string;
-  cursor: string | null;
-  limit: number;
-  filter: CardFilter | null;
-}>;
-
-type SearchDecksToolInput = Readonly<{
-  query: string;
-  cursor: string | null;
-  limit: number;
-}>;
-
-type ListCardsToolInput = Readonly<{
-  cursor: string | null;
-  limit: number;
-  filter: CardFilter | null;
-}>;
-
-type ListDueCardsToolInput = Readonly<{
-  cursor: string | null;
-  limit: number;
-}>;
-
-type GetDecksToolInput = Readonly<{
-  deckIds: ReadonlyArray<string>;
-}>;
-
-type ListReviewHistoryToolInput = Readonly<{
-  cursor: string | null;
-  limit: number;
-  cardId: string | null;
-}>;
-
-type ListOutboxToolInput = Readonly<{
-  cursor: string | null;
-  limit: number;
 }>;
 
 type WebLocalToolExecutorDependencies = Pick<
@@ -253,8 +98,28 @@ type WebLocalToolExecutorDependencies = Pick<
   | "deleteDeckItem"
 >;
 
-const MAX_BATCH_COUNT = 100;
-const MAXIMUM_SEARCH_TOKEN_COUNT = 5;
+type SqlExecutionPayload =
+  | Readonly<{
+    statementType: "show_tables" | "describe" | "select";
+    resource: SqlResourceName | null;
+    sql: string;
+    normalizedSql: string;
+    rows: ReadonlyArray<SqlRow>;
+    rowCount: number;
+    limit: number | null;
+    offset: number | null;
+    hasMore: boolean;
+  }>
+  | Readonly<{
+    statementType: "insert" | "update" | "delete";
+    resource: "cards" | "decks";
+    sql: string;
+    normalizedSql: string;
+    rows: ReadonlyArray<SqlRow>;
+    affectedCount: number;
+  }>;
+
+const MAX_SQL_LIMIT = 100;
 
 function expectRecord(value: unknown, context: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -300,112 +165,12 @@ function expectInteger(value: unknown, context: string): number {
   return value;
 }
 
-function expectNullableInteger(value: unknown, context: string): number | null {
-  if (value === null) {
-    return null;
+function normalizeLimit(limit: number): number {
+  if (limit < 1 || limit > 100) {
+    throw new Error("limit must be an integer between 1 and 100");
   }
 
-  return expectInteger(value, context);
-}
-
-function expectEffortLevel(value: unknown, context: string): Card["effortLevel"] {
-  if (value === "fast" || value === "medium" || value === "long") {
-    return value;
-  }
-
-  throw new Error(`${context} must be one of: fast, medium, long`);
-}
-
-function normalizeCardFilter(filter: CardFilter | null): CardFilter | null {
-  if (filter === null) {
-    return null;
-  }
-
-  const tags = filter.tags.reduce<Array<string>>((result, tag) => {
-    const normalizedTag = tag.trim();
-    const normalizedTagKey = normalizedTag.toLowerCase();
-    if (normalizedTag === "" || result.some((value) => value.toLowerCase() === normalizedTagKey)) {
-      return result;
-    }
-
-    result.push(normalizedTag);
-    return result;
-  }, []);
-  const effort = filter.effort.reduce<Array<Card["effortLevel"]>>((result, effortLevel) => {
-    if (result.includes(effortLevel)) {
-      return result;
-    }
-
-    result.push(effortLevel);
-    return result;
-  }, []);
-
-  if (tags.length === 0 && effort.length === 0) {
-    return null;
-  }
-
-  return {
-    tags,
-    effort,
-  };
-}
-
-function expectStringArray(value: unknown, context: string): ReadonlyArray<string> {
-  if (Array.isArray(value) === false) {
-    throw new Error(`${context} must be an array`);
-  }
-
-  return value.map((item, index) => expectString(item, `${context}[${index}]`));
-}
-
-function expectCardFilter(value: unknown, context: string): CardFilter | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  const record = expectRecord(value, context);
-  expectNoExtraKeys(record, ["tags", "effort"], context);
-  return normalizeCardFilter({
-    tags: record.tags === undefined ? [] : expectStringArray(record.tags, `${context}.tags`),
-    effort: record.effort === undefined
-      ? []
-      : expectStringArray(record.effort, `${context}.effort`).map((entry, index) => expectEffortLevel(entry, `${context}.effort[${index}]`)),
-  });
-}
-
-function expectNullableStringArray(value: unknown, context: string): ReadonlyArray<string> | null {
-  if (value === null) {
-    return null;
-  }
-
-  return expectStringArray(value, context);
-}
-
-function expectEffortLevelArray(value: unknown, context: string): ReadonlyArray<Card["effortLevel"]> {
-  if (Array.isArray(value) === false) {
-    throw new Error(`${context} must be an array`);
-  }
-
-  return value.map((item, index) => expectEffortLevel(item, `${context}[${index}]`));
-}
-
-function expectNullableEffortLevelArray(
-  value: unknown,
-  context: string,
-): ReadonlyArray<Card["effortLevel"]> | null {
-  if (value === null) {
-    return null;
-  }
-
-  return expectEffortLevelArray(value, context);
-}
-
-function expectArray(value: unknown, context: string): ReadonlyArray<unknown> {
-  if (Array.isArray(value) === false) {
-    throw new Error(`${context} must be an array`);
-  }
-
-  return value;
+  return limit;
 }
 
 function parseToolInput(toolCallRequest: LocalToolCallRequest): unknown {
@@ -417,65 +182,25 @@ function parseToolInput(toolCallRequest: LocalToolCallRequest): unknown {
   }
 }
 
-function normalizeLimit(limit: number): number {
-  if (limit < 1 || limit > 100) {
-    throw new Error("limit must be an integer between 1 and 100");
-  }
-
-  return limit;
-}
-
 function parseEmptyObjectInput(toolCallRequest: LocalToolCallRequest): void {
   const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
   expectNoExtraKeys(body, [], toolCallRequest.name);
 }
 
-function parseListPageInput(toolCallRequest: LocalToolCallRequest): Readonly<{ cursor: string | null; limit: number; filter: CardFilter | null }> {
+function parseSqlInput(toolCallRequest: LocalToolCallRequest): Readonly<{ sql: string }> {
   const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["cursor", "limit", "filter"], toolCallRequest.name);
+  expectNoExtraKeys(body, ["sql"], toolCallRequest.name);
+  return {
+    sql: expectString(body.sql, `${toolCallRequest.name}.sql`).trim(),
+  };
+}
+
+function parseListOutboxInput(toolCallRequest: LocalToolCallRequest): Readonly<{ cursor: string | null; limit: number }> {
+  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
+  expectNoExtraKeys(body, ["cursor", "limit"], toolCallRequest.name);
   return {
     cursor: expectNullableString(body.cursor, `${toolCallRequest.name}.cursor`),
     limit: expectInteger(body.limit, `${toolCallRequest.name}.limit`),
-    filter: expectCardFilter(body.filter, `${toolCallRequest.name}.filter`),
-  };
-}
-
-function parseQueryPageInput(
-  toolCallRequest: LocalToolCallRequest,
-): Readonly<{ query: string; cursor: string | null; limit: number; filter: CardFilter | null }> {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["query", "cursor", "limit", "filter"], toolCallRequest.name);
-  return {
-    query: expectString(body.query, `${toolCallRequest.name}.query`),
-    cursor: expectNullableString(body.cursor, `${toolCallRequest.name}.cursor`),
-    limit: expectInteger(body.limit, `${toolCallRequest.name}.limit`),
-    filter: expectCardFilter(body.filter, `${toolCallRequest.name}.filter`),
-  };
-}
-
-function parseCardIdsInput(toolCallRequest: LocalToolCallRequest): GetCardsToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["cardIds"], toolCallRequest.name);
-  return {
-    cardIds: expectStringArray(body.cardIds, `${toolCallRequest.name}.cardIds`),
-  };
-}
-
-function parseDeckIdsInput(toolCallRequest: LocalToolCallRequest): GetDecksToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["deckIds"], toolCallRequest.name);
-  return {
-    deckIds: expectStringArray(body.deckIds, `${toolCallRequest.name}.deckIds`),
-  };
-}
-
-function parseListReviewHistoryInput(toolCallRequest: LocalToolCallRequest): ListReviewHistoryToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["cursor", "limit", "cardId"], toolCallRequest.name);
-  return {
-    cursor: expectNullableString(body.cursor, `${toolCallRequest.name}.cursor`),
-    limit: expectInteger(body.limit, `${toolCallRequest.name}.limit`),
-    cardId: expectNullableString(body.cardId, `${toolCallRequest.name}.cardId`),
   };
 }
 
@@ -489,17 +214,11 @@ function encodePageCursor(index: number): string {
 
 function decodePageCursor(cursor: string): number {
   try {
-    const normalizedCursor = cursor
-      .replaceAll("-", "+")
-      .replaceAll("_", "/");
+    const normalizedCursor = cursor.replaceAll("-", "+").replaceAll("_", "/");
     const paddingLength = (4 - (normalizedCursor.length % 4)) % 4;
     const paddedCursor = `${normalizedCursor}${"=".repeat(paddingLength)}`;
     const parsedValue = JSON.parse(globalThis.atob(paddedCursor)) as unknown;
-    if (typeof parsedValue !== "object" || parsedValue === null || Array.isArray(parsedValue)) {
-      throw new Error("Cursor payload must be an object");
-    }
-
-    const recordValue = parsedValue as Record<string, unknown>;
+    const recordValue = expectRecord(parsedValue, "cursor");
     const index = recordValue.index;
     if (typeof index !== "number" || Number.isInteger(index) === false || index < 0) {
       throw new Error("Cursor index must be a non-negative integer");
@@ -520,148 +239,13 @@ function getPageStartIndex(cursor: string | null): number {
   return decodePageCursor(cursor);
 }
 
-function getNextCursorForPage(
-  totalCount: number,
-  startIndex: number,
-  visibleCount: number,
-): string | null {
+function getNextCursorForPage(totalCount: number, startIndex: number, visibleCount: number): string | null {
   const nextIndex = startIndex + visibleCount;
   if (nextIndex >= totalCount) {
     return null;
   }
 
   return encodePageCursor(nextIndex);
-}
-
-function parseCreateCardsInput(toolCallRequest: LocalToolCallRequest): CreateCardsToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["cards"], toolCallRequest.name);
-
-  return {
-    cards: expectArray(body.cards, `${toolCallRequest.name}.cards`).map((item, index) => {
-      const entry = expectRecord(item, `${toolCallRequest.name}.cards[${index}]`);
-      expectNoExtraKeys(entry, ["frontText", "backText", "tags", "effortLevel"], `${toolCallRequest.name}.cards[${index}]`);
-      return {
-        frontText: expectString(entry.frontText, `${toolCallRequest.name}.cards[${index}].frontText`),
-        backText: expectString(entry.backText, `${toolCallRequest.name}.cards[${index}].backText`),
-        tags: entry.tags === undefined
-          ? []
-          : expectStringArray(entry.tags, `${toolCallRequest.name}.cards[${index}].tags`),
-        effortLevel: expectEffortLevel(entry.effortLevel, `${toolCallRequest.name}.cards[${index}].effortLevel`),
-      };
-    }),
-  };
-}
-
-function parseUpdateCardsInput(toolCallRequest: LocalToolCallRequest): UpdateCardsToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["updates"], toolCallRequest.name);
-
-  return {
-    updates: expectArray(body.updates, `${toolCallRequest.name}.updates`).map((item, index) => {
-      const entry = expectRecord(item, `${toolCallRequest.name}.updates[${index}]`);
-      expectNoExtraKeys(
-        entry,
-        ["cardId", "frontText", "backText", "tags", "effortLevel"],
-        `${toolCallRequest.name}.updates[${index}]`,
-      );
-      return {
-        cardId: expectString(entry.cardId, `${toolCallRequest.name}.updates[${index}].cardId`),
-        frontText: entry.frontText === undefined
-          ? null
-          : expectNullableString(entry.frontText, `${toolCallRequest.name}.updates[${index}].frontText`),
-        backText: entry.backText === undefined
-          ? null
-          : expectNullableString(entry.backText, `${toolCallRequest.name}.updates[${index}].backText`),
-        tags: entry.tags === undefined
-          ? null
-          : expectNullableStringArray(entry.tags, `${toolCallRequest.name}.updates[${index}].tags`),
-        effortLevel: entry.effortLevel === undefined || entry.effortLevel === null
-          ? null
-          : expectEffortLevel(entry.effortLevel, `${toolCallRequest.name}.updates[${index}].effortLevel`),
-      };
-    }),
-  };
-}
-
-function parseDeleteCardsInput(toolCallRequest: LocalToolCallRequest): DeleteCardsToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["cardIds"], toolCallRequest.name);
-  return {
-    cardIds: expectStringArray(body.cardIds, `${toolCallRequest.name}.cardIds`),
-  };
-}
-
-function parseCreateDecksInput(toolCallRequest: LocalToolCallRequest): CreateDecksToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["decks"], toolCallRequest.name);
-
-  return {
-    decks: expectArray(body.decks, `${toolCallRequest.name}.decks`).map((item, index) => {
-      const entry = expectRecord(item, `${toolCallRequest.name}.decks[${index}]`);
-      expectNoExtraKeys(entry, ["name", "effortLevels", "tags"], `${toolCallRequest.name}.decks[${index}]`);
-      return {
-        name: expectString(entry.name, `${toolCallRequest.name}.decks[${index}].name`),
-        effortLevels: entry.effortLevels === undefined
-          ? []
-          : expectEffortLevelArray(entry.effortLevels, `${toolCallRequest.name}.decks[${index}].effortLevels`),
-        tags: entry.tags === undefined
-          ? []
-          : expectStringArray(entry.tags, `${toolCallRequest.name}.decks[${index}].tags`),
-      };
-    }),
-  };
-}
-
-function parseUpdateDecksInput(toolCallRequest: LocalToolCallRequest): UpdateDecksToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["updates"], toolCallRequest.name);
-
-  return {
-    updates: expectArray(body.updates, `${toolCallRequest.name}.updates`).map((item, index) => {
-      const entry = expectRecord(item, `${toolCallRequest.name}.updates[${index}]`);
-      expectNoExtraKeys(entry, ["deckId", "name", "effortLevels", "tags"], `${toolCallRequest.name}.updates[${index}]`);
-      return {
-        deckId: expectString(entry.deckId, `${toolCallRequest.name}.updates[${index}].deckId`),
-        name: entry.name === undefined
-          ? null
-          : expectNullableString(entry.name, `${toolCallRequest.name}.updates[${index}].name`),
-        effortLevels: entry.effortLevels === undefined
-          ? null
-          : expectNullableEffortLevelArray(
-            entry.effortLevels,
-            `${toolCallRequest.name}.updates[${index}].effortLevels`,
-          ),
-        tags: entry.tags === undefined
-          ? null
-          : expectNullableStringArray(entry.tags, `${toolCallRequest.name}.updates[${index}].tags`),
-      };
-    }),
-  };
-}
-
-function parseDeleteDecksInput(toolCallRequest: LocalToolCallRequest): DeleteDecksToolInput {
-  const body = expectRecord(parseToolInput(toolCallRequest), toolCallRequest.name);
-  expectNoExtraKeys(body, ["deckIds"], toolCallRequest.name);
-  return {
-    deckIds: expectStringArray(body.deckIds, `${toolCallRequest.name}.deckIds`),
-  };
-}
-
-function validateBatchCount(count: number, label: string): void {
-  if (count < 1) {
-    throw new Error(`${label} batch must contain at least one item`);
-  }
-
-  if (count > MAX_BATCH_COUNT) {
-    throw new Error(`${label} batch must contain at most ${MAX_BATCH_COUNT} items`);
-  }
-}
-
-function validateUniqueIds(ids: ReadonlyArray<string>, label: string): void {
-  if (new Set(ids).size !== ids.length) {
-    throw new Error(`${label} batch must not contain duplicate ${label.toLowerCase()}Id values`);
-  }
 }
 
 function compareCardsByUpdatedAt(left: Card, right: Card): number {
@@ -679,14 +263,6 @@ function compareDecksByUpdatedAt(left: Deck, right: Deck): number {
 
 function currentActiveCards(snapshot: MutableSnapshot): ReadonlyArray<Card> {
   return [...deriveActiveCards(snapshot.cards)].sort(compareCardsByUpdatedAt);
-}
-
-function cardsMatchingFilter(cards: ReadonlyArray<Card>, filter: CardFilter | null): ReadonlyArray<Card> {
-  if (filter === null) {
-    return cards;
-  }
-
-  return cards.filter((card) => matchesCardFilter(filter, card));
 }
 
 function activeDecks(snapshot: MutableSnapshot): ReadonlyArray<Deck> {
@@ -711,7 +287,7 @@ function dueCards(snapshot: MutableSnapshot): ReadonlyArray<Card> {
 function findCard(snapshot: MutableSnapshot, cardId: string): Card {
   const card = snapshot.cards.find((item) => item.cardId === cardId && item.deletedAt === null);
   if (card === undefined) {
-    throw new Error("Card not found");
+    throw new Error(`Card not found: ${cardId}`);
   }
 
   return card;
@@ -720,100 +296,29 @@ function findCard(snapshot: MutableSnapshot, cardId: string): Card {
 function findDeck(snapshot: MutableSnapshot, deckId: string): Deck {
   const deck = snapshot.decks.find((item) => item.deckId === deckId && item.deletedAt === null);
   if (deck === undefined) {
-    throw new Error("Deck not found");
+    throw new Error(`Deck not found: ${deckId}`);
   }
 
   return deck;
 }
 
-// Keep in sync with apps/backend/src/searchTokens.ts::tokenizeSearchText.
-function tokenizeSearchText(searchText: string): ReadonlyArray<string> {
-  const normalizedSearchText = searchText.trim().toLowerCase();
-  if (normalizedSearchText === "") {
-    return [];
-  }
-
-  const tokens = normalizedSearchText.split(/\s+/);
-  if (tokens.length <= MAXIMUM_SEARCH_TOKEN_COUNT) {
-    return tokens;
-  }
-
-  return [
-    ...tokens.slice(0, MAXIMUM_SEARCH_TOKEN_COUNT - 1),
-    tokens.slice(MAXIMUM_SEARCH_TOKEN_COUNT - 1).join(" "),
-  ];
-}
-
-function matchesAllSearchTokensInValues(values: ReadonlyArray<string>, searchTokens: ReadonlyArray<string>): boolean {
-  const normalizedValues = values.map((value) => value.toLowerCase());
-  return searchTokens.every((token) => normalizedValues.some((value) => value.includes(token)));
-}
-
-function searchCards(
-  snapshot: MutableSnapshot,
-  query: string,
-  limit: number,
-  filter: CardFilter | null,
-): ReadonlyArray<Card> {
-  const searchTokens = tokenizeSearchText(query);
-  if (searchTokens.length === 0) {
-    throw new Error("query must not be empty");
-  }
-
-  return cardsMatchingFilter(currentActiveCards(snapshot), filter)
-    .filter((card) => matchesAllSearchTokensInValues(
-      [card.frontText, card.backText, ...card.tags, card.effortLevel],
-      searchTokens,
-    ))
-    .slice(0, limit);
-}
-
-function searchDecks(snapshot: MutableSnapshot, query: string, limit: number): ReadonlyArray<Deck> {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (normalizedQuery === "") {
-    throw new Error("query must not be empty");
-  }
-
-  return activeDecks(snapshot)
-    .filter((deck) => deck.name.toLowerCase().includes(normalizedQuery)
-      || deck.filterDefinition.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery))
-      || deck.filterDefinition.effortLevels.some((effortLevel) => effortLevel.toLowerCase().includes(normalizedQuery)))
-    .slice(0, limit);
-}
-
-function makeCardsPagePayload(
-  cards: ReadonlyArray<Card>,
-  startIndex: number,
-  limit: number,
-): LocalCardsPagePayload {
-  const visibleCards = cards.slice(startIndex, startIndex + limit);
+function makeWorkspace(activeWorkspace: WorkspaceSummary): Workspace {
   return {
-    cards: visibleCards,
-    nextCursor: getNextCursorForPage(cards.length, startIndex, visibleCards.length),
+    workspaceId: activeWorkspace.workspaceId,
+    name: activeWorkspace.name,
+    createdAt: activeWorkspace.createdAt,
   };
 }
 
-function makeDecksPagePayload(
-  decks: ReadonlyArray<Deck>,
-  startIndex: number,
-  limit: number,
-): LocalDecksPagePayload {
-  const visibleDecks = decks.slice(startIndex, startIndex + limit);
-  return {
-    decks: visibleDecks,
-    nextCursor: getNextCursorForPage(decks.length, startIndex, visibleDecks.length),
-  };
-}
+function makeHomeSnapshot(snapshot: MutableSnapshot): HomeSnapshot {
+  const activeCards = deriveActiveCards(snapshot.cards);
 
-function makeReviewHistoryPagePayload(
-  reviewEvents: ReadonlyArray<MutableSnapshot["reviewEvents"][number]>,
-  startIndex: number,
-  limit: number,
-): LocalReviewHistoryPagePayload {
-  const visibleEvents = reviewEvents.slice(startIndex, startIndex + limit);
   return {
-    history: visibleEvents,
-    nextCursor: getNextCursorForPage(reviewEvents.length, startIndex, visibleEvents.length),
+    deckCount: activeDecks(snapshot).length,
+    totalCards: activeCards.length,
+    dueCount: activeCards.filter((card) => isCardDue(card, Date.now())).length,
+    newCount: activeCards.filter((card) => isCardNew(card)).length,
+    reviewedCount: activeCards.filter((card) => isCardReviewed(card)).length,
   };
 }
 
@@ -831,60 +336,6 @@ function describeOutboxPayload(record: PersistedOutboxRecord): string {
   }
 
   return `review event ${record.operation.payload.reviewEventId}`;
-}
-
-function makeWorkspace(activeWorkspace: WorkspaceSummary): Workspace {
-  return {
-    workspaceId: activeWorkspace.workspaceId,
-    name: activeWorkspace.name,
-    createdAt: activeWorkspace.createdAt,
-  };
-}
-
-function makeUserSettings(session: SessionInfo, activeWorkspace: WorkspaceSummary): UserSettings {
-  return {
-    userId: session.userId,
-    workspaceId: activeWorkspace.workspaceId,
-    email: session.profile.email,
-    locale: session.profile.locale,
-    createdAt: session.profile.createdAt,
-  };
-}
-
-function makeHomeSnapshot(snapshot: MutableSnapshot): HomeSnapshot {
-  const activeCards = deriveActiveCards(snapshot.cards);
-
-  return {
-    deckCount: activeDecks(snapshot).length,
-    totalCards: activeCards.length,
-    dueCount: activeCards.filter((card) => isCardDue(card, Date.now())).length,
-    newCount: activeCards.filter((card) => isCardNew(card)).length,
-    reviewedCount: activeCards.filter((card) => isCardReviewed(card)).length,
-  };
-}
-
-function makeWorkspaceContextPayload(
-  session: SessionInfo,
-  activeWorkspace: WorkspaceSummary,
-  snapshot: MutableSnapshot,
-): AIWorkspaceContextPayload {
-  const schedulerSettings = snapshot.workspaceSettings;
-  if (schedulerSettings === null) {
-    throw new Error("Workspace scheduler settings are not loaded");
-  }
-
-  const cloudSettings = snapshot.cloudSettings;
-  if (cloudSettings === null) {
-    throw new Error("Cloud settings are not loaded");
-  }
-
-  return {
-    workspace: makeWorkspace(activeWorkspace),
-    userSettings: makeUserSettings(session, activeWorkspace),
-    schedulerSettings,
-    cloudSettings,
-    homeSnapshot: makeHomeSnapshot(snapshot),
-  };
 }
 
 function makeOutboxPayload(
@@ -912,58 +363,341 @@ function makeOutboxPayload(
   };
 }
 
-function makeDeckSummary(snapshot: MutableSnapshot): DeckSummaryPayload {
-  const activeCards = deriveActiveCards(snapshot.cards);
-  const aggregateStats = makeDeckCardStats(activeCards, Date.now());
-
+function toCardRow(card: Card): SqlRow {
   return {
-    totalCards: aggregateStats.totalCards,
-    dueCards: aggregateStats.dueCards,
-    newCards: aggregateStats.newCards,
-    reviewedCards: aggregateStats.reviewedCards,
-    totalReps: activeCards.reduce((sum, card) => sum + card.reps, 0),
-    totalLapses: activeCards.reduce((sum, card) => sum + card.lapses, 0),
+    card_id: card.cardId,
+    front_text: card.frontText,
+    back_text: card.backText,
+    tags: card.tags,
+    effort_level: card.effortLevel,
+    due_at: card.dueAt,
+    reps: card.reps,
+    lapses: card.lapses,
+    updated_at: card.updatedAt,
+    deleted_at: card.deletedAt,
+    fsrs_card_state: card.fsrsCardState,
+    fsrs_step_index: card.fsrsStepIndex,
+    fsrs_stability: card.fsrsStability,
+    fsrs_difficulty: card.fsrsDifficulty,
+    fsrs_last_reviewed_at: card.fsrsLastReviewedAt,
+    fsrs_scheduled_days: card.fsrsScheduledDays,
   };
 }
 
-function toCreateCardInput(input: CreateCardToolInput): CreateCardInput {
+function toDeckRow(deck: Deck): SqlRow {
   return {
-    frontText: input.frontText,
-    backText: input.backText,
-    tags: input.tags,
-    effortLevel: input.effortLevel,
+    deck_id: deck.deckId,
+    name: deck.name,
+    tags: deck.filterDefinition.tags,
+    effort_levels: deck.filterDefinition.effortLevels,
+    created_at: deck.createdAt,
+    updated_at: deck.updatedAt,
+    deleted_at: deck.deletedAt,
   };
 }
 
-function toCreateDeckInput(input: CreateDeckToolInput): CreateDeckInput {
+function compareRowValues(left: SqlRowValue | undefined, right: SqlRowValue | undefined): number {
+  if (left === undefined && right === undefined) {
+    return 0;
+  }
+
+  if (left === undefined || left === null) {
+    return right === undefined || right === null ? 0 : -1;
+  }
+
+  if (right === undefined || right === null) {
+    return 1;
+  }
+
+  if (Array.isArray(left) || Array.isArray(right)) {
+    const leftText = Array.isArray(left) ? left.join("\u0000") : String(left);
+    const rightText = Array.isArray(right) ? right.join("\u0000") : String(right);
+    return leftText.localeCompare(rightText);
+  }
+
+  if (typeof left === "number" && typeof right === "number") {
+    return left - right;
+  }
+
+  if (typeof left === "boolean" && typeof right === "boolean") {
+    return Number(left) - Number(right);
+  }
+
+  return String(left).localeCompare(String(right));
+}
+
+function valuesEqual(left: SqlRowValue | undefined, right: string | number | boolean | null): boolean {
+  if (left === undefined || Array.isArray(left)) {
+    return false;
+  }
+
+  return left === right;
+}
+
+function normalizeStringArray(value: SqlRowValue | undefined): ReadonlyArray<string> {
+  if (value === undefined || value === null || Array.isArray(value) === false) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function normalizeSearchableText(value: SqlRowValue): string {
+  if (Array.isArray(value)) {
+    return value.join(" ").toLowerCase();
+  }
+
+  if (value === null) {
+    return "";
+  }
+
+  return String(value).toLowerCase();
+}
+
+function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
+  if (predicate.type === "match") {
+    const normalizedQuery = predicate.query.trim().toLowerCase();
+    if (normalizedQuery === "") {
+      throw new Error("MATCH query must not be empty");
+    }
+
+    return Object.values(row).some((value) => normalizeSearchableText(value).includes(normalizedQuery));
+  }
+
+  const columnValue = row[predicate.columnName];
+  if (predicate.type === "comparison") {
+    return valuesEqual(columnValue, predicate.value);
+  }
+
+  if (predicate.type === "in") {
+    return predicate.values.some((value) => valuesEqual(columnValue, value));
+  }
+
+  if (predicate.type === "is_null") {
+    return columnValue === null;
+  }
+
+  return normalizeStringArray(columnValue).some((value) => predicate.values.includes(value));
+}
+
+function applyPredicates(rows: ReadonlyArray<SqlRow>, predicates: ReadonlyArray<SqlPredicate>): ReadonlyArray<SqlRow> {
+  if (predicates.length === 0) {
+    return rows;
+  }
+
+  return rows.filter((row) => predicates.every((predicate) => rowMatchesPredicate(row, predicate)));
+}
+
+function applyOrderBy(rows: ReadonlyArray<SqlRow>, orderBy: ReadonlyArray<SqlSelectOrderBy>): ReadonlyArray<SqlRow> {
+  if (orderBy.length === 0) {
+    return rows;
+  }
+
+  return [...rows].sort((left, right) => {
+    for (const item of orderBy) {
+      const comparison = compareRowValues(left[item.columnName], right[item.columnName]);
+      if (comparison !== 0) {
+        return item.direction === "desc" ? -comparison : comparison;
+      }
+    }
+
+    return 0;
+  });
+}
+
+function paginateRows(
+  rows: ReadonlyArray<SqlRow>,
+  limit: number,
+  offset: number,
+): Readonly<{ rows: ReadonlyArray<SqlRow>; hasMore: boolean }> {
+  const pagedRows = rows.slice(offset, offset + limit);
   return {
-    name: input.name,
+    rows: pagedRows,
+    hasMore: offset + pagedRows.length < rows.length,
+  };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function likePatternToRegExp(value: string): RegExp {
+  const escaped = escapeRegExp(value).replace(/%/g, ".*").replace(/_/g, ".");
+  return new RegExp(`^${escaped}$`, "i");
+}
+
+function normalizeSqlLimit(limit: number | null): number {
+  if (limit === null) {
+    return MAX_SQL_LIMIT;
+  }
+
+  if (limit < 1) {
+    throw new Error("LIMIT must be greater than 0");
+  }
+
+  return Math.min(limit, MAX_SQL_LIMIT);
+}
+
+function normalizeSqlOffset(offset: number | null): number {
+  if (offset === null) {
+    return 0;
+  }
+
+  if (offset < 0) {
+    throw new Error("OFFSET must be a non-negative integer");
+  }
+
+  return offset;
+}
+
+function loadSelectRows(
+  session: SessionInfo,
+  activeWorkspace: WorkspaceSummary,
+  snapshot: MutableSnapshot,
+  resourceName: SqlResourceName,
+): ReadonlyArray<SqlRow> {
+  if (resourceName === "workspace_context") {
+    const workspace = makeWorkspace(activeWorkspace);
+    const homeSnapshot = makeHomeSnapshot(snapshot);
+    return [{
+      workspace_id: workspace.workspaceId,
+      workspace_name: workspace.name,
+      total_cards: homeSnapshot.totalCards,
+      due_cards: homeSnapshot.dueCount,
+      new_cards: homeSnapshot.newCount,
+      reviewed_cards: homeSnapshot.reviewedCount,
+    }];
+  }
+
+  if (resourceName === "scheduler_settings") {
+    if (snapshot.workspaceSettings === null) {
+      throw new Error("Workspace scheduler settings are not loaded");
+    }
+
+    return [{
+      algorithm: snapshot.workspaceSettings.algorithm,
+      desired_retention: snapshot.workspaceSettings.desiredRetention,
+      learning_steps_minutes: snapshot.workspaceSettings.learningStepsMinutes,
+      relearning_steps_minutes: snapshot.workspaceSettings.relearningStepsMinutes,
+      maximum_interval_days: snapshot.workspaceSettings.maximumIntervalDays,
+      enable_fuzz: snapshot.workspaceSettings.enableFuzz,
+    }];
+  }
+
+  if (resourceName === "tags_summary") {
+    const payload = makeWorkspaceTagsSummary(currentActiveCards(snapshot));
+    return payload.tags.map((tag) => ({
+      tag: tag.tag,
+      cards_count: tag.cardsCount,
+      total_cards: payload.totalCards,
+    }));
+  }
+
+  if (resourceName === "cards") {
+    return currentActiveCards(snapshot).map(toCardRow);
+  }
+
+  if (resourceName === "due_cards") {
+    return dueCards(snapshot).map(toCardRow);
+  }
+
+  if (resourceName === "decks") {
+    return activeDecks(snapshot).map(toDeckRow);
+  }
+
+  void session;
+  return snapshot.reviewEvents.map((event) => ({
+    review_event_id: event.reviewEventId,
+    card_id: event.cardId,
+    device_id: event.deviceId,
+    client_event_id: event.clientEventId,
+    rating: event.rating,
+    reviewed_at_client: event.reviewedAtClient,
+    reviewed_at_server: event.reviewedAtServer,
+  }));
+}
+
+function toCreateCardInput(row: Readonly<Record<string, unknown>>): CreateCardInput {
+  const frontText = row.front_text;
+  const backText = row.back_text;
+  const effortLevel = row.effort_level;
+  const tags = row.tags;
+
+  if (typeof frontText !== "string" || typeof backText !== "string") {
+    throw new Error("INSERT INTO cards requires front_text and back_text");
+  }
+
+  if (effortLevel !== "fast" && effortLevel !== "medium" && effortLevel !== "long") {
+    throw new Error("INSERT INTO cards requires effort_level to be fast, medium, or long");
+  }
+
+  return {
+    frontText,
+    backText,
+    tags: Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
+    effortLevel,
+  };
+}
+
+function toCreateDeckInput(row: Readonly<Record<string, unknown>>): CreateDeckInput {
+  const name = row.name;
+  const effortLevels = row.effort_levels;
+  const tags = row.tags;
+
+  if (typeof name !== "string") {
+    throw new Error("INSERT INTO decks requires name");
+  }
+
+  return {
+    name,
     filterDefinition: {
       version: 2,
-      effortLevels: input.effortLevels,
-      tags: input.tags,
+      effortLevels: Array.isArray(effortLevels)
+        ? effortLevels.filter((item): item is Card["effortLevel"] => item === "fast" || item === "medium" || item === "long")
+        : [],
+      tags: Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
     },
   };
 }
 
-function toResolvedCardUpdateInput(existingCard: Card, input: UpdateCardToolInput): UpdateCardInput {
+function toResolvedCardUpdateInput(existingCard: Card, row: Readonly<Record<string, unknown>>): UpdateCardInput {
+  const frontText = row.front_text;
+  const backText = row.back_text;
+  const tags = row.tags;
+  const effortLevel = row.effort_level;
+
   return {
-    frontText: input.frontText ?? existingCard.frontText,
-    backText: input.backText ?? existingCard.backText,
-    tags: input.tags ?? existingCard.tags,
-    effortLevel: input.effortLevel ?? existingCard.effortLevel,
+    frontText: typeof frontText === "string" ? frontText : existingCard.frontText,
+    backText: typeof backText === "string" ? backText : existingCard.backText,
+    tags: Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : existingCard.tags,
+    effortLevel: effortLevel === "fast" || effortLevel === "medium" || effortLevel === "long"
+      ? effortLevel
+      : existingCard.effortLevel,
   };
 }
 
-function toResolvedDeckUpdateInput(existingDeck: Deck, input: UpdateDeckToolInput): UpdateDeckInput {
+function toResolvedDeckUpdateInput(existingDeck: Deck, row: Readonly<Record<string, unknown>>): UpdateDeckInput {
+  const name = row.name;
+  const effortLevels = row.effort_levels;
+  const tags = row.tags;
+
   return {
-    name: input.name ?? existingDeck.name,
+    name: typeof name === "string" ? name : existingDeck.name,
     filterDefinition: {
       version: 2,
-      effortLevels: input.effortLevels ?? existingDeck.filterDefinition.effortLevels,
-      tags: input.tags ?? existingDeck.filterDefinition.tags,
+      effortLevels: Array.isArray(effortLevels)
+        ? effortLevels.filter((item): item is Card["effortLevel"] => item === "fast" || item === "medium" || item === "long")
+        : existingDeck.filterDefinition.effortLevels,
+      tags: Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : existingDeck.filterDefinition.tags,
     },
   };
+}
+
+function rowFromInsert(
+  columnNames: ReadonlyArray<string>,
+  values: ReadonlyArray<unknown>,
+): Readonly<Record<string, unknown>> {
+  return Object.fromEntries(columnNames.map((columnName, index) => [columnName, values[index]] as const));
 }
 
 function ensureLocalWorkspace(
@@ -988,16 +722,230 @@ function ensureLocalWorkspace(
   };
 }
 
+async function executeSqlLocally(
+  dependencies: WebLocalToolExecutorDependencies,
+  session: SessionInfo,
+  activeWorkspace: WorkspaceSummary,
+  snapshot: MutableSnapshot,
+  sql: string,
+): Promise<Readonly<{
+  payload: SqlExecutionPayload;
+  didMutateAppState: boolean;
+}>> {
+  const statement = parseSqlStatement(sql);
+
+  if (statement.type === "show_tables") {
+    const rows = getSqlResourceDescriptors()
+      .filter((descriptor) => statement.likePattern === null || likePatternToRegExp(statement.likePattern).test(descriptor.resourceName))
+      .map((descriptor) => ({
+        table_name: descriptor.resourceName,
+        writable: descriptor.writable,
+        description: descriptor.description,
+      }));
+    return {
+      payload: {
+        statementType: "show_tables",
+        resource: null,
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows,
+        rowCount: rows.length,
+        limit: null,
+        offset: null,
+        hasMore: false,
+      },
+      didMutateAppState: false,
+    };
+  }
+
+  if (statement.type === "describe") {
+    const descriptor = getSqlResourceDescriptors().find((item) => item.resourceName === statement.resourceName);
+    if (descriptor === undefined) {
+      throw new Error(`Unknown resource: ${statement.resourceName}`);
+    }
+
+    const rows = descriptor.columns.map((column) => ({
+      column_name: column.columnName,
+      type: column.type,
+      nullable: column.nullable,
+      read_only: column.readOnly,
+      filterable: column.filterable,
+      sortable: column.sortable,
+      description: column.description,
+    }));
+    return {
+      payload: {
+        statementType: "describe",
+        resource: statement.resourceName,
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows,
+        rowCount: rows.length,
+        limit: null,
+        offset: null,
+        hasMore: false,
+      },
+      didMutateAppState: false,
+    };
+  }
+
+  if (statement.type === "select") {
+    const limit = normalizeSqlLimit(statement.limit);
+    const offset = normalizeSqlOffset(statement.offset);
+    const rows = loadSelectRows(session, activeWorkspace, snapshot, statement.resourceName);
+    const filteredRows = applyPredicates(rows, statement.predicates);
+    const orderedRows = applyOrderBy(filteredRows, statement.orderBy);
+    const paginatedRows = paginateRows(orderedRows, limit, offset);
+    return {
+      payload: {
+        statementType: "select",
+        resource: statement.resourceName,
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows: paginatedRows.rows,
+        rowCount: paginatedRows.rows.length,
+        limit,
+        offset,
+        hasMore: paginatedRows.hasMore,
+      },
+      didMutateAppState: false,
+    };
+  }
+
+  if (statement.type === "insert" && statement.resourceName === "cards") {
+    const createdCards = await Promise.all(
+      statement.rows.map((values) => dependencies.createCardItem(toCreateCardInput(rowFromInsert(statement.columnNames, values)))),
+    );
+    return {
+      payload: {
+        statementType: "insert",
+        resource: "cards",
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows: createdCards.map(toCardRow),
+        affectedCount: createdCards.length,
+      },
+      didMutateAppState: true,
+    };
+  }
+
+  if (statement.type === "insert" && statement.resourceName === "decks") {
+    const createdDecks = await Promise.all(
+      statement.rows.map((values) => dependencies.createDeckItem(toCreateDeckInput(rowFromInsert(statement.columnNames, values)))),
+    );
+    return {
+      payload: {
+        statementType: "insert",
+        resource: "decks",
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows: createdDecks.map(toDeckRow),
+        affectedCount: createdDecks.length,
+      },
+      didMutateAppState: true,
+    };
+  }
+
+  if (statement.type === "update" && statement.resourceName === "cards") {
+    const currentRows = applyPredicates(loadSelectRows(session, activeWorkspace, snapshot, "cards"), statement.predicates);
+    const updatedCards = await Promise.all(currentRows.map((row) => {
+      const cardId = row.card_id;
+      if (typeof cardId !== "string") {
+        throw new Error("Expected card_id in selected row");
+      }
+
+      const assignmentRow = Object.fromEntries(statement.assignments.map((assignment) => [assignment.columnName, assignment.value] as const));
+      return dependencies.updateCardItem(cardId, toResolvedCardUpdateInput(findCard(snapshot, cardId), assignmentRow));
+    }));
+    return {
+      payload: {
+        statementType: "update",
+        resource: "cards",
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows: updatedCards.map(toCardRow),
+        affectedCount: updatedCards.length,
+      },
+      didMutateAppState: true,
+    };
+  }
+
+  if (statement.type === "update" && statement.resourceName === "decks") {
+    const currentRows = applyPredicates(loadSelectRows(session, activeWorkspace, snapshot, "decks"), statement.predicates);
+    const updatedDecks = await Promise.all(currentRows.map((row) => {
+      const deckId = row.deck_id;
+      if (typeof deckId !== "string") {
+        throw new Error("Expected deck_id in selected row");
+      }
+
+      const assignmentRow = Object.fromEntries(statement.assignments.map((assignment) => [assignment.columnName, assignment.value] as const));
+      return dependencies.updateDeckItem(deckId, toResolvedDeckUpdateInput(findDeck(snapshot, deckId), assignmentRow));
+    }));
+    return {
+      payload: {
+        statementType: "update",
+        resource: "decks",
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows: updatedDecks.map(toDeckRow),
+        affectedCount: updatedDecks.length,
+      },
+      didMutateAppState: true,
+    };
+  }
+
+  if (statement.type === "delete" && statement.resourceName === "cards") {
+    const currentRows = applyPredicates(loadSelectRows(session, activeWorkspace, snapshot, "cards"), statement.predicates);
+    const cardIds = currentRows.map((row) => {
+      const cardId = row.card_id;
+      if (typeof cardId !== "string") {
+        throw new Error("Expected card_id in selected row");
+      }
+      return cardId;
+    });
+    await Promise.all(cardIds.map((cardId) => dependencies.deleteCardItem(cardId)));
+    return {
+      payload: {
+        statementType: "delete",
+        resource: "cards",
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows: [],
+        affectedCount: cardIds.length,
+      },
+      didMutateAppState: true,
+    };
+  }
+
+  if (statement.type === "delete" && statement.resourceName === "decks") {
+    const currentRows = applyPredicates(loadSelectRows(session, activeWorkspace, snapshot, "decks"), statement.predicates);
+    const deckIds = currentRows.map((row) => {
+      const deckId = row.deck_id;
+      if (typeof deckId !== "string") {
+        throw new Error("Expected deck_id in selected row");
+      }
+      return deckId;
+    });
+    await Promise.all(deckIds.map((deckId) => dependencies.deleteDeckItem(deckId)));
+    return {
+      payload: {
+        statementType: "delete",
+        resource: "decks",
+        sql,
+        normalizedSql: statement.normalizedSql,
+        rows: [],
+        affectedCount: deckIds.length,
+      },
+      didMutateAppState: true,
+    };
+  }
+
+  throw new Error("Unsupported SQL statement");
+}
+
 /**
- * Builds a browser-local AI tool executor that mirrors the iOS local tool
- * contract while using the web app sync snapshot and IndexedDB-backed writes.
- *
- * Canonical shared TypeScript tool contracts live in
- * `apps/backend/src/aiTools/sharedToolContracts.ts`. Canonical backend
- * external-agent behavior lives in
- * `apps/backend/src/aiTools/agentToolOperations.ts`. This browser executor is
- * the local-state mirror for those contracts, not the canonical backend
- * implementation.
+ * Builds a browser-local AI tool executor that mirrors the backend SQL
+ * surface while using the web app sync snapshot and IndexedDB-backed writes.
  */
 export function createLocalToolExecutor(
   dependencies: WebLocalToolExecutorDependencies,
@@ -1009,115 +957,14 @@ export function createLocalToolExecutor(
       const { session, activeWorkspace, snapshot } = ensureLocalWorkspace(dependencies);
 
       switch (toolCallRequest.name) {
-      case "get_workspace_context":
-        parseEmptyObjectInput(toolCallRequest);
+      case "sql": {
+        const input = parseSqlInput(toolCallRequest);
+        const result = await executeSqlLocally(dependencies, session, activeWorkspace, snapshot, input.sql);
         return {
-          output: JSON.stringify(makeWorkspaceContextPayload(session, activeWorkspace, snapshot)),
-          didMutateAppState: false,
-        };
-      case "list_tags":
-        parseEmptyObjectInput(toolCallRequest);
-        return {
-          output: JSON.stringify(makeWorkspaceTagsSummary(currentActiveCards(snapshot)) satisfies AIWorkspaceTagsPayload),
-          didMutateAppState: false,
-        };
-      case "list_cards": {
-        const input = parseListPageInput(toolCallRequest);
-        const startIndex = getPageStartIndex(input.cursor);
-        return {
-          output: JSON.stringify(
-            makeCardsPagePayload(
-              cardsMatchingFilter(currentActiveCards(snapshot), input.filter),
-              startIndex,
-              normalizeLimit(input.limit),
-            ),
-          ),
-          didMutateAppState: false,
+          output: JSON.stringify(result.payload),
+          didMutateAppState: result.didMutateAppState,
         };
       }
-      case "get_cards": {
-        const input = parseCardIdsInput(toolCallRequest);
-        validateBatchCount(input.cardIds.length, "Card");
-        validateUniqueIds(input.cardIds, "Card");
-        return {
-          output: JSON.stringify(input.cardIds.map((cardId) => findCard(snapshot, cardId))),
-          didMutateAppState: false,
-        };
-      }
-      case "search_cards": {
-        const input = parseQueryPageInput(toolCallRequest);
-        const startIndex = getPageStartIndex(input.cursor);
-        const matchedCards = searchCards(snapshot, input.query, Number.MAX_SAFE_INTEGER, input.filter);
-        return {
-          output: JSON.stringify(
-            makeCardsPagePayload(matchedCards, startIndex, normalizeLimit(input.limit)),
-          ),
-          didMutateAppState: false,
-        };
-      }
-      case "list_due_cards": {
-        const input = parseListPageInput(toolCallRequest);
-        const startIndex = getPageStartIndex(input.cursor);
-        return {
-          output: JSON.stringify(
-            makeCardsPagePayload(dueCards(snapshot), startIndex, normalizeLimit(input.limit)),
-          ),
-          didMutateAppState: false,
-        };
-      }
-      case "list_decks": {
-        const input = parseListPageInput(toolCallRequest);
-        const startIndex = getPageStartIndex(input.cursor);
-        return {
-          output: JSON.stringify(
-            makeDecksPagePayload(activeDecks(snapshot), startIndex, normalizeLimit(input.limit)),
-          ),
-          didMutateAppState: false,
-        };
-      }
-      case "search_decks": {
-        const input = parseQueryPageInput(toolCallRequest);
-        const startIndex = getPageStartIndex(input.cursor);
-        const matchedDecks = searchDecks(snapshot, input.query, Number.MAX_SAFE_INTEGER);
-        return {
-          output: JSON.stringify(
-            makeDecksPagePayload(matchedDecks, startIndex, normalizeLimit(input.limit)),
-          ),
-          didMutateAppState: false,
-        };
-      }
-      case "get_decks": {
-        const input = parseDeckIdsInput(toolCallRequest);
-        validateBatchCount(input.deckIds.length, "Deck");
-        validateUniqueIds(input.deckIds, "Deck");
-        return {
-          output: JSON.stringify(input.deckIds.map((deckId) => findDeck(snapshot, deckId))),
-          didMutateAppState: false,
-        };
-      }
-      case "list_review_history": {
-        const input = parseListReviewHistoryInput(toolCallRequest);
-        const startIndex = getPageStartIndex(input.cursor);
-        const reviewEvents = input.cardId === null
-          ? snapshot.reviewEvents
-          : snapshot.reviewEvents.filter((event) => event.cardId === input.cardId);
-        return {
-          output: JSON.stringify(
-            makeReviewHistoryPagePayload(reviewEvents, startIndex, normalizeLimit(input.limit)),
-          ),
-          didMutateAppState: false,
-        };
-      }
-      case "get_scheduler_settings":
-        parseEmptyObjectInput(toolCallRequest);
-        if (snapshot.workspaceSettings === null) {
-          throw new Error("Workspace scheduler settings are not loaded");
-        }
-
-        return {
-          output: JSON.stringify(snapshot.workspaceSettings),
-          didMutateAppState: false,
-        };
       case "get_cloud_settings":
         parseEmptyObjectInput(toolCallRequest);
         if (snapshot.cloudSettings === null) {
@@ -1125,95 +972,21 @@ export function createLocalToolExecutor(
         }
 
         return {
-          output: JSON.stringify(snapshot.cloudSettings),
+          output: JSON.stringify(snapshot.cloudSettings satisfies CloudSettings),
           didMutateAppState: false,
         };
       case "list_outbox": {
-        const input = parseListPageInput(toolCallRequest);
-        const startIndex = getPageStartIndex(input.cursor);
+        const input = parseListOutboxInput(toolCallRequest);
         return {
           output: JSON.stringify(
-            makeOutboxPayload(snapshot, activeWorkspace.workspaceId, startIndex, normalizeLimit(input.limit)),
+            makeOutboxPayload(
+              snapshot,
+              activeWorkspace.workspaceId,
+              getPageStartIndex(input.cursor),
+              normalizeLimit(input.limit),
+            ),
           ),
           didMutateAppState: false,
-        };
-      }
-      case "summarize_deck_state":
-        parseEmptyObjectInput(toolCallRequest);
-        return {
-          output: JSON.stringify(makeDeckSummary(snapshot)),
-          didMutateAppState: false,
-        };
-      case "create_cards": {
-        const input = parseCreateCardsInput(toolCallRequest);
-        validateBatchCount(input.cards.length, "Card");
-        const createdCards = await Promise.all(input.cards.map((card) => dependencies.createCardItem(toCreateCardInput(card))));
-        return {
-          output: JSON.stringify(createdCards),
-          didMutateAppState: true,
-        };
-      }
-      case "update_cards": {
-        const input = parseUpdateCardsInput(toolCallRequest);
-        validateBatchCount(input.updates.length, "Card");
-        validateUniqueIds(input.updates.map((item) => item.cardId), "Card");
-        const updatedCards = await Promise.all(input.updates.map((update) => dependencies.updateCardItem(
-          update.cardId,
-          toResolvedCardUpdateInput(findCard(snapshot, update.cardId), update),
-        )));
-        return {
-          output: JSON.stringify(updatedCards),
-          didMutateAppState: true,
-        };
-      }
-      case "delete_cards": {
-        const input = parseDeleteCardsInput(toolCallRequest);
-        validateBatchCount(input.cardIds.length, "Card");
-        validateUniqueIds(input.cardIds, "Card");
-        await Promise.all(input.cardIds.map((cardId) => dependencies.deleteCardItem(cardId)));
-        return {
-          output: JSON.stringify({
-            ok: true,
-            deletedCardIds: input.cardIds,
-            deletedCount: input.cardIds.length,
-          } satisfies AIBulkDeleteCardsPayload),
-          didMutateAppState: true,
-        };
-      }
-      case "create_decks": {
-        const input = parseCreateDecksInput(toolCallRequest);
-        validateBatchCount(input.decks.length, "Deck");
-        const createdDecks = await Promise.all(input.decks.map((deck) => dependencies.createDeckItem(toCreateDeckInput(deck))));
-        return {
-          output: JSON.stringify(createdDecks),
-          didMutateAppState: true,
-        };
-      }
-      case "update_decks": {
-        const input = parseUpdateDecksInput(toolCallRequest);
-        validateBatchCount(input.updates.length, "Deck");
-        validateUniqueIds(input.updates.map((item) => item.deckId), "Deck");
-        const updatedDecks = await Promise.all(input.updates.map((update) => dependencies.updateDeckItem(
-          update.deckId,
-          toResolvedDeckUpdateInput(findDeck(snapshot, update.deckId), update),
-        )));
-        return {
-          output: JSON.stringify(updatedDecks),
-          didMutateAppState: true,
-        };
-      }
-      case "delete_decks": {
-        const input = parseDeleteDecksInput(toolCallRequest);
-        validateBatchCount(input.deckIds.length, "Deck");
-        validateUniqueIds(input.deckIds, "Deck");
-        await Promise.all(input.deckIds.map((deckId) => dependencies.deleteDeckItem(deckId)));
-        return {
-          output: JSON.stringify({
-            ok: true,
-            deletedDeckIds: input.deckIds,
-            deletedCount: input.deckIds.length,
-          } satisfies AIBulkDeleteDecksPayload),
-          didMutateAppState: true,
         };
       }
       default:

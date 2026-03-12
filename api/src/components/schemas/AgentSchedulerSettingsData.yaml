@@ -1,7 +1,0 @@
-type: object
-additionalProperties: false
-required:
-  - schedulerSettings
-properties:
-  schedulerSettings:
-    $ref: ./WorkspaceSchedulerSettings.yaml

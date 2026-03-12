@@ -1,0 +1,60 @@
+type: object
+additionalProperties: false
+required:
+  - ok
+  - data
+  - instructions
+  - docs
+properties:
+  ok:
+    type: boolean
+    enum:
+      - true
+  data:
+    type: object
+    additionalProperties: false
+    required:
+      - statementType
+      - resource
+      - sql
+      - normalizedSql
+    properties:
+      statementType:
+        type: string
+        enum:
+          - show_tables
+          - describe
+          - select
+          - insert
+          - update
+          - delete
+      resource:
+        anyOf:
+          - type: string
+          - type: 'null'
+      sql:
+        type: string
+      normalizedSql:
+        type: string
+      rows:
+        type: array
+        items:
+          type: object
+      rowCount:
+        type: integer
+      limit:
+        anyOf:
+          - type: integer
+          - type: 'null'
+      offset:
+        anyOf:
+          - type: integer
+          - type: 'null'
+      hasMore:
+        type: boolean
+      affectedCount:
+        type: integer
+  instructions:
+    type: string
+  docs:
+    $ref: ./AgentDocs.yaml

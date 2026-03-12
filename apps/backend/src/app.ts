@@ -45,10 +45,11 @@ function createAgentInstructions(code: string | null, statusCode: number): strin
     case "AUTH_UNAUTHORIZED":
     case "AGENT_API_KEY_INVALID":
       return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
-    case "AGENT_TOOL_INPUT_INVALID":
-      return "Fix the JSON body to match the tool schema. Use error.details.validationIssues paths and messages directly, then retry the same request.";
+    case "QUERY_INVALID_SQL":
+    case "QUERY_UNSUPPORTED_SYNTAX":
+      return "Fix the sql string using error.message and any error.details.validationIssues, then retry POST /v1/agent/sql. Use docs.openapiUrl for the published SQL dialect.";
     case "WORKSPACE_SELECTION_REQUIRED":
-      return "Call GET /v1/agent/me, then GET /v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. If data.nextCursor is not null, continue with the same limit and cursor=data.nextCursor. If multiple workspaces exist, select one with POST /v1/agent/workspaces/{workspaceId}/select.";
+      return "Call GET /v1/agent/me, then GET /v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. If data.nextCursor is not null, continue with the same limit and cursor=data.nextCursor. If multiple workspaces exist, select one with POST /v1/agent/workspaces/{workspaceId}/select before calling POST /v1/agent/sql.";
     case "WORKSPACE_ID_REQUIRED":
     case "WORKSPACE_ID_INVALID":
       return "Provide a valid workspaceId UUID in the request URL, then retry the action.";

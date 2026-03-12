@@ -6,7 +6,7 @@ required:
   - capabilitiesAfterLogin
   - authBaseUrl
   - apiBaseUrl
-  - docs
+  - surface
 properties:
   service:
     type: object
@@ -29,13 +29,16 @@ properties:
     additionalProperties: false
     required:
       - type
-      - registerAndLogin
+      - sendCodeUrl
+      - verifyCodeUrl
     properties:
       type:
         type: string
         enum:
           - email_otp_then_api_key
-      registerAndLogin:
+      sendCodeUrl:
+        type: string
+      verifyCodeUrl:
         type: string
   capabilitiesAfterLogin:
     type: array
@@ -45,5 +48,17 @@ properties:
     type: string
   apiBaseUrl:
     type: string
-  docs:
-    $ref: ./AgentDocs.yaml
+  surface:
+    type: object
+    additionalProperties: false
+    required:
+      - accountUrl
+      - workspacesUrl
+      - sqlUrl
+    properties:
+      accountUrl:
+        type: string
+      workspacesUrl:
+        type: string
+      sqlUrl:
+        type: string

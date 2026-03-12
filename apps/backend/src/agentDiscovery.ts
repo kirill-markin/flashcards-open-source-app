@@ -1,14 +1,5 @@
 import { getPublicAgentDocs, getPublicApiBaseUrl } from "./publicUrls";
 
-type AgentDiscoveryAction = Readonly<{
-  name: "send_code" | "openapi";
-  method: "GET" | "POST";
-  url: string;
-  input?: Readonly<{
-    required: ReadonlyArray<string>;
-  }>;
-}>;
-
 type AgentDiscoveryEnvelope = Readonly<{
   ok: true;
   data: Readonly<{
@@ -19,18 +10,22 @@ type AgentDiscoveryEnvelope = Readonly<{
     }>;
     authentication: Readonly<{
       type: "email_otp_then_api_key";
-      registerAndLogin: string;
+      sendCodeUrl: string;
+      verifyCodeUrl: string;
     }>;
     capabilitiesAfterLogin: ReadonlyArray<string>;
     authBaseUrl: string;
     apiBaseUrl: string;
-    docs: Readonly<{
-      openapiUrl: string;
-      swaggerUrl: string;
+    surface: Readonly<{
+      accountUrl: string;
+      workspacesUrl: string;
+      sqlUrl: string;
     }>;
   }>;
-  actions: ReadonlyArray<AgentDiscoveryAction>;
   instructions: string;
+  docs: Readonly<{
+    openapiUrl: string;
+  }>;
 }>;
 
 function stripTrailingSlash(value: string): string {
@@ -68,38 +63,29 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       service: {
         name: "flashcards-open-source-app",
         version: "v1",
-        description: "Offline-first flashcards service with user-owned workspaces and AI-friendly API onboarding.",
+        description: "Offline-first flashcards service with user-owned workspaces and a compact SQL agent surface.",
       },
       authentication: {
         type: "email_otp_then_api_key",
-        registerAndLogin: "Ask which email the user wants to use, then start the same flow for both new and existing users.",
+        sendCodeUrl: `${authBaseUrl}/api/agent/send-code`,
+        verifyCodeUrl: `${authBaseUrl}/api/agent/verify-code`,
       },
       capabilitiesAfterLogin: [
         "Load account context",
         "Select a workspace",
-        "Read workspace tags and counts",
-        "Read and write cards and decks",
+        "Inspect the published SQL surface through OpenAPI and SQL introspection",
+        "Read and write cards and decks through /agent/sql",
       ],
       authBaseUrl,
       apiBaseUrl,
-      docs,
+      surface: {
+        accountUrl: `${apiBaseUrl}/agent/me`,
+        workspacesUrl: `${apiBaseUrl}/agent/workspaces`,
+        sqlUrl: `${apiBaseUrl}/agent/sql`,
+      },
     },
-    actions: [
-      {
-        name: "send_code",
-        method: "POST",
-        url: `${authBaseUrl}/api/agent/send-code`,
-        input: {
-          required: ["email"],
-        },
-      },
-      {
-        name: "openapi",
-        method: "GET",
-        url: docs.openapiUrl,
-      },
-    ],
     instructions:
-      `Start with send_code. After login, call ${apiBaseUrl}/agent/me, then ${apiBaseUrl}/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. If multiple workspaces exist and no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select before tool calls. Create additional workspaces with POST ${apiBaseUrl}/agent/workspaces when needed. For paginated responses, pass data.nextCursor back unchanged as the cursor query parameter or JSON field and stop when data.nextCursor is null. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions. For card content, enforce the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example (prefer fenced markdown code block when helpful).`,
+      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email, then POST ${authBaseUrl}/api/agent/verify-code to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, use POST ${apiBaseUrl}/agent/sql for all shared card and deck reads and writes. Use ${docs.openapiUrl} for the full contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
+    docs,
   };
 }

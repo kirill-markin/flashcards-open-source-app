@@ -1,0 +1,98 @@
+post:
+  tags:
+    - sql
+  summary: Execute published SQL against the selected workspace
+  description: >-
+    Executes the published Flashcards SQL dialect for the currently selected
+    workspace. This is not full PostgreSQL. Supported statements include SHOW
+    TABLES, DESCRIBE, SELECT, INSERT, UPDATE, and DELETE across published
+    logical resources only.
+  security:
+    - ApiKeyHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/AgentSqlRequest.yaml
+        example:
+          sql: SELECT * FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET 0
+  responses:
+    '200':
+      description: SQL executed successfully
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentSqlEnvelope.yaml
+          examples:
+            selectCards:
+              value:
+                ok: true
+                data:
+                  statementType: select
+                  resource: cards
+                  sql: SELECT * FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET 0
+                  normalizedSql: SELECT * FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET 0
+                  rows: []
+                  rowCount: 0
+                  limit: 20
+                  offset: 0
+                  hasMore: false
+                instructions: >-
+                  Read rows from data.rows. No further rows are available for
+                  this query. LIMIT defaults to 100 and is capped at 100.
+                  Prefer a stable ORDER BY clause when paginating. This
+                  endpoint supports the published SQL dialect, not full
+                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            showTables:
+              value:
+                ok: true
+                data:
+                  statementType: show_tables
+                  resource: null
+                  sql: SHOW TABLES
+                  normalizedSql: SHOW TABLES
+                  rows:
+                    - table_name: cards
+                      writable: true
+                      description: Cards in the selected workspace.
+                  rowCount: 1
+                  limit: null
+                  offset: null
+                  hasMore: false
+                instructions: >-
+                  Read rows from data.rows. This endpoint supports the
+                  published SQL dialect, not full PostgreSQL. Use
+                  docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            updateCards:
+              value:
+                ok: true
+                data:
+                  statementType: update
+                  resource: cards
+                  sql: >-
+                    UPDATE cards SET back_text = 'Updated answer' WHERE card_id
+                    = '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+                  normalizedSql: >-
+                    UPDATE cards SET back_text = 'Updated answer' WHERE card_id
+                    = '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+                  rows: []
+                  affectedCount: 1
+                instructions: >-
+                  The mutation succeeded. Read data.affectedCount for the
+                  summary. If you need the resulting rows, inspect data.rows or
+                  run a follow-up SELECT query. This endpoint supports the
+                  published SQL dialect, not full PostgreSQL. Use
+                  docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

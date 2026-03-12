@@ -8,9 +8,9 @@ describe("localRuntime", () => {
     const messages: ReadonlyArray<StoredMessage> = [{
       role: "assistant",
       content: [
-        { type: "text", text: "Looking up cards." },
-        { type: "tool_call", toolCallId: "call-1", name: "list_cards", status: "completed", input: "{\"limit\":10}", output: "[{\"cardId\":\"card-1\"}]" },
-        { type: "tool_call", toolCallId: "call-2", name: "list_cards", status: "completed", input: "{\"limit\":20}", output: "[{\"cardId\":\"card-2\"}]" },
+        { type: "text", text: "Running SQL." },
+        { type: "tool_call", toolCallId: "call-1", name: "sql", status: "completed", input: "{\"sql\":\"SHOW TABLES\"}", output: "{\"rows\":[{\"table_name\":\"cards\"}]}" },
+        { type: "tool_call", toolCallId: "call-2", name: "list_outbox", status: "completed", input: "{\"cursor\":null,\"limit\":20}", output: "{\"outbox\":[]}" },
       ],
       timestamp: 1,
       isError: false,
@@ -20,22 +20,22 @@ describe("localRuntime", () => {
       {
         role: "assistant",
         content: [
-          { type: "text", text: "Looking up cards." },
-          { type: "tool_call", toolCallId: "call-1", name: "list_cards", status: "completed", input: "{\"limit\":10}", output: "[{\"cardId\":\"card-1\"}]" },
-          { type: "tool_call", toolCallId: "call-2", name: "list_cards", status: "completed", input: "{\"limit\":20}", output: "[{\"cardId\":\"card-2\"}]" },
+          { type: "text", text: "Running SQL." },
+          { type: "tool_call", toolCallId: "call-1", name: "sql", status: "completed", input: "{\"sql\":\"SHOW TABLES\"}", output: "{\"rows\":[{\"table_name\":\"cards\"}]}" },
+          { type: "tool_call", toolCallId: "call-2", name: "list_outbox", status: "completed", input: "{\"cursor\":null,\"limit\":20}", output: "{\"outbox\":[]}" },
         ],
       },
       {
         role: "tool",
         toolCallId: "call-1",
-        name: "list_cards",
-        output: "[{\"cardId\":\"card-1\"}]",
+        name: "sql",
+        output: "{\"rows\":[{\"table_name\":\"cards\"}]}",
       },
       {
         role: "tool",
         toolCallId: "call-2",
-        name: "list_cards",
-        output: "[{\"cardId\":\"card-2\"}]",
+        name: "list_outbox",
+        output: "{\"outbox\":[]}",
       },
     ]);
   });
@@ -45,7 +45,7 @@ describe("localRuntime", () => {
       role: "assistant",
       content: [
         { type: "text", text: "Kept text" },
-        { type: "tool_call", name: "list_cards", status: "completed", input: "{\"limit\":10}", output: "[]" },
+        { type: "tool_call", name: "sql", status: "completed", input: "{\"sql\":\"SHOW TABLES\"}", output: "[]" },
       ],
       timestamp: 1,
       isError: false,

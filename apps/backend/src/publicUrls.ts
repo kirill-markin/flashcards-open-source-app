@@ -34,12 +34,10 @@ export function getPublicApiBaseUrl(requestUrl: string): string {
  */
 export function getPublicAgentDocs(requestUrl: string): Readonly<{
   openapiUrl: string;
-  swaggerUrl: string;
 }> {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
 
   return {
     openapiUrl: `${apiBaseUrl}/agent/openapi.json`,
-    swaggerUrl: `${apiBaseUrl}/agent/swagger.json`,
   };
 }
