@@ -515,32 +515,44 @@ struct AIChatView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         case .toolCall(let toolCall):
+            let summaryText = aiChatToolSummaryText(name: toolCall.name, input: toolCall.input)
+            let sections = aiChatToolSections(input: toolCall.input, output: toolCall.output)
             VStack(alignment: .leading, spacing: 0) {
                 DisclosureGroup {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if let input = toolCall.input, input.isEmpty == false {
-                            Text(input)
-                                .font(.caption.monospaced())
-                                .textSelection(.enabled)
-                        }
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                    Text(section.title)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                    Spacer(minLength: 0)
+                                    Button(section.copyButtonTitle) {
+                                        UIPasteboard.general.string = section.text
+                                    }
+                                    .buttonStyle(.plain)
+                                    .font(.caption.weight(.semibold))
+                                    .accessibilityLabel(section.copyAccessibilityLabel)
+                                }
 
-                        if let output = toolCall.output, output.isEmpty == false {
-                            if let input = toolCall.input, input.isEmpty == false {
-                                Divider()
+                                Text(section.text)
+                                    .font(.caption.monospaced())
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
                             }
 
-                            Text(output)
-                                .font(.caption.monospaced())
-                                .textSelection(.enabled)
+                            if index < sections.count - 1 {
+                                Divider()
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 4)
                 } label: {
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        let toolLabel = aiChatToolLabel(name: toolCall.name)
-                        let toolPreview = aiChatToolPreview(name: toolCall.name, input: toolCall.input)
-                        Text(toolPreview.map { "\(toolLabel): \($0)" } ?? toolLabel)
+                        Text(summaryText)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Text(aiChatToolStatusLabel(status: toolCall.status))
                             .font(.caption.weight(.semibold))
@@ -751,6 +763,14 @@ private let aiChatBubbleWidthFraction: CGFloat = 0.88
 private let aiChatBubbleWidthMaximum: CGFloat = 720
 private let aiChatTypingIndicatorDotCount: Int = 3
 private let aiChatTypingIndicatorAnimationStepSeconds: Double = 0.3
+
+struct AIChatToolSection: Hashable, Sendable, Identifiable {
+    let id: String
+    let title: String
+    let text: String
+    let copyButtonTitle: String
+    let copyAccessibilityLabel: String
+}
 
 private struct AIChatBottomMarkerPreferenceKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
@@ -965,7 +985,7 @@ private func aiChatValidateAttachmentSize(data: Data) throws {
 
  Keep user-facing local tool labels aligned across web and iOS chat UIs.
  */
-private func aiChatToolLabel(name: String) -> String {
+func aiChatToolLabel(name: String) -> String {
     switch name {
     case "sql":
         return "SQL"
@@ -982,7 +1002,7 @@ private func aiChatToolLabel(name: String) -> String {
     }
 }
 
-private func aiChatToolPreview(name: String, input: String?) -> String? {
+func aiChatToolPreview(name: String, input: String?) -> String? {
     guard let input, input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
         return nil
     }
@@ -999,6 +1019,45 @@ private func aiChatToolPreview(name: String, input: String?) -> String? {
 
     let trimmedSql = sql.trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmedSql.isEmpty ? input : trimmedSql
+}
+
+func aiChatToolSummaryText(name: String, input: String?) -> String {
+    let toolLabel = aiChatToolLabel(name: name)
+    guard let toolPreview = aiChatToolPreview(name: name, input: input) else {
+        return toolLabel
+    }
+
+    return "\(toolLabel): \(toolPreview)"
+}
+
+func aiChatToolSections(input: String?, output: String?) -> [AIChatToolSection] {
+    var sections: [AIChatToolSection] = []
+
+    if let input, input.isEmpty == false {
+        sections.append(
+            AIChatToolSection(
+                id: "request",
+                title: "Request",
+                text: input,
+                copyButtonTitle: "Copy",
+                copyAccessibilityLabel: "Copy request"
+            )
+        )
+    }
+
+    if let output, output.isEmpty == false {
+        sections.append(
+            AIChatToolSection(
+                id: "response",
+                title: "Response",
+                text: output,
+                copyButtonTitle: "Copy",
+                copyAccessibilityLabel: "Copy response"
+            )
+        )
+    }
+
+    return sections
 }
 
 private func aiChatToolStatusLabel(status: AIChatToolCallStatus) -> String {

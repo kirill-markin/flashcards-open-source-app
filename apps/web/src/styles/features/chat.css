@@ -216,6 +216,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
   padding: 10px 12px;
   cursor: pointer;
   color: var(--text-secondary);
@@ -226,19 +227,10 @@
 .chat-tool-call-summary-main {
   flex: 1 1 auto;
   min-width: 0;
-  display: inline-flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0;
-}
-
-.chat-tool-call-summary-label,
-.chat-tool-call-summary-preview {
-  min-width: 0;
-}
-
-.chat-tool-call-summary-preview {
-  overflow-wrap: anywhere;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .chat-tool-call-status {
@@ -273,11 +265,44 @@
   border-style: solid;
 }
 
+.chat-tool-call-section {
+  border-top: 1px solid var(--divider);
+}
+
+.chat-tool-call-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 0;
+}
+
+.chat-tool-call-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.chat-tool-call-copy {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-tool-call-copy:hover {
+  color: var(--text);
+}
+
 .chat-tool-call-input,
 .chat-tool-call-output {
   margin: 0;
-  padding: 10px 12px;
-  border-top: 1px solid var(--divider);
+  padding: 8px 12px 12px;
   font-size: 12px;
   line-height: 1.5;
   white-space: pre-wrap;
