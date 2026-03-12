@@ -46,6 +46,61 @@ function toolCallStatusLabel(status: "started" | "completed"): string {
   return status === "started" ? "Running" : "Done";
 }
 
+function buildToolCallSummaryText(name: string, input: string | null): string {
+  const toolLabel = formatToolLabel(name);
+  const toolPreview = extractToolCallPreview(name, input);
+  return toolPreview === null ? toolLabel : `${toolLabel}: ${toolPreview}`;
+}
+
+function toClipboardErrorMessage(sectionTitle: string, error: unknown): string {
+  if (error instanceof Error && error.message.trim() !== "") {
+    return `Failed to copy ${sectionTitle.toLowerCase()}. ${error.message}`;
+  }
+
+  return `Failed to copy ${sectionTitle.toLowerCase()}.`;
+}
+
+async function copyToolCallSection(text: string, sectionTitle: string): Promise<void> {
+  if (typeof navigator.clipboard?.writeText !== "function") {
+    window.alert(`Failed to copy ${sectionTitle.toLowerCase()}. Clipboard API is unavailable.`);
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    window.alert(toClipboardErrorMessage(sectionTitle, error));
+  }
+}
+
+function renderToolCallSection(
+  sectionTitle: string,
+  text: string | null,
+  sectionClassName: "input" | "output",
+): ReactElement | null {
+  if (text === null || text === "") {
+    return null;
+  }
+
+  return (
+    <section className={`chat-tool-call-section chat-tool-call-section-${sectionClassName}`}>
+      <div className="chat-tool-call-section-header">
+        <span className="chat-tool-call-section-title">{sectionTitle}</span>
+        <button
+          type="button"
+          className="chat-tool-call-copy"
+          onClick={() => {
+            void copyToolCallSection(text, sectionTitle);
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre className={`chat-tool-call-${sectionClassName}`}>{text}</pre>
+    </section>
+  );
+}
+
 /**
  * Renders persisted chat history parts without normalizing whitespace so the
  * transcript stays byte-for-byte faithful to stored assistant output.
@@ -79,21 +134,18 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
     }
 
     previousPartWasAttachment = false;
-    const toolPreview = extractToolCallPreview(part.name, part.input);
+    const summaryText = buildToolCallSummaryText(part.name, part.input);
     elements.push(
       <details
         key={`tool-${index}`}
         className={`chat-tool-call chat-tool-call-${part.status}`}
       >
         <summary className="chat-tool-call-summary">
-          <span className="chat-tool-call-summary-main">
-            <span className="chat-tool-call-summary-label">{formatToolLabel(part.name)}</span>
-            {toolPreview === null ? null : <span className="chat-tool-call-summary-preview">: {toolPreview}</span>}
-          </span>
+          <span className="chat-tool-call-summary-main" title={summaryText}>{summaryText}</span>
           <span className="chat-tool-call-status">{toolCallStatusLabel(part.status)}</span>
         </summary>
-        {part.input !== null ? <pre className="chat-tool-call-input">{part.input}</pre> : null}
-        {part.output !== null ? <pre className="chat-tool-call-output">{part.output}</pre> : null}
+        {renderToolCallSection("Request", part.input, "input")}
+        {renderToolCallSection("Response", part.output, "output")}
       </details>,
     );
   }

@@ -225,6 +225,7 @@ describe("ChatPanel autoscroll", () => {
   let container: HTMLDivElement | null;
   let root: ReactDOM.Root | null;
   let scrollToMock: ReturnType<typeof vi.fn>;
+  let clipboardWriteTextMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -233,6 +234,13 @@ describe("ChatPanel autoscroll", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
+    clipboardWriteTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: clipboardWriteTextMock,
+      },
+    });
 
     useChatLayoutMock.mockReset();
     useAppDataMock.mockReset();
@@ -548,7 +556,11 @@ describe("ChatPanel autoscroll", () => {
     expect(children[0]?.tagName).toBe("SPAN");
     expect(children[0]?.textContent).toBe("Before tool\n\n");
     expect(children[1]?.tagName).toBe("DETAILS");
-    expect(children[1]?.textContent).toContain("SQL: SHOW TABLES");
+    const toolDetails = children[1] as HTMLDetailsElement;
+    expect(toolDetails.querySelector(".chat-tool-call-summary-main")?.textContent).toBe("SQL: SHOW TABLES");
+    expect(toolDetails.querySelector(".chat-tool-call-section-title")?.textContent).toBe("Request");
+    expect(toolDetails.querySelector(".chat-tool-call-input")?.textContent).toBe("{\"sql\":\"SHOW TABLES\"}");
+    expect(toolDetails.querySelector(".chat-tool-call-output")?.textContent).toBe("{\"rows\":[{\"table_name\":\"cards\"}]}");
     expect(children[2]?.tagName).toBe("SPAN");
     expect(children[2]?.textContent).toBe("\n\nAfter tool\n\n");
   });
@@ -577,7 +589,7 @@ describe("ChatPanel autoscroll", () => {
 
     const pendingToolCall = mountedContainer.querySelector(".chat-tool-call-started");
     expect(pendingToolCall).not.toBeNull();
-    expect(pendingToolCall?.textContent).toContain("SQL: SHOW TABLES");
+    expect(pendingToolCall?.querySelector(".chat-tool-call-summary-main")?.textContent).toBe("SQL: SHOW TABLES");
     expect(pendingToolCall?.textContent).toContain("Running");
     expect(mountedContainer.querySelectorAll(".chat-tool-call")).toHaveLength(1);
 
@@ -598,6 +610,170 @@ describe("ChatPanel autoscroll", () => {
     expect(mountedContainer.querySelector(".chat-tool-call-started")).toBeNull();
     expect(mountedContainer.querySelector(".chat-tool-call-completed")?.textContent).toContain("Done");
     expect(mountedContainer.textContent).toContain("Done");
+  });
+
+  it("keeps the collapsed tool call preview in a single summary row and toggles details open and closed", async () => {
+    localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
+      role: "assistant",
+      content: [{
+        type: "tool_call",
+        toolCallId: "tool-1",
+        name: "sql",
+        status: "completed",
+        input: "{\"sql\":\"SELECT cards.front_text, cards.back_text FROM cards WHERE workspace_id = 'workspace-123' ORDER BY updated_at DESC LIMIT 100\"}",
+        output: "{\"rows\":[{\"front_text\":\"Question\",\"back_text\":\"Answer\"}]}",
+      }],
+      timestamp: 1,
+      isError: false,
+    }]));
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const toolCall = mountedContainer.querySelector(".chat-tool-call");
+    expect(toolCall).not.toBeNull();
+    if (toolCall === null) {
+      throw new Error("Expected tool call");
+    }
+
+    const summaryMain = toolCall.querySelector(".chat-tool-call-summary-main");
+    expect(summaryMain).not.toBeNull();
+    expect(summaryMain?.getAttribute("title")).toContain("SELECT cards.front_text");
+
+    const summary = toolCall.querySelector("summary");
+    expect(summary).not.toBeNull();
+    expect(toolCall.hasAttribute("open")).toBe(false);
+
+    await act(async () => {
+      summary?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(toolCall.hasAttribute("open")).toBe(true);
+    expect(toolCall.querySelectorAll(".chat-tool-call-section")).toHaveLength(2);
+
+    await act(async () => {
+      summary?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(toolCall.hasAttribute("open")).toBe(false);
+  });
+
+  it("shows only the request section for a pending tool call without output", async () => {
+    localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
+      role: "assistant",
+      content: [{
+        type: "tool_call",
+        toolCallId: "tool-1",
+        name: "sql",
+        status: "started",
+        input: "{\"sql\":\"SHOW TABLES\"}",
+        output: null,
+      }],
+      timestamp: 1,
+      isError: false,
+    }]));
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const toolCall = mountedContainer.querySelector(".chat-tool-call");
+    expect(toolCall).not.toBeNull();
+    if (toolCall === null) {
+      throw new Error("Expected tool call");
+    }
+
+    toolCall.setAttribute("open", "");
+    expect(toolCall.querySelectorAll(".chat-tool-call-section")).toHaveLength(1);
+    expect(toolCall.querySelector(".chat-tool-call-section-title")?.textContent).toBe("Request");
+    expect(toolCall.querySelector(".chat-tool-call-output")).toBeNull();
+  });
+
+  it("copies the request and response text from expanded tool call sections", async () => {
+    localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
+      role: "assistant",
+      content: [{
+        type: "tool_call",
+        toolCallId: "tool-1",
+        name: "sql",
+        status: "completed",
+        input: "{\"sql\":\"SHOW TABLES\"}",
+        output: "{\"rows\":[]}",
+      }],
+      timestamp: 1,
+      isError: false,
+    }]));
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const copyButtons = mountedContainer.querySelectorAll(".chat-tool-call-copy");
+    expect(copyButtons).toHaveLength(2);
+
+    await act(async () => {
+      copyButtons[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(clipboardWriteTextMock).toHaveBeenNthCalledWith(1, "{\"sql\":\"SHOW TABLES\"}");
+
+    await act(async () => {
+      copyButtons[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(clipboardWriteTextMock).toHaveBeenNthCalledWith(2, "{\"rows\":[]}");
+  });
+
+  it("alerts when copying a tool call section fails", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    clipboardWriteTextMock.mockRejectedValueOnce(new Error("Permission denied"));
+    localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
+      role: "assistant",
+      content: [{
+        type: "tool_call",
+        toolCallId: "tool-1",
+        name: "sql",
+        status: "completed",
+        input: "{\"sql\":\"SHOW TABLES\"}",
+        output: "{\"rows\":[]}",
+      }],
+      timestamp: 1,
+      isError: false,
+    }]));
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const copyButton = mountedContainer.querySelector(".chat-tool-call-copy");
+    expect(copyButton).not.toBeNull();
+
+    await act(async () => {
+      copyButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(alertSpy).toHaveBeenCalledWith("Failed to copy request. Permission denied");
+    alertSpy.mockRestore();
   });
 
   it("batches streaming autoscroll to one smooth scroll every 2 seconds", async () => {
