@@ -734,7 +734,7 @@ private func localAISqlParsePredicateClauses(
 }
 
 private func localAISqlParseOrderBy(value: String) throws -> [LocalAISqlSelectOrderBy] {
-    let items = try localAISqlSplitTopLevel(value: value, separator: ",").map { item in
+    let items = localAISqlSplitTopLevel(value: value, separator: ",").map { item in
         item.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

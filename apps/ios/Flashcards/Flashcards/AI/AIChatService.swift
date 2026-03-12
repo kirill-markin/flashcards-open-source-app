@@ -361,17 +361,14 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
 
             let streamCompleted = try await consumeSSEBytes(
                 bytes: bytes,
-                onNonEmptyLine: {
-                    guard latencyTracker != nil else {
-                        return
+                onLine: { line in
+                    if line.isEmpty == false, latencyTracker != nil {
+                        latencyTracker?.didReceiveFirstSseLine = true
+                        if latencyTracker?.firstSseLineAt == nil {
+                            latencyTracker?.firstSseLineAt = Date()
+                        }
                     }
 
-                    latencyTracker?.didReceiveFirstSseLine = true
-                    if latencyTracker?.firstSseLineAt == nil {
-                        latencyTracker?.firstSseLineAt = Date()
-                    }
-                },
-                onLine: { line in
                     guard let event = try parser.pushLine(line) else {
                         return false
                     }
@@ -598,7 +595,6 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
 
 private func consumeSSEBytes(
     bytes: URLSession.AsyncBytes,
-    onNonEmptyLine: @escaping @Sendable () async -> Void,
     onLine: (String) async throws -> Bool
 ) async throws -> Bool {
     var lineBuffer = Data()
@@ -613,9 +609,6 @@ private func consumeSSEBytes(
 
             let line = String(decoding: lineBuffer, as: UTF8.self)
             lineBuffer.removeAll(keepingCapacity: true)
-            if line.isEmpty == false {
-                await onNonEmptyLine()
-            }
             if try await onLine(line) {
                 return true
             }
@@ -626,9 +619,6 @@ private func consumeSSEBytes(
             let line = String(decoding: lineBuffer, as: UTF8.self)
             lineBuffer.removeAll(keepingCapacity: true)
             previousWasCarriageReturn = true
-            if line.isEmpty == false {
-                await onNonEmptyLine()
-            }
             if try await onLine(line) {
                 return true
             }
@@ -640,7 +630,6 @@ private func consumeSSEBytes(
     }
 
     if lineBuffer.isEmpty == false {
-        await onNonEmptyLine()
         return try await onLine(String(decoding: lineBuffer, as: UTF8.self))
     }
 
