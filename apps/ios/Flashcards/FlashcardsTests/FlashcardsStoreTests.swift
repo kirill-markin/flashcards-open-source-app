@@ -50,6 +50,39 @@ private actor ScriptedReviewSubmissionExecutor: ReviewSubmissionExecuting {
     }
 }
 
+private func makeDelayedReviewHeadLoader(delayNanoseconds: UInt64) -> ReviewHeadLoader {
+    return { reviewFilter, decks, cards, now, seedQueueSize in
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+
+        try Task.checkCancellation()
+        return makeReviewHeadLoadState(
+            reviewFilter: reviewFilter,
+            decks: decks,
+            cards: cards,
+            now: now,
+            seedQueueSize: seedQueueSize
+        )
+    }
+}
+
+private func makeDelayedReviewStateLoader(delayNanoseconds: UInt64) -> ReviewStateLoader {
+    return { reviewFilter, decks, cards, now in
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+
+        try Task.checkCancellation()
+        return makeReviewComputedState(
+            reviewFilter: reviewFilter,
+            decks: decks,
+            cards: cards,
+            now: now
+        )
+    }
+}
+
 @MainActor
 final class FlashcardsStoreTests: XCTestCase {
     private struct StoreContext {
@@ -167,10 +200,7 @@ final class FlashcardsStoreTests: XCTestCase {
         let card = try environment.database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back", tags: ["grammar"]),
-            cardId: nil,
-            deviceId: "device-1",
-            operationId: "operation-1",
-            now: "2026-03-10T09:00:00.000Z"
+            cardId: nil
         )
         environment.userDefaults.set(
             Data("{\"kind\":\"tag\",\"tag\":\"grammar\"}".utf8),
@@ -194,6 +224,164 @@ final class FlashcardsStoreTests: XCTestCase {
         let store = self.makeStore(environment: environment)
 
         XCTAssertEqual(store.selectedReviewFilter, .allCards)
+    }
+
+    func testSelectReviewFilterEntersTwoPhaseLoadingAndPublishesHeadBeforeTimeline() async throws {
+        let context = try self.makeStoreContext(
+            reviewHeadDelayNanoseconds: 150_000_000,
+            reviewStateDelayNanoseconds: 500_000_000
+        )
+        let store = context.store
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Other deck", backText: "Back", tags: ["other"]),
+            editingCardId: nil
+        )
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Target first", backText: "Back", tags: ["target"]),
+            editingCardId: nil
+        )
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Target second", backText: "Back", tags: ["target"]),
+            editingCardId: nil
+        )
+        try store.createDeck(
+            input: self.makeDeckInput(name: "Target deck", tags: ["target"])
+        )
+        let targetDeckId = try XCTUnwrap(store.decks.first?.deckId)
+
+        store.selectReviewFilter(reviewFilter: .deck(deckId: targetDeckId))
+
+        XCTAssertEqual(store.selectedReviewFilter, .deck(deckId: targetDeckId))
+        XCTAssertEqual(store.selectedReviewFilterTitle, "Target deck")
+        XCTAssertTrue(store.isReviewHeadLoading)
+        XCTAssertTrue(store.isReviewTimelineLoading)
+        XCTAssertTrue(store.reviewQueue.isEmpty)
+        XCTAssertTrue(store.reviewTimeline.isEmpty)
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewHeadLoading == false
+        }
+
+        XCTAssertEqual(store.reviewQueue.map(\.frontText), ["Target first", "Target second"])
+        XCTAssertTrue(store.reviewTimeline.isEmpty)
+        XCTAssertTrue(store.isReviewTimelineLoading)
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewTimelineLoading == false
+        }
+
+        XCTAssertEqual(store.reviewTimeline.map(\.frontText), ["Target first", "Target second"])
+    }
+
+    func testSelectReviewFilterDiscardsStaleAsyncResults() async throws {
+        let context = try self.makeStoreContext(
+            reviewHeadDelayNanoseconds: 200_000_000,
+            reviewStateDelayNanoseconds: 400_000_000
+        )
+        let store = context.store
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Alpha", backText: "Back", tags: ["alpha"]),
+            editingCardId: nil
+        )
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Beta", backText: "Back", tags: ["beta"]),
+            editingCardId: nil
+        )
+        try store.createDeck(
+            input: self.makeDeckInput(name: "Alpha deck", tags: ["alpha"])
+        )
+        try store.createDeck(
+            input: self.makeDeckInput(name: "Beta deck", tags: ["beta"])
+        )
+
+        let alphaDeckId = try XCTUnwrap(store.decks.first(where: { deck in
+            deck.name == "Alpha deck"
+        })?.deckId)
+        let betaDeckId = try XCTUnwrap(store.decks.first(where: { deck in
+            deck.name == "Beta deck"
+        })?.deckId)
+
+        store.selectReviewFilter(reviewFilter: .deck(deckId: alphaDeckId))
+        store.selectReviewFilter(reviewFilter: .deck(deckId: betaDeckId))
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewTimelineLoading == false
+        }
+
+        XCTAssertEqual(store.selectedReviewFilter, .deck(deckId: betaDeckId))
+        XCTAssertEqual(store.selectedReviewFilterTitle, "Beta deck")
+        XCTAssertEqual(store.reviewQueue.map(\.frontText), ["Beta"])
+        XCTAssertEqual(store.reviewTimeline.map(\.frontText), ["Beta"])
+    }
+
+    func testSeedQueueAdvancesImmediatelyWhileFullTimelineStillLoads() async throws {
+        let context = try self.makeStoreContext(
+            makeReviewSubmissionExecutor: { database in
+                ScriptedReviewSubmissionExecutor(
+                    databaseURL: database.databaseURL,
+                    outcomes: [.submitToDatabase],
+                    delayNanoseconds: 600_000_000
+                )
+            },
+            reviewHeadDelayNanoseconds: 50_000_000,
+            reviewStateDelayNanoseconds: 500_000_000
+        )
+        let store = context.store
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "First target", backText: "Back", tags: ["target"]),
+            editingCardId: nil
+        )
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Second target", backText: "Back", tags: ["target"]),
+            editingCardId: nil
+        )
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Third target", backText: "Back", tags: ["target"]),
+            editingCardId: nil
+        )
+        try store.createDeck(
+            input: self.makeDeckInput(name: "Target deck", tags: ["target"])
+        )
+        let targetDeckId = try XCTUnwrap(store.decks.first?.deckId)
+
+        store.selectReviewFilter(reviewFilter: .deck(deckId: targetDeckId))
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewHeadLoading == false
+        }
+
+        XCTAssertTrue(store.isReviewTimelineLoading)
+        let firstCard = try XCTUnwrap(store.effectiveReviewQueue.first)
+        let secondCard = try XCTUnwrap(store.effectiveReviewQueue.dropFirst().first)
+
+        try store.enqueueReviewSubmission(cardId: firstCard.cardId, rating: .good)
+
+        XCTAssertTrue(store.isReviewTimelineLoading)
+        XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, secondCard.cardId)
+
+        await self.waitUntil(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.pendingReviewCardIds.isEmpty
+        }
+
+        XCTAssertNil(store.reviewSubmissionFailure)
     }
 
     func testEnqueueReviewSubmissionOptimisticallyRemovesCurrentCard() async throws {
@@ -424,7 +612,74 @@ final class FlashcardsStoreTests: XCTestCase {
             database: environment.database,
             cloudAuthService: CloudAuthService(),
             credentialStore: environment.credentialStore,
+            reviewSubmissionExecutor: ReviewSubmissionExecutor(databaseURL: environment.database.databaseURL),
+            reviewHeadLoader: makeDelayedReviewHeadLoader(delayNanoseconds: 0),
+            reviewStateLoader: makeDelayedReviewStateLoader(delayNanoseconds: 0),
             initialGlobalErrorMessage: ""
+        )
+    }
+
+    private func makeStore(
+        environment: (
+            database: LocalDatabase,
+            userDefaults: UserDefaults,
+            credentialStore: CloudCredentialStore
+        ),
+        reviewHeadDelayNanoseconds: UInt64,
+        reviewStateDelayNanoseconds: UInt64
+    ) -> FlashcardsStore {
+        FlashcardsStore(
+            userDefaults: environment.userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: environment.database,
+            cloudAuthService: CloudAuthService(),
+            credentialStore: environment.credentialStore,
+            reviewSubmissionExecutor: ReviewSubmissionExecutor(databaseURL: environment.database.databaseURL),
+            reviewHeadLoader: makeDelayedReviewHeadLoader(delayNanoseconds: reviewHeadDelayNanoseconds),
+            reviewStateLoader: makeDelayedReviewStateLoader(delayNanoseconds: reviewStateDelayNanoseconds),
+            initialGlobalErrorMessage: ""
+        )
+    }
+
+    private func makeStoreContext(
+        reviewHeadDelayNanoseconds: UInt64,
+        reviewStateDelayNanoseconds: UInt64
+    ) throws -> StoreContext {
+        let environment = try self.makeStoreEnvironment()
+
+        return StoreContext(
+            store: self.makeStore(
+                environment: environment,
+                reviewHeadDelayNanoseconds: reviewHeadDelayNanoseconds,
+                reviewStateDelayNanoseconds: reviewStateDelayNanoseconds
+            ),
+            database: environment.database
+        )
+    }
+
+    private func makeStoreContext(
+        makeReviewSubmissionExecutor: (LocalDatabase) -> ReviewSubmissionExecuting,
+        reviewHeadDelayNanoseconds: UInt64,
+        reviewStateDelayNanoseconds: UInt64
+    ) throws -> StoreContext {
+        let environment = try self.makeStoreEnvironment()
+        let reviewSubmissionExecutor = makeReviewSubmissionExecutor(environment.database)
+
+        return StoreContext(
+            store: FlashcardsStore(
+                userDefaults: environment.userDefaults,
+                encoder: JSONEncoder(),
+                decoder: JSONDecoder(),
+                database: environment.database,
+                cloudAuthService: CloudAuthService(),
+                credentialStore: environment.credentialStore,
+                reviewSubmissionExecutor: reviewSubmissionExecutor,
+                reviewHeadLoader: makeDelayedReviewHeadLoader(delayNanoseconds: reviewHeadDelayNanoseconds),
+                reviewStateLoader: makeDelayedReviewStateLoader(delayNanoseconds: reviewStateDelayNanoseconds),
+                initialGlobalErrorMessage: ""
+            ),
+            database: environment.database
         )
     }
 
@@ -452,6 +707,8 @@ final class FlashcardsStoreTests: XCTestCase {
                 cloudAuthService: CloudAuthService(),
                 credentialStore: environment.credentialStore,
                 reviewSubmissionExecutor: reviewSubmissionExecutor,
+                reviewHeadLoader: makeDelayedReviewHeadLoader(delayNanoseconds: 0),
+                reviewStateLoader: makeDelayedReviewStateLoader(delayNanoseconds: 0),
                 initialGlobalErrorMessage: ""
             ),
             database: environment.database

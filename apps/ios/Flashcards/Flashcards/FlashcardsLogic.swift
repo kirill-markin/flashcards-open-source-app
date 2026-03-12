@@ -663,10 +663,129 @@ func makeReviewQueue(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], n
     )
 }
 
+struct ReviewHeadLoadState: Hashable, Sendable {
+    let resolvedReviewFilter: ReviewFilter
+    let seedReviewQueue: [Card]
+}
+
+struct ReviewComputedState: Hashable, Sendable {
+    let resolvedReviewFilter: ReviewFilter
+    let reviewQueue: [Card]
+    let reviewTimeline: [Card]
+}
+
+private func insertReviewQueueCandidate(
+    card: Card,
+    currentTopCards: [Card],
+    now: Date,
+    limit: Int
+) -> [Card] {
+    let insertionIndex = currentTopCards.firstIndex { existingCard in
+        compareCardsForReviewOrder(leftCard: card, rightCard: existingCard, now: now)
+    } ?? currentTopCards.count
+    var updatedTopCards = currentTopCards
+    updatedTopCards.insert(card, at: insertionIndex)
+
+    return Array(updatedTopCards.prefix(limit))
+}
+
+func makeSeedReviewQueue(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    cards: [Card],
+    now: Date,
+    limit: Int
+) -> [Card] {
+    precondition(limit > 0, "Review seed queue limit must be greater than zero")
+
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
+    let matchingCards = cardsMatchingReviewFilter(
+        reviewFilter: resolvedReviewFilter,
+        decks: decks,
+        cards: cards
+    )
+
+    return matchingCards.reduce(into: [Card]()) { result, card in
+        guard card.deletedAt == nil && isCardDue(card: card, now: now) else {
+            return
+        }
+
+        if result.count < limit {
+            result = insertReviewQueueCandidate(
+                card: card,
+                currentTopCards: result,
+                now: now,
+                limit: limit
+            )
+            return
+        }
+
+        guard let lastCard = result.last else {
+            return
+        }
+        guard compareCardsForReviewOrder(leftCard: card, rightCard: lastCard, now: now) else {
+            return
+        }
+
+        result = insertReviewQueueCandidate(
+            card: card,
+            currentTopCards: result,
+            now: now,
+            limit: limit
+        )
+    }
+}
+
+func makeReviewHeadLoadState(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    cards: [Card],
+    now: Date,
+    seedQueueSize: Int
+) -> ReviewHeadLoadState {
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
+
+    return ReviewHeadLoadState(
+        resolvedReviewFilter: resolvedReviewFilter,
+        seedReviewQueue: makeSeedReviewQueue(
+            reviewFilter: resolvedReviewFilter,
+            decks: decks,
+            cards: cards,
+            now: now,
+            limit: seedQueueSize
+        )
+    )
+}
+
 func makeReviewTimeline(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], now: Date) -> [Card] {
     sortCardsForReviewTimeline(
         cards: cardsMatchingReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards),
         now: now
+    )
+}
+
+func makeReviewComputedState(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    cards: [Card],
+    now: Date
+) -> ReviewComputedState {
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
+
+    return ReviewComputedState(
+        resolvedReviewFilter: resolvedReviewFilter,
+        reviewQueue: makeReviewQueue(
+            reviewFilter: resolvedReviewFilter,
+            decks: decks,
+            cards: cards,
+            now: now
+        ),
+        reviewTimeline: makeReviewTimeline(
+            reviewFilter: resolvedReviewFilter,
+            decks: decks,
+            cards: cards,
+            now: now
+        )
     )
 }
 

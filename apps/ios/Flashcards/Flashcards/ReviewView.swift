@@ -50,6 +50,14 @@ struct ReviewView: View {
         currentReviewCard(reviewQueue: store.effectiveReviewQueue)
     }
 
+    private var cachedPreparedCurrentRevealState: PreparedReviewRevealState? {
+        guard let currentCard else {
+            return nil
+        }
+
+        return self.cachedPreparedRevealState(card: currentCard)
+    }
+
     private var preparedRevealStatesTaskId: String {
         makePreparedReviewRevealStatesTaskId(
             reviewQueue: store.effectiveReviewQueue,
@@ -57,10 +65,23 @@ struct ReviewView: View {
         )
     }
 
+    private var shouldShowReviewLoader: Bool {
+        if store.isReviewHeadLoading {
+            return true
+        }
+        if let currentCard {
+            return self.cachedPreparedRevealState(card: currentCard) == nil
+        }
+
+        return store.isReviewTimelineLoading && store.reviewQueue.isEmpty == false
+    }
+
     var body: some View {
         Group {
-            if let currentCard {
-                activeCardView(card: currentCard)
+            if self.shouldShowReviewLoader {
+                reviewLoadingView
+            } else if let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
+                activeCardView(card: currentCard, preparedRevealState: preparedRevealState)
             } else {
                 emptyStateView
             }
@@ -70,7 +91,7 @@ struct ReviewView: View {
             isAnswerVisible = false
         }
         .task(id: preparedRevealStatesTaskId) {
-            self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
+            await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -78,16 +99,22 @@ struct ReviewView: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    self.isQueuePreviewPresented = true
-                } label: {
-                    Text("\(store.effectiveReviewQueue.count) / \(store.reviewTotalCount)")
-                        .font(.subheadline.monospacedDigit())
-                        .padding(.horizontal, 6)
-                        .foregroundStyle(.secondary)
+                if store.isReviewTimelineLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("Loading review queue")
+                } else {
+                    Button {
+                        self.isQueuePreviewPresented = true
+                    } label: {
+                        Text("\(store.effectiveReviewQueue.count) / \(store.reviewTotalCount)")
+                            .font(.subheadline.monospacedDigit())
+                            .padding(.horizontal, 6)
+                            .foregroundStyle(.secondary)
+                    }
+                    .disabled(store.reviewTotalCount == 0)
+                    .accessibilityLabel("Review queue \(store.effectiveReviewQueue.count) active of \(store.reviewTotalCount) total")
                 }
-                .disabled(store.reviewTotalCount == 0)
-                .accessibilityLabel("Review queue \(store.effectiveReviewQueue.count) active of \(store.reviewTotalCount) total")
             }
         }
         .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
@@ -200,19 +227,27 @@ struct ReviewView: View {
         }
     }
 
-    private func activeCardView(card: Card) -> some View {
+    private var reviewLoadingView: some View {
+        VStack {
+            Spacer()
+            ProgressView()
+                .controlSize(.large)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func activeCardView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
         ScrollView {
-            activeCardContentView(card: card)
+            activeCardContentView(card: card, preparedRevealState: preparedRevealState)
                 .padding(20)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            reviewBottomBar(card: card)
+            reviewBottomBar(card: card, preparedRevealState: preparedRevealState)
         }
     }
 
-    private func activeCardContentView(card: Card) -> some View {
-        let preparedRevealState = self.preparedRevealState(card: card)
-
+    private func activeCardContentView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
         return VStack(alignment: .leading, spacing: 20) {
             if screenErrorMessage.isEmpty == false {
                 Text(screenErrorMessage)
@@ -268,9 +303,9 @@ struct ReviewView: View {
     }
 
     @ViewBuilder
-    private func reviewBottomBar(card: Card) -> some View {
+    private func reviewBottomBar(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
         if isAnswerVisible {
-            if let options = resolvedPreparedReviewAnswerGridOptions(card: card) {
+            if let options = preparedRevealState.reviewAnswerGridOptions {
                 reviewBottomBarContainer {
                     reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
                 }
@@ -353,8 +388,7 @@ struct ReviewView: View {
             return nil
         }
 
-        let preparedRevealState = self.preparedRevealState(card: card)
-        return preparedRevealState.reviewAnswerOptionsErrorMessage
+        return self.cachedPreparedRevealState(card: card)?.reviewAnswerOptionsErrorMessage
     }
 
     private func beginEditing(card: Card) {
@@ -472,28 +506,40 @@ struct ReviewView: View {
         }
     }
 
-    private func refreshPreparedRevealStates(reviewQueue: [Card]) {
+    private func refreshPreparedRevealStates(reviewQueue: [Card]) async {
         let now = Date()
         let currentCard = currentReviewCard(reviewQueue: reviewQueue)
         let nextCard = nextReviewCard(reviewQueue: reviewQueue)
+        if currentCard != nil || nextCard != nil {
+            await Task.yield()
+        }
+        if Task.isCancelled {
+            return
+        }
 
-        self.preparedRevealState = currentCard.map { card in
+        let nextPreparedRevealState = currentCard.map { card in
             makePreparedReviewRevealState(
                 card: card,
                 schedulerSettings: store.schedulerSettings,
                 now: now
             )
         }
-        self.preparedNextRevealState = nextCard.map { card in
+        let nextPreparedNextRevealState = nextCard.map { card in
             makePreparedReviewRevealState(
                 card: card,
                 schedulerSettings: store.schedulerSettings,
                 now: now
             )
         }
+        if Task.isCancelled {
+            return
+        }
+
+        self.preparedRevealState = nextPreparedRevealState
+        self.preparedNextRevealState = nextPreparedNextRevealState
     }
 
-    private func preparedRevealState(card: Card) -> PreparedReviewRevealState {
+    private func cachedPreparedRevealState(card: Card) -> PreparedReviewRevealState? {
         let preparedRevealStateId = makePreparedReviewRevealStateId(
             card: card,
             schedulerSettings: store.schedulerSettings
@@ -506,16 +552,7 @@ struct ReviewView: View {
             return preparedNextRevealState
         }
 
-        return makePreparedReviewRevealState(
-            card: card,
-            schedulerSettings: store.schedulerSettings,
-            now: Date()
-        )
-    }
-
-    private func resolvedPreparedReviewAnswerGridOptions(card: Card) -> ReviewAnswerGridOptions? {
-        let preparedRevealState = self.preparedRevealState(card: card)
-        return preparedRevealState.reviewAnswerGridOptions
+        return nil
     }
 }
 
