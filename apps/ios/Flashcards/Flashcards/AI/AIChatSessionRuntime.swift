@@ -1,5 +1,27 @@
 import Foundation
 
+private let aiChatLocalToolExecutionErrorCode: String = "LOCAL_TOOL_EXECUTION_FAILED"
+private let aiChatMaximumConsecutiveToolExecutionFailures: Int = 3
+
+private struct AIChatLocalToolExecutionErrorOutput: Encodable {
+    let ok: Bool
+    let error: AIChatLocalToolExecutionErrorPayload
+}
+
+private struct AIChatLocalToolExecutionErrorPayload: Encodable {
+    let code: String
+    let message: String
+}
+
+private struct AIChatRuntimeFailure: LocalizedError, AIChatFailureDiagnosticProviding {
+    let message: String
+    let diagnostics: AIChatFailureDiagnostics
+
+    var errorDescription: String? {
+        self.message
+    }
+}
+
 actor AIChatSessionRuntime {
     private let historyStore: any AIChatHistoryStoring
     private let chatService: any AIChatStreaming
@@ -13,6 +35,7 @@ actor AIChatSessionRuntime {
     private var hasFlushedFirstAssistantDelta: Bool
     private var lastStreamFlushAt: Date
     private var lastHistoryCheckpointAt: Date
+    private var consecutiveToolExecutionFailures: Int
 
     init(
         historyStore: any AIChatHistoryStoring,
@@ -33,6 +56,7 @@ actor AIChatSessionRuntime {
         self.hasFlushedFirstAssistantDelta = false
         self.lastStreamFlushAt = .distantPast
         self.lastHistoryCheckpointAt = .distantPast
+        self.consecutiveToolExecutionFailures = 0
     }
 
     func run(
@@ -113,23 +137,31 @@ actor AIChatSessionRuntime {
                             )
                         } catch {
                             let errorText = localizedMessage(error: error)
+                            let errorOutput = try makeLocalToolExecutionErrorOutput(message: errorText)
                             try await self.handleToolCompletion(
                                 toolCallId: toolCallRequest.toolCallId,
-                                output: errorText,
+                                output: errorOutput,
                                 didMutateAppState: false,
                                 eventHandler: eventHandler
                             )
-                            throw error
+                            self.consecutiveToolExecutionFailures += 1
+                            if self.consecutiveToolExecutionFailures >= aiChatMaximumConsecutiveToolExecutionFailures {
+                                throw makeTerminalToolExecutionFailure(
+                                    requestId: outcome.requestId,
+                                    toolCallRequest: toolCallRequest,
+                                    errorMessage: errorText
+                                )
+                            }
+                            continue
                         }
 
+                        self.consecutiveToolExecutionFailures = 0
                         try await self.handleToolCompletion(
                             toolCallId: toolCallRequest.toolCallId,
                             output: result.output,
                             didMutateAppState: result.didMutateAppState,
                             eventHandler: eventHandler
                         )
-                    } catch {
-                        throw error
                     }
                 }
             }
@@ -145,6 +177,7 @@ actor AIChatSessionRuntime {
         self.persistedState = state
         self.pendingAssistantText = ""
         self.hasFlushedFirstAssistantDelta = false
+        self.consecutiveToolExecutionFailures = 0
         let now = Date()
         self.lastStreamFlushAt = now
         self.lastHistoryCheckpointAt = now
@@ -343,6 +376,45 @@ actor AIChatSessionRuntime {
             devicePlatform: "ios"
         )
     }
+}
+
+private func makeLocalToolExecutionErrorOutput(message: String) throws -> String {
+    let payload = AIChatLocalToolExecutionErrorOutput(
+        ok: false,
+        error: AIChatLocalToolExecutionErrorPayload(
+            code: aiChatLocalToolExecutionErrorCode,
+            message: message
+        )
+    )
+    let data = try JSONEncoder().encode(payload)
+    guard let encoded = String(data: data, encoding: .utf8) else {
+        throw LocalStoreError.validation("Failed to encode local tool execution error output as UTF-8")
+    }
+    return encoded
+}
+
+private func makeTerminalToolExecutionFailure(
+    requestId: String?,
+    toolCallRequest: AIToolCallRequest,
+    errorMessage: String
+) -> AIChatRuntimeFailure {
+    let message = "Tool execution failed \(aiChatMaximumConsecutiveToolExecutionFailures) times in a row. Last error: \(errorMessage)"
+    return AIChatRuntimeFailure(
+        message: message,
+        diagnostics: AIChatFailureDiagnostics(
+            clientRequestId: toolCallRequest.toolCallId,
+            backendRequestId: requestId,
+            stage: .toolExecution,
+            errorKind: .toolExecutionFailed,
+            statusCode: nil,
+            eventType: "tool_call_request",
+            toolName: toolCallRequest.name,
+            toolCallId: toolCallRequest.toolCallId,
+            lineNumber: nil,
+            rawSnippet: aiChatTruncatedSnippet(toolCallRequest.input),
+            decoderSummary: errorMessage
+        )
+    )
 }
 
 private func makeRuntimeRequestBody(state: AIChatPersistedState) -> AILocalChatRequestBody {

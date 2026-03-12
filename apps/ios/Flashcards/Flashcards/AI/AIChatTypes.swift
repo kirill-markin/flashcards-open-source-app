@@ -261,6 +261,7 @@ enum AIChatFailureStage: String, Codable, Hashable, Sendable {
     case processingTrailingEvent = "processing_trailing_event"
     case backendErrorEvent = "backend_error_event"
     case toolInputDecode = "tool_input_decode"
+    case toolExecution = "tool_execution"
 }
 
 enum AIChatFailureKind: String, Codable, Hashable, Sendable {
@@ -272,6 +273,7 @@ enum AIChatFailureKind: String, Codable, Hashable, Sendable {
     case invalidStreamContract = "invalid_stream_contract"
     case backendErrorEvent = "backend_error_event"
     case invalidToolInput = "invalid_tool_input"
+    case toolExecutionFailed = "tool_execution_failed"
 }
 
 struct AIChatFailureDiagnostics: Codable, Hashable, Sendable {

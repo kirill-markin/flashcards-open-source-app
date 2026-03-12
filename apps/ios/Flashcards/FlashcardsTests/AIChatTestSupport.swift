@@ -120,6 +120,130 @@ struct FailingToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     }
 }
 
+actor RecoveringToolFailureChatService: AIChatStreaming {
+    private var requests: [AILocalChatRequestBody]
+    private var callCount: Int
+
+    init() {
+        self.requests = []
+        self.callCount = 0
+    }
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        self.requests.append(request)
+        self.callCount += 1
+
+        if self.callCount == 1 {
+            let toolCallRequest = AIToolCallRequest(
+                toolCallId: "tool-recover-1",
+                name: "sql",
+                input: "{\"sql\":\"SELECT tags FROM cards\"}"
+            )
+            await onToolCallRequest(toolCallRequest)
+            return AITurnStreamOutcome(
+                awaitsToolResults: true,
+                requestedToolCalls: [toolCallRequest],
+                requestId: "request-recover-1"
+            )
+        }
+
+        await onDelta("Recovered")
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-recover-2")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+
+    func snapshotRequests() -> [AILocalChatRequestBody] {
+        self.requests
+    }
+}
+
+actor RepeatingToolFailureChatService: AIChatStreaming {
+    private var requests: [AILocalChatRequestBody]
+    private var callCount: Int
+
+    init() {
+        self.requests = []
+        self.callCount = 0
+    }
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        self.requests.append(request)
+        self.callCount += 1
+
+        let toolCallRequest = AIToolCallRequest(
+            toolCallId: "tool-fail-\(self.callCount)",
+            name: "sql",
+            input: "{\"sql\":\"SELECT tags FROM cards LIMIT \(self.callCount * 10) OFFSET 0\"}"
+        )
+        await onToolCallRequest(toolCallRequest)
+        return AITurnStreamOutcome(
+            awaitsToolResults: true,
+            requestedToolCalls: [toolCallRequest],
+            requestId: "request-fail-\(self.callCount)"
+        )
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+
+    func snapshotRequests() -> [AILocalChatRequestBody] {
+        self.requests
+    }
+}
+
+actor RecoveringToolFailureExecutor: AIToolExecuting, AIChatSnapshotLoading {
+    private var executionCount: Int
+
+    init() {
+        self.executionCount = 0
+    }
+
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
+        self.executionCount += 1
+        if self.executionCount == 1 {
+            throw StubLocalizedError(message: "Unsupported SELECT statement")
+        }
+
+        return AIToolExecutionResult(output: "{\"ok\":true}", didMutateAppState: false)
+    }
+
+    func loadSnapshot() async throws -> AppStateSnapshot {
+        throw LocalStoreError.uninitialized("Snapshot should not be requested")
+    }
+}
+
+actor AlwaysFailingToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
+        throw StubLocalizedError(message: "Unsupported SELECT statement")
+    }
+
+    func loadSnapshot() async throws -> AppStateSnapshot {
+        throw LocalStoreError.uninitialized("Snapshot should not be requested")
+    }
+}
+
 struct BurstChatService: AIChatStreaming {
     let deltas: [String]
 
