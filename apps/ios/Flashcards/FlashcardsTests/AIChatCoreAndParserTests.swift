@@ -4,7 +4,7 @@ import XCTest
 
 final class AIChatCoreAndParserTests: AIChatTestCaseBase {
     func testAppTabOrderPlacesAIBeforeSettings() {
-        XCTAssertEqual(AppTab.allCases, [.review, .decks, .cards, .ai, .settings])
+        XCTAssertEqual(AppTab.allCases, [.review, .cards, .ai, .settings])
     }
 
     func testHistoryStorePersistsMessagesAndModel() async throws {

@@ -73,8 +73,12 @@ struct ReviewView: View {
             self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
         }
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItemGroup(placement: .topBarLeading) {
                 reviewFilterMenu
+
+                Button("Edit decks") {
+                    store.openDeckManagement()
+                }
             }
 
             ToolbarItem(placement: .topBarTrailing) {

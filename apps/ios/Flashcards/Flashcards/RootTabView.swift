@@ -3,6 +3,7 @@ import SwiftUI
 struct RootTabView: View {
     @EnvironmentObject private var store: FlashcardsStore
     @State private var selectedTab: AppTab = .review
+    @State private var settingsNavigationPath: [SettingsNavigationDestination] = []
 
     var body: some View {
         TabView(selection: Binding(
@@ -23,28 +24,12 @@ struct RootTabView: View {
             .tag(AppTab.review)
 
             NavigationStack {
-                DecksScreen()
-            }
-            .tabItem {
-                Label("Decks", systemImage: "line.3.horizontal.decrease.circle")
-            }
-            .tag(AppTab.decks)
-
-            NavigationStack {
                 CardsScreen()
             }
             .tabItem {
                 Label("Cards", systemImage: "rectangle.stack")
             }
             .tag(AppTab.cards)
-
-            NavigationStack {
-                TagsScreen()
-            }
-            .tabItem {
-                Label("Tags", systemImage: "tag")
-            }
-            .tag(AppTab.tags)
 
             NavigationStack {
                 AIChatView(flashcardsStore: store, chatStore: store.aiChatStore)
@@ -54,8 +39,16 @@ struct RootTabView: View {
             }
             .tag(AppTab.ai)
 
-            NavigationStack {
+            NavigationStack(path: self.$settingsNavigationPath) {
                 SettingsView()
+                    .navigationDestination(for: SettingsNavigationDestination.self) { destination in
+                        switch destination {
+                        case .decks:
+                            DecksScreen()
+                        case .tags:
+                            TagsScreen()
+                        }
+                    }
             }
             .tabItem {
                 Label("Settings", systemImage: "gearshape")
@@ -64,6 +57,7 @@ struct RootTabView: View {
         }
         .onAppear {
             self.selectedTab = store.selectedTab
+            self.handleSettingsPresentationRequest(request: store.settingsPresentationRequest)
         }
         .onChange(of: store.tabSelectionRequest) { _, request in
             guard let request else {
@@ -72,6 +66,18 @@ struct RootTabView: View {
 
             self.selectedTab = request.tab
         }
+        .onChange(of: store.settingsPresentationRequest) { _, request in
+            self.handleSettingsPresentationRequest(request: request)
+        }
+    }
+
+    private func handleSettingsPresentationRequest(request: SettingsNavigationDestination?) {
+        guard let request else {
+            return
+        }
+
+        self.settingsNavigationPath = [request]
+        store.clearSettingsPresentationRequest()
     }
 }
 
