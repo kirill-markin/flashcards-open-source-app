@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
 
+import { act, createElement } from "react";
+import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
+  FileAttachment,
   prepareAttachment,
   recompressImageAttachment,
 } from "./FileAttachment";
@@ -67,6 +70,7 @@ function installCanvasMocks(): void {
 
 describe("FileAttachment image processing", () => {
   beforeEach(() => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     installCanvasMocks();
     vi.stubGlobal("URL", {
       createObjectURL: vi.fn(() => "blob:test"),
@@ -115,5 +119,27 @@ describe("FileAttachment image processing", () => {
     expect(aggressiveAttachment.mediaType).toBe("image/jpeg");
     expect(extraCompressedAttachment.mediaType).toBe("image/jpeg");
     expect(extraCompressedAttachment.base64Data.length).toBeLessThan(aggressiveAttachment.base64Data.length);
+  });
+
+  it("renders an icon-only attach button with an accessible label", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = ReactDOM.createRoot(container);
+
+    await act(async () => {
+      root.render(createElement(FileAttachment, {
+        onAttach: vi.fn(),
+      }));
+    });
+
+    const attachButton = container.querySelector(".chat-attach-btn");
+    expect(attachButton?.getAttribute("aria-label")).toBe("Add attachment");
+    expect(attachButton?.textContent).toBe("");
+    expect(attachButton?.querySelector(".chat-attach-btn-icon")).not.toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 });

@@ -19,6 +19,7 @@ struct AIChatView: View {
     @State private var bottomMarkerMaxY: CGFloat
     @State private var scrollViewportHeight: CGFloat
     @State private var autoScrollTask: Task<Void, Never>?
+    @State private var shouldRestoreComposerFocusAfterDictation: Bool
     @FocusState private var isComposerFocused: Bool
 
     @MainActor
@@ -36,6 +37,7 @@ struct AIChatView: View {
         self.bottomMarkerMaxY = 0
         self.scrollViewportHeight = 0
         self.autoScrollTask = nil
+        self.shouldRestoreComposerFocusAfterDictation = false
     }
 
     var body: some View {
@@ -74,6 +76,7 @@ struct AIChatView: View {
         }
         .onChange(of: self.scenePhase) { _, nextPhase in
             guard nextPhase == .active else {
+                self.shouldRestoreComposerFocusAfterDictation = false
                 self.chatStore.cancelDictation()
                 return
             }
@@ -88,7 +91,11 @@ struct AIChatView: View {
                 return
             }
 
+            self.shouldRestoreComposerFocusAfterDictation = false
             self.chatStore.cancelDictation()
+        }
+        .onChange(of: self.chatStore.dictationState) { _, nextState in
+            self.handleDictationStateChange(nextState)
         }
         .onChange(of: self.selectedPhotoItem) { _, newItem in
             guard let newItem else {
@@ -347,7 +354,14 @@ struct AIChatView: View {
                 }
 
                 ZStack(alignment: .bottomTrailing) {
-                    if self.chatStore.dictationState == .idle {
+                    VStack(alignment: .leading, spacing: 8) {
+                        AIChatDictationStatusLane(
+                            statusText: self.dictationStatusText,
+                            isVisible: self.chatStore.dictationState != .idle
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.top, 12)
+
                         TextField(
                             "Ask about cards, review history, or propose a change...",
                             text: self.$chatStore.inputText,
@@ -357,11 +371,7 @@ struct AIChatView: View {
                         .lineLimit(1...aiChatComposerMaximumLineCount)
                         .padding(.leading, 12)
                         .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                        .padding(.vertical, 12)
-                    } else {
-                        AIChatDictationWaveform(statusText: self.dictationStatusText)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 12)
+                        .padding(.bottom, 12)
                     }
 
                     Button {
@@ -387,7 +397,7 @@ struct AIChatView: View {
                 .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .simultaneousGesture(
                     TapGesture().onEnded {
-                        self.isComposerFocused = self.chatStore.dictationState == .idle
+                        self.isComposerFocused = true
                     }
                 )
 
@@ -406,20 +416,29 @@ struct AIChatView: View {
                             }
                         } label: {
                             Image(systemName: "paperclip")
+                                .frame(
+                                    width: aiChatComposerAccessoryButtonSize,
+                                    height: aiChatComposerAccessoryButtonSize
+                                )
                         }
                         .buttonStyle(.bordered)
+                        .tint(.accentColor)
                         .disabled(self.chatStore.dictationState != .idle)
                         .accessibilityLabel("Add attachment")
                         .accessibilityHint("Take a photo, choose a photo, or select a file")
                         .menuOrder(.fixed)
 
                         Button {
-                            self.chatStore.toggleDictation()
+                            self.handleDictationButtonTap()
                         } label: {
                             Image(systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic")
+                                .frame(
+                                    width: aiChatComposerAccessoryButtonSize,
+                                    height: aiChatComposerAccessoryButtonSize
+                                )
                         }
                         .buttonStyle(.bordered)
-                        .foregroundStyle(self.chatStore.dictationState == .recording ? Color.red : Color.primary)
+                        .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
                         .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
                         .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
                     }
@@ -500,6 +519,37 @@ struct AIChatView: View {
         }
 
         return self.chatStore.repairStatus
+    }
+
+    private func handleDictationButtonTap() {
+        if self.chatStore.dictationState == .idle {
+            self.shouldRestoreComposerFocusAfterDictation = self.isComposerFocused
+        }
+
+        self.chatStore.toggleDictation()
+        self.restoreComposerFocusIfNeeded()
+    }
+
+    private func handleDictationStateChange(_ nextState: AIChatDictationState) {
+        guard self.shouldRestoreComposerFocusAfterDictation else {
+            return
+        }
+
+        self.restoreComposerFocusIfNeeded()
+
+        if nextState == .idle {
+            self.shouldRestoreComposerFocusAfterDictation = false
+        }
+    }
+
+    private func restoreComposerFocusIfNeeded() {
+        guard self.shouldRestoreComposerFocusAfterDictation else {
+            return
+        }
+
+        Task { @MainActor in
+            self.isComposerFocused = true
+        }
     }
 
     private func messageRow(
@@ -823,6 +873,7 @@ private let aiChatComposerTopPadding: CGFloat = 8
 private let aiChatComposerSendButtonInset: CGFloat = 8
 private let aiChatComposerSendButtonVisualSize: CGFloat = 28
 private let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 44
+private let aiChatComposerAccessoryButtonSize: CGFloat = 40
 private let aiChatMessageListHorizontalPadding: CGFloat = 16
 private let aiChatAutoScrollIntervalSeconds: Double = 2.0
 private let aiChatAutoScrollBottomThreshold: CGFloat = 24
@@ -857,26 +908,36 @@ private struct AIChatViewportHeightPreferenceKey: PreferenceKey {
     }
 }
 
-private struct AIChatDictationWaveform: View {
+private let aiChatComposerStatusLaneHeight: CGFloat = 24
+
+private struct AIChatDictationStatusLane: View {
     let statusText: String
+    let isVisible: Bool
 
     var body: some View {
         TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds)) { context in
             let activeDotCount = aiChatTypingIndicatorActiveDotCount(date: context.date)
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .bottom, spacing: 8) {
+            HStack(spacing: 10) {
+                HStack(alignment: .bottom, spacing: 6) {
                     ForEach(0..<5, id: \.self) { index in
                         Capsule()
                             .fill(Color.accentColor.opacity(index < activeDotCount + 1 ? 0.95 : 0.35))
-                            .frame(width: 8, height: index < activeDotCount + 1 ? 28 : 16)
+                            .frame(width: 6, height: index < activeDotCount + 1 ? 18 : 10)
                     }
                 }
                 Text(self.statusText)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: aiChatComposerStatusLaneHeight,
+                alignment: .leading
+            )
+            .opacity(self.isVisible ? 1 : 0)
+            .accessibilityHidden(self.isVisible == false)
         }
     }
 }

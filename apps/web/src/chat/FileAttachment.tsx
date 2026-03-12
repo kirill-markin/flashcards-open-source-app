@@ -310,9 +310,22 @@ export function FileAttachment(props: Props): ReactElement {
         type="button"
         className="chat-attach-btn"
         disabled={disabled}
+        aria-label="Add attachment"
+        title="Add attachment"
         onClick={() => inputRef.current?.click()}
       >
-        Attach
+        <svg
+          className="chat-attach-btn-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M10.5 13.5 16 8a3.182 3.182 0 1 1 4.5 4.5l-8 8a5.303 5.303 0 0 1-7.5-7.5l8.5-8.5" />
+        </svg>
       </button>
     </>
   );

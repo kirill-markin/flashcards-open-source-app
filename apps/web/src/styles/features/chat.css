@@ -391,7 +391,16 @@
 }
 
 .chat-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 40px;
+  block-size: 40px;
+  flex: 0 0 40px;
+  padding: 0;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
 }
 
 .chat-mic-btn {
@@ -423,6 +432,12 @@
 }
 
 .chat-mic-btn-icon {
+  display: block;
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+.chat-attach-btn-icon {
   display: block;
   inline-size: 18px;
   block-size: 18px;
@@ -685,6 +700,10 @@
   }
 
   .chat-stop-btn {
+    width: 40px;
+  }
+
+  .chat-attach-btn {
     width: 40px;
   }
 
