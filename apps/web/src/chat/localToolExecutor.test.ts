@@ -257,6 +257,57 @@ describe("createLocalToolExecutor", () => {
     });
   });
 
+  it("supports standalone ORDER BY RANDOM() for SQL reads", async () => {
+    const snapshot = makeSnapshot();
+    snapshot.cards.push(
+      makeCard({
+        cardId: "card-3",
+        frontText: "Third",
+        backText: "Third Back",
+        tags: ["tag-c"],
+        updatedAt: "2026-03-10T07:00:00.000Z",
+      }),
+    );
+    const executor = createLocalToolExecutor(makeDependencies(snapshot));
+    const randomSpy = vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0.1)
+      .mockReturnValueOnce(0.8);
+
+    try {
+      const randomResult = await executor.execute({
+        toolCallId: "call-random",
+        name: "sql",
+        input: "{\"sql\":\"SELECT card_id, front_text, back_text, tags FROM cards ORDER BY RANDOM() LIMIT 2 OFFSET 1\"}",
+      });
+      const randomPayload = JSON.parse(randomResult.output) as Readonly<{
+        rows: ReadonlyArray<Readonly<Record<string, unknown>>>;
+        rowCount: number;
+        limit: number;
+        offset: number;
+      }>;
+
+      expect(randomPayload.rowCount).toBe(2);
+      expect(randomPayload.limit).toBe(2);
+      expect(randomPayload.offset).toBe(1);
+      expect(randomPayload.rows).toEqual([
+        {
+          card_id: "card-2",
+          front_text: "Second",
+          back_text: "Back",
+          tags: ["tag-a"],
+        },
+        {
+          card_id: "card-1",
+          front_text: "Front",
+          back_text: "Back",
+          tags: ["tag-a"],
+        },
+      ]);
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
   it("supports SQL mutations for cards", async () => {
     const snapshot = makeSnapshot();
     const dependencies = makeDependencies(snapshot);

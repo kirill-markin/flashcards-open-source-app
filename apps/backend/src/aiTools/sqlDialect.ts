@@ -78,10 +78,15 @@ export type SqlPredicate =
 
 export type SqlPredicateClause = ReadonlyArray<SqlPredicate>;
 
-export type SqlSelectOrderBy = Readonly<{
-  expressionName: string;
-  direction: SqlOrderDirection;
-}>;
+export type SqlSelectOrderBy =
+  | Readonly<{
+    type: "column";
+    expressionName: string;
+    direction: SqlOrderDirection;
+  }>
+  | Readonly<{
+    type: "random";
+  }>;
 
 export type SqlAggregateFunctionName = "count" | "sum" | "avg" | "min" | "max";
 
@@ -872,14 +877,29 @@ function parsePredicateClauses(source: SqlFromSource, value: string): ReadonlyAr
 }
 
 function parseOrderBy(value: string): ReadonlyArray<SqlSelectOrderBy> {
-  return splitTopLevel(value, ",").map((item) => {
-    const trimmedItem = item.trim();
-    const match = trimmedItem.match(/^([a-z_][a-z0-9_]*)(?:\s+(ASC|DESC))?$/i);
+  const items = splitTopLevel(value, ",").map((item) => item.trim());
+  if (items.length === 1 && /^RANDOM\s*\(\s*\)$/i.test(items[0] ?? "")) {
+    return [{ type: "random" }];
+  }
+
+  for (const item of items) {
+    if (/^RANDOM\s*\(\s*\)\s+(ASC|DESC)$/i.test(item)) {
+      throw new Error("RANDOM() does not support ASC or DESC");
+    }
+  }
+
+  if (items.some((item) => /^RANDOM\s*\(\s*\)$/i.test(item))) {
+    throw new Error("RANDOM() must be the only ORDER BY item");
+  }
+
+  return items.map((item) => {
+    const match = item.match(/^([a-z_][a-z0-9_]*)(?:\s+(ASC|DESC))?$/i);
     if (match === null) {
-      throw new Error(`Unsupported ORDER BY item: ${trimmedItem}`);
+      throw new Error(`Unsupported ORDER BY item: ${item}`);
     }
 
     return {
+      type: "column",
       expressionName: (match[1] ?? "").toLowerCase(),
       direction: ((match[2] ?? "ASC").toLowerCase()) as SqlOrderDirection,
     };
@@ -1473,8 +1493,20 @@ function applyOrderBy(
     return rows;
   }
 
+  if (orderBy.length === 1 && orderBy[0]?.type === "random") {
+    const shuffledRows = [...rows];
+    for (let index = shuffledRows.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(Math.random() * (index + 1));
+      [shuffledRows[index], shuffledRows[swapIndex]] = [shuffledRows[swapIndex] as SqlRow, shuffledRows[index] as SqlRow];
+    }
+    return shuffledRows;
+  }
+
   return [...rows].sort((left, right) => {
     for (const item of orderBy) {
+      if (item.type !== "column") {
+        throw new Error("RANDOM() must be the only ORDER BY item");
+      }
       const comparison = compareRowValues(left[item.expressionName], right[item.expressionName]);
       if (comparison !== 0) {
         return item.direction === "desc" ? -comparison : comparison;
@@ -1515,6 +1547,9 @@ function expandRowsForSource(source: SqlFromSource, rows: ReadonlyArray<SqlRow>)
 function validateRowOrderBy(source: SqlFromSource, orderBy: ReadonlyArray<SqlSelectOrderBy>): void {
   const availableColumns = getSourceColumnDescriptors(source);
   for (const item of orderBy) {
+    if (item.type === "random") {
+      continue;
+    }
     const columnDescriptor = availableColumns[item.expressionName];
     if (columnDescriptor === undefined) {
       throw new Error(`Unknown ORDER BY target: ${item.expressionName}`);
@@ -1591,6 +1626,10 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
   }
 
   for (const item of statement.orderBy) {
+    if (item.type === "random") {
+      continue;
+    }
+
     if (aggregateOutputNames.has(item.expressionName) || statement.groupBy.includes(item.expressionName)) {
       continue;
     }
