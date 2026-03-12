@@ -102,6 +102,7 @@
 .tag-suggestions-list {
   max-height: 220px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 6px;
 }
 
