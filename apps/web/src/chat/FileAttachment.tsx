@@ -8,6 +8,7 @@ export type PendingAttachment = Readonly<{
 
 type Props = Readonly<{
   onAttach: (attachment: PendingAttachment) => Promise<void> | void;
+  disabled?: boolean;
 }>;
 
 export type ImageCompressionOptions = Readonly<{
@@ -263,6 +264,7 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
 
 export function FileAttachment(props: Props): ReactElement {
   const { onAttach } = props;
+  const disabled = props.disabled === true;
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleChange(): Promise<void> {
@@ -301,11 +303,13 @@ export function FileAttachment(props: Props): ReactElement {
         accept={ACCEPTED_TYPES}
         multiple
         style={{ display: "none" }}
+        disabled={disabled}
         onChange={() => void handleChange()}
       />
       <button
         type="button"
         className="chat-attach-btn"
+        disabled={disabled}
         onClick={() => inputRef.current?.click()}
       >
         Attach

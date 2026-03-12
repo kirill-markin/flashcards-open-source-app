@@ -39,6 +39,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case decks
     case tags
     case account
+    case access
 }
 
 let allCardsDeckLabel: String = "All cards"

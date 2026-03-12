@@ -108,7 +108,7 @@ describe("SettingsScreen", () => {
     container.remove();
   });
 
-  it("renders workspace settings entries for decks and tags with summary counts", async () => {
+  it("renders workspace settings entries for access, decks, and tags with summary counts", async () => {
     await act(async () => {
       root.render(
         <MemoryRouter>
@@ -121,11 +121,13 @@ describe("SettingsScreen", () => {
     expect(mockAppData.ensureDecksLoaded).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Workspace navigation matches iOS");
     expect(container.textContent).toContain("Spanish");
+    expect(container.textContent).toContain("Access");
+    expect(container.textContent).toContain("3 items");
     expect(container.textContent).toContain("Decks");
     expect(container.textContent).toContain("1 total");
     expect(container.textContent).toContain("Tags");
 
     const links = Array.from(container.querySelectorAll(".settings-nav-card")).map((element) => element.getAttribute("href"));
-    expect(links).toEqual(["/settings/decks", "/settings/tags"]);
+    expect(links).toEqual(["/settings/access", "/settings/decks", "/settings/tags"]);
   });
 });

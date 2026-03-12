@@ -13,6 +13,8 @@ import type {
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
   AgentApiKeyRevokeResponse,
+  ChatTranscriptionResponse,
+  ChatTranscriptionSource,
   WorkspaceSummary,
 } from "./types";
 
@@ -112,7 +114,7 @@ function getMethod(init: RequestInit): string {
 function createHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
 
-  if (init.body !== undefined && !headers.has("Content-Type")) {
+  if (init.body !== undefined && !headers.has("Content-Type") && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -483,6 +485,32 @@ export async function streamLocalChat(body: LocalChatRequestBody, signal: AbortS
     body: JSON.stringify(body),
     signal,
   }, allowAuthRecovery);
+}
+
+function extensionForAudioMediaType(mediaType: string): string {
+  if (mediaType === "audio/wav" || mediaType === "audio/wave" || mediaType === "audio/x-wav") {
+    return "wav";
+  }
+
+  if (mediaType === "audio/mp4" || mediaType === "audio/m4a" || mediaType === "audio/x-m4a") {
+    return "m4a";
+  }
+
+  return "webm";
+}
+
+export async function transcribeChatAudio(blob: Blob, source: ChatTranscriptionSource): Promise<string> {
+  const mediaType = blob.type === "" ? "audio/webm" : blob.type;
+  const file = new File([blob], `chat-dictation.${extensionForAudioMediaType(mediaType)}`, { type: mediaType });
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("source", source);
+
+  const payload = expectObject(await requestJson("/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  }, allowAuthRecovery)) as unknown as ChatTranscriptionResponse;
+  return payload.text;
 }
 
 export function createLocalChatRequestBody(

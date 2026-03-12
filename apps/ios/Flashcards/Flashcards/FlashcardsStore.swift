@@ -1428,7 +1428,12 @@ final class FlashcardsStore: ObservableObject {
             historyStore: historyStore,
             chatService: chatService,
             toolExecutor: workspaceRuntime,
-            snapshotLoader: workspaceRuntime
+            snapshotLoader: workspaceRuntime,
+            voiceRecorder: AIChatVoiceRecorder(),
+            audioTranscriber: AIChatTranscriptionService(
+                session: URLSession.shared,
+                decoder: self.decoder
+            )
         )
     }
 

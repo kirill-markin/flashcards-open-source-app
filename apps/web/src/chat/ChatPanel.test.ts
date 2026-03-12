@@ -13,6 +13,7 @@ const {
   createLocalChatRequestBodyMock,
   sendLocalChatDiagnosticsMock,
   streamLocalChatMock,
+  transcribeChatAudioMock,
   ensurePersistentStorageMock,
   executeLocalToolMock,
   checkFileSizeMock,
@@ -24,6 +25,7 @@ const {
   createLocalChatRequestBodyMock: vi.fn(),
   sendLocalChatDiagnosticsMock: vi.fn(),
   streamLocalChatMock: vi.fn(),
+  transcribeChatAudioMock: vi.fn(),
   ensurePersistentStorageMock: vi.fn(),
   executeLocalToolMock: vi.fn(),
   checkFileSizeMock: vi.fn(),
@@ -43,6 +45,7 @@ vi.mock("../api", () => ({
   createLocalChatRequestBody: createLocalChatRequestBodyMock,
   sendLocalChatDiagnostics: sendLocalChatDiagnosticsMock,
   streamLocalChat: streamLocalChatMock,
+  transcribeChatAudio: transcribeChatAudioMock,
 }));
 
 vi.mock("../syncStorage", () => ({
@@ -67,11 +70,26 @@ vi.mock("./FileAttachment", () => ({
     maxSidePixels: 1_280,
     quality: 0.55,
   },
-  FileAttachment: () => createElement(
+  FileAttachment: ({ disabled, onAttach }: Readonly<{
+    disabled?: boolean;
+    onAttach: (attachment: {
+      fileName: string;
+      mediaType: string;
+      base64Data: string;
+    }) => Promise<void> | void;
+  }>) => createElement(
     "button",
     {
       type: "button",
       className: "chat-attach-btn",
+      disabled: disabled === true,
+      onClick: () => {
+        void onAttach({
+          fileName: "attached.txt",
+          mediaType: "text/plain",
+          base64Data: "YXR0YWNoZWQ=",
+        });
+      },
     },
     "Attach",
   ),
@@ -251,6 +269,61 @@ function createDeferred<T>(): Readonly<{
   };
 }
 
+function createMediaStreamMock(): MediaStream {
+  return {
+    getTracks: () => [{
+      stop: vi.fn(),
+    } as unknown as MediaStreamTrack],
+  } as unknown as MediaStream;
+}
+
+class MockMediaRecorder {
+  static nextBlob: Blob = new Blob(["dictation"], { type: "audio/webm" });
+
+  readonly mimeType: string;
+  state: RecordingState;
+  private readonly listeners: Map<string, Set<(event: Event) => void>>;
+
+  constructor(_stream: MediaStream) {
+    this.mimeType = "audio/webm";
+    this.state = "inactive";
+    this.listeners = new Map();
+  }
+
+  addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
+    const callback = typeof listener === "function"
+      ? listener
+      : (event: Event) => listener.handleEvent(event);
+    const currentListeners = this.listeners.get(type) ?? new Set();
+    currentListeners.add(callback);
+    this.listeners.set(type, currentListeners);
+  }
+
+  removeEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
+    const currentListeners = this.listeners.get(type);
+    if (currentListeners === undefined) {
+      return;
+    }
+
+    const callback = typeof listener === "function"
+      ? listener
+      : (event: Event) => listener.handleEvent(event);
+    currentListeners.delete(callback);
+  }
+
+  start(): void {
+    this.state = "recording";
+  }
+
+  stop(): void {
+    this.state = "inactive";
+    const dataListeners = [...(this.listeners.get("dataavailable") ?? [])];
+    dataListeners.forEach((listener) => listener({ data: MockMediaRecorder.nextBlob } as unknown as Event));
+    const stopListeners = [...(this.listeners.get("stop") ?? [])];
+    stopListeners.forEach((listener) => listener(new Event("stop")));
+  }
+}
+
 describe("formatToolLabel", () => {
   it("renders labels for the reduced local tool surface", () => {
     expect(formatToolLabel("sql")).toBe("SQL");
@@ -285,6 +358,7 @@ describe("ChatPanel autoscroll", () => {
     createLocalChatRequestBodyMock.mockReset();
     sendLocalChatDiagnosticsMock.mockReset();
     streamLocalChatMock.mockReset();
+    transcribeChatAudioMock.mockReset();
     ensurePersistentStorageMock.mockReset();
     executeLocalToolMock.mockReset();
     checkFileSizeMock.mockReset();
@@ -329,6 +403,7 @@ describe("ChatPanel autoscroll", () => {
     streamLocalChatMock.mockResolvedValue(
       createTimedStreamResponse([{ atMs: 0, payload: streamDeltaPayload("done") }], 1),
     );
+    transcribeChatAudioMock.mockResolvedValue("dictated text");
     checkFileSizeMock.mockReturnValue(null);
     prepareAttachmentMock.mockResolvedValue({
       fileName: "test-file.txt",
@@ -361,6 +436,19 @@ describe("ChatPanel autoscroll", () => {
       configurable: true,
       writable: true,
       value: scrollToMock,
+    });
+    vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+    Object.defineProperty(window.navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn(async () => createMediaStreamMock()),
+      },
+    });
+    Object.defineProperty(window.navigator, "permissions", {
+      configurable: true,
+      value: {
+        query: vi.fn(async () => ({ state: "granted" })),
+      },
     });
   });
 
@@ -609,6 +697,7 @@ describe("ChatPanel autoscroll", () => {
     expect(mountedContainer.querySelector('.chat-send-btn[aria-label="Send message"]')).toBeNull();
     expect(mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]')).not.toBeNull();
     expect((mountedContainer.querySelector(".chat-attach-btn") as HTMLButtonElement | null)?.disabled).toBe(false);
+    expect((mountedContainer.querySelector('.chat-mic-btn[aria-label="Start dictation"]') as HTMLButtonElement | null)?.disabled).toBe(false);
 
     await act(async () => {
       vi.advanceTimersByTime(60);
@@ -1165,6 +1254,180 @@ describe("ChatPanel autoscroll", () => {
     expect((streamLocalChatMock.mock.calls[0]?.[1] as AbortSignal).aborted).toBe(true);
     expect(mountedContainer.textContent).not.toContain("Partial response");
     expect(mountedContainer.querySelectorAll(".chat-msg")).toHaveLength(0);
+  });
+
+  it("renders the microphone button immediately to the right of attach", async () => {
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const controlsRight = mountedContainer.querySelector(".chat-controls-right");
+    const controls = Array.from(controlsRight?.children ?? []).map((element) => element.className);
+    expect(controls[0]).toContain("chat-attach-btn");
+    expect(controls[1]).toContain("chat-mic-btn");
+  });
+
+  it("swaps the textarea for dictation UI and appends the recognized transcript", async () => {
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const textarea = mountedContainer.querySelector('textarea[name="chatMessage"]');
+    expect(textarea).not.toBeNull();
+    await act(async () => {
+      setTextareaValue(textarea as HTMLTextAreaElement, "hello");
+    });
+
+    const micButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Start dictation"]');
+    expect(micButton).not.toBeNull();
+
+    await act(async () => {
+      micButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(mountedContainer.querySelector(".chat-dictation-surface-recording")).not.toBeNull();
+    expect(mountedContainer.querySelector('textarea[name="chatMessage"]')).toBeNull();
+
+    const stopDictationButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Stop dictation"]');
+    expect(stopDictationButton).not.toBeNull();
+
+    await act(async () => {
+      stopDictationButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const restoredTextarea = mountedContainer.querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(restoredTextarea).not.toBeNull();
+    expect(restoredTextarea?.value).toBe("hello dictated text ");
+    expect(transcribeChatAudioMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets the user keep building the next draft while the assistant is streaming", async () => {
+    streamLocalChatMock.mockImplementationOnce((_body: unknown, signal: AbortSignal) => Promise.resolve(
+      createAbortableTimedStreamResponse(
+        signal,
+        [{ atMs: 50, payload: streamDeltaPayload("Partial response") }],
+        5_000,
+      ),
+    ));
+
+    await renderChatPanel();
+    await sendMessage("first");
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const textarea = mountedContainer.querySelector('textarea[name="chatMessage"]');
+    expect(textarea).not.toBeNull();
+
+    await act(async () => {
+      setTextareaValue(textarea as HTMLTextAreaElement, "next");
+    });
+
+    const attachButton = mountedContainer.querySelector(".chat-attach-btn");
+    expect((attachButton as HTMLButtonElement | null)?.disabled).toBe(false);
+    await act(async () => {
+      attachButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const micButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Start dictation"]');
+    expect((micButton as HTMLButtonElement | null)?.disabled).toBe(false);
+    await act(async () => {
+      micButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(mountedContainer.querySelector(".chat-dictation-surface-recording")).not.toBeNull();
+    expect(mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]')).not.toBeNull();
+
+    const stopDictationButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Stop dictation"]');
+    expect(stopDictationButton).not.toBeNull();
+    await act(async () => {
+      stopDictationButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const restoredTextarea = mountedContainer.querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(restoredTextarea?.value).toBe("next dictated text ");
+    expect(mountedContainer.textContent).toContain("attached.txt");
+    expect(mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]')).not.toBeNull();
+  });
+
+  it("shows browser guidance when microphone permission is blocked", async () => {
+    Object.defineProperty(window.navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn(async () => {
+          throw new DOMException("Permission denied", "NotAllowedError");
+        }),
+      },
+    });
+    Object.defineProperty(window.navigator, "permissions", {
+      configurable: true,
+      value: {
+        query: vi.fn(async () => ({ state: "denied" })),
+      },
+    });
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const micButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Start dictation"]');
+    expect(micButton).not.toBeNull();
+
+    await act(async () => {
+      micButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(mountedContainer.textContent).toContain("Click the site controls in your browser bar and enable microphone access");
+  });
+
+  it("shows the transcription failure message when upload fails", async () => {
+    transcribeChatAudioMock.mockRejectedValueOnce(new Error("There is a network problem. Fix it and try again."));
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const micButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Start dictation"]');
+    expect(micButton).not.toBeNull();
+
+    await act(async () => {
+      micButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const stopDictationButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Stop dictation"]');
+    expect(stopDictationButton).not.toBeNull();
+
+    await act(async () => {
+      stopDictationButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(mountedContainer.textContent).toContain("There is a network problem. Fix it and try again.");
   });
 });
 
