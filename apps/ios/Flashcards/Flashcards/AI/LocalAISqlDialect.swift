@@ -267,16 +267,63 @@ func localAISqlColumnDescriptor(
 
 func localAISqlNormalizeWhitespace(_ value: String) -> String {
     let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    let withoutSemicolon = trimmedValue.replacingOccurrences(
-        of: #";\s*$"#,
-        with: "",
-        options: .regularExpression
-    )
-    return withoutSemicolon.replacingOccurrences(
-        of: #"\s+"#,
-        with: " ",
-        options: .regularExpression
-    )
+    var normalizedValue = ""
+    var inString = false
+    var pendingWhitespace = false
+    let characters = Array(trimmedValue)
+    var index = 0
+
+    while index < characters.count {
+        let character = characters[index]
+        let nextCharacter = index + 1 < characters.count ? characters[index + 1] : nil
+
+        if character == "'" {
+            if pendingWhitespace, normalizedValue.isEmpty == false {
+                normalizedValue.append(" ")
+                pendingWhitespace = false
+            }
+
+            normalizedValue.append(character)
+            if inString, nextCharacter == "'" {
+                normalizedValue.append("'")
+                index += 2
+                continue
+            }
+
+            inString.toggle()
+            index += 1
+            continue
+        }
+
+        if inString {
+            normalizedValue.append(character)
+            index += 1
+            continue
+        }
+
+        if character.isWhitespace {
+            pendingWhitespace = true
+            index += 1
+            continue
+        }
+
+        if character == ";" {
+            let remainingCharacters = characters[(index + 1)...]
+            if remainingCharacters.allSatisfy(\.isWhitespace) {
+                break
+            }
+        }
+
+        if pendingWhitespace, normalizedValue.isEmpty == false {
+            normalizedValue.append(" ")
+            pendingWhitespace = false
+        }
+
+        normalizedValue.append(character)
+        index += 1
+    }
+
+    return normalizedValue
 }
 
 private func localAISqlUppercaseKeyword(_ value: String) -> String {
@@ -1040,7 +1087,7 @@ private func localAISqlParseAssignments(
 ) throws -> [LocalAISqlAssignment] {
     try localAISqlSplitTopLevel(value: value, separator: ",").map { assignment in
         guard let groups = localAISqlMatch(
-            pattern: #"^([a-z_][a-z0-9_]*)\s*=\s*(.+)$"#,
+            pattern: #"^([a-z_][a-z0-9_]*)\s*=\s*([\s\S]+)$"#,
             value: assignment
         ) else {
             throw LocalStoreError.validation("Unsupported assignment: \(assignment)")
