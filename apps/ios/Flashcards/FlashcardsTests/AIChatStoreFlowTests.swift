@@ -428,6 +428,82 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testAIChatStoreFeedsFailedToolOutputIntoFollowUpRequest() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let chatService = RecoveringToolFailureChatService()
+        let toolExecutor = RecoveringToolFailureExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: chatService,
+            toolExecutor: toolExecutor,
+            snapshotLoader: toolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        let requests = await chatService.snapshotRequests()
+        XCTAssertEqual(requests.count, 2)
+        XCTAssertEqual(requests[1].messages.count, 3)
+        XCTAssertEqual(requests[1].messages[1].role, "assistant")
+        XCTAssertEqual(requests[1].messages[1].content?.count, 1)
+        XCTAssertEqual(requests[1].messages[1].content?.first?.toolCallValue?.name, "sql")
+        XCTAssertEqual(requests[1].messages[2].role, "tool")
+        XCTAssertEqual(requests[1].messages[2].toolCallId, "tool-recover-1")
+        XCTAssertEqual(
+            requests[1].messages[2].output,
+            #"{"ok":false,"error":{"code":"LOCAL_TOOL_EXECUTION_FAILED","message":"Unsupported SELECT statement"}}"#
+        )
+        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .completed)
+        XCTAssertEqual(
+            chatStore.messages[1].toolCalls.first?.output,
+            #"{"ok":false,"error":{"code":"LOCAL_TOOL_EXECUTION_FAILED","message":"Unsupported SELECT statement"}}"#
+        )
+        XCTAssertEqual(chatStore.messages[1].text, "Recovered")
+        XCTAssertFalse(chatStore.messages[1].isError)
+    }
+
+    @MainActor
+    func testAIChatStoreStopsAfterThreeConsecutiveToolExecutionFailures() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let chatService = RepeatingToolFailureChatService()
+        let toolExecutor = AlwaysFailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: chatService,
+            toolExecutor: toolExecutor,
+            snapshotLoader: toolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        XCTAssertEqual(chatStore.messages.count, 2)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 3)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.map(\.status), [.completed, .completed, .completed])
+        XCTAssertEqual(
+            chatStore.messages[1].toolCalls.last?.output,
+            #"{"ok":false,"error":{"code":"LOCAL_TOOL_EXECUTION_FAILED","message":"Unsupported SELECT statement"}}"#
+        )
+        XCTAssertEqual(
+            chatStore.messages[1].text,
+            "Tool execution failed 3 times in a row. Last error: Unsupported SELECT statement"
+        )
+        XCTAssertTrue(chatStore.messages[1].isError)
+    }
+
+    @MainActor
     func testAIChatStoreFlushesFirstDeltaImmediatelyAndBatchesLaterDeltas() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()
