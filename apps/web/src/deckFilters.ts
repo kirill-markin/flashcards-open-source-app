@@ -24,7 +24,7 @@ export function formatDeckFilterDefinition(filterDefinition: DeckFilterDefinitio
   }
 
   if (filterDefinition.tags.length > 0) {
-    parts.push(`tags contain ${filterDefinition.tags.join(", ")}`);
+    parts.push(`tags any of ${filterDefinition.tags.join(", ")}`);
   }
 
   if (parts.length === 0) {

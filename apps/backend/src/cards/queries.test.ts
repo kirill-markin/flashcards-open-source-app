@@ -11,11 +11,11 @@ function makeFilter(overrides: Partial<CardFilter>): CardFilter {
   };
 }
 
-test("buildCardsQueryFilterClause builds a tags-only subset clause", () => {
+test("buildCardsQueryFilterClause builds a tags-only overlap clause", () => {
   assert.deepEqual(
     buildCardsQueryFilterClause(makeFilter({ tags: ["grammar", "verbs"] }), 1),
     {
-      clause: "AND tags @> $2::text[]",
+      clause: "AND tags && $2::text[]",
       params: [["grammar", "verbs"]],
     },
   );
@@ -35,7 +35,7 @@ test("buildCardsQueryFilterClause combines tags and effort with AND semantics", 
   assert.deepEqual(
     buildCardsQueryFilterClause(makeFilter({ tags: ["grammar"], effort: ["long"] }), 1),
     {
-      clause: "AND tags @> $2::text[] AND effort_level = ANY($3::text[])",
+      clause: "AND tags && $2::text[] AND effort_level = ANY($3::text[])",
       params: [["grammar"], ["long"]],
     },
   );

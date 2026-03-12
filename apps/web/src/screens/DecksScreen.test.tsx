@@ -181,7 +181,7 @@ describe("DecksScreen", () => {
 
     expect(collapseText(deckCards[0]?.textContent)).toContain("Allcards2dueAllcards3cards1new2reviewed");
     expect(collapseText(deckCards[1]?.textContent)).toContain(
-      "Grammar2dueeffortinfastANDtagscontaingrammar,verbs2cards1new1reviewed",
+      "Grammar2dueeffortinfastANDtagsanyofgrammar,verbs2cards1new1reviewed",
     );
   });
 

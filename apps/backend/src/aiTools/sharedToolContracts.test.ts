@@ -36,3 +36,16 @@ test("shared AI tool prompt examples keep the canonical JSON shapes used in loca
     "- update_decks => {\"updates\": [{\"deckId\": \"123e4567-e89b-42d3-a456-426614174001\", \"name\": null, \"effortLevels\": [\"fast\", \"medium\"], \"tags\": [\"grammar\"]}]}",
   ]);
 });
+
+test("card tool descriptions describe tag overlap semantics", () => {
+  const listCardsDefinition = SHARED_EXTERNAL_AGENT_TOOL_DEFINITIONS.find((tool) => tool.name === "list_cards");
+  const searchCardsDefinition = SHARED_EXTERNAL_AGENT_TOOL_DEFINITIONS.find((tool) => tool.name === "search_cards");
+
+  assert.ok(listCardsDefinition !== undefined);
+  assert.match(listCardsDefinition.description, /tags match any selected tag/i);
+  assert.match(listCardsDefinition.description, /combine with and/i);
+
+  assert.ok(searchCardsDefinition !== undefined);
+  assert.match(searchCardsDefinition.description, /tags match any selected tag/i);
+  assert.match(searchCardsDefinition.description, /combine with and/i);
+});

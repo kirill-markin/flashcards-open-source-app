@@ -52,10 +52,10 @@ final class CardsSearchTests: XCTestCase {
         )
     }
 
-    func testCardsMatchingSearchTextAndFilterAppliesBothConditions() {
+    func testCardsMatchingSearchTextAndFilterAppliesBothConditionsWithTagOverlap() {
         let cards = [
             self.makeCard(frontText: "Hola", backText: "Hello", tags: ["grammar"], effortLevel: .fast),
-            self.makeCard(frontText: "Bonjour", backText: "Hello", tags: ["grammar"], effortLevel: .medium),
+            self.makeCard(frontText: "Bonjour", backText: "Hello", tags: ["verbs"], effortLevel: .fast),
             self.makeCard(frontText: "Adios", backText: "Bye", tags: ["travel"], effortLevel: .fast)
         ]
 
@@ -63,9 +63,9 @@ final class CardsSearchTests: XCTestCase {
             cardsMatchingSearchTextAndFilter(
                 cards: cards,
                 searchText: "hello",
-                filter: CardFilter(tags: ["grammar"], effort: [.fast])
+                filter: CardFilter(tags: ["grammar", "verbs"], effort: [.fast])
             ).map(\.cardId),
-            ["card-Hola"]
+            ["card-Hola", "card-Bonjour"]
         )
     }
 
@@ -77,11 +77,35 @@ final class CardsSearchTests: XCTestCase {
         )
         XCTAssertEqual(
             formatCardFilterSummary(filter: CardFilter(tags: ["grammar", "verbs"], effort: [])),
-            "tags contain grammar, verbs"
+            "tags any of grammar, verbs"
         )
         XCTAssertEqual(
             formatCardFilterSummary(filter: CardFilter(tags: ["grammar"], effort: [.fast])),
-            "effort in fast AND tags contain grammar"
+            "effort in fast AND tags any of grammar"
+        )
+    }
+
+    func testDeckFilterMatchesAnySelectedTagAndFormatsSummary() {
+        let filterDefinition = buildDeckFilterDefinition(
+            effortLevels: [.fast, .medium],
+            tags: ["grammar", "verbs"]
+        )
+
+        XCTAssertTrue(
+            matchesDeckFilterDefinition(
+                filterDefinition: filterDefinition,
+                card: self.makeCard(frontText: "Hola", backText: "Hello", tags: ["verbs"], effortLevel: .fast)
+            )
+        )
+        XCTAssertFalse(
+            matchesDeckFilterDefinition(
+                filterDefinition: filterDefinition,
+                card: self.makeCard(frontText: "Adios", backText: "Bye", tags: ["travel"], effortLevel: .fast)
+            )
+        )
+        XCTAssertEqual(
+            formatDeckFilterDefinition(filterDefinition: filterDefinition),
+            "effort in fast, medium AND tags any of grammar, verbs"
         )
     }
 

@@ -111,7 +111,7 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
   return false;
 }
 
-/** Mirrors iOS deck matching semantics: effort is inclusive and tags use subset matching. */
+/** Mirrors iOS deck matching semantics: effort is inclusive and tags match on any overlap. */
 export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card): boolean {
   if (filterDefinition.effortLevels.length > 0 && filterDefinition.effortLevels.includes(card.effortLevel) === false) {
     return false;
@@ -122,7 +122,7 @@ export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefiniti
   }
 
   const cardTags = new Set(card.tags);
-  return filterDefinition.tags.every((tag) => cardTags.has(tag));
+  return filterDefinition.tags.some((tag) => cardTags.has(tag));
 }
 
 export function matchesCardFilter(filter: CardFilter, card: Card): boolean {
@@ -135,7 +135,7 @@ export function matchesCardFilter(filter: CardFilter, card: Card): boolean {
   }
 
   const cardTags = new Set(card.tags);
-  return filter.tags.every((tag) => cardTags.has(tag));
+  return filter.tags.some((tag) => cardTags.has(tag));
 }
 
 /** Returns only active cards that belong to the provided persisted deck. */
