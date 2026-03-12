@@ -10,13 +10,9 @@
 }
 
 .review-filter-summary-wrap,
-.review-filter-select-wrap {
+.review-filter-menu-wrap {
   display: grid;
   gap: 6px;
-}
-
-.review-edit-decks-link {
-  min-height: 46px;
 }
 
 .review-filter-label {
@@ -27,10 +23,108 @@
   font-weight: 700;
 }
 
-.review-filter-select {
+.review-filter-menu-wrap {
+  position: relative;
+}
+
+.review-filter-trigger {
   min-width: 240px;
-  padding-inline: 18px 46px;
+  justify-content: space-between;
+  gap: 12px;
+  padding-inline: 18px 16px;
   border-radius: var(--radius-pill);
+}
+
+.review-filter-trigger-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-filter-trigger-chevron {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  transition: transform 140ms ease;
+}
+
+.review-filter-trigger-open .review-filter-trigger-chevron {
+  transform: rotate(180deg);
+}
+
+.review-filter-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 4px;
+  min-width: 100%;
+  width: min(320px, calc(100vw - 32px));
+  padding: 10px;
+  border: 1px solid var(--panel-border-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(20, 20, 24, 0.98);
+  box-shadow: var(--shadow);
+}
+
+.review-filter-menu-entry {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.review-filter-menu-entry:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  text-decoration: none;
+}
+
+.review-filter-menu-entry-active {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.review-filter-menu-entry-action {
+  color: var(--accent-strong);
+}
+
+.review-filter-menu-item-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+
+.review-filter-menu-item-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.review-filter-menu-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-filter-menu-divider {
+  margin: 4px 2px;
+  border-top: 1px solid var(--divider);
 }
 
 .review-filter-summary {
@@ -424,13 +518,12 @@
   }
 
   .review-filter-summary-wrap,
-  .review-filter-select-wrap {
+  .review-filter-menu-wrap {
     width: 100%;
   }
 
   .review-filter-summary,
-  .review-filter-select,
-  .review-edit-decks-link {
+  .review-filter-trigger {
     min-width: 0;
     width: 100%;
   }

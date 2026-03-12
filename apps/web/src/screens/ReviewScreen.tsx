@@ -1,4 +1,4 @@
-import { useEffect, type ReactElement, useState } from "react";
+import { useEffect, useRef, type ReactElement, useState } from "react";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useAppData } from "../appData";
@@ -8,9 +8,8 @@ import {
   isCardDue,
   makeWorkspaceTagsSummary,
 } from "../appData/domain";
-import { ALL_CARDS_DECK_SLUG } from "../deckFilters";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
-import type { Card, ReviewFilter, WorkspaceSchedulerSettings } from "../types";
+import type { Card, Deck, ReviewFilter, WorkspaceSchedulerSettings, WorkspaceTagSummary } from "../types";
 import {
   computeReviewSchedule,
   type ReviewRating,
@@ -31,7 +30,25 @@ const EMPTY_BACK_TEXT_PLACEHOLDER = "No back text";
 const REVIEW_BUTTONS_PER_COLUMN = 2;
 const REVIEW_FILTER_DECK_PREFIX = "deck:";
 const REVIEW_FILTER_TAG_PREFIX = "tag:";
-const REVIEW_FILTER_SEPARATOR_VALUE = "__review-filter-separator__";
+
+type ReviewFilterMenuItem =
+  | Readonly<{
+    kind: "filter";
+    key: string;
+    label: string;
+    reviewFilter: ReviewFilter;
+    isSelected: boolean;
+  }>
+  | Readonly<{
+    kind: "action";
+    key: "edit-decks";
+    label: string;
+    href: string;
+  }>
+  | Readonly<{
+    kind: "separator";
+    key: "tags-separator";
+  }>;
 
 const reviewAnswerOptions: ReadonlyArray<Readonly<{
   title: string;
@@ -55,9 +72,9 @@ function renderTags(tags: ReadonlyArray<string>): string {
   return tags.length === 0 ? "—" : tags.join(", ");
 }
 
-function toReviewFilterSelectValue(reviewFilter: ReviewFilter): string {
+function toReviewFilterMenuItemKey(reviewFilter: ReviewFilter): string {
   if (reviewFilter.kind === "allCards") {
-    return ALL_CARDS_DECK_SLUG;
+    return "allCards";
   }
 
   if (reviewFilter.kind === "deck") {
@@ -67,26 +84,66 @@ function toReviewFilterSelectValue(reviewFilter: ReviewFilter): string {
   return `${REVIEW_FILTER_TAG_PREFIX}${reviewFilter.tag}`;
 }
 
-function parseReviewFilterSelectValue(value: string): ReviewFilter {
-  if (value === ALL_CARDS_DECK_SLUG) {
-    return ALL_CARDS_REVIEW_FILTER;
+function buildReviewFilterMenuItems(
+  decks: ReadonlyArray<Deck>,
+  reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>,
+  selectedReviewFilter: ReviewFilter,
+): Array<ReviewFilterMenuItem> {
+  const items: Array<ReviewFilterMenuItem> = [
+    {
+      kind: "filter",
+      key: toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
+      label: "All cards",
+      reviewFilter: ALL_CARDS_REVIEW_FILTER,
+      isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
+    },
+    ...decks.map((deck) => {
+      const reviewFilter: ReviewFilter = {
+        kind: "deck",
+        deckId: deck.deckId,
+      };
+
+      return {
+        kind: "filter" as const,
+        key: toReviewFilterMenuItemKey(reviewFilter),
+        label: deck.name,
+        reviewFilter,
+        isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
+      };
+    }),
+    {
+      kind: "action",
+      key: "edit-decks",
+      label: "Edit decks",
+      href: settingsDecksRoute,
+    },
+  ];
+
+  if (reviewTagSummaries.length === 0) {
+    return items;
   }
 
-  if (value.startsWith(REVIEW_FILTER_DECK_PREFIX)) {
-    return {
-      kind: "deck",
-      deckId: value.slice(REVIEW_FILTER_DECK_PREFIX.length),
-    };
-  }
+  return [
+    ...items,
+    {
+      kind: "separator",
+      key: "tags-separator",
+    },
+    ...reviewTagSummaries.map((tagSummary) => {
+      const reviewFilter: ReviewFilter = {
+        kind: "tag",
+        tag: tagSummary.tag,
+      };
 
-  if (value.startsWith(REVIEW_FILTER_TAG_PREFIX)) {
-    return {
-      kind: "tag",
-      tag: value.slice(REVIEW_FILTER_TAG_PREFIX.length),
-    };
-  }
-
-  throw new Error(`Unsupported review filter select value: ${value}`);
+      return {
+        kind: "filter" as const,
+        key: toReviewFilterMenuItemKey(reviewFilter),
+        label: `${tagSummary.tag} (${tagSummary.cardsCount})`,
+        reviewFilter,
+        isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
+      };
+    }),
+  ];
 }
 
 function formatQueueBadge(dueCount: number, totalCount: number): string {
@@ -222,6 +279,48 @@ function ReviewCardSide({ label, text, contentClassName, surfaceClassName }: Rev
   );
 }
 
+function ReviewFilterCheckIcon(): ReactElement {
+  return (
+    <svg className="review-filter-menu-item-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 6L9 17L4 12"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ReviewFilterDecksIcon(): ReactElement {
+  return (
+    <svg className="review-filter-menu-item-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3 7.5L12 3L21 7.5L12 12L3 7.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 12.5L12 17L21 12.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 17.5L12 22L21 17.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function ReviewScreen(): ReactElement {
   const {
     cards,
@@ -250,12 +349,16 @@ export function ReviewScreen(): ReactElement {
   const [editorFormState, setEditorFormState] = useState<CardFormState>(toCardFormState(null));
   const [editorErrorMessage, setEditorErrorMessage] = useState<string>("");
   const [isEditorSaving, setIsEditorSaving] = useState<boolean>(false);
+  const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
+  const reviewFilterMenuWrapRef = useRef<HTMLDivElement | null>(null);
+  const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
   const nowTimestamp = Date.now();
   const activeReviewQueue = reviewQueue;
   const queueCards = cardsState.hasLoaded ? reviewTimeline : reviewQueue;
   const selectedCard = currentReviewCard(activeReviewQueue);
   const editingCard = cards.find((card) => card.cardId === editingCardId && card.deletedAt === null) ?? null;
   const reviewTagSummaries = makeWorkspaceTagsSummary(cards).tags;
+  const reviewFilterMenuItems = buildReviewFilterMenuItems(decks, reviewTagSummaries, selectedReviewFilter);
   const reviewButtonsNow = new Date();
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
   let reviewButtonErrorMessage: string = "";
@@ -282,6 +385,42 @@ export function ReviewScreen(): ReactElement {
   useEffect(() => {
     setIsAnswerVisible(false);
   }, [selectedCard?.cardId]);
+
+  useEffect(() => {
+    if (!isReviewFilterMenuOpen) {
+      return;
+    }
+
+    function handleMouseDown(event: MouseEvent): void {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (reviewFilterMenuWrapRef.current !== null && !reviewFilterMenuWrapRef.current.contains(target)) {
+        setIsReviewFilterMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [isReviewFilterMenuOpen]);
+
+  useEffect(() => {
+    if (!isReviewFilterMenuOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        setIsReviewFilterMenuOpen(false);
+        reviewFilterTriggerRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isReviewFilterMenuOpen]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<void> {
     setIsSubmitting(true);
@@ -351,6 +490,15 @@ export function ReviewScreen(): ReactElement {
     }
   }
 
+  function handleReviewFilterMenuToggle(): void {
+    setIsReviewFilterMenuOpen((currentValue) => !currentValue);
+  }
+
+  function handleReviewFilterSelect(reviewFilter: ReviewFilter): void {
+    selectReviewFilter(reviewFilter);
+    setIsReviewFilterMenuOpen(false);
+  }
+
   const resourceErrorMessage = reviewQueueState.status === "error"
     ? reviewQueueState.errorMessage
     : cardsState.status === "error"
@@ -396,33 +544,64 @@ export function ReviewScreen(): ReactElement {
               <span className="review-filter-label">Queue</span>
               <span className="badge review-filter-summary">{formatQueueBadge(activeReviewQueue.length, queueCards.length)}</span>
             </div>
-            <label className="review-filter-select-wrap">
+            <div ref={reviewFilterMenuWrapRef} className="review-filter-menu-wrap">
               <span className="review-filter-label">Deck</span>
-              <select
-                className="settings-input review-filter-select"
-                value={toReviewFilterSelectValue(selectedReviewFilter)}
-                onChange={(event) => selectReviewFilter(parseReviewFilterSelectValue(event.target.value))}
+              <button
+                ref={reviewFilterTriggerRef}
+                className={`ghost-btn review-filter-trigger${isReviewFilterMenuOpen ? " review-filter-trigger-open" : ""}`}
+                type="button"
+                aria-expanded={isReviewFilterMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open review filter"
+                onClick={handleReviewFilterMenuToggle}
               >
-                <option value={ALL_CARDS_DECK_SLUG}>All cards</option>
-                {decks.map((deck) => (
-                  <option key={deck.deckId} value={`${REVIEW_FILTER_DECK_PREFIX}${deck.deckId}`}>{deck.name}</option>
-                ))}
-                {reviewTagSummaries.length > 0 ? (
-                  <option disabled value={REVIEW_FILTER_SEPARATOR_VALUE}>──────────</option>
-                ) : null}
-                {reviewTagSummaries.map((tagSummary) => (
-                  <option
-                    key={tagSummary.tag}
-                    value={`${REVIEW_FILTER_TAG_PREFIX}${tagSummary.tag}`}
-                  >
-                    {`${tagSummary.tag} (${tagSummary.cardsCount})`}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Link className="ghost-btn review-edit-decks-link" to={settingsDecksRoute}>
-              Edit decks
-            </Link>
+                <span className="review-filter-trigger-value">{selectedReviewFilterTitle}</span>
+                <span className="review-filter-trigger-chevron" aria-hidden="true">▾</span>
+              </button>
+              {isReviewFilterMenuOpen ? (
+                <div className="review-filter-menu" role="menu" aria-label="Review filter">
+                  {reviewFilterMenuItems.map((item) => {
+                    if (item.kind === "separator") {
+                      return <div key={item.key} className="review-filter-menu-divider" role="separator" />;
+                    }
+
+                    if (item.kind === "action") {
+                      return (
+                        <Link
+                          key={item.key}
+                          className="review-filter-menu-entry review-filter-menu-entry-action"
+                          to={item.href}
+                          role="menuitem"
+                          onClick={() => setIsReviewFilterMenuOpen(false)}
+                        >
+                          <span className="review-filter-menu-item-slot" aria-hidden="true">
+                            <ReviewFilterDecksIcon />
+                          </span>
+                          <span className="review-filter-menu-item-label">{item.label}</span>
+                        </Link>
+                      );
+                    }
+
+                    return (
+                      <button
+                        key={item.key}
+                        className={`review-filter-menu-entry${item.isSelected ? " review-filter-menu-entry-active" : ""}`}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={item.isSelected}
+                        data-review-filter-key={item.key}
+                        onClick={() => handleReviewFilterSelect(item.reviewFilter)}
+                      >
+                        <span className="review-filter-menu-item-slot" aria-hidden="true">
+                          {item.isSelected ? <ReviewFilterCheckIcon /> : null}
+                        </span>
+                        <span className="review-filter-menu-item-label">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 

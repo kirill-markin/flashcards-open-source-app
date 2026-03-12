@@ -8,6 +8,7 @@ private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 private let emptyBackTextPlaceholder: String = "No back text"
+private let reviewFilterMenuLeadingSlotWidth: CGFloat = 18
 
 struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
@@ -73,12 +74,8 @@ struct ReviewView: View {
             self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
         }
         .toolbar {
-            ToolbarItemGroup(placement: .topBarLeading) {
+            ToolbarItem(placement: .topBarLeading) {
                 reviewFilterMenu
-
-                Button("Edit decks") {
-                    store.openDeckManagement()
-                }
             }
 
             ToolbarItem(placement: .topBarTrailing) {
@@ -152,15 +149,20 @@ struct ReviewView: View {
                 Button {
                     store.selectReviewFilter(reviewFilter: reviewFilter)
                 } label: {
-                    if reviewFilter == store.selectedReviewFilter {
-                        Label(
-                            reviewFilterMenuItemLabel(reviewFilter: reviewFilter),
-                            systemImage: "checkmark"
-                        )
-                    } else {
-                        Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
-                    }
+                    reviewFilterSelectionMenuLabel(
+                        title: reviewFilterMenuItemLabel(reviewFilter: reviewFilter),
+                        isSelected: reviewFilter == store.selectedReviewFilter
+                    )
                 }
+            }
+
+            Button {
+                store.openDeckManagement()
+            } label: {
+                reviewFilterActionMenuLabel(
+                    title: "Edit decks",
+                    systemImage: "square.stack.3d.up"
+                )
             }
 
             if reviewTagSummaries.isEmpty == false {
@@ -172,14 +174,10 @@ struct ReviewView: View {
                     Button {
                         store.selectReviewFilter(reviewFilter: reviewFilter)
                     } label: {
-                        if reviewFilter == store.selectedReviewFilter {
-                            Label(
-                                reviewFilterMenuItemLabel(reviewFilter: reviewFilter),
-                                systemImage: "checkmark"
-                            )
-                        } else {
-                            Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
-                        }
+                        reviewFilterSelectionMenuLabel(
+                            title: reviewFilterMenuItemLabel(reviewFilter: reviewFilter),
+                            isSelected: reviewFilter == store.selectedReviewFilter
+                        )
                     }
                 }
             }
@@ -192,6 +190,27 @@ struct ReviewView: View {
                     .font(.caption.weight(.semibold))
             }
         }
+    }
+
+    private func reviewFilterSelectionMenuLabel(title: String, isSelected: Bool) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark")
+                .font(.body.weight(.semibold))
+                .frame(width: reviewFilterMenuLeadingSlotWidth)
+                .opacity(isSelected ? 1 : 0)
+
+            Text(title)
+        }
+    }
+
+    private func reviewFilterActionMenuLabel(title: String, systemImage: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .frame(width: reviewFilterMenuLeadingSlotWidth)
+
+            Text(title)
+        }
+        .foregroundStyle(.tint)
     }
 
     private func activeCardView(card: Card) -> some View {

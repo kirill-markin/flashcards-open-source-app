@@ -108,10 +108,8 @@ function createDeck(overrides?: Partial<Deck>): Deck {
   };
 }
 
-function setSelectValue(select: HTMLSelectElement, value: string): void {
-  const descriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
-  descriptor?.set?.call(select, value);
-  select.dispatchEvent(new Event("change", { bubbles: true }));
+function clickElement(element: Element): void {
+  element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
 
 describe("ReviewScreen", () => {
@@ -171,7 +169,7 @@ describe("ReviewScreen", () => {
     expect(container.textContent).not.toContain("No cards to review right now.");
   });
 
-  it("lists All cards and deck filters and dispatches the selected deck filter", async () => {
+  it("lists review filter rows in order and dispatches the selected deck filter", async () => {
     mockAppData.decks = [createDeck()];
     mockAppData.cards = [
       createCard({
@@ -198,17 +196,34 @@ describe("ReviewScreen", () => {
       );
     });
 
-    const select = container.querySelector(".review-filter-select");
-    const options = Array.from(container.querySelectorAll(".review-filter-select option")).map((option) => option.textContent);
+    const trigger = container.querySelector(".review-filter-trigger");
 
-    expect(select).not.toBeNull();
-    expect(options).toEqual(["All cards", "Grammar", "──────────", "grammar (2)", "travel (1)", "verbs (1)"]);
+    expect(trigger).not.toBeNull();
 
     await act(async () => {
-      setSelectValue(select as HTMLSelectElement, "deck:deck-1");
+      clickElement(trigger as HTMLButtonElement);
+    });
+
+    const menuChildren = Array.from(container.querySelector(".review-filter-menu")?.children ?? []).map((element) => {
+      if (element.classList.contains("review-filter-menu-divider")) {
+        return "divider";
+      }
+
+      return element.textContent?.trim();
+    });
+
+    expect(menuChildren).toEqual(["All cards", "Grammar", "Edit decks", "divider", "grammar (2)", "travel (1)", "verbs (1)"]);
+
+    const grammarButton = container.querySelector('[data-review-filter-key="deck:deck-1"]');
+
+    expect(grammarButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(grammarButton as HTMLButtonElement);
     });
 
     expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });
+    expect(container.querySelector(".review-filter-menu")).toBeNull();
   });
 
   it("dispatches the selected tag filter", async () => {
@@ -232,16 +247,25 @@ describe("ReviewScreen", () => {
       );
     });
 
-    const select = container.querySelector(".review-filter-select");
+    const trigger = container.querySelector(".review-filter-trigger");
 
     await act(async () => {
-      setSelectValue(select as HTMLSelectElement, "tag:grammar");
+      clickElement(trigger as HTMLButtonElement);
+    });
+
+    const tagButton = container.querySelector('[data-review-filter-key="tag:grammar"]');
+
+    expect(tagButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(tagButton as HTMLButtonElement);
     });
 
     expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tag", tag: "grammar" });
+    expect(container.querySelector(".review-filter-menu")).toBeNull();
   });
 
-  it("renders the Edit decks shortcut into workspace settings", async () => {
+  it("renders the Edit decks shortcut inside the review filter menu", async () => {
     await act(async () => {
       root.render(
         <MemoryRouter>
@@ -250,7 +274,17 @@ describe("ReviewScreen", () => {
       );
     });
 
-    const editDecksLink = Array.from(container.querySelectorAll("a")).find((element) => element.textContent === "Edit decks");
+    expect(container.querySelector(".review-edit-decks-link")).toBeNull();
+
+    const trigger = container.querySelector(".review-filter-trigger");
+
+    expect(trigger).not.toBeNull();
+
+    await act(async () => {
+      clickElement(trigger as HTMLButtonElement);
+    });
+
+    const editDecksLink = Array.from(container.querySelectorAll(".review-filter-menu-entry")).find((element) => element.textContent?.trim() === "Edit decks");
 
     expect(editDecksLink).not.toBeUndefined();
     expect(editDecksLink?.getAttribute("href")).toBe("/settings/decks");
