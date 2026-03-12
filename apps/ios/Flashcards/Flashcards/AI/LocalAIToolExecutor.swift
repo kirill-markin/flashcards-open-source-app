@@ -527,6 +527,34 @@ private func normalizeSearchableText(value: LocalAISqlRowValue) -> String {
     }
 }
 
+private func escapeLikePattern(_ value: String) -> String {
+    NSRegularExpression.escapedPattern(for: value)
+}
+
+private func likePatternToRegularExpression(
+    _ value: String,
+    caseInsensitive: Bool
+) throws -> NSRegularExpression {
+    let escapedPattern = escapeLikePattern(value)
+        .replacingOccurrences(of: "%", with: ".*")
+        .replacingOccurrences(of: "_", with: ".")
+    let options: NSRegularExpression.Options = caseInsensitive ? [.caseInsensitive] : []
+    return try NSRegularExpression(pattern: "^\(escapedPattern)$", options: options)
+}
+
+private func stringValueMatchesLikePattern(
+    value: String,
+    pattern: String,
+    caseInsensitive: Bool
+) throws -> Bool {
+    let regularExpression = try likePatternToRegularExpression(
+        pattern,
+        caseInsensitive: caseInsensitive
+    )
+    let range = NSRange(value.startIndex..<value.endIndex, in: value)
+    return regularExpression.firstMatch(in: value, options: [], range: range) != nil
+}
+
 private func resolvePredicateValue(_ value: LocalAISqlPredicateValue) -> LocalAISqlLiteralValue {
     switch value {
     case .literal(let literal):
@@ -549,6 +577,15 @@ private func rowMatchesPredicate(
         return row.values.contains { value in
             normalizeSearchableText(value: value).contains(normalizedQuery)
         }
+    case .like(let columnName, let pattern, let caseInsensitive):
+        guard case .some(.string(let value)) = row[columnName] else {
+            return false
+        }
+        return try stringValueMatchesLikePattern(
+            value: value,
+            pattern: pattern,
+            caseInsensitive: caseInsensitive
+        )
     case .comparison(let columnName, let comparisonOperator, let predicateValue):
         let resolvedPredicateValue = resolvePredicateValue(predicateValue)
         if comparisonOperator == .equals {
@@ -602,6 +639,8 @@ private func validatePredicate(
     let columnName: String
     switch predicate {
     case .comparison(let predicateColumnName, _, _):
+        columnName = predicateColumnName
+    case .like(let predicateColumnName, _, _):
         columnName = predicateColumnName
     case .in(let predicateColumnName, _):
         columnName = predicateColumnName
@@ -919,6 +958,33 @@ private func executeAggregateSelect(
     return applyOrderBy(rows: aggregateRows, orderBy: statement.orderBy)
 }
 
+private func projectSelectRow(
+    row: LocalAISqlRow,
+    selectItems: [LocalAISqlSelectItem]
+) throws -> LocalAISqlRow {
+    var outputRow: LocalAISqlRow = [:]
+
+    for item in selectItems {
+        guard case .column(let columnName, let alias) = item else {
+            throw LocalStoreError.validation("Projected SELECT can only include columns")
+        }
+        outputRow[alias ?? columnName] = row[columnName] ?? .null
+    }
+
+    return outputRow
+}
+
+private func executeProjectedSelect(
+    statement: LocalAISqlSelectStatement,
+    rows: [LocalAISqlRow]
+) throws -> [LocalAISqlRow] {
+    try validateRowOrderBy(source: statement.source, orderBy: statement.orderBy)
+    let orderedRows = applyOrderBy(rows: rows, orderBy: statement.orderBy)
+    return try orderedRows.map { row in
+        try projectSelectRow(row: row, selectItems: statement.selectItems)
+    }
+}
+
 private func isWildcardSelect(_ statement: LocalAISqlSelectStatement) -> Bool {
     if statement.selectItems.count != 1 {
         return false
@@ -927,6 +993,19 @@ private func isWildcardSelect(_ statement: LocalAISqlSelectStatement) -> Bool {
         return true
     }
     return false
+}
+
+private func isGroupedSelect(_ statement: LocalAISqlSelectStatement) -> Bool {
+    if statement.groupBy.isEmpty == false {
+        return true
+    }
+
+    return statement.selectItems.contains { item in
+        if case .aggregate = item {
+            return true
+        }
+        return false
+    }
 }
 
 /**
@@ -950,8 +1029,10 @@ private func executeSqlSelect(
     if isWildcardSelect(statement) {
         try validateRowOrderBy(source: statement.source, orderBy: statement.orderBy)
         orderedRows = applyOrderBy(rows: filteredRows, orderBy: statement.orderBy)
-    } else {
+    } else if isGroupedSelect(statement) {
         orderedRows = try executeAggregateSelect(statement: statement, rows: filteredRows)
+    } else {
+        orderedRows = try executeProjectedSelect(statement: statement, rows: filteredRows)
     }
     let paginatedRows = paginateRows(rows: orderedRows, limit: limit, offset: offset)
     return LocalAISqlSelectExecutionResult(

@@ -231,8 +231,22 @@ describe("createLocalToolExecutor", () => {
       card_id: "card-1",
     });
 
-    const aggregateResult = await executor.execute({
+    const projectedResult = await executor.execute({
       toolCallId: "call-4",
+      name: "sql",
+      input: "{\"sql\":\"SELECT card_id, front_text, back_text, tags FROM cards WHERE LOWER(front_text) LIKE '%front%' OR LOWER(back_text) LIKE '%front%' ORDER BY updated_at DESC LIMIT 20 OFFSET 0\"}",
+    });
+    const projectedPayload = JSON.parse(projectedResult.output) as Readonly<{ rows: ReadonlyArray<Readonly<Record<string, unknown>>>; rowCount: number }>;
+    expect(projectedPayload.rowCount).toBe(1);
+    expect(projectedPayload.rows[0]).toEqual({
+      card_id: "card-1",
+      front_text: "Front",
+      back_text: "Back",
+      tags: ["tag-a"],
+    });
+
+    const aggregateResult = await executor.execute({
+      toolCallId: "call-5",
       name: "sql",
       input: "{\"sql\":\"SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS tag GROUP BY tag ORDER BY cards_count DESC LIMIT 20 OFFSET 0\"}",
     });

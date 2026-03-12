@@ -189,6 +189,23 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
         XCTAssertEqual(workspacePayload.rowCount, 1)
         XCTAssertEqual(workspacePayload.rows.first?["algorithm"]?.stringValue, "fsrs-6")
 
+        let projectedResult = try await self.executeSql(
+            executor: executor,
+            sql: """
+            SELECT card_id, front_text, back_text, tags FROM cards
+            WHERE LOWER(front_text) LIKE '%front 1%' OR LOWER(back_text) LIKE '%front 1%'
+            ORDER BY updated_at DESC LIMIT 20 OFFSET 0
+            """,
+            toolCallId: "call-projected-cards"
+        )
+        let projectedPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(projectedResult.output.utf8))
+        XCTAssertEqual(projectedPayload.resource, "cards")
+        XCTAssertEqual(projectedPayload.rowCount, 1)
+        XCTAssertEqual(projectedPayload.rows.first?["front_text"]?.stringValue, "Front 1")
+        XCTAssertEqual(projectedPayload.rows.first?["back_text"]?.stringValue, "Back 1")
+        XCTAssertEqual(projectedPayload.rows.first?["tags"]?.stringArrayValue, ["grammar", "verbs"])
+        XCTAssertNil(projectedPayload.rows.first?["updated_at"])
+
         let aggregateResult = try await self.executeSql(
             executor: executor,
             sql: "SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS tag GROUP BY tag ORDER BY cards_count DESC, tag ASC LIMIT 20 OFFSET 0",

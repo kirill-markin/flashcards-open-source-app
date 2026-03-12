@@ -48,6 +48,12 @@ export type SqlPredicate =
     value: SqlPredicateValue;
   }>
   | Readonly<{
+    type: "like";
+    columnName: string;
+    pattern: string;
+    caseInsensitive: boolean;
+  }>
+  | Readonly<{
     type: "in";
     columnName: string;
     values: ReadonlyArray<SqlLiteral>;
@@ -774,6 +780,30 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
+  const loweredLikePredicate = trimmedValue.match(/^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s+LIKE\s+('(?:''|[^'])*')$/i);
+  if (loweredLikePredicate !== null) {
+    const columnName = (loweredLikePredicate[1] ?? "").toLowerCase();
+    ensureSourceColumnExists(source, columnName);
+    return {
+      type: "like",
+      columnName,
+      pattern: parseStringLiteral(loweredLikePredicate[2] ?? ""),
+      caseInsensitive: true,
+    };
+  }
+
+  const likePredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+LIKE\s+('(?:''|[^'])*')$/i);
+  if (likePredicate !== null) {
+    const columnName = (likePredicate[1] ?? "").toLowerCase();
+    ensureSourceColumnExists(source, columnName);
+    return {
+      type: "like",
+      columnName,
+      pattern: parseStringLiteral(likePredicate[2] ?? ""),
+      caseInsensitive: false,
+    };
+  }
+
   const isNotNullPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+IS\s+NOT\s+NULL$/i);
   if (isNotNullPredicate !== null) {
     const columnName = (isNotNullPredicate[1] ?? "").toLowerCase();
@@ -983,17 +1013,16 @@ function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
     if (groupBy.length > 0) {
       throw new Error("GROUP BY is not supported with SELECT *");
     }
-  } else if (hasAggregateSelectItem === false) {
-    throw new Error("Projected SELECT statements must include aggregate functions");
   }
 
+  const requiresGroupedColumns = hasAggregateSelectItem || groupBy.length > 0;
   for (const item of selectItems) {
-    if (item.type === "column" && groupBy.includes(item.columnName) === false) {
+    if (requiresGroupedColumns && item.type === "column" && groupBy.includes(item.columnName) === false) {
       throw new Error(`Grouped SELECT must list ${item.columnName} in GROUP BY`);
     }
   }
 
-  if (source.unnestAlias !== null && groupBy.includes(source.unnestAlias) === false) {
+  if (requiresGroupedColumns && source.unnestAlias !== null && groupBy.includes(source.unnestAlias) === false) {
     const referencesAlias = selectItems.some((item) => item.type === "column" && item.columnName === source.unnestAlias);
     if (referencesAlias) {
       throw new Error(`Grouped SELECT must list ${source.unnestAlias} in GROUP BY`);
@@ -1236,8 +1265,12 @@ function escapeRegExp(value: string): string {
 }
 
 export function likePatternToRegExp(value: string): RegExp {
+  return createLikePatternRegExp(value, true);
+}
+
+function createLikePatternRegExp(value: string, caseInsensitive: boolean): RegExp {
   const escaped = escapeRegExp(value).replace(/%/g, ".*").replace(/_/g, ".");
-  return new RegExp(`^${escaped}$`, "i");
+  return new RegExp(`^${escaped}$`, caseInsensitive ? "i" : "");
 }
 
 export function normalizeSqlLimit(limit: number | null, maximumLimit: number): number {
@@ -1361,6 +1394,15 @@ function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
     }
 
     return Object.values(row).some((value) => normalizeSearchableText(value).includes(normalizedQuery));
+  }
+
+  if (predicate.type === "like") {
+    const columnValue = row[predicate.columnName];
+    if (typeof columnValue !== "string") {
+      return false;
+    }
+
+    return createLikePatternRegExp(predicate.pattern, predicate.caseInsensitive).test(columnValue);
   }
 
   const columnValue = row[predicate.columnName];
@@ -1658,8 +1700,32 @@ function executeAggregateSelect(statement: SqlSelectStatement, rows: ReadonlyArr
   return applyOrderBy(aggregateRows, statement.orderBy);
 }
 
+function projectSelectRow(row: SqlRow, selectItems: ReadonlyArray<SqlSelectItem>): SqlRow {
+  const outputEntries: Array<readonly [string, SqlRowValue]> = [];
+
+  for (const item of selectItems) {
+    if (item.type !== "column") {
+      throw new Error("Projected SELECT can only include columns");
+    }
+
+    outputEntries.push([item.alias ?? item.columnName, row[item.columnName] ?? null] as const);
+  }
+
+  return Object.fromEntries(outputEntries);
+}
+
+function executeProjectedSelect(statement: SqlSelectStatement, rows: ReadonlyArray<SqlRow>): ReadonlyArray<SqlRow> {
+  validateRowOrderBy(statement.source, statement.orderBy);
+  const orderedRows = applyOrderBy(rows, statement.orderBy);
+  return orderedRows.map((row) => projectSelectRow(row, statement.selectItems));
+}
+
 function isWildcardSelect(statement: SqlSelectStatement): boolean {
   return statement.selectItems.length === 1 && statement.selectItems[0]?.type === "wildcard";
+}
+
+function isGroupedSelect(statement: SqlSelectStatement): boolean {
+  return statement.groupBy.length > 0 || statement.selectItems.some((item) => item.type === "aggregate");
 }
 
 /**
@@ -1680,7 +1746,9 @@ export function executeSqlSelect(
       validateRowOrderBy(statement.source, statement.orderBy);
       return applyOrderBy(filteredRows, statement.orderBy);
     })()
-    : executeAggregateSelect(statement, filteredRows);
+    : isGroupedSelect(statement)
+      ? executeAggregateSelect(statement, filteredRows)
+      : executeProjectedSelect(statement, filteredRows);
   const paginatedRows = paginateRows(orderedRows, limit, offset);
 
   return {
