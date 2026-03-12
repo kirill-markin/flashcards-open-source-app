@@ -193,22 +193,22 @@ struct ReviewView: View {
     }
 
     private func reviewFilterSelectionMenuLabel(title: String, isSelected: Bool) -> some View {
-        HStack(spacing: 8) {
-            Text("v")
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: "checkmark")
                 .font(.body.weight(.semibold))
                 .frame(width: reviewFilterMenuLeadingSlotWidth)
                 .opacity(isSelected ? 1 : 0)
-
-            Text(title)
         }
     }
 
     private func reviewFilterActionMenuLabel(title: String, systemImage: String) -> some View {
-        HStack(spacing: 8) {
+        Label {
+            Text(title)
+        } icon: {
             Image(systemName: systemImage)
                 .frame(width: reviewFilterMenuLeadingSlotWidth)
-
-            Text(title)
         }
         .foregroundStyle(.tint)
     }
