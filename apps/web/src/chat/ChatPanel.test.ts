@@ -3,7 +3,9 @@
 import { act, createElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ChatPanel, calculateSidebarWidthFromPointer, formatToolLabel } from "./ChatPanel";
+import { ChatPanel } from "./ChatPanel";
+import { calculateSidebarWidthFromPointer } from "./chatHelpers";
+import { formatToolLabel } from "./chatMessageContent";
 
 const {
   useChatLayoutMock,
