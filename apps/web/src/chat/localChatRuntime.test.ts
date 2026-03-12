@@ -176,7 +176,7 @@ describe("runLocalChatRuntime", () => {
 
     await runHarness(harness);
 
-    expect(harness.onToolCallStartedMock).toHaveBeenCalledWith("sql", "tool-1");
+    expect(harness.onToolCallStartedMock).toHaveBeenCalledWith("sql", "tool-1", "{\"sql\":\"SHOW TABLES\"}");
     expect(harness.executeToolMock).toHaveBeenCalledWith({
       toolCallId: "tool-1",
       name: "sql",

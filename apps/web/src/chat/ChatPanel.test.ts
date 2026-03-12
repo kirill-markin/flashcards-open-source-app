@@ -100,6 +100,29 @@ function streamDeltaPayload(text: string): string {
   return `data: ${JSON.stringify({ type: "delta", text })}\n`;
 }
 
+function createSSELine(event: object): string {
+  return `data: ${JSON.stringify(event)}\n`;
+}
+
+function createStreamResponse(payloads: ReadonlyArray<string>, status: number = 200): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller): void {
+      for (const payload of payloads) {
+        controller.enqueue(encoder.encode(payload));
+      }
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    status,
+    headers: {
+      "x-chat-request-id": "request-1",
+    },
+  });
+}
+
 function createTimedStreamResponse(
   chunks: ReadonlyArray<Readonly<{ atMs: number; payload: string }>>,
   closeAtMs: number,
@@ -168,6 +191,25 @@ function createMemoryStorage(): Storage {
     setItem(key: string, value: string): void {
       entries.set(key, value);
     },
+  };
+}
+
+function createDeferred<T>(): Readonly<{
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+}> {
+  let resolvePromise: ((value: T) => void) | null = null;
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve;
+  });
+
+  if (resolvePromise === null) {
+    throw new Error("Expected deferred promise resolver");
+  }
+
+  return {
+    promise,
+    resolve: resolvePromise,
   };
 }
 
@@ -509,6 +551,53 @@ describe("ChatPanel autoscroll", () => {
     expect(children[1]?.textContent).toContain("SQL: SHOW TABLES");
     expect(children[2]?.tagName).toBe("SPAN");
     expect(children[2]?.textContent).toBe("\n\nAfter tool\n\n");
+  });
+
+  it("renders a pending tool block immediately and upgrades it in place after completion", async () => {
+    const deferredToolResult = createDeferred<Readonly<{
+      output: string;
+      didMutateAppState: boolean;
+    }>>();
+    executeLocalToolMock.mockImplementationOnce(() => deferredToolResult.promise);
+    streamLocalChatMock
+      .mockResolvedValueOnce(createStreamResponse([
+        createSSELine({ type: "tool_call_request", toolCallId: "tool-1", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" }),
+        createSSELine({ type: "await_tool_results" }),
+      ]))
+      .mockResolvedValueOnce(createTimedStreamResponse([{ atMs: 0, payload: streamDeltaPayload("Done") }], 1));
+
+    await renderChatPanel();
+    await sendMessage("run sql");
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const pendingToolCall = mountedContainer.querySelector(".chat-tool-call-started");
+    expect(pendingToolCall).not.toBeNull();
+    expect(pendingToolCall?.textContent).toContain("SQL: SHOW TABLES");
+    expect(pendingToolCall?.textContent).toContain("Running");
+    expect(mountedContainer.querySelectorAll(".chat-tool-call")).toHaveLength(1);
+
+    await act(async () => {
+      deferredToolResult.resolve({
+        output: "{\"rows\":[]}",
+        didMutateAppState: false,
+      });
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(5);
+      await Promise.resolve();
+    });
+
+    expect(mountedContainer.querySelectorAll(".chat-tool-call")).toHaveLength(1);
+    expect(mountedContainer.querySelector(".chat-tool-call-started")).toBeNull();
+    expect(mountedContainer.querySelector(".chat-tool-call-completed")?.textContent).toContain("Done");
+    expect(mountedContainer.textContent).toContain("Done");
   });
 
   it("batches streaming autoscroll to one smooth scroll every 2 seconds", async () => {

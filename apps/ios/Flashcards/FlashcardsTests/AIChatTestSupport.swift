@@ -307,6 +307,57 @@ actor MutatingChatService: AIChatStreaming {
     }
 }
 
+actor DelayedToolCompletionChatService: AIChatStreaming {
+    private var callCount: Int = 0
+
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        self.callCount += 1
+
+        if self.callCount == 1 {
+            let toolCallRequest = AIToolCallRequest(
+                toolCallId: "tool-delayed-1",
+                name: "sql",
+                input: "{\"sql\":\"SHOW TABLES\"}"
+            )
+            await onToolCallRequest(toolCallRequest)
+            return AITurnStreamOutcome(
+                awaitsToolResults: true,
+                requestedToolCalls: [toolCallRequest],
+                requestId: "request-delayed-tool-1"
+            )
+        }
+
+        await onDelta("Done")
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-delayed-tool-2")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+}
+
+struct SlowSuccessToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+    let pauseNanoseconds: UInt64
+
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
+        try await Task.sleep(nanoseconds: self.pauseNanoseconds)
+        return AIToolExecutionResult(output: "{\"ok\":true}", didMutateAppState: false)
+    }
+
+    func loadSnapshot() async throws -> AppStateSnapshot {
+        throw LocalStoreError.uninitialized("Snapshot should not be requested")
+    }
+}
+
 struct SuspendingChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
