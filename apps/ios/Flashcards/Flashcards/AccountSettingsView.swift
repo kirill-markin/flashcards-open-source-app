@@ -6,6 +6,8 @@ struct AccountSettingsView: View {
     @State private var screenErrorMessage: String = ""
     @State private var isCloudSignInPresented: Bool = false
     @State private var isDisconnectConfirmationPresented: Bool = false
+    @State private var isDeleteAccountAlertPresented: Bool = false
+    @State private var isDeleteAccountConfirmationPresented: Bool = false
     @State private var agentConnections: [AgentApiKeyConnection] = []
     @State private var agentConnectionsInstructions: String = ""
     @State private var isLoadingAgentConnections: Bool = false
@@ -121,6 +123,16 @@ struct AccountSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            Section("Delete account") {
+                Text("Permanently delete this account and all cloud data.")
+                    .foregroundStyle(.secondary)
+
+                Button("Delete my account", role: .destructive) {
+                    self.isDeleteAccountAlertPresented = true
+                }
+                .disabled(store.cloudSettings?.cloudState != .linked)
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Account")
@@ -138,6 +150,18 @@ struct AccountSettingsView: View {
             }
         } message: {
             Text("This device will stop syncing with the current cloud account until you sign in again.")
+        }
+        .alert("Delete this account?", isPresented: self.$isDeleteAccountAlertPresented) {
+            Button("Cancel", role: .cancel) {}
+            Button("Continue", role: .destructive) {
+                self.isDeleteAccountConfirmationPresented = true
+            }
+        } message: {
+            Text("This permanently deletes the account and all cloud data.")
+        }
+        .fullScreenCover(isPresented: self.$isDeleteAccountConfirmationPresented) {
+            DeleteAccountConfirmationView()
+                .environmentObject(store)
         }
     }
 

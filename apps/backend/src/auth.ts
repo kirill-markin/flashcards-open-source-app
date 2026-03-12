@@ -7,6 +7,7 @@ export type AuthTransport = "none" | "bearer" | "session" | "api_key";
 export type AuthResult = Readonly<{
   userId: string;
   email: string | null;
+  cognitoUsername: string | null;
   transport: AuthTransport;
   connectionId: string | null;
   selectedWorkspaceId: string | null;
@@ -20,11 +21,13 @@ export type AuthRequest = Readonly<{
 type VerifiedIdTokenPayload = Readonly<{
   sub: string;
   email?: unknown;
+  "cognito:username"?: unknown;
 }>;
 
 export type AuthenticatedUserIdentity = Readonly<{
   userId: string;
   email: string;
+  cognitoUsername: string | null;
 }>;
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
@@ -84,9 +87,14 @@ export function extractVerifiedIdTokenIdentity(payload: VerifiedIdTokenPayload):
     throw new Error("Cognito ID token is missing email claim");
   }
 
+  const cognitoUsername = typeof payload["cognito:username"] === "string"
+    ? payload["cognito:username"].trim()
+    : "";
+
   return {
     userId: payload.sub,
     email,
+    cognitoUsername: cognitoUsername === "" ? null : cognitoUsername,
   };
 }
 
@@ -109,7 +117,14 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
   const authConfig = getAuthConfig();
 
   if (authConfig.mode === "none") {
-    return { userId: "local", email: null, transport: "none", connectionId: null, selectedWorkspaceId: null };
+    return {
+      userId: "local",
+      email: null,
+      cognitoUsername: null,
+      transport: "none",
+      connectionId: null,
+      selectedWorkspaceId: null,
+    };
   }
 
   const parsedAuthorization = parseAuthorizationHeader(request.authorizationHeader);
@@ -118,6 +133,7 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
     return {
       userId: auth.userId,
       email: null,
+      cognitoUsername: null,
       transport: "api_key",
       connectionId: auth.connectionId,
       selectedWorkspaceId: auth.selectedWorkspaceId,

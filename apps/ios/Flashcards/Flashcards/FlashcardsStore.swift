@@ -13,6 +13,8 @@ private struct PersistedReviewFilter: Codable, Hashable {
 }
 
 private let selectedReviewFilterUserDefaultsKey: String = "selected-review-filter"
+private let accountDeletionPendingUserDefaultsKey: String = "account-deletion-pending"
+let accountDeletionConfirmationText: String = "delete my account"
 
 private func makePersistedReviewFilter(reviewFilter: ReviewFilter) -> PersistedReviewFilter {
     switch reviewFilter {
@@ -86,6 +88,12 @@ struct ReviewSubmissionFailure: Identifiable, Hashable, Sendable {
 struct TabSelectionRequest: Equatable, Sendable {
     let id: String
     let tab: AppTab
+}
+
+enum AccountDeletionState: Equatable {
+    case hidden
+    case inProgress
+    case failed(message: String)
 }
 
 private struct AIChatSessionPreparationState {
@@ -232,6 +240,8 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var settingsPresentationRequest: SettingsNavigationDestination?
     @Published private(set) var pendingReviewCardIds: Set<String>
     @Published private(set) var reviewSubmissionFailure: ReviewSubmissionFailure?
+    @Published private(set) var accountDeletionState: AccountDeletionState
+    @Published private(set) var accountDeletionSuccessMessage: String?
 
     private let database: LocalDatabase?
     private let cloudAuthService: CloudAuthService
@@ -261,6 +271,7 @@ final class FlashcardsStore: ObservableObject {
     private var reviewSourceVersion: Int
     private var loadedReviewCardIds: Set<String>
     private var hasMoreReviewQueueCards: Bool
+    private var isAccountDeletionRunning: Bool
     lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
 
     convenience init() {
@@ -366,6 +377,8 @@ final class FlashcardsStore: ObservableObject {
         self.settingsPresentationRequest = nil
         self.pendingReviewCardIds = []
         self.reviewSubmissionFailure = nil
+        self.accountDeletionState = .hidden
+        self.accountDeletionSuccessMessage = nil
         self.database = database
         self.cloudAuthService = cloudAuthService
         self.cloudSyncService = database.map { initializedDatabase in
@@ -395,6 +408,7 @@ final class FlashcardsStore: ObservableObject {
         self.reviewSourceVersion = 0
         self.loadedReviewCardIds = []
         self.hasMoreReviewQueueCards = false
+        self.isAccountDeletionRunning = false
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
@@ -402,6 +416,10 @@ final class FlashcardsStore: ObservableObject {
             } catch {
                 self.globalErrorMessage = localizedMessage(error: error)
             }
+        }
+
+        if self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) {
+            self.accountDeletionState = .inProgress
         }
     }
 
@@ -794,6 +812,34 @@ final class FlashcardsStore: ObservableObject {
         try self.reload()
     }
 
+    func beginAccountDeletion() {
+        self.userDefaults.set(true, forKey: accountDeletionPendingUserDefaultsKey)
+        self.accountDeletionState = .inProgress
+        Task { @MainActor in
+            await self.runPendingAccountDeletion()
+        }
+    }
+
+    func retryPendingAccountDeletion() {
+        self.accountDeletionState = .inProgress
+        Task { @MainActor in
+            await self.runPendingAccountDeletion()
+        }
+    }
+
+    func resumePendingAccountDeletionIfNeeded() async {
+        guard self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) else {
+            return
+        }
+
+        self.accountDeletionState = .inProgress
+        await self.runPendingAccountDeletion()
+    }
+
+    func dismissAccountDeletionSuccessMessage() {
+        self.accountDeletionSuccessMessage = nil
+    }
+
     private func finishCloudLink(linkedSession: CloudLinkedSession) async throws {
         guard let database else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
@@ -872,6 +918,11 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func syncCloudIfLinked() async {
+        if self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) {
+            await self.resumePendingAccountDeletionIfNeeded()
+            return
+        }
+
         do {
             let hasStoredCredentials = try self.credentialStore.loadCredentials() != nil
             if self.activeCloudSession == nil && hasStoredCredentials == false {
@@ -884,6 +935,11 @@ final class FlashcardsStore: ObservableObject {
 
             try await self.syncCloudNow()
         } catch {
+            if self.isCloudAccountDeletedError(error) {
+                self.handleRemoteAccountDeletedCleanup()
+                return
+            }
+
             self.globalErrorMessage = localizedMessage(error: error)
         }
     }
@@ -1595,6 +1651,11 @@ final class FlashcardsStore: ObservableObject {
             )
             return
         } catch {
+            if self.isCloudAccountDeletedError(error) {
+                self.handleRemoteAccountDeletedCleanup()
+                return
+            }
+
             if self.isCloudAuthorizationError(error) == false {
                 throw error
             }
@@ -1609,6 +1670,11 @@ final class FlashcardsStore: ObservableObject {
                 )
             )
         } catch {
+            if self.isCloudAccountDeletedError(error) {
+                self.handleRemoteAccountDeletedCleanup()
+                return
+            }
+
             if self.isCloudAuthorizationError(error) {
                 try self.disconnectCloudAccount()
             }
@@ -1625,6 +1691,11 @@ final class FlashcardsStore: ObservableObject {
             let linkedSession = try self.sessionWithUpdatedBearerToken(credentials: credentials)
             return try await operation(linkedSession)
         } catch {
+            if self.isCloudAccountDeletedError(error) {
+                self.handleRemoteAccountDeletedCleanup()
+                throw error
+            }
+
             if self.isCloudAuthorizationError(error) == false {
                 throw error
             }
@@ -1635,6 +1706,11 @@ final class FlashcardsStore: ObservableObject {
             let linkedSession = try self.sessionWithUpdatedBearerToken(credentials: refreshedCredentials)
             return try await operation(linkedSession)
         } catch {
+            if self.isCloudAccountDeletedError(error) {
+                self.handleRemoteAccountDeletedCleanup()
+                throw error
+            }
+
             if self.isCloudAuthorizationError(error) {
                 try self.disconnectCloudAccount()
             }
@@ -1694,6 +1770,91 @@ final class FlashcardsStore: ObservableObject {
         }
 
         return false
+    }
+
+    private func isCloudAccountDeletedError(_ error: Error) -> Bool {
+        if let syncError = error as? CloudSyncError {
+            switch syncError {
+            case .invalidResponse(let details, let statusCode):
+                return statusCode == 410 && details.code == "ACCOUNT_DELETED"
+            case .invalidBaseUrl:
+                return false
+            }
+        }
+
+        return false
+    }
+
+    private func runPendingAccountDeletion() async {
+        guard self.isAccountDeletionRunning == false else {
+            return
+        }
+
+        self.isAccountDeletionRunning = true
+        defer {
+            self.isAccountDeletionRunning = false
+        }
+
+        do {
+            try await self.performCloudAccountDeletion()
+            try self.completeLocalAccountDeletion()
+            self.accountDeletionState = .hidden
+            self.accountDeletionSuccessMessage = "Your account has been deleted."
+        } catch {
+            if self.isCloudAccountDeletedError(error) {
+                return
+            }
+
+            self.accountDeletionState = .failed(message: localizedMessage(error: error))
+        }
+    }
+
+    private func performCloudAccountDeletion() async throws {
+        guard let cloudSyncService else {
+            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
+        }
+
+        try await self.withAuthenticatedCloudSession { session in
+            try await cloudSyncService.deleteAccount(
+                apiBaseUrl: session.apiBaseUrl,
+                bearerToken: session.bearerToken,
+                confirmationText: accountDeletionConfirmationText
+            )
+        }
+    }
+
+    private func completeLocalAccountDeletion() throws {
+        guard let database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+
+        self.activeCloudSyncTask?.cancel()
+        self.activeCloudSyncTask = nil
+        self.pendingCloudResync = false
+        self.activeAIChatSessionPreparation?.task.cancel()
+        self.activeAIChatSessionPreparation = nil
+        self.cloudAuthService.resetChallengeSession()
+        try self.credentialStore.clearCredentials()
+        self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
+        self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
+        self.aiChatStore.clearHistory()
+        try database.resetForAccountDeletion()
+        self.syncStatus = .idle
+        self.lastSuccessfulCloudSyncAt = nil
+        self.activeCloudSession = nil
+        self.globalErrorMessage = ""
+        try self.reload()
+    }
+
+    private func handleRemoteAccountDeletedCleanup() {
+        do {
+            self.userDefaults.set(true, forKey: accountDeletionPendingUserDefaultsKey)
+            try self.completeLocalAccountDeletion()
+            self.accountDeletionState = .hidden
+            self.accountDeletionSuccessMessage = "Your account has been deleted."
+        } catch {
+            self.accountDeletionState = .failed(message: localizedMessage(error: error))
+        }
     }
 
     private func runLinkedSync(linkedSession: CloudLinkedSession) async throws {

@@ -741,6 +741,10 @@ final class LocalDatabase {
         }
     }
 
+    func resetForAccountDeletion() throws {
+        try self.core.resetForAccountDeletion()
+    }
+
     private func validateCardBatchCount(count: Int) throws {
         if count < 1 {
             throw LocalStoreError.validation("Card batch must contain at least one item")

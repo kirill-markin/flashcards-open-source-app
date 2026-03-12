@@ -36,6 +36,7 @@ test("authenticateRequest returns local auth only for explicitly gated insecure 
   assert.deepEqual(result, {
     userId: "local",
     email: null,
+    cognitoUsername: null,
     transport: "none",
     connectionId: null,
     selectedWorkspaceId: null,
@@ -62,10 +63,12 @@ test("extractVerifiedIdTokenIdentity returns userId and email", () => {
     extractVerifiedIdTokenIdentity({
       sub: "user-123",
       email: "user@example.com",
+      "cognito:username": "kirill@example.com",
     }),
     {
       userId: "user-123",
       email: "user@example.com",
+      cognitoUsername: "kirill@example.com",
     },
   );
 });

@@ -67,6 +67,14 @@ private struct CreateWorkspaceRequest: Encodable {
     let name: String
 }
 
+private struct DeleteAccountRequest: Encodable {
+    let confirmationText: String
+}
+
+private struct DeleteAccountResponse: Decodable {
+    let ok: Bool
+}
+
 private struct PushRequest: Encodable {
     let deviceId: String
     let platform: String
@@ -453,6 +461,20 @@ final class CloudSyncService: @unchecked Sendable {
             body: Optional<String>.none
         )
         return (response.connection, response.instructions)
+    }
+
+    func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws {
+        let response: DeleteAccountResponse = try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/me/delete",
+            method: "POST",
+            body: DeleteAccountRequest(confirmationText: confirmationText)
+        )
+
+        if response.ok == false {
+            throw LocalStoreError.validation("Cloud account deletion did not return ok=true")
+        }
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws {

@@ -73,6 +73,36 @@ struct RootTabView: View {
         .onChange(of: store.settingsPresentationRequest) { _, request in
             self.handleSettingsPresentationRequest(request: request)
         }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: {
+                    store.accountDeletionState != .hidden
+                },
+                set: { _ in }
+            )
+        ) {
+            AccountDeletionProgressView()
+                .environmentObject(store)
+        }
+        .alert(
+            "Account deleted",
+            isPresented: Binding(
+                get: {
+                    store.accountDeletionSuccessMessage != nil
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        store.dismissAccountDeletionSuccessMessage()
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                store.dismissAccountDeletionSuccessMessage()
+            }
+        } message: {
+            Text(store.accountDeletionSuccessMessage ?? "")
+        }
     }
 
     private func handleSettingsPresentationRequest(request: SettingsNavigationDestination?) {

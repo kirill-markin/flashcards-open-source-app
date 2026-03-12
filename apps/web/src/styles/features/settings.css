@@ -58,6 +58,22 @@
   gap: 16px;
 }
 
+.settings-danger-card {
+  display: grid;
+  gap: 16px;
+  border-color: rgba(196, 75, 45, 0.45);
+}
+
+.settings-danger-btn {
+  border-color: rgba(196, 75, 45, 0.45);
+  color: #ffb8a6;
+}
+
+.settings-danger-btn:hover:not(:disabled) {
+  border-color: rgba(196, 75, 45, 0.7);
+  background: rgba(196, 75, 45, 0.14);
+}
+
 .settings-connection-header,
 .settings-connection-meta {
   display: flex;
@@ -65,6 +81,33 @@
   justify-content: space-between;
   flex-wrap: wrap;
   align-items: flex-start;
+}
+
+.settings-delete-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(9, 10, 15, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.settings-delete-dialog {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 18px;
+}
+
+.settings-delete-warning {
+  margin: 0;
+}
+
+.settings-delete-phrase {
+  margin: 0;
+  user-select: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 @media (max-width: 900px) {

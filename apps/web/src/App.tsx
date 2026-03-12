@@ -1,8 +1,15 @@
-import { useEffect, useRef, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
+import {
+  clearAllLocalBrowserData,
+  deleteAccountConfirmationText,
+  isAccountDeletionPending,
+  loadAccountDeletionCsrfToken,
+  subscribeToAccountDeletionPending,
+} from "./accountDeletion";
 import { AppDataProvider, useAppData } from "./appData";
-import { buildLogoutUrl } from "./api";
+import { ApiError, buildLoginUrl, buildLogoutLocalUrl, buildLogoutUrl, deleteMyAccount, primeSessionCsrfToken } from "./api";
 import { ChatPanel } from "./chat/ChatPanel";
 import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatToggle } from "./chat/ChatToggle";
@@ -64,6 +71,66 @@ export function AppShell(): ReactElement {
     chooseWorkspace,
     createWorkspace,
   } = useAppData();
+  const [isAccountDeletionPendingState, setIsAccountDeletionPendingState] = useState<boolean>(isAccountDeletionPending);
+  const [accountDeletionErrorMessage, setAccountDeletionErrorMessage] = useState<string>("");
+  const [isAccountDeletionSubmitting, setIsAccountDeletionSubmitting] = useState<boolean>(false);
+
+  const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
+    setIsAccountDeletionSubmitting(true);
+    setAccountDeletionErrorMessage("");
+
+    try {
+      const persistedCsrfToken = loadAccountDeletionCsrfToken();
+      if (persistedCsrfToken !== null) {
+        primeSessionCsrfToken(persistedCsrfToken);
+      }
+      await deleteMyAccount(deleteAccountConfirmationText);
+      await clearAllLocalBrowserData();
+      window.location.href = buildLogoutLocalUrl();
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "ACCOUNT_DELETED") {
+        await clearAllLocalBrowserData();
+        window.location.href = buildLogoutLocalUrl();
+        return;
+      }
+
+      setAccountDeletionErrorMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsAccountDeletionSubmitting(false);
+    }
+  }, []);
+
+  useEffect(() => subscribeToAccountDeletionPending(() => {
+    setIsAccountDeletionPendingState(isAccountDeletionPending());
+  }), []);
+
+  useEffect(() => {
+    if (isAccountDeletionPendingState && !isAccountDeletionSubmitting && accountDeletionErrorMessage === "") {
+      void completeAccountDeletion();
+    }
+  }, [accountDeletionErrorMessage, completeAccountDeletion, isAccountDeletionPendingState, isAccountDeletionSubmitting]);
+
+  if (isAccountDeletionPendingState) {
+    return (
+      <main className="page-state">
+        <section className="panel panel-center state-panel">
+          <h1 className="title">Deleting account</h1>
+          <p className="subtitle">
+            Your account deletion is in progress. Do not close this page unless you plan to come back and retry.
+          </p>
+          {accountDeletionErrorMessage !== "" ? <p className="error-banner">{accountDeletionErrorMessage}</p> : null}
+          <button
+            className="primary-btn"
+            type="button"
+            disabled={isAccountDeletionSubmitting}
+            onClick={() => void completeAccountDeletion()}
+          >
+            {isAccountDeletionSubmitting ? "Deleting..." : "Retry deletion"}
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (
@@ -84,6 +151,20 @@ export function AppShell(): ReactElement {
           <button className="primary-btn" type="button" onClick={() => void initialize()}>
             Retry
           </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (sessionLoadState === "deleted") {
+    return (
+      <main className="page-state">
+        <section className="panel panel-center state-panel">
+          <h1 className="title">Flashcards</h1>
+          <p className="subtitle">{sessionErrorMessage}</p>
+          <a className="primary-btn" href={buildLoginUrl(window.location.origin)}>
+            Sign in again
+          </a>
         </section>
       </main>
     );

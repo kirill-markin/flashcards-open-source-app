@@ -12,6 +12,7 @@ import {
   revalidateSession as revalidateSessionRequest,
   selectWorkspace,
 } from "../api";
+import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
 import { getStableDeviceId } from "../clientIdentity";
 import { clearWebSyncCache, putCloudSettings, relinkWorkspaceCache } from "../syncStorage";
 import type { Card, CloudSettings, Deck, SessionInfo, WorkspaceSummary } from "../types";
@@ -188,6 +189,14 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     try {
       if (consumeLoggedOutMarker()) {
         await clearWebSyncCache();
+      }
+
+      if (consumeAccountDeletedMarker()) {
+        await clearAllLocalBrowserData();
+        setSession(null);
+        setSessionLoadState("deleted");
+        setSessionErrorMessage("Your account has been deleted.");
+        return;
       }
 
       const currentSession = await getSession();
