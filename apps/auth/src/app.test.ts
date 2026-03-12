@@ -78,3 +78,18 @@ test("foreign origins stay blocked", async () => {
   assert.equal(response.status, 403);
   assert.deepEqual(await response.json(), { error: "Origin is not allowed" });
 });
+
+test("logout-local clears the browser session and redirects back with account-deleted markers", async () => {
+  const app = createAuthApp();
+
+  const response = await app.request(
+    "https://auth.flashcards-open-source-app.com/logout-local?redirect_uri=https%3A%2F%2Fapp.flashcards-open-source-app.com%2Faccount",
+  );
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get("Location"),
+    "https://app.flashcards-open-source-app.com/account?logged_out=1&account_deleted=1",
+  );
+  assert.match(response.headers.get("Set-Cookie") ?? "", /refresh=;/);
+});

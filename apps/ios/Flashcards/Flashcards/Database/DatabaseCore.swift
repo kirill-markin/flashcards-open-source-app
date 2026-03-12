@@ -558,6 +558,12 @@ final class DatabaseCore {
         }
     }
 
+    func resetForAccountDeletion() throws {
+        try self.resetLocalSchema()
+        try self.migrate()
+        try self.ensureDefaultState()
+    }
+
     private func tableExists(name: String) throws -> Bool {
         let rows = try self.query(
             sql: "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",

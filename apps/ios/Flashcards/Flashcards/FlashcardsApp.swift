@@ -16,6 +16,7 @@ struct FlashcardsApp: App {
             RootTabView()
                 .environmentObject(store)
                 .task {
+                    await store.resumePendingAccountDeletionIfNeeded()
                     await store.syncCloudIfLinked()
                 }
                 .onChange(of: scenePhase) { _, nextPhase in

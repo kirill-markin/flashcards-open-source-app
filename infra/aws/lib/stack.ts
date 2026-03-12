@@ -50,6 +50,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       baseDomain,
       authCertificateArn,
       userPoolId: authResult.userPool.userPoolId,
+      userPoolArn: authResult.userPool.userPoolArn,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
     const migrationFn = migrationRunner(this, {

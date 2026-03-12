@@ -15,7 +15,7 @@ import type {
   WorkspaceSummary,
 } from "../types";
 
-export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error";
+export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
 type ResourceLoadStatus = "idle" | "loading" | "ready" | "error";
 
 export type ResourceState<Item> = Readonly<{

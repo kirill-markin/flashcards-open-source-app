@@ -20,10 +20,12 @@ import type {
 
 export class ApiError extends Error {
   readonly statusCode: number;
+  readonly code: string | null;
 
-  constructor(statusCode: number, message: string) {
+  constructor(statusCode: number, message: string, code: string | null = null) {
     super(message);
     this.statusCode = statusCode;
+    this.code = code;
   }
 }
 
@@ -87,6 +89,15 @@ export function resetApiClientStateForTests(): void {
   sessionRecoveryPromise = null;
   redirectInFlight = false;
   navigationHandler = null;
+}
+
+export function getCachedSessionCsrfToken(): string | null {
+  return sessionCsrfState === "session" ? sessionCsrfToken : null;
+}
+
+export function primeSessionCsrfToken(csrfToken: string): void {
+  sessionCsrfToken = csrfToken;
+  sessionCsrfState = "session";
 }
 
 function setSessionCsrfToken(csrfToken: string | null, authTransport: string): void {
@@ -176,6 +187,15 @@ function getJsonErrorMessage(value: unknown, fallbackMessage: string): string {
   return typeof errorValue === "string" && errorValue !== "" ? errorValue : fallbackMessage;
 }
 
+function getJsonErrorCode(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  const objectValue = value as Record<string, unknown>;
+  return typeof objectValue.code === "string" && objectValue.code !== "" ? objectValue.code : null;
+}
+
 async function readJsonResponse(response: Response): Promise<unknown> {
   const text = await response.text();
   if (text === "") {
@@ -210,7 +230,7 @@ async function parseJsonPayload(response: Response): Promise<unknown> {
 
   if (!response.ok) {
     const fallbackMessage = typeof payload === "string" ? payload : `Request failed with status ${response.status}`;
-    throw new ApiError(response.status, getJsonErrorMessage(payload, fallbackMessage));
+    throw new ApiError(response.status, getJsonErrorMessage(payload, fallbackMessage), getJsonErrorCode(payload));
   }
 
   return payload;
@@ -425,6 +445,15 @@ export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiK
   return expectObject(await requestJson(`/agent-api-keys/${connectionId}/revoke`, { method: "POST" }, allowAuthRecovery)) as unknown as AgentApiKeyRevokeResponse;
 }
 
+export async function deleteMyAccount(confirmationText: string): Promise<Readonly<{ ok: true }>> {
+  return expectObject(await requestJson("/me/delete", {
+    method: "POST",
+    body: JSON.stringify({
+      confirmationText,
+    }),
+  }, allowAuthRecovery)) as Readonly<{ ok: true }>;
+}
+
 export async function pushSyncOperations(
   workspaceId: string,
   deviceId: string,
@@ -568,4 +597,10 @@ export function buildLogoutUrl(): string {
   const config = getAppConfig();
   const redirectUri = `${config.appBaseUrl}/`;
   return `${config.authBaseUrl}/logout?redirect_uri=${encodeURIComponent(redirectUri)}`;
+}
+
+export function buildLogoutLocalUrl(): string {
+  const config = getAppConfig();
+  const redirectUri = `${config.appBaseUrl}/`;
+  return `${config.authBaseUrl}/logout-local?redirect_uri=${encodeURIComponent(redirectUri)}`;
 }

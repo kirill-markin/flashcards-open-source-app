@@ -1,4 +1,5 @@
 import { authenticateRequest, type AuthTransport } from "../auth";
+import { isDeletedSubject } from "../deletedSubjects";
 import { HttpError } from "../errors";
 import { ensureUserProfile } from "../ensureUser";
 import {
@@ -30,6 +31,9 @@ export async function loadRequestContext(
   requestAuthInputs: RequestAuthInputs,
 ): Promise<RequestContext> {
   const auth = await authenticateRequest(toAuthRequest(requestAuthInputs));
+  if (auth.transport !== "api_key" && auth.transport !== "none" && await isDeletedSubject(auth.userId)) {
+    throw new HttpError(410, "This account has already been deleted.", "ACCOUNT_DELETED");
+  }
   const userProfile = await ensureUserProfile(auth.userId, auth.email);
   const selectedWorkspaceId = auth.transport === "api_key"
     ? auth.selectedWorkspaceId

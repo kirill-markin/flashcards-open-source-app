@@ -17,6 +17,7 @@ export interface ApiGatewayProps {
   openAiApiKeySecretArn: string | undefined;
   anthropicApiKeySecretArn: string | undefined;
   userPoolId: string;
+  userPoolArn: string;
   userPoolClientId: string;
 }
 
@@ -36,6 +37,7 @@ interface BackendFunctionProps {
   backendCsrfSecret: cdk.aws_secretsmanager.Secret;
   allowedOrigins: string[];
   userPoolId: string;
+  userPoolArn: string;
   userPoolClientId: string;
   openAiApiKeySecretArn: string | undefined;
   anthropicApiKeySecretArn: string | undefined;
@@ -105,6 +107,10 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
 
   props.appDbSecret.grantRead(fn);
   props.backendCsrfSecret.grantRead(fn);
+  fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: ["cognito-idp:AdminDeleteUser"],
+    resources: [props.userPoolArn],
+  }));
   addLambdaSecretEnvironment(
     scope,
     fn,
@@ -155,6 +161,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     backendCsrfSecret,
     allowedOrigins,
     userPoolId: props.userPoolId,
+    userPoolArn: props.userPoolArn,
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
@@ -170,6 +177,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     backendCsrfSecret,
     allowedOrigins,
     userPoolId: props.userPoolId,
+    userPoolArn: props.userPoolArn,
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
@@ -260,6 +268,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const me = restApi.root.addResource("me");
   me.addMethod("GET", integration);
+  me.addResource("delete").addMethod("POST", integration);
 
   const chat = restApi.root.addResource("chat");
   const localTurn = chat.addResource("local-turn");
