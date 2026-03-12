@@ -216,22 +216,17 @@ test("buildLocalSystemInstructions includes strict tool-call rules and examples"
   assert.match(instructions, /back side must contain the answer\./i);
   assert.match(instructions, /prefer a fenced markdown code block for structured examples\./i);
   assert.match(instructions, /Tool arguments must be exactly one JSON object\./);
-  assert.match(instructions, /If a field is optional semantically, send null instead of omitting it\./);
   assert.match(instructions, /wait for explicit user confirmation before executing the write tool/i);
   assert.match(instructions, /before proposing or executing any new card or deck creation, you must first inspect the local workspace for exact or similar items/i);
   assert.match(instructions, /summarize what you found and discuss possible duplicates or overlap with the user/i);
   assert.match(instructions, /every newly proposed card must include at least one tag/i);
   assert.match(instructions, /if the user did not provide tags for a new card, you must suggest one or more concrete tags/i);
   assert.match(instructions, /you must reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate/i);
-  assert.match(instructions, /list_tags => \{\}/);
-  assert.match(instructions, /list_cards => \{"cursor": null, "limit": 20, "filter": null\}/);
-  assert.match(instructions, /get_cards => \{"cardIds": \["123e4567-e89b-42d3-a456-426614174000"\]\}/);
-  assert.match(instructions, /search_cards => \{"query": "grammar", "cursor": null, "limit": 20, "filter": null\}/);
-  assert.match(instructions, /search_decks => \{"query": "grammar", "cursor": null, "limit": 20\}/);
-  assert.match(instructions, /get_decks => \{"deckIds": \["123e4567-e89b-42d3-a456-426614174001"\]\}/);
-  assert.match(instructions, /list_review_history => \{"cursor": null, "limit": 20, "cardId": null\}/);
-  assert.match(instructions, /update_cards => \{"updates": \[\{"cardId": "123e4567-e89b-42d3-a456-426614174000"/);
-  assert.match(instructions, /update_decks => \{"updates": \[\{"deckId": "123e4567-e89b-42d3-a456-426614174001"/);
+  assert.match(instructions, /sql => \{"sql": "SHOW TABLES"\}/);
+  assert.match(instructions, /sql => \{"sql": "DESCRIBE cards"\}/);
+  assert.match(instructions, /sql => \{"sql": "SELECT \* FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET 0"\}/);
+  assert.match(instructions, /sql => \{"sql": "SELECT \* FROM due_cards ORDER BY due_at ASC, updated_at DESC LIMIT 20 OFFSET 0"\}/);
+  assert.match(instructions, /sql => \{"sql": "UPDATE cards SET back_text = 'Updated answer' WHERE card_id = '00000000-0000-4000-8000-000000000000'"\}/);
   assert.match(instructions, /correct the tool call shape and continue without repeating earlier assistant text/i);
   assert.match(instructions, /mounted files are typically exposed under \/mnt\/data/i);
   assert.match(instructions, /mounted filename may differ from the uploaded filename/i);
@@ -512,8 +507,8 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
             {
               type: "function_call",
               call_id: "call-1",
-              name: "list_cards",
-              arguments: "{\"cursor\":null,\"limit\":5}\n{\"cursor\":null,\"limit\":10}",
+              name: "sql",
+              arguments: "{\"sql\":\"SHOW TABLES\"}\n{\"sql\":\"DESCRIBE cards\"}",
             },
           ],
         },
@@ -525,8 +520,8 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
             {
               type: "function_call",
               call_id: "call-2",
-              name: "list_cards",
-              arguments: "{\"cursor\":null,\"limit\":10}",
+              name: "sql",
+              arguments: "{\"sql\":\"SHOW TABLES\"}",
             },
           ],
         },
@@ -547,12 +542,12 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
     { type: "delta", text: "Checking cards." },
     {
       type: "repair_attempt",
-      message: "Assistant is correcting list_cards.",
+      message: "Assistant is correcting sql.",
       attempt: 1,
       maxAttempts: 3,
-      toolName: "list_cards",
+      toolName: "sql",
     },
-    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"cursor\":null,\"limit\":10,\"filter\":null}" },
+    { type: "tool_call_request", toolCallId: "call-2", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" },
     { type: "await_tool_results" },
   ]);
 
@@ -575,7 +570,7 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
             {
               type: "function_call",
               call_id: "call-1",
-              name: "list_cards",
+              name: "sql",
               arguments: "{}",
             },
           ],
@@ -588,8 +583,8 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
             {
               type: "function_call",
               call_id: "call-2",
-              name: "list_cards",
-              arguments: "{\"cursor\":null,\"limit\":10}",
+              name: "sql",
+              arguments: "{\"sql\":\"SHOW TABLES\"}",
             },
           ],
         },
@@ -609,12 +604,12 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
   assert.deepEqual(events, [
     {
       type: "repair_attempt",
-      message: "Assistant is correcting list_cards.",
+      message: "Assistant is correcting sql.",
       attempt: 1,
       maxAttempts: 3,
-      toolName: "list_cards",
+      toolName: "sql",
     },
-    { type: "tool_call_request", toolCallId: "call-2", name: "list_cards", input: "{\"cursor\":null,\"limit\":10,\"filter\":null}" },
+    { type: "tool_call_request", toolCallId: "call-2", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" },
     { type: "await_tool_results" },
   ]);
 });
@@ -626,25 +621,25 @@ test("streamLocalAgentTurn stops after three repair attempts", async () => {
       {
         events: [],
         finalResponse: {
-          output: [{ type: "function_call", call_id: "call-1", name: "list_cards", arguments: "{}" }],
+          output: [{ type: "function_call", call_id: "call-1", name: "sql", arguments: "{}" }],
         },
       },
       {
         events: [],
         finalResponse: {
-          output: [{ type: "function_call", call_id: "call-2", name: "list_cards", arguments: "{}" }],
+          output: [{ type: "function_call", call_id: "call-2", name: "sql", arguments: "{}" }],
         },
       },
       {
         events: [],
         finalResponse: {
-          output: [{ type: "function_call", call_id: "call-3", name: "list_cards", arguments: "{}" }],
+          output: [{ type: "function_call", call_id: "call-3", name: "sql", arguments: "{}" }],
         },
       },
       {
         events: [],
         finalResponse: {
-          output: [{ type: "function_call", call_id: "call-4", name: "list_cards", arguments: "{}" }],
+          output: [{ type: "function_call", call_id: "call-4", name: "sql", arguments: "{}" }],
         },
       },
     ],
@@ -682,8 +677,8 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
         content: [{
           type: "tool_use",
           id: "toolu_1",
-          name: "list_cards",
-          input: { cursor: null, limit: 20 },
+          name: "sql",
+          input: { sql: "SHOW TABLES" },
         }],
         stop_reason: "tool_use",
       },
@@ -701,7 +696,7 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
 
   assert.deepEqual(events, [
     { type: "delta", text: "Inspecting local cards." },
-    { type: "tool_call_request", toolCallId: "toolu_1", name: "list_cards", input: "{\"cursor\":null,\"limit\":20,\"filter\":null}" },
+    { type: "tool_call_request", toolCallId: "toolu_1", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" },
     { type: "await_tool_results" },
   ]);
   assert.equal(capturedBodies[0]?.model, "claude-sonnet-4-6");
@@ -718,7 +713,7 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
           content: [{
             type: "tool_use",
             id: "toolu_1",
-            name: "list_cards",
+            name: "sql",
             input: {},
           }],
           stop_reason: "tool_use",
@@ -730,8 +725,8 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
           content: [{
             type: "tool_use",
             id: "toolu_2",
-            name: "list_cards",
-            input: { cursor: null, limit: 20 },
+            name: "sql",
+            input: { sql: "SHOW TABLES" },
           }],
           stop_reason: "tool_use",
         },
@@ -751,12 +746,12 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
   assert.deepEqual(events, [
     {
       type: "repair_attempt",
-      message: "Assistant is correcting list_cards.",
+      message: "Assistant is correcting sql.",
       attempt: 1,
       maxAttempts: 3,
-      toolName: "list_cards",
+      toolName: "sql",
     },
-    { type: "tool_call_request", toolCallId: "toolu_2", name: "list_cards", input: "{\"cursor\":null,\"limit\":20,\"filter\":null}" },
+    { type: "tool_call_request", toolCallId: "toolu_2", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" },
     { type: "await_tool_results" },
   ]);
 });
@@ -765,10 +760,10 @@ test("streamAnthropicLocalAgentTurn stops after three repair attempts", async ()
   const capturedBodies: Array<CapturedAnthropicStreamBody> = [];
   const client = makeFakeAnthropicClient(
     [
-      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_1", name: "list_cards", input: {} }], stop_reason: "tool_use" } },
-      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_2", name: "list_cards", input: {} }], stop_reason: "tool_use" } },
-      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_3", name: "list_cards", input: {} }], stop_reason: "tool_use" } },
-      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_4", name: "list_cards", input: {} }], stop_reason: "tool_use" } },
+      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_1", name: "sql", input: {} }], stop_reason: "tool_use" } },
+      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_2", name: "sql", input: {} }], stop_reason: "tool_use" } },
+      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_3", name: "sql", input: {} }], stop_reason: "tool_use" } },
+      { events: [], finalMessage: { content: [{ type: "tool_use", id: "toolu_4", name: "sql", input: {} }], stop_reason: "tool_use" } },
     ],
     capturedBodies,
   );
@@ -827,7 +822,7 @@ test("parseLocalChatDiagnosticsBody accepts the local iOS diagnostics payload", 
     errorKind: "invalid_sse_event_json",
     statusCode: null,
     eventType: "tool_call_request",
-    toolName: "list_cards",
+    toolName: "sql",
     toolCallId: "call-1",
     lineNumber: 12,
     rawSnippet: "{\"type\":\"tool_call_request\"}",

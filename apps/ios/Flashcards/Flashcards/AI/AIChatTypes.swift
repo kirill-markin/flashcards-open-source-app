@@ -25,34 +25,14 @@ let aiChatSupportedFileExtensions: Set<String> = [
 /**
  iOS-local tool catalog.
 
- Keep this set aligned with the browser-local mirror in
- `apps/web/src/chat/localToolExecutor.ts`.
-
- Canonical backend SQL behavior lives in
- `apps/backend/src/aiTools/agentSql.ts`, while this iOS local tool list is a
- pending mirror that still needs the same SQL migration.
+ Keep this set aligned with:
+ - `apps/web/src/chat/localToolExecutor.ts::LOCAL_TOOL_NAMES`
+ - `apps/backend/src/chat/openai/localTools.ts::OPENAI_LOCAL_FLASHCARDS_TOOLS`
  */
 let aiChatLocalToolNames: Set<String> = [
-    "get_workspace_context",
-    "list_tags",
-    "list_cards",
-    "get_cards",
-    "search_cards",
-    "list_due_cards",
-    "list_decks",
-    "search_decks",
-    "get_decks",
-    "list_review_history",
-    "get_scheduler_settings",
+    "sql",
     "get_cloud_settings",
     "list_outbox",
-    "summarize_deck_state",
-    "create_cards",
-    "update_cards",
-    "delete_cards",
-    "create_decks",
-    "update_decks",
-    "delete_decks",
 ]
 
 func aiChatAppVersion() -> String {

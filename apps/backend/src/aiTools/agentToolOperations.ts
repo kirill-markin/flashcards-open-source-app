@@ -434,7 +434,7 @@ export async function listAgentTagsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `list_cards` tool.
+ * Shared backend card-list implementation reused by the SQL surface.
  */
 export async function listAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
@@ -456,7 +456,7 @@ export async function listAgentCardsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `get_cards` tool.
+ * Shared backend card-by-id loader reused by the SQL surface.
  */
 export async function getAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
@@ -471,7 +471,7 @@ export async function getAgentCardsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `search_cards` tool.
+ * Shared backend card-search implementation reused by the SQL surface.
  */
 export async function searchAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
@@ -493,7 +493,7 @@ export async function searchAgentCardsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `list_due_cards` tool.
+ * Shared backend due-card listing implementation reused by the SQL surface.
  */
 export async function listAgentDueCardsOperation(
   dependencies: AgentToolOperationDependencies,
@@ -512,7 +512,7 @@ export async function listAgentDueCardsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `list_decks` tool.
+ * Shared backend deck-list implementation reused by the SQL surface.
  */
 export async function listAgentDecksOperation(
   dependencies: AgentToolOperationDependencies,
@@ -526,7 +526,7 @@ export async function listAgentDecksOperation(
 }
 
 /**
- * Canonical backend implementation of the external `get_decks` tool.
+ * Shared backend deck-by-id loader reused by the SQL surface.
  */
 export async function getAgentDecksOperation(
   dependencies: AgentToolOperationDependencies,
@@ -541,7 +541,7 @@ export async function getAgentDecksOperation(
 }
 
 /**
- * Canonical backend implementation of the external `search_decks` tool.
+ * Shared backend deck-search implementation reused by the SQL surface.
  */
 export async function searchAgentDecksOperation(
   dependencies: AgentToolOperationDependencies,
@@ -555,9 +555,9 @@ export async function searchAgentDecksOperation(
 }
 
 /**
- * Canonical backend implementation of the external `list_review_history`
- * tool. Local mirrors keep their own data access but should preserve payload
- * shape and limit semantics.
+ * Shared backend review-history implementation reused by the SQL surface.
+ * Local mirrors keep their own data access but should preserve payload shape
+ * and limit semantics.
  */
 export async function listAgentReviewHistoryOperation(
   dependencies: AgentToolOperationDependencies,
@@ -572,8 +572,7 @@ export async function listAgentReviewHistoryOperation(
 }
 
 /**
- * Canonical backend implementation of the external `get_scheduler_settings`
- * tool.
+ * Shared backend scheduler-settings loader reused by the SQL surface.
  */
 export async function getAgentSchedulerSettingsOperation(
   dependencies: AgentToolOperationDependencies,
@@ -585,7 +584,7 @@ export async function getAgentSchedulerSettingsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `create_cards` tool.
+ * Shared backend card-creation implementation reused by the SQL surface.
  */
 export async function createAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
@@ -605,7 +604,7 @@ export async function createAgentCardsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `update_cards` tool.
+ * Shared backend card-update implementation reused by the SQL surface.
  */
 export async function updateAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
@@ -626,7 +625,7 @@ export async function updateAgentCardsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `delete_cards` tool.
+ * Shared backend card-delete implementation reused by the SQL surface.
  */
 export async function deleteAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
@@ -642,7 +641,7 @@ export async function deleteAgentCardsOperation(
 }
 
 /**
- * Canonical backend implementation of the external `create_decks` tool.
+ * Shared backend deck-creation implementation reused by the SQL surface.
  */
 export async function createAgentDecksOperation(
   dependencies: AgentToolOperationDependencies,
@@ -662,7 +661,7 @@ export async function createAgentDecksOperation(
 }
 
 /**
- * Canonical backend implementation of the external `update_decks` tool.
+ * Shared backend deck-update implementation reused by the SQL surface.
  */
 export async function updateAgentDecksOperation(
   dependencies: AgentToolOperationDependencies,
@@ -695,7 +694,7 @@ export async function updateAgentDecksOperation(
 }
 
 /**
- * Canonical backend implementation of the external `delete_decks` tool.
+ * Shared backend deck-delete implementation reused by the SQL surface.
  */
 export async function deleteAgentDecksOperation(
   dependencies: AgentToolOperationDependencies,

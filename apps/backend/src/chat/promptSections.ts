@@ -47,7 +47,7 @@ export function buildWritePolicySection(lines: ReadonlyArray<string>): string {
 export function buildSharedWritePolicyLines(): ReadonlyArray<string> {
   return [
     "- Before any create, update, or delete tool call, you MUST first describe the exact changes you plan to make.",
-    "- Before proposing or executing any new card or deck creation, you MUST first inspect existing cards or decks for exact or similar items by using the relevant read tools.",
+    "- Before proposing or executing any new card or deck creation, you MUST first inspect existing cards or decks for exact or similar items through SQL.",
     "- You MUST summarize what you found and discuss possible duplicates or overlap with the user before proposing a creation plan.",
     "- Every newly proposed card must include at least one tag.",
     "- If the user did not provide tags for a new card, you MUST suggest one or more concrete tags and include them in the proposed card draft before asking for confirmation.",
@@ -69,7 +69,7 @@ export function buildCloudWritePolicyLines(): ReadonlyArray<string> {
 export function buildLocalWritePolicyLines(): ReadonlyArray<string> {
   return [
     "- Before any create, update, or delete tool call, you must first describe the exact changes you plan to make.",
-    "- Before proposing or executing any new card or deck creation, you must first inspect the local workspace for exact or similar items by using the relevant local read tools.",
+    "- Before proposing or executing any new card or deck creation, you must first inspect the local workspace for exact or similar items through the shared sql tool.",
     "- You must summarize what you found and discuss possible duplicates or overlap with the user before proposing a creation plan.",
     "- Every newly proposed card must include at least one tag.",
     "- If the user did not provide tags for a new card, you must suggest one or more concrete tags and include them in the proposed card draft before asking for confirmation.",

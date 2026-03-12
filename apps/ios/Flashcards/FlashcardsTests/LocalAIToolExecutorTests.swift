@@ -2,298 +2,311 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-private struct CardsPagePayload: Decodable {
-    let cards: [Card]
+private enum SqlJsonValue: Decodable, Equatable {
+    case string(String)
+    case integer(Int)
+    case number(Double)
+    case boolean(Bool)
+    case null
+    case stringArray([String])
+    case integerArray([Int])
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+            return
+        }
+        if let value = try? container.decode([String].self) {
+            self = .stringArray(value)
+            return
+        }
+        if let value = try? container.decode([Int].self) {
+            self = .integerArray(value)
+            return
+        }
+        if let value = try? container.decode(Bool.self) {
+            self = .boolean(value)
+            return
+        }
+        if let value = try? container.decode(Int.self) {
+            self = .integer(value)
+            return
+        }
+        if let value = try? container.decode(Double.self) {
+            self = .number(value)
+            return
+        }
+        self = .string(try container.decode(String.self))
+    }
+
+    var stringValue: String? {
+        if case .string(let value) = self {
+            return value
+        }
+
+        return nil
+    }
+
+    var integerValue: Int? {
+        if case .integer(let value) = self {
+            return value
+        }
+
+        return nil
+    }
+
+    var booleanValue: Bool? {
+        if case .boolean(let value) = self {
+            return value
+        }
+
+        return nil
+    }
+
+    var stringArrayValue: [String]? {
+        if case .stringArray(let value) = self {
+            return value
+        }
+
+        return nil
+    }
+}
+
+private struct SqlReadPayload: Decodable {
+    let statementType: String
+    let resource: String?
+    let sql: String
+    let normalizedSql: String
+    let rows: [[String: SqlJsonValue]]
+    let rowCount: Int
+    let limit: Int?
+    let offset: Int?
+    let hasMore: Bool
+}
+
+private struct SqlMutationPayload: Decodable {
+    let statementType: String
+    let resource: String
+    let sql: String
+    let normalizedSql: String
+    let rows: [[String: SqlJsonValue]]
+    let affectedCount: Int
+}
+
+private struct OutboxPayload: Decodable {
+    let outbox: [OutboxRow]
     let nextCursor: String?
 }
 
-private struct DecksPagePayload: Decodable {
-    let decks: [Deck]
-    let nextCursor: String?
+private struct OutboxRow: Decodable {
+    let operationId: String
+    let entityType: String
+    let action: String
 }
 
 @MainActor
 final class LocalAIToolExecutorTests: AIChatTestCaseBase {
-    func testLocalToolExecutorReadsWorkspaceContextAndCreatesConfirmedCard() async throws {
-        let flashcardsStore = try self.makeStore()
+    private func makeExecutor(
+        flashcardsStore: FlashcardsStore
+    ) throws -> LocalAIToolExecutor {
         let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
+        return LocalAIToolExecutor(
             databaseURL: databaseURL,
             encoder: JSONEncoder(),
             decoder: JSONDecoder()
         )
-
-        let workspaceContextResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-1",
-                name: "get_workspace_context",
-                input: "{}"
-            ),
-            requestId: "request-1"
-        )
-        let workspaceContext = try XCTUnwrap(
-            try JSONSerialization.jsonObject(with: Data(workspaceContextResult.output.utf8)) as? [String: Any]
-        )
-        let workspace = try XCTUnwrap(workspaceContext["workspace"] as? [String: Any])
-        XCTAssertEqual(workspace["name"] as? String, "Personal")
-
-        let createdCardResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-2",
-                name: "create_cards",
-                input: "{\"cards\":[{\"frontText\":\"Front\",\"backText\":\"Back\",\"tags\":[\"tag-a\"],\"effortLevel\":\"medium\"}]}"
-            ),
-            requestId: "request-1"
-        )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardResult.output.utf8))
-        XCTAssertEqual(createdCards.count, 1)
-        XCTAssertEqual(createdCards[0].frontText, "Front")
-        let snapshot = try await executor.loadSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 1)
     }
 
-    @MainActor
-    func testLocalToolExecutorCreatesCardsWithoutConfirmationText() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        let createdCardsResult = try await executor.execute(
+    private func executeSql(
+        executor: LocalAIToolExecutor,
+        sql: String,
+        toolCallId: String
+    ) async throws -> AIToolExecutionResult {
+        try await executor.execute(
             toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-bulk-create",
-                name: "create_cards",
-                input: """
-                {"cards":[
-                    {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
-                    {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
-                ]}
-                """
+                toolCallId: toolCallId,
+                name: "sql",
+                input: "{\"sql\":\"\(sql.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\""))\"}"
             ),
             requestId: "request-1"
         )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
-        XCTAssertEqual(createdCards.count, 2)
-        let snapshot = try await executor.loadSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 2)
     }
 
-    @MainActor
-    func testLocalToolExecutorGetCardsReturnsRequestedOrderAndFailsForMissingCard() async throws {
+    func testLocalToolExecutorSupportsSqlIntrospection() async throws {
         let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        let tablesResult = try await self.executeSql(
+            executor: executor,
+            sql: "SHOW TABLES",
+            toolCallId: "call-show-tables"
+        )
+        let tablesPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(tablesResult.output.utf8))
+        XCTAssertEqual(tablesPayload.statementType, "show_tables")
+        XCTAssertEqual(tablesPayload.resource, nil)
+        XCTAssertTrue(tablesPayload.rows.contains { row in
+            row["table_name"]?.stringValue == "cards"
+        })
+        XCTAssertFalse(tablesResult.didMutateAppState)
+
+        let describeResult = try await self.executeSql(
+            executor: executor,
+            sql: "DESCRIBE cards",
+            toolCallId: "call-describe-cards"
+        )
+        let describePayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(describeResult.output.utf8))
+        XCTAssertEqual(describePayload.statementType, "describe")
+        XCTAssertEqual(describePayload.resource, "cards")
+        XCTAssertTrue(describePayload.rows.contains { row in
+            row["column_name"]?.stringValue == "front_text"
+                && row["read_only"]?.booleanValue == false
+        })
+    }
+
+    func testLocalToolExecutorCreatesReadsAndUpdatesCardsThroughSql() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        let insertResult = try await self.executeSql(
+            executor: executor,
+            sql: "INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('Front', 'Back', ('grammar', 'verbs'), 'medium')",
+            toolCallId: "call-insert-card"
+        )
+        let insertPayload = try JSONDecoder().decode(SqlMutationPayload.self, from: Data(insertResult.output.utf8))
+        XCTAssertEqual(insertPayload.statementType, "insert")
+        XCTAssertEqual(insertPayload.resource, "cards")
+        XCTAssertEqual(insertPayload.affectedCount, 1)
+        XCTAssertEqual(insertPayload.rows.first?["front_text"]?.stringValue, "Front")
+        XCTAssertTrue(insertResult.didMutateAppState)
+
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT * FROM cards WHERE tags OVERLAP ('grammar') ORDER BY updated_at DESC LIMIT 20 OFFSET 0",
+            toolCallId: "call-select-cards"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.statementType, "select")
+        XCTAssertEqual(selectPayload.resource, "cards")
+        XCTAssertEqual(selectPayload.rowCount, 1)
+        let cardId = try XCTUnwrap(selectPayload.rows.first?["card_id"]?.stringValue)
+
+        let updateResult = try await self.executeSql(
+            executor: executor,
+            sql: "UPDATE cards SET back_text = 'Updated', effort_level = 'long' WHERE card_id = '\(cardId)'",
+            toolCallId: "call-update-card"
+        )
+        let updatePayload = try JSONDecoder().decode(SqlMutationPayload.self, from: Data(updateResult.output.utf8))
+        XCTAssertEqual(updatePayload.statementType, "update")
+        XCTAssertEqual(updatePayload.affectedCount, 1)
+        XCTAssertEqual(updatePayload.rows.first?["back_text"]?.stringValue, "Updated")
+        XCTAssertEqual(updatePayload.rows.first?["effort_level"]?.stringValue, "long")
+    }
+
+    func testLocalToolExecutorFiltersAndPaginatesSqlSelects() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        _ = try await self.executeSql(
+            executor: executor,
+            sql: """
+            INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES
+            ('Front 1', 'Back 1', ('grammar'), 'fast'),
+            ('Front 2', 'Back 2', ('grammar', 'verbs'), 'fast'),
+            ('Front 3', 'Back 3', ('reading'), 'medium')
+            """,
+            toolCallId: "call-insert-many-cards"
         )
 
-        let createdCardsResult = try await executor.execute(
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT * FROM cards WHERE tags OVERLAP ('grammar') AND effort_level IN ('fast') ORDER BY updated_at DESC LIMIT 1 OFFSET 0",
+            toolCallId: "call-select-filtered-cards"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.rowCount, 1)
+        XCTAssertEqual(selectPayload.limit, 1)
+        XCTAssertEqual(selectPayload.offset, 0)
+        XCTAssertTrue(selectPayload.hasMore)
+        XCTAssertEqual(selectPayload.rows.first?["effort_level"]?.stringValue, "fast")
+        XCTAssertTrue(selectPayload.rows.first?["tags"]?.stringArrayValue?.contains("grammar") == true)
+    }
+
+    func testLocalToolExecutorCreatesDeletesAndReadsDecksThroughSql() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        let insertResult = try await self.executeSql(
+            executor: executor,
+            sql: "INSERT INTO decks (name, effort_levels, tags) VALUES ('Grammar', ('fast', 'medium'), ('grammar'))",
+            toolCallId: "call-insert-deck"
+        )
+        let insertPayload = try JSONDecoder().decode(SqlMutationPayload.self, from: Data(insertResult.output.utf8))
+        let deckId = try XCTUnwrap(insertPayload.rows.first?["deck_id"]?.stringValue)
+        XCTAssertEqual(insertPayload.affectedCount, 1)
+
+        let deleteResult = try await self.executeSql(
+            executor: executor,
+            sql: "DELETE FROM decks WHERE deck_id = '\(deckId)'",
+            toolCallId: "call-delete-deck"
+        )
+        let deletePayload = try JSONDecoder().decode(SqlMutationPayload.self, from: Data(deleteResult.output.utf8))
+        XCTAssertEqual(deletePayload.statementType, "delete")
+        XCTAssertEqual(deletePayload.resource, "decks")
+        XCTAssertEqual(deletePayload.affectedCount, 1)
+
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT * FROM decks ORDER BY updated_at DESC LIMIT 20 OFFSET 0",
+            toolCallId: "call-select-decks"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.rowCount, 0)
+    }
+
+    func testLocalToolExecutorSupportsLocalOnlyTools() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        _ = try await self.executeSql(
+            executor: executor,
+            sql: "INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('Front', 'Back', ('tag-a'), 'medium')",
+            toolCallId: "call-insert-outbox-card"
+        )
+
+        let cloudSettingsResult = try await executor.execute(
+            toolCallRequest: AIToolCallRequest(toolCallId: "call-cloud-settings", name: "get_cloud_settings", input: "{}"),
+            requestId: "request-1"
+        )
+        let cloudSettings = try JSONDecoder().decode(CloudSettings.self, from: Data(cloudSettingsResult.output.utf8))
+        XCTAssertFalse(cloudSettings.deviceId.isEmpty)
+        XCTAssertFalse(cloudSettingsResult.didMutateAppState)
+
+        let outboxResult = try await executor.execute(
             toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-create-for-get",
-                name: "create_cards",
-                input: """
-                {"cards":[
-                    {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
-                    {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
-                ]}
-                """
+                toolCallId: "call-list-outbox",
+                name: "list_outbox",
+                input: "{\"cursor\":null,\"limit\":20}"
             ),
             requestId: "request-1"
         )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
+        let outboxPayload = try JSONDecoder().decode(OutboxPayload.self, from: Data(outboxResult.output.utf8))
+        XCTAssertEqual(outboxPayload.outbox.count, 1)
+        XCTAssertEqual(outboxPayload.outbox.first?.entityType, "card")
+        XCTAssertEqual(outboxPayload.outbox.first?.action, "upsert")
+        XCTAssertNil(outboxPayload.nextCursor)
+    }
 
-        let fetchedCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-get-cards",
-                name: "get_cards",
-                input: """
-                {"cardIds":["\(createdCards[1].cardId)","\(createdCards[0].cardId)"]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let fetchedCards = try JSONDecoder().decode([Card].self, from: Data(fetchedCardsResult.output.utf8))
-        XCTAssertEqual(fetchedCards.map(\.cardId), [createdCards[1].cardId, createdCards[0].cardId])
+    func testLocalToolExecutorWrapsInvalidSqlInputWithDiagnostics() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
 
         do {
             _ = try await executor.execute(
                 toolCallRequest: AIToolCallRequest(
-                    toolCallId: "call-get-missing-card",
-                    name: "get_cards",
-                    input: "{\"cardIds\":[\"missing-card\"]}"
-                ),
-                requestId: "request-1"
-            )
-            XCTFail("Expected missing card error")
-        } catch let error as LocalStoreError {
-            XCTAssertEqual(error.localizedDescription, "Card not found")
-        }
-    }
-
-    @MainActor
-    func testLocalToolExecutorSearchesCardsByEffortLevel() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        let createdCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-create-for-search",
-                name: "create_cards",
-                input: """
-                {"cards":[
-                    {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
-                    {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
-                ]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
-
-        let searchedCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-search-cards-effort",
-                name: "search_cards",
-                input: "{\"query\":\"medium\",\"cursor\":null,\"limit\":100,\"filter\":null}"
-            ),
-            requestId: "request-1"
-        )
-        let searchedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedCardsResult.output.utf8))
-        let searchedCards = searchedCardsPayload.cards
-
-        XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
-        XCTAssertEqual(searchedCards.first?.effortLevel, .medium)
-        XCTAssertNil(searchedCardsPayload.nextCursor)
-
-        let searchedAndCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-search-cards-and",
-                name: "search_cards",
-                input: "{\"query\":\"front medium\",\"cursor\":null,\"limit\":100,\"filter\":null}"
-            ),
-            requestId: "request-1"
-        )
-        let searchedAndCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedAndCardsResult.output.utf8))
-        let searchedAndCards = searchedAndCardsPayload.cards
-        XCTAssertEqual(searchedAndCards.map(\.cardId), [createdCards[0].cardId])
-        XCTAssertNil(searchedAndCardsPayload.nextCursor)
-    }
-
-    @MainActor
-    func testLocalToolExecutorSearchCardsMergesTokensAfterFifthToken() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        let createdCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-create-for-search-tail",
-                name: "create_cards",
-                input: """
-                {"cards":[
-                    {"frontText":"alpha beta","backText":"gamma delta epsilon zeta eta","tags":["combo"],"effortLevel":"medium"},
-                    {"frontText":"alpha beta","backText":"gamma delta epsilon zeta","tags":["single"],"effortLevel":"fast"}
-                ]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
-
-        let searchedCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-search-cards-tail",
-                name: "search_cards",
-                input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"cursor\":null,\"limit\":100,\"filter\":null}"
-            ),
-            requestId: "request-1"
-        )
-        let searchedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedCardsResult.output.utf8))
-        let searchedCards = searchedCardsPayload.cards
-        XCTAssertEqual(searchedCards.map(\.cardId), [createdCards[0].cardId])
-        XCTAssertNil(searchedCardsPayload.nextCursor)
-    }
-
-    @MainActor
-    func testLocalToolExecutorFiltersListedAndSearchedCards() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        let createdCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-create-cards-filter",
-                name: "create_cards",
-                input: """
-                {"cards":[
-                    {"frontText":"Grammar front","backText":"Back 1","tags":["grammar","verbs"],"effortLevel":"fast"},
-                    {"frontText":"Grammar front","backText":"Back 2","tags":["grammar"],"effortLevel":"fast"},
-                    {"frontText":"Grammar front","backText":"Back 3","tags":["grammar","verbs"],"effortLevel":"medium"}
-                ]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
-
-        let listedCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-list-cards-filter",
-                name: "list_cards",
-                input: "{\"cursor\":null,\"limit\":100,\"filter\":{\"tags\":[\" grammar \",\"verbs\"],\"effort\":[\"fast\",\"fast\"]}}"
-            ),
-            requestId: "request-1"
-        )
-        let listedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(listedCardsResult.output.utf8))
-        XCTAssertEqual(listedCardsPayload.cards.map(\.cardId), [createdCards[0].cardId])
-        XCTAssertNil(listedCardsPayload.nextCursor)
-
-        let searchedCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-search-cards-filter",
-                name: "search_cards",
-                input: "{\"query\":\"grammar\",\"cursor\":null,\"limit\":100,\"filter\":{\"tags\":[\"grammar\"],\"effort\":[\"fast\"]}}"
-            ),
-            requestId: "request-1"
-        )
-        let searchedCardsPayload = try JSONDecoder().decode(CardsPagePayload.self, from: Data(searchedCardsResult.output.utf8))
-        XCTAssertEqual(searchedCardsPayload.cards.map(\.cardId), [createdCards[0].cardId, createdCards[1].cardId])
-        XCTAssertNil(searchedCardsPayload.nextCursor)
-    }
-
-    @MainActor
-    func testLocalToolExecutorWrapsInvalidInputWithDiagnostics() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        do {
-            _ = try await executor.execute(
-                toolCallRequest: AIToolCallRequest(
-                    toolCallId: "call-invalid",
-                    name: "list_cards",
-                    input: "{\"cursor\":null,\"limit\":5}\n{\"cursor\":null,\"limit\":10}"
+                    toolCallId: "call-invalid-sql",
+                    name: "sql",
+                    input: "{\"sql\":\"SHOW TABLES\"}\n{\"sql\":\"DESCRIBE cards\"}"
                 ),
                 requestId: "request-123"
             )
@@ -304,344 +317,47 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             }
 
             XCTAssertEqual(requestId, "request-123")
-            XCTAssertEqual(toolName, "list_cards")
-            XCTAssertEqual(toolCallId, "call-invalid")
+            XCTAssertEqual(toolName, "sql")
+            XCTAssertEqual(toolCallId, "call-invalid-sql")
             XCTAssertFalse(decoderSummary.isEmpty)
-            XCTAssertEqual(rawInputSnippet, "{\"cursor\":null,\"limit\":5}\n{\"cursor\":null,\"limit\":10}")
+            XCTAssertEqual(rawInputSnippet, "{\"sql\":\"SHOW TABLES\"}\n{\"sql\":\"DESCRIBE cards\"}")
         }
     }
 
-    @MainActor
-    func testLocalToolExecutorRejectsRemovedTools() async throws {
+    func testLocalToolExecutorRejectsLegacySharedToolNames() async throws {
         let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
 
         do {
             _ = try await executor.execute(
                 toolCallRequest: AIToolCallRequest(
-                    toolCallId: "call-submit-review",
-                    name: "submit_review",
-                    input: "{\"cardId\":\"card-1\",\"rating\":\"good\"}"
+                    toolCallId: "call-legacy-tool",
+                    name: "legacy_shared_tool",
+                    input: "{}"
                 ),
                 requestId: "request-1"
             )
-            XCTFail("Expected unsupported submit_review tool error")
+            XCTFail("Expected unsupported tool error")
         } catch let error as AIToolExecutionError {
             guard case .unsupportedTool(let toolName) = error else {
                 return XCTFail("Expected unsupported tool error, received \(error)")
             }
 
-            XCTAssertEqual(toolName, "submit_review")
-        }
-
-        do {
-            _ = try await executor.execute(
-                toolCallRequest: AIToolCallRequest(
-                    toolCallId: "call-update-settings",
-                    name: "update_scheduler_settings",
-                    input: "{\"desiredRetention\":0.9,\"learningStepsMinutes\":[1],\"relearningStepsMinutes\":[10],\"maximumIntervalDays\":365,\"enableFuzz\":true}"
-                ),
-                requestId: "request-1"
-            )
-            XCTFail("Expected unsupported update_scheduler_settings tool error")
-        } catch let error as AIToolExecutionError {
-            guard case .unsupportedTool(let toolName) = error else {
-                return XCTFail("Expected unsupported tool error, received \(error)")
-            }
-
-            XCTAssertEqual(toolName, "update_scheduler_settings")
+            XCTAssertEqual(toolName, "legacy_shared_tool")
         }
     }
 
-    @MainActor
-    func testLocalToolExecutorCreatesUpdatesAndDeletesCardsInBulk() async throws {
+    func testLocalToolExecutorReadsLatestCommittedStateBetweenSqlCalls() async throws {
         let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
 
-        let createdCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-create-cards",
-                name: "create_cards",
-                input: """
-                {"cards":[
-                    {"frontText":"Front 1","backText":"Back 1","tags":["tag-a"],"effortLevel":"medium"},
-                    {"frontText":"Front 2","backText":"Back 2","tags":["tag-b"],"effortLevel":"fast"}
-                ]}
-                """
-            ),
-            requestId: "request-1"
+        let initialResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT * FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET 0",
+            toolCallId: "call-select-initial"
         )
-        let createdCards = try JSONDecoder().decode([Card].self, from: Data(createdCardsResult.output.utf8))
-        XCTAssertEqual(createdCards.count, 2)
-        XCTAssertTrue(createdCardsResult.didMutateAppState)
-
-        let updatedCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-update-cards",
-                name: "update_cards",
-                input: """
-                {"updates":[
-                    {"cardId":"\(createdCards[0].cardId)","frontText":"Updated Front 1"},
-                    {"cardId":"\(createdCards[1].cardId)","tags":["tag-c","tag-d"],"effortLevel":"long"}
-                ]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let updatedCards = try JSONDecoder().decode([Card].self, from: Data(updatedCardsResult.output.utf8))
-        XCTAssertEqual(updatedCards.count, 2)
-        XCTAssertEqual(
-            Set(updatedCards.map { card in
-                card.cardId
-            }),
-            Set(createdCards.map { card in
-                card.cardId
-            })
-        )
-        XCTAssertTrue(updatedCards.contains { card in
-            card.cardId == createdCards[0].cardId && card.frontText == "Updated Front 1"
-        })
-        XCTAssertTrue(updatedCards.contains { card in
-            card.cardId == createdCards[1].cardId && card.tags == ["tag-c", "tag-d"] && card.effortLevel == .long
-        })
-
-        let deletedCardsResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-delete-cards",
-                name: "delete_cards",
-                input: """
-                {"cardIds":["\(createdCards[0].cardId)","\(createdCards[1].cardId)"]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let deletedCardsPayload = try JSONDecoder().decode(BulkDeleteCardsPayload.self, from: Data(deletedCardsResult.output.utf8))
-        XCTAssertTrue(deletedCardsPayload.ok)
-        XCTAssertEqual(deletedCardsPayload.deletedCount, 2)
-        XCTAssertEqual(Set(deletedCardsPayload.deletedCardIds), Set(createdCards.map(\.cardId)))
-        let snapshot = try await executor.loadSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 0)
-    }
-
-    @MainActor
-    func testLocalToolExecutorListsSearchesAndGetsDecks() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        let createdDecksResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-create-decks",
-                name: "create_decks",
-                input: """
-                {"decks":[
-                    {"name":"Grammar","effortLevels":["fast"],"tags":["grammar"]},
-                    {"name":"Long reading","effortLevels":["long"],"tags":["reading"]}
-                ]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let createdDecks = try JSONDecoder().decode([Deck].self, from: Data(createdDecksResult.output.utf8))
-        XCTAssertEqual(createdDecks.count, 2)
-
-        let listedDecksResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-list-decks",
-                name: "list_decks",
-                input: "{\"cursor\":null,\"limit\":100}"
-            ),
-            requestId: "request-1"
-        )
-        let listedDecksPayload = try JSONDecoder().decode(DecksPagePayload.self, from: Data(listedDecksResult.output.utf8))
-        let listedDecks = listedDecksPayload.decks
-        XCTAssertEqual(Set(listedDecks.map(\.deckId)), Set(createdDecks.map(\.deckId)))
-        XCTAssertNil(listedDecksPayload.nextCursor)
-
-        let searchedByTagResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-search-decks-tag",
-                name: "search_decks",
-                input: "{\"query\":\"grammar\",\"cursor\":null,\"limit\":100}"
-            ),
-            requestId: "request-1"
-        )
-        let searchedByTagPayload = try JSONDecoder().decode(DecksPagePayload.self, from: Data(searchedByTagResult.output.utf8))
-        let searchedByTag = searchedByTagPayload.decks
-        XCTAssertEqual(searchedByTag.map(\.deckId), [createdDecks[0].deckId])
-        XCTAssertNil(searchedByTagPayload.nextCursor)
-
-        let searchedByEffortResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-search-decks-effort",
-                name: "search_decks",
-                input: "{\"query\":\"long\",\"cursor\":null,\"limit\":100}"
-            ),
-            requestId: "request-1"
-        )
-        let searchedByEffortPayload = try JSONDecoder().decode(DecksPagePayload.self, from: Data(searchedByEffortResult.output.utf8))
-        let searchedByEffort = searchedByEffortPayload.decks
-        XCTAssertEqual(searchedByEffort.map(\.deckId), [createdDecks[1].deckId])
-        XCTAssertNil(searchedByEffortPayload.nextCursor)
-
-        let searchedByOrResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-search-decks-or",
-                name: "search_decks",
-                input: "{\"query\":\"missing grammar\",\"cursor\":null,\"limit\":100}"
-            ),
-            requestId: "request-1"
-        )
-        let searchedByOrPayload = try JSONDecoder().decode(DecksPagePayload.self, from: Data(searchedByOrResult.output.utf8))
-        let searchedByOr = searchedByOrPayload.decks
-        XCTAssertEqual(searchedByOr.map(\.deckId), [createdDecks[0].deckId])
-        XCTAssertNil(searchedByOrPayload.nextCursor)
-
-        let fetchedDecksResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-get-decks",
-                name: "get_decks",
-                input: """
-                {"deckIds":["\(createdDecks[1].deckId)","\(createdDecks[0].deckId)"]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let fetchedDecks = try JSONDecoder().decode([Deck].self, from: Data(fetchedDecksResult.output.utf8))
-        XCTAssertEqual(fetchedDecks.map(\.deckId), [createdDecks[1].deckId, createdDecks[0].deckId])
-    }
-
-    @MainActor
-    func testLocalToolExecutorGetDecksFailsForMissingDeck() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        do {
-            _ = try await executor.execute(
-                toolCallRequest: AIToolCallRequest(
-                    toolCallId: "call-get-missing-deck",
-                    name: "get_decks",
-                    input: "{\"deckIds\":[\"missing-deck\"]}"
-                ),
-                requestId: "request-1"
-            )
-            XCTFail("Expected missing deck error")
-        } catch let error as LocalStoreError {
-            XCTAssertEqual(error.localizedDescription, "Deck not found")
-        }
-    }
-
-    @MainActor
-    func testLocalToolExecutorCreatesUpdatesAndDeletesDecksInBulk() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        let createdDecksResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-create-decks",
-                name: "create_decks",
-                input: """
-                {"decks":[
-                    {"name":"Grammar","effortLevels":["fast"],"tags":["grammar"]},
-                    {"name":"Reading","effortLevels":["medium"],"tags":["reading"]}
-                ]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let createdDecks = try JSONDecoder().decode([Deck].self, from: Data(createdDecksResult.output.utf8))
-        XCTAssertEqual(createdDecks.count, 2)
-        XCTAssertTrue(createdDecksResult.didMutateAppState)
-
-        let updatedDecksResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-update-decks",
-                name: "update_decks",
-                input: """
-                {"updates":[
-                    {"deckId":"\(createdDecks[0].deckId)","name":"Grammar updated","effortLevels":null,"tags":["grammar","verbs"]},
-                    {"deckId":"\(createdDecks[1].deckId)","name":null,"effortLevels":["long"],"tags":null}
-                ]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let updatedDecks = try JSONDecoder().decode([Deck].self, from: Data(updatedDecksResult.output.utf8))
-        XCTAssertEqual(updatedDecks.count, 2)
-        XCTAssertTrue(updatedDecks.contains { deck in
-            deck.deckId == createdDecks[0].deckId
-                && deck.name == "Grammar updated"
-                && deck.filterDefinition.tags == ["grammar", "verbs"]
-        })
-        XCTAssertTrue(updatedDecks.contains { deck in
-            deck.deckId == createdDecks[1].deckId
-                && deck.filterDefinition.effortLevels == [.long]
-        })
-
-        let deletedDecksResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-delete-decks",
-                name: "delete_decks",
-                input: """
-                {"deckIds":["\(createdDecks[0].deckId)","\(createdDecks[1].deckId)"]}
-                """
-            ),
-            requestId: "request-1"
-        )
-        let deletedDecksPayload = try JSONDecoder().decode(BulkDeleteDecksPayload.self, from: Data(deletedDecksResult.output.utf8))
-        XCTAssertTrue(deletedDecksPayload.ok)
-        XCTAssertEqual(deletedDecksPayload.deletedCount, 2)
-        XCTAssertEqual(Set(deletedDecksPayload.deletedDeckIds), Set(createdDecks.map(\.deckId)))
-        let snapshot = try await executor.loadSnapshot()
-        XCTAssertEqual(snapshot.decks.count, 0)
-    }
-
-    @MainActor
-
-    func testLocalToolExecutorReadsLatestCommittedStateBetweenCalls() async throws {
-        let flashcardsStore = try self.makeStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let executor = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-
-        let initialListResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-list-initial",
-                name: "list_cards",
-                input: "{\"cursor\":null,\"limit\":100}"
-            ),
-            requestId: "request-list"
-        )
-        let initialCards = try JSONDecoder().decode(CardsPagePayload.self, from: Data(initialListResult.output.utf8))
-        XCTAssertEqual(initialCards.cards.count, 0)
-        XCTAssertNil(initialCards.nextCursor)
+        let initialPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(initialResult.output.utf8))
+        XCTAssertEqual(initialPayload.rowCount, 0)
 
         try flashcardsStore.saveCard(
             input: CardEditorInput(
@@ -653,18 +369,13 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             editingCardId: nil
         )
 
-        let updatedListResult = try await executor.execute(
-            toolCallRequest: AIToolCallRequest(
-                toolCallId: "call-list-updated",
-                name: "list_cards",
-                input: "{\"cursor\":null,\"limit\":100}"
-            ),
-            requestId: "request-list"
+        let updatedResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT * FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET 0",
+            toolCallId: "call-select-updated"
         )
-        let updatedCards = try JSONDecoder().decode(CardsPagePayload.self, from: Data(updatedListResult.output.utf8))
-        XCTAssertEqual(updatedCards.cards.count, 1)
-        XCTAssertEqual(updatedCards.cards.first?.frontText, "Fresh Front")
-        XCTAssertNil(updatedCards.nextCursor)
+        let updatedPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(updatedResult.output.utf8))
+        XCTAssertEqual(updatedPayload.rowCount, 1)
+        XCTAssertEqual(updatedPayload.rows.first?["front_text"]?.stringValue, "Fresh Front")
     }
-
 }

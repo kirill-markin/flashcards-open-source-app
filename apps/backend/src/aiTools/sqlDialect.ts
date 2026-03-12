@@ -1003,6 +1003,12 @@ export function getSqlResourceDescriptors(): ReadonlyArray<SqlResourceDescriptor
   return SQL_RESOURCE_NAMES.map((resourceName) => getDescriptor(resourceName));
 }
 
+/**
+ * Canonical SQL-dialect parser for backend and browser-local runtimes.
+ *
+ * iOS mirror:
+ * `apps/ios/Flashcards/Flashcards/AI/LocalAISqlDialect.swift::localAISqlParseStatement`
+ */
 export function parseSqlStatement(value: string): ParsedSqlStatement {
   const normalizedSql = normalizeSqlWhitespace(value);
   if (normalizedSql === "") {

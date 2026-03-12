@@ -938,48 +938,18 @@ private func aiChatValidateAttachmentSize(data: Data) throws {
     }
 }
 
+/**
+ Mirrors `apps/web/src/chat/chatMessageContent.tsx::formatToolLabel`.
+ Keep user-facing local tool labels aligned across web and iOS chat UIs.
+ */
 private func aiChatToolLabel(name: String) -> String {
     switch name {
-    case "get_workspace_context":
-        return "Workspace context"
-    case "list_tags":
-        return "List tags"
-    case "list_cards":
-        return "List cards"
-    case "get_cards":
-        return "Get cards"
-    case "search_cards":
-        return "Search cards"
-    case "list_due_cards":
-        return "List due cards"
-    case "list_decks":
-        return "List decks"
-    case "search_decks":
-        return "Search decks"
-    case "get_decks":
-        return "Get decks"
-    case "list_review_history":
-        return "Review history"
-    case "get_scheduler_settings":
-        return "Scheduler settings"
+    case "sql":
+        return "SQL"
     case "get_cloud_settings":
         return "Cloud settings"
     case "list_outbox":
         return "Outbox"
-    case "summarize_deck_state":
-        return "Deck summary"
-    case "create_cards":
-        return "Create cards"
-    case "update_cards":
-        return "Update cards"
-    case "delete_cards":
-        return "Delete cards"
-    case "create_decks":
-        return "Create decks"
-    case "update_decks":
-        return "Update decks"
-    case "delete_decks":
-        return "Delete decks"
     case "code_execution", "code_interpreter":
         return "Code execution"
     case "web_search":

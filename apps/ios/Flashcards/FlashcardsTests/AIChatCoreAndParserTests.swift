@@ -45,20 +45,20 @@ final class AIChatCoreAndParserTests: AIChatTestCaseBase {
         XCTAssertEqual(try parser.pushLine("data: {\"type\":\"delta\",\"text\":\"Hi\"}"), nil)
 
         XCTAssertEqual(try parser.pushLine(""), .delta("Hi"))
-        XCTAssertEqual(try parser.pushLine("data: {\"type\":\"tool_call_request\",\"toolCallId\":\"call-1\",\"name\":\"list_cards\",\"input\":\"{}\"}"), nil)
+        XCTAssertEqual(try parser.pushLine("data: {\"type\":\"tool_call_request\",\"toolCallId\":\"call-1\",\"name\":\"sql\",\"input\":\"{\\\"sql\\\":\\\"SHOW TABLES\\\"}\"}"), nil)
         XCTAssertEqual(
             try parser.pushLine(""),
-            .toolCallRequest(AIToolCallRequest(toolCallId: "call-1", name: "list_cards", input: "{}"))
+            .toolCallRequest(AIToolCallRequest(toolCallId: "call-1", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}"))
         )
-        XCTAssertEqual(try parser.pushLine("data: {\"type\":\"repair_attempt\",\"message\":\"Assistant is correcting list_cards.\",\"attempt\":1,\"maxAttempts\":3,\"toolName\":\"list_cards\"}"), nil)
+        XCTAssertEqual(try parser.pushLine("data: {\"type\":\"repair_attempt\",\"message\":\"Assistant is correcting sql.\",\"attempt\":1,\"maxAttempts\":3,\"toolName\":\"sql\"}"), nil)
         XCTAssertEqual(
             try parser.pushLine(""),
             .repairAttempt(
                 AIChatRepairAttemptStatus(
-                    message: "Assistant is correcting list_cards.",
+                    message: "Assistant is correcting sql.",
                     attempt: 1,
                     maxAttempts: 3,
-                    toolName: "list_cards"
+                    toolName: "sql"
                 )
             )
         )
