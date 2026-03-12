@@ -2,6 +2,7 @@ import { cors } from "hono/cors";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AuthError } from "./auth";
+import { getAuthConfig } from "./authConfig";
 import { HttpError } from "./errors";
 import { createChatRoutes } from "./routes/chat";
 import { createAgentRoutes } from "./routes/agent";
@@ -226,7 +227,12 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   return app;
 }
 
+/**
+ * Constructs the backend app and validates auth config eagerly so local
+ * startup and Lambda cold start both fail closed before serving requests.
+ */
 export function createApp(basePath: string): Hono<AppEnv> {
+  getAuthConfig();
   const allowedOrigins = getAllowedOrigins();
   const routeMountPaths = getRouteMountPaths(basePath);
   if (routeMountPaths.length === 1) {
