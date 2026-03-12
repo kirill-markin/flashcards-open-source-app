@@ -29,9 +29,13 @@ if [[ ! -f "${CDK_DIR}/cdk.context.local.json" ]]; then
 fi
 
 echo "=== Install dependencies ==="
+npm ci --silent --prefix "${ROOT_DIR}/api"
 npm ci --silent --prefix "${ROOT_DIR}/apps/backend"
 npm ci --silent --prefix "${ROOT_DIR}/apps/web"
 npm ci --silent --prefix "$CDK_DIR"
+
+echo "=== Bundle OpenAPI spec ==="
+npm run bundle --silent --prefix "${ROOT_DIR}/api"
 
 echo "=== Configure optional AI secrets ==="
 bash "${ROOT_DIR}/scripts/setup-ai-secrets.sh" \

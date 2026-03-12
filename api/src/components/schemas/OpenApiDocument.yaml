@@ -1,0 +1,19 @@
+type: object
+required:
+  - openapi
+  - paths
+  - components
+properties:
+  openapi:
+    type: string
+  info:
+    type: object
+  servers:
+    type: array
+    items:
+      type: object
+  paths:
+    type: object
+  components:
+    type: object
+additionalProperties: true

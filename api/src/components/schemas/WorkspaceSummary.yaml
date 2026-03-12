@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - workspaceId
+  - name
+  - createdAt
+  - isSelected
+properties:
+  workspaceId:
+    $ref: ./UuidString.yaml
+  name:
+    type: string
+  createdAt:
+    type: string
+    format: date-time
+  isSelected:
+    type: boolean

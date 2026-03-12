@@ -1,0 +1,94 @@
+openapi: 3.1.0
+info:
+  title: Flashcards Open Source App External AI-Agent API
+  version: v1
+  description: >-
+    Public machine-facing contract for external AI agents. This document
+    intentionally excludes first-party/internal routes such as sync transport,
+    local chat runtime endpoints, and human-only agent connection management
+    even when those routes remain live for web or iOS clients.
+servers:
+  - url: https://api.flashcards-open-source-app.com/v1
+    description: >-
+      Canonical API host for discovery, bootstrap, docs, and external agent
+      tools
+  - url: https://auth.flashcards-open-source-app.com
+    description: Auth host for email OTP bootstrap
+tags:
+  - name: discovery
+    description: Entry points and documentation aliases for the external AI-agent contract.
+  - name: auth
+    description: >-
+      Email OTP bootstrap on the auth host. These routes issue long-lived ApiKey
+      credentials.
+  - name: bootstrap
+    description: >-
+      Agent-oriented account and workspace bootstrap after ApiKey
+      authentication, including per-connection workspace selection.
+  - name: tools
+    description: >-
+      Compact bulk-friendly tool endpoints for the selected workspace. Internal
+      sync mechanics stay server-side and are not part of this public contract.
+paths:
+  /:
+    $ref: paths/_.yaml
+  /agent:
+    $ref: paths/agent.yaml
+  /openapi.json:
+    $ref: paths/openapi.json.yaml
+  /swagger.json:
+    $ref: paths/swagger.json.yaml
+  /agent/openapi.json:
+    $ref: paths/agent_openapi.json.yaml
+  /agent/swagger.json:
+    $ref: paths/agent_swagger.json.yaml
+  /api/agent/send-code:
+    $ref: paths/api_agent_send-code.yaml
+  /api/agent/verify-code:
+    $ref: paths/api_agent_verify-code.yaml
+  /agent/me:
+    $ref: paths/agent_me.yaml
+  /agent/workspaces:
+    $ref: paths/agent_workspaces.yaml
+  /agent/workspaces/{workspaceId}/select:
+    $ref: paths/agent_workspaces_{workspaceId}_select.yaml
+  /agent/tools:
+    $ref: paths/agent_tools.yaml
+  /agent/tools/get_workspace_context:
+    $ref: paths/agent_tools_get_workspace_context.yaml
+  /agent/tools/list_cards:
+    $ref: paths/agent_tools_list_cards.yaml
+  /agent/tools/get_cards:
+    $ref: paths/agent_tools_get_cards.yaml
+  /agent/tools/search_cards:
+    $ref: paths/agent_tools_search_cards.yaml
+  /agent/tools/list_due_cards:
+    $ref: paths/agent_tools_list_due_cards.yaml
+  /agent/tools/list_decks:
+    $ref: paths/agent_tools_list_decks.yaml
+  /agent/tools/get_decks:
+    $ref: paths/agent_tools_get_decks.yaml
+  /agent/tools/search_decks:
+    $ref: paths/agent_tools_search_decks.yaml
+  /agent/tools/list_review_history:
+    $ref: paths/agent_tools_list_review_history.yaml
+  /agent/tools/get_scheduler_settings:
+    $ref: paths/agent_tools_get_scheduler_settings.yaml
+  /agent/tools/create_cards:
+    $ref: paths/agent_tools_create_cards.yaml
+  /agent/tools/update_cards:
+    $ref: paths/agent_tools_update_cards.yaml
+  /agent/tools/delete_cards:
+    $ref: paths/agent_tools_delete_cards.yaml
+  /agent/tools/create_decks:
+    $ref: paths/agent_tools_create_decks.yaml
+  /agent/tools/update_decks:
+    $ref: paths/agent_tools_update_decks.yaml
+  /agent/tools/delete_decks:
+    $ref: paths/agent_tools_delete_decks.yaml
+  /agent/tools/list_tags:
+    $ref: paths/agent_tools_list_tags.yaml
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      $ref: ./components/security-schemes/ApiKeyHeader.yaml

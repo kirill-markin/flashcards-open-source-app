@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - workspace
+  - deckSummary
+  - schedulerSettings
+properties:
+  workspace:
+    $ref: ./WorkspaceSummary.yaml
+  deckSummary:
+    $ref: ./DeckSummary.yaml
+  schedulerSettings:
+    $ref: ./WorkspaceSchedulerSettings.yaml

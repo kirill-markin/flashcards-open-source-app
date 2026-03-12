@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - cards
+  - nextCursor
+properties:
+  cards:
+    type: array
+    items:
+      $ref: ./Card.yaml
+  nextCursor:
+    anyOf:
+      - $ref: ./OpaqueCursor.yaml
+      - type: 'null'

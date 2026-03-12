@@ -1,0 +1,9 @@
+type: object
+additionalProperties: false
+required:
+  - required
+properties:
+  required:
+    type: array
+    items:
+      type: string

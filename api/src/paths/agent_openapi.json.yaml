@@ -1,0 +1,27 @@
+get:
+  tags:
+    - discovery
+  summary: Canonical OpenAPI document
+  description: >-
+    Canonical external AI-agent OpenAPI JSON document. It deliberately omits
+    internal and first-party-only routes.
+  responses:
+    '200':
+      description: External AI-agent OpenAPI JSON document
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/OpenApiDocument.yaml
+          example:
+            openapi: 3.1.0
+            info:
+              title: Flashcards Open Source App External AI-Agent API
+              version: v1
+            paths:
+              /agent:
+                get:
+                  summary: Agent discovery
+            components:
+              schemas:
+                AgentDiscoveryEnvelope:
+                  type: object

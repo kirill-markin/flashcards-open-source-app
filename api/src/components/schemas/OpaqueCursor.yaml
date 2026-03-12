@@ -1,0 +1,4 @@
+type: string
+description: >-
+  Opaque cursor returned by the previous page. Treat this value as an unreadable
+  token and pass it back unchanged.

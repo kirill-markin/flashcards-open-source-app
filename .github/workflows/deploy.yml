@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'api/**'
       - 'apps/auth/**'
       - 'apps/backend/**'
       - 'apps/web/**'
@@ -49,6 +50,7 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: |
+            api/package-lock.json
             apps/auth/package-lock.json
             apps/backend/package-lock.json
             apps/web/package-lock.json
@@ -62,10 +64,14 @@ jobs:
 
       - name: Install dependencies
         run: |
+          npm ci --prefix api
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
           npm ci --prefix apps/web
           npm ci --prefix infra/aws
+
+      - name: Bundle OpenAPI spec
+        run: npm run bundle --prefix api
 
       - name: CDK deploy
         working-directory: infra/aws

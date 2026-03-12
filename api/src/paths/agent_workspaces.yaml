@@ -1,0 +1,153 @@
+get:
+  tags:
+    - bootstrap
+  summary: List workspaces for the external agent
+  description: >-
+    Lists the user's workspaces in an agent-oriented envelope and points the
+    caller to either create a workspace, select one for the current API key
+    connection, or continue to tools.
+  parameters:
+    - name: limit
+      in: query
+      required: true
+      schema:
+        $ref: ../components/schemas/PageLimit.yaml
+      description: Explicit page size. Start with 100.
+    - name: cursor
+      in: query
+      required: false
+      schema:
+        anyOf:
+          - $ref: ../components/schemas/OpaqueCursor.yaml
+          - type: 'null'
+      description: >-
+        Opaque cursor from the previous page. Start with null or omit it on the
+        first request.
+  security:
+    - ApiKeyHeader: []
+  responses:
+    '200':
+      description: Agent workspaces envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentWorkspacesEnvelope.yaml
+          example:
+            ok: true
+            data:
+              workspaces:
+                - workspaceId: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                  name: Kirill Flashcards
+                  createdAt: '2026-03-11T08:50:55.898Z'
+                  isSelected: true
+              nextCursor: null
+            actions:
+              - name: list_tools
+                method: GET
+                url: https://api.flashcards-open-source-app.com/v1/agent/tools
+                auth:
+                  scheme: ApiKey
+              - name: get_workspace_context
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context
+                auth:
+                  scheme: ApiKey
+              - name: search_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards
+                auth:
+                  scheme: ApiKey
+              - name: create_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards
+                auth:
+                  scheme: ApiKey
+            instructions: >-
+              Workspace bootstrap is complete. Read payload from data.*
+              (data.workspaces, data.nextCursor). Do not expect workspaces at
+              the top level. For paginated responses, pass data.nextCursor back
+              unchanged as the cursor query parameter or JSON field and stop
+              when data.nextCursor is null. Select next endpoint from
+              instructions and confirm with actions: GET
+              https://api.flashcards-open-source-app.com/v1/agent/tools then
+              POST
+              https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml
+post:
+  tags:
+    - bootstrap
+  summary: Create workspace for the external agent
+  description: >-
+    Creates a workspace and immediately marks it as selected for the current API
+    key connection, then returns the ready-state agent envelope.
+  security:
+    - ApiKeyHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateWorkspaceInput.yaml
+  responses:
+    '201':
+      description: Workspace created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentWorkspaceEnvelope.yaml
+          example:
+            ok: true
+            data:
+              workspace:
+                workspaceId: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                name: Kirill Flashcards
+                createdAt: '2026-03-11T08:50:55.898Z'
+                isSelected: true
+            actions:
+              - name: list_tools
+                method: GET
+                url: https://api.flashcards-open-source-app.com/v1/agent/tools
+                auth:
+                  scheme: ApiKey
+              - name: get_workspace_context
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/get_workspace_context
+                auth:
+                  scheme: ApiKey
+              - name: search_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/search_cards
+                auth:
+                  scheme: ApiKey
+              - name: create_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards
+                auth:
+                  scheme: ApiKey
+            instructions: >-
+              Workspace is selected. Read payload from data.* (data.workspace).
+              Do not expect workspace at the top level. Select next endpoint
+              from instructions and confirm with actions.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

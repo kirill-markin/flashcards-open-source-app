@@ -1,0 +1,49 @@
+type: object
+additionalProperties: false
+required:
+  - service
+  - authentication
+  - capabilitiesAfterLogin
+  - authBaseUrl
+  - apiBaseUrl
+  - docs
+properties:
+  service:
+    type: object
+    additionalProperties: false
+    required:
+      - name
+      - version
+      - description
+    properties:
+      name:
+        type: string
+      version:
+        type: string
+        enum:
+          - v1
+      description:
+        type: string
+  authentication:
+    type: object
+    additionalProperties: false
+    required:
+      - type
+      - registerAndLogin
+    properties:
+      type:
+        type: string
+        enum:
+          - email_otp_then_api_key
+      registerAndLogin:
+        type: string
+  capabilitiesAfterLogin:
+    type: array
+    items:
+      type: string
+  authBaseUrl:
+    type: string
+  apiBaseUrl:
+    type: string
+  docs:
+    $ref: ./AgentDocs.yaml

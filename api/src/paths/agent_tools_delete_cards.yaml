@@ -1,0 +1,65 @@
+post:
+  tags:
+    - tools
+  summary: Delete cards
+  description: >-
+    Deletes one or more cards from the selected workspace. Sync metadata is
+    generated server-side and is intentionally hidden from the external API.
+  security:
+    - ApiKeyHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/DeleteCardsInput.yaml
+  responses:
+    '200':
+      description: Cards deleted
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentDeleteCardsEnvelope.yaml
+          example:
+            ok: true
+            data:
+              deletedCardIds:
+                - be8d7f9f-4df4-472b-a1ca-c9cd5a8bc5c8
+              deletedCount: 1
+            actions:
+              - name: list_tools
+                method: GET
+                url: https://api.flashcards-open-source-app.com/v1/agent/tools
+                auth:
+                  scheme: ApiKey
+              - name: delete_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/delete_cards
+                auth:
+                  scheme: ApiKey
+              - name: list_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/list_cards
+                auth:
+                  scheme: ApiKey
+              - name: create_cards
+                method: POST
+                url: >-
+                  https://api.flashcards-open-source-app.com/v1/agent/tools/create_cards
+                auth:
+                  scheme: ApiKey
+            instructions: >-
+              Read payload from data.* (data.deletedCardIds, data.deletedCount).
+              Do not expect deletion results at the top level. Select the next
+              endpoint from instructions and confirm it with actions.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

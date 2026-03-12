@@ -1,0 +1,6 @@
+type: apiKey
+in: header
+name: Authorization
+description: >-
+  Use the header format: Authorization: ApiKey
+  $FLASHCARDS_OPEN_SOURCE_API_KEY

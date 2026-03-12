@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+required:
+  - deckId
+  - name
+  - effortLevels
+  - tags
+properties:
+  deckId:
+    $ref: ./UuidString.yaml
+  name:
+    type:
+      - string
+      - 'null'
+  effortLevels:
+    type:
+      - array
+      - 'null'
+    items:
+      $ref: ./EffortLevel.yaml
+  tags:
+    type:
+      - array
+      - 'null'
+    items:
+      type: string

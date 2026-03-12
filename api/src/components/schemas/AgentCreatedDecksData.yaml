@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - decks
+  - createdCount
+properties:
+  decks:
+    type: array
+    items:
+      $ref: ./Deck.yaml
+  createdCount:
+    type: integer

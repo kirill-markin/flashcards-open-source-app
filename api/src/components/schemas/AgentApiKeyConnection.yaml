@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+required:
+  - connectionId
+  - label
+  - createdAt
+  - lastUsedAt
+  - revokedAt
+properties:
+  connectionId:
+    type: string
+  label:
+    type: string
+  createdAt:
+    type: string
+    format: date-time
+  lastUsedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  revokedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time

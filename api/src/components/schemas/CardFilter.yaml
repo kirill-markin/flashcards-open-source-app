@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required: []
+properties:
+  tags:
+    type: array
+    items:
+      type: string
+  effort:
+    type: array
+    items:
+      $ref: ./EffortLevel.yaml

@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - deletedDeckIds
+  - deletedCount
+properties:
+  deletedDeckIds:
+    type: array
+    items:
+      $ref: ./UuidString.yaml
+  deletedCount:
+    type: integer

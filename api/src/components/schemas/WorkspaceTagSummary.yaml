@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - tag
+  - cardsCount
+properties:
+  tag:
+    type: string
+  cardsCount:
+    type: integer
