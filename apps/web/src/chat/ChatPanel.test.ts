@@ -82,6 +82,8 @@ vi.mock("./FileAttachment", () => ({
     {
       type: "button",
       className: "chat-attach-btn",
+      "aria-label": "Add attachment",
+      title: "Add attachment",
       disabled: disabled === true,
       onClick: () => {
         void onAttach({
@@ -91,7 +93,13 @@ vi.mock("./FileAttachment", () => ({
         });
       },
     },
-    "Attach",
+    createElement(
+      "span",
+      {
+        className: "chat-attach-btn-icon",
+        "aria-hidden": "true",
+      },
+    ),
   ),
 }));
 
@@ -1272,6 +1280,21 @@ describe("ChatPanel autoscroll", () => {
     const controls = Array.from(controlsRight?.children ?? []).map((element) => element.className);
     expect(controls[0]).toContain("chat-attach-btn");
     expect(controls[1]).toContain("chat-mic-btn");
+  });
+
+  it("renders the attach control as an icon button with an accessible label", async () => {
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const attachButton = mountedContainer.querySelector(".chat-attach-btn");
+    expect(attachButton?.getAttribute("aria-label")).toBe("Add attachment");
+    expect(attachButton?.textContent).toBe("");
+    expect(attachButton?.querySelector(".chat-attach-btn-icon")).not.toBeNull();
   });
 
   it("swaps the textarea for dictation UI and appends the recognized transcript", async () => {
