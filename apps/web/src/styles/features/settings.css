@@ -7,6 +7,47 @@
   max-width: 980px;
 }
 
+.settings-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-summary-card {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-nav-list {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-nav-card {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.settings-nav-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--panel-border-strong);
+  background: linear-gradient(180deg, rgba(34, 34, 40, 0.98), rgba(22, 22, 28, 0.98));
+}
+
+.settings-nav-card-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
 .settings-connections-list {
   display: grid;
   gap: 14px;
@@ -24,4 +65,10 @@
   justify-content: space-between;
   flex-wrap: wrap;
   align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .settings-summary-grid {
+    grid-template-columns: 1fr;
+  }
 }

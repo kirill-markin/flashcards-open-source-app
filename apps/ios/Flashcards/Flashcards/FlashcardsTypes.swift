@@ -13,6 +13,13 @@ import Foundation
  - docs/fsrs-scheduling-logic.md
  */
 
+/**
+ Keep workspace navigation aligned with the web app:
+ the primary destinations are Review, Cards, AI, and Settings.
+ Decks and tags belong under workspace settings on both platforms.
+ Web exposes account settings from the account menu, while iOS nests account
+ settings inside the Settings tab.
+ */
 enum AppTab: Hashable, CaseIterable, Sendable {
     case review
     case cards
@@ -31,6 +38,7 @@ enum AIChatPresentationRequest: Hashable, Sendable {
 enum SettingsNavigationDestination: Hashable, Sendable {
     case decks
     case tags
+    case account
 }
 
 let allCardsDeckLabel: String = "All cards"

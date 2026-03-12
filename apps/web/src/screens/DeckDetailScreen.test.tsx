@@ -124,9 +124,9 @@ describe("DeckDetailScreen", () => {
 
     await act(async () => {
       root.render(
-        <MemoryRouter initialEntries={["/decks/all-cards"]}>
+        <MemoryRouter initialEntries={["/settings/decks/all-cards"]}>
           <Routes>
-            <Route path="/decks/:deckId" element={<DeckDetailScreen />} />
+            <Route path="/settings/decks/:deckId" element={<DeckDetailScreen />} />
             <Route path="/review" element={<LocationProbe />} />
           </Routes>
         </MemoryRouter>,
@@ -166,9 +166,9 @@ describe("DeckDetailScreen", () => {
 
     await act(async () => {
       root.render(
-        <MemoryRouter initialEntries={["/decks/deck-1"]}>
+        <MemoryRouter initialEntries={["/settings/decks/deck-1"]}>
           <Routes>
-            <Route path="/decks/:deckId" element={<DeckDetailScreen />} />
+            <Route path="/settings/decks/:deckId" element={<DeckDetailScreen />} />
           </Routes>
         </MemoryRouter>,
       );
@@ -186,9 +186,9 @@ describe("DeckDetailScreen", () => {
 
     await act(async () => {
       root.render(
-        <MemoryRouter initialEntries={["/decks/missing"]}>
+        <MemoryRouter initialEntries={["/settings/decks/missing"]}>
           <Routes>
-            <Route path="/decks/:deckId" element={<DeckDetailScreen />} />
+            <Route path="/settings/decks/:deckId" element={<DeckDetailScreen />} />
           </Routes>
         </MemoryRouter>,
       );

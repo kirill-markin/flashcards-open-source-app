@@ -1,4 +1,5 @@
 import { useEffect, type ReactElement, useState } from "react";
+import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useAppData } from "../appData";
 import {
@@ -18,6 +19,7 @@ import {
   classifyReviewContentPresentation,
   type ReviewContentPresentationMode,
 } from "./reviewContentPresentation";
+import { settingsDecksRoute } from "../routes";
 
 type ReviewButtonOption = Readonly<{
   title: string;
@@ -418,6 +420,9 @@ export function ReviewScreen(): ReactElement {
                 ))}
               </select>
             </label>
+            <Link className="ghost-btn review-edit-decks-link" to={settingsDecksRoute}>
+              Edit decks
+            </Link>
           </div>
         </div>
 

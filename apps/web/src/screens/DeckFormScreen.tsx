@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ChangeEvent, type ReactElement }
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition } from "../deckFilters";
+import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../routes";
 import { CardFormTagsField } from "./CardFormTagsField";
 import { getTagSuggestionsFromCards } from "./CardTagsInput";
 import type { Deck, EffortLevel, UpdateDeckInput } from "../types";
@@ -61,7 +62,7 @@ export function DeckFormScreen(): ReactElement {
   const tagsFieldId = "deck-tags-input";
   const isCreateMode = deckId === undefined;
   const screenTitle = isCreateMode ? "New deck" : "Edit deck";
-  const backHref = isCreateMode ? "/decks" : `/decks/${deckId}`;
+  const backHref = isCreateMode || deckId === undefined ? settingsDecksRoute : buildSettingsDeckDetailRoute(deckId);
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setIsLoading(true);
@@ -109,10 +110,10 @@ export function DeckFormScreen(): ReactElement {
 
       if (isCreateMode) {
         const createdDeck = await createDeckItem(payload);
-        navigate(`/decks/${createdDeck.deckId}`);
+        navigate(buildSettingsDeckDetailRoute(createdDeck.deckId));
       } else if (deckId !== undefined) {
         const updatedDeck = await updateDeckItem(deckId, payload);
-        navigate(`/decks/${updatedDeck.deckId}`);
+        navigate(buildSettingsDeckDetailRoute(updatedDeck.deckId));
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error));

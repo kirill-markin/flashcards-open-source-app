@@ -8,6 +8,7 @@ import {
   makeDeckCardStats,
 } from "../appData/domain";
 import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
+import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../routes";
 import type { Card, Deck, ReviewFilter } from "../types";
 
 type DeckDetailState = Readonly<{
@@ -32,7 +33,7 @@ function renderTags(tags: ReadonlyArray<string>): string {
 }
 
 function buildDeckEditPath(deckId: string): string {
-  return `/decks/${deckId}/edit`;
+  return buildSettingsDeckEditRoute(deckId);
 }
 
 function makeDeckDetailState(
@@ -134,7 +135,7 @@ export function DeckDetailScreen(): ReactElement {
 
     try {
       await deleteDeckItem(deckId);
-      navigate("/decks");
+      navigate(settingsDecksRoute);
     } catch (error) {
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -148,7 +149,7 @@ export function DeckDetailScreen(): ReactElement {
     }
 
     openReview(detailState.reviewFilter);
-    navigate("/review");
+    navigate(reviewRoute);
   }
 
   if (isLoading) {
@@ -194,7 +195,7 @@ export function DeckDetailScreen(): ReactElement {
             <p className="subtitle">Inspect the deck rules, matching cards, and review entry point.</p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to="/decks">Back</Link>
+            <Link className="ghost-btn" to={settingsDecksRoute}>Back</Link>
             {detailState !== null ? (
               <button type="button" className="primary-btn" onClick={handleOpenReview}>
                 Open review

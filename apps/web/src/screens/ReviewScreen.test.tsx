@@ -241,6 +241,21 @@ describe("ReviewScreen", () => {
     expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tag", tag: "grammar" });
   });
 
+  it("renders the Edit decks shortcut into workspace settings", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const editDecksLink = Array.from(container.querySelectorAll("a")).find((element) => element.textContent === "Edit decks");
+
+    expect(editDecksLink).not.toBeUndefined();
+    expect(editDecksLink?.getAttribute("href")).toBe("/settings/decks");
+  });
+
   it("shows the review queue head as the current card", async () => {
     const topQueueCard = createCard({
       cardId: "top-queue-card",

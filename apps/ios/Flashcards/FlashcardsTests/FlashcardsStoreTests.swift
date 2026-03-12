@@ -155,6 +155,12 @@ final class FlashcardsStoreTests: XCTestCase {
         XCTAssertEqual(store.settingsPresentationRequest, .decks)
     }
 
+    func testSettingsNavigationDestinationsIncludeAccount() {
+        let destinations: [SettingsNavigationDestination] = [.decks, .tags, .account]
+
+        XCTAssertEqual(destinations, [.decks, .tags, .account])
+    }
+
     func testReloadLoadsPersistedTagReviewFilterWhenTagExists() throws {
         let environment = try self.makeStoreEnvironment()
         let workspaceId = try environment.database.loadStateSnapshot().workspace.workspaceId

@@ -9,6 +9,7 @@ import {
   type DeckCardStats,
 } from "../appData/domain";
 import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
+import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../routes";
 import type { Card, Deck } from "../types";
 
 type DeckListEntry = Readonly<{
@@ -20,7 +21,7 @@ type DeckListEntry = Readonly<{
 }>;
 
 function buildDeckDetailPath(deckId: string): string {
-  return `/decks/${deckId}`;
+  return buildSettingsDeckDetailRoute(deckId);
 }
 
 /** Prepends the synthetic All cards entry and keeps deck cards read-only on the web list. */
@@ -116,7 +117,7 @@ export function DecksScreen(): ReactElement {
           </div>
           <div className="screen-actions">
             <span className="badge">{deckListEntries.length} total</span>
-            <Link className="primary-btn" to="/decks/new">New deck</Link>
+            <Link className="primary-btn" to={settingsDeckNewRoute}>New deck</Link>
           </div>
         </div>
 

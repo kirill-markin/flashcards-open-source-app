@@ -1,46 +1,94 @@
-import { useEffect, useState, type ReactElement } from "react";
-import { listAgentApiKeys, revokeAgentApiKey } from "../api";
-import type { AgentApiKeyConnection } from "../types";
+import { useEffect, type ReactElement } from "react";
+import { Link } from "react-router-dom";
+import { makeWorkspaceTagsSummary } from "../appData/domain";
+import { useAppData } from "../appData";
+import { settingsDecksRoute, settingsTagsRoute } from "../routes";
+
+type SettingsNavigationCardProps = Readonly<{
+  title: string;
+  description: string;
+  value: string;
+  to: string;
+}>;
+
+function SettingsNavigationCard(props: SettingsNavigationCardProps): ReactElement {
+  const { title, description, value, to } = props;
+
+  return (
+    <Link className="settings-nav-card content-card" to={to}>
+      <div className="settings-nav-card-copy">
+        <strong className="panel-subtitle">{title}</strong>
+        <p className="subtitle">{description}</p>
+      </div>
+      <span className="badge">{value}</span>
+    </Link>
+  );
+}
 
 export function SettingsScreen(): ReactElement {
-  const [connections, setConnections] = useState<ReadonlyArray<AgentApiKeyConnection>>([]);
-  const [instructions, setInstructions] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const [busyConnectionId, setBusyConnectionId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const {
+    activeWorkspace,
+    cards,
+    cardsState,
+    decks,
+    decksState,
+    ensureCardsLoaded,
+    ensureDecksLoaded,
+    refreshCards,
+    refreshDecks,
+    workspaceSettings,
+  } = useAppData();
 
   useEffect(() => {
-    void loadConnections();
-  }, []);
+    void ensureCardsLoaded();
+    void ensureDecksLoaded();
+  }, [ensureCardsLoaded, ensureDecksLoaded]);
 
-  async function loadConnections(): Promise<void> {
-    setIsLoading(true);
-    try {
-      const result = await listAgentApiKeys();
-      setConnections(result.connections);
-      setInstructions(result.instructions);
-      setErrorMessage("");
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      setIsLoading(false);
-    }
+  const activeCardCount = cards.filter((card) => card.deletedAt === null).length;
+  const activeDeckCount = decks.filter((deck) => deck.deletedAt === null).length;
+  const tagsCount = makeWorkspaceTagsSummary(cards).tags.length;
+  const resourceErrorMessage = decksState.status === "error"
+    ? decksState.errorMessage
+    : cardsState.status === "error"
+      ? cardsState.errorMessage
+      : "";
+
+  if (
+    (decksState.status === "loading" && !decksState.hasLoaded)
+    || (cardsState.status === "loading" && !cardsState.hasLoaded)
+  ) {
+    return (
+      <main className="container settings-page">
+        <section className="panel settings-panel">
+          <h1 className="panel-subtitle">Settings</h1>
+          <p className="subtitle">Loading workspace settings…</p>
+        </section>
+      </main>
+    );
   }
 
-  async function handleRevoke(connectionId: string): Promise<void> {
-    setBusyConnectionId(connectionId);
-    try {
-      const result = await revokeAgentApiKey(connectionId);
-      setConnections((currentConnections) => currentConnections.map((connection) => (
-        connection.connectionId === result.connection.connectionId ? result.connection : connection
-      )));
-      setInstructions(result.instructions);
-      setErrorMessage("");
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBusyConnectionId(null);
-    }
+  if (
+    (decksState.status === "error" && !decksState.hasLoaded)
+    || (cardsState.status === "error" && !cardsState.hasLoaded)
+  ) {
+    return (
+      <main className="container settings-page">
+        <section className="panel settings-panel">
+          <h1 className="panel-subtitle">Settings</h1>
+          <p className="error-banner">{resourceErrorMessage}</p>
+          <button
+            className="primary-btn"
+            type="button"
+            onClick={() => {
+              void refreshCards();
+              void refreshDecks();
+            }}
+          >
+            Retry
+          </button>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -49,52 +97,49 @@ export function SettingsScreen(): ReactElement {
         <div className="screen-head">
           <div>
             <h1 className="panel-subtitle">Settings</h1>
-            <p className="subtitle">Manage long-lived bot connections for this account.</p>
+            <p className="subtitle">Workspace navigation matches iOS: decks and tags live here instead of the primary nav.</p>
           </div>
         </div>
-        {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}
-        {instructions !== "" ? <p className="subtitle">{instructions}</p> : null}
-        <div className="settings-connections-list">
-          {isLoading ? <div className="content-card">Loading connections…</div> : null}
-          {!isLoading && connections.length === 0 ? (
-            <div className="content-card">No bot connections have been created yet.</div>
-          ) : null}
-          {!isLoading ? connections.map((connection) => (
-            <article key={connection.connectionId} className="content-card settings-connection-card">
-              <div className="settings-connection-header">
-                <div className="cell-stack">
-                  <strong className="cell-primary">{connection.label}</strong>
-                  <span className="txn-cell-mono">{connection.connectionId}</span>
-                </div>
-                <span className="badge">{connection.revokedAt === null ? "Active" : "Revoked"}</span>
-              </div>
-              <div className="settings-connection-meta">
-                <div className="cell-stack">
-                  <span className="cell-secondary">Created</span>
-                  <span className="txn-cell-mono">{connection.createdAt}</span>
-                </div>
-                <div className="cell-stack">
-                  <span className="cell-secondary">Last used</span>
-                  <span className="txn-cell-mono">{connection.lastUsedAt ?? "Never"}</span>
-                </div>
-                <div className="cell-stack">
-                  <span className="cell-secondary">Revoked</span>
-                  <span className="txn-cell-mono">{connection.revokedAt ?? "Not revoked"}</span>
-                </div>
-              </div>
-              <div className="screen-actions">
-                <button
-                  className="ghost-btn"
-                  type="button"
-                  onClick={() => void handleRevoke(connection.connectionId)}
-                  disabled={connection.revokedAt !== null || busyConnectionId === connection.connectionId}
-                >
-                  Revoke
-                </button>
-              </div>
-            </article>
-          )) : null}
+
+        {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
+
+        <div className="settings-summary-grid">
+          <article className="content-card settings-summary-card">
+            <span className="cell-secondary">Workspace</span>
+            <strong className="panel-subtitle">{activeWorkspace?.name ?? "Workspace unavailable"}</strong>
+          </article>
+          <article className="content-card settings-summary-card">
+            <span className="cell-secondary">Cards</span>
+            <strong className="panel-subtitle">{activeCardCount}</strong>
+          </article>
+          <article className="content-card settings-summary-card">
+            <span className="cell-secondary">Decks</span>
+            <strong className="panel-subtitle">{activeDeckCount}</strong>
+          </article>
         </div>
+
+        <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title="Decks"
+            description="Create, edit, and review reusable study scopes."
+            value={`${activeDeckCount} total`}
+            to={settingsDecksRoute}
+          />
+          <SettingsNavigationCard
+            title="Tags"
+            description="Inspect workspace-wide tag usage and card counts."
+            value={`${tagsCount} total`}
+            to={settingsTagsRoute}
+          />
+        </div>
+
+        <article className="content-card content-card-muted settings-summary-card">
+          <span className="cell-secondary">Scheduler</span>
+          <strong className="panel-subtitle">
+            {workspaceSettings === null ? "Unavailable" : `${workspaceSettings.algorithm.toUpperCase()} • Retention ${workspaceSettings.desiredRetention}`}
+          </strong>
+          <p className="subtitle">Workspace scheduler settings stay here on both web and iOS, while account settings live in the account entry point.</p>
+        </article>
       </section>
     </main>
   );
