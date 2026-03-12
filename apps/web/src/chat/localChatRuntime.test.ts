@@ -154,7 +154,7 @@ describe("runLocalChatRuntime", () => {
     const harness = createRuntimeHarness();
     harness.streamChatMock
       .mockResolvedValueOnce(createStreamResponse([
-        createSSELine({ type: "tool_call_request", toolCallId: "tool-1", name: "list_cards", input: "{\"limit\":10}" }),
+        createSSELine({ type: "tool_call_request", toolCallId: "tool-1", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" }),
         createSSELine({ type: "await_tool_results" }),
       ]))
       .mockResolvedValueOnce(createStreamResponse([
@@ -164,13 +164,13 @@ describe("runLocalChatRuntime", () => {
 
     await runHarness(harness);
 
-    expect(harness.onToolCallStartedMock).toHaveBeenCalledWith("list_cards", "tool-1");
+    expect(harness.onToolCallStartedMock).toHaveBeenCalledWith("sql", "tool-1");
     expect(harness.executeToolMock).toHaveBeenCalledWith({
       toolCallId: "tool-1",
-      name: "list_cards",
-      input: "{\"limit\":10}",
+      name: "sql",
+      input: "{\"sql\":\"SHOW TABLES\"}",
     });
-    expect(harness.onToolCallCompletedMock).toHaveBeenCalledWith("tool-1", "{\"limit\":10}", "{\"ok\":true}");
+    expect(harness.onToolCallCompletedMock).toHaveBeenCalledWith("tool-1", "{\"sql\":\"SHOW TABLES\"}", "{\"ok\":true}");
     expect(harness.createRequestBodyMock).toHaveBeenCalledTimes(2);
     expect(harness.createRequestBodyMock.mock.calls[1]?.[0]).toEqual([
       {
@@ -182,16 +182,16 @@ describe("runLocalChatRuntime", () => {
         content: [{
           type: "tool_call",
           toolCallId: "tool-1",
-          name: "list_cards",
+          name: "sql",
           status: "started",
-          input: "{\"limit\":10}",
+          input: "{\"sql\":\"SHOW TABLES\"}",
           output: null,
         }],
       },
       {
         role: "tool",
         toolCallId: "tool-1",
-        name: "list_cards",
+        name: "sql",
         output: "{\"ok\":true}",
       },
     ]);
@@ -270,7 +270,7 @@ describe("runLocalChatRuntime", () => {
     const harness = createRuntimeHarness();
     harness.executeToolMock.mockRejectedValueOnce(new Error("Tool failed"));
     harness.streamChatMock.mockResolvedValueOnce(createStreamResponse([
-      createSSELine({ type: "tool_call_request", toolCallId: "tool-1", name: "list_cards", input: "{\"limit\":10}" }),
+      createSSELine({ type: "tool_call_request", toolCallId: "tool-1", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" }),
       createSSELine({ type: "await_tool_results" }),
     ]));
 
@@ -280,7 +280,7 @@ describe("runLocalChatRuntime", () => {
     expect(readDiagnosticsPayload(harness.onDiagnosticsMock)).toMatchObject({
       stage: "tool_execution",
       errorKind: "tool_execution_failed",
-      toolName: "list_cards",
+      toolName: "sql",
       toolCallId: "tool-1",
     });
   });

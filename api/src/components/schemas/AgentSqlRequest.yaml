@@ -1,10 +1,7 @@
 type: object
 additionalProperties: false
 required:
-  - tag
-  - cardsCount
+  - sql
 properties:
-  tag:
+  sql:
     type: string
-  cardsCount:
-    type: integer

@@ -1,4 +1,4 @@
-import { SHARED_AI_TOOL_PROMPT_EXAMPLE_LINES } from "../aiTools/sharedToolContracts";
+import { SQL_TOOL_PROMPT_EXAMPLE_LINES } from "../aiTools/sqlToolContract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");
@@ -15,8 +15,8 @@ export function buildAssistantRoleSection(): string {
 export function buildCloudWorkspaceSection(): string {
   return joinLines([
     "You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.",
-    "You can inspect cards, decks, review history, due cards, and deck summary through tools.",
-    "You can also create, update, and delete cards and decks through tools.",
+    "You can inspect cards, decks, review history, due cards, tags, scheduler settings, and workspace context through SQL.",
+    "You can also create, update, and delete cards and decks through SQL.",
   ]);
 }
 
@@ -95,22 +95,23 @@ export function buildLocalToolCallRulesSection(): string {
     "- Tool arguments must be exactly one JSON object.",
     "- Never send prose, markdown, comments, arrays, or multiple JSON objects.",
     "- For strict schemas, every required property in the tool contract must be present.",
-    "- If a field is optional semantically, send null instead of omitting it.",
-    "- For paginated tools, start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
-    "- For update tools, include unchanged editable fields as null.",
+    "- Use the shared sql tool for workspace reads, writes, and schema discovery.",
+    "- Put the whole query in the sql string field and do not invent extra tool arguments.",
+    "- SQL pagination uses LIMIT and OFFSET inside the SQL string.",
     "- Do not invent extra properties.",
   ]);
 }
 
 /**
- * Local tool-call examples are sourced from the canonical shared TypeScript
- * contract layer in `apps/backend/src/aiTools/sharedToolContracts.ts` so
+ * Local tool-call examples are sourced from the SQL tool contract layer so
  * prompt examples cannot drift from validator and schema definitions.
  */
 export function buildLocalToolCallExamplesSection(): string {
   return joinLines([
     "Tool-call JSON examples:",
-    ...SHARED_AI_TOOL_PROMPT_EXAMPLE_LINES,
+    ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
+    "- get_cloud_settings => {}",
+    "- list_outbox => {\"cursor\": null, \"limit\": 20}",
   ]);
 }
 

@@ -11,8 +11,6 @@
  * - `apps/web/src/chat/localToolExecutor.ts`
  * - `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`
  *
- * The shared TypeScript contract layer for names, schemas, validators, and
- * prompt examples lives in `apps/backend/src/aiTools/sharedToolContracts.ts`.
  */
 import { randomUUID } from "node:crypto";
 import {
@@ -31,6 +29,7 @@ import {
   type CardFilter,
   type CreateCardInput,
   type DeckSummary,
+  type EffortLevel,
   type UpdateCardInput,
   type WorkspaceTagsSummary,
 } from "../cards";
@@ -49,7 +48,6 @@ import {
   type UpdateDeckInput,
 } from "../decks";
 import { HttpError } from "../errors";
-import { EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT } from "../externalAgentTools";
 import { ensureAgentSyncDevice } from "../agentSyncIdentity";
 import {
   getWorkspaceSchedulerSettings,
@@ -59,22 +57,68 @@ import {
   listUserWorkspacesForSelectedWorkspace,
   type WorkspaceSummary,
 } from "../workspaces";
-import type {
-  AgentToolCreateCardsInput,
-  AgentToolCreateDecksInput,
-  AgentToolDeleteCardsInput,
-  AgentToolDeleteDecksInput,
-  AgentToolGetCardsInput,
-  AgentToolGetDecksInput,
-  AgentToolListReviewHistoryInput,
-  AgentToolSearchCardsInput,
-  AgentToolSearchDecksInput,
-  AgentToolUpdateCardBody,
-  AgentToolUpdateCardsInput,
-  AgentToolUpdateDeckBody,
-  AgentToolUpdateDecksInput,
-  SharedAiToolName,
-} from "./sharedToolContracts";
+
+type SharedAiToolName =
+  | "create_cards"
+  | "update_cards"
+  | "delete_cards"
+  | "create_decks"
+  | "update_decks"
+  | "delete_decks";
+
+type AgentToolCreateCardBody = Readonly<{
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  effortLevel: EffortLevel;
+}>;
+
+type AgentToolUpdateCardBody = Readonly<{
+  cardId: string;
+  frontText: string | null;
+  backText: string | null;
+  tags: ReadonlyArray<string> | null;
+  effortLevel: EffortLevel | null;
+}>;
+
+type AgentToolCreateCardsInput = Readonly<{
+  cards: ReadonlyArray<AgentToolCreateCardBody>;
+}>;
+
+type AgentToolUpdateCardsInput = Readonly<{
+  updates: ReadonlyArray<AgentToolUpdateCardBody>;
+}>;
+
+type AgentToolDeleteCardsInput = Readonly<{
+  cardIds: ReadonlyArray<string>;
+}>;
+
+type AgentToolCreateDeckBody = Readonly<{
+  name: string;
+  effortLevels: ReadonlyArray<EffortLevel>;
+  tags: ReadonlyArray<string>;
+}>;
+
+type AgentToolUpdateDeckBody = Readonly<{
+  deckId: string;
+  name: string | null;
+  effortLevels: ReadonlyArray<EffortLevel> | null;
+  tags: ReadonlyArray<string> | null;
+}>;
+
+type AgentToolCreateDecksInput = Readonly<{
+  decks: ReadonlyArray<AgentToolCreateDeckBody>;
+}>;
+
+type AgentToolUpdateDecksInput = Readonly<{
+  updates: ReadonlyArray<AgentToolUpdateDeckBody>;
+}>;
+
+type AgentToolDeleteDecksInput = Readonly<{
+  deckIds: ReadonlyArray<string>;
+}>;
+
+const EXTERNAL_AGENT_TOOL_MAX_RESULT_COUNT = 100;
 
 export type AgentToolOperationDependencies = Readonly<{
   createCards: typeof createCards;

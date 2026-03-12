@@ -296,29 +296,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   workspaceSync.addResource("push").addMethod("POST", integration);
   workspaceSync.addResource("pull").addMethod("POST", integration);
 
-  const agentTools = agent.addResource("tools");
-  agentTools.addMethod("GET", integration);
-  [
-    "get_workspace_context",
-    "list_tags",
-    "list_cards",
-    "get_cards",
-    "search_cards",
-    "list_due_cards",
-    "list_decks",
-    "get_decks",
-    "search_decks",
-    "list_review_history",
-    "get_scheduler_settings",
-    "create_cards",
-    "update_cards",
-    "delete_cards",
-    "create_decks",
-    "update_decks",
-    "delete_decks",
-  ].forEach((toolName) => {
-    agentTools.addResource(toolName).addMethod("POST", integration);
-  });
+  agent.addResource("sql").addMethod("POST", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);

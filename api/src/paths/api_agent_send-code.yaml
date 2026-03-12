@@ -29,20 +29,10 @@ post:
               expiresInSeconds: 180
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
-            actions:
-              - name: verify_code
-                method: POST
-                url: >-
-                  https://auth.flashcards-open-source-app.com/api/agent/verify-code
-                input:
-                  required:
-                    - code
-                    - otpSessionToken
-                    - label
             instructions: >-
-              A verification code has been sent. Read payload from data.*
-              (data.otpSessionToken). Do not expect OTP fields at the top level.
-              Use instructions to pick the next call and confirm with actions.
+              A verification code has been sent. Next call POST
+              /api/agent/verify-code with the email, otpSessionToken, code, and
+              connection label. Read payload from data.* and use
+              docs.openapiUrl for the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
-              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json

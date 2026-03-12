@@ -4,7 +4,7 @@ get:
   summary: Load agent account context
   description: >-
     Returns the authenticated user profile, the currently selected workspace id
-    for this API key connection, and explicit next-step bootstrap actions.
+    for this API key connection, and explicit next-step bootstrap instructions.
   security:
     - ApiKeyHeader: []
   responses:
@@ -24,26 +24,17 @@ get:
                 email: kirill@example.com
                 locale: en
                 createdAt: '2026-03-07T10:40:54.589Z'
-            actions:
-              - name: list_workspaces
-                method: GET
-                url: >-
-                  https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100
-                auth:
-                  scheme: ApiKey
             instructions: >-
-              Call GET
-              https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100
-              next. A first workspace is auto-provisioned for new users. For
-              paginated responses, pass data.nextCursor back unchanged as the
-              cursor query parameter or JSON field and stop when data.nextCursor
-              is null. Read payload from data.* (for this endpoint:
-              data.selectedWorkspaceId, data.profile). Do not expect account
-              fields at the top level. Select the next endpoint from
-              instructions and confirm it with actions.
+              Next call GET /v1/agent/workspaces?limit=100 to inspect available
+              workspaces for this API key. If data.nextCursor is not null,
+              continue with the same endpoint and cursor=data.nextCursor until
+              it becomes null. If no workspace is selected, call POST
+              /v1/agent/workspaces/{workspaceId}/select. After a workspace is
+              selected, use POST /v1/agent/sql for reads, writes, and SQL
+              introspection. Read payload from data.* and use docs.openapiUrl
+              for the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
-              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
     default:
       description: Agent error envelope
       content:

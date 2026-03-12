@@ -2,71 +2,33 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadOpenApiDocument } from "./openapi";
 
-test("loadOpenApiDocument returns the canonical v1 spec", () => {
+test("loadOpenApiDocument returns the canonical v1 spec with the SQL surface", () => {
   const document = loadOpenApiDocument();
   const paths = document.paths as Record<string, Record<string, {
     requestBody?: {
       content?: Record<string, {
         schema?: Record<string, unknown>;
-        example?: Record<string, unknown>;
       }>;
     };
     responses?: Record<string, {
       content?: Record<string, {
         schema?: Record<string, unknown>;
         example?: Record<string, unknown>;
+        examples?: Record<string, unknown>;
       }>;
     }>;
   }>>;
   const components = document.components as { schemas: Record<string, unknown> };
-  const getCardsInput = components.schemas.GetCardsInput as {
-    properties: {
-      cardIds: {
-        items: Record<string, unknown>;
-      };
-    };
-  };
-  const createCardBody = components.schemas.CreateCardBody as {
+  const agentDocs = components.schemas.AgentDocs as {
     required: ReadonlyArray<string>;
-    properties: {
-      frontText: {
-        description: string;
-      };
-      backText: {
-        description: string;
-      };
-    };
+    properties: Record<string, unknown>;
   };
-  const updateCardBody = components.schemas.UpdateCardBody as {
+  const agentSqlRequest = components.schemas.AgentSqlRequest as {
     required: ReadonlyArray<string>;
-    properties: {
-      tags: {
-        description: string;
-      };
-      effortLevel: {
-        description: string;
-      };
-      frontText: {
-        description: string;
-      };
-      backText: {
-        description: string;
-      };
-    };
+    properties: Record<string, unknown>;
   };
-  const createDeckBody = components.schemas.CreateDeckBody as {
-    required: ReadonlyArray<string>;
-    properties: {
-      effortLevels: {
-        description: string;
-      };
-      tags: {
-        description: string;
-      };
-    };
-  };
-  const updateDeckBody = components.schemas.UpdateDeckBody as {
-    required: ReadonlyArray<string>;
+  const agentSqlEnvelope = components.schemas.AgentSqlEnvelope as {
+    properties: Record<string, unknown>;
   };
   const agentErrorEnvelope = components.schemas.AgentErrorEnvelope as {
     properties: {
@@ -75,31 +37,17 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   };
 
   assert.equal(document.openapi, "3.1.0");
-  assert.ok(document.paths);
-  assert.ok(document.components);
   assert.ok("/" in paths);
-  assert.ok("/agent/tools/list_tags" in paths);
-  assert.ok("/agent/tools/list_cards" in paths);
+  assert.ok("/agent/sql" in paths);
   assert.ok("/agent/workspaces" in paths);
-  assert.equal("/workspaces/{workspaceId}/cards/query" in paths, false);
+  assert.equal("/agent/tools/list_cards" in paths, false);
+  assert.equal("/agent/tools/list_tags" in paths, false);
   assert.equal("/workspaces/{workspaceId}/sync/push" in paths, false);
   assert.equal("/chat/local-turn" in paths, false);
   assert.equal("/agent-api-keys" in paths, false);
-  assert.deepEqual(getCardsInput.properties.cardIds.items, {
-    $ref: "#/components/schemas/UuidString",
-  });
-  assert.match(createCardBody.properties.frontText.description, /question-only recall prompt/i);
-  assert.match(createCardBody.properties.backText.description, /must contain the answer/i);
-  assert.deepEqual(createCardBody.required, ["frontText", "backText", "effortLevel"]);
-  assert.match(updateCardBody.properties.frontText.description, /question-only recall prompt/i);
-  assert.match(updateCardBody.properties.backText.description, /must contain the answer/i);
-  assert.match(updateCardBody.properties.tags.description, /omit or use null to keep unchanged/i);
-  assert.match(updateCardBody.properties.effortLevel.description, /omit or use null to keep unchanged/i);
-  assert.deepEqual(updateCardBody.required, ["cardId"]);
-  assert.match(createDeckBody.properties.effortLevels.description, /omit for no effort filter/i);
-  assert.match(createDeckBody.properties.tags.description, /omit for no tag filter/i);
-  assert.deepEqual(createDeckBody.required, ["name"]);
-  assert.deepEqual(updateDeckBody.required, ["deckId"]);
+  assert.deepEqual(agentDocs.required, ["openapiUrl"]);
+  assert.deepEqual(agentSqlRequest.required, ["sql"]);
+  assert.ok("data" in agentSqlEnvelope.properties);
   assert.ok("error" in agentErrorEnvelope.properties);
 
   for (const [path, methods] of Object.entries(paths)) {
@@ -112,7 +60,10 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
         const jsonContent = response.content?.["application/json"];
         assert.ok(jsonContent !== undefined, `${method.toUpperCase()} ${path} ${statusCode} must define application/json content`);
         assert.ok(jsonContent.schema !== undefined, `${method.toUpperCase()} ${path} ${statusCode} must define an application/json schema`);
-        assert.ok(jsonContent.example !== undefined, `${method.toUpperCase()} ${path} ${statusCode} must define an application/json example`);
+        assert.ok(
+          jsonContent.example !== undefined || jsonContent.examples !== undefined,
+          `${method.toUpperCase()} ${path} ${statusCode} must define an application/json example`,
+        );
       }
     }
   }
@@ -120,7 +71,7 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   const discoveryExample = paths["/agent"]?.get?.responses?.["200"]?.content?.["application/json"]?.example;
   assert.ok(discoveryExample !== undefined);
   assert.ok("data" in discoveryExample);
-  assert.ok("authBaseUrl" in (discoveryExample.data as Record<string, unknown>));
+  assert.ok("surface" in (discoveryExample.data as Record<string, unknown>));
 
   const workspacesExample = paths["/agent/workspaces"]?.get?.responses?.["200"]?.content?.["application/json"]?.example;
   assert.ok(workspacesExample !== undefined);
@@ -128,31 +79,8 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   assert.ok(Array.isArray((workspacesExample.data as Record<string, unknown>).workspaces));
   assert.ok("nextCursor" in (workspacesExample.data as Record<string, unknown>));
 
-  const listCardsExample = paths["/agent/tools/list_cards"]?.post?.responses?.["200"]?.content?.["application/json"]?.example;
-  assert.ok(listCardsExample !== undefined);
-  assert.ok("data" in listCardsExample);
-  assert.ok(Array.isArray((listCardsExample.data as Record<string, unknown>).cards));
-  assert.ok("nextCursor" in (listCardsExample.data as Record<string, unknown>));
-
-  const listCardsRequestSchema = paths["/agent/tools/list_cards"]?.post?.requestBody?.content?.["application/json"]?.schema;
-  assert.deepEqual(listCardsRequestSchema, { $ref: "#/components/schemas/CardCursorPageInput" });
-  const listCardsOperation = paths["/agent/tools/list_cards"]?.post as Record<string, unknown> | undefined;
-  assert.match(
-    String(listCardsOperation?.description),
-    /match any selected tag.*selected effort value.*server requires both/i,
-  );
-
-  const searchCardsRequestSchema = paths["/agent/tools/search_cards"]?.post?.requestBody?.content?.["application/json"]?.schema;
-  assert.deepEqual(searchCardsRequestSchema, { $ref: "#/components/schemas/CardCursorSearchInput" });
-  const searchCardsOperation = paths["/agent/tools/search_cards"]?.post as Record<string, unknown> | undefined;
-  assert.match(
-    String(searchCardsOperation?.description),
-    /match any selected tag.*selected effort value.*server requires both/i,
-  );
-
-  const listTagsExample = paths["/agent/tools/list_tags"]?.post?.responses?.["200"]?.content?.["application/json"]?.example;
-  assert.ok(listTagsExample !== undefined);
-  assert.ok("data" in listTagsExample);
-  assert.ok(Array.isArray((listTagsExample.data as Record<string, unknown>).tags));
-  assert.ok("totalCards" in (listTagsExample.data as Record<string, unknown>));
+  const sqlRequestSchema = paths["/agent/sql"]?.post?.requestBody?.content?.["application/json"]?.schema;
+  assert.deepEqual(sqlRequestSchema, { $ref: "#/components/schemas/AgentSqlRequest" });
+  const sqlExamples = paths["/agent/sql"]?.post?.responses?.["200"]?.content?.["application/json"]?.examples;
+  assert.ok(sqlExamples !== undefined);
 });

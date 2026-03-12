@@ -25,10 +25,10 @@ tags:
     description: >-
       Agent-oriented account and workspace bootstrap after ApiKey
       authentication, including per-connection workspace selection.
-  - name: tools
+  - name: sql
     description: >-
-      Compact bulk-friendly tool endpoints for the selected workspace. Internal
-      sync mechanics stay server-side and are not part of this public contract.
+      Single SQL entrypoint for the selected workspace. Internal sync mechanics
+      stay server-side and are not part of this public contract.
 paths:
   /:
     $ref: paths/_.yaml
@@ -52,42 +52,8 @@ paths:
     $ref: paths/agent_workspaces.yaml
   /agent/workspaces/{workspaceId}/select:
     $ref: paths/agent_workspaces_{workspaceId}_select.yaml
-  /agent/tools:
-    $ref: paths/agent_tools.yaml
-  /agent/tools/get_workspace_context:
-    $ref: paths/agent_tools_get_workspace_context.yaml
-  /agent/tools/list_cards:
-    $ref: paths/agent_tools_list_cards.yaml
-  /agent/tools/get_cards:
-    $ref: paths/agent_tools_get_cards.yaml
-  /agent/tools/search_cards:
-    $ref: paths/agent_tools_search_cards.yaml
-  /agent/tools/list_due_cards:
-    $ref: paths/agent_tools_list_due_cards.yaml
-  /agent/tools/list_decks:
-    $ref: paths/agent_tools_list_decks.yaml
-  /agent/tools/get_decks:
-    $ref: paths/agent_tools_get_decks.yaml
-  /agent/tools/search_decks:
-    $ref: paths/agent_tools_search_decks.yaml
-  /agent/tools/list_review_history:
-    $ref: paths/agent_tools_list_review_history.yaml
-  /agent/tools/get_scheduler_settings:
-    $ref: paths/agent_tools_get_scheduler_settings.yaml
-  /agent/tools/create_cards:
-    $ref: paths/agent_tools_create_cards.yaml
-  /agent/tools/update_cards:
-    $ref: paths/agent_tools_update_cards.yaml
-  /agent/tools/delete_cards:
-    $ref: paths/agent_tools_delete_cards.yaml
-  /agent/tools/create_decks:
-    $ref: paths/agent_tools_create_decks.yaml
-  /agent/tools/update_decks:
-    $ref: paths/agent_tools_update_decks.yaml
-  /agent/tools/delete_decks:
-    $ref: paths/agent_tools_delete_decks.yaml
-  /agent/tools/list_tags:
-    $ref: paths/agent_tools_list_tags.yaml
+  /agent/sql:
+    $ref: paths/agent_sql.yaml
 components:
   securitySchemes:
     ApiKeyHeader:

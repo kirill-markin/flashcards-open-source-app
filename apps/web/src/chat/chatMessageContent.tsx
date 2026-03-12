@@ -6,26 +6,9 @@ import type { StoredMessage } from "./useChatHistory";
  * unsupported or future tool names visible instead of dropping them.
  */
 export function formatToolLabel(name: string): string {
-  if (name === "get_workspace_context") return "Workspace context";
-  if (name === "list_tags") return "List tags";
-  if (name === "list_cards") return "List cards";
-  if (name === "get_cards") return "Get cards";
-  if (name === "search_cards") return "Search cards";
-  if (name === "list_due_cards") return "List due cards";
-  if (name === "list_decks") return "List decks";
-  if (name === "search_decks") return "Search decks";
-  if (name === "get_decks") return "Get decks";
-  if (name === "list_review_history") return "Review history";
-  if (name === "get_scheduler_settings") return "Scheduler settings";
+  if (name === "sql") return "SQL";
   if (name === "get_cloud_settings") return "Cloud settings";
   if (name === "list_outbox") return "Outbox";
-  if (name === "summarize_deck_state") return "Deck summary";
-  if (name === "create_cards") return "Create cards";
-  if (name === "update_cards") return "Update cards";
-  if (name === "delete_cards") return "Delete cards";
-  if (name === "create_decks") return "Create decks";
-  if (name === "update_decks") return "Update decks";
-  if (name === "delete_decks") return "Delete decks";
   if (name === "code_execution" || name === "code_interpreter") return "Code execution";
   if (name === "web_search") return "Web search";
   return name;

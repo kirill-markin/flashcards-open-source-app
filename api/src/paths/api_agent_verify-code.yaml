@@ -5,7 +5,7 @@ post:
   description: >-
     Completes email OTP authentication and returns a long-lived ApiKey plus a
     connection descriptor for the external AI agent, followed by explicit
-    account/workspace bootstrap actions.
+    account/workspace bootstrap instructions.
   servers:
     - url: https://auth.flashcards-open-source-app.com
       description: Auth host for email OTP bootstrap
@@ -34,47 +34,14 @@ post:
                 createdAt: '2026-03-11T08:55:00.000Z'
                 lastUsedAt: null
                 revokedAt: null
-            actions:
-              - name: load_account
-                method: GET
-                url: https://api.flashcards-open-source-app.com/v1/agent/me
-                auth:
-                  scheme: ApiKey
-              - name: list_workspaces
-                method: GET
-                url: >-
-                  https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100
-                auth:
-                  scheme: ApiKey
-              - name: create_workspace
-                method: POST
-                url: https://api.flashcards-open-source-app.com/v1/agent/workspaces
-                input:
-                  required:
-                    - name
-                auth:
-                  scheme: ApiKey
-              - name: select_workspace
-                method: POST
-                urlTemplate: >-
-                  https://api.flashcards-open-source-app.com/v1/agent/workspaces/{workspaceId}/select
-                input:
-                  required:
-                    - workspaceId
-                auth:
-                  scheme: ApiKey
             instructions: >-
-              Store this API key securely. Read payload from data.*
-              (data.apiKey, data.connection). Do not expect resource fields at
-              the top level. Select next calls from instructions and confirm
-              with actions: GET
-              https://api.flashcards-open-source-app.com/v1/agent/me, GET
-              https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100,
-              then select a workspace if needed. For paginated responses, pass
-              data.nextCursor back unchanged as the cursor query parameter or
-              JSON field and stop when data.nextCursor is null. The first
-              workspace is auto-provisioned for new users; use create only for
-              additional workspaces.
+              Store this API key outside chat memory now. Use it in the
+              Authorization header as 'ApiKey <key>'. Next call GET
+              /v1/agent/me to load account context. Then call GET
+              /v1/agent/workspaces?limit=100. If exactly one workspace exists,
+              select it if needed. If no workspace exists, create one with POST
+              /v1/agent/workspaces using {"name":"Personal"}. After a workspace
+              is selected, use POST /v1/agent/sql for all data access. Use
+              docs.openapiUrl for the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
-              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json

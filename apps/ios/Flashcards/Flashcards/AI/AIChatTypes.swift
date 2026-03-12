@@ -28,10 +28,9 @@ let aiChatSupportedFileExtensions: Set<String> = [
  Keep this set aligned with the browser-local mirror in
  `apps/web/src/chat/localToolExecutor.ts`.
 
- Shared TypeScript contracts live in
- `apps/backend/src/aiTools/sharedToolContracts.ts`, while canonical backend
- external-agent behavior lives in
- `apps/backend/src/aiTools/agentToolOperations.ts`.
+ Canonical backend SQL behavior lives in
+ `apps/backend/src/aiTools/agentSql.ts`, while this iOS local tool list is a
+ pending mirror that still needs the same SQL migration.
  */
 let aiChatLocalToolNames: Set<String> = [
     "get_workspace_context",

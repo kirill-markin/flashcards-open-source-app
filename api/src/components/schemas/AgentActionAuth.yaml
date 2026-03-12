@@ -1,9 +1,0 @@
-type: object
-additionalProperties: false
-required:
-  - scheme
-properties:
-  scheme:
-    type: string
-    enum:
-      - ApiKey

@@ -192,267 +192,90 @@ function makeDependencies(snapshot: MutableSnapshot): Pick<
 }
 
 describe("createLocalToolExecutor", () => {
-  it("returns exact local read payloads for workspace, scheduler, cloud, and outbox tools", async () => {
+  it("supports SQL introspection and reads", async () => {
     const snapshot = makeSnapshot();
     const executor = createLocalToolExecutor(makeDependencies(snapshot));
 
-    const workspaceContextResult = await executor.execute({
+    const tablesResult = await executor.execute({
       toolCallId: "call-1",
-      name: "get_workspace_context",
-      input: "{}",
+      name: "sql",
+      input: "{\"sql\":\"SHOW TABLES\"}",
     });
-    const workspaceContext = JSON.parse(workspaceContextResult.output) as Record<string, unknown>;
-    expect(workspaceContext).toEqual({
-      workspace: {
-        workspaceId: "workspace-1",
-        name: "Personal",
-        createdAt: "2026-03-01T00:00:00.000Z",
-      },
-      userSettings: {
-        userId: "user-1",
-        workspaceId: "workspace-1",
-        email: "test@example.com",
-        locale: "en",
-        createdAt: "2026-03-01T00:00:00.000Z",
-      },
-      schedulerSettings: snapshot.workspaceSettings,
-      cloudSettings: snapshot.cloudSettings,
-      homeSnapshot: {
-        deckCount: 1,
-        totalCards: 2,
-        dueCount: 2,
-        newCount: 1,
-        reviewedCount: 1,
-      },
-    });
+    const tablesPayload = JSON.parse(tablesResult.output) as Readonly<{ rows: ReadonlyArray<Readonly<Record<string, unknown>>> }>;
+    expect(tablesPayload.rows.some((row) => row.table_name === "cards")).toBe(true);
 
-    const tagsResult = await executor.execute({
-      toolCallId: "call-1b",
-      name: "list_tags",
-      input: "{}",
-    });
-    expect(JSON.parse(tagsResult.output)).toEqual({
-      tags: [{
-        tag: "tag-a",
-        cardsCount: 2,
-      }],
-      totalCards: 2,
-    });
-
-    const schedulerResult = await executor.execute({
+    const cardsResult = await executor.execute({
       toolCallId: "call-2",
-      name: "get_scheduler_settings",
-      input: "{}",
+      name: "sql",
+      input: "{\"sql\":\"SELECT * FROM cards ORDER BY updated_at DESC LIMIT 1 OFFSET 0\"}",
     });
-    expect(JSON.parse(schedulerResult.output)).toEqual(snapshot.workspaceSettings);
+    const cardsPayload = JSON.parse(cardsResult.output) as Readonly<{ rows: ReadonlyArray<Card>; rowCount: number; limit: number; offset: number }>;
+    expect(cardsPayload.rowCount).toBe(1);
+    expect(cardsPayload.limit).toBe(1);
+    expect(cardsPayload.offset).toBe(0);
+    expect(cardsPayload.rows[0]).toMatchObject({
+      card_id: "card-1",
+    });
+  });
+
+  it("supports SQL mutations for cards", async () => {
+    const snapshot = makeSnapshot();
+    const dependencies = makeDependencies(snapshot);
+    const executor = createLocalToolExecutor(dependencies);
+
+    const insertResult = await executor.execute({
+      toolCallId: "call-1",
+      name: "sql",
+      input: "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('Question', 'Answer', ('tag-b'), 'medium')\"}",
+    });
+    const insertPayload = JSON.parse(insertResult.output) as Readonly<{ affectedCount: number; rows: ReadonlyArray<Readonly<Record<string, unknown>>> }>;
+    expect(insertPayload.affectedCount).toBe(1);
+    expect(insertPayload.rows[0]?.card_id).toBe("created-card");
+    expect(dependencies.createCardItem).toHaveBeenCalledTimes(1);
+
+    const updateResult = await executor.execute({
+      toolCallId: "call-2",
+      name: "sql",
+      input: "{\"sql\":\"UPDATE cards SET back_text = 'Updated Back' WHERE card_id = 'card-1'\"}",
+    });
+    const updatePayload = JSON.parse(updateResult.output) as Readonly<{ affectedCount: number }>;
+    expect(updatePayload.affectedCount).toBe(1);
+    expect(dependencies.updateCardItem).toHaveBeenCalledWith("card-1", expect.objectContaining({
+      backText: "Updated Back",
+    }));
+
+    const deleteResult = await executor.execute({
+      toolCallId: "call-3",
+      name: "sql",
+      input: "{\"sql\":\"DELETE FROM cards WHERE card_id = 'card-2'\"}",
+    });
+    const deletePayload = JSON.parse(deleteResult.output) as Readonly<{ affectedCount: number }>;
+    expect(deletePayload.affectedCount).toBe(1);
+    expect(dependencies.deleteCardItem).toHaveBeenCalledWith("card-2");
+    expect(insertResult.didMutateAppState).toBe(true);
+    expect(updateResult.didMutateAppState).toBe(true);
+    expect(deleteResult.didMutateAppState).toBe(true);
+  });
+
+  it("keeps cloud settings and outbox available as local-only tools", async () => {
+    const snapshot = makeSnapshot();
+    const executor = createLocalToolExecutor(makeDependencies(snapshot));
 
     const cloudResult = await executor.execute({
-      toolCallId: "call-3",
+      toolCallId: "call-1",
       name: "get_cloud_settings",
       input: "{}",
     });
     expect(JSON.parse(cloudResult.output)).toEqual(snapshot.cloudSettings);
 
     const outboxResult = await executor.execute({
-      toolCallId: "call-4",
+      toolCallId: "call-2",
       name: "list_outbox",
       input: "{\"cursor\":null,\"limit\":100}",
     });
-    expect(JSON.parse(outboxResult.output)).toEqual({
-      outbox: [{
-        operationId: "outbox-1",
-        workspaceId: "workspace-1",
-        entityType: "card",
-        entityId: "card-2",
-        action: "upsert",
-        clientUpdatedAt: "2026-03-10T08:00:00.000Z",
-        createdAt: "2026-03-10T08:00:00.000Z",
-        attemptCount: 1,
-        lastError: "Temporary failure",
-        payloadSummary: "card card-2",
-      }],
-      nextCursor: null,
-    });
-  });
-
-  it("keeps summarize_deck_state available in the browser local runtime", async () => {
-    const executor = createLocalToolExecutor(makeDependencies(makeSnapshot()));
-
-    const summaryResult = await executor.execute({
-      toolCallId: "call-summary",
-      name: "summarize_deck_state",
-      input: "{}",
-    });
-
-    expect(JSON.parse(summaryResult.output)).toEqual({
-      totalCards: 2,
-      dueCards: 2,
-      newCards: 1,
-      reviewedCards: 1,
-      totalReps: 2,
-      totalLapses: 0,
-    });
-  });
-
-  it("searches cards by effort level", async () => {
-    const executor = createLocalToolExecutor(makeDependencies(makeSnapshot()));
-
-    const result = await executor.execute({
-      toolCallId: "call-search-cards-effort",
-      name: "search_cards",
-      input: "{\"query\":\"medium\",\"cursor\":null,\"limit\":100,\"filter\":null}",
-    });
-
-    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
-    expect(payload.cards).toHaveLength(2);
-    expect(payload.cards.every((card) => card.effortLevel === "medium")).toBe(true);
-    expect(payload.nextCursor).toBe(null);
-  });
-
-  it("searches cards with AND semantics across tokenized query terms", async () => {
-    const executor = createLocalToolExecutor(makeDependencies(makeSnapshot()));
-
-    const result = await executor.execute({
-      toolCallId: "call-search-cards-and",
-      name: "search_cards",
-      input: "{\"query\":\"FRONT medium\",\"cursor\":null,\"limit\":100,\"filter\":null}",
-    });
-
-    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
-    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-1"]);
-    expect(payload.nextCursor).toBe(null);
-  });
-
-  it("searches cards by merging tokens after the fifth token", async () => {
-    const snapshot = makeSnapshot();
-    snapshot.cards = [
-      makeCard({
-        cardId: "card-phrase",
-        frontText: "alpha beta",
-        backText: "gamma delta epsilon zeta eta",
-        tags: ["combo"],
-        updatedAt: "2026-03-10T10:00:00.000Z",
-      }),
-      makeCard({
-        cardId: "card-single",
-        frontText: "alpha beta",
-        backText: "gamma delta epsilon zeta",
-        tags: ["single"],
-        updatedAt: "2026-03-10T09:00:00.000Z",
-      }),
-    ];
-    const executor = createLocalToolExecutor(makeDependencies(snapshot));
-
-    const result = await executor.execute({
-      toolCallId: "call-search-cards-tail",
-      name: "search_cards",
-      input: "{\"query\":\"alpha beta gamma delta epsilon zeta eta\",\"cursor\":null,\"limit\":100,\"filter\":null}",
-    });
-
-    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
-    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-phrase"]);
-    expect(payload.nextCursor).toBe(null);
-  });
-
-  it("resolves nullable update fields against existing local records and mutates only once per item", async () => {
-    const snapshot = makeSnapshot();
-    const dependencies = makeDependencies(snapshot);
-    const executor = createLocalToolExecutor(dependencies);
-
-    await executor.execute({
-      toolCallId: "call-update",
-      name: "update_cards",
-      input: "{\"updates\":[{\"cardId\":\"card-1\",\"frontText\":null,\"backText\":\"Updated Back\",\"tags\":null,\"effortLevel\":null}]}",
-    });
-
-    expect(dependencies.updateCardItem).toHaveBeenCalledTimes(1);
-    expect(dependencies.updateCardItem).toHaveBeenCalledWith("card-1", {
-      frontText: "Front",
-      backText: "Updated Back",
-      tags: ["tag-a"],
-      effortLevel: "medium",
-    });
-  });
-
-  it("accepts omitted optional update fields and preserves the existing local card values", async () => {
-    const snapshot = makeSnapshot();
-    const dependencies = makeDependencies(snapshot);
-    const executor = createLocalToolExecutor(dependencies);
-
-    await executor.execute({
-      toolCallId: "call-update-omitted",
-      name: "update_cards",
-      input: "{\"updates\":[{\"cardId\":\"card-1\",\"backText\":\"Updated Back\"}]}",
-    });
-
-    expect(dependencies.updateCardItem).toHaveBeenCalledTimes(1);
-    expect(dependencies.updateCardItem).toHaveBeenCalledWith("card-1", {
-      frontText: "Front",
-      backText: "Updated Back",
-      tags: ["tag-a"],
-      effortLevel: "medium",
-    });
-  });
-
-  it("accepts omitted deck filter fields on create and normalizes them to empty arrays", async () => {
-    const snapshot = makeSnapshot();
-    const dependencies = makeDependencies(snapshot);
-    const executor = createLocalToolExecutor(dependencies);
-
-    await executor.execute({
-      toolCallId: "call-create-deck-omitted-filters",
-      name: "create_decks",
-      input: "{\"decks\":[{\"name\":\"Grammar\"}]}",
-    });
-
-    expect(dependencies.createDeckItem).toHaveBeenCalledTimes(1);
-    expect(dependencies.createDeckItem).toHaveBeenCalledWith({
-      name: "Grammar",
-      filterDefinition: {
-        version: 2,
-        effortLevels: [],
-        tags: [],
-      },
-    });
-  });
-
-  it("filters listed cards by tags and effort before pagination", async () => {
-    const snapshot = makeSnapshot();
-    snapshot.cards = [
-      makeCard({ cardId: "card-1", tags: ["grammar", "verbs"], effortLevel: "fast", updatedAt: "2026-03-10T09:00:00.000Z" }),
-      makeCard({ cardId: "card-2", tags: ["grammar"], effortLevel: "fast", updatedAt: "2026-03-10T08:00:00.000Z" }),
-      makeCard({ cardId: "card-3", tags: ["grammar", "verbs"], effortLevel: "medium", updatedAt: "2026-03-10T07:00:00.000Z" }),
-    ];
-    const executor = createLocalToolExecutor(makeDependencies(snapshot));
-
-    const result = await executor.execute({
-      toolCallId: "call-list-cards-filter",
-      name: "list_cards",
-      input: "{\"cursor\":null,\"limit\":100,\"filter\":{\"tags\":[\" grammar \",\"verbs\"],\"effort\":[\"fast\",\"fast\"]}}",
-    });
-
-    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
-    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-1", "card-2"]);
-    expect(payload.nextCursor).toBe(null);
-  });
-
-  it("applies filter and query together when searching cards", async () => {
-    const snapshot = makeSnapshot();
-    snapshot.cards = [
-      makeCard({ cardId: "card-1", frontText: "Grammar front", tags: ["grammar"], effortLevel: "fast", updatedAt: "2026-03-10T09:00:00.000Z" }),
-      makeCard({ cardId: "card-2", frontText: "Grammar front", tags: ["grammar"], effortLevel: "medium", updatedAt: "2026-03-10T08:00:00.000Z" }),
-      makeCard({ cardId: "card-3", frontText: "Other", tags: ["grammar"], effortLevel: "fast", updatedAt: "2026-03-10T07:00:00.000Z" }),
-    ];
-    const executor = createLocalToolExecutor(makeDependencies(snapshot));
-
-    const result = await executor.execute({
-      toolCallId: "call-search-cards-filter",
-      name: "search_cards",
-      input: "{\"query\":\"front\",\"cursor\":null,\"limit\":100,\"filter\":{\"tags\":[\"grammar\"],\"effort\":[\"fast\"]}}",
-    });
-
-    const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
-    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-1"]);
-    expect(payload.nextCursor).toBe(null);
+    const outboxPayload = JSON.parse(outboxResult.output) as Readonly<{ outbox: ReadonlyArray<Readonly<Record<string, unknown>>>; nextCursor: string | null }>;
+    expect(outboxPayload.outbox).toHaveLength(1);
+    expect(outboxPayload.outbox[0]?.operationId).toBe("outbox-1");
+    expect(outboxPayload.nextCursor).toBe(null);
   });
 });

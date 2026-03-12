@@ -20,45 +20,29 @@ get:
                 version: v1
                 description: >-
                   Offline-first flashcards service with user-owned workspaces
-                  and AI-friendly API onboarding.
+                  and a compact SQL agent surface.
               authentication:
                 type: email_otp_then_api_key
-                registerAndLogin: >-
-                  Ask which email the user wants to use, then start the same
-                  flow for both new and existing users.
+                sendCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/send-code
+                verifyCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/verify-code
               capabilitiesAfterLogin:
                 - Load account context
                 - Select a workspace
-                - Read and write cards and decks
+                - Run SQL reads and writes
+                - Inspect the published SQL surface
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
-              docs:
-                openapiUrl: >-
-                  https://api.flashcards-open-source-app.com/v1/agent/openapi.json
-                swaggerUrl: >-
-                  https://api.flashcards-open-source-app.com/v1/agent/swagger.json
-            actions:
-              - name: send_code
-                method: POST
-                url: >-
-                  https://auth.flashcards-open-source-app.com/api/agent/send-code
-                input:
-                  required:
-                    - email
-              - name: openapi
-                method: GET
-                url: >-
-                  https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              surface:
+                accountUrl: https://api.flashcards-open-source-app.com/v1/agent/me
+                workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
+                sqlUrl: https://api.flashcards-open-source-app.com/v1/agent/sql
             instructions: >-
-              Start with send_code. After login, call
-              https://api.flashcards-open-source-app.com/v1/agent/me, then
-              https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100.
-              A first workspace is auto-provisioned for new users. For paginated
-              responses, pass data.nextCursor back unchanged as the cursor query
-              parameter or JSON field and stop when data.nextCursor is null.
-              Read payload from data.* (for example, data.workspaces). Do not
-              expect resource fields at the top level. Select the next endpoint
-              from instructions and confirm it with actions.
+              Start with email OTP authentication. First call POST
+              /api/agent/send-code with the user's email. Then call POST
+              /api/agent/verify-code with the email and code to obtain a
+              long-lived API key. After login, call GET /v1/agent/me, then GET
+              /v1/agent/workspaces?limit=100. If no workspace is selected,
+              select one before using POST /v1/agent/sql. Use docs.openapiUrl
+              for the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
-              swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json

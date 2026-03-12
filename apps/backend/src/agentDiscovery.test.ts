@@ -2,47 +2,25 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createAgentDiscoveryEnvelope } from "./agentDiscovery";
 
-test("createAgentDiscoveryEnvelope points agents to auth on the API custom domain", () => {
+test("createAgentDiscoveryEnvelope points agents to auth, bootstrap, and SQL discovery", () => {
   process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
   process.env.PUBLIC_AUTH_BASE_URL = "https://auth.example.com";
 
   const envelope = createAgentDiscoveryEnvelope("https://api.example.com/v1/agent");
 
   assert.equal(envelope.ok, true);
-  assert.equal(envelope.data.authBaseUrl, "https://auth.example.com");
-  assert.equal(envelope.data.apiBaseUrl, "https://api.example.com/v1");
-  assert.deepEqual(envelope.data.docs, {
+  assert.equal(envelope.data.authentication.sendCodeUrl, "https://auth.example.com/api/agent/send-code");
+  assert.equal(envelope.data.authentication.verifyCodeUrl, "https://auth.example.com/api/agent/verify-code");
+  assert.equal(envelope.data.surface.accountUrl, "https://api.example.com/v1/agent/me");
+  assert.equal(envelope.data.surface.workspacesUrl, "https://api.example.com/v1/agent/workspaces");
+  assert.equal(envelope.data.surface.sqlUrl, "https://api.example.com/v1/agent/sql");
+  assert.deepEqual(envelope.docs, {
     openapiUrl: "https://api.example.com/v1/agent/openapi.json",
-    swaggerUrl: "https://api.example.com/v1/agent/swagger.json",
   });
-  assert.equal(
-    envelope.data.authentication.registerAndLogin,
-    "Ask which email the user wants to use, then start the same flow for both new and existing users.",
-  );
-  assert.deepEqual(envelope.actions, [
-    {
-      name: "send_code",
-      method: "POST",
-      url: "https://auth.example.com/api/agent/send-code",
-      input: {
-        required: ["email"],
-      },
-    },
-    {
-      name: "openapi",
-      method: "GET",
-      url: "https://api.example.com/v1/agent/openapi.json",
-    },
-  ]);
-  assert.match(envelope.instructions, /Start with send_code/);
-  assert.match(envelope.instructions, /https:\/\/api\.example\.com\/v1\/agent\/me/);
-  assert.match(envelope.instructions, /https:\/\/api\.example\.com\/v1\/agent\/workspaces\?limit=100/);
-  assert.match(envelope.instructions, /auto-provisioned/i);
-  assert.match(envelope.instructions, /data\.nextCursor/);
-  assert.match(envelope.instructions, /Read payload from data\.\*/);
-  assert.match(envelope.instructions, /do not expect resource fields at the top level/i);
-  assert.match(envelope.instructions, /confirm it with actions/i);
-  assert.match(envelope.instructions, /frontText is a question-only recall prompt/);
+  assert.match(envelope.instructions, /send-code/);
+  assert.match(envelope.instructions, /verify-code/);
+  assert.match(envelope.instructions, /\/agent\/sql/);
+  assert.match(envelope.instructions, /intentionally limited/i);
 });
 
 test("createAgentDiscoveryEnvelope derives localhost URLs when public env is missing", () => {
@@ -51,7 +29,7 @@ test("createAgentDiscoveryEnvelope derives localhost URLs when public env is mis
 
   const envelope = createAgentDiscoveryEnvelope("http://localhost:8080/agent");
 
-  assert.equal(envelope.data.authBaseUrl, "http://localhost:8081");
-  assert.equal(envelope.data.apiBaseUrl, "http://localhost:8080/v1");
-  assert.equal(envelope.data.docs.openapiUrl, "http://localhost:8080/v1/agent/openapi.json");
+  assert.equal(envelope.data.authentication.sendCodeUrl, "http://localhost:8081/api/agent/send-code");
+  assert.equal(envelope.data.authentication.verifyCodeUrl, "http://localhost:8081/api/agent/verify-code");
+  assert.equal(envelope.docs.openapiUrl, "http://localhost:8080/v1/agent/openapi.json");
 });
