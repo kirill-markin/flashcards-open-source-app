@@ -1,5 +1,13 @@
 export type LocalChatDevicePlatform = "ios" | "web";
 
+/**
+ * High-level user facts injected into the system prompt before the model
+ * reaches for workspace SQL. Keep this small, factual, and easy to extend.
+ */
+export type LocalChatUserContext = Readonly<{
+  totalCards: number;
+}>;
+
 export type LocalAssistantToolCall = Readonly<{
   toolCallId: string;
   name: string;
@@ -60,6 +68,7 @@ export type LocalChatRequestBody = Readonly<{
   model: string;
   timezone: string;
   devicePlatform: LocalChatDevicePlatform;
+  userContext: LocalChatUserContext;
 }>;
 
 export type LocalChatStreamEvent =

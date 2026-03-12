@@ -427,11 +427,20 @@ export type LocalChatMessage =
     output: string;
   }>;
 
+/**
+ * High-level user facts injected into the system prompt before the model
+ * reaches for workspace SQL. Keep this small, factual, and easy to extend.
+ */
+export type LocalChatUserContext = Readonly<{
+  totalCards: number;
+}>;
+
 export type LocalChatRequestBody = Readonly<{
   messages: ReadonlyArray<LocalChatMessage>;
   model: string;
   timezone: string;
   devicePlatform: "web";
+  userContext: LocalChatUserContext;
 }>;
 
 export type LocalChatStreamEvent =
@@ -503,7 +512,8 @@ export type ChatDiagnosticsPayload = Readonly<{
   lastEventType: string | null;
 }>;
 
-export type LocalChatDiagnosticsPayload = Readonly<{
+export type LocalChatFailureDiagnosticsPayload = Readonly<{
+  kind: "failure";
   clientRequestId: string;
   backendRequestId: string | null;
   stage: string;
@@ -520,3 +530,40 @@ export type LocalChatDiagnosticsPayload = Readonly<{
   appVersion: string;
   devicePlatform: "web";
 }>;
+
+export type LocalChatLatencyResult =
+  | "success"
+  | "response_not_ok"
+  | "missing_reader"
+  | "empty_response"
+  | "cancelled_before_headers"
+  | "cancelled_before_first_sse_line"
+  | "cancelled_before_first_delta"
+  | "stream_error_before_first_delta";
+
+export type LocalChatLatencyDiagnosticsPayload = Readonly<{
+  kind: "latency";
+  clientRequestId: string;
+  backendRequestId: string | null;
+  selectedModel: string;
+  messageCount: number;
+  appVersion: string;
+  devicePlatform: "web";
+  result: LocalChatLatencyResult;
+  statusCode: number | null;
+  firstEventType: string | null;
+  didReceiveFirstSseLine: boolean;
+  didReceiveFirstDelta: boolean;
+  tapToRequestStartMs: number | null;
+  requestStartToHeadersMs: number | null;
+  headersToFirstSseLineMs: number | null;
+  firstSseLineToFirstDeltaMs: number | null;
+  requestStartToFirstDeltaMs: number | null;
+  tapToFirstDeltaMs: number | null;
+  requestStartToTerminalMs: number | null;
+  tapToTerminalMs: number | null;
+}>;
+
+export type LocalChatDiagnosticsPayload =
+  | LocalChatFailureDiagnosticsPayload
+  | LocalChatLatencyDiagnosticsPayload;

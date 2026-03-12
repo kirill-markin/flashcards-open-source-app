@@ -153,6 +153,58 @@ final class AIChatCoreAndParserTests: AIChatTestCaseBase {
         XCTAssertEqual(aiChatBubbleMaxWidth(availableWidth: -10), 0)
     }
 
+    func testMakeAIChatUserContextCountsOnlyActiveCards() {
+        let activeCard = Card(
+            cardId: "card-1",
+            workspaceId: "workspace-1",
+            frontText: "Q1",
+            backText: "A1",
+            tags: ["tag"],
+            effortLevel: .medium,
+            dueAt: nil,
+            reps: 0,
+            lapses: 0,
+            fsrsCardState: .learning,
+            fsrsStepIndex: 0,
+            fsrsStability: nil,
+            fsrsDifficulty: nil,
+            fsrsLastReviewedAt: nil,
+            fsrsScheduledDays: nil,
+            clientUpdatedAt: "2026-03-09T00:00:00.000Z",
+            lastModifiedByDeviceId: "device-1",
+            lastOperationId: "operation-1",
+            updatedAt: "2026-03-09T00:00:00.000Z",
+            deletedAt: nil
+        )
+        let deletedCard = Card(
+            cardId: "card-2",
+            workspaceId: "workspace-1",
+            frontText: "Q2",
+            backText: "A2",
+            tags: ["tag"],
+            effortLevel: .medium,
+            dueAt: nil,
+            reps: 0,
+            lapses: 0,
+            fsrsCardState: .learning,
+            fsrsStepIndex: 0,
+            fsrsStability: nil,
+            fsrsDifficulty: nil,
+            fsrsLastReviewedAt: nil,
+            fsrsScheduledDays: nil,
+            clientUpdatedAt: "2026-03-09T00:00:00.000Z",
+            lastModifiedByDeviceId: "device-1",
+            lastOperationId: "operation-2",
+            updatedAt: "2026-03-09T00:00:00.000Z",
+            deletedAt: "2026-03-10T00:00:00.000Z"
+        )
+
+        XCTAssertEqual(
+            makeAIChatUserContext(cards: [activeCard, deletedCard]),
+            AILocalChatUserContext(totalCards: 1)
+        )
+    }
+
     @MainActor
 
     func testLocalDatabaseEnablesWALForConcurrentConnections() throws {

@@ -297,12 +297,26 @@ describe("ChatPanel autoscroll", () => {
       chatWidth: 560,
       setChatWidth: vi.fn(),
     });
-    useAppDataMock.mockReturnValue({});
+    useAppDataMock.mockReturnValue({
+      getLocalSnapshot: () => ({
+        cards: [
+          { cardId: "card-active", deletedAt: null },
+          { cardId: "card-deleted", deletedAt: "2026-03-09T00:00:00.000Z" },
+        ],
+        decks: [],
+        reviewEvents: [],
+        workspaceSettings: null,
+        cloudSettings: null,
+        outbox: [],
+        lastAppliedChangeId: 0,
+      }),
+    });
     createLocalChatRequestBodyMock.mockImplementation(
-      (messages: ReadonlyArray<unknown>, model: string, timezone: string) => ({
+      (messages: ReadonlyArray<unknown>, model: string, timezone: string, userContext: unknown) => ({
         messages,
         model,
         timezone,
+        userContext,
       }),
     );
     sendLocalChatDiagnosticsMock.mockResolvedValue(undefined);
@@ -1004,10 +1018,11 @@ describe("ChatPanel autoscroll", () => {
   it("blocks send before network when post-compression payload exceeds the 9.5 MB safety limit", async () => {
     const oversizedPayload = "x".repeat(10_100_000);
     createLocalChatRequestBodyMock.mockImplementation(
-      (messages: ReadonlyArray<unknown>, model: string, timezone: string) => ({
+      (messages: ReadonlyArray<unknown>, model: string, timezone: string, userContext: unknown) => ({
         messages,
         model,
         timezone,
+        userContext,
         oversizedPayload,
       }),
     );
@@ -1069,6 +1084,50 @@ describe("ChatPanel autoscroll", () => {
     expect(alertSpy).toHaveBeenCalledWith("Attachment payload limit is 10 MB after compression.");
     expect(mountedContainer.querySelector(".chat-attachment-chip")).toBeNull();
     alertSpy.mockRestore();
+  });
+
+  it("passes active card totals into local chat request bodies for sends and attachment draft checks", async () => {
+    prepareAttachmentMock.mockResolvedValue({
+      fileName: "notes.txt",
+      mediaType: "text/plain",
+      base64Data: "dGVzdA==",
+    });
+
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const chatRoot = mountedContainer.querySelector(".chat-sidebar-fullscreen");
+    expect(chatRoot).not.toBeNull();
+    if (chatRoot === null) {
+      throw new Error("Expected chat root");
+    }
+
+    await act(async () => {
+      const file = new File(["hello"], "notes.txt", { type: "text/plain" });
+      const dropEvent = new Event("drop", { bubbles: true, cancelable: true }) as DragEvent;
+      Object.defineProperty(dropEvent, "dataTransfer", {
+        value: {
+          files: [file],
+        },
+      });
+      chatRoot.dispatchEvent(dropEvent);
+      await Promise.resolve();
+    });
+
+    expect(createLocalChatRequestBodyMock.mock.calls[0]?.[3]).toEqual({
+      totalCards: 1,
+    });
+
+    await sendMessage("hello");
+
+    expect(createLocalChatRequestBodyMock.mock.calls.some((call) => JSON.stringify(call[3]) === JSON.stringify({
+      totalCards: 1,
+    }))).toBe(true);
   });
 
   it("aborts the active stream before clearing history when starting a new chat", async () => {

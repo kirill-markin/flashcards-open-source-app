@@ -237,11 +237,20 @@ struct AILocalChatWireMessage: Codable, Hashable, Sendable {
     let output: String?
 }
 
+/**
+ Keep this block limited to short, stable user facts that help the model start
+ from the right high-level context without replacing workspace tools.
+ */
+struct AILocalChatUserContext: Codable, Hashable, Sendable {
+    let totalCards: Int
+}
+
 struct AILocalChatRequestBody: Codable, Hashable, Sendable {
     let messages: [AILocalChatWireMessage]
     let model: String
     let timezone: String
     let devicePlatform: String
+    let userContext: AILocalChatUserContext
 }
 
 struct AIToolCallRequest: Hashable, Sendable {
@@ -291,6 +300,7 @@ struct AIChatFailureDiagnostics: Codable, Hashable, Sendable {
 }
 
 struct AIChatFailureReportBody: Codable, Hashable, Sendable {
+    let kind: String
     let clientRequestId: String
     let backendRequestId: String?
     let stage: String
@@ -306,6 +316,40 @@ struct AIChatFailureReportBody: Codable, Hashable, Sendable {
     let messageCount: Int
     let appVersion: String
     let devicePlatform: String
+}
+
+enum AIChatLatencyResult: String, Codable, Hashable, Sendable {
+    case success = "success"
+    case responseNotOk = "response_not_ok"
+    case missingReader = "missing_reader"
+    case emptyResponse = "empty_response"
+    case cancelledBeforeHeaders = "cancelled_before_headers"
+    case cancelledBeforeFirstSseLine = "cancelled_before_first_sse_line"
+    case cancelledBeforeFirstDelta = "cancelled_before_first_delta"
+    case streamErrorBeforeFirstDelta = "stream_error_before_first_delta"
+}
+
+struct AIChatLatencyReportBody: Codable, Hashable, Sendable {
+    let kind: String
+    let clientRequestId: String
+    let backendRequestId: String?
+    let selectedModel: String
+    let messageCount: Int
+    let appVersion: String
+    let devicePlatform: String
+    let result: String
+    let statusCode: Int?
+    let firstEventType: String?
+    let didReceiveFirstSseLine: Bool
+    let didReceiveFirstDelta: Bool
+    let tapToRequestStartMs: Int?
+    let requestStartToHeadersMs: Int?
+    let headersToFirstSseLineMs: Int?
+    let firstSseLineToFirstDeltaMs: Int?
+    let requestStartToFirstDeltaMs: Int?
+    let tapToFirstDeltaMs: Int?
+    let requestStartToTerminalMs: Int?
+    let tapToTerminalMs: Int?
 }
 
 protocol AIChatFailureDiagnosticProviding: Error {
@@ -435,6 +479,7 @@ struct AIToolExecutionResult: Sendable {
 
 struct AIChatRuntimeResult: Sendable {
     let failureReportBody: AIChatFailureReportBody?
+    let latencyReportBody: AIChatLatencyReportBody?
 }
 
 protocol AIChatHistoryStoring: Sendable {
@@ -447,15 +492,22 @@ protocol AIChatStreaming: Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome
 
     func reportFailureDiagnostics(
         session: CloudLinkedSession,
         body: AIChatFailureReportBody
+    ) async
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
     ) async
 }
 

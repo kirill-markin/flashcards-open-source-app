@@ -3,6 +3,7 @@ import type {
   LocalChatDiagnosticsPayload,
   LocalChatMessage,
   LocalChatRequestBody,
+  LocalChatUserContext,
   QueryCardsInput,
   QueryCardsPage,
   SessionInfo,
@@ -488,12 +489,14 @@ export function createLocalChatRequestBody(
   messages: ReadonlyArray<LocalChatMessage>,
   model: string,
   timezone: string,
+  userContext: LocalChatUserContext,
 ): LocalChatRequestBody {
   return {
     messages,
     model,
     timezone,
     devicePlatform: "web",
+    userContext,
   };
 }
 

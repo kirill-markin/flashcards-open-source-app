@@ -1,5 +1,6 @@
 import { HttpError } from "../errors";
 import type {
+  LocalChatUserContext,
   LocalContentPart,
   LocalChatMessage,
   LocalChatRequestBody,
@@ -16,6 +17,7 @@ import {
 } from "../server/requestParsing";
 
 type LocalChatDiagnosticsBody = Readonly<{
+  kind: "failure";
   clientRequestId: string;
   backendRequestId: string | null;
   stage: string;
@@ -32,6 +34,33 @@ type LocalChatDiagnosticsBody = Readonly<{
   appVersion: string;
   devicePlatform: string;
 }>;
+
+type LocalChatLatencyDiagnosticsBody = Readonly<{
+  kind: "latency";
+  clientRequestId: string;
+  backendRequestId: string | null;
+  selectedModel: string;
+  messageCount: number;
+  appVersion: string;
+  devicePlatform: string;
+  result: string;
+  statusCode: number | null;
+  firstEventType: string | null;
+  didReceiveFirstSseLine: boolean;
+  didReceiveFirstDelta: boolean;
+  tapToRequestStartMs: number | null;
+  requestStartToHeadersMs: number | null;
+  headersToFirstSseLineMs: number | null;
+  firstSseLineToFirstDeltaMs: number | null;
+  requestStartToFirstDeltaMs: number | null;
+  tapToFirstDeltaMs: number | null;
+  requestStartToTerminalMs: number | null;
+  tapToTerminalMs: number | null;
+}>;
+
+type ParsedLocalChatDiagnosticsBody =
+  | LocalChatDiagnosticsBody
+  | LocalChatLatencyDiagnosticsBody;
 
 function parseLocalContentPart(
   value: unknown,
@@ -153,6 +182,14 @@ function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage>
   });
 }
 
+function parseLocalChatUserContext(value: unknown): LocalChatUserContext {
+  const body = expectRecord(value);
+
+  return {
+    totalCards: expectNonNegativeInteger(body.totalCards, "userContext.totalCards"),
+  };
+}
+
 export function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody {
   const body = expectRecord(value);
   const model = expectNonEmptyString(body.model, "model");
@@ -164,13 +201,53 @@ export function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody 
     model,
     timezone,
     devicePlatform: devicePlatform === "web" ? "web" : "ios",
+    userContext: parseLocalChatUserContext(body.userContext),
   };
 }
 
-export function parseLocalChatDiagnosticsBody(value: unknown): LocalChatDiagnosticsBody {
+function expectBoolean(value: unknown, context: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new HttpError(400, `${context} must be a boolean`);
+  }
+
+  return value;
+}
+
+export function parseLocalChatDiagnosticsBody(value: unknown): ParsedLocalChatDiagnosticsBody {
   const body = expectRecord(value);
+  const kind = expectNonEmptyString(body.kind, "kind");
+
+  if (kind === "latency") {
+    return {
+      kind: "latency",
+      clientRequestId: expectNonEmptyString(body.clientRequestId, "clientRequestId"),
+      backendRequestId: expectNullableNonEmptyString(body.backendRequestId, "backendRequestId"),
+      selectedModel: expectNonEmptyString(body.selectedModel, "selectedModel"),
+      messageCount: expectNonNegativeInteger(body.messageCount, "messageCount"),
+      appVersion: expectNonEmptyString(body.appVersion, "appVersion"),
+      devicePlatform: expectNonEmptyString(body.devicePlatform, "devicePlatform"),
+      result: expectNonEmptyString(body.result, "result"),
+      statusCode: expectNullableNonNegativeInteger(body.statusCode, "statusCode"),
+      firstEventType: expectNullableNonEmptyString(body.firstEventType, "firstEventType"),
+      didReceiveFirstSseLine: expectBoolean(body.didReceiveFirstSseLine, "didReceiveFirstSseLine"),
+      didReceiveFirstDelta: expectBoolean(body.didReceiveFirstDelta, "didReceiveFirstDelta"),
+      tapToRequestStartMs: expectNullableNonNegativeInteger(body.tapToRequestStartMs, "tapToRequestStartMs"),
+      requestStartToHeadersMs: expectNullableNonNegativeInteger(body.requestStartToHeadersMs, "requestStartToHeadersMs"),
+      headersToFirstSseLineMs: expectNullableNonNegativeInteger(body.headersToFirstSseLineMs, "headersToFirstSseLineMs"),
+      firstSseLineToFirstDeltaMs: expectNullableNonNegativeInteger(body.firstSseLineToFirstDeltaMs, "firstSseLineToFirstDeltaMs"),
+      requestStartToFirstDeltaMs: expectNullableNonNegativeInteger(body.requestStartToFirstDeltaMs, "requestStartToFirstDeltaMs"),
+      tapToFirstDeltaMs: expectNullableNonNegativeInteger(body.tapToFirstDeltaMs, "tapToFirstDeltaMs"),
+      requestStartToTerminalMs: expectNullableNonNegativeInteger(body.requestStartToTerminalMs, "requestStartToTerminalMs"),
+      tapToTerminalMs: expectNullableNonNegativeInteger(body.tapToTerminalMs, "tapToTerminalMs"),
+    };
+  }
+
+  if (kind !== "failure") {
+    throw new HttpError(400, "kind is invalid");
+  }
 
   return {
+    kind: "failure",
     clientRequestId: expectNonEmptyString(body.clientRequestId, "clientRequestId"),
     backendRequestId: expectNullableNonEmptyString(body.backendRequestId, "backendRequestId"),
     stage: expectNonEmptyString(body.stage, "stage"),
@@ -195,8 +272,21 @@ function getInternalErrorMessage(error: unknown): string {
 
 export function logLocalChatDiagnostics(
   requestContext: RequestContext,
-  body: LocalChatDiagnosticsBody,
+  body: ParsedLocalChatDiagnosticsBody,
 ): void {
+  if (body.kind === "latency") {
+    console.log(JSON.stringify({
+      domain: "chat",
+      vendor: "local_client",
+      action: "local_chat_latency_diagnostics",
+      workspaceId: requestContext.selectedWorkspaceId,
+      transport: requestContext.transport,
+      userId: requestContext.userId,
+      ...body,
+    }));
+    return;
+  }
+
   console.error(JSON.stringify({
     domain: "chat",
     vendor: "local_client",
@@ -326,6 +416,7 @@ export async function streamLocalChatResponse(
           model: body.model,
           timezone: body.timezone,
           devicePlatform: body.devicePlatform,
+          userContext: body.userContext,
           requestId,
         })) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));

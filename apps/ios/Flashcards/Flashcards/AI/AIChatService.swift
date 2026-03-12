@@ -169,6 +169,74 @@ struct AIChatSSEParser {
     }
 }
 
+private struct AIChatLatencyTracker {
+    let tapStartedAt: Date
+    var requestStartAt: Date?
+    var headersReceivedAt: Date?
+    var firstSseLineAt: Date?
+    var firstDeltaAt: Date?
+    var firstEventType: String?
+    var didReceiveFirstSseLine: Bool
+    var didReceiveFirstDelta: Bool
+    var emitted: Bool
+}
+
+private func createAIChatLatencyTracker(tapStartedAt: Date) -> AIChatLatencyTracker {
+    AIChatLatencyTracker(
+        tapStartedAt: tapStartedAt,
+        requestStartAt: nil,
+        headersReceivedAt: nil,
+        firstSseLineAt: nil,
+        firstDeltaAt: nil,
+        firstEventType: nil,
+        didReceiveFirstSseLine: false,
+        didReceiveFirstDelta: false,
+        emitted: false
+    )
+}
+
+private func latencyMillisecondsBetween(start: Date?, end: Date?) -> Int? {
+    guard let start, let end else {
+        return nil
+    }
+
+    return max(Int((end.timeIntervalSince(start) * 1000).rounded()), 0)
+}
+
+private func buildAIChatLatencyReportBody(
+    tracker: AIChatLatencyTracker,
+    clientRequestId: String,
+    backendRequestId: String?,
+    selectedModel: String,
+    messageCount: Int,
+    result: AIChatLatencyResult,
+    statusCode: Int?,
+    terminalAt: Date
+) -> AIChatLatencyReportBody {
+    AIChatLatencyReportBody(
+        kind: "latency",
+        clientRequestId: clientRequestId,
+        backendRequestId: backendRequestId,
+        selectedModel: selectedModel,
+        messageCount: messageCount,
+        appVersion: aiChatAppVersion(),
+        devicePlatform: "ios",
+        result: result.rawValue,
+        statusCode: statusCode,
+        firstEventType: tracker.firstEventType,
+        didReceiveFirstSseLine: tracker.didReceiveFirstSseLine,
+        didReceiveFirstDelta: tracker.didReceiveFirstDelta,
+        tapToRequestStartMs: latencyMillisecondsBetween(start: tracker.tapStartedAt, end: tracker.requestStartAt),
+        requestStartToHeadersMs: latencyMillisecondsBetween(start: tracker.requestStartAt, end: tracker.headersReceivedAt),
+        headersToFirstSseLineMs: latencyMillisecondsBetween(start: tracker.headersReceivedAt, end: tracker.firstSseLineAt),
+        firstSseLineToFirstDeltaMs: latencyMillisecondsBetween(start: tracker.firstSseLineAt, end: tracker.firstDeltaAt),
+        requestStartToFirstDeltaMs: latencyMillisecondsBetween(start: tracker.requestStartAt, end: tracker.firstDeltaAt),
+        tapToFirstDeltaMs: latencyMillisecondsBetween(start: tracker.tapStartedAt, end: tracker.firstDeltaAt),
+        requestStartToTerminalMs: latencyMillisecondsBetween(start: tracker.requestStartAt, end: terminalAt),
+        tapToTerminalMs: latencyMillisecondsBetween(start: tracker.tapStartedAt, end: terminalAt)
+    )
+}
+
 final class AIChatService: AIChatStreaming, @unchecked Sendable {
     private let session: URLSession
     private let encoder: JSONEncoder
@@ -183,12 +251,39 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
         onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
     ) async throws -> AITurnStreamOutcome {
         let clientRequestId = UUID().uuidString.lowercased()
+        var latencyTracker = tapStartedAt.map(createAIChatLatencyTracker)
+        var backendRequestId: String?
+        var responseStatusCode: Int?
+        var didReceiveContent = false
+
+        func emitLatencyIfNeeded(result: AIChatLatencyResult) async {
+            guard var tracker = latencyTracker, tracker.emitted == false else {
+                return
+            }
+
+            tracker.emitted = true
+            latencyTracker = tracker
+            let body = buildAIChatLatencyReportBody(
+                tracker: tracker,
+                clientRequestId: clientRequestId,
+                backendRequestId: backendRequestId,
+                selectedModel: request.model,
+                messageCount: request.messages.count,
+                result: result,
+                statusCode: responseStatusCode,
+                terminalAt: Date()
+            )
+            logAIChatLatency(body: body)
+            await onLatencyReported(body)
+        }
 
         var urlRequest = URLRequest(url: try self.makeURL(
             apiBaseUrl: session.apiBaseUrl,
@@ -200,120 +295,231 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         urlRequest.setValue("Bearer \(session.bearerToken)", forHTTPHeaderField: "Authorization")
         urlRequest.httpBody = try self.encoder.encode(request)
 
-        let (bytes, response) = try await self.session.bytes(for: urlRequest)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            let diagnostics = AIChatFailureDiagnostics(
-                clientRequestId: clientRequestId,
-                backendRequestId: nil,
-                stage: .invalidHttpResponse,
-                errorKind: .invalidStreamResponse,
-                statusCode: nil,
-                eventType: nil,
-                toolName: nil,
-                toolCallId: nil,
-                lineNumber: nil,
-                rawSnippet: nil,
-                decoderSummary: nil
-            )
-            logAIChatFailure(diagnostics: diagnostics, summary: "Missing HTTPURLResponse")
-            throw AIChatServiceError.invalidStreamResponse(diagnostics)
-        }
-
-        let backendRequestId = extractChatRequestId(httpResponse: httpResponse)
-        if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            let body = try await self.readBody(bytes: bytes)
-            let diagnostics = AIChatFailureDiagnostics(
-                clientRequestId: clientRequestId,
-                backendRequestId: backendRequestId,
-                stage: .responseNotOk,
-                errorKind: .invalidHttpResponse,
-                statusCode: httpResponse.statusCode,
-                eventType: nil,
-                toolName: nil,
-                toolCallId: nil,
-                lineNumber: nil,
-                rawSnippet: truncatedSnippet(body),
-                decoderSummary: nil
-            )
-            let message = makeRequestFailureMessage(
-                statusCode: httpResponse.statusCode,
-                body: body,
-                requestId: backendRequestId
-            )
-            logAIChatFailure(diagnostics: diagnostics, summary: message)
-            throw AIChatServiceError.invalidResponse(message, diagnostics)
-        }
-
-        var parser = AIChatSSEParser(
-            decoder: self.decoder,
-            clientRequestId: clientRequestId,
-            backendRequestId: backendRequestId
-        )
-        var awaitsToolResults = false
-        var requestedToolCalls: [AIToolCallRequest] = []
-
-        let streamCompleted = try await consumeSSEBytes(bytes: bytes) { line in
-            guard let event = try parser.pushLine(line) else {
-                return false
+        do {
+            if latencyTracker != nil {
+                latencyTracker?.requestStartAt = Date()
             }
 
-            return try await processStreamEvent(
-                event: event,
-                clientRequestId: clientRequestId,
-                requestedToolCalls: &requestedToolCalls,
-                awaitsToolResults: &awaitsToolResults,
-                onDelta: onDelta,
-                onToolCall: onToolCall,
-                onToolCallRequest: onToolCallRequest,
-                onRepairAttempt: onRepairAttempt
-            )
-        }
+            let (bytes, response) = try await self.session.bytes(for: urlRequest)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                let diagnostics = AIChatFailureDiagnostics(
+                    clientRequestId: clientRequestId,
+                    backendRequestId: nil,
+                    stage: .invalidHttpResponse,
+                    errorKind: .invalidStreamResponse,
+                    statusCode: nil,
+                    eventType: nil,
+                    toolName: nil,
+                    toolCallId: nil,
+                    lineNumber: nil,
+                    rawSnippet: nil,
+                    decoderSummary: nil
+                )
+                await emitLatencyIfNeeded(result: .streamErrorBeforeFirstDelta)
+                logAIChatFailure(diagnostics: diagnostics, summary: "Missing HTTPURLResponse")
+                throw AIChatServiceError.invalidStreamResponse(diagnostics)
+            }
 
-        if streamCompleted {
-            return AITurnStreamOutcome(
-                awaitsToolResults: false,
-                requestedToolCalls: requestedToolCalls,
-                requestId: backendRequestId
-            )
-        }
+            backendRequestId = extractChatRequestId(httpResponse: httpResponse)
+            responseStatusCode = httpResponse.statusCode
+            if latencyTracker != nil {
+                latencyTracker?.headersReceivedAt = Date()
+            }
 
-        let trailingEvents = try parser.finish()
-        for event in trailingEvents {
-            let streamCompleted = try await processStreamEvent(
-                event: event,
+            if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
+                let body = try await self.readBody(bytes: bytes)
+                let diagnostics = AIChatFailureDiagnostics(
+                    clientRequestId: clientRequestId,
+                    backendRequestId: backendRequestId,
+                    stage: .responseNotOk,
+                    errorKind: .invalidHttpResponse,
+                    statusCode: httpResponse.statusCode,
+                    eventType: nil,
+                    toolName: nil,
+                    toolCallId: nil,
+                    lineNumber: nil,
+                    rawSnippet: truncatedSnippet(body),
+                    decoderSummary: nil
+                )
+                let message = makeRequestFailureMessage(
+                    statusCode: httpResponse.statusCode,
+                    body: body,
+                    requestId: backendRequestId
+                )
+                await emitLatencyIfNeeded(result: .responseNotOk)
+                logAIChatFailure(diagnostics: diagnostics, summary: message)
+                throw AIChatServiceError.invalidResponse(message, diagnostics)
+            }
+
+            var parser = AIChatSSEParser(
+                decoder: self.decoder,
                 clientRequestId: clientRequestId,
-                requestedToolCalls: &requestedToolCalls,
-                awaitsToolResults: &awaitsToolResults,
-                onDelta: onDelta,
-                onToolCall: onToolCall,
-                onToolCallRequest: onToolCallRequest,
-                onRepairAttempt: onRepairAttempt
+                backendRequestId: backendRequestId
             )
+            var awaitsToolResults = false
+            var requestedToolCalls: [AIToolCallRequest] = []
+
+            let streamCompleted = try await consumeSSEBytes(
+                bytes: bytes,
+                onNonEmptyLine: {
+                    guard latencyTracker != nil else {
+                        return
+                    }
+
+                    latencyTracker?.didReceiveFirstSseLine = true
+                    if latencyTracker?.firstSseLineAt == nil {
+                        latencyTracker?.firstSseLineAt = Date()
+                    }
+                },
+                onLine: { line in
+                    guard let event = try parser.pushLine(line) else {
+                        return false
+                    }
+
+                    if latencyTracker?.firstEventType == nil {
+                        latencyTracker?.firstEventType = aiChatLatencyEventType(event: event)
+                    }
+
+                    switch event {
+                    case .delta:
+                        didReceiveContent = true
+                        latencyTracker?.didReceiveFirstDelta = true
+                        if latencyTracker?.firstDeltaAt == nil {
+                            latencyTracker?.firstDeltaAt = Date()
+                        }
+                    case .toolCall, .toolCallRequest:
+                        didReceiveContent = true
+                    case .repairAttempt, .awaitToolResults, .done, .error:
+                        break
+                    }
+
+                    return try await processStreamEvent(
+                        event: event,
+                        clientRequestId: clientRequestId,
+                        requestedToolCalls: &requestedToolCalls,
+                        awaitsToolResults: &awaitsToolResults,
+                        onDelta: onDelta,
+                        onToolCall: onToolCall,
+                        onToolCallRequest: onToolCallRequest,
+                        onRepairAttempt: onRepairAttempt
+                    )
+                }
+            )
+
             if streamCompleted {
+                let result: AIChatLatencyResult = didReceiveContent ? .success : .emptyResponse
+                await emitLatencyIfNeeded(result: result)
                 return AITurnStreamOutcome(
                     awaitsToolResults: false,
                     requestedToolCalls: requestedToolCalls,
                     requestId: backendRequestId
                 )
             }
-        }
 
-        return AITurnStreamOutcome(
-            awaitsToolResults: awaitsToolResults,
-            requestedToolCalls: requestedToolCalls,
-            requestId: backendRequestId
-        )
+            let trailingEvents = try parser.finish()
+            for event in trailingEvents {
+                if latencyTracker?.firstEventType == nil {
+                    latencyTracker?.firstEventType = aiChatLatencyEventType(event: event)
+                }
+
+                switch event {
+                case .delta:
+                    didReceiveContent = true
+                    latencyTracker?.didReceiveFirstDelta = true
+                    if latencyTracker?.firstDeltaAt == nil {
+                        latencyTracker?.firstDeltaAt = Date()
+                    }
+                case .toolCall, .toolCallRequest:
+                    didReceiveContent = true
+                case .repairAttempt, .awaitToolResults, .done, .error:
+                    break
+                }
+
+                let trailingCompleted = try await processStreamEvent(
+                    event: event,
+                    clientRequestId: clientRequestId,
+                    requestedToolCalls: &requestedToolCalls,
+                    awaitsToolResults: &awaitsToolResults,
+                    onDelta: onDelta,
+                    onToolCall: onToolCall,
+                    onToolCallRequest: onToolCallRequest,
+                    onRepairAttempt: onRepairAttempt
+                )
+                if trailingCompleted {
+                    let result: AIChatLatencyResult = didReceiveContent ? .success : .emptyResponse
+                    await emitLatencyIfNeeded(result: result)
+                    return AITurnStreamOutcome(
+                        awaitsToolResults: false,
+                        requestedToolCalls: requestedToolCalls,
+                        requestId: backendRequestId
+                    )
+                }
+            }
+
+            let result: AIChatLatencyResult = didReceiveContent ? .success : .emptyResponse
+            await emitLatencyIfNeeded(result: result)
+            return AITurnStreamOutcome(
+                awaitsToolResults: awaitsToolResults,
+                requestedToolCalls: requestedToolCalls,
+                requestId: backendRequestId
+            )
+        } catch {
+            if latencyTracker != nil {
+                let result: AIChatLatencyResult
+                if error is CancellationError {
+                    if responseStatusCode == nil {
+                        result = .cancelledBeforeHeaders
+                    } else if latencyTracker?.didReceiveFirstSseLine == true {
+                        result = latencyTracker?.didReceiveFirstDelta == true ? .success : .cancelledBeforeFirstDelta
+                    } else {
+                        result = .cancelledBeforeFirstSseLine
+                    }
+                } else {
+                    result = latencyTracker?.didReceiveFirstDelta == true ? .success : .streamErrorBeforeFirstDelta
+                }
+
+                await emitLatencyIfNeeded(result: result)
+            }
+
+            throw error
+        }
     }
 
     func reportFailureDiagnostics(
         session: CloudLinkedSession,
         body: AIChatFailureReportBody
     ) async {
+        await self.postDiagnostics(
+            session: session,
+            body: body,
+            clientRequestId: body.clientRequestId,
+            backendRequestId: body.backendRequestId
+        )
+    }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+        await self.postDiagnostics(
+            session: session,
+            body: body,
+            clientRequestId: body.clientRequestId,
+            backendRequestId: body.backendRequestId
+        )
+    }
+
+    private func postDiagnostics<Body: Encodable>(
+        session: CloudLinkedSession,
+        body: Body,
+        clientRequestId: String,
+        backendRequestId: String?
+    ) async {
         do {
             var request = URLRequest(url: try self.makeURL(
                 apiBaseUrl: session.apiBaseUrl,
                 path: "/chat/local-turn/diagnostics",
-                clientRequestId: body.clientRequestId
+                clientRequestId: clientRequestId
             ))
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -326,8 +532,8 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     domain: "chat",
                     action: "local_chat_diagnostics_invalid_response",
                     metadata: [
-                        "clientRequestId": body.clientRequestId,
-                        "backendRequestId": body.backendRequestId ?? "-",
+                        "clientRequestId": clientRequestId,
+                        "backendRequestId": backendRequestId ?? "-",
                     ]
                 )
                 return
@@ -338,22 +544,22 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     domain: "chat",
                     action: "local_chat_diagnostics_not_accepted",
                     metadata: [
-                        "clientRequestId": body.clientRequestId,
-                        "backendRequestId": body.backendRequestId ?? "-",
+                        "clientRequestId": clientRequestId,
+                        "backendRequestId": backendRequestId ?? "-",
                         "statusCode": String(httpResponse.statusCode),
                     ]
                 )
             }
         } catch {
-            logFlashcardsError(
-                domain: "chat",
-                action: "local_chat_diagnostics_failed",
-                metadata: [
-                    "clientRequestId": body.clientRequestId,
-                    "backendRequestId": body.backendRequestId ?? "-",
-                    "error": localizedMessage(error: error),
-                ]
-            )
+                logFlashcardsError(
+                    domain: "chat",
+                    action: "local_chat_diagnostics_failed",
+                    metadata: [
+                        "clientRequestId": clientRequestId,
+                        "backendRequestId": backendRequestId ?? "-",
+                        "error": localizedMessage(error: error),
+                    ]
+                )
         }
     }
 
@@ -392,6 +598,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
 
 private func consumeSSEBytes(
     bytes: URLSession.AsyncBytes,
+    onNonEmptyLine: @escaping @Sendable () async -> Void,
     onLine: (String) async throws -> Bool
 ) async throws -> Bool {
     var lineBuffer = Data()
@@ -406,6 +613,9 @@ private func consumeSSEBytes(
 
             let line = String(decoding: lineBuffer, as: UTF8.self)
             lineBuffer.removeAll(keepingCapacity: true)
+            if line.isEmpty == false {
+                await onNonEmptyLine()
+            }
             if try await onLine(line) {
                 return true
             }
@@ -416,6 +626,9 @@ private func consumeSSEBytes(
             let line = String(decoding: lineBuffer, as: UTF8.self)
             lineBuffer.removeAll(keepingCapacity: true)
             previousWasCarriageReturn = true
+            if line.isEmpty == false {
+                await onNonEmptyLine()
+            }
             if try await onLine(line) {
                 return true
             }
@@ -427,6 +640,7 @@ private func consumeSSEBytes(
     }
 
     if lineBuffer.isEmpty == false {
+        await onNonEmptyLine()
         return try await onLine(String(decoding: lineBuffer, as: UTF8.self))
     }
 
@@ -478,6 +692,25 @@ private func processStreamEvent(
         )
         logAIChatFailure(diagnostics: diagnostics, summary: backendError.message)
         throw AIChatServiceError.backendError(backendError, diagnostics)
+    }
+}
+
+private func aiChatLatencyEventType(event: AIChatBackendStreamEvent) -> String {
+    switch event {
+    case .delta:
+        return "delta"
+    case .toolCall:
+        return "tool_call"
+    case .toolCallRequest:
+        return "tool_call_request"
+    case .repairAttempt:
+        return "repair_attempt"
+    case .awaitToolResults:
+        return "await_tool_results"
+    case .done:
+        return "done"
+    case .error:
+        return "error"
     }
 }
 
@@ -627,6 +860,34 @@ private func logAIChatFailure(diagnostics: AIChatFailureDiagnostics, summary: St
             "decoderSummary": diagnostics.decoderSummary ?? "-",
             "rawSnippet": diagnostics.rawSnippet ?? "-",
             "summary": summary,
+        ]
+    )
+}
+
+private func logAIChatLatency(body: AIChatLatencyReportBody) {
+    logFlashcardsError(
+        domain: "chat",
+        action: "local_chat_latency",
+        metadata: [
+            "clientRequestId": body.clientRequestId,
+            "backendRequestId": body.backendRequestId ?? "-",
+            "selectedModel": body.selectedModel,
+            "messageCount": String(body.messageCount),
+            "appVersion": body.appVersion,
+            "devicePlatform": body.devicePlatform,
+            "result": body.result,
+            "statusCode": body.statusCode.map(String.init) ?? "-",
+            "firstEventType": body.firstEventType ?? "-",
+            "didReceiveFirstSseLine": String(body.didReceiveFirstSseLine),
+            "didReceiveFirstDelta": String(body.didReceiveFirstDelta),
+            "tapToRequestStartMs": body.tapToRequestStartMs.map(String.init) ?? "-",
+            "requestStartToHeadersMs": body.requestStartToHeadersMs.map(String.init) ?? "-",
+            "headersToFirstSseLineMs": body.headersToFirstSseLineMs.map(String.init) ?? "-",
+            "firstSseLineToFirstDeltaMs": body.firstSseLineToFirstDeltaMs.map(String.init) ?? "-",
+            "requestStartToFirstDeltaMs": body.requestStartToFirstDeltaMs.map(String.init) ?? "-",
+            "tapToFirstDeltaMs": body.tapToFirstDeltaMs.map(String.init) ?? "-",
+            "requestStartToTerminalMs": body.requestStartToTerminalMs.map(String.init) ?? "-",
+            "tapToTerminalMs": body.tapToTerminalMs.map(String.init) ?? "-",
         ]
     )
 }

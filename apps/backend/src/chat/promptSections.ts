@@ -122,6 +122,17 @@ export function buildLocalRepairSection(): string {
   ]);
 }
 
+/**
+ * Keep this block limited to short, stable user facts that help the model
+ * start from the right high-level context without replacing workspace tools.
+ */
+export function buildUserContextSection(totalCards: number): string {
+  return joinLines([
+    "User context:",
+    `- The current workspace has ${totalCards} cards.`,
+  ]);
+}
+
 export function buildDatetimeSection(timezone: string): string {
   const now = new Date();
   const utc = now.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
