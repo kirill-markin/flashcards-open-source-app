@@ -362,6 +362,40 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testAIChatStoreKeepsAttachmentsAddedDuringStreamingAfterStopping() throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: SuspendingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+        XCTAssertTrue(chatStore.isStreaming)
+
+        let pendingAttachment = AIChatAttachment(
+            id: "attachment-1",
+            fileName: "follow-up.txt",
+            mediaType: "text/plain",
+            base64Data: Data("next".utf8).base64EncodedString()
+        )
+        chatStore.appendAttachment(pendingAttachment)
+        chatStore.inputText = "follow up"
+
+        chatStore.cancelStreaming()
+
+        XCTAssertFalse(chatStore.isStreaming)
+        XCTAssertEqual(chatStore.inputText, "follow up")
+        XCTAssertEqual(chatStore.pendingAttachments, [pendingAttachment])
+    }
+
+    @MainActor
     func testAIChatStoreAppliesCreateCardPresentationRequestAsDraftOnly() throws {
         let flashcardsStore = try self.makeStore()
         let failingToolExecutor = FailingToolExecutor()

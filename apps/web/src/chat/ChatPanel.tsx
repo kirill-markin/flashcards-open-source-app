@@ -75,6 +75,8 @@ export function ChatPanel(props: Props): ReactElement {
   const dragCounterRef = useRef<number>(0);
   const dragWidthRef = useRef<number>(chatWidth);
   const abortRef = useRef<AbortController | null>(null);
+  const activeStreamIdRef = useRef<number>(0);
+  const nextStreamIdRef = useRef<number>(1);
 
   const { handleMessagesScroll } = useChatAutoScroll({
     isHydrated,
@@ -214,6 +216,18 @@ export function ChatPanel(props: Props): ReactElement {
     ]);
   }
 
+  function stopActiveStream(): void {
+    const currentAbortController = abortRef.current;
+    if (currentAbortController === null) {
+      return;
+    }
+
+    currentAbortController.abort();
+    abortRef.current = null;
+    activeStreamIdRef.current = 0;
+    setIsStreaming(false);
+  }
+
   async function handleDrop(event: DragEvent<HTMLDivElement>): Promise<void> {
     event.preventDefault();
     dragCounterRef.current = 0;
@@ -272,8 +286,11 @@ export function ChatPanel(props: Props): ReactElement {
     startAssistantMessage();
     hasStartedAssistant = true;
 
+    const streamId = nextStreamIdRef.current;
+    nextStreamIdRef.current += 1;
     const abortController = new AbortController();
     abortRef.current = abortController;
+    activeStreamIdRef.current = streamId;
 
     try {
       const storageState = await ensurePersistentStorage();
@@ -322,8 +339,11 @@ export function ChatPanel(props: Props): ReactElement {
       if (abortController.signal.aborted) {
         console.info("chat_request_aborted", { model: selectedModel });
       }
-      setIsStreaming(false);
-      abortRef.current = null;
+      if (activeStreamIdRef.current === streamId) {
+        setIsStreaming(false);
+        abortRef.current = null;
+        activeStreamIdRef.current = 0;
+      }
     }
   }
 
@@ -377,11 +397,7 @@ export function ChatPanel(props: Props): ReactElement {
             type="button"
             className="chat-close-btn"
             onClick={() => {
-              if (abortRef.current !== null) {
-                abortRef.current.abort();
-                abortRef.current = null;
-              }
-              setIsStreaming(false);
+              stopActiveStream();
               clearHistory();
             }}
           >
@@ -467,14 +483,25 @@ export function ChatPanel(props: Props): ReactElement {
           />
           <div className="chat-controls-right">
             <FileAttachment onAttach={handleAttach} />
-            <button
-              type="button"
-              className="chat-send-btn"
-              disabled={isStreaming}
-              onClick={() => void sendMessage()}
-            >
-              Send
-            </button>
+            {isStreaming ? (
+              <button
+                type="button"
+                className="chat-stop-btn"
+                aria-label="Stop response"
+                onClick={stopActiveStream}
+              >
+                <span className="chat-stop-btn-icon" aria-hidden="true" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="chat-send-btn"
+                aria-label="Send message"
+                onClick={() => void sendMessage()}
+              >
+                Send
+              </button>
+            )}
           </div>
         </div>
       </div>

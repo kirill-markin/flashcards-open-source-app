@@ -363,7 +363,6 @@ struct AIChatView: View {
                         Image(systemName: "paperclip")
                     }
                     .buttonStyle(.bordered)
-                    .disabled(self.chatStore.isStreaming)
                     .accessibilityLabel("Add attachment")
                     .accessibilityHint("Take a photo, choose a photo, or select a file")
                     .menuOrder(.fixed)
