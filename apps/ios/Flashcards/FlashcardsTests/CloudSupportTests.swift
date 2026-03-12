@@ -78,6 +78,32 @@ final class CloudSupportTests: XCTestCase {
         XCTAssertTrue(isValidCloudEmail(" User@Example.com "))
     }
 
+    func testMakeCloudWorkspacePostAuthRouteAutoLinksByCreatingWorkspaceWhenListIsEmpty() {
+        XCTAssertEqual(
+            makeCloudWorkspacePostAuthRoute(workspaces: []),
+            .autoLink(.createNew)
+        )
+    }
+
+    func testMakeCloudWorkspacePostAuthRouteAutoLinksSingleWorkspace() {
+        XCTAssertEqual(
+            makeCloudWorkspacePostAuthRoute(workspaces: [
+                self.makeCloudWorkspaceSummary(workspaceId: "workspace-1")
+            ]),
+            .autoLink(.existing(workspaceId: "workspace-1"))
+        )
+    }
+
+    func testMakeCloudWorkspacePostAuthRouteShowsChooserForSeveralWorkspaces() {
+        XCTAssertEqual(
+            makeCloudWorkspacePostAuthRoute(workspaces: [
+                self.makeCloudWorkspaceSummary(workspaceId: "workspace-1"),
+                self.makeCloudWorkspaceSummary(workspaceId: "workspace-2")
+            ]),
+            .chooseWorkspace
+        )
+    }
+
     func testMakeIdTokenExpiryTimestampProducesFutureIsoTimestamp() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-08T10:00:00.000Z"))
 
@@ -394,6 +420,15 @@ final class CloudSupportTests: XCTestCase {
             backText: backText,
             tags: ["tag-a"],
             effortLevel: .medium
+        )
+    }
+
+    private func makeCloudWorkspaceSummary(workspaceId: String) -> CloudWorkspaceSummary {
+        CloudWorkspaceSummary(
+            workspaceId: workspaceId,
+            name: "Personal",
+            createdAt: "2026-03-12T10:00:00.000Z",
+            isSelected: false
         )
     }
 

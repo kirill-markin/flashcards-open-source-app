@@ -50,6 +50,23 @@ private struct CloudPostAuthLoadingState: Identifiable, Hashable {
     }
 }
 
+enum CloudWorkspacePostAuthRoute: Equatable {
+    case autoLink(CloudWorkspaceLinkSelection)
+    case chooseWorkspace
+}
+
+func makeCloudWorkspacePostAuthRoute(workspaces: [CloudWorkspaceSummary]) -> CloudWorkspacePostAuthRoute {
+    if workspaces.isEmpty {
+        return .autoLink(.createNew)
+    }
+
+    if workspaces.count == 1, let workspace = workspaces.first {
+        return .autoLink(.existing(workspaceId: workspace.workspaceId))
+    }
+
+    return .chooseWorkspace
+}
+
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FlashcardsStore
@@ -230,12 +247,12 @@ struct CloudSignInSheet: View {
         self.errorMessage = ""
         self.postAuthLoadingState = nil
 
-        if linkContext.workspaces.isEmpty == false {
+        switch makeCloudWorkspacePostAuthRoute(workspaces: linkContext.workspaces) {
+        case .autoLink(let selection):
+            self.completeLink(linkContext: linkContext, selection: selection)
+        case .chooseWorkspace:
             self.workspaceLinkContext = linkContext
-            return
         }
-
-        self.completeLink(linkContext: linkContext, selection: .createNew)
     }
 
     private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
@@ -589,11 +606,13 @@ private struct CloudWorkspaceSelectionSheet: View {
                     }
                 }
 
-                Section {
-                    Button(self.createButtonTitle) {
-                        self.completeLink(selection: .createNew)
+                if self.linkContext.workspaces.count > 1 {
+                    Section {
+                        Button(self.createButtonTitle) {
+                            self.completeLink(selection: .createNew)
+                        }
+                        .disabled(self.isLinking)
                     }
-                    .disabled(self.isLinking)
                 }
             }
             .navigationTitle("Choose workspace")
