@@ -24,13 +24,23 @@ function toIsoString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
+const upsertUserSettingsSql = [
+  "INSERT INTO org.user_settings (user_id, email)",
+  "VALUES ($1, $2)",
+  "ON CONFLICT (user_id) DO UPDATE",
+  "SET email = EXCLUDED.email",
+  "WHERE org.user_settings.email IS NULL",
+  "AND EXCLUDED.email IS NOT NULL",
+].join(" ");
+
 export async function ensureUserProfileInExecutor(
   executor: DatabaseExecutor,
   userId: string,
+  email: string | null,
 ): Promise<UserProfile> {
   await executor.query(
-    "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
-    [userId],
+    upsertUserSettingsSql,
+    [userId, email],
   );
 
   const existing = await executor.query<UserSettingsRow>(
@@ -58,6 +68,6 @@ export async function ensureUserProfileInExecutor(
   };
 }
 
-export async function ensureUserProfile(userId: string): Promise<UserProfile> {
-  return transaction(async (executor) => ensureUserProfileInExecutor(executor, userId));
+export async function ensureUserProfile(userId: string, email: string | null): Promise<UserProfile> {
+  return transaction(async (executor) => ensureUserProfileInExecutor(executor, userId, email));
 }

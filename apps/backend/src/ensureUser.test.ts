@@ -6,6 +6,24 @@ import { ensureUserProfileInExecutor } from "./ensureUser";
 
 const lockedUserSettingsSelectSql = "SELECT workspace_id, email, locale, created_at FROM org.user_settings WHERE user_id = $1 FOR UPDATE";
 
+function assertUserSettingsInsertParams(
+  params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
+  userId: string,
+  email: string,
+): void {
+  assert.ok(
+    (
+      params.length === 2
+      && params[0] === userId
+      && params[1] === email
+    )
+    || (
+      params.length === 1
+      && params[0] === userId
+    ),
+  );
+}
+
 function makeQueryResult<Row extends pg.QueryResultRow>(
   rows: ReadonlyArray<pg.QueryResultRow>,
 ): pg.QueryResult<Row> {
@@ -28,6 +46,7 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
       if (text.includes("INSERT INTO org.user_settings")) {
+        assertUserSettingsInsertParams(params, "new-user", "new-user@example.com");
         return makeQueryResult<Row>([]);
       }
 
@@ -99,7 +118,7 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
     },
   };
 
-  const profile = await ensureUserProfileInExecutor(executor, "new-user");
+  const profile = await ensureUserProfileInExecutor(executor, "new-user", "new-user@example.com");
   assert.ok(savedWorkspaceId !== null);
   assert.equal(profile.selectedWorkspaceId, savedWorkspaceId);
   assert.equal(profile.email, "new-user@example.com");
@@ -115,6 +134,7 @@ test("ensureUserProfileInExecutor repairs missing selected workspace with earlie
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
       if (text.includes("INSERT INTO org.user_settings")) {
+        assertUserSettingsInsertParams(params, "existing-user", "existing@example.com");
         return makeQueryResult<Row>([]);
       }
 
@@ -156,7 +176,7 @@ test("ensureUserProfileInExecutor repairs missing selected workspace with earlie
     },
   };
 
-  const profile = await ensureUserProfileInExecutor(executor, "existing-user");
+  const profile = await ensureUserProfileInExecutor(executor, "existing-user", "existing@example.com");
   assert.equal(updatedWorkspaceId, "workspace-a");
   assert.equal(profile.selectedWorkspaceId, "workspace-a");
   assert.equal(profile.email, "existing@example.com");
@@ -168,9 +188,10 @@ test("ensureUserProfileInExecutor keeps selected workspace when it is accessible
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
       text: string,
-      _params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
+      params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
       if (text.includes("INSERT INTO org.user_settings")) {
+        assertUserSettingsInsertParams(params, "selected-user", "selected@example.com");
         return makeQueryResult<Row>([]);
       }
 
@@ -199,7 +220,7 @@ test("ensureUserProfileInExecutor keeps selected workspace when it is accessible
     },
   };
 
-  const profile = await ensureUserProfileInExecutor(executor, "selected-user");
+  const profile = await ensureUserProfileInExecutor(executor, "selected-user", "selected@example.com");
   assert.equal(profile.selectedWorkspaceId, "workspace-b");
   assert.equal(selectionUpdates, 0);
 });
@@ -213,6 +234,7 @@ test("ensureUserProfileInExecutor reuses existing membership when selection is e
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
       if (text.includes("INSERT INTO org.user_settings")) {
+        assertUserSettingsInsertParams(params, "linked-user", "linked@example.com");
         return makeQueryResult<Row>([]);
       }
 
@@ -253,8 +275,42 @@ test("ensureUserProfileInExecutor reuses existing membership when selection is e
     },
   };
 
-  const profile = await ensureUserProfileInExecutor(executor, "linked-user");
+  const profile = await ensureUserProfileInExecutor(executor, "linked-user", "linked@example.com");
   assert.equal(updatedWorkspaceId, "workspace-existing");
   assert.equal(profile.selectedWorkspaceId, "workspace-existing");
   assert.equal(profile.email, "linked@example.com");
+});
+
+test("ensureUserProfileInExecutor keeps existing non-null email value", async () => {
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("INSERT INTO org.user_settings")) {
+        assertUserSettingsInsertParams(params, "stable-user", "new@example.com");
+        return makeQueryResult<Row>([]);
+      }
+
+      if (text.includes(lockedUserSettingsSelectSql)) {
+        return makeQueryResult<Row>([{
+          workspace_id: "workspace-stable",
+          email: "stable@example.com",
+          locale: "en",
+          created_at: "2026-03-10T10:00:00.000Z",
+        }]);
+      }
+
+      if (text.includes("SELECT memberships.workspace_id")) {
+        return makeQueryResult<Row>([
+          { workspace_id: "workspace-stable" },
+        ]);
+      }
+
+      throw new Error(`Unexpected SQL in test: ${text}`);
+    },
+  };
+
+  const profile = await ensureUserProfileInExecutor(executor, "stable-user", "new@example.com");
+  assert.equal(profile.email, "stable@example.com");
 });

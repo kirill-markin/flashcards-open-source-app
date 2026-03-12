@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { transaction, query, type DatabaseExecutor } from "../db.js";
-import { verifySessionTokenSubject } from "./browserSession.js";
+import { verifySessionTokenIdentity } from "./browserSession.js";
 import { createCrockfordToken } from "./crockford.js";
 
 const AGENT_API_KEY_PREFIX = "fca";
@@ -77,6 +77,15 @@ function formatAgentApiKey(keyId: string, secret: string): string {
   return `${AGENT_API_KEY_PREFIX}_${keyId}_${secret}`;
 }
 
+const upsertUserSettingsSql = [
+  "INSERT INTO org.user_settings (user_id, email)",
+  "VALUES ($1, $2)",
+  "ON CONFLICT (user_id) DO UPDATE",
+  "SET email = EXCLUDED.email",
+  "WHERE org.user_settings.email IS NULL",
+  "AND EXCLUDED.email IS NOT NULL",
+].join(" ");
+
 async function createWorkspaceInExecutor(
   executor: DatabaseExecutor,
   userId: string,
@@ -133,7 +142,7 @@ function mapConnection(row: AgentApiKeyRow): AgentApiKeyConnection {
  * token. The key is shown once and only its hash is persisted.
  */
 export async function createAgentApiKeyFromIdToken(idToken: string, label: string): Promise<CreatedAgentApiKey> {
-  const userId = await verifySessionTokenSubject(idToken);
+  const identity = await verifySessionTokenIdentity(idToken);
   const normalizedLabel = normalizeAgentApiKeyLabel(label);
   const connectionId = randomUUID();
   const keyId = createKeyId();
@@ -142,8 +151,8 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
 
   const result = await transaction(async (executor) => {
     await executor.query(
-      "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
-      [userId],
+      upsertUserSettingsSql,
+      [identity.userId, identity.email],
     );
     const membershipResult = await executor.query<WorkspaceMembershipRow>(
       [
@@ -152,11 +161,11 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
         "WHERE user_id = $1",
         "ORDER BY created_at ASC, workspace_id ASC",
       ].join(" "),
-      [userId],
+      [identity.userId],
     );
     let selectedWorkspaceId: string | null;
     if (membershipResult.rows.length === 0) {
-      selectedWorkspaceId = await createWorkspaceInExecutor(executor, userId);
+      selectedWorkspaceId = await createWorkspaceInExecutor(executor, identity.userId);
     } else if (membershipResult.rows.length === 1) {
       const onlyWorkspace = membershipResult.rows[0];
       if (onlyWorkspace === undefined) {
@@ -174,7 +183,7 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
         "VALUES ($1, $2, $3, $4, $5, $6)",
         "RETURNING connection_id, user_id, label, key_id, selected_workspace_id, created_at, last_used_at, revoked_at",
       ].join(" "),
-      [connectionId, userId, normalizedLabel, keyId, keyHash, selectedWorkspaceId],
+      [connectionId, identity.userId, normalizedLabel, keyId, keyHash, selectedWorkspaceId],
     );
     const row = inserted.rows[0];
     if (row === undefined) {

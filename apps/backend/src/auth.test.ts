@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { authenticateRequest, AuthError } from "./auth";
+import { authenticateRequest, AuthError, extractVerifiedIdTokenIdentity } from "./auth";
 import { resetAuthConfigForTests } from "./authConfig";
 
 const originalAuthMode = process.env.AUTH_MODE;
@@ -35,6 +35,7 @@ test("authenticateRequest returns local auth only for explicitly gated insecure 
 
   assert.deepEqual(result, {
     userId: "local",
+    email: null,
     transport: "none",
     connectionId: null,
     selectedWorkspaceId: null,
@@ -53,5 +54,28 @@ test("authenticateRequest rejects unauthenticated requests in cognito mode", asy
     (error: unknown) => error instanceof AuthError
       && error.statusCode === 401
       && error.message === "Missing authentication token",
+  );
+});
+
+test("extractVerifiedIdTokenIdentity returns userId and email", () => {
+  assert.deepEqual(
+    extractVerifiedIdTokenIdentity({
+      sub: "user-123",
+      email: "user@example.com",
+    }),
+    {
+      userId: "user-123",
+      email: "user@example.com",
+    },
+  );
+});
+
+test("extractVerifiedIdTokenIdentity rejects missing email claim", () => {
+  assert.throws(
+    () => extractVerifiedIdTokenIdentity({
+      sub: "user-123",
+    }),
+    (error: unknown) => error instanceof Error
+      && error.message === "Cognito ID token is missing email claim",
   );
 });

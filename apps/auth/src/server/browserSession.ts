@@ -17,6 +17,16 @@ type SessionTokenValidationResult =
   | Readonly<{ status: "invalid"; reason: string }>
   | Readonly<{ status: "error"; reason: string }>;
 
+type VerifiedSessionTokenPayload = Readonly<{
+  sub: string;
+  email?: unknown;
+}>;
+
+export type SessionUserIdentity = Readonly<{
+  userId: string;
+  email: string;
+}>;
+
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
 
 function getUserPoolId(): string {
@@ -93,11 +103,23 @@ export async function validateSessionToken(sessionToken: string): Promise<Sessio
 
 /**
  * Verifies a Cognito ID token issued for this app and returns the stable user
- * subject so the auth service can create first-party agent API keys.
+ * identity so the auth service can create first-party agent API keys.
  */
-export async function verifySessionTokenSubject(sessionToken: string): Promise<string> {
+export function extractVerifiedSessionIdentity(payload: VerifiedSessionTokenPayload): SessionUserIdentity {
+  const email = typeof payload.email === "string" ? payload.email.trim() : "";
+  if (email === "") {
+    throw new Error("Cognito ID token is missing email claim");
+  }
+
+  return {
+    userId: payload.sub,
+    email,
+  };
+}
+
+export async function verifySessionTokenIdentity(sessionToken: string): Promise<SessionUserIdentity> {
   const payload = await getVerifier().verify(sessionToken);
-  return payload.sub;
+  return extractVerifiedSessionIdentity(payload as VerifiedSessionTokenPayload);
 }
 
 export function setBrowserSessionCookies(
