@@ -12,10 +12,6 @@ import type { AppDataContextValue, MutableSnapshot } from "../appData/types";
 import {
   deriveActiveCards,
   deriveActiveDecks,
-  isCardDue,
-  isCardNew,
-  isCardReviewed,
-  makeWorkspaceTagsSummary,
 } from "../appData/domain";
 import type { PersistedOutboxRecord } from "../syncStorage";
 import type {
@@ -24,25 +20,19 @@ import type {
   CreateCardInput,
   CreateDeckInput,
   Deck,
-  HomeSnapshot,
-  SessionInfo,
   UpdateCardInput,
   UpdateDeckInput,
-  Workspace,
   WorkspaceSummary,
 } from "../types";
 import {
+  executeSqlSelect,
+  getSqlResourceDescriptor,
   getSqlResourceDescriptors,
+  likePatternToRegExp,
   parseSqlStatement,
-  type ParsedSqlStatement,
-  type SqlPredicate,
+  type SqlRow,
   type SqlResourceName,
-  type SqlSelectOrderBy,
 } from "../../../backend/src/aiTools/sqlDialect";
-
-type SqlRowScalar = string | number | boolean | null;
-type SqlRowValue = SqlRowScalar | ReadonlyArray<string> | ReadonlyArray<number>;
-type SqlRow = Readonly<Record<string, SqlRowValue>>;
 
 type Nullable<T> = T | null;
 
@@ -269,21 +259,6 @@ function activeDecks(snapshot: MutableSnapshot): ReadonlyArray<Deck> {
   return [...deriveActiveDecks(snapshot.decks)].sort(compareDecksByUpdatedAt);
 }
 
-function dueCards(snapshot: MutableSnapshot): ReadonlyArray<Card> {
-  const nowTimestamp = Date.now();
-  return currentActiveCards(snapshot)
-    .filter((card) => isCardDue(card, nowTimestamp))
-    .sort((left, right) => {
-      const leftDueAt = left.dueAt ?? "";
-      const rightDueAt = right.dueAt ?? "";
-      if (leftDueAt !== rightDueAt) {
-        return leftDueAt.localeCompare(rightDueAt);
-      }
-
-      return compareCardsByUpdatedAt(left, right);
-    });
-}
-
 function findCard(snapshot: MutableSnapshot, cardId: string): Card {
   const card = snapshot.cards.find((item) => item.cardId === cardId && item.deletedAt === null);
   if (card === undefined) {
@@ -300,26 +275,6 @@ function findDeck(snapshot: MutableSnapshot, deckId: string): Deck {
   }
 
   return deck;
-}
-
-function makeWorkspace(activeWorkspace: WorkspaceSummary): Workspace {
-  return {
-    workspaceId: activeWorkspace.workspaceId,
-    name: activeWorkspace.name,
-    createdAt: activeWorkspace.createdAt,
-  };
-}
-
-function makeHomeSnapshot(snapshot: MutableSnapshot): HomeSnapshot {
-  const activeCards = deriveActiveCards(snapshot.cards);
-
-  return {
-    deckCount: activeDecks(snapshot).length,
-    totalCards: activeCards.length,
-    dueCount: activeCards.filter((card) => isCardDue(card, Date.now())).length,
-    newCount: activeCards.filter((card) => isCardNew(card)).length,
-    reviewedCount: activeCards.filter((card) => isCardReviewed(card)).length,
-  };
 }
 
 function describeOutboxPayload(record: PersistedOutboxRecord): string {
@@ -396,185 +351,20 @@ function toDeckRow(deck: Deck): SqlRow {
   };
 }
 
-function compareRowValues(left: SqlRowValue | undefined, right: SqlRowValue | undefined): number {
-  if (left === undefined && right === undefined) {
-    return 0;
-  }
-
-  if (left === undefined || left === null) {
-    return right === undefined || right === null ? 0 : -1;
-  }
-
-  if (right === undefined || right === null) {
-    return 1;
-  }
-
-  if (Array.isArray(left) || Array.isArray(right)) {
-    const leftText = Array.isArray(left) ? left.join("\u0000") : String(left);
-    const rightText = Array.isArray(right) ? right.join("\u0000") : String(right);
-    return leftText.localeCompare(rightText);
-  }
-
-  if (typeof left === "number" && typeof right === "number") {
-    return left - right;
-  }
-
-  if (typeof left === "boolean" && typeof right === "boolean") {
-    return Number(left) - Number(right);
-  }
-
-  return String(left).localeCompare(String(right));
-}
-
-function valuesEqual(left: SqlRowValue | undefined, right: string | number | boolean | null): boolean {
-  if (left === undefined || Array.isArray(left)) {
-    return false;
-  }
-
-  return left === right;
-}
-
-function normalizeStringArray(value: SqlRowValue | undefined): ReadonlyArray<string> {
-  if (value === undefined || value === null || Array.isArray(value) === false) {
-    return [];
-  }
-
-  return value.filter((item): item is string => typeof item === "string");
-}
-
-function normalizeSearchableText(value: SqlRowValue): string {
-  if (Array.isArray(value)) {
-    return value.join(" ").toLowerCase();
-  }
-
-  if (value === null) {
-    return "";
-  }
-
-  return String(value).toLowerCase();
-}
-
-function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
-  if (predicate.type === "match") {
-    const normalizedQuery = predicate.query.trim().toLowerCase();
-    if (normalizedQuery === "") {
-      throw new Error("MATCH query must not be empty");
-    }
-
-    return Object.values(row).some((value) => normalizeSearchableText(value).includes(normalizedQuery));
-  }
-
-  const columnValue = row[predicate.columnName];
-  if (predicate.type === "comparison") {
-    return valuesEqual(columnValue, predicate.value);
-  }
-
-  if (predicate.type === "in") {
-    return predicate.values.some((value) => valuesEqual(columnValue, value));
-  }
-
-  if (predicate.type === "is_null") {
-    return columnValue === null;
-  }
-
-  return normalizeStringArray(columnValue).some((value) => predicate.values.includes(value));
-}
-
-function applyPredicates(rows: ReadonlyArray<SqlRow>, predicates: ReadonlyArray<SqlPredicate>): ReadonlyArray<SqlRow> {
-  if (predicates.length === 0) {
-    return rows;
-  }
-
-  return rows.filter((row) => predicates.every((predicate) => rowMatchesPredicate(row, predicate)));
-}
-
-function applyOrderBy(rows: ReadonlyArray<SqlRow>, orderBy: ReadonlyArray<SqlSelectOrderBy>): ReadonlyArray<SqlRow> {
-  if (orderBy.length === 0) {
-    return rows;
-  }
-
-  return [...rows].sort((left, right) => {
-    for (const item of orderBy) {
-      const comparison = compareRowValues(left[item.columnName], right[item.columnName]);
-      if (comparison !== 0) {
-        return item.direction === "desc" ? -comparison : comparison;
-      }
-    }
-
-    return 0;
-  });
-}
-
-function paginateRows(
-  rows: ReadonlyArray<SqlRow>,
-  limit: number,
-  offset: number,
-): Readonly<{ rows: ReadonlyArray<SqlRow>; hasMore: boolean }> {
-  const pagedRows = rows.slice(offset, offset + limit);
-  return {
-    rows: pagedRows,
-    hasMore: offset + pagedRows.length < rows.length,
-  };
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function likePatternToRegExp(value: string): RegExp {
-  const escaped = escapeRegExp(value).replace(/%/g, ".*").replace(/_/g, ".");
-  return new RegExp(`^${escaped}$`, "i");
-}
-
-function normalizeSqlLimit(limit: number | null): number {
-  if (limit === null) {
-    return MAX_SQL_LIMIT;
-  }
-
-  if (limit < 1) {
-    throw new Error("LIMIT must be greater than 0");
-  }
-
-  return Math.min(limit, MAX_SQL_LIMIT);
-}
-
-function normalizeSqlOffset(offset: number | null): number {
-  if (offset === null) {
-    return 0;
-  }
-
-  if (offset < 0) {
-    throw new Error("OFFSET must be a non-negative integer");
-  }
-
-  return offset;
-}
-
 function loadSelectRows(
-  session: SessionInfo,
   activeWorkspace: WorkspaceSummary,
   snapshot: MutableSnapshot,
   resourceName: SqlResourceName,
 ): ReadonlyArray<SqlRow> {
-  if (resourceName === "workspace_context") {
-    const workspace = makeWorkspace(activeWorkspace);
-    const homeSnapshot = makeHomeSnapshot(snapshot);
-    return [{
-      workspace_id: workspace.workspaceId,
-      workspace_name: workspace.name,
-      total_cards: homeSnapshot.totalCards,
-      due_cards: homeSnapshot.dueCount,
-      new_cards: homeSnapshot.newCount,
-      reviewed_cards: homeSnapshot.reviewedCount,
-    }];
-  }
-
-  if (resourceName === "scheduler_settings") {
+  if (resourceName === "workspace") {
     if (snapshot.workspaceSettings === null) {
       throw new Error("Workspace scheduler settings are not loaded");
     }
 
     return [{
+      workspace_id: activeWorkspace.workspaceId,
+      name: activeWorkspace.name,
+      created_at: activeWorkspace.createdAt,
       algorithm: snapshot.workspaceSettings.algorithm,
       desired_retention: snapshot.workspaceSettings.desiredRetention,
       learning_steps_minutes: snapshot.workspaceSettings.learningStepsMinutes,
@@ -584,28 +374,14 @@ function loadSelectRows(
     }];
   }
 
-  if (resourceName === "tags_summary") {
-    const payload = makeWorkspaceTagsSummary(currentActiveCards(snapshot));
-    return payload.tags.map((tag) => ({
-      tag: tag.tag,
-      cards_count: tag.cardsCount,
-      total_cards: payload.totalCards,
-    }));
-  }
-
   if (resourceName === "cards") {
     return currentActiveCards(snapshot).map(toCardRow);
-  }
-
-  if (resourceName === "due_cards") {
-    return dueCards(snapshot).map(toCardRow);
   }
 
   if (resourceName === "decks") {
     return activeDecks(snapshot).map(toDeckRow);
   }
 
-  void session;
   return snapshot.reviewEvents.map((event) => ({
     review_event_id: event.reviewEventId,
     card_id: event.cardId,
@@ -703,7 +479,6 @@ function rowFromInsert(
 function ensureLocalWorkspace(
   dependencies: WebLocalToolExecutorDependencies,
 ): Readonly<{
-  session: SessionInfo;
   activeWorkspace: WorkspaceSummary;
   snapshot: MutableSnapshot;
 }> {
@@ -716,7 +491,6 @@ function ensureLocalWorkspace(
   }
 
   return {
-    session: dependencies.session,
     activeWorkspace: dependencies.activeWorkspace,
     snapshot: dependencies.getLocalSnapshot(),
   };
@@ -724,7 +498,6 @@ function ensureLocalWorkspace(
 
 async function executeSqlLocally(
   dependencies: WebLocalToolExecutorDependencies,
-  session: SessionInfo,
   activeWorkspace: WorkspaceSummary,
   snapshot: MutableSnapshot,
   sql: string,
@@ -759,12 +532,7 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "describe") {
-    const descriptor = getSqlResourceDescriptors().find((item) => item.resourceName === statement.resourceName);
-    if (descriptor === undefined) {
-      throw new Error(`Unknown resource: ${statement.resourceName}`);
-    }
-
-    const rows = descriptor.columns.map((column) => ({
+    const rows = getSqlResourceDescriptor(statement.resourceName).columns.map((column) => ({
       column_name: column.columnName,
       type: column.type,
       nullable: column.nullable,
@@ -790,23 +558,19 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "select") {
-    const limit = normalizeSqlLimit(statement.limit);
-    const offset = normalizeSqlOffset(statement.offset);
-    const rows = loadSelectRows(session, activeWorkspace, snapshot, statement.resourceName);
-    const filteredRows = applyPredicates(rows, statement.predicates);
-    const orderedRows = applyOrderBy(filteredRows, statement.orderBy);
-    const paginatedRows = paginateRows(orderedRows, limit, offset);
+    const rows = loadSelectRows(activeWorkspace, snapshot, statement.source.resourceName);
+    const result = executeSqlSelect(statement, rows, MAX_SQL_LIMIT);
     return {
       payload: {
         statementType: "select",
-        resource: statement.resourceName,
+        resource: statement.source.resourceName,
         sql,
         normalizedSql: statement.normalizedSql,
-        rows: paginatedRows.rows,
-        rowCount: paginatedRows.rows.length,
-        limit,
-        offset,
-        hasMore: paginatedRows.hasMore,
+        rows: result.rows,
+        rowCount: result.rowCount,
+        limit: result.limit,
+        offset: result.offset,
+        hasMore: result.hasMore,
       },
       didMutateAppState: false,
     };
@@ -847,7 +611,21 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "update" && statement.resourceName === "cards") {
-    const currentRows = applyPredicates(loadSelectRows(session, activeWorkspace, snapshot, "cards"), statement.predicates);
+    const currentRows = executeSqlSelect({
+      type: "select",
+      source: {
+        resourceName: "cards",
+        unnestAlias: null,
+        unnestColumnName: null,
+      },
+      selectItems: [{ type: "wildcard" }],
+      predicateClauses: statement.predicateClauses,
+      groupBy: [],
+      orderBy: [],
+      limit: MAX_SQL_LIMIT,
+      offset: 0,
+      normalizedSql: statement.normalizedSql,
+    }, loadSelectRows(activeWorkspace, snapshot, "cards"), Number.MAX_SAFE_INTEGER).rows;
     const updatedCards = await Promise.all(currentRows.map((row) => {
       const cardId = row.card_id;
       if (typeof cardId !== "string") {
@@ -871,7 +649,21 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "update" && statement.resourceName === "decks") {
-    const currentRows = applyPredicates(loadSelectRows(session, activeWorkspace, snapshot, "decks"), statement.predicates);
+    const currentRows = executeSqlSelect({
+      type: "select",
+      source: {
+        resourceName: "decks",
+        unnestAlias: null,
+        unnestColumnName: null,
+      },
+      selectItems: [{ type: "wildcard" }],
+      predicateClauses: statement.predicateClauses,
+      groupBy: [],
+      orderBy: [],
+      limit: MAX_SQL_LIMIT,
+      offset: 0,
+      normalizedSql: statement.normalizedSql,
+    }, loadSelectRows(activeWorkspace, snapshot, "decks"), Number.MAX_SAFE_INTEGER).rows;
     const updatedDecks = await Promise.all(currentRows.map((row) => {
       const deckId = row.deck_id;
       if (typeof deckId !== "string") {
@@ -895,7 +687,21 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "delete" && statement.resourceName === "cards") {
-    const currentRows = applyPredicates(loadSelectRows(session, activeWorkspace, snapshot, "cards"), statement.predicates);
+    const currentRows = executeSqlSelect({
+      type: "select",
+      source: {
+        resourceName: "cards",
+        unnestAlias: null,
+        unnestColumnName: null,
+      },
+      selectItems: [{ type: "wildcard" }],
+      predicateClauses: statement.predicateClauses,
+      groupBy: [],
+      orderBy: [],
+      limit: MAX_SQL_LIMIT,
+      offset: 0,
+      normalizedSql: statement.normalizedSql,
+    }, loadSelectRows(activeWorkspace, snapshot, "cards"), Number.MAX_SAFE_INTEGER).rows;
     const cardIds = currentRows.map((row) => {
       const cardId = row.card_id;
       if (typeof cardId !== "string") {
@@ -918,7 +724,21 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "delete" && statement.resourceName === "decks") {
-    const currentRows = applyPredicates(loadSelectRows(session, activeWorkspace, snapshot, "decks"), statement.predicates);
+    const currentRows = executeSqlSelect({
+      type: "select",
+      source: {
+        resourceName: "decks",
+        unnestAlias: null,
+        unnestColumnName: null,
+      },
+      selectItems: [{ type: "wildcard" }],
+      predicateClauses: statement.predicateClauses,
+      groupBy: [],
+      orderBy: [],
+      limit: MAX_SQL_LIMIT,
+      offset: 0,
+      normalizedSql: statement.normalizedSql,
+    }, loadSelectRows(activeWorkspace, snapshot, "decks"), Number.MAX_SAFE_INTEGER).rows;
     const deckIds = currentRows.map((row) => {
       const deckId = row.deck_id;
       if (typeof deckId !== "string") {
@@ -954,12 +774,12 @@ export function createLocalToolExecutor(
 }> {
   return {
     async execute(toolCallRequest: LocalToolCallRequest): Promise<LocalToolExecutionResult> {
-      const { session, activeWorkspace, snapshot } = ensureLocalWorkspace(dependencies);
+      const { activeWorkspace, snapshot } = ensureLocalWorkspace(dependencies);
 
       switch (toolCallRequest.name) {
       case "sql": {
         const input = parseSqlInput(toolCallRequest);
-        const result = await executeSqlLocally(dependencies, session, activeWorkspace, snapshot, input.sql);
+        const result = await executeSqlLocally(dependencies, activeWorkspace, snapshot, input.sql);
         return {
           output: JSON.stringify(result.payload),
           didMutateAppState: result.didMutateAppState,

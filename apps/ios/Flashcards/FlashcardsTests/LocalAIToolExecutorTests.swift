@@ -145,22 +145,62 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
         let tablesPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(tablesResult.output.utf8))
         XCTAssertEqual(tablesPayload.statementType, "show_tables")
         XCTAssertEqual(tablesPayload.resource, nil)
-        XCTAssertTrue(tablesPayload.rows.contains { row in
-            row["table_name"]?.stringValue == "cards"
-        })
+        XCTAssertEqual(
+            Set(tablesPayload.rows.compactMap { row in row["table_name"]?.stringValue }),
+            Set(["workspace", "cards", "decks", "review_events"])
+        )
         XCTAssertFalse(tablesResult.didMutateAppState)
 
         let describeResult = try await self.executeSql(
             executor: executor,
-            sql: "DESCRIBE cards",
-            toolCallId: "call-describe-cards"
+            sql: "DESCRIBE workspace",
+            toolCallId: "call-describe-workspace"
         )
         let describePayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(describeResult.output.utf8))
         XCTAssertEqual(describePayload.statementType, "describe")
-        XCTAssertEqual(describePayload.resource, "cards")
+        XCTAssertEqual(describePayload.resource, "workspace")
         XCTAssertTrue(describePayload.rows.contains { row in
-            row["column_name"]?.stringValue == "front_text"
-                && row["read_only"]?.booleanValue == false
+            row["column_name"]?.stringValue == "algorithm"
+                && row["read_only"]?.booleanValue == true
+        })
+    }
+
+    func testLocalToolExecutorReadsWorkspaceAndAggregateSqlQueries() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        _ = try await self.executeSql(
+            executor: executor,
+            sql: """
+            INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES
+            ('Front 1', 'Back 1', ('grammar', 'verbs'), 'fast'),
+            ('Front 2', 'Back 2', ('grammar'), 'fast'),
+            ('Front 3', 'Back 3', ('reading'), 'medium')
+            """,
+            toolCallId: "call-insert-aggregate-cards"
+        )
+
+        let workspaceResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT * FROM workspace LIMIT 1 OFFSET 0",
+            toolCallId: "call-select-workspace"
+        )
+        let workspacePayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(workspaceResult.output.utf8))
+        XCTAssertEqual(workspacePayload.rowCount, 1)
+        XCTAssertEqual(workspacePayload.rows.first?["algorithm"]?.stringValue, "fsrs-6")
+
+        let aggregateResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS tag GROUP BY tag ORDER BY cards_count DESC, tag ASC LIMIT 20 OFFSET 0",
+            toolCallId: "call-aggregate-tags"
+        )
+        let aggregatePayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(aggregateResult.output.utf8))
+        XCTAssertEqual(aggregatePayload.resource, "cards")
+        XCTAssertTrue(aggregatePayload.rows.contains { row in
+            row["tag"]?.stringValue == "grammar" && row["cards_count"]?.integerValue == 2
+        })
+        XCTAssertTrue(aggregatePayload.rows.contains { row in
+            row["tag"]?.stringValue == "verbs" && row["cards_count"]?.integerValue == 1
         })
     }
 
@@ -377,5 +417,58 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
         let updatedPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(updatedResult.output.utf8))
         XCTAssertEqual(updatedPayload.rowCount, 1)
         XCTAssertEqual(updatedPayload.rows.first?["front_text"]?.stringValue, "Fresh Front")
+    }
+
+    func testLocalToolExecutorSupportsNowBasedDueFiltering() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        try flashcardsStore.saveCard(
+            input: CardEditorInput(
+                frontText: "Due Front",
+                backText: "Due Back",
+                tags: ["due"],
+                effortLevel: .medium
+            ),
+            editingCardId: nil
+        )
+
+        let snapshot = try await executor.loadSnapshot()
+        let dueCard = try XCTUnwrap(snapshot.cards.first { card in
+            card.frontText == "Due Front"
+        })
+
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        _ = try database.upsertCardSnapshot(
+            workspaceId: snapshot.workspace.workspaceId,
+            deviceId: snapshot.cloudSettings.deviceId,
+            snapshot: CardSnapshotUpsertInput(
+                cardId: dueCard.cardId,
+                frontText: dueCard.frontText,
+                backText: dueCard.backText,
+                tags: dueCard.tags,
+                effortLevel: dueCard.effortLevel,
+                dueAt: "2000-01-01T00:00:00.000Z",
+                reps: dueCard.reps,
+                lapses: dueCard.lapses,
+                fsrsCardState: dueCard.fsrsCardState,
+                fsrsStepIndex: dueCard.fsrsStepIndex,
+                fsrsStability: dueCard.fsrsStability,
+                fsrsDifficulty: dueCard.fsrsDifficulty,
+                fsrsLastReviewedAt: dueCard.fsrsLastReviewedAt,
+                fsrsScheduledDays: dueCard.fsrsScheduledDays
+            )
+        )
+
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT * FROM cards WHERE due_at IS NOT NULL AND due_at <= NOW() ORDER BY due_at ASC LIMIT 20 OFFSET 0",
+            toolCallId: "call-select-due-cards"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertTrue(selectPayload.rows.contains { row in
+            row["card_id"]?.stringValue == dueCard.cardId
+        })
     }
 }

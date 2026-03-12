@@ -18,20 +18,15 @@ import {
   deleteCards,
   getCards,
   listReviewHistoryPage,
-  listReviewQueuePage,
-  listWorkspaceTagsSummary,
   queryCardsPage,
-  summarizeDeckState,
   updateCards,
   type BulkCreateCardItem,
   type BulkDeleteCardItem,
   type BulkUpdateCardItem,
   type CardFilter,
   type CreateCardInput,
-  type DeckSummary,
   type EffortLevel,
   type UpdateCardInput,
-  type WorkspaceTagsSummary,
 } from "../cards";
 import {
   createDecks,
@@ -125,10 +120,7 @@ export type AgentToolOperationDependencies = Readonly<{
   deleteCards: typeof deleteCards;
   getCards: typeof getCards;
   listReviewHistoryPage: typeof listReviewHistoryPage;
-  listReviewQueuePage: typeof listReviewQueuePage;
-  listWorkspaceTagsSummary: typeof listWorkspaceTagsSummary;
   queryCardsPage: typeof queryCardsPage;
-  summarizeDeckState: typeof summarizeDeckState;
   updateCards: typeof updateCards;
   ensureAgentSyncDevice: typeof ensureAgentSyncDevice;
   createDecks: typeof createDecks;
@@ -223,13 +215,10 @@ type DeleteDecksOperationInput = AgentMutationContext & Readonly<{
   deckIds: AgentToolDeleteDecksInput["deckIds"];
 }>;
 
-type AgentWorkspaceContextPayload = Readonly<{
+type AgentWorkspacePayload = Readonly<{
   workspace: WorkspaceSummary;
-  deckSummary: DeckSummary;
   schedulerSettings: WorkspaceSchedulerSettings;
 }>;
-
-type AgentWorkspaceTagsPayload = WorkspaceTagsSummary;
 
 type AgentLimitedCardsPayload = Readonly<{
   cards: Awaited<ReturnType<typeof queryCardsPage>>["cards"];
@@ -287,10 +276,7 @@ export const DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES: AgentToolOperationDepend
   deleteCards,
   getCards,
   listReviewHistoryPage,
-  listReviewQueuePage,
-  listWorkspaceTagsSummary,
   queryCardsPage,
-  summarizeDeckState,
   updateCards,
   ensureAgentSyncDevice,
   createDecks,
@@ -403,34 +389,22 @@ function toUpdateDeckInput(item: AgentToolUpdateDeckBody, currentDeck: Deck): Up
 }
 
 /**
- * Canonical backend implementation of the external `get_workspace_context`
- * tool. Browser-local and iOS-local mirrors live in
+ * Canonical backend implementation of the shared SQL `workspace` resource.
+ * Browser-local and iOS-local mirrors live in
  * `apps/web/src/chat/localToolExecutor.ts` and
  * `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`.
  */
-export async function loadAgentWorkspaceContextOperation(
+export async function loadAgentWorkspaceOperation(
   dependencies: AgentToolOperationDependencies,
   input: WorkspaceContextInput,
-): Promise<AgentWorkspaceContextPayload> {
+) : Promise<AgentWorkspacePayload> {
   const workspace = await loadSelectedWorkspaceSummary(dependencies, input);
-  const deckSummary = await dependencies.summarizeDeckState(input.workspaceId);
   const schedulerSettings = await dependencies.getWorkspaceSchedulerSettings(input.workspaceId);
 
   return {
     workspace,
-    deckSummary,
     schedulerSettings,
   };
-}
-
-/**
- * Canonical backend implementation of the external `list_tags` tool.
- */
-export async function listAgentTagsOperation(
-  dependencies: AgentToolOperationDependencies,
-  input: Readonly<{ workspaceId: string }>,
-): Promise<AgentWorkspaceTagsPayload> {
-  return dependencies.listWorkspaceTagsSummary(input.workspaceId);
 }
 
 /**
@@ -493,24 +467,6 @@ export async function searchAgentCardsOperation(
 }
 
 /**
- * Shared backend due-card listing implementation reused by the SQL surface.
- */
-export async function listAgentDueCardsOperation(
-  dependencies: AgentToolOperationDependencies,
-  input: WorkspaceScopedLimitInput,
-): Promise<AgentLimitedCardsPayload> {
-  const limitApplied = normalizeAgentToolLimit(input.limit);
-  const result = await dependencies.listReviewQueuePage(input.workspaceId, {
-    cursor: input.cursor,
-    limit: limitApplied,
-  });
-
-  return {
-    cards: result.cards,
-    nextCursor: result.nextCursor,
-  };
-}
-
 /**
  * Shared backend deck-list implementation reused by the SQL surface.
  */
@@ -555,11 +511,11 @@ export async function searchAgentDecksOperation(
 }
 
 /**
- * Shared backend review-history implementation reused by the SQL surface.
+ * Shared backend review-event implementation reused by the SQL surface.
  * Local mirrors keep their own data access but should preserve payload shape
  * and limit semantics.
  */
-export async function listAgentReviewHistoryOperation(
+export async function listAgentReviewEventsOperation(
   dependencies: AgentToolOperationDependencies,
   input: WorkspaceScopedReviewHistoryInput,
 ): Promise<AgentReviewHistoryPayload> {
@@ -569,18 +525,6 @@ export async function listAgentReviewHistoryOperation(
     limit: limitApplied,
     cardId: input.cardId,
   });
-}
-
-/**
- * Shared backend scheduler-settings loader reused by the SQL surface.
- */
-export async function getAgentSchedulerSettingsOperation(
-  dependencies: AgentToolOperationDependencies,
-  input: Readonly<{ workspaceId: string }>,
-): Promise<Readonly<{ schedulerSettings: WorkspaceSchedulerSettings }>> {
-  return {
-    schedulerSettings: await dependencies.getWorkspaceSchedulerSettings(input.workspaceId),
-  };
 }
 
 /**

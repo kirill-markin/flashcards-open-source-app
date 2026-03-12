@@ -18,6 +18,31 @@ export function formatToolLabel(name: string): string {
 }
 
 /**
+ * Mirror:
+ * `apps/ios/Flashcards/Flashcards/AI/AIChatView.swift::aiChatToolPreview`
+ */
+function extractToolCallPreview(name: string, input: string | null): string | null {
+  if (input === null || input.trim() === "") {
+    return null;
+  }
+
+  if (name !== "sql") {
+    return input;
+  }
+
+  try {
+    const parsed = JSON.parse(input) as Readonly<{ sql?: unknown }>;
+    if (typeof parsed.sql === "string" && parsed.sql.trim() !== "") {
+      return parsed.sql;
+    }
+  } catch {
+    return input;
+  }
+
+  return input;
+}
+
+/**
  * Renders persisted chat history parts without normalizing whitespace so the
  * transcript stays byte-for-byte faithful to stored assistant output.
  */
@@ -50,12 +75,16 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
     }
 
     previousPartWasAttachment = false;
+    const toolPreview = extractToolCallPreview(part.name, part.input);
     elements.push(
       <details
         key={`tool-${index}`}
         className={`chat-tool-call${part.status === "started" ? " chat-tool-call-started" : ""}`}
       >
-        <summary className="chat-tool-call-summary">{formatToolLabel(part.name)}</summary>
+        <summary className="chat-tool-call-summary">
+          {formatToolLabel(part.name)}
+          {toolPreview === null ? null : `: ${toolPreview}`}
+        </summary>
         {part.input !== null ? <pre className="chat-tool-call-input">{part.input}</pre> : null}
         {part.output !== null ? <pre className="chat-tool-call-output">{part.output}</pre> : null}
       </details>,

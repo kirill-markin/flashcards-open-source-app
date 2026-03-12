@@ -7,32 +7,25 @@ import {
   createAgentDecksOperation,
   deleteAgentCardsOperation,
   deleteAgentDecksOperation,
-  getAgentSchedulerSettingsOperation,
   listAgentCardsOperation,
   listAgentDecksOperation,
-  listAgentDueCardsOperation,
-  listAgentReviewHistoryOperation,
-  listAgentTagsOperation,
-  loadAgentWorkspaceContextOperation,
+  listAgentReviewEventsOperation,
+  loadAgentWorkspaceOperation,
   updateAgentCardsOperation,
   updateAgentDecksOperation,
   type AgentToolOperationDependencies,
 } from "./agentToolOperations";
 import {
+  executeSqlSelect,
+  getSqlResourceDescriptor,
   getSqlResourceDescriptors,
+  likePatternToRegExp,
   parseSqlStatement,
   type ParsedSqlStatement,
-  type SqlColumnDescriptor,
-  type SqlPredicate,
-  type SqlResourceDescriptor,
   type SqlResourceName,
-  type SqlSelectOrderBy,
+  type SqlRow,
+  type SqlRowValue,
 } from "./sqlDialect";
-
-type SqlRowScalar = string | number | boolean | null;
-type SqlRowValue = SqlRowScalar | ReadonlyArray<string> | ReadonlyArray<number>;
-
-export type SqlRow = Readonly<Record<string, SqlRowValue>>;
 
 type AgentSqlContext = Readonly<{
   userId: string;
@@ -71,210 +64,6 @@ export type AgentSqlExecutionResult = Readonly<{
 
 const MAX_SQL_LIMIT = 100;
 
-const SQL_RESOURCE_DESCRIPTOR_MAP = Object.freeze(
-  Object.fromEntries(getSqlResourceDescriptors().map((descriptor) => [descriptor.resourceName, descriptor] as const)),
-) as Readonly<Record<SqlResourceName, SqlResourceDescriptor>>;
-
-function getSqlResourceDescriptor(resourceName: SqlResourceName): SqlResourceDescriptor {
-  return SQL_RESOURCE_DESCRIPTOR_MAP[resourceName];
-}
-
-function getSqlColumnDescriptor(resourceName: SqlResourceName, columnName: string): SqlColumnDescriptor {
-  const columnDescriptor = getSqlResourceDescriptor(resourceName).columns.find((column) => column.columnName === columnName);
-  if (columnDescriptor === undefined) {
-    throw new HttpError(400, `Unknown column for ${resourceName}: ${columnName}`, "QUERY_INVALID_SQL");
-  }
-
-  return columnDescriptor;
-}
-
-function normalizeSqlLimit(limit: number | null): number {
-  if (limit === null) {
-    return MAX_SQL_LIMIT;
-  }
-
-  if (limit < 1) {
-    throw new HttpError(400, "LIMIT must be greater than 0", "QUERY_INVALID_SQL");
-  }
-
-  return Math.min(limit, MAX_SQL_LIMIT);
-}
-
-function normalizeSqlOffset(offset: number | null): number {
-  if (offset === null) {
-    return 0;
-  }
-
-  if (offset < 0) {
-    throw new HttpError(400, "OFFSET must be a non-negative integer", "QUERY_INVALID_SQL");
-  }
-
-  return offset;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function likePatternToRegExp(value: string): RegExp {
-  const escaped = escapeRegExp(value).replace(/%/g, ".*").replace(/_/g, ".");
-  return new RegExp(`^${escaped}$`, "i");
-}
-
-function normalizeSearchableText(value: SqlRowValue): string {
-  if (Array.isArray(value)) {
-    return value.join(" ").toLowerCase();
-  }
-
-  if (value === null) {
-    return "";
-  }
-
-  return String(value).toLowerCase();
-}
-
-function compareRowValues(left: SqlRowValue | undefined, right: SqlRowValue | undefined): number {
-  if (left === undefined && right === undefined) {
-    return 0;
-  }
-
-  if (left === undefined || left === null) {
-    return right === undefined || right === null ? 0 : -1;
-  }
-
-  if (right === undefined || right === null) {
-    return 1;
-  }
-
-  if (Array.isArray(left) || Array.isArray(right)) {
-    const leftText = Array.isArray(left) ? left.join("\u0000") : String(left);
-    const rightText = Array.isArray(right) ? right.join("\u0000") : String(right);
-    return leftText.localeCompare(rightText);
-  }
-
-  if (typeof left === "number" && typeof right === "number") {
-    return left - right;
-  }
-
-  if (typeof left === "boolean" && typeof right === "boolean") {
-    return Number(left) - Number(right);
-  }
-
-  return String(left).localeCompare(String(right));
-}
-
-function valuesEqual(left: SqlRowValue | undefined, right: string | number | boolean | null): boolean {
-  if (left === undefined) {
-    return false;
-  }
-
-  if (Array.isArray(left)) {
-    return false;
-  }
-
-  return left === right;
-}
-
-function normalizeStringArray(value: SqlRowValue | undefined): ReadonlyArray<string> {
-  if (value === undefined || value === null || Array.isArray(value) === false) {
-    return [];
-  }
-
-  return value.filter((item): item is string => typeof item === "string");
-}
-
-function validatePredicate(resourceName: SqlResourceName, predicate: SqlPredicate): void {
-  if (predicate.type === "match") {
-    return;
-  }
-
-  const columnDescriptor = getSqlColumnDescriptor(resourceName, predicate.columnName);
-  if (columnDescriptor.filterable === false) {
-    throw new HttpError(
-      400,
-      `Column is not filterable: ${predicate.columnName}`,
-      "QUERY_UNSUPPORTED_SYNTAX",
-    );
-  }
-}
-
-function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
-  if (predicate.type === "match") {
-    const normalizedQuery = predicate.query.trim().toLowerCase();
-    if (normalizedQuery === "") {
-      throw new HttpError(400, "MATCH query must not be empty", "QUERY_INVALID_SQL");
-    }
-
-    return Object.values(row).some((value) => normalizeSearchableText(value).includes(normalizedQuery));
-  }
-
-  const columnValue = row[predicate.columnName];
-  if (predicate.type === "comparison") {
-    return valuesEqual(columnValue, predicate.value);
-  }
-
-  if (predicate.type === "in") {
-    return predicate.values.some((value) => valuesEqual(columnValue, value));
-  }
-
-  if (predicate.type === "is_null") {
-    return columnValue === null;
-  }
-
-  return normalizeStringArray(columnValue).some((value) => predicate.values.includes(value));
-}
-
-function applyPredicates(
-  resourceName: SqlResourceName,
-  rows: ReadonlyArray<SqlRow>,
-  predicates: ReadonlyArray<SqlPredicate>,
-): ReadonlyArray<SqlRow> {
-  for (const predicate of predicates) {
-    validatePredicate(resourceName, predicate);
-  }
-
-  if (predicates.length === 0) {
-    return rows;
-  }
-
-  return rows.filter((row) => predicates.every((predicate) => rowMatchesPredicate(row, predicate)));
-}
-
-function applyOrderBy(
-  rows: ReadonlyArray<SqlRow>,
-  orderBy: ReadonlyArray<SqlSelectOrderBy>,
-): ReadonlyArray<SqlRow> {
-  if (orderBy.length === 0) {
-    return rows;
-  }
-
-  return [...rows].sort((left, right) => {
-    for (const item of orderBy) {
-      const comparison = compareRowValues(left[item.columnName], right[item.columnName]);
-      if (comparison !== 0) {
-        return item.direction === "desc" ? -comparison : comparison;
-      }
-    }
-
-    return 0;
-  });
-}
-
-function paginateRows(
-  rows: ReadonlyArray<SqlRow>,
-  limit: number,
-  offset: number,
-): Readonly<{
-  rows: ReadonlyArray<SqlRow>;
-  hasMore: boolean;
-}> {
-  const pagedRows = rows.slice(offset, offset + limit);
-  return {
-    rows: pagedRows,
-    hasMore: offset + pagedRows.length < rows.length,
-  };
-}
-
 function toCardRow(card: Card): SqlRow {
   return {
     card_id: card.cardId,
@@ -308,7 +97,7 @@ function toDeckRow(deck: Deck): SqlRow {
   };
 }
 
-function toReviewHistoryRow(item: ReviewHistoryItem): SqlRow {
+function toReviewEventRow(item: ReviewHistoryItem): SqlRow {
   return {
     review_event_id: item.reviewEventId,
     card_id: item.cardId,
@@ -320,7 +109,7 @@ function toReviewHistoryRow(item: ReviewHistoryItem): SqlRow {
   };
 }
 
-function toCreatedCardsRows(cards: ReadonlyArray<Card>): ReadonlyArray<SqlRow> {
+function toCreatedCardRows(cards: ReadonlyArray<Card>): ReadonlyArray<SqlRow> {
   return cards.map(toCardRow);
 }
 
@@ -349,26 +138,6 @@ async function collectCardRows(
   return rows;
 }
 
-async function collectDueCardRows(
-  dependencies: AgentToolOperationDependencies,
-  workspaceId: string,
-): Promise<ReadonlyArray<SqlRow>> {
-  const rows: Array<SqlRow> = [];
-  let cursor: string | null = null;
-
-  do {
-    const page = await listAgentDueCardsOperation(dependencies, {
-      workspaceId,
-      cursor,
-      limit: MAX_SQL_LIMIT,
-    });
-    rows.push(...page.cards.map(toCardRow));
-    cursor = page.nextCursor;
-  } while (cursor !== null);
-
-  return rows;
-}
-
 async function collectDeckRows(
   dependencies: AgentToolOperationDependencies,
   workspaceId: string,
@@ -389,7 +158,7 @@ async function collectDeckRows(
   return rows;
 }
 
-async function collectReviewHistoryRows(
+async function collectReviewEventRows(
   dependencies: AgentToolOperationDependencies,
   workspaceId: string,
 ): Promise<ReadonlyArray<SqlRow>> {
@@ -397,17 +166,40 @@ async function collectReviewHistoryRows(
   let cursor: string | null = null;
 
   do {
-    const page = await listAgentReviewHistoryOperation(dependencies, {
+    const page = await listAgentReviewEventsOperation(dependencies, {
       workspaceId,
       cursor,
       limit: MAX_SQL_LIMIT,
       cardId: null,
     });
-    rows.push(...page.history.map(toReviewHistoryRow));
+    rows.push(...page.history.map(toReviewEventRow));
     cursor = page.nextCursor;
   } while (cursor !== null);
 
   return rows;
+}
+
+async function loadWorkspaceRows(
+  dependencies: AgentToolOperationDependencies,
+  context: AgentSqlContext,
+): Promise<ReadonlyArray<SqlRow>> {
+  const payload = await loadAgentWorkspaceOperation(dependencies, {
+    userId: context.userId,
+    workspaceId: context.workspaceId,
+    selectedWorkspaceId: context.selectedWorkspaceId,
+  });
+
+  return [{
+    workspace_id: payload.workspace.workspaceId,
+    name: payload.workspace.name,
+    created_at: payload.workspace.createdAt,
+    algorithm: payload.schedulerSettings.algorithm,
+    desired_retention: payload.schedulerSettings.desiredRetention,
+    learning_steps_minutes: payload.schedulerSettings.learningStepsMinutes,
+    relearning_steps_minutes: payload.schedulerSettings.relearningStepsMinutes,
+    maximum_interval_days: payload.schedulerSettings.maximumIntervalDays,
+    enable_fuzz: payload.schedulerSettings.enableFuzz,
+  }];
 }
 
 async function loadSelectRows(
@@ -415,60 +207,19 @@ async function loadSelectRows(
   context: AgentSqlContext,
   resourceName: SqlResourceName,
 ): Promise<ReadonlyArray<SqlRow>> {
-  if (resourceName === "workspace_context") {
-    const payload = await loadAgentWorkspaceContextOperation(dependencies, {
-      userId: context.userId,
-      workspaceId: context.workspaceId,
-      selectedWorkspaceId: context.selectedWorkspaceId,
-    });
-    return [{
-      workspace_id: payload.workspace.workspaceId,
-      workspace_name: payload.workspace.name,
-      total_cards: payload.deckSummary.totalCards,
-      due_cards: payload.deckSummary.dueCards,
-      new_cards: payload.deckSummary.newCards,
-      reviewed_cards: payload.deckSummary.reviewedCards,
-    }];
-  }
-
-  if (resourceName === "scheduler_settings") {
-    const payload = await getAgentSchedulerSettingsOperation(dependencies, {
-      workspaceId: context.workspaceId,
-    });
-    return [{
-      algorithm: payload.schedulerSettings.algorithm,
-      desired_retention: payload.schedulerSettings.desiredRetention,
-      learning_steps_minutes: payload.schedulerSettings.learningStepsMinutes,
-      relearning_steps_minutes: payload.schedulerSettings.relearningStepsMinutes,
-      maximum_interval_days: payload.schedulerSettings.maximumIntervalDays,
-      enable_fuzz: payload.schedulerSettings.enableFuzz,
-    }];
-  }
-
-  if (resourceName === "tags_summary") {
-    const payload = await listAgentTagsOperation(dependencies, {
-      workspaceId: context.workspaceId,
-    });
-    return payload.tags.map((tag) => ({
-      tag: tag.tag,
-      cards_count: tag.cardsCount,
-      total_cards: payload.totalCards,
-    }));
+  if (resourceName === "workspace") {
+    return loadWorkspaceRows(dependencies, context);
   }
 
   if (resourceName === "cards") {
     return collectCardRows(dependencies, context.workspaceId);
   }
 
-  if (resourceName === "due_cards") {
-    return collectDueCardRows(dependencies, context.workspaceId);
-  }
-
   if (resourceName === "decks") {
     return collectDeckRows(dependencies, context.workspaceId);
   }
 
-  return collectReviewHistoryRows(dependencies, context.workspaceId);
+  return collectReviewEventRows(dependencies, context.workspaceId);
 }
 
 function buildCreateCardInput(
@@ -523,18 +274,19 @@ function buildCreateDeckInput(
     throw new HttpError(400, "name is required for INSERT INTO decks", "QUERY_INVALID_SQL");
   }
 
-  const normalizedEffortLevels = Array.isArray(effortLevels)
-    ? effortLevels.filter((item): item is "fast" | "medium" | "long" => item === "fast" || item === "medium" || item === "long")
-    : [];
-
   return {
     name,
-    effortLevels: normalizedEffortLevels,
+    effortLevels: Array.isArray(effortLevels)
+      ? effortLevels.filter((item): item is "fast" | "medium" | "long" => item === "fast" || item === "medium" || item === "long")
+      : [],
     tags: Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
   };
 }
 
-function requireSqlMutationTargetIds(resourceName: "cards" | "decks", rows: ReadonlyArray<SqlRow>): ReadonlyArray<string> {
+function requireSqlMutationTargetIds(
+  resourceName: "cards" | "decks",
+  rows: ReadonlyArray<SqlRow>,
+): ReadonlyArray<string> {
   const idColumnName = resourceName === "cards" ? "card_id" : "deck_id";
   return rows.map((row) => {
     const idValue = row[idColumnName];
@@ -718,26 +470,21 @@ async function executeSqlReadStatement(
     };
   }
 
-  const limit = normalizeSqlLimit(statement.limit);
-  const offset = normalizeSqlOffset(statement.offset);
-  const rows = await loadSelectRows(dependencies, context, statement.resourceName);
-  const filteredRows = applyPredicates(statement.resourceName, rows, statement.predicates);
-  const orderedRows = applyOrderBy(filteredRows, statement.orderBy);
-  const paginatedRows = paginateRows(orderedRows, limit, offset);
-
+  const rows = await loadSelectRows(dependencies, context, statement.source.resourceName);
+  const result = executeSqlSelect(statement, rows, MAX_SQL_LIMIT);
   return {
     data: {
       statementType: "select",
-      resource: statement.resourceName,
+      resource: statement.source.resourceName,
       sql,
       normalizedSql: statement.normalizedSql,
-      rows: paginatedRows.rows,
-      rowCount: paginatedRows.rows.length,
-      limit,
-      offset,
-      hasMore: paginatedRows.hasMore,
+      rows: result.rows,
+      rowCount: result.rowCount,
+      limit: result.limit,
+      offset: result.offset,
+      hasMore: result.hasMore,
     },
-    instructions: buildReadInstructions("select", paginatedRows.hasMore),
+    instructions: buildReadInstructions("select", result.hasMore),
   };
 }
 
@@ -755,13 +502,14 @@ async function executeSqlMutationStatement(
       actionName: "create_cards",
       cards: statement.rows.map((row) => buildCreateCardInput(statement.columnNames, row)),
     });
+
     return {
       data: {
         statementType: "insert",
         resource: "cards",
         sql,
         normalizedSql: statement.normalizedSql,
-        rows: toCreatedCardsRows(payload.cards),
+        rows: toCreatedCardRows(payload.cards),
         affectedCount: payload.createdCount,
       },
       instructions: buildMutationInstructions(),
@@ -776,6 +524,7 @@ async function executeSqlMutationStatement(
       actionName: "create_decks",
       decks: statement.rows.map((row) => buildCreateDeckInput(statement.columnNames, row)),
     });
+
     return {
       data: {
         statementType: "insert",
@@ -794,7 +543,21 @@ async function executeSqlMutationStatement(
   }
 
   const currentRows = await loadSelectRows(dependencies, context, statement.resourceName);
-  const matchedRows = applyPredicates(statement.resourceName, currentRows, statement.predicates);
+  const matchedRows = executeSqlSelect({
+    type: "select",
+    source: {
+      resourceName: statement.resourceName,
+      unnestAlias: null,
+      unnestColumnName: null,
+    },
+    selectItems: [{ type: "wildcard" }],
+    predicateClauses: statement.predicateClauses,
+    groupBy: [],
+    orderBy: [],
+    limit: MAX_SQL_LIMIT,
+    offset: 0,
+    normalizedSql: statement.normalizedSql,
+  }, currentRows, Number.MAX_SAFE_INTEGER).rows;
   const targetIds = requireSqlMutationTargetIds(statement.resourceName, matchedRows);
 
   if (statement.type === "update" && statement.resourceName === "cards") {
@@ -805,13 +568,14 @@ async function executeSqlMutationStatement(
       actionName: "update_cards",
       updates: targetIds.map((cardId) => buildCardUpdateInput(cardId, statement.assignments)),
     });
+
     return {
       data: {
         statementType: "update",
         resource: "cards",
         sql,
         normalizedSql: statement.normalizedSql,
-        rows: toCreatedCardsRows(payload.cards),
+        rows: toCreatedCardRows(payload.cards),
         affectedCount: payload.updatedCount,
       },
       instructions: buildMutationInstructions(),
@@ -826,6 +590,7 @@ async function executeSqlMutationStatement(
       actionName: "update_decks",
       updates: targetIds.map((deckId) => buildDeckUpdateInput(deckId, statement.assignments)),
     });
+
     return {
       data: {
         statementType: "update",
@@ -847,6 +612,7 @@ async function executeSqlMutationStatement(
       actionName: "delete_cards",
       cardIds: targetIds,
     });
+
     return {
       data: {
         statementType: "delete",
@@ -868,6 +634,7 @@ async function executeSqlMutationStatement(
       actionName: "delete_decks",
       deckIds: targetIds,
     });
+
     return {
       data: {
         statementType: "delete",
