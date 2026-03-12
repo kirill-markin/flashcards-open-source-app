@@ -571,7 +571,55 @@ function upperCaseKeyword(value: string): string {
 }
 
 function normalizeSqlWhitespace(value: string): string {
-  return value.trim().replace(/;\s*$/, "").replace(/\s+/g, " ");
+  const trimmedValue = value.trim();
+  let normalizedValue = "";
+  let inString = false;
+  let pendingWhitespace = false;
+
+  for (let index = 0; index < trimmedValue.length; index += 1) {
+    const character = trimmedValue[index];
+    const nextCharacter = trimmedValue[index + 1];
+
+    if (character === "'") {
+      if (pendingWhitespace && normalizedValue !== "") {
+        normalizedValue += " ";
+        pendingWhitespace = false;
+      }
+
+      normalizedValue += character;
+      if (inString && nextCharacter === "'") {
+        normalizedValue += nextCharacter;
+        index += 1;
+        continue;
+      }
+
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      normalizedValue += character;
+      continue;
+    }
+
+    if (/\s/u.test(character)) {
+      pendingWhitespace = true;
+      continue;
+    }
+
+    if (character === ";" && trimmedValue.slice(index + 1).trim() === "") {
+      break;
+    }
+
+    if (pendingWhitespace && normalizedValue !== "") {
+      normalizedValue += " ";
+      pendingWhitespace = false;
+    }
+
+    normalizedValue += character;
+  }
+
+  return normalizedValue;
 }
 
 function assert(condition: boolean, message: string): void {
@@ -1151,7 +1199,7 @@ function parseInsertStatement(normalizedSql: string): SqlInsertStatement {
 
 function parseAssignments(resourceName: "cards" | "decks", value: string): SqlUpdateStatement["assignments"] {
   return splitTopLevel(value, ",").map((assignment) => {
-    const match = assignment.match(/^([a-z_][a-z0-9_]*)\s*=\s*(.+)$/i);
+    const match = assignment.match(/^([a-z_][a-z0-9_]*)\s*=\s*([\s\S]+)$/i);
     if (match === null) {
       throw new Error(`Unsupported assignment: ${assignment}`);
     }

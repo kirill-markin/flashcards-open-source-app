@@ -191,6 +191,10 @@ function makeDependencies(snapshot: MutableSnapshot): Pick<
   };
 }
 
+function toSqlStringLiteral(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
 describe("createLocalToolExecutor", () => {
   it("supports SQL introspection and reads", async () => {
     const snapshot = makeSnapshot();
@@ -345,6 +349,37 @@ describe("createLocalToolExecutor", () => {
     expect(insertResult.didMutateAppState).toBe(true);
     expect(updateResult.didMutateAppState).toBe(true);
     expect(deleteResult.didMutateAppState).toBe(true);
+  });
+
+  it("preserves multiline back_text in SQL updates", async () => {
+    const snapshot = makeSnapshot();
+    const dependencies = makeDependencies(snapshot);
+    const executor = createLocalToolExecutor(dependencies);
+    const backText = [
+      "Dijkstra finds the shortest paths.",
+      "",
+      "```python",
+      "print('hello')",
+      "```",
+    ].join("\n");
+
+    const updateResult = await executor.execute({
+      toolCallId: "call-multiline-update",
+      name: "sql",
+      input: JSON.stringify({
+        sql: `UPDATE cards SET back_text = ${toSqlStringLiteral(backText)} WHERE card_id = 'card-1'`,
+      }),
+    });
+    const updatePayload = JSON.parse(updateResult.output) as Readonly<{
+      affectedCount: number;
+      rows: ReadonlyArray<Readonly<Record<string, unknown>>>;
+    }>;
+
+    expect(updatePayload.affectedCount).toBe(1);
+    expect(updatePayload.rows[0]?.back_text).toBe(backText);
+    expect(dependencies.updateCardItem).toHaveBeenCalledWith("card-1", expect.objectContaining({
+      backText,
+    }));
   });
 
   it("keeps cloud settings and outbox available as local-only tools", async () => {

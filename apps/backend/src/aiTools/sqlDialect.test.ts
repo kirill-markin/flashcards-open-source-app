@@ -7,6 +7,10 @@ import {
   type SqlSelectStatement,
 } from "./sqlDialect";
 
+function toSqlStringLiteral(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
 function parseSelectStatement(sql: string): SqlSelectStatement {
   const statement = parseSqlStatement(sql);
   assert.equal(statement.type, "select");
@@ -116,6 +120,44 @@ test("parseSqlStatement rejects ORDER BY RANDOM() with direction", () => {
     () => parseSqlStatement("SELECT card_id FROM cards ORDER BY RANDOM() DESC LIMIT 3 OFFSET 0"),
     /RANDOM\(\) does not support ASC or DESC/,
   );
+});
+
+test("parseSqlStatement preserves multiline string literals in UPDATE assignments", () => {
+  const backText = [
+    "Dijkstra finds the shortest paths.",
+    "",
+    "```python",
+    "print('hello')",
+    "```",
+  ].join("\n");
+  const statement = parseSqlStatement(
+    `UPDATE cards
+     SET back_text = ${toSqlStringLiteral(backText)}
+     WHERE card_id = 'card-1'`,
+  );
+
+  assert.equal(statement.type, "update");
+  assert.equal(statement.assignments[0]?.columnName, "back_text");
+  assert.equal(statement.assignments[0]?.value, backText);
+  assert.match(statement.normalizedSql, /```python/);
+});
+
+test("parseSqlStatement preserves multiline string literals in INSERT rows", () => {
+  const backText = [
+    "Algorithm summary.",
+    "",
+    "```python",
+    "dist = {start: 0}",
+    "```",
+  ].join("\n");
+  const statement = parseSqlStatement(
+    `INSERT INTO cards (front_text, back_text, tags, effort_level)
+     VALUES ('What is Dijkstra?', ${toSqlStringLiteral(backText)}, ('dsa'), 'medium')`,
+  );
+
+  assert.equal(statement.type, "insert");
+  assert.equal(statement.rows[0]?.[1], backText);
+  assert.match(statement.normalizedSql, /dist = \{start: 0\}/);
 });
 
 test("executeSqlSelect applies ORDER BY RANDOM() before pagination", () => {
