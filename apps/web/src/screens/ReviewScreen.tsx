@@ -307,6 +307,20 @@ function ReviewFilterDecksIcon(): ReactElement {
   );
 }
 
+function ReviewFilterCheckIcon(): ReactElement {
+  return (
+    <svg className="review-filter-menu-item-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 6L9 17L4 12"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function ReviewScreen(): ReactElement {
   const {
     cards,
@@ -579,7 +593,9 @@ export function ReviewScreen(): ReactElement {
                         onClick={() => handleReviewFilterSelect(item.reviewFilter)}
                       >
                         <span className="review-filter-menu-item-slot" aria-hidden="true">
-                          <span className={`review-filter-menu-item-marker${item.isSelected ? " review-filter-menu-item-marker-visible" : ""}`} />
+                          <span className={`review-filter-menu-item-check${item.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
+                            <ReviewFilterCheckIcon />
+                          </span>
                         </span>
                         <span className="review-filter-menu-item-label">{item.label}</span>
                       </button>

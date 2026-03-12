@@ -115,18 +115,11 @@
   display: block;
 }
 
-.review-filter-menu-item-marker {
+.review-filter-menu-item-check {
   opacity: 0;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1;
 }
 
-.review-filter-menu-item-marker::before {
-  content: "v";
-}
-
-.review-filter-menu-item-marker-visible {
+.review-filter-menu-item-check-visible {
   opacity: 1;
 }
 
