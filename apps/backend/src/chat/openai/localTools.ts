@@ -39,7 +39,7 @@ const LOCAL_ONLY_OPENAI_TOOLS: ReadonlyArray<FunctionTool> = [
       "Get current cloud-link and device settings from the local device database.",
       "Use {}.",
     ),
-    strict: true,
+    strict: false,
     parameters: EMPTY_OBJECT_SCHEMA,
   },
   {
@@ -49,7 +49,7 @@ const LOCAL_ONLY_OPENAI_TOOLS: ReadonlyArray<FunctionTool> = [
       "List pending local outbox operations that have not synced yet.",
       "Use {\"cursor\": string|null, \"limit\": number}. Start with cursor null, pass back nextCursor unchanged, and stop when nextCursor is null.",
     ),
-    strict: true,
+    strict: false,
     parameters: strictObjectSchema({
       cursor: nullableSchema({ type: "string" }),
       limit: LIMIT_SCHEMA,

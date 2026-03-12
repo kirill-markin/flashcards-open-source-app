@@ -544,7 +544,9 @@ function parseCreateCardsInput(toolCallRequest: LocalToolCallRequest): CreateCar
       return {
         frontText: expectString(entry.frontText, `${toolCallRequest.name}.cards[${index}].frontText`),
         backText: expectString(entry.backText, `${toolCallRequest.name}.cards[${index}].backText`),
-        tags: expectStringArray(entry.tags, `${toolCallRequest.name}.cards[${index}].tags`),
+        tags: entry.tags === undefined
+          ? []
+          : expectStringArray(entry.tags, `${toolCallRequest.name}.cards[${index}].tags`),
         effortLevel: expectEffortLevel(entry.effortLevel, `${toolCallRequest.name}.cards[${index}].effortLevel`),
       };
     }),
@@ -565,10 +567,16 @@ function parseUpdateCardsInput(toolCallRequest: LocalToolCallRequest): UpdateCar
       );
       return {
         cardId: expectString(entry.cardId, `${toolCallRequest.name}.updates[${index}].cardId`),
-        frontText: expectNullableString(entry.frontText, `${toolCallRequest.name}.updates[${index}].frontText`),
-        backText: expectNullableString(entry.backText, `${toolCallRequest.name}.updates[${index}].backText`),
-        tags: expectNullableStringArray(entry.tags, `${toolCallRequest.name}.updates[${index}].tags`),
-        effortLevel: entry.effortLevel === null
+        frontText: entry.frontText === undefined
+          ? null
+          : expectNullableString(entry.frontText, `${toolCallRequest.name}.updates[${index}].frontText`),
+        backText: entry.backText === undefined
+          ? null
+          : expectNullableString(entry.backText, `${toolCallRequest.name}.updates[${index}].backText`),
+        tags: entry.tags === undefined
+          ? null
+          : expectNullableStringArray(entry.tags, `${toolCallRequest.name}.updates[${index}].tags`),
+        effortLevel: entry.effortLevel === undefined || entry.effortLevel === null
           ? null
           : expectEffortLevel(entry.effortLevel, `${toolCallRequest.name}.updates[${index}].effortLevel`),
       };
@@ -594,8 +602,12 @@ function parseCreateDecksInput(toolCallRequest: LocalToolCallRequest): CreateDec
       expectNoExtraKeys(entry, ["name", "effortLevels", "tags"], `${toolCallRequest.name}.decks[${index}]`);
       return {
         name: expectString(entry.name, `${toolCallRequest.name}.decks[${index}].name`),
-        effortLevels: expectEffortLevelArray(entry.effortLevels, `${toolCallRequest.name}.decks[${index}].effortLevels`),
-        tags: expectStringArray(entry.tags, `${toolCallRequest.name}.decks[${index}].tags`),
+        effortLevels: entry.effortLevels === undefined
+          ? []
+          : expectEffortLevelArray(entry.effortLevels, `${toolCallRequest.name}.decks[${index}].effortLevels`),
+        tags: entry.tags === undefined
+          ? []
+          : expectStringArray(entry.tags, `${toolCallRequest.name}.decks[${index}].tags`),
       };
     }),
   };
@@ -611,12 +623,18 @@ function parseUpdateDecksInput(toolCallRequest: LocalToolCallRequest): UpdateDec
       expectNoExtraKeys(entry, ["deckId", "name", "effortLevels", "tags"], `${toolCallRequest.name}.updates[${index}]`);
       return {
         deckId: expectString(entry.deckId, `${toolCallRequest.name}.updates[${index}].deckId`),
-        name: expectNullableString(entry.name, `${toolCallRequest.name}.updates[${index}].name`),
-        effortLevels: expectNullableEffortLevelArray(
-          entry.effortLevels,
-          `${toolCallRequest.name}.updates[${index}].effortLevels`,
-        ),
-        tags: expectNullableStringArray(entry.tags, `${toolCallRequest.name}.updates[${index}].tags`),
+        name: entry.name === undefined
+          ? null
+          : expectNullableString(entry.name, `${toolCallRequest.name}.updates[${index}].name`),
+        effortLevels: entry.effortLevels === undefined
+          ? null
+          : expectNullableEffortLevelArray(
+            entry.effortLevels,
+            `${toolCallRequest.name}.updates[${index}].effortLevels`,
+          ),
+        tags: entry.tags === undefined
+          ? null
+          : expectNullableStringArray(entry.tags, `${toolCallRequest.name}.updates[${index}].tags`),
       };
     }),
   };

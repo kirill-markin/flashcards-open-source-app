@@ -206,7 +206,7 @@ const CARD_FILTER_SCHEMA = {
   ],
 } as const;
 
-const CARD_INPUT_SCHEMA = strictObjectSchema({
+const CARD_INPUT_SCHEMA = strictObjectSchemaWithRequired({
   frontText: { type: "string" },
   backText: { type: "string" },
   tags: {
@@ -214,9 +214,13 @@ const CARD_INPUT_SCHEMA = strictObjectSchema({
     items: { type: "string" },
   },
   effortLevel: EFFORT_LEVEL_SCHEMA,
-});
+}, [
+  "frontText",
+  "backText",
+  "effortLevel",
+]);
 
-const CARD_UPDATE_SCHEMA = strictObjectSchema({
+const CARD_UPDATE_SCHEMA = strictObjectSchemaWithRequired({
   cardId: UUID_SCHEMA,
   frontText: nullableSchema({ type: "string" }),
   backText: nullableSchema({ type: "string" }),
@@ -225,9 +229,11 @@ const CARD_UPDATE_SCHEMA = strictObjectSchema({
     items: { type: "string" },
   }),
   effortLevel: nullableSchema(EFFORT_LEVEL_SCHEMA),
-});
+}, [
+  "cardId",
+]);
 
-const DECK_INPUT_SCHEMA = strictObjectSchema({
+const DECK_INPUT_SCHEMA = strictObjectSchemaWithRequired({
   name: { type: "string" },
   effortLevels: {
     type: "array",
@@ -237,9 +243,11 @@ const DECK_INPUT_SCHEMA = strictObjectSchema({
     type: "array",
     items: { type: "string" },
   },
-});
+}, [
+  "name",
+]);
 
-const DECK_UPDATE_SCHEMA = strictObjectSchema({
+const DECK_UPDATE_SCHEMA = strictObjectSchemaWithRequired({
   deckId: UUID_SCHEMA,
   name: nullableSchema({ type: "string" }),
   effortLevels: nullableSchema({
@@ -250,7 +258,9 @@ const DECK_UPDATE_SCHEMA = strictObjectSchema({
     type: "array",
     items: { type: "string" },
   }),
-});
+}, [
+  "deckId",
+]);
 
 const BULK_CARD_ARRAY_SCHEMA = {
   type: "array",
@@ -281,30 +291,41 @@ const optionalCardFilterValidator = cardFilterValidator.nullable().optional().tr
 const createCardValidator = z.object({
   frontText: z.string(),
   backText: z.string(),
-  tags: z.array(z.string()),
+  tags: z.array(z.string()).optional().default([]),
   effortLevel: z.enum(["fast", "medium", "long"]),
 }).strict();
 
 const updateCardValidator = z.object({
   cardId: uuidValidator,
-  frontText: nullableStringValidator,
-  backText: nullableStringValidator,
-  tags: nullableStringArrayValidator,
-  effortLevel: nullableEffortLevelValidator,
-}).strict();
+  frontText: nullableStringValidator.optional(),
+  backText: nullableStringValidator.optional(),
+  tags: nullableStringArrayValidator.optional(),
+  effortLevel: nullableEffortLevelValidator.optional(),
+}).strict().transform((input) => ({
+  ...input,
+  frontText: input.frontText ?? null,
+  backText: input.backText ?? null,
+  tags: input.tags ?? null,
+  effortLevel: input.effortLevel ?? null,
+}));
 
 const createDeckValidator = z.object({
   name: z.string(),
-  effortLevels: z.array(z.enum(["fast", "medium", "long"])),
-  tags: z.array(z.string()),
+  effortLevels: z.array(z.enum(["fast", "medium", "long"])).optional().default([]),
+  tags: z.array(z.string()).optional().default([]),
 }).strict();
 
 const updateDeckValidator = z.object({
   deckId: uuidValidator,
-  name: nullableStringValidator,
-  effortLevels: z.array(z.enum(["fast", "medium", "long"])).nullable(),
-  tags: nullableStringArrayValidator,
-}).strict();
+  name: nullableStringValidator.optional(),
+  effortLevels: z.array(z.enum(["fast", "medium", "long"])).nullable().optional(),
+  tags: nullableStringArrayValidator.optional(),
+}).strict().transform((input) => ({
+  ...input,
+  name: input.name ?? null,
+  effortLevels: input.effortLevels ?? null,
+  tags: input.tags ?? null,
+}));
 
 type SharedAiToolContract = Readonly<{
   name: SharedAiToolName;
@@ -493,8 +514,8 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "create_cards",
     localDescription: "Create one or more new cards locally.",
     externalDescription: "Create one or more cards in the selected workspace. Use the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example.",
-    jsonContract: "Use {\"cards\": CardInput[]} where every card object includes frontText, backText, tags, and effortLevel. Enforce the card side contract: frontText must be a question-only recall prompt (no answer), and backText must contain the answer; include a concrete example on backText when helpful, preferably in a fenced markdown code block.",
-    promptExample: "{\"cards\": [{\"frontText\": \"Question\", \"backText\": \"Answer\", \"tags\": [\"grammar\"], \"effortLevel\": \"medium\"}]}",
+    jsonContract: "Use {\"cards\": CardInput[]} where every card object includes frontText, backText, and effortLevel. tags is optional and defaults to an empty array when omitted. Enforce the card side contract: frontText must be a question-only recall prompt (no answer), and backText must contain the answer; include a concrete example on backText when helpful, preferably in a fenced markdown code block.",
+    promptExample: "{\"cards\": [{\"frontText\": \"Question\", \"backText\": \"Answer\", \"effortLevel\": \"medium\"}]}",
     parameters: strictObjectSchema({
       cards: {
         ...BULK_CARD_ARRAY_SCHEMA,
@@ -509,8 +530,8 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "update_cards",
     localDescription: "Update one or more cards locally.",
     externalDescription: "Update one or more cards in the selected workspace. For provided text fields, use the flashcard side contract: frontText is a question-only recall prompt (no answer), and backText contains the answer with an optional concrete example.",
-    jsonContract: "Use {\"updates\": UpdateCardInput[]} where every update object includes cardId, frontText, backText, tags, and effortLevel. Use null for unchanged fields. Enforce the card side contract for any provided text: frontText must be a question-only recall prompt (no answer), and backText must contain the answer; include a concrete example on backText when helpful, preferably in a fenced markdown code block.",
-    promptExample: "{\"updates\": [{\"cardId\": \"123e4567-e89b-42d3-a456-426614174000\", \"frontText\": null, \"backText\": \"Updated back\", \"tags\": null, \"effortLevel\": null}]}",
+    jsonContract: "Use {\"updates\": UpdateCardInput[]} where every update object includes cardId and any fields to change. Omit a field or use null to keep it unchanged. Enforce the card side contract for any provided text: frontText must be a question-only recall prompt (no answer), and backText must contain the answer; include a concrete example on backText when helpful, preferably in a fenced markdown code block.",
+    promptExample: "{\"updates\": [{\"cardId\": \"123e4567-e89b-42d3-a456-426614174000\", \"backText\": \"Updated back\"}]}",
     parameters: strictObjectSchema({
       updates: {
         ...BULK_CARD_ARRAY_SCHEMA,
@@ -541,8 +562,8 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "create_decks",
     localDescription: "Create one or more new decks locally using effort-level and tag filters.",
     externalDescription: "Create one or more decks in the selected workspace.",
-    jsonContract: "Use {\"decks\": DeckInput[]} where every deck object includes name, effortLevels, and tags.",
-    promptExample: "{\"decks\": [{\"name\": \"Grammar\", \"effortLevels\": [\"fast\", \"medium\"], \"tags\": [\"grammar\"]}]}",
+    jsonContract: "Use {\"decks\": DeckInput[]} where every deck object includes name. effortLevels and tags are optional and default to empty arrays when omitted.",
+    promptExample: "{\"decks\": [{\"name\": \"Grammar\"}]}",
     parameters: strictObjectSchema({
       decks: {
         ...BULK_DECK_ARRAY_SCHEMA,
@@ -557,8 +578,8 @@ const SHARED_AI_TOOL_CONTRACTS: ReadonlyArray<SharedAiToolContract> = [
     name: "update_decks",
     localDescription: "Update one or more decks locally using effort-level and tag filters.",
     externalDescription: "Update one or more decks in the selected workspace.",
-    jsonContract: "Use {\"updates\": UpdateDeckInput[]} where every update object includes deckId, name, effortLevels, and tags. Use null for unchanged fields.",
-    promptExample: "{\"updates\": [{\"deckId\": \"123e4567-e89b-42d3-a456-426614174001\", \"name\": null, \"effortLevels\": [\"fast\", \"medium\"], \"tags\": [\"grammar\"]}]}",
+    jsonContract: "Use {\"updates\": UpdateDeckInput[]} where every update object includes deckId and any fields to change. Omit a field or use null to keep it unchanged.",
+    promptExample: "{\"updates\": [{\"deckId\": \"123e4567-e89b-42d3-a456-426614174001\", \"name\": \"Updated name\"}]}",
     parameters: strictObjectSchema({
       updates: {
         ...BULK_DECK_ARRAY_SCHEMA,
@@ -602,7 +623,7 @@ export const SHARED_OPENAI_LOCAL_FLASHCARDS_TOOLS: ReadonlyArray<FunctionTool> =
     type: "function",
     name: contract.name,
     description: strictToolDescription(contract.localDescription, contract.jsonContract),
-    strict: true,
+    strict: false,
     parameters: contract.parameters,
   }),
 );

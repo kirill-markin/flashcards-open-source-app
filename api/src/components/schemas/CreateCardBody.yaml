@@ -3,7 +3,6 @@ additionalProperties: false
 required:
   - frontText
   - backText
-  - tags
   - effortLevel
 properties:
   frontText:
@@ -20,5 +19,6 @@ properties:
     type: array
     items:
       type: string
+    description: Optional tags list. Omit for no tags.
   effortLevel:
     $ref: ./EffortLevel.yaml

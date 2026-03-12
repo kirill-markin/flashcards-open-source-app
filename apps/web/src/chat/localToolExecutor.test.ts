@@ -374,6 +374,48 @@ describe("createLocalToolExecutor", () => {
     });
   });
 
+  it("accepts omitted optional update fields and preserves the existing local card values", async () => {
+    const snapshot = makeSnapshot();
+    const dependencies = makeDependencies(snapshot);
+    const executor = createLocalToolExecutor(dependencies);
+
+    await executor.execute({
+      toolCallId: "call-update-omitted",
+      name: "update_cards",
+      input: "{\"updates\":[{\"cardId\":\"card-1\",\"backText\":\"Updated Back\"}]}",
+    });
+
+    expect(dependencies.updateCardItem).toHaveBeenCalledTimes(1);
+    expect(dependencies.updateCardItem).toHaveBeenCalledWith("card-1", {
+      frontText: "Front",
+      backText: "Updated Back",
+      tags: ["tag-a"],
+      effortLevel: "medium",
+    });
+  });
+
+  it("accepts omitted deck filter fields on create and normalizes them to empty arrays", async () => {
+    const snapshot = makeSnapshot();
+    const dependencies = makeDependencies(snapshot);
+    const executor = createLocalToolExecutor(dependencies);
+
+    await executor.execute({
+      toolCallId: "call-create-deck-omitted-filters",
+      name: "create_decks",
+      input: "{\"decks\":[{\"name\":\"Grammar\"}]}",
+    });
+
+    expect(dependencies.createDeckItem).toHaveBeenCalledTimes(1);
+    expect(dependencies.createDeckItem).toHaveBeenCalledWith({
+      name: "Grammar",
+      filterDefinition: {
+        version: 2,
+        effortLevels: [],
+        tags: [],
+      },
+    });
+  });
+
   it("filters listed cards by tags and effort before pagination", async () => {
     const snapshot = makeSnapshot();
     snapshot.cards = [
@@ -390,7 +432,7 @@ describe("createLocalToolExecutor", () => {
     });
 
     const payload = JSON.parse(result.output) as Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>;
-    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-1"]);
+    expect(payload.cards.map((card) => card.cardId)).toEqual(["card-1", "card-2"]);
     expect(payload.nextCursor).toBe(null);
   });
 
