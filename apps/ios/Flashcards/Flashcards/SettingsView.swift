@@ -3,14 +3,6 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
-    @State private var screenErrorMessage: String = ""
-    @State private var isCloudSignInPresented: Bool = false
-    @State private var isDisconnectConfirmationPresented: Bool = false
-    @State private var agentConnections: [AgentApiKeyConnection] = []
-    @State private var agentConnectionsInstructions: String = ""
-    @State private var isLoadingAgentConnections: Bool = false
-    @State private var revokingConnectionId: String?
-
     private var tagsCount: Int {
         workspaceTagsSummary(cards: store.cards).tags.count
     }
@@ -20,12 +12,6 @@ struct SettingsView: View {
             if store.globalErrorMessage.isEmpty == false {
                 Section {
                     CopyableErrorMessageView(message: store.globalErrorMessage)
-                }
-            }
-
-            if screenErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: screenErrorMessage)
                 }
             }
 
@@ -47,13 +33,13 @@ struct SettingsView: View {
                 }
             }
 
-            Section("App") {
-                LabeledContent("Client") {
-                    Text("SwiftUI + SQLite")
-                }
-
+            Section("Workspace") {
                 LabeledContent("Workspace") {
                     Text(store.workspace?.name ?? "Unavailable")
+                }
+
+                LabeledContent("Client") {
+                    Text("SwiftUI + SQLite")
                 }
 
                 LabeledContent("Cards") {
@@ -65,106 +51,13 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Cloud account") {
-                if let cloudSettings = store.cloudSettings {
-                    LabeledContent("State") {
-                        Text(displayCloudAccountStateTitle(cloudState: cloudSettings.cloudState))
-                    }
-
-                    LabeledContent("Device ID") {
-                        Text(cloudSettings.deviceId)
-                            .font(.caption.monospaced())
-                            .multilineTextAlignment(.trailing)
-                    }
-
-                    if let linkedEmail = cloudSettings.linkedEmail {
-                        LabeledContent("Linked email") {
-                            Text(linkedEmail)
-                        }
-                    }
-
-                    LabeledContent("Sync status") {
-                        Text(syncStatusTitle(status: store.syncStatus))
-                    }
-
-                    if let lastSuccessfulCloudSyncAt = store.lastSuccessfulCloudSyncAt {
-                        LabeledContent("Last sync") {
-                            Text(lastSuccessfulCloudSyncAt)
-                                .font(.caption.monospaced())
-                                .multilineTextAlignment(.trailing)
-                        }
-                    }
-
-                    Text("Local mode always works. Once auth provides a linked cloud session, the app pushes pending writes and pulls ordered changes for the current workspace.")
-                        .foregroundStyle(.secondary)
-
-                    switch cloudSettings.cloudState {
-                    case .disconnected, .linkingReady:
-                        Button("Sign in for sync") {
-                            self.isCloudSignInPresented = true
-                        }
-                    case .linked:
-                        Button("Sync now") {
-                            self.syncNow()
-                        }
-                        .disabled(isSyncInFlight(status: store.syncStatus))
-
-                        Button("Switch account") {
-                            self.isCloudSignInPresented = true
-                        }
-
-                        Button("Disconnect on this device", role: .destructive) {
-                            self.isDisconnectConfirmationPresented = true
-                        }
-                    }
-                } else {
-                    Text("Cloud settings are unavailable.")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Section("Agent connections") {
-                if store.cloudSettings?.cloudState == .linked {
-                    if self.agentConnectionsInstructions.isEmpty == false {
-                        Text(self.agentConnectionsInstructions)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if self.isLoadingAgentConnections {
-                        Text("Loading agent connections...")
-                            .foregroundStyle(.secondary)
-                    } else if self.agentConnections.isEmpty {
-                        Text("No long-lived bot connections were created for this account.")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(self.agentConnections) { connection in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(connection.label)
-                                Text(connection.connectionId)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                LabeledContent("Created") {
-                                    Text(connection.createdAt)
-                                        .font(.caption.monospaced())
-                                }
-                                LabeledContent("Last used") {
-                                    Text(connection.lastUsedAt ?? "Never")
-                                        .font(.caption.monospaced())
-                                }
-                                LabeledContent("Revoked") {
-                                    Text(connection.revokedAt ?? "Not revoked")
-                                        .font(.caption.monospaced())
-                                }
-                                Button("Revoke", role: .destructive) {
-                                    self.revokeAgentConnection(connectionId: connection.connectionId)
-                                }
-                                .disabled(connection.revokedAt != nil || self.revokingConnectionId == connection.connectionId)
-                            }
-                        }
-                    }
-                } else {
-                    Text("Sign in to the cloud account to manage long-lived bot connections.")
-                        .foregroundStyle(.secondary)
+            Section("Account") {
+                NavigationLink(value: SettingsNavigationDestination.account) {
+                    SettingsNavigationRow(
+                        title: "Account settings",
+                        value: displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected),
+                        systemImage: "person.crop.circle"
+                    )
                 }
             }
 
@@ -218,83 +111,6 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
-        .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet()
-                .environmentObject(store)
-        }
-        .task(id: store.cloudSettings?.cloudState == .linked) {
-            await self.reloadAgentConnectionsIfNeeded()
-        }
-        .alert("Disconnect this device?", isPresented: self.$isDisconnectConfirmationPresented) {
-            Button("Cancel", role: .cancel) {}
-            Button("Disconnect", role: .destructive) {
-                self.disconnectCloudAccount()
-            }
-        } message: {
-            Text("This device will stop syncing with the current cloud account until you sign in again.")
-        }
-    }
-
-    private func disconnectCloudAccount() {
-        do {
-            try store.disconnectCloudAccount()
-            self.screenErrorMessage = ""
-        } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
-        }
-    }
-
-    private func syncNow() {
-        Task { @MainActor in
-            do {
-                try await store.syncCloudNow()
-                self.screenErrorMessage = ""
-            } catch {
-                self.screenErrorMessage = localizedMessage(error: error)
-            }
-        }
-    }
-
-    private func reloadAgentConnectionsIfNeeded() async {
-        guard store.cloudSettings?.cloudState == .linked else {
-            self.agentConnections = []
-            self.agentConnectionsInstructions = ""
-            return
-        }
-
-        self.isLoadingAgentConnections = true
-        defer {
-            self.isLoadingAgentConnections = false
-        }
-
-        do {
-            let result = try await store.listAgentApiKeys()
-            self.agentConnections = result.connections
-            self.agentConnectionsInstructions = result.instructions
-            self.screenErrorMessage = ""
-        } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
-        }
-    }
-
-    private func revokeAgentConnection(connectionId: String) {
-        Task { @MainActor in
-            self.revokingConnectionId = connectionId
-            defer {
-                self.revokingConnectionId = nil
-            }
-
-            do {
-                let result = try await store.revokeAgentApiKey(connectionId: connectionId)
-                self.agentConnections = self.agentConnections.map { connection in
-                    connection.connectionId == result.connection.connectionId ? result.connection : connection
-                }
-                self.agentConnectionsInstructions = result.instructions
-                self.screenErrorMessage = ""
-            } catch {
-                self.screenErrorMessage = localizedMessage(error: error)
-            }
-        }
     }
 }
 
@@ -316,7 +132,7 @@ private struct SettingsNavigationRow: View {
     }
 }
 
-private func syncStatusTitle(status: SyncStatus) -> String {
+func syncStatusTitle(status: SyncStatus) -> String {
     switch status {
     case .idle:
         return "Idle"
@@ -327,7 +143,7 @@ private func syncStatusTitle(status: SyncStatus) -> String {
     }
 }
 
-private func displayCloudAccountStateTitle(cloudState: CloudAccountState) -> String {
+func displayCloudAccountStateTitle(cloudState: CloudAccountState) -> String {
     switch cloudState {
     case .linked:
         return cloudState.title
@@ -336,7 +152,7 @@ private func displayCloudAccountStateTitle(cloudState: CloudAccountState) -> Str
     }
 }
 
-private func isSyncInFlight(status: SyncStatus) -> Bool {
+func isSyncInFlight(status: SyncStatus) -> Bool {
     switch status {
     case .syncing:
         return true

@@ -47,6 +47,8 @@ struct RootTabView: View {
                             DecksScreen()
                         case .tags:
                             TagsScreen()
+                        case .account:
+                            AccountSettingsView()
                         }
                     }
             }

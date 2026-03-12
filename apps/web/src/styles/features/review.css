@@ -15,6 +15,10 @@
   gap: 6px;
 }
 
+.review-edit-decks-link {
+  min-height: 46px;
+}
+
 .review-filter-label {
   color: var(--text-tertiary);
   font-size: 11px;
@@ -425,7 +429,8 @@
   }
 
   .review-filter-summary,
-  .review-filter-select {
+  .review-filter-select,
+  .review-edit-decks-link {
     min-width: 0;
     width: 100%;
   }

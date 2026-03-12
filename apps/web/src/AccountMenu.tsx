@@ -6,7 +6,7 @@ type Props = Readonly<{
   currentWorkspaceId: string;
   currentWorkspaceName: string;
   isBusy: boolean;
-  settingsUrl: string;
+  accountSettingsUrl: string;
   logoutUrl: string;
   onSelectWorkspace: (workspaceId: string) => Promise<void>;
   onCreateWorkspace: (name: string) => Promise<void>;
@@ -18,7 +18,7 @@ export function AccountMenu(props: Props): ReactElement {
     currentWorkspaceId,
     currentWorkspaceName,
     isBusy,
-    settingsUrl,
+    accountSettingsUrl,
     logoutUrl,
     onSelectWorkspace,
     onCreateWorkspace,
@@ -171,8 +171,8 @@ export function AccountMenu(props: Props): ReactElement {
             </form>
           )}
           <div className="account-menu-separator" />
-          <a className="account-menu-item account-menu-link" href={settingsUrl}>
-            Settings
+          <a className="account-menu-item account-menu-link" href={accountSettingsUrl}>
+            Account settings
           </a>
           <a className="account-menu-item account-menu-link" href={logoutUrl}>
             Logout
