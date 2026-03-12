@@ -15,9 +15,7 @@ import Foundation
 
 enum AppTab: Hashable, CaseIterable, Sendable {
     case review
-    case decks
     case cards
-    case tags
     case ai
     case settings
 }
@@ -28,6 +26,11 @@ enum CardsPresentationRequest: Hashable, Sendable {
 
 enum AIChatPresentationRequest: Hashable, Sendable {
     case createCard
+}
+
+enum SettingsNavigationDestination: Hashable, Sendable {
+    case decks
+    case tags
 }
 
 let allCardsDeckLabel: String = "All cards"

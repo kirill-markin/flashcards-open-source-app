@@ -11,6 +11,10 @@ struct SettingsView: View {
     @State private var isLoadingAgentConnections: Bool = false
     @State private var revokingConnectionId: String?
 
+    private var tagsCount: Int {
+        workspaceTagsSummary(cards: store.cards).tags.count
+    }
+
     var body: some View {
         List {
             if store.globalErrorMessage.isEmpty == false {
@@ -22,6 +26,24 @@ struct SettingsView: View {
             if screenErrorMessage.isEmpty == false {
                 Section {
                     CopyableErrorMessageView(message: screenErrorMessage)
+                }
+            }
+
+            Section("Manage content") {
+                NavigationLink(value: SettingsNavigationDestination.decks) {
+                    SettingsNavigationRow(
+                        title: "Decks",
+                        value: "\(store.homeSnapshot.deckCount)",
+                        systemImage: "line.3.horizontal.decrease.circle"
+                    )
+                }
+
+                NavigationLink(value: SettingsNavigationDestination.tags) {
+                    SettingsNavigationRow(
+                        title: "Tags",
+                        value: "\(self.tagsCount)",
+                        systemImage: "tag"
+                    )
                 }
             }
 
@@ -272,6 +294,24 @@ struct SettingsView: View {
             } catch {
                 self.screenErrorMessage = localizedMessage(error: error)
             }
+        }
+    }
+}
+
+private struct SettingsNavigationRow: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Label(title, systemImage: systemImage)
+
+            Spacer()
+
+            Text(value)
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
         }
     }
 }

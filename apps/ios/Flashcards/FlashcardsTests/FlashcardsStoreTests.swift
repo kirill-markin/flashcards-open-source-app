@@ -146,6 +146,15 @@ final class FlashcardsStoreTests: XCTestCase {
         XCTAssertEqual(store.aiChatPresentationRequest, .createCard)
     }
 
+    func testOpenDeckManagementSelectsSettingsTabAndSetsPresentationRequest() throws {
+        let store = try self.makeStore()
+
+        store.openDeckManagement()
+
+        XCTAssertEqual(store.selectedTab, .settings)
+        XCTAssertEqual(store.settingsPresentationRequest, .decks)
+    }
+
     func testReloadLoadsPersistedTagReviewFilterWhenTagExists() throws {
         let environment = try self.makeStoreEnvironment()
         let workspaceId = try environment.database.loadStateSnapshot().workspace.workspaceId

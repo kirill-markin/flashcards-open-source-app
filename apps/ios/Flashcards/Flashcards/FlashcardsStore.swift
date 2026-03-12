@@ -112,6 +112,7 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var tabSelectionRequest: TabSelectionRequest?
     @Published private(set) var cardsPresentationRequest: CardsPresentationRequest?
     @Published private(set) var aiChatPresentationRequest: AIChatPresentationRequest?
+    @Published private(set) var settingsPresentationRequest: SettingsNavigationDestination?
     @Published private(set) var pendingReviewCardIds: Set<String>
     @Published private(set) var reviewSubmissionFailure: ReviewSubmissionFailure?
 
@@ -221,6 +222,7 @@ final class FlashcardsStore: ObservableObject {
         self.tabSelectionRequest = nil
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
+        self.settingsPresentationRequest = nil
         self.pendingReviewCardIds = []
         self.reviewSubmissionFailure = nil
         self.database = database
@@ -306,12 +308,21 @@ final class FlashcardsStore: ObservableObject {
         self.aiChatPresentationRequest = .createCard
     }
 
+    func openDeckManagement() {
+        self.requestTabSelection(tab: .settings)
+        self.settingsPresentationRequest = .decks
+    }
+
     func clearCardsPresentationRequest() {
         self.cardsPresentationRequest = nil
     }
 
     func clearAIChatPresentationRequest() {
         self.aiChatPresentationRequest = nil
+    }
+
+    func clearSettingsPresentationRequest() {
+        self.settingsPresentationRequest = nil
     }
 
     func saveCard(input: CardEditorInput, editingCardId: String?) throws {
