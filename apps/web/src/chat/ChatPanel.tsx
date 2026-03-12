@@ -47,7 +47,8 @@ import { ModelSelector } from "./ModelSelector";
 import { useChatAutoScroll } from "./useChatAutoScroll";
 import { useChatHistory } from "./useChatHistory";
 import {
-  mergeDictationTranscriptIntoDraft,
+  insertDictationTranscriptIntoDraft,
+  type ChatDraftSelection,
   type ChatDictationState,
 } from "./chatDictation";
 
@@ -158,6 +159,7 @@ export function ChatPanel(props: Props): ReactElement {
 
   const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingAttachmentsRef = useRef<ReadonlyArray<PendingAttachment>>([]);
   const dragCounterRef = useRef<number>(0);
   const dragWidthRef = useRef<number>(chatWidth);
@@ -167,6 +169,9 @@ export function ChatPanel(props: Props): ReactElement {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Array<Blob>>([]);
+  const draftSelectionRef = useRef<ChatDraftSelection | null>(null);
+  const pendingTextareaSelectionRef = useRef<ChatDraftSelection | null>(null);
+  const shouldRestoreTextareaFocusAfterDictationRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
 
   const { handleMessagesScroll } = useChatAutoScroll({
@@ -224,6 +229,30 @@ export function ChatPanel(props: Props): ReactElement {
   }, [pendingAttachments]);
 
   useEffect(() => {
+    if (dictationState !== "idle") {
+      return;
+    }
+
+    const textarea = textareaRef.current;
+    const pendingSelection = pendingTextareaSelectionRef.current;
+    if (textarea === null || pendingSelection === null) {
+      return;
+    }
+
+    const start = Math.max(0, Math.min(pendingSelection.start, textarea.value.length));
+    const end = Math.max(0, Math.min(pendingSelection.end, textarea.value.length));
+
+    if (shouldRestoreTextareaFocusAfterDictationRef.current) {
+      textarea.focus();
+    }
+
+    textarea.setSelectionRange(start, end);
+    draftSelectionRef.current = { start, end };
+    pendingTextareaSelectionRef.current = null;
+    shouldRestoreTextareaFocusAfterDictationRef.current = false;
+  }, [dictationState, inputText]);
+
+  useEffect(() => {
     return () => {
       isMountedRef.current = false;
       const recorder = mediaRecorderRef.current;
@@ -233,6 +262,13 @@ export function ChatPanel(props: Props): ReactElement {
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
     };
   }, []);
+
+  function updateTrackedDraftSelection(textarea: HTMLTextAreaElement): void {
+    draftSelectionRef.current = {
+      start: textarea.selectionStart,
+      end: textarea.selectionEnd,
+    };
+  }
 
   useEffect(() => {
     if (!isDragging) {
@@ -342,6 +378,9 @@ export function ChatPanel(props: Props): ReactElement {
     }
 
     cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+    draftSelectionRef.current = null;
+    pendingTextareaSelectionRef.current = null;
+    shouldRestoreTextareaFocusAfterDictationRef.current = false;
     if (isMountedRef.current) {
       setDictationState("idle");
     }
@@ -351,6 +390,16 @@ export function ChatPanel(props: Props): ReactElement {
     if (dictationState !== "idle") {
       return;
     }
+
+    const textarea = textareaRef.current;
+    const shouldRestoreFocus = textarea !== null && document.activeElement === textarea;
+    shouldRestoreTextareaFocusAfterDictationRef.current = shouldRestoreFocus;
+    draftSelectionRef.current = shouldRestoreFocus && textarea !== null
+      ? {
+        start: textarea.selectionStart,
+        end: textarea.selectionEnd,
+      }
+      : null;
 
     if (typeof MediaRecorder === "undefined") {
       window.alert("Microphone recording is unavailable in this browser.");
@@ -417,7 +466,15 @@ export function ChatPanel(props: Props): ReactElement {
 
       const transcript = await transcribeChatAudio(audioBlob, "web");
       if (isMountedRef.current) {
-        setInputText((currentText) => mergeDictationTranscriptIntoDraft(currentText, transcript));
+        setInputText((currentText) => {
+          const insertionResult = insertDictationTranscriptIntoDraft(currentText, transcript, draftSelectionRef.current);
+          const nextSelection = shouldRestoreTextareaFocusAfterDictationRef.current
+            ? insertionResult.selection
+            : null;
+          draftSelectionRef.current = nextSelection;
+          pendingTextareaSelectionRef.current = nextSelection;
+          return insertionResult.text;
+        });
       }
     } catch (error) {
       if (isMountedRef.current) {
@@ -502,6 +559,8 @@ export function ChatPanel(props: Props): ReactElement {
 
     appendUserMessage(contentParts);
     setInputText("");
+    draftSelectionRef.current = null;
+    pendingTextareaSelectionRef.current = null;
     setPendingAttachmentsState([]);
     setIsStreaming(true);
 
@@ -720,13 +779,21 @@ export function ChatPanel(props: Props): ReactElement {
           </div>
         ) : (
           <textarea
+            ref={textareaRef}
             name="chatMessage"
             className="chat-textarea"
             placeholder="Ask about cards, review history, or attach notes..."
             value={inputText}
             rows={1}
-            onChange={(event) => setInputText(event.target.value)}
+            onChange={(event) => {
+              setInputText(event.target.value);
+              updateTrackedDraftSelection(event.target);
+            }}
             onKeyDown={handleKeyDown}
+            onSelect={(event) => updateTrackedDraftSelection(event.currentTarget)}
+            onClick={(event) => updateTrackedDraftSelection(event.currentTarget)}
+            onKeyUp={(event) => updateTrackedDraftSelection(event.currentTarget)}
+            onFocus={(event) => updateTrackedDraftSelection(event.currentTarget)}
           />
         )}
 

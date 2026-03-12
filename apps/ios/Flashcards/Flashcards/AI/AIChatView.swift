@@ -20,6 +20,7 @@ struct AIChatView: View {
     @State private var scrollViewportHeight: CGFloat
     @State private var autoScrollTask: Task<Void, Never>?
     @State private var shouldRestoreComposerFocusAfterDictation: Bool
+    @State private var composerSelection: TextSelection?
     @FocusState private var isComposerFocused: Bool
 
     @MainActor
@@ -38,6 +39,7 @@ struct AIChatView: View {
         self.scrollViewportHeight = 0
         self.autoScrollTask = nil
         self.shouldRestoreComposerFocusAfterDictation = false
+        self.composerSelection = nil
     }
 
     var body: some View {
@@ -96,6 +98,13 @@ struct AIChatView: View {
         }
         .onChange(of: self.chatStore.dictationState) { _, nextState in
             self.handleDictationStateChange(nextState)
+        }
+        .onChange(of: self.chatStore.completedDictationTranscript) { _, nextTranscript in
+            guard let nextTranscript else {
+                return
+            }
+
+            self.handleCompletedDictationTranscript(nextTranscript)
         }
         .onChange(of: self.selectedPhotoItem) { _, newItem in
             guard let newItem else {
@@ -357,6 +366,7 @@ struct AIChatView: View {
                     TextField(
                         "Ask about cards, review history, or propose a change...",
                         text: self.$chatStore.inputText,
+                        selection: self.$composerSelection,
                         axis: .vertical
                     )
                     .focused(self.$isComposerFocused)
@@ -518,6 +528,9 @@ struct AIChatView: View {
     private func handleDictationButtonTap() {
         if self.chatStore.dictationState == .idle {
             self.shouldRestoreComposerFocusAfterDictation = self.isComposerFocused
+            if self.isComposerFocused == false {
+                self.composerSelection = nil
+            }
         }
 
         self.chatStore.toggleDictation()
@@ -544,6 +557,24 @@ struct AIChatView: View {
         Task { @MainActor in
             self.isComposerFocused = true
         }
+    }
+
+    private func handleCompletedDictationTranscript(_ completedTranscript: AIChatCompletedDictationTranscript) {
+        let insertionResult = insertAIChatDictationTranscript(
+            draft: self.chatStore.inputText,
+            transcript: completedTranscript.transcript,
+            selection: aiChatDictationInsertionSelection(
+                text: self.chatStore.inputText,
+                selection: self.composerSelection
+            )
+        )
+        self.chatStore.inputText = insertionResult.text
+        self.composerSelection = aiChatTextSelection(
+            text: insertionResult.text,
+            selection: insertionResult.selection
+        )
+        self.chatStore.consumeCompletedDictationTranscript(id: completedTranscript.id)
+        self.restoreComposerFocusIfNeeded()
     }
 
     private func messageRow(
@@ -937,6 +968,35 @@ private func aiChatComposerAccessoryIcon(systemName: String) -> some View {
     Image(systemName: systemName)
         .font(.system(size: 15, weight: .medium))
         .frame(width: 16, height: 16)
+}
+
+private func aiChatDictationInsertionSelection(
+    text: String,
+    selection: TextSelection?
+) -> AIChatDictationInsertionSelection? {
+    guard let selection else {
+        return nil
+    }
+
+    switch selection.indices {
+    case .selection(let range):
+        return AIChatDictationInsertionSelection(
+            startUtf16Offset: range.lowerBound.utf16Offset(in: text),
+            endUtf16Offset: range.upperBound.utf16Offset(in: text)
+        )
+    case .multiSelection:
+        return nil
+    @unknown default:
+        return nil
+    }
+}
+
+private func aiChatTextSelection(
+    text: String,
+    selection: AIChatDictationInsertionSelection
+) -> TextSelection {
+    let insertionIndex = String.Index(utf16Offset: selection.endUtf16Offset, in: text)
+    return TextSelection(insertionPoint: insertionIndex)
 }
 
 private struct AIChatTypingIndicator: View {

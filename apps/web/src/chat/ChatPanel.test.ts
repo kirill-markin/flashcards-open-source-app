@@ -109,6 +109,12 @@ function setTextareaValue(textarea: HTMLTextAreaElement, value: string): void {
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+function setTextareaSelection(textarea: HTMLTextAreaElement, start: number, end: number): void {
+  textarea.focus();
+  textarea.setSelectionRange(start, end);
+  textarea.dispatchEvent(new Event("select", { bubbles: true }));
+}
+
 function configureMessagesScroller(element: HTMLDivElement): void {
   let scrollTop = 600;
 
@@ -1297,7 +1303,7 @@ describe("ChatPanel autoscroll", () => {
     expect(attachButton?.querySelector(".chat-attach-btn-icon")).not.toBeNull();
   });
 
-  it("swaps the textarea for dictation UI and appends the recognized transcript", async () => {
+  it("swaps the textarea for dictation UI and inserts the recognized transcript at the caret", async () => {
     await renderChatPanel();
 
     const mountedContainer = container;
@@ -1309,7 +1315,8 @@ describe("ChatPanel autoscroll", () => {
     const textarea = mountedContainer.querySelector('textarea[name="chatMessage"]');
     expect(textarea).not.toBeNull();
     await act(async () => {
-      setTextareaValue(textarea as HTMLTextAreaElement, "hello");
+      setTextareaValue(textarea as HTMLTextAreaElement, "hello world");
+      setTextareaSelection(textarea as HTMLTextAreaElement, 5, 5);
     });
 
     const micButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Start dictation"]');
@@ -1334,8 +1341,48 @@ describe("ChatPanel autoscroll", () => {
 
     const restoredTextarea = mountedContainer.querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
     expect(restoredTextarea).not.toBeNull();
-    expect(restoredTextarea?.value).toBe("hello dictated text ");
+    expect(restoredTextarea?.value).toBe("hello dictated text world");
+    expect(restoredTextarea?.selectionStart).toBe("hello dictated text".length);
+    expect(restoredTextarea?.selectionEnd).toBe("hello dictated text".length);
     expect(transcribeChatAudioMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces the selected textarea range with the recognized transcript", async () => {
+    await renderChatPanel();
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const textarea = mountedContainer.querySelector('textarea[name="chatMessage"]');
+    expect(textarea).not.toBeNull();
+    await act(async () => {
+      setTextareaValue(textarea as HTMLTextAreaElement, "hello brave world");
+      setTextareaSelection(textarea as HTMLTextAreaElement, 6, 11);
+    });
+
+    const micButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Start dictation"]');
+    expect(micButton).not.toBeNull();
+
+    await act(async () => {
+      micButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const stopDictationButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Stop dictation"]');
+    expect(stopDictationButton).not.toBeNull();
+
+    await act(async () => {
+      stopDictationButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const restoredTextarea = mountedContainer.querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(restoredTextarea?.value).toBe("hello dictated text world");
+    expect(restoredTextarea?.selectionStart).toBe("hello dictated text".length);
+    expect(restoredTextarea?.selectionEnd).toBe("hello dictated text".length);
   });
 
   it("lets the user keep building the next draft while the assistant is streaming", async () => {
@@ -1360,7 +1407,8 @@ describe("ChatPanel autoscroll", () => {
     expect(textarea).not.toBeNull();
 
     await act(async () => {
-      setTextareaValue(textarea as HTMLTextAreaElement, "next");
+      setTextareaValue(textarea as HTMLTextAreaElement, "next steps");
+      setTextareaSelection(textarea as HTMLTextAreaElement, 4, 4);
     });
 
     const attachButton = mountedContainer.querySelector(".chat-attach-btn");
@@ -1388,7 +1436,9 @@ describe("ChatPanel autoscroll", () => {
     });
 
     const restoredTextarea = mountedContainer.querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
-    expect(restoredTextarea?.value).toBe("next dictated text ");
+    expect(restoredTextarea?.value).toBe("next dictated text steps");
+    expect(restoredTextarea?.selectionStart).toBe("next dictated text".length);
+    expect(restoredTextarea?.selectionEnd).toBe("next dictated text".length);
     expect(mountedContainer.textContent).toContain("attached.txt");
     expect(mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]')).not.toBeNull();
   });
