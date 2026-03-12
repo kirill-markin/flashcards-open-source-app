@@ -104,6 +104,75 @@ final class CloudSupportTests: XCTestCase {
         )
     }
 
+    func testMakeCloudWorkspaceSelectionItemsPreservesWorkspaceOrderAndAppendsCreateAction() {
+        let workspaces = [
+            CloudWorkspaceSummary(
+                workspaceId: "workspace-2",
+                name: "Spanish",
+                createdAt: "2026-03-12T09:00:00.000Z",
+                isSelected: false
+            ),
+            CloudWorkspaceSummary(
+                workspaceId: "workspace-1",
+                name: "Personal",
+                createdAt: "2026-03-12T08:00:00.000Z",
+                isSelected: true
+            )
+        ]
+
+        let items = makeCloudWorkspaceSelectionItems(
+            workspaces: workspaces,
+            localWorkspaceName: "Local deck"
+        )
+
+        XCTAssertEqual(items.map(\.id), ["workspace-2", "workspace-1", "create-new-workspace"])
+        XCTAssertEqual(items.map(\.selection), [
+            .existing(workspaceId: "workspace-2"),
+            .existing(workspaceId: "workspace-1"),
+            .createNew
+        ])
+        XCTAssertEqual(items.last?.title, "Create new workspace from \"Local deck\"")
+    }
+
+    func testMakeCloudWorkspaceSelectionItemsMarksSelectedWorkspaceIndicatorOnlyForSelectedWorkspace() {
+        let workspaces = [
+            CloudWorkspaceSummary(
+                workspaceId: "workspace-1",
+                name: "Personal",
+                createdAt: "2026-03-12T08:00:00.000Z",
+                isSelected: true
+            ),
+            CloudWorkspaceSummary(
+                workspaceId: "workspace-2",
+                name: "Work",
+                createdAt: "2026-03-12T09:00:00.000Z",
+                isSelected: false
+            )
+        ]
+
+        let items = makeCloudWorkspaceSelectionItems(
+            workspaces: workspaces,
+            localWorkspaceName: "Local deck"
+        )
+
+        XCTAssertEqual(items.map(\.showsSelectedIndicator), [true, false, false])
+    }
+
+    func testMakeCreateWorkspaceSelectionTitleFallsBackWhenLocalWorkspaceNameIsMissing() {
+        XCTAssertEqual(
+            makeCreateWorkspaceSelectionTitle(localWorkspaceName: nil),
+            "Create new workspace"
+        )
+        XCTAssertEqual(
+            makeCreateWorkspaceSelectionTitle(localWorkspaceName: ""),
+            "Create new workspace"
+        )
+        XCTAssertEqual(
+            makeCreateWorkspaceSelectionTitle(localWorkspaceName: "Inbox"),
+            "Create new workspace from \"Inbox\""
+        )
+    }
+
     func testMakeIdTokenExpiryTimestampProducesFutureIsoTimestamp() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-08T10:00:00.000Z"))
 
