@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewScreen } from "./ReviewScreen";
 import type { Card, Deck, ReviewFilter } from "../types";
+import { cardsRoute, chatRoute } from "../routes";
 
 const { mockAppData } = vi.hoisted(() => ({
   mockAppData: {
@@ -167,6 +168,52 @@ describe("ReviewScreen", () => {
     expect(container.textContent).toContain("Grammar");
     expect(container.textContent).toContain("Grammar front");
     expect(container.textContent).not.toContain("No cards to review right now.");
+  });
+
+  it("shows all empty-state review actions for non-All-cards filters", async () => {
+    mockAppData.decks = [createDeck()];
+    mockAppData.selectedReviewFilter = { kind: "deck", deckId: "deck-1" } as ReviewFilter;
+    mockAppData.selectedReviewFilterTitle = "Grammar";
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const links = Array.from(container.querySelectorAll(".review-empty-actions a"));
+    const switchButton = Array.from(container.querySelectorAll(".review-empty-actions button"))
+      .find((element) => element.textContent?.trim() === "switch to all cards deck");
+
+    expect(container.textContent).toContain("No Cards Yet");
+    expect(container.textContent).toContain("Create card");
+    expect(container.textContent).toContain("Create with AI");
+    expect(container.textContent).toContain("switch to all cards deck");
+    expect(links.map((element) => element.getAttribute("href"))).toEqual([`${cardsRoute}/new`, chatRoute]);
+    expect(switchButton).not.toBeUndefined();
+
+    await act(async () => {
+      clickElement(switchButton as HTMLButtonElement);
+    });
+
+    expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "allCards" });
+  });
+
+  it("shows only creation empty-state review actions for All cards", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("No Cards Yet");
+    expect(container.textContent).toContain("Create card");
+    expect(container.textContent).toContain("Create with AI");
+    expect(container.textContent).not.toContain("switch to all cards deck");
   });
 
   it("lists review filter rows in order and dispatches the selected deck filter", async () => {

@@ -24,6 +24,7 @@ import {
   isReviewFilterEqual,
   reviewFilterTitle,
   resolveReviewFilter,
+  shouldShowSwitchToAllCardsReviewAction,
   upsertCard,
   upsertDeck,
   upsertReviewEvent,
@@ -448,6 +449,40 @@ describe("appData domain helpers", () => {
       kind: "tag",
       tag: "grammar",
     })).toBe(false);
+  });
+
+  it("shows switch-to-all-cards review action only for resolved deck and tag filters", () => {
+    const grammarDeck = createDeck({
+      deckId: "grammar",
+      filterDefinition: {
+        version: 2,
+        effortLevels: ["fast"],
+        tags: ["grammar"],
+      },
+    });
+    const grammarCard = createCard({
+      cardId: "grammar-card",
+      effortLevel: "fast",
+      tags: ["grammar"],
+    });
+
+    expect(shouldShowSwitchToAllCardsReviewAction(ALL_CARDS_REVIEW_FILTER, [grammarDeck], [grammarCard])).toBe(false);
+    expect(shouldShowSwitchToAllCardsReviewAction({
+      kind: "deck",
+      deckId: "grammar",
+    }, [grammarDeck], [grammarCard])).toBe(true);
+    expect(shouldShowSwitchToAllCardsReviewAction({
+      kind: "tag",
+      tag: "grammar",
+    }, [grammarDeck], [grammarCard])).toBe(true);
+    expect(shouldShowSwitchToAllCardsReviewAction({
+      kind: "deck",
+      deckId: "missing-deck",
+    }, [grammarDeck], [grammarCard])).toBe(false);
+    expect(shouldShowSwitchToAllCardsReviewAction({
+      kind: "tag",
+      tag: "travel",
+    }, [grammarDeck], [grammarCard])).toBe(false);
   });
 
   it("builds filtered review timeline and queue from the selected review filter", () => {
