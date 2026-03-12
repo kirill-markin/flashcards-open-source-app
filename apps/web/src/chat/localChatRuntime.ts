@@ -91,6 +91,23 @@ export type LocalChatRuntimeEffect =
   | Readonly<{ type: "complete_tool_call"; toolCallId: string; input: string | null; output: string | null }>
   | Readonly<{ type: "fail_turn"; userMessage: string; details: LocalChatRuntimeDiagnosticDetails }>;
 
+const LOCAL_TOOL_EXECUTION_ERROR_CODE = "LOCAL_TOOL_EXECUTION_FAILED";
+const MAX_CONSECUTIVE_TOOL_EXECUTION_FAILURES = 3;
+
+function buildLocalToolExecutionErrorOutput(message: string): string {
+  return JSON.stringify({
+    ok: false,
+    error: {
+      code: LOCAL_TOOL_EXECUTION_ERROR_CODE,
+      message,
+    },
+  });
+}
+
+function buildTerminalToolExecutionFailureMessage(message: string): string {
+  return `Tool execution failed ${MAX_CONSECUTIVE_TOOL_EXECUTION_FAILURES} times in a row. Last error: ${message}`;
+}
+
 /**
  * Returns the runtime state used for a single streamed assistant turn.
  */
@@ -284,6 +301,7 @@ export async function runLocalChatRuntime(
   let backendRequestId: string | null = null;
   let bufferLength = 0;
   let lastEventType: string | null = null;
+  let consecutiveToolExecutionFailures = 0;
 
   while (true) {
     const requestBody = dependencies.createRequestBody(wireMessages, selectedModel, timezone);
@@ -437,6 +455,7 @@ export async function runLocalChatRuntime(
         content: state.assistantContentParts,
       });
 
+      let terminalToolExecutionMessage: string | null = null;
       for (const toolCall of state.pendingToolCalls) {
         try {
           const result = await dependencies.executeTool({
@@ -444,6 +463,7 @@ export async function runLocalChatRuntime(
             name: toolCall.name,
             input: toolCall.input,
           });
+          consecutiveToolExecutionFailures = 0;
           callbacks.onToolCallCompleted(toolCall.toolCallId, toolCall.input, result.output);
           wireMessages.push({
             role: "tool",
@@ -453,7 +473,15 @@ export async function runLocalChatRuntime(
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          callbacks.onAssistantError(message);
+          const errorOutput = buildLocalToolExecutionErrorOutput(message);
+          consecutiveToolExecutionFailures += 1;
+          callbacks.onToolCallCompleted(toolCall.toolCallId, toolCall.input, errorOutput);
+          wireMessages.push({
+            role: "tool",
+            toolCallId: toolCall.toolCallId,
+            name: toolCall.name,
+            output: errorOutput,
+          });
           emitDiagnostics({
             stage: "tool_execution",
             errorKind: "tool_execution_failed",
@@ -464,8 +492,17 @@ export async function runLocalChatRuntime(
             rawSnippet: toolCall.input,
             decoderSummary: message,
           });
-          return;
+
+          if (consecutiveToolExecutionFailures >= MAX_CONSECUTIVE_TOOL_EXECUTION_FAILURES) {
+            terminalToolExecutionMessage = buildTerminalToolExecutionFailureMessage(message);
+            break;
+          }
         }
+      }
+
+      if (terminalToolExecutionMessage !== null) {
+        callbacks.onAssistantError(terminalToolExecutionMessage);
+        return;
       }
 
       continue;

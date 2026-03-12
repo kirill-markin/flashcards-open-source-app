@@ -150,6 +150,20 @@ export function normalizeStoredMessageForTests(value: unknown): StoredMessage | 
   return normalizeStoredMessage(value);
 }
 
+export function appendAssistantErrorContent(
+  content: ReadonlyArray<ContentPart>,
+  errorText: string,
+): ReadonlyArray<ContentPart> {
+  if (content.length === 0) {
+    return [{ type: "text", text: errorText }];
+  }
+
+  const lastPart = content[content.length - 1];
+  const errorPrefix = lastPart?.type === "text" ? "\n\n" : "";
+
+  return [...content, { type: "text", text: `${errorPrefix}${errorText}` }];
+}
+
 function loadFromStorage(): ReadonlyArray<StoredMessage> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -322,7 +336,7 @@ export function useChatHistory(): ChatHistoryState {
         ...currentMessages.slice(0, -1),
         {
           ...lastMessage,
-          content: [{ type: "text", text: errorText }],
+          content: appendAssistantErrorContent(lastMessage.content, errorText),
           isError: true,
         },
       ];
