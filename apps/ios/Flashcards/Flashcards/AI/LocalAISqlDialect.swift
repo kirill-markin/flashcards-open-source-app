@@ -85,6 +85,7 @@ enum LocalAISqlStatementValue: Sendable {
 
 enum LocalAISqlPredicate: Sendable {
     case comparison(columnName: String, `operator`: LocalAISqlComparisonOperator, value: LocalAISqlPredicateValue)
+    case like(columnName: String, pattern: String, caseInsensitive: Bool)
     case `in`(columnName: String, values: [LocalAISqlLiteralValue])
     case overlap(columnName: String, values: [String])
     case isNull(columnName: String)
@@ -631,6 +632,32 @@ private func localAISqlParsePredicate(
     }
 
     if let groups = localAISqlMatch(
+        pattern: #"^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s+LIKE\s+('(?:''|[^'])*')$"#,
+        value: trimmedValue
+    ) {
+        let columnName = groups[1].lowercased()
+        try localAISqlEnsureSourceColumnExists(source: source, columnName: columnName)
+        return .like(
+            columnName: columnName,
+            pattern: try localAISqlParseStringLiteral(groups[2]),
+            caseInsensitive: true
+        )
+    }
+
+    if let groups = localAISqlMatch(
+        pattern: #"^([a-z_][a-z0-9_]*)\s+LIKE\s+('(?:''|[^'])*')$"#,
+        value: trimmedValue
+    ) {
+        let columnName = groups[1].lowercased()
+        try localAISqlEnsureSourceColumnExists(source: source, columnName: columnName)
+        return .like(
+            columnName: columnName,
+            pattern: try localAISqlParseStringLiteral(groups[2]),
+            caseInsensitive: false
+        )
+    }
+
+    if let groups = localAISqlMatch(
         pattern: #"^([a-z_][a-z0-9_]*)\s+IS\s+NOT\s+NULL$"#,
         value: trimmedValue
     ) {
@@ -862,17 +889,18 @@ private func localAISqlParseSelectStatement(normalizedSql: String) throws -> Loc
         if groupBy.isEmpty == false {
             throw LocalStoreError.validation("GROUP BY is not supported with SELECT *")
         }
-    } else if hasAggregateSelectItem == false {
-        throw LocalStoreError.validation("Projected SELECT statements must include aggregate functions")
     }
 
+    let requiresGroupedColumns = hasAggregateSelectItem || groupBy.isEmpty == false
     for item in selectItems {
-        if case .column(let columnName, _) = item, groupBy.contains(where: { $0 == columnName }) == false {
+        if requiresGroupedColumns,
+           case .column(let columnName, _) = item,
+           groupBy.contains(where: { $0 == columnName }) == false {
             throw LocalStoreError.validation("Grouped SELECT must list \(columnName) in GROUP BY")
         }
     }
 
-    if let unnestAlias = source.unnestAlias {
+    if requiresGroupedColumns, let unnestAlias = source.unnestAlias {
         let referencesAlias = selectItems.contains { item in
             if case .column(let columnName, _) = item {
                 return columnName == unnestAlias

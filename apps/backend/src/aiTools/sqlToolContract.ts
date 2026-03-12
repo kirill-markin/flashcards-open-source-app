@@ -11,6 +11,7 @@ export const SQL_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql => {\"sql\": \"SHOW TABLES\"}",
   "- sql => {\"sql\": \"DESCRIBE workspace\"}",
   "- sql => {\"sql\": \"SELECT * FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET 0\"}",
+  "- sql => {\"sql\": \"SELECT card_id, front_text, back_text, tags FROM cards WHERE LOWER(front_text) LIKE '%example%' OR LOWER(back_text) LIKE '%example%' ORDER BY updated_at DESC LIMIT 20 OFFSET 0\"}",
   "- sql => {\"sql\": \"SELECT * FROM workspace LIMIT 1 OFFSET 0\"}",
   "- sql => {\"sql\": \"SELECT * FROM review_events WHERE card_id = '00000000-0000-4000-8000-000000000000' ORDER BY reviewed_at_server DESC LIMIT 20 OFFSET 0\"}",
   "- sql => {\"sql\": \"SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS tag GROUP BY tag ORDER BY cards_count DESC LIMIT 100 OFFSET 0\"}",
@@ -30,7 +31,7 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     "Use one JSON object: {\"sql\": \"...\"}.",
     "Published resources: workspace, cards, decks, review_events.",
     "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
-    "SELECT supports COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), and cards UNNEST tags AS tag.",
+    "SELECT supports projected column lists, LIKE, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), and cards UNNEST tags AS tag.",
   ].join(" "),
   strict: false,
   parameters: {
