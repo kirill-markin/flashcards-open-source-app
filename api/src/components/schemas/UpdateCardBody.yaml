@@ -2,10 +2,6 @@ type: object
 additionalProperties: false
 required:
   - cardId
-  - frontText
-  - backText
-  - tags
-  - effortLevel
 properties:
   cardId:
     $ref: ./UuidString.yaml
@@ -30,6 +26,7 @@ properties:
       - 'null'
     items:
       type: string
+    description: Optional tags update. Omit or use null to keep unchanged.
   effortLevel:
     type:
       - string
@@ -39,3 +36,4 @@ properties:
       - medium
       - long
       - null
+    description: Optional effort update. Omit or use null to keep unchanged.

@@ -2,8 +2,6 @@ type: object
 additionalProperties: false
 required:
   - name
-  - effortLevels
-  - tags
 properties:
   name:
     type: string
@@ -11,7 +9,9 @@ properties:
     type: array
     items:
       $ref: ./EffortLevel.yaml
+    description: Optional deck effort filter. Omit for no effort filter.
   tags:
     type: array
     items:
       type: string
+    description: Optional deck tag filter. Omit for no tag filter.

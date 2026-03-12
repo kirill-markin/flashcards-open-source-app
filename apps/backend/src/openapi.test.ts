@@ -27,6 +27,7 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
     };
   };
   const createCardBody = components.schemas.CreateCardBody as {
+    required: ReadonlyArray<string>;
     properties: {
       frontText: {
         description: string;
@@ -37,7 +38,14 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
     };
   };
   const updateCardBody = components.schemas.UpdateCardBody as {
+    required: ReadonlyArray<string>;
     properties: {
+      tags: {
+        description: string;
+      };
+      effortLevel: {
+        description: string;
+      };
       frontText: {
         description: string;
       };
@@ -45,6 +53,20 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
         description: string;
       };
     };
+  };
+  const createDeckBody = components.schemas.CreateDeckBody as {
+    required: ReadonlyArray<string>;
+    properties: {
+      effortLevels: {
+        description: string;
+      };
+      tags: {
+        description: string;
+      };
+    };
+  };
+  const updateDeckBody = components.schemas.UpdateDeckBody as {
+    required: ReadonlyArray<string>;
   };
   const agentErrorEnvelope = components.schemas.AgentErrorEnvelope as {
     properties: {
@@ -68,8 +90,16 @@ test("loadOpenApiDocument returns the canonical v1 spec", () => {
   });
   assert.match(createCardBody.properties.frontText.description, /question-only recall prompt/i);
   assert.match(createCardBody.properties.backText.description, /must contain the answer/i);
+  assert.deepEqual(createCardBody.required, ["frontText", "backText", "effortLevel"]);
   assert.match(updateCardBody.properties.frontText.description, /question-only recall prompt/i);
   assert.match(updateCardBody.properties.backText.description, /must contain the answer/i);
+  assert.match(updateCardBody.properties.tags.description, /omit or use null to keep unchanged/i);
+  assert.match(updateCardBody.properties.effortLevel.description, /omit or use null to keep unchanged/i);
+  assert.deepEqual(updateCardBody.required, ["cardId"]);
+  assert.match(createDeckBody.properties.effortLevels.description, /omit for no effort filter/i);
+  assert.match(createDeckBody.properties.tags.description, /omit for no tag filter/i);
+  assert.deepEqual(createDeckBody.required, ["name"]);
+  assert.deepEqual(updateDeckBody.required, ["deckId"]);
   assert.ok("error" in agentErrorEnvelope.properties);
 
   for (const [path, methods] of Object.entries(paths)) {

@@ -275,6 +275,57 @@ extension CardFilter {
     }
 }
 
+extension CreateCardToolInput {
+    private enum CodingKeys: String, CodingKey {
+        case frontText
+        case backText
+        case tags
+        case effortLevel
+    }
+
+    init(from decoder: Decoder) throws {
+        try validateObjectKeys(
+            decoder: decoder,
+            allowedKeys: Set([
+                CodingKeys.frontText.rawValue,
+                CodingKeys.backText.rawValue,
+                CodingKeys.tags.rawValue,
+                CodingKeys.effortLevel.rawValue
+            ]),
+            context: "create_cards.cards[]"
+        )
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.frontText = try container.decode(String.self, forKey: .frontText)
+        self.backText = try container.decode(String.self, forKey: .backText)
+        self.tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        self.effortLevel = try container.decode(EffortLevel.self, forKey: .effortLevel)
+    }
+}
+
+extension CreateDeckToolInput {
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case effortLevels
+        case tags
+    }
+
+    init(from decoder: Decoder) throws {
+        try validateObjectKeys(
+            decoder: decoder,
+            allowedKeys: Set([
+                CodingKeys.name.rawValue,
+                CodingKeys.effortLevels.rawValue,
+                CodingKeys.tags.rawValue
+            ]),
+            context: "create_decks.decks[]"
+        )
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.effortLevels = try container.decodeIfPresent([EffortLevel].self, forKey: .effortLevels) ?? []
+        self.tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+    }
+}
+
 extension SearchCardsToolInput {
     private enum CodingKeys: String, CodingKey {
         case query
