@@ -151,6 +151,7 @@
 .review-queue-panel {
   display: grid;
   gap: 12px;
+  min-width: 0;
   padding: 14px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
@@ -206,11 +207,13 @@
 
 .review-card-stack {
   display: grid;
+  min-width: 0;
   gap: 12px;
 }
 
 .review-card-surface {
   min-height: 210px;
+  min-width: 0;
   padding: 18px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
@@ -238,10 +241,12 @@
 .review-card-body {
   min-height: 152px;
   display: flex;
+  min-width: 0;
 }
 
 .review-card-content {
   width: 100%;
+  min-width: 0;
   color: var(--text);
 }
 
@@ -266,6 +271,7 @@
 .review-card-content-paragraphPlain,
 .review-card-content-markdown {
   align-self: stretch;
+  min-width: 0;
   font-size: clamp(0.95rem, 1.1vw, 1.1rem);
   line-height: 1.5;
   letter-spacing: normal;
@@ -339,6 +345,7 @@
 }
 
 .review-markdown-pre {
+  max-width: 100%;
   padding: 0.85rem 1rem;
   border-radius: 14px;
   background: rgba(7, 7, 10, 0.5);
@@ -357,6 +364,7 @@
 
 .review-markdown-table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
 }
 
