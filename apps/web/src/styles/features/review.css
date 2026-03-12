@@ -115,6 +115,21 @@
   display: block;
 }
 
+.review-filter-menu-item-marker {
+  opacity: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.review-filter-menu-item-marker::before {
+  content: "v";
+}
+
+.review-filter-menu-item-marker-visible {
+  opacity: 1;
+}
+
 .review-filter-menu-item-label {
   min-width: 0;
   overflow: hidden;

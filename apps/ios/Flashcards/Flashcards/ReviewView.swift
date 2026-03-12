@@ -194,7 +194,7 @@ struct ReviewView: View {
 
     private func reviewFilterSelectionMenuLabel(title: String, isSelected: Bool) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "checkmark")
+            Text("v")
                 .font(.body.weight(.semibold))
                 .frame(width: reviewFilterMenuLeadingSlotWidth)
                 .opacity(isSelected ? 1 : 0)
