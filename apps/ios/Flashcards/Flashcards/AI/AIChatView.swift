@@ -354,25 +354,17 @@ struct AIChatView: View {
                 }
 
                 ZStack(alignment: .bottomTrailing) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        AIChatDictationStatusLane(
-                            statusText: self.dictationStatusText,
-                            isVisible: self.chatStore.dictationState != .idle
-                        )
-                        .padding(.horizontal, 12)
-                        .padding(.top, 12)
-
-                        TextField(
-                            "Ask about cards, review history, or propose a change...",
-                            text: self.$chatStore.inputText,
-                            axis: .vertical
-                        )
-                        .focused(self.$isComposerFocused)
-                        .lineLimit(1...aiChatComposerMaximumLineCount)
-                        .padding(.leading, 12)
-                        .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                        .padding(.bottom, 12)
-                    }
+                    TextField(
+                        "Ask about cards, review history, or propose a change...",
+                        text: self.$chatStore.inputText,
+                        axis: .vertical
+                    )
+                    .focused(self.$isComposerFocused)
+                    .lineLimit(1...aiChatComposerMaximumLineCount)
+                    .padding(.leading, 12)
+                    .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
+                    .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                    .padding(.bottom, 12)
 
                     Button {
                         self.handlePrimaryComposerAction()
@@ -394,6 +386,14 @@ struct AIChatView: View {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(Color(.separator), lineWidth: 1)
                 )
+                .overlay(alignment: .topLeading) {
+                    if self.chatStore.dictationState != .idle {
+                        AIChatDictationStatusLane(statusText: self.dictationStatusText)
+                            .padding(.top, 12)
+                            .padding(.leading, 12)
+                            .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                    }
+                }
                 .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .simultaneousGesture(
                     TapGesture().onEnded {
@@ -415,11 +415,7 @@ struct AIChatView: View {
                                 }
                             }
                         } label: {
-                            Image(systemName: "paperclip")
-                                .frame(
-                                    width: aiChatComposerAccessoryButtonSize,
-                                    height: aiChatComposerAccessoryButtonSize
-                                )
+                            aiChatComposerAccessoryIcon(systemName: "paperclip")
                         }
                         .buttonStyle(.bordered)
                         .tint(.accentColor)
@@ -431,11 +427,9 @@ struct AIChatView: View {
                         Button {
                             self.handleDictationButtonTap()
                         } label: {
-                            Image(systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic")
-                                .frame(
-                                    width: aiChatComposerAccessoryButtonSize,
-                                    height: aiChatComposerAccessoryButtonSize
-                                )
+                            aiChatComposerAccessoryIcon(
+                                systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
+                            )
                         }
                         .buttonStyle(.bordered)
                         .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
@@ -873,7 +867,9 @@ private let aiChatComposerTopPadding: CGFloat = 8
 private let aiChatComposerSendButtonInset: CGFloat = 8
 private let aiChatComposerSendButtonVisualSize: CGFloat = 28
 private let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 44
-private let aiChatComposerAccessoryButtonSize: CGFloat = 40
+private let aiChatComposerStatusLaneHeight: CGFloat = 24
+private let aiChatComposerStatusLaneSpacing: CGFloat = 8
+private let aiChatComposerDictationTextFieldTopPadding: CGFloat = 12 + aiChatComposerStatusLaneHeight + aiChatComposerStatusLaneSpacing
 private let aiChatMessageListHorizontalPadding: CGFloat = 16
 private let aiChatAutoScrollIntervalSeconds: Double = 2.0
 private let aiChatAutoScrollBottomThreshold: CGFloat = 24
@@ -908,11 +904,8 @@ private struct AIChatViewportHeightPreferenceKey: PreferenceKey {
     }
 }
 
-private let aiChatComposerStatusLaneHeight: CGFloat = 24
-
 private struct AIChatDictationStatusLane: View {
     let statusText: String
-    let isVisible: Bool
 
     var body: some View {
         TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds)) { context in
@@ -936,10 +929,14 @@ private struct AIChatDictationStatusLane: View {
                 minHeight: aiChatComposerStatusLaneHeight,
                 alignment: .leading
             )
-            .opacity(self.isVisible ? 1 : 0)
-            .accessibilityHidden(self.isVisible == false)
         }
     }
+}
+
+private func aiChatComposerAccessoryIcon(systemName: String) -> some View {
+    Image(systemName: systemName)
+        .font(.system(size: 15, weight: .medium))
+        .frame(width: 16, height: 16)
 }
 
 private struct AIChatTypingIndicator: View {
