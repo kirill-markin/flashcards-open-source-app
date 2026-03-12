@@ -1,16 +1,44 @@
 import { describe, expect, it } from "vitest";
-import { mergeDictationTranscriptIntoDraft } from "./chatDictation";
+import { insertDictationTranscriptIntoDraft } from "./chatDictation";
 
-describe("mergeDictationTranscriptIntoDraft", () => {
-  it("adds a separating space before transcript text when the draft does not end with whitespace", () => {
-    expect(mergeDictationTranscriptIntoDraft("hello", "world")).toBe("hello world ");
+describe("insertDictationTranscriptIntoDraft", () => {
+  it("inserts transcript text at the current caret with whitespace on both sides when needed", () => {
+    expect(insertDictationTranscriptIntoDraft("helloworld", "wide", { start: 5, end: 5 })).toEqual({
+      text: "hello wide world",
+      selection: {
+        start: "hello wide ".length,
+        end: "hello wide ".length,
+      },
+    });
   });
 
-  it("keeps existing trailing whitespace on the draft and still adds trailing space after transcript text", () => {
-    expect(mergeDictationTranscriptIntoDraft("hello ", "world")).toBe("hello world ");
+  it("replaces the selected range instead of appending to the end", () => {
+    expect(insertDictationTranscriptIntoDraft("hello brave world", "wide", { start: 6, end: 11 })).toEqual({
+      text: "hello wide world",
+      selection: {
+        start: "hello wide".length,
+        end: "hello wide".length,
+      },
+    });
+  });
+
+  it("falls back to appending at the end when selection is missing", () => {
+    expect(insertDictationTranscriptIntoDraft("hello", "world", null)).toEqual({
+      text: "hello world",
+      selection: {
+        start: "hello world".length,
+        end: "hello world".length,
+      },
+    });
   });
 
   it("returns the original draft when the transcript is blank", () => {
-    expect(mergeDictationTranscriptIntoDraft("hello", "   ")).toBe("hello");
+    expect(insertDictationTranscriptIntoDraft("hello", "   ", null)).toEqual({
+      text: "hello",
+      selection: {
+        start: "hello".length,
+        end: "hello".length,
+      },
+    });
   });
 });

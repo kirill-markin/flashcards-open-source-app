@@ -4,18 +4,67 @@ import XCTest
 
 @MainActor
 final class AIChatDictationTests: AIChatTestCaseBase {
-    func testMergeAIChatDictationTranscriptAddsWhitespaceAroundInsertedText() {
+    func testInsertAIChatDictationTranscriptInsertsAtCaretWithWhitespaceAroundInsertedText() {
         XCTAssertEqual(
-            mergeAIChatDictationTranscript(draft: "hello", transcript: "world"),
-            "hello world "
-        )
-        XCTAssertEqual(
-            mergeAIChatDictationTranscript(draft: "hello ", transcript: "world"),
-            "hello world "
+            insertAIChatDictationTranscript(
+                draft: "helloworld",
+                transcript: "dictated",
+                selection: AIChatDictationInsertionSelection(startUtf16Offset: 5, endUtf16Offset: 5)
+            ),
+            AIChatDictationInsertionResult(
+                text: "hello dictated world",
+                selection: AIChatDictationInsertionSelection(
+                    startUtf16Offset: "hello dictated ".utf16.count,
+                    endUtf16Offset: "hello dictated ".utf16.count
+                )
+            )
         )
     }
 
-    func testAIChatStoreDictationAppendsTranscriptToDraft() async throws {
+    func testInsertAIChatDictationTranscriptReplacesSelectedRange() {
+        XCTAssertEqual(
+            insertAIChatDictationTranscript(
+                draft: "hello brave world",
+                transcript: "dictated",
+                selection: AIChatDictationInsertionSelection(startUtf16Offset: 6, endUtf16Offset: 11)
+            ),
+            AIChatDictationInsertionResult(
+                text: "hello dictated world",
+                selection: AIChatDictationInsertionSelection(
+                    startUtf16Offset: "hello dictated ".utf16.count,
+                    endUtf16Offset: "hello dictated ".utf16.count
+                )
+            )
+        )
+    }
+
+    func testInsertAIChatDictationTranscriptAppendsAtEndWhenSelectionIsMissing() {
+        XCTAssertEqual(
+            insertAIChatDictationTranscript(draft: "hello", transcript: "world", selection: nil),
+            AIChatDictationInsertionResult(
+                text: "hello world",
+                selection: AIChatDictationInsertionSelection(
+                    startUtf16Offset: "hello world".utf16.count,
+                    endUtf16Offset: "hello world".utf16.count
+                )
+            )
+        )
+    }
+
+    func testInsertAIChatDictationTranscriptReturnsOriginalDraftForBlankTranscript() {
+        XCTAssertEqual(
+            insertAIChatDictationTranscript(draft: "hello", transcript: "   ", selection: nil),
+            AIChatDictationInsertionResult(
+                text: "hello",
+                selection: AIChatDictationInsertionSelection(
+                    startUtf16Offset: "hello".utf16.count,
+                    endUtf16Offset: "hello".utf16.count
+                )
+            )
+        )
+    }
+
+    func testAIChatStoreDictationPublishesCompletedTranscriptWithoutMutatingDraft() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()
         let recorder = StubVoiceRecorder(mode: .success)
@@ -39,7 +88,8 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         chatStore.toggleDictation()
         try await self.waitForDictationState(chatStore: chatStore, state: .idle)
 
-        XCTAssertEqual(chatStore.inputText, "hello dictated text ")
+        XCTAssertEqual(chatStore.inputText, "hello")
+        XCTAssertEqual(chatStore.completedDictationTranscript?.transcript, "dictated text")
         XCTAssertEqual(chatStore.errorMessage, "")
     }
 
@@ -151,7 +201,8 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
         XCTAssertTrue(chatStore.isStreaming)
         XCTAssertFalse(chatStore.canSendMessage)
-        XCTAssertEqual(chatStore.inputText, "next dictated text ")
+        XCTAssertEqual(chatStore.inputText, "next")
+        XCTAssertEqual(chatStore.completedDictationTranscript?.transcript, "dictated text")
 
         chatStore.cancelStreaming()
     }

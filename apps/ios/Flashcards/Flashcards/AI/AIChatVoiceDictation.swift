@@ -14,6 +14,16 @@ struct AIChatRecordedAudio: Sendable {
     let mediaType: String
 }
 
+struct AIChatDictationInsertionSelection: Equatable, Sendable {
+    let startUtf16Offset: Int
+    let endUtf16Offset: Int
+}
+
+struct AIChatDictationInsertionResult: Equatable, Sendable {
+    let text: String
+    let selection: AIChatDictationInsertionSelection
+}
+
 @MainActor
 protocol AIChatVoiceRecording: AnyObject {
     func startRecording() async throws
@@ -249,13 +259,53 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
     }
 }
 
-func mergeAIChatDictationTranscript(draft: String, transcript: String) -> String {
+func insertAIChatDictationTranscript(
+    draft: String,
+    transcript: String,
+    selection: AIChatDictationInsertionSelection?
+) -> AIChatDictationInsertionResult {
     let trimmedTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+    let normalizedSelection = normalizeAIChatDictationSelection(
+        selection: selection,
+        maxUtf16Offset: draft.utf16.count
+    )
     guard trimmedTranscript.isEmpty == false else {
-        return draft
+        return AIChatDictationInsertionResult(text: draft, selection: normalizedSelection)
     }
 
-    let prefix = draft.isEmpty || draft.last?.isWhitespace == true ? "" : " "
-    let suffix = trimmedTranscript.last?.isWhitespace == true ? "" : " "
-    return draft + prefix + trimmedTranscript + suffix
+    let startIndex = String.Index(utf16Offset: normalizedSelection.startUtf16Offset, in: draft)
+    let endIndex = String.Index(utf16Offset: normalizedSelection.endUtf16Offset, in: draft)
+    let before = String(draft[..<startIndex])
+    let after = String(draft[endIndex...])
+    let prefix = before.isEmpty || before.last?.isWhitespace == true ? "" : " "
+    let suffix = after.isEmpty || after.first?.isWhitespace == true ? "" : " "
+    let insertedText = prefix + trimmedTranscript + suffix
+    let updatedText = before + insertedText + after
+    let caretOffset = before.utf16.count + insertedText.utf16.count
+
+    return AIChatDictationInsertionResult(
+        text: updatedText,
+        selection: AIChatDictationInsertionSelection(
+            startUtf16Offset: caretOffset,
+            endUtf16Offset: caretOffset
+        )
+    )
+}
+
+private func normalizeAIChatDictationSelection(
+    selection: AIChatDictationInsertionSelection?,
+    maxUtf16Offset: Int
+) -> AIChatDictationInsertionSelection {
+    guard let selection else {
+        return AIChatDictationInsertionSelection(
+            startUtf16Offset: maxUtf16Offset,
+            endUtf16Offset: maxUtf16Offset
+        )
+    }
+
+    let clampedStart = min(max(selection.startUtf16Offset, 0), maxUtf16Offset)
+    let clampedEnd = min(max(selection.endUtf16Offset, 0), maxUtf16Offset)
+    return clampedStart <= clampedEnd
+        ? AIChatDictationInsertionSelection(startUtf16Offset: clampedStart, endUtf16Offset: clampedEnd)
+        : AIChatDictationInsertionSelection(startUtf16Offset: clampedEnd, endUtf16Offset: clampedStart)
 }

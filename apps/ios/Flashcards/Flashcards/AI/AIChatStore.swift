@@ -32,6 +32,11 @@ enum AIChatDictationAlert: Identifiable, Equatable {
     }
 }
 
+struct AIChatCompletedDictationTranscript: Identifiable, Equatable {
+    let id: String
+    let transcript: String
+}
+
 @MainActor
 final class AIChatStore: ObservableObject {
     @Published var inputText: String
@@ -43,6 +48,7 @@ final class AIChatStore: ObservableObject {
     @Published private(set) var errorMessage: String
     @Published private(set) var dictationAlert: AIChatDictationAlert?
     @Published private(set) var repairStatus: AIChatRepairAttemptStatus?
+    @Published private(set) var completedDictationTranscript: AIChatCompletedDictationTranscript?
 
     private let flashcardsStore: FlashcardsStore
     private let historyStore: any AIChatHistoryStoring
@@ -105,6 +111,7 @@ final class AIChatStore: ObservableObject {
         self.errorMessage = ""
         self.dictationAlert = nil
         self.repairStatus = nil
+        self.completedDictationTranscript = nil
         self.activeDictationTask = nil
         self.activeConversationId = nil
     }
@@ -154,6 +161,7 @@ final class AIChatStore: ObservableObject {
         self.errorMessage = ""
         self.dictationAlert = nil
         self.repairStatus = nil
+        self.completedDictationTranscript = nil
         self.activeConversationId = nil
         Task {
             await self.historyStore.clearState()
@@ -183,10 +191,19 @@ final class AIChatStore: ObservableObject {
         self.activeDictationTask = nil
         self.voiceRecorder.cancelRecording()
         self.dictationState = .idle
+        self.completedDictationTranscript = nil
     }
 
     func dismissDictationAlert() {
         self.dictationAlert = nil
+    }
+
+    func consumeCompletedDictationTranscript(id: String) {
+        guard self.completedDictationTranscript?.id == id else {
+            return
+        }
+
+        self.completedDictationTranscript = nil
     }
 
     func applyPresentationRequest(request: AIChatPresentationRequest) {
@@ -308,6 +325,7 @@ final class AIChatStore: ObservableObject {
         }
 
         self.dictationAlert = nil
+        self.completedDictationTranscript = nil
         self.dictationState = .requestingPermission
         self.activeDictationTask = Task { @MainActor in
             defer {
@@ -357,7 +375,10 @@ final class AIChatStore: ObservableObject {
                     session: session,
                     recordedAudio: recordedAudio
                 )
-                self.inputText = mergeAIChatDictationTranscript(draft: self.inputText, transcript: transcript)
+                self.completedDictationTranscript = AIChatCompletedDictationTranscript(
+                    id: UUID().uuidString.lowercased(),
+                    transcript: transcript
+                )
             } catch is CancellationError {
             } catch let recorderError as AIChatVoiceRecorderError {
                 self.handleFinishDictationError(recorderError)
