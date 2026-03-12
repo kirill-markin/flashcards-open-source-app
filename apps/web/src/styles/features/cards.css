@@ -45,11 +45,15 @@
   display: grid;
   gap: 16px;
   width: min(420px, calc(100vw - 32px));
+  max-height: min(520px, calc(100dvh - 32px));
   padding: 16px;
   border: 1px solid var(--panel-border-strong);
   border-radius: var(--radius-lg);
   background: rgba(20, 20, 24, 0.98);
   box-shadow: var(--shadow);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .cards-filter-section {
@@ -331,6 +335,7 @@
 .cell-select-options {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 6px;
 }
 

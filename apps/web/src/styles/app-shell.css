@@ -149,12 +149,16 @@
   top: calc(100% + 10px);
   inset-inline-end: 0;
   min-width: 280px;
+  max-height: min(420px, calc(100dvh - 32px));
   padding: 10px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   background: rgba(20, 20, 24, 0.96);
   backdrop-filter: var(--blur);
   box-shadow: var(--shadow);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   z-index: 200;
 }
 
