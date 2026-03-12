@@ -93,6 +93,59 @@ private struct AIChatSessionPreparationState {
     let task: Task<CloudLinkedSession, Error>
 }
 
+typealias ReviewHeadLoader = @Sendable (
+    _ reviewFilter: ReviewFilter,
+    _ decks: [Deck],
+    _ cards: [Card],
+    _ now: Date,
+    _ seedQueueSize: Int
+) async throws -> ReviewHeadLoadState
+
+typealias ReviewStateLoader = @Sendable (
+    _ reviewFilter: ReviewFilter,
+    _ decks: [Deck],
+    _ cards: [Card],
+    _ now: Date
+) async throws -> ReviewComputedState
+
+private let reviewSeedQueueSize: Int = 8
+
+private func defaultReviewHeadLoader(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    cards: [Card],
+    now: Date,
+    seedQueueSize: Int
+) async throws -> ReviewHeadLoadState {
+    try await Task.detached(priority: .userInitiated) {
+        try Task.checkCancellation()
+        return makeReviewHeadLoadState(
+            reviewFilter: reviewFilter,
+            decks: decks,
+            cards: cards,
+            now: now,
+            seedQueueSize: seedQueueSize
+        )
+    }.value
+}
+
+private func defaultReviewStateLoader(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    cards: [Card],
+    now: Date
+) async throws -> ReviewComputedState {
+    try await Task.detached(priority: .utility) {
+        try Task.checkCancellation()
+        return makeReviewComputedState(
+            reviewFilter: reviewFilter,
+            decks: decks,
+            cards: cards,
+            now: now
+        )
+    }.value
+}
+
 @MainActor
 final class FlashcardsStore: ObservableObject {
     @Published private(set) var workspace: Workspace?
@@ -105,6 +158,8 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var selectedReviewFilter: ReviewFilter
     @Published private(set) var reviewQueue: [Card]
     @Published private(set) var reviewTimeline: [Card]
+    @Published private(set) var isReviewHeadLoading: Bool
+    @Published private(set) var isReviewTimelineLoading: Bool
     @Published private(set) var homeSnapshot: HomeSnapshot
     @Published private(set) var globalErrorMessage: String
     @Published private(set) var syncStatus: SyncStatus
@@ -121,6 +176,8 @@ final class FlashcardsStore: ObservableObject {
     private let cloudSyncService: CloudSyncService?
     private let credentialStore: CloudCredentialStore
     private let reviewSubmissionExecutor: ReviewSubmissionExecuting?
+    private let reviewHeadLoader: ReviewHeadLoader
+    private let reviewStateLoader: ReviewStateLoader
     private let userDefaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
@@ -128,9 +185,12 @@ final class FlashcardsStore: ObservableObject {
     private var activeCloudSession: CloudLinkedSession?
     private var activeCloudSyncTask: Task<Void, Error>?
     private var activeAIChatSessionPreparation: AIChatSessionPreparationState?
+    private var activeReviewLoadTask: Task<Void, Never>?
+    private var activeReviewLoadRequestId: String?
     private var pendingCloudResync: Bool
     private var pendingReviewRequests: [ReviewSubmissionRequest]
     private var isReviewProcessorRunning: Bool
+    private var reviewSourceVersion: Int
     lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
 
     convenience init() {
@@ -181,6 +241,8 @@ final class FlashcardsStore: ObservableObject {
             cloudAuthService: cloudAuthService,
             credentialStore: credentialStore,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
+            reviewHeadLoader: defaultReviewHeadLoader,
+            reviewStateLoader: defaultReviewStateLoader,
             initialGlobalErrorMessage: initialGlobalErrorMessage
         )
     }
@@ -193,6 +255,8 @@ final class FlashcardsStore: ObservableObject {
         cloudAuthService: CloudAuthService,
         credentialStore: CloudCredentialStore,
         reviewSubmissionExecutor: ReviewSubmissionExecuting?,
+        reviewHeadLoader: @escaping ReviewHeadLoader,
+        reviewStateLoader: @escaping ReviewStateLoader,
         initialGlobalErrorMessage: String
     ) {
         self.workspace = nil
@@ -208,6 +272,8 @@ final class FlashcardsStore: ObservableObject {
         )
         self.reviewQueue = []
         self.reviewTimeline = []
+        self.isReviewHeadLoading = false
+        self.isReviewTimelineLoading = false
         self.homeSnapshot = HomeSnapshot(
             deckCount: 0,
             totalCards: 0,
@@ -232,15 +298,20 @@ final class FlashcardsStore: ObservableObject {
         }
         self.credentialStore = credentialStore
         self.reviewSubmissionExecutor = reviewSubmissionExecutor
+        self.reviewHeadLoader = reviewHeadLoader
+        self.reviewStateLoader = reviewStateLoader
         self.userDefaults = userDefaults
         self.encoder = encoder
         self.decoder = decoder
         self.activeCloudSession = nil
         self.activeCloudSyncTask = nil
         self.activeAIChatSessionPreparation = nil
+        self.activeReviewLoadTask = nil
+        self.activeReviewLoadRequestId = nil
         self.pendingCloudResync = false
         self.pendingReviewRequests = []
         self.isReviewProcessorRunning = false
+        self.reviewSourceVersion = 0
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
@@ -289,12 +360,11 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func selectReviewFilter(reviewFilter: ReviewFilter) {
-        self.selectedReviewFilter = reviewFilter
-        self.refreshReviewState(now: Date())
+        self.startReviewLoad(reviewFilter: reviewFilter, now: Date())
     }
 
     func openReview(reviewFilter: ReviewFilter) {
-        self.selectReviewFilter(reviewFilter: reviewFilter)
+        self.startReviewLoad(reviewFilter: reviewFilter, now: Date())
         self.requestTabSelection(tab: .review)
     }
 
@@ -823,22 +893,89 @@ final class FlashcardsStore: ObservableObject {
         matchingCardsForDeck(deck: deck, cards: self.cards)
     }
 
+    private func startReviewLoad(reviewFilter: ReviewFilter, now: Date) {
+        self.cancelActiveReviewLoad()
+
+        let requestId = UUID().uuidString.lowercased()
+        let sourceVersion = self.reviewSourceVersion
+        let cards = self.cards
+        let decks = self.decks
+
+        self.selectedReviewFilter = reviewFilter
+        self.persistSelectedReviewFilter(reviewFilter: reviewFilter)
+        self.reviewQueue = []
+        self.reviewTimeline = []
+        self.isReviewHeadLoading = true
+        self.isReviewTimelineLoading = true
+        self.activeReviewLoadRequestId = requestId
+        self.globalErrorMessage = ""
+
+        self.activeReviewLoadTask = Task { @MainActor in
+            do {
+                let reviewHeadState = try await self.reviewHeadLoader(
+                    reviewFilter,
+                    decks,
+                    cards,
+                    now,
+                    reviewSeedQueueSize
+                )
+                guard self.shouldApplyReviewLoadResult(
+                    requestId: requestId,
+                    sourceVersion: sourceVersion
+                ) else {
+                    return
+                }
+
+                self.selectedReviewFilter = reviewHeadState.resolvedReviewFilter
+                self.persistSelectedReviewFilter(reviewFilter: reviewHeadState.resolvedReviewFilter)
+                self.reviewQueue = reviewHeadState.seedReviewQueue
+                self.isReviewHeadLoading = false
+
+                let reviewComputedState = try await self.reviewStateLoader(
+                    reviewHeadState.resolvedReviewFilter,
+                    decks,
+                    cards,
+                    now
+                )
+                guard self.shouldApplyReviewLoadResult(
+                    requestId: requestId,
+                    sourceVersion: sourceVersion
+                ) else {
+                    return
+                }
+
+                self.applyReviewComputedState(reviewState: reviewComputedState)
+                self.isReviewTimelineLoading = false
+                self.clearActiveReviewLoad(requestId: requestId)
+            } catch is CancellationError {
+                self.clearActiveReviewLoad(requestId: requestId)
+            } catch {
+                guard self.shouldApplyReviewLoadResult(
+                    requestId: requestId,
+                    sourceVersion: sourceVersion
+                ) else {
+                    return
+                }
+
+                self.isReviewHeadLoading = false
+                self.isReviewTimelineLoading = false
+                self.globalErrorMessage = localizedMessage(error: error)
+                self.clearActiveReviewLoad(requestId: requestId)
+            }
+        }
+    }
+
     private func refreshReviewState(now: Date) {
-        let resolvedReviewFilter = resolveReviewFilter(reviewFilter: self.selectedReviewFilter, decks: self.decks, cards: self.cards)
-        self.selectedReviewFilter = resolvedReviewFilter
-        self.persistSelectedReviewFilter(reviewFilter: resolvedReviewFilter)
-        self.reviewQueue = makeReviewQueue(
-            reviewFilter: resolvedReviewFilter,
-            decks: self.decks,
-            cards: self.cards,
-            now: now
+        self.applyReviewComputedState(
+            reviewState: makeReviewComputedState(
+                reviewFilter: self.selectedReviewFilter,
+                decks: self.decks,
+                cards: self.cards,
+                now: now
+            )
         )
-        self.reviewTimeline = makeReviewTimeline(
-            reviewFilter: resolvedReviewFilter,
-            decks: self.decks,
-            cards: self.cards,
-            now: now
-        )
+        self.isReviewHeadLoading = false
+        self.isReviewTimelineLoading = false
     }
 
     private func applyCardMutation(card: Card, now: Date) {
@@ -858,12 +995,47 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func applyLocalState(cards: [Card], decks: [Deck], now: Date) {
+        self.reviewSourceVersion += 1
+        self.cancelActiveReviewLoad()
         self.cards = cards
         self.decks = decks
         self.deckItems = makeDeckListItems(decks: decks, cards: cards, now: now)
         self.refreshReviewState(now: now)
         self.homeSnapshot = makeHomeSnapshot(cards: cards, deckCount: decks.count, now: now)
         self.globalErrorMessage = ""
+    }
+
+    private func applyReviewComputedState(reviewState: ReviewComputedState) {
+        self.selectedReviewFilter = reviewState.resolvedReviewFilter
+        self.persistSelectedReviewFilter(reviewFilter: reviewState.resolvedReviewFilter)
+        self.reviewQueue = reviewState.reviewQueue
+        self.reviewTimeline = reviewState.reviewTimeline
+    }
+
+    private func shouldApplyReviewLoadResult(requestId: String, sourceVersion: Int) -> Bool {
+        guard Task.isCancelled == false else {
+            return false
+        }
+        guard self.activeReviewLoadRequestId == requestId else {
+            return false
+        }
+
+        return self.reviewSourceVersion == sourceVersion
+    }
+
+    private func cancelActiveReviewLoad() {
+        self.activeReviewLoadTask?.cancel()
+        self.activeReviewLoadTask = nil
+        self.activeReviewLoadRequestId = nil
+    }
+
+    private func clearActiveReviewLoad(requestId: String) {
+        guard self.activeReviewLoadRequestId == requestId else {
+            return
+        }
+
+        self.activeReviewLoadTask = nil
+        self.activeReviewLoadRequestId = nil
     }
 
     private func persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
