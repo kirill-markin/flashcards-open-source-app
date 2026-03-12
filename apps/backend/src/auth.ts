@@ -6,6 +6,7 @@ export type AuthTransport = "none" | "bearer" | "session" | "api_key";
 
 export type AuthResult = Readonly<{
   userId: string;
+  email: string | null;
   transport: AuthTransport;
   connectionId: string | null;
   selectedWorkspaceId: string | null;
@@ -14,6 +15,16 @@ export type AuthResult = Readonly<{
 export type AuthRequest = Readonly<{
   authorizationHeader: string | undefined;
   sessionToken: string | undefined;
+}>;
+
+type VerifiedIdTokenPayload = Readonly<{
+  sub: string;
+  email?: unknown;
+}>;
+
+export type AuthenticatedUserIdentity = Readonly<{
+  userId: string;
+  email: string;
 }>;
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
@@ -67,10 +78,22 @@ function parseAuthorizationHeader(authorizationHeader: string | undefined): Pars
   throw new AuthError(401, "Authorization header must use Bearer or ApiKey scheme");
 }
 
-async function verifyIdToken(token: string): Promise<string> {
+export function extractVerifiedIdTokenIdentity(payload: VerifiedIdTokenPayload): AuthenticatedUserIdentity {
+  const email = typeof payload.email === "string" ? payload.email.trim() : "";
+  if (email === "") {
+    throw new Error("Cognito ID token is missing email claim");
+  }
+
+  return {
+    userId: payload.sub,
+    email,
+  };
+}
+
+async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> {
   try {
     const payload = await getVerifier().verify(token);
-    return payload.sub;
+    return extractVerifiedIdTokenIdentity(payload as VerifiedIdTokenPayload);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new AuthError(401, `Invalid token: ${message}`);
@@ -86,7 +109,7 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
   const authConfig = getAuthConfig();
 
   if (authConfig.mode === "none") {
-    return { userId: "local", transport: "none", connectionId: null, selectedWorkspaceId: null };
+    return { userId: "local", email: null, transport: "none", connectionId: null, selectedWorkspaceId: null };
   }
 
   const parsedAuthorization = parseAuthorizationHeader(request.authorizationHeader);
@@ -94,6 +117,7 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
     const auth = await authenticateAgentApiKey(parsedAuthorization.token);
     return {
       userId: auth.userId,
+      email: null,
       transport: "api_key",
       connectionId: auth.connectionId,
       selectedWorkspaceId: auth.selectedWorkspaceId,
@@ -101,13 +125,13 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
   }
 
   if (parsedAuthorization.scheme === "bearer") {
-    const userId = await verifyIdToken(parsedAuthorization.token);
-    return { userId, transport: "bearer", connectionId: null, selectedWorkspaceId: null };
+    const identity = await verifyIdToken(parsedAuthorization.token);
+    return { ...identity, transport: "bearer", connectionId: null, selectedWorkspaceId: null };
   }
 
   if (request.sessionToken !== undefined && request.sessionToken !== "") {
-    const userId = await verifyIdToken(request.sessionToken);
-    return { userId, transport: "session", connectionId: null, selectedWorkspaceId: null };
+    const identity = await verifyIdToken(request.sessionToken);
+    return { ...identity, transport: "session", connectionId: null, selectedWorkspaceId: null };
   }
 
   throw new AuthError(401, "Missing authentication token");

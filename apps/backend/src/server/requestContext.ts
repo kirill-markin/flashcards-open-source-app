@@ -30,7 +30,7 @@ export async function loadRequestContext(
   requestAuthInputs: RequestAuthInputs,
 ): Promise<RequestContext> {
   const auth = await authenticateRequest(toAuthRequest(requestAuthInputs));
-  const userProfile = await ensureUserProfile(auth.userId);
+  const userProfile = await ensureUserProfile(auth.userId, auth.email);
   const selectedWorkspaceId = auth.transport === "api_key"
     ? auth.selectedWorkspaceId
     : userProfile.selectedWorkspaceId;
