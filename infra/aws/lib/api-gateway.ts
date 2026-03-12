@@ -178,6 +178,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
     description: "Public API for flashcards mobile clients",
+    binaryMediaTypes: ["multipart/form-data"],
     deployOptions: {
       stageName: "v1",
       throttlingRateLimit: 50,

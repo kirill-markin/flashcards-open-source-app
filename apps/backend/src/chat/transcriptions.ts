@@ -1,5 +1,7 @@
 import { Buffer } from "node:buffer";
+import { randomUUID } from "node:crypto";
 import OpenAI, { toFile } from "openai";
+import { APIError } from "openai/error";
 import { HttpError } from "../errors";
 
 export type ChatTranscriptionSource = "ios" | "web";
@@ -24,6 +26,7 @@ export type ChatTranscriptionUpload = Readonly<{
 
 const CHAT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
 const CHAT_TRANSCRIPTION_NETWORK_ERROR_MESSAGE = "There is a network problem. Fix it and try again.";
+const CHAT_TRANSCRIPTION_INVALID_AUDIO_ERROR_MESSAGE = "We couldn’t process that recording. Please try again.";
 const SUPPORTED_AUDIO_FILE_EXTENSIONS = new Set(["m4a", "wav", "webm"]);
 const SUPPORTED_AUDIO_MEDIA_TYPES = new Set([
   "audio/mp4",
@@ -34,6 +37,19 @@ const SUPPORTED_AUDIO_MEDIA_TYPES = new Set([
   "audio/x-wav",
   "audio/webm",
 ]);
+
+type ChatTranscriptionFailureDetails = Readonly<{
+  requestId: string;
+  source: ChatTranscriptionSource;
+  fileName: string;
+  fileSize: number;
+  fileExtension: string | null;
+  mediaType: string;
+  upstreamStatus: number | null;
+  upstreamMessage: string | null;
+  upstreamRequestId: string | null;
+  error: string;
+}>;
 
 function createOpenAITranscriptionClient(): OpenAITranscriptionClient {
   return new OpenAI();
@@ -93,12 +109,62 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
   };
 }
 
-function logChatTranscriptionFailure(source: ChatTranscriptionSource, error: unknown): void {
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function getUpstreamStatus(error: unknown): number | null {
+  if (error instanceof APIError) {
+    return error.status ?? null;
+  }
+
+  return null;
+}
+
+function getUpstreamRequestId(error: unknown): string | null {
+  if (error instanceof APIError && typeof error.requestID === "string" && error.requestID !== "") {
+    return error.requestID;
+  }
+
+  return null;
+}
+
+function getUpstreamMessage(error: unknown): string | null {
+  const message = getErrorMessage(error).trim();
+  return message === "" ? null : message;
+}
+
+function isInvalidAudioMessage(message: string | null): boolean {
+  if (message === null) {
+    return false;
+  }
+
+  return /corrupted|unsupported|processing failed|unprocessable/i.test(message);
+}
+
+function isInvalidAudioFailure(error: unknown): boolean {
+  const upstreamStatus = getUpstreamStatus(error);
+  if (upstreamStatus === null) {
+    return false;
+  }
+
+  return [400, 415, 422, 500].includes(upstreamStatus) && isInvalidAudioMessage(getUpstreamMessage(error));
+}
+
+function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): void {
   console.error(JSON.stringify({
     domain: "chat",
     action: "chat_transcription_failed",
-    source,
-    error: error instanceof Error ? error.message : String(error),
+    requestId: details.requestId,
+    source: details.source,
+    fileName: details.fileName,
+    fileSize: details.fileSize,
+    fileExtension: details.fileExtension,
+    mediaType: details.mediaType,
+    upstreamStatus: details.upstreamStatus,
+    upstreamMessage: details.upstreamMessage,
+    upstreamRequestId: details.upstreamRequestId,
+    error: details.error,
   }));
 }
 
@@ -126,11 +192,28 @@ export async function transcribeChatAudioUpload(
 
     return trimmedText;
   } catch (error) {
-    logChatTranscriptionFailure(upload.source, error);
-    throw new HttpError(
-      503,
-      CHAT_TRANSCRIPTION_NETWORK_ERROR_MESSAGE,
-      "CHAT_TRANSCRIPTION_UNAVAILABLE",
-    );
+    const requestId = randomUUID();
+    logChatTranscriptionFailure({
+      requestId,
+      source: upload.source,
+      fileName: upload.file.name,
+      fileSize: upload.file.size,
+      fileExtension: normalizeFileExtension(upload.file.name),
+      mediaType: upload.file.type.trim().toLowerCase(),
+      upstreamStatus: getUpstreamStatus(error),
+      upstreamMessage: getUpstreamMessage(error),
+      upstreamRequestId: getUpstreamRequestId(error),
+      error: getErrorMessage(error),
+    });
+
+    if (isInvalidAudioFailure(error)) {
+      throw new HttpError(
+        422,
+        CHAT_TRANSCRIPTION_INVALID_AUDIO_ERROR_MESSAGE,
+        "CHAT_TRANSCRIPTION_INVALID_AUDIO",
+      );
+    }
+
+    throw new HttpError(503, CHAT_TRANSCRIPTION_NETWORK_ERROR_MESSAGE, "CHAT_TRANSCRIPTION_UNAVAILABLE");
   }
 }

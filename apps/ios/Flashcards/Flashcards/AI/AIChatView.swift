@@ -139,6 +139,35 @@ struct AIChatView: View {
             CloudSignInSheet()
                 .environmentObject(self.flashcardsStore)
         }
+        .alert(
+            self.chatStore.dictationAlert?.title ?? "",
+            isPresented: Binding(
+                get: {
+                    self.chatStore.dictationAlert != nil
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        self.chatStore.dismissDictationAlert()
+                    }
+                }
+            )
+        ) {
+            if self.chatStore.dictationAlert == .microphoneSettings {
+                Button("Cancel", role: .cancel) {
+                    self.chatStore.dismissDictationAlert()
+                }
+                Button("Open Settings") {
+                    self.chatStore.dismissDictationAlert()
+                    openApplicationSettings()
+                }
+            } else {
+                Button("OK", role: .cancel) {
+                    self.chatStore.dismissDictationAlert()
+                }
+            }
+        } message: {
+            Text(self.chatStore.dictationAlert?.message ?? "")
+        }
     }
 
     private var isNewChatDisabled: Bool {
@@ -387,10 +416,10 @@ struct AIChatView: View {
                         Button {
                             self.chatStore.toggleDictation()
                         } label: {
-                            Image(systemName: self.chatStore.dictationState == .recording ? "stop.circle.fill" : "mic.circle")
+                            Image(systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic")
                         }
                         .buttonStyle(.bordered)
-                        .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
+                        .foregroundStyle(self.chatStore.dictationState == .recording ? Color.red : Color.primary)
                         .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
                         .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
                     }

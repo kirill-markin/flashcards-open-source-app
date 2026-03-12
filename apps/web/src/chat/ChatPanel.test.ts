@@ -337,6 +337,7 @@ describe("ChatPanel autoscroll", () => {
   let root: ReactDOM.Root | null;
   let scrollToMock: ReturnType<typeof vi.fn>;
   let clipboardWriteTextMock: ReturnType<typeof vi.fn>;
+  let alertMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -346,12 +347,14 @@ describe("ChatPanel autoscroll", () => {
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
     clipboardWriteTextMock = vi.fn().mockResolvedValue(undefined);
+    alertMock = vi.fn();
     Object.defineProperty(window.navigator, "clipboard", {
       configurable: true,
       value: {
         writeText: clipboardWriteTextMock,
       },
     });
+    vi.stubGlobal("alert", alertMock);
 
     useChatLayoutMock.mockReset();
     useAppDataMock.mockReset();
@@ -1296,6 +1299,7 @@ describe("ChatPanel autoscroll", () => {
 
     expect(mountedContainer.querySelector(".chat-dictation-surface-recording")).not.toBeNull();
     expect(mountedContainer.querySelector('textarea[name="chatMessage"]')).toBeNull();
+    expect((mountedContainer.querySelector(".chat-send-btn") as HTMLButtonElement | null)?.disabled).toBe(true);
 
     const stopDictationButton = mountedContainer.querySelector('.chat-mic-btn[aria-label="Stop dictation"]');
     expect(stopDictationButton).not.toBeNull();
@@ -1398,7 +1402,9 @@ describe("ChatPanel autoscroll", () => {
       await Promise.resolve();
     });
 
-    expect(mountedContainer.textContent).toContain("Click the site controls in your browser bar and enable microphone access");
+    expect(alertMock).toHaveBeenCalledWith(
+      "Flashcards cannot use your microphone. Click the site controls in your browser bar and enable microphone access, then try again.",
+    );
   });
 
   it("shows the transcription failure message when upload fails", async () => {
@@ -1427,7 +1433,7 @@ describe("ChatPanel autoscroll", () => {
       await Promise.resolve();
     });
 
-    expect(mountedContainer.textContent).toContain("There is a network problem. Fix it and try again.");
+    expect(alertMock).toHaveBeenCalledWith("There is a network problem. Fix it and try again.");
   });
 });
 

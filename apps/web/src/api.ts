@@ -499,8 +499,23 @@ function extensionForAudioMediaType(mediaType: string): string {
   return "webm";
 }
 
+function normalizeAudioMediaType(mediaType: string): string {
+  const normalizedMediaType = mediaType.trim().toLowerCase();
+  const [baseMediaType] = normalizedMediaType.split(";", 1);
+
+  if (baseMediaType === "audio/wav" || baseMediaType === "audio/wave" || baseMediaType === "audio/x-wav") {
+    return "audio/wav";
+  }
+
+  if (baseMediaType === "audio/mp4" || baseMediaType === "audio/m4a" || baseMediaType === "audio/x-m4a") {
+    return "audio/mp4";
+  }
+
+  return "audio/webm";
+}
+
 export async function transcribeChatAudio(blob: Blob, source: ChatTranscriptionSource): Promise<string> {
-  const mediaType = blob.type === "" ? "audio/webm" : blob.type;
+  const mediaType = normalizeAudioMediaType(blob.type === "" ? "audio/webm" : blob.type);
   const file = new File([blob], `chat-dictation.${extensionForAudioMediaType(mediaType)}`, { type: mediaType });
   const formData = new FormData();
   formData.append("file", file);

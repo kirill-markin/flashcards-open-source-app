@@ -28,6 +28,7 @@ protocol AIChatAudioTranscribing: Sendable {
 enum AIChatVoiceRecorderError: LocalizedError, Equatable {
     case microphoneUnavailable
     case microphoneDenied
+    case microphoneBlocked
     case invalidRecording
     case recordingStartFailed
     case emptyRecording
@@ -37,6 +38,8 @@ enum AIChatVoiceRecorderError: LocalizedError, Equatable {
         case .microphoneUnavailable:
             return "Microphone is not available on this device."
         case .microphoneDenied:
+            return "Microphone access was not granted."
+        case .microphoneBlocked:
             return "Microphone access is turned off for Flashcards. Enable it in Settings > Privacy & Security > Microphone."
         case .invalidRecording:
             return "Failed to prepare the recorded audio."
@@ -50,16 +53,16 @@ enum AIChatVoiceRecorderError: LocalizedError, Equatable {
 
 enum AIChatTranscriptionError: LocalizedError {
     case invalidBaseUrl
-    case invalidResponse
-    case networkFailure
+    case invalidAudio
+    case serviceUnavailable
 
     var errorDescription: String? {
         switch self {
         case .invalidBaseUrl:
             return "There is a network problem. Fix it and try again."
-        case .invalidResponse:
-            return "There is a network problem. Fix it and try again."
-        case .networkFailure:
+        case .invalidAudio:
+            return "We couldn’t process that recording. Please try again."
+        case .serviceUnavailable:
             return "There is a network problem. Fix it and try again."
         }
     }
@@ -72,7 +75,7 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
 
     func startRecording() async throws {
         if AVAudioApplication.shared.recordPermission == .denied {
-            throw AIChatVoiceRecorderError.microphoneDenied
+            throw AIChatVoiceRecorderError.microphoneBlocked
         }
 
         if AVAudioApplication.shared.recordPermission == .undetermined {
@@ -125,7 +128,7 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
         return AIChatRecordedAudio(
             fileUrl: fileUrl,
             fileName: "chat-dictation.m4a",
-            mediaType: "audio/m4a"
+            mediaType: "audio/mp4"
         )
     }
 
@@ -158,12 +161,17 @@ struct AIChatDisabledAudioTranscriber: AIChatAudioTranscribing {
     func transcribe(session: CloudLinkedSession, recordedAudio: AIChatRecordedAudio) async throws -> String {
         _ = session
         _ = recordedAudio
-        throw AIChatTranscriptionError.networkFailure
+        throw AIChatTranscriptionError.serviceUnavailable
     }
 }
 
 private struct AIChatTranscriptionResponse: Decodable {
     let text: String
+}
+
+private struct AIChatTranscriptionErrorResponse: Decodable {
+    let error: String
+    let code: String?
 }
 
 final class AIChatTranscriptionService: @unchecked Sendable {
@@ -183,11 +191,11 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         do {
             let (data, response) = try await self.session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw AIChatTranscriptionError.invalidResponse
+                throw AIChatTranscriptionError.serviceUnavailable
             }
 
             guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-                throw AIChatTranscriptionError.invalidResponse
+                throw self.mapTranscriptionFailure(statusCode: httpResponse.statusCode, data: data)
             }
 
             let transcriptionResponse = try self.decoder.decode(AIChatTranscriptionResponse.self, from: data)
@@ -195,7 +203,7 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         } catch let error as AIChatTranscriptionError {
             throw error
         } catch {
-            throw AIChatTranscriptionError.networkFailure
+            throw AIChatTranscriptionError.serviceUnavailable
         }
     }
 
@@ -212,6 +220,18 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = try self.makeMultipartBody(boundary: boundary, recordedAudio: recordedAudio)
         return request
+    }
+
+    private func mapTranscriptionFailure(statusCode: Int, data: Data) -> AIChatTranscriptionError {
+        guard let failureResponse = try? self.decoder.decode(AIChatTranscriptionErrorResponse.self, from: data) else {
+            return statusCode == 422 ? .invalidAudio : .serviceUnavailable
+        }
+
+        if failureResponse.code == "CHAT_TRANSCRIPTION_INVALID_AUDIO" || statusCode == 422 {
+            return .invalidAudio
+        }
+
+        return .serviceUnavailable
     }
 
     private func makeMultipartBody(boundary: String, recordedAudio: AIChatRecordedAudio) throws -> Data {
