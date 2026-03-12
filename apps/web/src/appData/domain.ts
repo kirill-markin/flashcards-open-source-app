@@ -251,6 +251,16 @@ export function reviewFilterTitle(
   return resolvedReviewFilter.tag;
 }
 
+export function shouldShowSwitchToAllCardsReviewAction(
+  reviewFilter: ReviewFilter,
+  decks: ReadonlyArray<Deck>,
+  cards: ReadonlyArray<Card>,
+): boolean {
+  const resolvedReviewFilter = resolveReviewFilter(reviewFilter, decks, cards);
+
+  return resolvedReviewFilter.kind !== "allCards";
+}
+
 function getReviewOrderDueTimestamp(card: Card): number {
   if (card.dueAt === null) {
     return Number.NEGATIVE_INFINITY;

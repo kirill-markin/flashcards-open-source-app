@@ -645,6 +645,17 @@ func reviewFilterTitle(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card])
     }
 }
 
+func shouldShowSwitchToAllCardsReviewAction(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]) -> Bool {
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
+
+    switch resolvedReviewFilter {
+    case .allCards:
+        return false
+    case .deck, .tag:
+        return true
+    }
+}
+
 func makeReviewQueue(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], now: Date) -> [Card] {
     sortCardsForReviewQueue(
         cards: cardsMatchingReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards),

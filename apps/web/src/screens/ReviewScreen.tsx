@@ -7,6 +7,7 @@ import {
   currentReviewCard,
   isCardDue,
   makeWorkspaceTagsSummary,
+  shouldShowSwitchToAllCardsReviewAction,
 } from "../appData/domain";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, Deck, ReviewFilter, WorkspaceSchedulerSettings, WorkspaceTagSummary } from "../types";
@@ -18,7 +19,7 @@ import {
   classifyReviewContentPresentation,
   type ReviewContentPresentationMode,
 } from "./reviewContentPresentation";
-import { settingsDecksRoute } from "../routes";
+import { cardsRoute, chatRoute, settingsDecksRoute } from "../routes";
 
 type ReviewButtonOption = Readonly<{
   title: string;
@@ -359,6 +360,8 @@ export function ReviewScreen(): ReactElement {
   const editingCard = cards.find((card) => card.cardId === editingCardId && card.deletedAt === null) ?? null;
   const reviewTagSummaries = makeWorkspaceTagsSummary(cards).tags;
   const reviewFilterMenuItems = buildReviewFilterMenuItems(decks, reviewTagSummaries, selectedReviewFilter);
+  const shouldShowSwitchToAllCardsAction = shouldShowSwitchToAllCardsReviewAction(selectedReviewFilter, decks, cards);
+  const hasCards = cards.some((card) => card.deletedAt === null);
   const reviewButtonsNow = new Date();
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
   let reviewButtonErrorMessage: string = "";
@@ -611,8 +614,33 @@ export function ReviewScreen(): ReactElement {
           <section className="review-pane">
             {selectedCard === null ? (
               <div className="review-empty">
-                <h2 className="panel-subtitle">Nothing to review right now</h2>
-                <p className="subtitle">You're all caught up, or you haven't added any cards yet. Add cards or come back later.</p>
+                <h2 className="panel-subtitle">{hasCards ? "Nothing Due" : "No Cards Yet"}</h2>
+                <p className="subtitle">
+                  {hasCards
+                    ? "You're all caught up for now. Come back later or add more cards."
+                    : "You haven't created any cards yet. Add your first card to start studying."}
+                </p>
+                <div className="review-empty-actions">
+                  <Link className="primary-btn" to={`${cardsRoute}/new`}>
+                    Create card
+                  </Link>
+                  <p className="review-empty-or">or</p>
+                  <Link className="ghost-btn" to={chatRoute}>
+                    Create with AI
+                  </Link>
+                  {shouldShowSwitchToAllCardsAction ? (
+                    <>
+                      <p className="review-empty-or">or</p>
+                      <button
+                        type="button"
+                        className="ghost-btn"
+                        onClick={() => selectReviewFilter(ALL_CARDS_REVIEW_FILTER)}
+                      >
+                        switch to all cards deck
+                      </button>
+                    </>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <>

@@ -180,6 +180,26 @@
   align-content: center;
 }
 
+.review-empty-actions {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 280px);
+  margin-top: 16px;
+}
+
+.review-empty-actions > .primary-btn,
+.review-empty-actions > .ghost-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.review-empty-or {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  text-align: center;
+}
+
 .review-card-stack {
   display: grid;
   gap: 12px;

@@ -50,6 +50,68 @@ final class ReviewFilterTests: XCTestCase {
         )
     }
 
+    func testSwitchToAllCardsReviewActionShowsForValidDeckFilter() {
+        let grammarDeck = self.makeDeck(
+            deckId: "deck-1",
+            name: "Grammar",
+            tags: ["grammar"]
+        )
+
+        XCTAssertTrue(
+            shouldShowSwitchToAllCardsReviewAction(
+                reviewFilter: .deck(deckId: "deck-1"),
+                decks: [grammarDeck],
+                cards: []
+            )
+        )
+    }
+
+    func testSwitchToAllCardsReviewActionShowsForValidTagFilter() {
+        let grammarCard = self.makeCard(cardId: "card-1", tags: ["grammar"], deletedAt: nil)
+
+        XCTAssertTrue(
+            shouldShowSwitchToAllCardsReviewAction(
+                reviewFilter: .tag(tag: "grammar"),
+                decks: [],
+                cards: [grammarCard]
+            )
+        )
+    }
+
+    func testSwitchToAllCardsReviewActionHidesForAllCardsFilter() {
+        XCTAssertFalse(
+            shouldShowSwitchToAllCardsReviewAction(
+                reviewFilter: .allCards,
+                decks: [],
+                cards: []
+            )
+        )
+    }
+
+    func testSwitchToAllCardsReviewActionHidesForInvalidReviewFilters() {
+        let grammarDeck = self.makeDeck(
+            deckId: "deck-1",
+            name: "Grammar",
+            tags: ["grammar"]
+        )
+        let grammarCard = self.makeCard(cardId: "card-1", tags: ["grammar"], deletedAt: nil)
+
+        XCTAssertFalse(
+            shouldShowSwitchToAllCardsReviewAction(
+                reviewFilter: .deck(deckId: "missing-deck"),
+                decks: [grammarDeck],
+                cards: [grammarCard]
+            )
+        )
+        XCTAssertFalse(
+            shouldShowSwitchToAllCardsReviewAction(
+                reviewFilter: .tag(tag: "travel"),
+                decks: [grammarDeck],
+                cards: [grammarCard]
+            )
+        )
+    }
+
     func testWorkspaceTagsSummarySortsByCountThenName() {
         let summary = workspaceTagsSummary(cards: [
             self.makeCard(cardId: "card-1", tags: ["verbs", "grammar"], deletedAt: nil),

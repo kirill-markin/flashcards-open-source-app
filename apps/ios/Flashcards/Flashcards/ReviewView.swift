@@ -409,6 +409,12 @@ struct ReviewView: View {
     }
 
     private var emptyStateView: some View {
+        let shouldShowSwitchToAllCardsAction = shouldShowSwitchToAllCardsReviewAction(
+            reviewFilter: store.selectedReviewFilter,
+            decks: store.decks,
+            cards: store.cards
+        )
+
         ContentUnavailableView {
             if store.cards.isEmpty {
                 Label("No Cards Yet", systemImage: "tray")
@@ -440,6 +446,19 @@ struct ReviewView: View {
                     Label("Create with AI", systemImage: "sparkles")
                 }
                 .buttonStyle(.bordered)
+
+                if shouldShowSwitchToAllCardsAction {
+                    Text("or")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        store.selectReviewFilter(reviewFilter: .allCards)
+                    } label: {
+                        Text("switch to all cards deck")
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
         }
     }
