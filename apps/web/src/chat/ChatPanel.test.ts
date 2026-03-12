@@ -67,7 +67,14 @@ vi.mock("./FileAttachment", () => ({
     maxSidePixels: 1_280,
     quality: 0.55,
   },
-  FileAttachment: () => createElement("button", { type: "button", className: "chat-attach-btn" }, "Attach"),
+  FileAttachment: () => createElement(
+    "button",
+    {
+      type: "button",
+      className: "chat-attach-btn",
+    },
+    "Attach",
+  ),
 }));
 
 function setTextareaValue(textarea: HTMLTextAreaElement, value: string): void {
@@ -139,6 +146,37 @@ function createTimedStreamResponse(
       window.setTimeout(() => {
         controller.close();
       }, closeAtMs);
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "x-chat-request-id": "request-1",
+    },
+  });
+}
+
+function createAbortableTimedStreamResponse(
+  signal: AbortSignal,
+  chunks: ReadonlyArray<Readonly<{ atMs: number; payload: string }>>,
+  closeAtMs: number,
+): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller): void {
+      const timeoutIds = chunks.map((chunk) => window.setTimeout(() => {
+        controller.enqueue(encoder.encode(chunk.payload));
+      }, chunk.atMs));
+      const closeTimeoutId = window.setTimeout(() => {
+        controller.close();
+      }, closeAtMs);
+
+      signal.addEventListener("abort", () => {
+        timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+        window.clearTimeout(closeTimeoutId);
+        controller.error(new DOMException("The operation was aborted.", "AbortError"));
+      }, { once: true });
     },
   });
 
@@ -356,6 +394,22 @@ describe("ChatPanel autoscroll", () => {
     });
   }
 
+  async function stopStreaming(): Promise<void> {
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    const stopButton = mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]');
+    expect(stopButton).not.toBeNull();
+
+    await act(async () => {
+      stopButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+  }
+
   it("snaps to bottom without smooth animation after loading persisted history", async () => {
     localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
       role: "assistant",
@@ -516,6 +570,57 @@ describe("ChatPanel autoscroll", () => {
     expect(assistantMessage?.textContent).toBe(
       "Точный план изменений:\n- не менять остальные теги\n\nПодтверди, и я выполню объединение `DSA -> dsa`.",
     );
+  });
+
+  it("replaces send with stop while streaming and allows sending again after stop", async () => {
+    streamLocalChatMock
+      .mockImplementationOnce((_body: unknown, signal: AbortSignal) => Promise.resolve(
+        createAbortableTimedStreamResponse(
+          signal,
+          [{ atMs: 50, payload: streamDeltaPayload("Partial response") }],
+          5_000,
+        ),
+      ))
+      .mockResolvedValueOnce(createTimedStreamResponse([{ atMs: 0, payload: streamDeltaPayload("Second response") }], 1));
+
+    await renderChatPanel();
+    await sendMessage("first");
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    expect(mountedContainer.querySelector('.chat-send-btn[aria-label="Send message"]')).toBeNull();
+    expect(mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]')).not.toBeNull();
+    expect((mountedContainer.querySelector(".chat-attach-btn") as HTMLButtonElement | null)?.disabled).toBe(false);
+
+    await act(async () => {
+      vi.advanceTimersByTime(60);
+      await Promise.resolve();
+    });
+
+    expect(mountedContainer.textContent).toContain("Partial response");
+
+    await stopStreaming();
+
+    expect(streamLocalChatMock.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
+    expect((streamLocalChatMock.mock.calls[0]?.[1] as AbortSignal).aborted).toBe(true);
+    expect(mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]')).toBeNull();
+    expect(mountedContainer.querySelector('.chat-send-btn[aria-label="Send message"]')).not.toBeNull();
+    expect((mountedContainer.querySelector(".chat-attach-btn") as HTMLButtonElement | null)?.disabled).toBe(false);
+    expect(mountedContainer.textContent).toContain("Partial response");
+
+    await sendMessage("second");
+
+    await act(async () => {
+      vi.advanceTimersByTime(5);
+      await Promise.resolve();
+    });
+
+    expect(streamLocalChatMock).toHaveBeenCalledTimes(2);
+    expect(mountedContainer.textContent).toContain("Second response");
   });
 
   it("keeps tool call blocks in order relative to assistant text without trimming", async () => {
@@ -964,6 +1069,43 @@ describe("ChatPanel autoscroll", () => {
     expect(alertSpy).toHaveBeenCalledWith("Attachment payload limit is 10 MB after compression.");
     expect(mountedContainer.querySelector(".chat-attachment-chip")).toBeNull();
     alertSpy.mockRestore();
+  });
+
+  it("aborts the active stream before clearing history when starting a new chat", async () => {
+    streamLocalChatMock.mockImplementationOnce((_body: unknown, signal: AbortSignal) => Promise.resolve(
+      createAbortableTimedStreamResponse(
+        signal,
+        [{ atMs: 50, payload: streamDeltaPayload("Partial response") }],
+        5_000,
+      ),
+    ));
+
+    await renderChatPanel();
+    await sendMessage("first");
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    await act(async () => {
+      vi.advanceTimersByTime(60);
+      await Promise.resolve();
+    });
+
+    const newButton = [...mountedContainer.querySelectorAll("button")].find((button) => button.textContent === "New");
+    expect(newButton).not.toBeUndefined();
+
+    await act(async () => {
+      newButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(streamLocalChatMock.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
+    expect((streamLocalChatMock.mock.calls[0]?.[1] as AbortSignal).aborted).toBe(true);
+    expect(mountedContainer.textContent).not.toContain("Partial response");
+    expect(mountedContainer.querySelectorAll(".chat-msg")).toHaveLength(0);
   });
 });
 

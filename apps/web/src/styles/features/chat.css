@@ -353,6 +353,7 @@
 }
 
 .chat-send-btn,
+.chat-stop-btn,
 .chat-attach-btn,
 .chat-model-select,
 .chat-model-label {
@@ -361,6 +362,7 @@
 }
 
 .chat-send-btn,
+.chat-stop-btn,
 .chat-attach-btn {
   font-size: 14px;
   padding: 0 14px;
@@ -379,11 +381,6 @@
   background: var(--accent-strong);
 }
 
-.chat-send-btn:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
 .chat-attach-btn {
   background: rgba(255, 255, 255, 0.05);
 }
@@ -391,6 +388,36 @@
 .chat-attach-btn:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.chat-attach-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.chat-stop-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 40px;
+  block-size: 40px;
+  flex: 0 0 40px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chat-stop-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chat-stop-btn-icon {
+  display: block;
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 2px;
+  background: currentColor;
 }
 
 .chat-controls {
@@ -545,9 +572,14 @@
   }
 
   .chat-send-btn,
+  .chat-stop-btn,
   .chat-attach-btn,
   .chat-model-select,
   .chat-model-label {
     width: 100%;
+  }
+
+  .chat-stop-btn {
+    width: 40px;
   }
 }
