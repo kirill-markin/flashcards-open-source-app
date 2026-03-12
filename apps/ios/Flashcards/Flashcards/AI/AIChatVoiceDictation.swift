@@ -8,19 +8,20 @@ enum AIChatDictationState: Sendable, Equatable {
     case transcribing
 }
 
-struct AIChatRecordedAudio {
+struct AIChatRecordedAudio: Sendable {
     let fileUrl: URL
     let fileName: String
     let mediaType: String
 }
 
+@MainActor
 protocol AIChatVoiceRecording: AnyObject {
     func startRecording() async throws
     func stopRecording() async throws -> AIChatRecordedAudio
     func cancelRecording()
 }
 
-protocol AIChatAudioTranscribing {
+protocol AIChatAudioTranscribing: Sendable {
     func transcribe(session: CloudLinkedSession, recordedAudio: AIChatRecordedAudio) async throws -> String
 }
 
@@ -70,11 +71,11 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
     private var currentFileUrl: URL?
 
     func startRecording() async throws {
-        if AVAudioSession.sharedInstance().recordPermission == .denied {
+        if AVAudioApplication.shared.recordPermission == .denied {
             throw AIChatVoiceRecorderError.microphoneDenied
         }
 
-        if AVAudioSession.sharedInstance().recordPermission == .undetermined {
+        if AVAudioApplication.shared.recordPermission == .undetermined {
             let status = await requestAccessPermission(kind: .microphone)
             if status != .allowed {
                 throw AIChatVoiceRecorderError.microphoneDenied
@@ -139,6 +140,7 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
     }
 }
 
+@MainActor
 final class AIChatDisabledVoiceRecorder: AIChatVoiceRecording {
     func startRecording() async throws {
         throw AIChatVoiceRecorderError.microphoneUnavailable
@@ -164,7 +166,7 @@ private struct AIChatTranscriptionResponse: Decodable {
     let text: String
 }
 
-final class AIChatTranscriptionService {
+final class AIChatTranscriptionService: @unchecked Sendable {
     private let session: URLSession
     private let decoder: JSONDecoder
 

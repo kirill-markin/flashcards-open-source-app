@@ -86,7 +86,7 @@ func accessPermissionStatus(kind: AccessPermissionKind) -> AccessPermissionStatu
             return .blocked
         }
     case .camera:
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+        guard AVCaptureDevice.default(for: .video) != nil else {
             return .unavailable
         }
 
@@ -102,7 +102,7 @@ func accessPermissionStatus(kind: AccessPermissionKind) -> AccessPermissionStatu
             return .blocked
         }
     case .microphone:
-        switch AVAudioSession.sharedInstance().recordPermission {
+        switch AVAudioApplication.shared.recordPermission {
         case .granted:
             return .allowed
         case .undetermined:
@@ -167,7 +167,7 @@ func requestAccessPermission(kind: AccessPermissionKind) async -> AccessPermissi
             return .blocked
         }
     case .camera:
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+        guard AVCaptureDevice.default(for: .video) != nil else {
             return .unavailable
         }
 
@@ -179,7 +179,7 @@ func requestAccessPermission(kind: AccessPermissionKind) async -> AccessPermissi
         return isGranted ? .allowed : .blocked
     case .microphone:
         let isGranted = await withCheckedContinuation { continuation in
-            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+            AVAudioApplication.requestRecordPermission { granted in
                 continuation.resume(returning: granted)
             }
         }
