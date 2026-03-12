@@ -101,14 +101,33 @@ typealias ReviewHeadLoader = @Sendable (
     _ seedQueueSize: Int
 ) async throws -> ReviewHeadLoadState
 
-typealias ReviewStateLoader = @Sendable (
+typealias ReviewCountsLoader = @Sendable (
+    _ databaseURL: URL,
+    _ workspaceId: String,
+    _ reviewQueryDefinition: ReviewQueryDefinition,
+    _ now: Date
+) async throws -> ReviewCounts
+
+typealias ReviewQueueChunkLoader = @Sendable (
     _ reviewFilter: ReviewFilter,
     _ decks: [Deck],
     _ cards: [Card],
-    _ now: Date
-) async throws -> ReviewComputedState
+    _ excludedCardIds: Set<String>,
+    _ now: Date,
+    _ chunkSize: Int
+) async throws -> ReviewQueueChunkLoadState
+
+typealias ReviewTimelinePageLoader = @Sendable (
+    _ databaseURL: URL,
+    _ workspaceId: String,
+    _ reviewQueryDefinition: ReviewQueryDefinition,
+    _ now: Date,
+    _ limit: Int,
+    _ offset: Int
+) async throws -> ReviewTimelinePage
 
 private let reviewSeedQueueSize: Int = 8
+private let reviewQueueReplenishmentThreshold: Int = 4
 
 private func defaultReviewHeadLoader(
     reviewFilter: ReviewFilter,
@@ -129,19 +148,61 @@ private func defaultReviewHeadLoader(
     }.value
 }
 
-private func defaultReviewStateLoader(
+private func defaultReviewCountsLoader(
+    databaseURL: URL,
+    workspaceId: String,
+    reviewQueryDefinition: ReviewQueryDefinition,
+    now: Date
+) async throws -> ReviewCounts {
+    try await Task.detached(priority: .utility) {
+        try Task.checkCancellation()
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        return try database.loadReviewCounts(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now
+        )
+    }.value
+}
+
+private func defaultReviewQueueChunkLoader(
     reviewFilter: ReviewFilter,
     decks: [Deck],
     cards: [Card],
-    now: Date
-) async throws -> ReviewComputedState {
+    excludedCardIds: Set<String>,
+    now: Date,
+    chunkSize: Int
+) async throws -> ReviewQueueChunkLoadState {
     try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
-        return makeReviewComputedState(
+        return makeReviewQueueChunkLoadState(
             reviewFilter: reviewFilter,
             decks: decks,
             cards: cards,
-            now: now
+            now: now,
+            limit: chunkSize,
+            excludedCardIds: excludedCardIds
+        )
+    }.value
+}
+
+private func defaultReviewTimelinePageLoader(
+    databaseURL: URL,
+    workspaceId: String,
+    reviewQueryDefinition: ReviewQueryDefinition,
+    now: Date,
+    limit: Int,
+    offset: Int
+) async throws -> ReviewTimelinePage {
+    try await Task.detached(priority: .utility) {
+        try Task.checkCancellation()
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        return try database.loadReviewTimelinePage(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit,
+            offset: offset
         )
     }.value
 }
@@ -157,9 +218,10 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var deckItems: [DeckListItem]
     @Published private(set) var selectedReviewFilter: ReviewFilter
     @Published private(set) var reviewQueue: [Card]
-    @Published private(set) var reviewTimeline: [Card]
+    @Published private(set) var reviewCounts: ReviewCounts
     @Published private(set) var isReviewHeadLoading: Bool
-    @Published private(set) var isReviewTimelineLoading: Bool
+    @Published private(set) var isReviewCountsLoading: Bool
+    @Published private(set) var isReviewQueueChunkLoading: Bool
     @Published private(set) var homeSnapshot: HomeSnapshot
     @Published private(set) var globalErrorMessage: String
     @Published private(set) var syncStatus: SyncStatus
@@ -177,7 +239,9 @@ final class FlashcardsStore: ObservableObject {
     private let credentialStore: CloudCredentialStore
     private let reviewSubmissionExecutor: ReviewSubmissionExecuting?
     private let reviewHeadLoader: ReviewHeadLoader
-    private let reviewStateLoader: ReviewStateLoader
+    private let reviewCountsLoader: ReviewCountsLoader
+    private let reviewQueueChunkLoader: ReviewQueueChunkLoader
+    private let reviewTimelinePageLoader: ReviewTimelinePageLoader
     private let userDefaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
@@ -187,10 +251,16 @@ final class FlashcardsStore: ObservableObject {
     private var activeAIChatSessionPreparation: AIChatSessionPreparationState?
     private var activeReviewLoadTask: Task<Void, Never>?
     private var activeReviewLoadRequestId: String?
+    private var activeReviewCountsTask: Task<Void, Never>?
+    private var activeReviewCountsRequestId: String?
+    private var activeReviewQueueChunkTask: Task<Void, Never>?
+    private var activeReviewQueueChunkRequestId: String?
     private var pendingCloudResync: Bool
     private var pendingReviewRequests: [ReviewSubmissionRequest]
     private var isReviewProcessorRunning: Bool
     private var reviewSourceVersion: Int
+    private var loadedReviewCardIds: Set<String>
+    private var hasMoreReviewQueueCards: Bool
     lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
 
     convenience init() {
@@ -242,7 +312,9 @@ final class FlashcardsStore: ObservableObject {
             credentialStore: credentialStore,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: defaultReviewHeadLoader,
-            reviewStateLoader: defaultReviewStateLoader,
+            reviewCountsLoader: defaultReviewCountsLoader,
+            reviewQueueChunkLoader: defaultReviewQueueChunkLoader,
+            reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
             initialGlobalErrorMessage: initialGlobalErrorMessage
         )
     }
@@ -256,7 +328,9 @@ final class FlashcardsStore: ObservableObject {
         credentialStore: CloudCredentialStore,
         reviewSubmissionExecutor: ReviewSubmissionExecuting?,
         reviewHeadLoader: @escaping ReviewHeadLoader,
-        reviewStateLoader: @escaping ReviewStateLoader,
+        reviewCountsLoader: @escaping ReviewCountsLoader,
+        reviewQueueChunkLoader: @escaping ReviewQueueChunkLoader,
+        reviewTimelinePageLoader: @escaping ReviewTimelinePageLoader,
         initialGlobalErrorMessage: String
     ) {
         self.workspace = nil
@@ -271,9 +345,10 @@ final class FlashcardsStore: ObservableObject {
             decoder: decoder
         )
         self.reviewQueue = []
-        self.reviewTimeline = []
+        self.reviewCounts = ReviewCounts(dueCount: 0, totalCount: 0)
         self.isReviewHeadLoading = false
-        self.isReviewTimelineLoading = false
+        self.isReviewCountsLoading = false
+        self.isReviewQueueChunkLoading = false
         self.homeSnapshot = HomeSnapshot(
             deckCount: 0,
             totalCards: 0,
@@ -299,7 +374,9 @@ final class FlashcardsStore: ObservableObject {
         self.credentialStore = credentialStore
         self.reviewSubmissionExecutor = reviewSubmissionExecutor
         self.reviewHeadLoader = reviewHeadLoader
-        self.reviewStateLoader = reviewStateLoader
+        self.reviewCountsLoader = reviewCountsLoader
+        self.reviewQueueChunkLoader = reviewQueueChunkLoader
+        self.reviewTimelinePageLoader = reviewTimelinePageLoader
         self.userDefaults = userDefaults
         self.encoder = encoder
         self.decoder = decoder
@@ -308,10 +385,16 @@ final class FlashcardsStore: ObservableObject {
         self.activeAIChatSessionPreparation = nil
         self.activeReviewLoadTask = nil
         self.activeReviewLoadRequestId = nil
+        self.activeReviewCountsTask = nil
+        self.activeReviewCountsRequestId = nil
+        self.activeReviewQueueChunkTask = nil
+        self.activeReviewQueueChunkRequestId = nil
         self.pendingCloudResync = false
         self.pendingReviewRequests = []
         self.isReviewProcessorRunning = false
         self.reviewSourceVersion = 0
+        self.loadedReviewCardIds = []
+        self.hasMoreReviewQueueCards = false
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
@@ -345,7 +428,11 @@ final class FlashcardsStore: ObservableObject {
     }
 
     var reviewTotalCount: Int {
-        self.reviewTimeline.count
+        self.reviewCounts.totalCount
+    }
+
+    var displayedReviewDueCount: Int {
+        max(0, self.reviewCounts.dueCount - self.pendingReviewCountForSelectedReviewFilter())
     }
 
     /// Review queue visible to UI after optimistic removals are applied.
@@ -549,6 +636,7 @@ final class FlashcardsStore: ObservableObject {
         self.pendingReviewCardIds.insert(cardId)
         self.pendingReviewRequests.append(request)
         self.reviewSubmissionFailure = nil
+        self.startReviewQueueChunkLoadIfNeeded(now: Date())
         self.startReviewProcessorIfNeeded()
     }
 
@@ -893,27 +981,68 @@ final class FlashcardsStore: ObservableObject {
         matchingCardsForDeck(deck: deck, cards: self.cards)
     }
 
+    /// Loads one sorted queue-preview page without blocking the main review screen.
+    func loadReviewTimelinePage(limit: Int, offset: Int) async throws -> ReviewTimelinePage {
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+        guard let databaseURL = self.localDatabaseURL else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+
+        let resolvedReviewQuery = self.currentResolvedReviewQuery()
+        return try await self.reviewTimelinePageLoader(
+            databaseURL,
+            workspaceId,
+            resolvedReviewQuery.queryDefinition,
+            Date(),
+            limit,
+            offset
+        )
+    }
+
     private func startReviewLoad(reviewFilter: ReviewFilter, now: Date) {
-        self.cancelActiveReviewLoad()
+        self.cancelActiveReviewLoads()
 
         let requestId = UUID().uuidString.lowercased()
         let sourceVersion = self.reviewSourceVersion
         let cards = self.cards
         let decks = self.decks
+        let resolvedReviewQuery = resolveReviewQuery(
+            reviewFilter: reviewFilter,
+            decks: decks,
+            cards: cards
+        )
 
-        self.selectedReviewFilter = reviewFilter
-        self.persistSelectedReviewFilter(reviewFilter: reviewFilter)
+        self.selectedReviewFilter = resolvedReviewQuery.reviewFilter
+        self.persistSelectedReviewFilter(reviewFilter: resolvedReviewQuery.reviewFilter)
         self.reviewQueue = []
-        self.reviewTimeline = []
+        self.reviewCounts = ReviewCounts(dueCount: 0, totalCount: 0)
         self.isReviewHeadLoading = true
-        self.isReviewTimelineLoading = true
+        self.isReviewCountsLoading = true
+        self.isReviewQueueChunkLoading = false
         self.activeReviewLoadRequestId = requestId
+        self.loadedReviewCardIds = []
+        self.hasMoreReviewQueueCards = false
         self.globalErrorMessage = ""
+
+        if let workspaceId = self.workspace?.workspaceId, let databaseURL = self.localDatabaseURL {
+            self.startReviewCountsLoad(
+                databaseURL: databaseURL,
+                workspaceId: workspaceId,
+                reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+                now: now,
+                requestId: requestId,
+                sourceVersion: sourceVersion
+            )
+        } else {
+            self.isReviewCountsLoading = false
+        }
 
         self.activeReviewLoadTask = Task { @MainActor in
             do {
                 let reviewHeadState = try await self.reviewHeadLoader(
-                    reviewFilter,
+                    resolvedReviewQuery.reviewFilter,
                     decks,
                     cards,
                     now,
@@ -926,27 +1055,10 @@ final class FlashcardsStore: ObservableObject {
                     return
                 }
 
-                self.selectedReviewFilter = reviewHeadState.resolvedReviewFilter
-                self.persistSelectedReviewFilter(reviewFilter: reviewHeadState.resolvedReviewFilter)
-                self.reviewQueue = reviewHeadState.seedReviewQueue
+                self.applyReviewHeadLoadState(reviewHeadState: reviewHeadState)
                 self.isReviewHeadLoading = false
-
-                let reviewComputedState = try await self.reviewStateLoader(
-                    reviewHeadState.resolvedReviewFilter,
-                    decks,
-                    cards,
-                    now
-                )
-                guard self.shouldApplyReviewLoadResult(
-                    requestId: requestId,
-                    sourceVersion: sourceVersion
-                ) else {
-                    return
-                }
-
-                self.applyReviewComputedState(reviewState: reviewComputedState)
-                self.isReviewTimelineLoading = false
                 self.clearActiveReviewLoad(requestId: requestId)
+                self.startReviewQueueChunkLoadIfNeeded(now: now)
             } catch is CancellationError {
                 self.clearActiveReviewLoad(requestId: requestId)
             } catch {
@@ -958,7 +1070,8 @@ final class FlashcardsStore: ObservableObject {
                 }
 
                 self.isReviewHeadLoading = false
-                self.isReviewTimelineLoading = false
+                self.isReviewCountsLoading = false
+                self.cancelActiveReviewCountsLoad()
                 self.globalErrorMessage = localizedMessage(error: error)
                 self.clearActiveReviewLoad(requestId: requestId)
             }
@@ -966,16 +1079,28 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func refreshReviewState(now: Date) {
-        self.applyReviewComputedState(
-            reviewState: makeReviewComputedState(
-                reviewFilter: self.selectedReviewFilter,
-                decks: self.decks,
-                cards: self.cards,
-                now: now
-            )
+        let resolvedReviewQuery = self.currentResolvedReviewQuery()
+        let reviewHeadState = makeReviewHeadLoadState(
+            reviewFilter: resolvedReviewQuery.reviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now,
+            seedQueueSize: reviewSeedQueueSize
+        )
+
+        self.selectedReviewFilter = resolvedReviewQuery.reviewFilter
+        self.persistSelectedReviewFilter(reviewFilter: resolvedReviewQuery.reviewFilter)
+        self.applyReviewHeadLoadState(reviewHeadState: reviewHeadState)
+        self.reviewCounts = makeReviewCounts(
+            reviewFilter: resolvedReviewQuery.reviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
         )
         self.isReviewHeadLoading = false
-        self.isReviewTimelineLoading = false
+        self.isReviewCountsLoading = false
+        self.isReviewQueueChunkLoading = false
+        self.startReviewQueueChunkLoadIfNeeded(now: now)
     }
 
     private func applyCardMutation(card: Card, now: Date) {
@@ -996,7 +1121,7 @@ final class FlashcardsStore: ObservableObject {
 
     private func applyLocalState(cards: [Card], decks: [Deck], now: Date) {
         self.reviewSourceVersion += 1
-        self.cancelActiveReviewLoad()
+        self.cancelActiveReviewLoads()
         self.cards = cards
         self.decks = decks
         self.deckItems = makeDeckListItems(decks: decks, cards: cards, now: now)
@@ -1005,11 +1130,12 @@ final class FlashcardsStore: ObservableObject {
         self.globalErrorMessage = ""
     }
 
-    private func applyReviewComputedState(reviewState: ReviewComputedState) {
-        self.selectedReviewFilter = reviewState.resolvedReviewFilter
-        self.persistSelectedReviewFilter(reviewFilter: reviewState.resolvedReviewFilter)
-        self.reviewQueue = reviewState.reviewQueue
-        self.reviewTimeline = reviewState.reviewTimeline
+    private func applyReviewHeadLoadState(reviewHeadState: ReviewHeadLoadState) {
+        self.selectedReviewFilter = reviewHeadState.resolvedReviewFilter
+        self.persistSelectedReviewFilter(reviewFilter: reviewHeadState.resolvedReviewFilter)
+        self.reviewQueue = reviewHeadState.seedReviewQueue
+        self.loadedReviewCardIds = Set(reviewHeadState.seedReviewQueue.map(\.cardId))
+        self.hasMoreReviewQueueCards = reviewHeadState.hasMoreCards
     }
 
     private func shouldApplyReviewLoadResult(requestId: String, sourceVersion: Int) -> Bool {
@@ -1023,10 +1149,197 @@ final class FlashcardsStore: ObservableObject {
         return self.reviewSourceVersion == sourceVersion
     }
 
+    private func shouldApplyReviewCountsResult(requestId: String, sourceVersion: Int) -> Bool {
+        guard Task.isCancelled == false else {
+            return false
+        }
+        guard self.activeReviewCountsRequestId == requestId else {
+            return false
+        }
+
+        return self.reviewSourceVersion == sourceVersion
+    }
+
+    private func shouldApplyReviewQueueChunkResult(requestId: String, sourceVersion: Int) -> Bool {
+        guard Task.isCancelled == false else {
+            return false
+        }
+        guard self.activeReviewQueueChunkRequestId == requestId else {
+            return false
+        }
+
+        return self.reviewSourceVersion == sourceVersion
+    }
+
+    private func startReviewCountsLoad(
+        databaseURL: URL,
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        requestId: String,
+        sourceVersion: Int
+    ) {
+        self.cancelActiveReviewCountsLoad()
+        self.activeReviewCountsRequestId = requestId
+        self.activeReviewCountsTask = Task { @MainActor in
+            do {
+                let reviewCounts = try await self.reviewCountsLoader(
+                    databaseURL,
+                    workspaceId,
+                    reviewQueryDefinition,
+                    now
+                )
+                guard self.shouldApplyReviewCountsResult(
+                    requestId: requestId,
+                    sourceVersion: sourceVersion
+                ) else {
+                    return
+                }
+
+                self.reviewCounts = reviewCounts
+                self.isReviewCountsLoading = false
+                self.clearActiveReviewCountsLoad(requestId: requestId)
+            } catch is CancellationError {
+                self.clearActiveReviewCountsLoad(requestId: requestId)
+            } catch {
+                guard self.shouldApplyReviewCountsResult(
+                    requestId: requestId,
+                    sourceVersion: sourceVersion
+                ) else {
+                    return
+                }
+
+                self.isReviewCountsLoading = false
+                self.globalErrorMessage = localizedMessage(error: error)
+                self.clearActiveReviewCountsLoad(requestId: requestId)
+            }
+        }
+    }
+
+    /// Keeps review responsive by topping up only when the visible queue is running low.
+    private func startReviewQueueChunkLoadIfNeeded(now: Date) {
+        guard self.isReviewHeadLoading == false else {
+            return
+        }
+        guard self.isReviewQueueChunkLoading == false else {
+            return
+        }
+        guard self.hasMoreReviewQueueCards else {
+            return
+        }
+        guard self.effectiveReviewQueue.count <= reviewQueueReplenishmentThreshold else {
+            return
+        }
+
+        let requestId = UUID().uuidString.lowercased()
+        let sourceVersion = self.reviewSourceVersion
+        let cards = self.cards
+        let decks = self.decks
+        let selectedReviewFilter = self.selectedReviewFilter
+        let excludedCardIds = self.loadedReviewCardIds
+
+        self.isReviewQueueChunkLoading = true
+        self.activeReviewQueueChunkRequestId = requestId
+        self.activeReviewQueueChunkTask = Task { @MainActor in
+            do {
+                let queueChunkLoadState = try await self.reviewQueueChunkLoader(
+                    selectedReviewFilter,
+                    decks,
+                    cards,
+                    excludedCardIds,
+                    now,
+                    reviewSeedQueueSize
+                )
+                guard self.shouldApplyReviewQueueChunkResult(
+                    requestId: requestId,
+                    sourceVersion: sourceVersion
+                ) else {
+                    return
+                }
+
+                self.reviewQueue.append(contentsOf: queueChunkLoadState.reviewQueueChunk)
+                self.loadedReviewCardIds.formUnion(queueChunkLoadState.reviewQueueChunk.map(\.cardId))
+                self.hasMoreReviewQueueCards = queueChunkLoadState.hasMoreCards
+                self.isReviewQueueChunkLoading = false
+                self.clearActiveReviewQueueChunkLoad(requestId: requestId)
+                self.startReviewQueueChunkLoadIfNeeded(now: now)
+            } catch is CancellationError {
+                self.clearActiveReviewQueueChunkLoad(requestId: requestId)
+            } catch {
+                guard self.shouldApplyReviewQueueChunkResult(
+                    requestId: requestId,
+                    sourceVersion: sourceVersion
+                ) else {
+                    return
+                }
+
+                self.isReviewQueueChunkLoading = false
+                self.globalErrorMessage = localizedMessage(error: error)
+                self.clearActiveReviewQueueChunkLoad(requestId: requestId)
+            }
+        }
+    }
+
+    private func currentResolvedReviewQuery() -> ResolvedReviewQuery {
+        resolveReviewQuery(
+            reviewFilter: self.selectedReviewFilter,
+            decks: self.decks,
+            cards: self.cards
+        )
+    }
+
+    private func pendingReviewCountForSelectedReviewFilter() -> Int {
+        let resolvedReviewQuery = self.currentResolvedReviewQuery()
+
+        return self.pendingReviewCardIds.reduce(into: 0) { result, cardId in
+            guard let card = self.cards.first(where: { existingCard in
+                existingCard.cardId == cardId
+            }) else {
+                return
+            }
+            guard card.deletedAt == nil else {
+                return
+            }
+
+            let isIncluded: Bool
+            switch resolvedReviewQuery.queryDefinition {
+            case .allCards:
+                isIncluded = true
+            case .deck(let filterDefinition):
+                isIncluded = matchesDeckFilterDefinition(filterDefinition: filterDefinition, card: card)
+            case .tag(let tag):
+                isIncluded = card.tags.contains(tag)
+            }
+
+            if isIncluded {
+                result += 1
+            }
+        }
+    }
+
     private func cancelActiveReviewLoad() {
         self.activeReviewLoadTask?.cancel()
         self.activeReviewLoadTask = nil
         self.activeReviewLoadRequestId = nil
+    }
+
+    private func cancelActiveReviewCountsLoad() {
+        self.activeReviewCountsTask?.cancel()
+        self.activeReviewCountsTask = nil
+        self.activeReviewCountsRequestId = nil
+    }
+
+    private func cancelActiveReviewQueueChunkLoad() {
+        self.activeReviewQueueChunkTask?.cancel()
+        self.activeReviewQueueChunkTask = nil
+        self.activeReviewQueueChunkRequestId = nil
+        self.isReviewQueueChunkLoading = false
+    }
+
+    private func cancelActiveReviewLoads() {
+        self.cancelActiveReviewLoad()
+        self.cancelActiveReviewCountsLoad()
+        self.cancelActiveReviewQueueChunkLoad()
     }
 
     private func clearActiveReviewLoad(requestId: String) {
@@ -1036,6 +1349,24 @@ final class FlashcardsStore: ObservableObject {
 
         self.activeReviewLoadTask = nil
         self.activeReviewLoadRequestId = nil
+    }
+
+    private func clearActiveReviewCountsLoad(requestId: String) {
+        guard self.activeReviewCountsRequestId == requestId else {
+            return
+        }
+
+        self.activeReviewCountsTask = nil
+        self.activeReviewCountsRequestId = nil
+    }
+
+    private func clearActiveReviewQueueChunkLoad(requestId: String) {
+        guard self.activeReviewQueueChunkRequestId == requestId else {
+            return
+        }
+
+        self.activeReviewQueueChunkTask = nil
+        self.activeReviewQueueChunkRequestId = nil
     }
 
     private func persistSelectedReviewFilter(reviewFilter: ReviewFilter) {

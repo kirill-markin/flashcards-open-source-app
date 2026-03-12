@@ -8,6 +8,7 @@ private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 private let emptyBackTextPlaceholder: String = "No back text"
+private let reviewQueuePreviewPageSize: Int = 50
 
 struct ReviewView: View {
     @EnvironmentObject private var store: FlashcardsStore
@@ -73,7 +74,7 @@ struct ReviewView: View {
             return self.cachedPreparedRevealState(card: currentCard) == nil
         }
 
-        return store.isReviewTimelineLoading && store.reviewQueue.isEmpty == false
+        return store.isReviewQueueChunkLoading
     }
 
     var body: some View {
@@ -99,7 +100,7 @@ struct ReviewView: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                if store.isReviewTimelineLoading {
+                if store.isReviewCountsLoading {
                     ProgressView()
                         .controlSize(.small)
                         .accessibilityLabel("Loading review queue")
@@ -107,13 +108,13 @@ struct ReviewView: View {
                     Button {
                         self.isQueuePreviewPresented = true
                     } label: {
-                        Text("\(store.effectiveReviewQueue.count) / \(store.reviewTotalCount)")
+                        Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
                             .font(.subheadline.monospacedDigit())
                             .padding(.horizontal, 6)
                             .foregroundStyle(.secondary)
                     }
                     .disabled(store.reviewTotalCount == 0)
-                    .accessibilityLabel("Review queue \(store.effectiveReviewQueue.count) active of \(store.reviewTotalCount) total")
+                    .accessibilityLabel("Review queue \(store.displayedReviewDueCount) active of \(store.reviewTotalCount) total")
                 }
             }
         }
@@ -121,9 +122,15 @@ struct ReviewView: View {
             NavigationStack {
                 ReviewQueuePreviewScreen(
                     title: store.selectedReviewFilterTitle,
-                    cards: store.reviewTimeline,
-                    activeCount: store.effectiveReviewQueue.count,
-                    currentCardId: currentCard?.cardId
+                    activeCount: store.displayedReviewDueCount,
+                    currentCardId: currentCard?.cardId,
+                    hiddenCardIds: store.pendingReviewCardIds,
+                    loadPage: { offset in
+                        try await store.loadReviewTimelinePage(
+                            limit: reviewQueuePreviewPageSize,
+                            offset: offset
+                        )
+                    }
                 )
             }
         }
@@ -975,27 +982,53 @@ private struct ReviewQueuePreviewScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     let title: String
-    let cards: [Card]
     let activeCount: Int
     let currentCardId: String?
+    let hiddenCardIds: Set<String>
+    let loadPage: (Int) async throws -> ReviewTimelinePage
+
+    @State private var cards: [Card] = []
+    @State private var hasMoreCards: Bool = true
+    @State private var isInitialLoading: Bool = true
+    @State private var isNextPageLoading: Bool = false
+    @State private var errorMessage: String? = nil
+    @State private var activeLoadRequest: ReviewQueuePreviewLoadRequest? = ReviewQueuePreviewLoadRequest(offset: 0, token: 0)
+    @State private var nextLoadToken: Int = 1
+
+    private var visibleCards: [Card] {
+        self.cards.filter { card in
+            self.hiddenCardIds.contains(card.cardId) == false
+        }
+    }
 
     private var previewItems: [ReviewQueuePreviewItem] {
-        let cardItems = cards.map { card in
+        let cardItems = self.visibleCards.map { card in
             ReviewQueuePreviewItem.card(card)
         }
 
-        guard activeCount < cards.count else {
+        guard self.activeCount < self.visibleCards.count else {
             return cardItems
         }
 
-        let prefixItems = Array(cardItems.prefix(activeCount))
-        let suffixItems = Array(cardItems.dropFirst(activeCount))
+        let prefixItems = Array(cardItems.prefix(self.activeCount))
+        let suffixItems = Array(cardItems.dropFirst(self.activeCount))
         return prefixItems + [.separator] + suffixItems
     }
 
     var body: some View {
         ScrollView {
-            if previewItems.isEmpty {
+            if self.isInitialLoading && self.visibleCards.isEmpty {
+                VStack {
+                    ProgressView()
+                        .controlSize(.large)
+                        .padding(.bottom, 12)
+                    Text("Loading queue")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 120)
+            } else if self.previewItems.isEmpty && self.errorMessage == nil {
                 ContentUnavailableView(
                     "No Matching Cards",
                     systemImage: "tray",
@@ -1003,19 +1036,42 @@ private struct ReviewQueuePreviewScreen: View {
                 )
                 .padding(.top, 120)
             } else {
-                IncrementalItemsView(
-                    items: previewItems,
-                    initialCount: 50,
-                    pageSize: 50
-                ) { item in
-                    switch item {
-                    case .separator:
-                        ReviewQueueSectionSeparator()
-                    case .card(let card):
-                        ReviewQueuePreviewCardRow(
-                            card: card,
-                            isCurrent: card.cardId == currentCardId
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    if let errorMessage = self.errorMessage {
+                        ReviewQueuePreviewErrorCard(
+                            message: errorMessage,
+                            onRetry: {
+                                self.retryLoad()
+                            },
+                            onClose: {
+                                self.dismiss()
+                            }
                         )
+                    }
+
+                    ForEach(self.previewItems) { item in
+                        switch item {
+                        case .separator:
+                            ReviewQueueSectionSeparator()
+                        case .card(let card):
+                            ReviewQueuePreviewCardRow(
+                                card: card,
+                                isCurrent: card.cardId == self.currentCardId
+                            )
+                            .onAppear {
+                                self.loadNextPageIfNeeded(itemId: item.id)
+                            }
+                        }
+                    }
+
+                    if self.isNextPageLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .controlSize(.small)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
                     }
                 }
                 .padding(20)
@@ -1024,6 +1080,9 @@ private struct ReviewQueuePreviewScreen: View {
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: self.activeLoadRequest) {
+            await self.performActiveLoadRequest()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Close") {
@@ -1032,6 +1091,87 @@ private struct ReviewQueuePreviewScreen: View {
             }
         }
     }
+
+    private func performActiveLoadRequest() async {
+        guard let activeLoadRequest = self.activeLoadRequest else {
+            return
+        }
+
+        let isInitialPage = activeLoadRequest.offset == 0
+        if isInitialPage {
+            self.isInitialLoading = true
+        } else {
+            self.isNextPageLoading = true
+        }
+
+        do {
+            let reviewTimelinePage = try await self.loadPage(activeLoadRequest.offset)
+
+            if isInitialPage {
+                self.cards = reviewTimelinePage.cards
+            } else {
+                self.cards.append(contentsOf: reviewTimelinePage.cards)
+            }
+
+            self.hasMoreCards = reviewTimelinePage.hasMoreCards
+            self.errorMessage = nil
+        } catch is CancellationError {
+            self.isInitialLoading = false
+            self.isNextPageLoading = false
+            return
+        } catch {
+            self.errorMessage = localizedMessage(error: error)
+        }
+
+        self.isInitialLoading = false
+        self.isNextPageLoading = false
+        self.activeLoadRequest = nil
+    }
+
+    private func loadNextPageIfNeeded(itemId: String) {
+        guard self.activeLoadRequest == nil else {
+            return
+        }
+        guard self.errorMessage == nil else {
+            return
+        }
+        guard self.isInitialLoading == false else {
+            return
+        }
+        guard self.isNextPageLoading == false else {
+            return
+        }
+        guard self.hasMoreCards else {
+            return
+        }
+        guard let lastVisibleItemId = self.previewItems.last?.id else {
+            return
+        }
+        guard itemId == lastVisibleItemId else {
+            return
+        }
+
+        self.activeLoadRequest = ReviewQueuePreviewLoadRequest(
+            offset: self.cards.count,
+            token: self.nextLoadToken
+        )
+        self.nextLoadToken += 1
+    }
+
+    private func retryLoad() {
+        self.cards = []
+        self.hasMoreCards = true
+        self.isInitialLoading = true
+        self.isNextPageLoading = false
+        self.errorMessage = nil
+        self.activeLoadRequest = ReviewQueuePreviewLoadRequest(offset: 0, token: self.nextLoadToken)
+        self.nextLoadToken += 1
+    }
+}
+
+private struct ReviewQueuePreviewLoadRequest: Hashable {
+    let offset: Int
+    let token: Int
 }
 
 private enum ReviewQueuePreviewItem: Identifiable, Hashable {
@@ -1045,6 +1185,39 @@ private enum ReviewQueuePreviewItem: Identifiable, Hashable {
         case .separator:
             return "review-queue-separator"
         }
+    }
+}
+
+private struct ReviewQueuePreviewErrorCard: View {
+    let message: String
+    let onRetry: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Queue couldn't be loaded")
+                .font(.headline)
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Button("Retry") {
+                    self.onRetry()
+                }
+
+                Button("Close") {
+                    self.onClose()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
     }
 }
 
@@ -1117,79 +1290,6 @@ private struct ReviewQueueSectionSeparator: View {
                 .frame(height: 1)
         }
         .padding(.vertical, 8)
-    }
-}
-
-struct IncrementalItemsView<Items: RandomAccessCollection, Content: View>: View where Items.Element: Identifiable, Items.Element.ID: Hashable {
-    let items: Items
-    let initialCount: Int
-    let pageSize: Int
-    let content: (Items.Element) -> Content
-
-    @State private var visibleCount: Int
-
-    init(
-        items: Items,
-        initialCount: Int,
-        pageSize: Int,
-        @ViewBuilder content: @escaping (Items.Element) -> Content
-    ) {
-        precondition(initialCount > 0, "IncrementalItemsView initialCount must be greater than zero")
-        precondition(pageSize > 0, "IncrementalItemsView pageSize must be greater than zero")
-
-        self.items = items
-        self.initialCount = initialCount
-        self.pageSize = pageSize
-        self.content = content
-        self._visibleCount = State(
-            initialValue: initialIncrementalVisibleCount(totalCount: items.count, initialCount: initialCount)
-        )
-    }
-
-    private var visibleItems: [Items.Element] {
-        Array(self.items.prefix(self.visibleCount))
-    }
-
-    var body: some View {
-        LazyVStack(alignment: .leading, spacing: 12) {
-            ForEach(self.visibleItems) { item in
-                self.content(item)
-                    .onAppear {
-                        self.loadMoreIfNeeded(itemId: item.id)
-                    }
-            }
-        }
-        .onChange(of: self.items.count) { _, nextCount in
-            let initialVisibleCount = initialIncrementalVisibleCount(
-                totalCount: nextCount,
-                initialCount: self.initialCount
-            )
-
-            if nextCount == 0 {
-                self.visibleCount = 0
-                return
-            }
-
-            self.visibleCount = min(max(self.visibleCount, initialVisibleCount), nextCount)
-        }
-    }
-
-    private func loadMoreIfNeeded(itemId: Items.Element.ID) {
-        guard let lastVisibleItemId = self.visibleItems.last?.id else {
-            return
-        }
-        guard itemId == lastVisibleItemId else {
-            return
-        }
-        guard self.visibleCount < self.items.count else {
-            return
-        }
-
-        self.visibleCount = nextIncrementalVisibleCount(
-            currentVisibleCount: self.visibleCount,
-            totalCount: self.items.count,
-            pageSize: self.pageSize
-        )
     }
 }
 

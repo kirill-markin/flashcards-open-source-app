@@ -262,18 +262,6 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertNil(nextReviewCard(reviewQueue: []))
     }
 
-    func testInitialIncrementalVisibleCountShowsFirstPage() {
-        XCTAssertEqual(initialIncrementalVisibleCount(totalCount: 120, initialCount: 50), 50)
-    }
-
-    func testNextIncrementalVisibleCountLoadsNextPage() {
-        XCTAssertEqual(nextIncrementalVisibleCount(currentVisibleCount: 50, totalCount: 120, pageSize: 50), 100)
-    }
-
-    func testNextIncrementalVisibleCountDoesNotExceedTotalCount() {
-        XCTAssertEqual(nextIncrementalVisibleCount(currentVisibleCount: 100, totalCount: 120, pageSize: 50), 120)
-    }
-
     func testReviewAnswerPresentationOrderIsInvertedForDisplay() {
         XCTAssertEqual(reviewAnswerPresentationOrder, [.easy, .good, .hard, .again])
     }

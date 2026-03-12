@@ -663,15 +663,20 @@ func makeReviewQueue(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], n
     )
 }
 
+struct ResolvedReviewQuery: Hashable, Sendable {
+    let reviewFilter: ReviewFilter
+    let queryDefinition: ReviewQueryDefinition
+}
+
 struct ReviewHeadLoadState: Hashable, Sendable {
     let resolvedReviewFilter: ReviewFilter
     let seedReviewQueue: [Card]
+    let hasMoreCards: Bool
 }
 
-struct ReviewComputedState: Hashable, Sendable {
-    let resolvedReviewFilter: ReviewFilter
-    let reviewQueue: [Card]
-    let reviewTimeline: [Card]
+struct ReviewQueueChunkLoadState: Hashable, Sendable {
+    let reviewQueueChunk: [Card]
+    let hasMoreCards: Bool
 }
 
 private func insertReviewQueueCandidate(
@@ -689,13 +694,71 @@ private func insertReviewQueueCandidate(
     return Array(updatedTopCards.prefix(limit))
 }
 
-func makeSeedReviewQueue(
+func resolveReviewQuery(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]) -> ResolvedReviewQuery {
+    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
+
+    switch resolvedReviewFilter {
+    case .allCards:
+        return ResolvedReviewQuery(
+            reviewFilter: resolvedReviewFilter,
+            queryDefinition: .allCards
+        )
+    case .deck(let deckId):
+        guard let deck = decks.first(where: { candidateDeck in
+            candidateDeck.deckId == deckId
+        }) else {
+            return ResolvedReviewQuery(
+                reviewFilter: .allCards,
+                queryDefinition: .allCards
+            )
+        }
+
+        return ResolvedReviewQuery(
+            reviewFilter: resolvedReviewFilter,
+            queryDefinition: .deck(filterDefinition: deck.filterDefinition)
+        )
+    case .tag(let tag):
+        return ResolvedReviewQuery(
+            reviewFilter: resolvedReviewFilter,
+            queryDefinition: .tag(tag: tag)
+        )
+    }
+}
+
+func makeReviewCounts(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    cards: [Card],
+    now: Date
+) -> ReviewCounts {
+    let matchingCards = cardsMatchingReviewFilter(
+        reviewFilter: reviewFilter,
+        decks: decks,
+        cards: cards
+    )
+
+    return matchingCards.reduce(
+        into: ReviewCounts(dueCount: 0, totalCount: 0)
+    ) { result, card in
+        guard card.deletedAt == nil else {
+            return
+        }
+
+        result = ReviewCounts(
+            dueCount: result.dueCount + (isCardDue(card: card, now: now) ? 1 : 0),
+            totalCount: result.totalCount + 1
+        )
+    }
+}
+
+func makeReviewQueueChunkLoadState(
     reviewFilter: ReviewFilter,
     decks: [Deck],
     cards: [Card],
     now: Date,
-    limit: Int
-) -> [Card] {
+    limit: Int,
+    excludedCardIds: Set<String>
+) -> ReviewQueueChunkLoadState {
     precondition(limit > 0, "Review seed queue limit must be greater than zero")
 
     let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
@@ -705,17 +768,21 @@ func makeSeedReviewQueue(
         cards: cards
     )
 
-    return matchingCards.reduce(into: [Card]()) { result, card in
+    let candidateLimit = limit + 1
+    let topCards = matchingCards.reduce(into: [Card]()) { result, card in
+        guard excludedCardIds.contains(card.cardId) == false else {
+            return
+        }
         guard card.deletedAt == nil && isCardDue(card: card, now: now) else {
             return
         }
 
-        if result.count < limit {
+        if result.count < candidateLimit {
             result = insertReviewQueueCandidate(
                 card: card,
                 currentTopCards: result,
                 now: now,
-                limit: limit
+                limit: candidateLimit
             )
             return
         }
@@ -731,9 +798,14 @@ func makeSeedReviewQueue(
             card: card,
             currentTopCards: result,
             now: now,
-            limit: limit
+            limit: candidateLimit
         )
     }
+
+    return ReviewQueueChunkLoadState(
+        reviewQueueChunk: Array(topCards.prefix(limit)),
+        hasMoreCards: topCards.count > limit
+    )
 }
 
 func makeReviewHeadLoadState(
@@ -744,16 +816,19 @@ func makeReviewHeadLoadState(
     seedQueueSize: Int
 ) -> ReviewHeadLoadState {
     let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
+    let queueChunkLoadState = makeReviewQueueChunkLoadState(
+        reviewFilter: resolvedReviewFilter,
+        decks: decks,
+        cards: cards,
+        now: now,
+        limit: seedQueueSize,
+        excludedCardIds: []
+    )
 
     return ReviewHeadLoadState(
         resolvedReviewFilter: resolvedReviewFilter,
-        seedReviewQueue: makeSeedReviewQueue(
-            reviewFilter: resolvedReviewFilter,
-            decks: decks,
-            cards: cards,
-            now: now,
-            limit: seedQueueSize
-        )
+        seedReviewQueue: queueChunkLoadState.reviewQueueChunk,
+        hasMoreCards: queueChunkLoadState.hasMoreCards
     )
 }
 
@@ -764,47 +839,12 @@ func makeReviewTimeline(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]
     )
 }
 
-func makeReviewComputedState(
-    reviewFilter: ReviewFilter,
-    decks: [Deck],
-    cards: [Card],
-    now: Date
-) -> ReviewComputedState {
-    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
-
-    return ReviewComputedState(
-        resolvedReviewFilter: resolvedReviewFilter,
-        reviewQueue: makeReviewQueue(
-            reviewFilter: resolvedReviewFilter,
-            decks: decks,
-            cards: cards,
-            now: now
-        ),
-        reviewTimeline: makeReviewTimeline(
-            reviewFilter: resolvedReviewFilter,
-            decks: decks,
-            cards: cards,
-            now: now
-        )
-    )
-}
-
 func currentReviewCard(reviewQueue: [Card]) -> Card? {
     return reviewQueue.first
 }
 
 func nextReviewCard(reviewQueue: [Card]) -> Card? {
     return reviewQueue.dropFirst().first
-}
-
-func initialIncrementalVisibleCount(totalCount: Int, initialCount: Int) -> Int {
-    precondition(initialCount > 0, "Incremental list initialCount must be greater than zero")
-    return min(totalCount, initialCount)
-}
-
-func nextIncrementalVisibleCount(currentVisibleCount: Int, totalCount: Int, pageSize: Int) -> Int {
-    precondition(pageSize > 0, "Incremental list pageSize must be greater than zero")
-    return min(totalCount, currentVisibleCount + pageSize)
 }
 
 func makeDeckListItem(deck: Deck, cards: [Card], now: Date) -> DeckListItem {

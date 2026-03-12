@@ -257,6 +257,22 @@ enum ReviewFilter: Hashable, Identifiable, Sendable {
     }
 }
 
+struct ReviewCounts: Hashable, Sendable {
+    let dueCount: Int
+    let totalCount: Int
+}
+
+enum ReviewQueryDefinition: Hashable, Sendable {
+    case allCards
+    case deck(filterDefinition: DeckFilterDefinition)
+    case tag(tag: String)
+}
+
+struct ReviewTimelinePage: Hashable, Sendable {
+    let cards: [Card]
+    let hasMoreCards: Bool
+}
+
 struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
     let reviewEventId: String
     let workspaceId: String
