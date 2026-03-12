@@ -42,6 +42,10 @@ function extractToolCallPreview(name: string, input: string | null): string | nu
   return input;
 }
 
+function toolCallStatusLabel(status: "started" | "completed"): string {
+  return status === "started" ? "Running" : "Done";
+}
+
 /**
  * Renders persisted chat history parts without normalizing whitespace so the
  * transcript stays byte-for-byte faithful to stored assistant output.
@@ -79,11 +83,14 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
     elements.push(
       <details
         key={`tool-${index}`}
-        className={`chat-tool-call${part.status === "started" ? " chat-tool-call-started" : ""}`}
+        className={`chat-tool-call chat-tool-call-${part.status}`}
       >
         <summary className="chat-tool-call-summary">
-          {formatToolLabel(part.name)}
-          {toolPreview === null ? null : `: ${toolPreview}`}
+          <span className="chat-tool-call-summary-main">
+            <span className="chat-tool-call-summary-label">{formatToolLabel(part.name)}</span>
+            {toolPreview === null ? null : <span className="chat-tool-call-summary-preview">: {toolPreview}</span>}
+          </span>
+          <span className="chat-tool-call-status">{toolCallStatusLabel(part.status)}</span>
         </summary>
         {part.input !== null ? <pre className="chat-tool-call-input">{part.input}</pre> : null}
         {part.output !== null ? <pre className="chat-tool-call-output">{part.output}</pre> : null}

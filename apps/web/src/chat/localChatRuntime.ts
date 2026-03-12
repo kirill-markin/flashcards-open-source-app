@@ -62,7 +62,7 @@ export type LocalChatRuntimeDependencies = Readonly<{
 export type LocalChatRuntimeCallbacks = Readonly<{
   onAssistantStarted: () => void;
   onAssistantText: (text: string) => void;
-  onToolCallStarted: (name: string, toolCallId: string) => void;
+  onToolCallStarted: (name: string, toolCallId: string, input: string | null) => void;
   onToolCallCompleted: (toolCallId: string, input: string | null, output: string | null) => void;
   onAssistantCompleted: () => void;
   onAssistantError: (message: string) => void;
@@ -87,7 +87,7 @@ export type LocalChatRuntimeState = Readonly<{
 
 export type LocalChatRuntimeEffect =
   | Readonly<{ type: "append_assistant_text"; text: string }>
-  | Readonly<{ type: "start_tool_call"; name: string; toolCallId: string }>
+  | Readonly<{ type: "start_tool_call"; name: string; toolCallId: string; input: string | null }>
   | Readonly<{ type: "complete_tool_call"; toolCallId: string; input: string | null; output: string | null }>
   | Readonly<{ type: "fail_turn"; userMessage: string; details: LocalChatRuntimeDiagnosticDetails }>;
 
@@ -193,6 +193,7 @@ export function reduceLocalChatRuntimeEvent(
         type: "start_tool_call",
         name: event.name,
         toolCallId: event.toolCallId,
+        input: event.input,
       });
     }
 
@@ -237,6 +238,7 @@ export function reduceLocalChatRuntimeEvent(
         type: "start_tool_call",
         name: event.name,
         toolCallId: event.toolCallId,
+        input: event.input,
       }],
     };
   }
@@ -634,7 +636,7 @@ function applyStreamLine(
     }
 
     if (effect.type === "start_tool_call") {
-      callbacks.onToolCallStarted(effect.name, effect.toolCallId);
+      callbacks.onToolCallStarted(effect.name, effect.toolCallId, effect.input);
       continue;
     }
 

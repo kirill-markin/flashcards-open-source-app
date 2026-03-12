@@ -428,6 +428,39 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testAIChatStoreShowsStartedToolCallBeforeCompletion() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: DelayedToolCompletionChatService(),
+            toolExecutor: SlowSuccessToolExecutor(pauseNanoseconds: 200_000_000),
+            snapshotLoader: SlowSuccessToolExecutor(pauseNanoseconds: 200_000_000)
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        XCTAssertEqual(chatStore.messages.count, 2)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.name, "sql")
+        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .started)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.input, #"{"sql":"SHOW TABLES"}"#)
+        XCTAssertNil(chatStore.messages[1].toolCalls.first?.output)
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .completed)
+        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.output, #"{"ok":true}"#)
+        XCTAssertEqual(chatStore.messages[1].text, "Done")
+    }
+
+    @MainActor
     func testAIChatStoreFeedsFailedToolOutputIntoFollowUpRequest() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let chatService = RecoveringToolFailureChatService()

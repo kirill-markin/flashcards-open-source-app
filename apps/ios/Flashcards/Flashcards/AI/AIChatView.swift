@@ -515,34 +515,52 @@ struct AIChatView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         case .toolCall(let toolCall):
-            DisclosureGroup {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let input = toolCall.input, input.isEmpty == false {
-                        Text(input)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
-                    }
+            VStack(alignment: .leading, spacing: 0) {
+                DisclosureGroup {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let input = toolCall.input, input.isEmpty == false {
+                            Text(input)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                        }
 
-                    if let output = toolCall.output, output.isEmpty == false {
-                        Divider()
-                        Text(output)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
+                        if let output = toolCall.output, output.isEmpty == false {
+                            if let input = toolCall.input, input.isEmpty == false {
+                                Divider()
+                            }
+
+                            Text(output)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 4)
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        let toolLabel = aiChatToolLabel(name: toolCall.name)
+                        let toolPreview = aiChatToolPreview(name: toolCall.name, input: toolCall.input)
+                        Text(toolPreview.map { "\(toolLabel): \($0)" } ?? toolLabel)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(aiChatToolStatusLabel(status: toolCall.status))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.subheadline)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 4)
-            } label: {
-                HStack {
-                    let toolLabel = aiChatToolLabel(name: toolCall.name)
-                    let toolPreview = aiChatToolPreview(name: toolCall.name, input: toolCall.input)
-                    Text(toolPreview.map { "\(toolLabel): \($0)" } ?? toolLabel)
-                    Spacer()
-                    Text(toolCall.status == .started ? "Running" : "Done")
-                        .foregroundStyle(.secondary)
-                }
-                .font(.subheadline)
+                .tint(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(Color(.tertiarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(
+                        aiChatToolBorderColor(status: toolCall.status),
+                        style: aiChatToolBorderStrokeStyle(status: toolCall.status)
+                    )
+            )
         }
     }
 
@@ -981,4 +999,31 @@ private func aiChatToolPreview(name: String, input: String?) -> String? {
 
     let trimmedSql = sql.trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmedSql.isEmpty ? input : trimmedSql
+}
+
+private func aiChatToolStatusLabel(status: AIChatToolCallStatus) -> String {
+    switch status {
+    case .started:
+        return "Running"
+    case .completed:
+        return "Done"
+    }
+}
+
+private func aiChatToolBorderColor(status: AIChatToolCallStatus) -> Color {
+    switch status {
+    case .started:
+        return Color.secondary.opacity(0.4)
+    case .completed:
+        return Color(.separator)
+    }
+}
+
+private func aiChatToolBorderStrokeStyle(status: AIChatToolCallStatus) -> StrokeStyle {
+    switch status {
+    case .started:
+        return StrokeStyle(lineWidth: 1, dash: [6, 4])
+    case .completed:
+        return StrokeStyle(lineWidth: 1)
+    }
 }

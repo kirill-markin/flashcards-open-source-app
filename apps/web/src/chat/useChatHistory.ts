@@ -14,7 +14,7 @@ type ChatHistoryState = Readonly<{
   appendUserMessage: (content: ReadonlyArray<ContentPart>) => void;
   startAssistantMessage: () => void;
   appendAssistantChunk: (text: string) => void;
-  appendToolCall: (name: string, toolCallId: string) => void;
+  appendToolCall: (name: string, toolCallId: string, input: string | null) => void;
   completeToolCall: (toolCallId: string, input: string | null, output: string | null) => void;
   finalizeAssistant: () => void;
   markAssistantError: (errorText: string) => void;
@@ -252,7 +252,7 @@ export function useChatHistory(): ChatHistoryState {
     });
   }
 
-  function appendToolCall(name: string, toolCallId: string): void {
+  function appendToolCall(name: string, toolCallId: string, input: string | null): void {
     setMessages((currentMessages) => {
       if (currentMessages.length === 0) {
         return currentMessages;
@@ -269,7 +269,7 @@ export function useChatHistory(): ChatHistoryState {
           ...lastMessage,
           content: [
             ...lastMessage.content,
-            { type: "tool_call", toolCallId, name, status: "started", input: null, output: null },
+            { type: "tool_call", toolCallId, name, status: "started", input, output: null },
           ],
         },
       ];
