@@ -415,7 +415,7 @@ struct ReviewView: View {
             cards: store.cards
         )
 
-        ContentUnavailableView {
+        return ContentUnavailableView {
             if store.cards.isEmpty {
                 Label("No Cards Yet", systemImage: "tray")
             } else {
