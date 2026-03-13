@@ -330,6 +330,25 @@
   margin-top: 0.25em;
 }
 
+.review-markdown-li > :first-child {
+  margin-top: 0;
+}
+
+.review-markdown-li > :last-child {
+  margin-bottom: 0;
+}
+
+.review-markdown-li > .review-markdown-p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.review-markdown-li > .review-markdown-ul,
+.review-markdown-li > .review-markdown-ol {
+  margin-top: 0.35em;
+  margin-bottom: 0;
+}
+
 .review-markdown-blockquote {
   padding-left: 1em;
   border-left: 3px solid rgba(255, 255, 255, 0.18);
