@@ -250,8 +250,8 @@
   color: var(--text);
 }
 
-.review-front,
-.review-back {
+.review-card-content-shortPlain,
+.review-card-content-paragraphPlain {
   white-space: pre-wrap;
 }
 
@@ -277,6 +277,10 @@
   letter-spacing: normal;
   font-weight: 450;
   text-align: left;
+}
+
+.review-card-content-markdown {
+  white-space: normal;
 }
 
 .review-card-content-markdown > :first-child,
