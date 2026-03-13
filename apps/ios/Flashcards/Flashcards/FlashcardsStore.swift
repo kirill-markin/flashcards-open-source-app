@@ -245,7 +245,7 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func currentCloudSyncPollingInterval(now: Date) -> TimeInterval {
-        currentCloudSyncPollingInterval(
+        Flashcards.currentCloudSyncPollingInterval(
             selectedTab: self.selectedTab,
             fastPollingUntil: self.cloudSyncFastPollingUntil,
             now: now
