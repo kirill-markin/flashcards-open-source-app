@@ -156,7 +156,7 @@ function createDependencies(
 
 test("listAgentCardsOperation returns a cursor-based page payload", async () => {
   const dependencies = createDependencies({
-    async queryCardsPage(_workspaceId, input) {
+    async queryCardsPage(_userId, _workspaceId, input) {
       assert.equal(input.limit, 2);
       assert.equal(input.cursor, null);
       assert.equal(input.filter, null);
@@ -169,6 +169,7 @@ test("listAgentCardsOperation returns a cursor-based page payload", async () => 
   });
 
   const result = await listAgentCardsOperation(dependencies, {
+    userId: "user-1",
     workspaceId: "workspace-1",
     cursor: null,
     limit: 2,
@@ -181,7 +182,7 @@ test("listAgentCardsOperation returns a cursor-based page payload", async () => 
 
 test("searchAgentCardsOperation forwards card filters to queryCardsPage", async () => {
   const dependencies = createDependencies({
-    async queryCardsPage(_workspaceId, input) {
+    async queryCardsPage(_userId, _workspaceId, input) {
       assert.equal(input.searchText, "grammar");
       assert.deepEqual(input.filter, {
         tags: ["grammar"],
@@ -196,6 +197,7 @@ test("searchAgentCardsOperation forwards card filters to queryCardsPage", async 
   });
 
   const result = await searchAgentCardsOperation(dependencies, {
+    userId: "user-1",
     workspaceId: "workspace-1",
     query: "grammar",
     cursor: null,
@@ -253,7 +255,7 @@ test("updateAgentDecksOperation preserves current deck fields for null updates a
     async getDecks() {
       return [currentDeck];
     },
-    async updateDecks(workspaceId, items) {
+    async updateDecks(_userId, workspaceId, items) {
       assert.equal(workspaceId, "workspace-1");
       capturedDeckUpdates = items;
       return [{

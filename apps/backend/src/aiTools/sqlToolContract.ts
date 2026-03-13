@@ -29,6 +29,7 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
   description: [
     "Query and mutate the flashcards workspace with the published SQL dialect.",
     "This is not full PostgreSQL.",
+    "Cards, decks, review_events, and workspace are already scoped to the selected workspace.",
     "Use one JSON object: {\"sql\": \"...\"}.",
     "Published resources: workspace, cards, decks, review_events.",
     "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",

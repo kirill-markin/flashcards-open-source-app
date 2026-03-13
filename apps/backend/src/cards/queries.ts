@@ -1,4 +1,8 @@
-import { query, transaction, type SqlValue } from "../db";
+import {
+  queryWithWorkspaceScope,
+  transactionWithWorkspaceScope,
+  type SqlValue,
+} from "../db";
 import { HttpError } from "../errors";
 import {
   decodeOpaqueCursor,
@@ -490,8 +494,8 @@ export function getCardsQueryDefaultPageSize(): number {
   return defaultCardsQueryPageSize;
 }
 
-export async function listCards(workspaceId: string): Promise<ReadonlyArray<Card>> {
-  return transaction(async (executor) => {
+export async function listCards(userId: string, workspaceId: string): Promise<ReadonlyArray<Card>> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
@@ -507,6 +511,7 @@ export async function listCards(workspaceId: string): Promise<ReadonlyArray<Card
 }
 
 export async function queryCardsPage(
+  userId: string,
   workspaceId: string,
   input: QueryCardsInput,
 ): Promise<QueryCardsPage> {
@@ -517,7 +522,7 @@ export async function queryCardsPage(
   const effectiveSorts = buildEffectiveCardsQuerySorts(normalizedSorts);
   const decodedCursor = input.cursor === null ? null : decodeCardsQueryCursor(input.cursor);
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const filterClauseResult = buildCardsQueryFilterClause(normalizedFilter, 1);
     const searchClauseResult = buildCardsQuerySearchClause(
       normalizedSearchTokens,
@@ -594,8 +599,8 @@ export async function queryCardsPage(
   });
 }
 
-export async function getCard(workspaceId: string, cardId: string): Promise<Card> {
-  return transaction(async (executor) => {
+export async function getCard(userId: string, workspaceId: string, cardId: string): Promise<Card> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
@@ -614,10 +619,11 @@ export async function getCard(workspaceId: string, cardId: string): Promise<Card
 }
 
 export async function getCards(
+  userId: string,
   workspaceId: string,
   cardIds: ReadonlyArray<string>,
 ): Promise<ReadonlyArray<Card>> {
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
@@ -653,10 +659,11 @@ export async function getCards(
  * reads should call `listReviewQueuePage()` instead.
  */
 export async function listReviewQueue(
+  userId: string,
   workspaceId: string,
   limit: number,
 ): Promise<ReadonlyArray<Card>> {
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
@@ -678,12 +685,13 @@ export async function listReviewQueue(
 }
 
 export async function listReviewQueuePage(
+  userId: string,
   workspaceId: string,
   input: CursorPageInput,
 ): Promise<CardListPage> {
   const normalizedLimit = normalizeCardsQueryLimit(input.limit);
   const decodedCursor = input.cursor === null ? null : decodeDueCardsPageCursor(input.cursor);
-  const dueCards = await listReviewQueue(workspaceId, Number.MAX_SAFE_INTEGER);
+  const dueCards = await listReviewQueue(userId, workspaceId, Number.MAX_SAFE_INTEGER);
   const startIndex = decodedCursor === null
     ? 0
     : dueCards.findIndex((card) => (
@@ -712,6 +720,7 @@ export async function listReviewQueuePage(
 }
 
 export async function searchCards(
+  userId: string,
   workspaceId: string,
   searchText: string,
   limit: number,
@@ -724,7 +733,7 @@ export async function searchCards(
   const searchClauseResult = buildCardsQuerySearchClause(searchTokens, 1);
   const limitParamIndex = 1 + searchClauseResult.params.length + 1;
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
@@ -743,6 +752,7 @@ export async function searchCards(
 }
 
 export async function listReviewHistoryPage(
+  userId: string,
   workspaceId: string,
   input: CursorPageInput & Readonly<{ cardId: string | null }>,
 ): Promise<ReviewHistoryPage> {
@@ -763,7 +773,8 @@ export async function listReviewHistoryPage(
     ? decodedCursor === null ? 2 : 4
     : decodedCursor === null ? 3 : 5;
 
-  const result = await query<ReviewHistoryPageRow>(
+  const result = await queryWithWorkspaceScope<ReviewHistoryPageRow>(
+    { userId, workspaceId },
     [
       "SELECT review_event_id, workspace_id, device_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
       "FROM content.review_events",
@@ -789,8 +800,9 @@ export async function listReviewHistoryPage(
   };
 }
 
-export async function summarizeDeckState(workspaceId: string): Promise<DeckSummary> {
-  const result = await query<DeckSummaryRow>(
+export async function summarizeDeckState(userId: string, workspaceId: string): Promise<DeckSummary> {
+  const result = await queryWithWorkspaceScope<DeckSummaryRow>(
+    { userId, workspaceId },
     [
       "SELECT",
       "COUNT(*)::int AS total_cards,",
@@ -813,8 +825,9 @@ export async function summarizeDeckState(workspaceId: string): Promise<DeckSumma
   return mapDeckSummary(row);
 }
 
-export async function listWorkspaceTagsSummary(workspaceId: string): Promise<WorkspaceTagsSummary> {
-  const totalCardsResult = await query<Readonly<{ total_cards: string | number }>>(
+export async function listWorkspaceTagsSummary(userId: string, workspaceId: string): Promise<WorkspaceTagsSummary> {
+  const totalCardsResult = await queryWithWorkspaceScope<Readonly<{ total_cards: string | number }>>(
+    { userId, workspaceId },
     [
       "SELECT COUNT(*)::int AS total_cards",
       "FROM content.cards",
@@ -827,7 +840,8 @@ export async function listWorkspaceTagsSummary(workspaceId: string): Promise<Wor
     throw new Error("Workspace tag summary count query did not return a row");
   }
 
-  const tagRowsResult = await query<Readonly<{ tag: string; cards_count: string | number }>>(
+  const tagRowsResult = await queryWithWorkspaceScope<Readonly<{ tag: string; cards_count: string | number }>>(
+    { userId, workspaceId },
     [
       "SELECT tag_counts.tag, tag_counts.cards_count",
       "FROM (",

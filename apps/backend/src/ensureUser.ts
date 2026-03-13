@@ -2,7 +2,7 @@
  * Ensure the authenticated user has a profile row and an accessible selected
  * workspace. New users are auto-provisioned with a default workspace.
  */
-import { transaction, type DatabaseExecutor } from "./db";
+import { transactionWithUserScope, type DatabaseExecutor } from "./db";
 import { ensureUserSelectedWorkspaceInExecutor } from "./workspaces";
 
 export type UserProfile = Readonly<{
@@ -69,5 +69,5 @@ export async function ensureUserProfileInExecutor(
 }
 
 export async function ensureUserProfile(userId: string, email: string | null): Promise<UserProfile> {
-  return transaction(async (executor) => ensureUserProfileInExecutor(executor, userId, email));
+  return transactionWithUserScope({ userId }, async (executor) => ensureUserProfileInExecutor(executor, userId, email));
 }

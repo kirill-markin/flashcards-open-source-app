@@ -1,5 +1,5 @@
 import { deleteCognitoUser } from "./cognitoUsers";
-import { transaction, type DatabaseExecutor } from "./db";
+import { transactionWithUserScope, type DatabaseExecutor } from "./db";
 import { isDeletedSubject, markDeletedSubjectInExecutor } from "./deletedSubjects";
 import { HttpError } from "./errors";
 
@@ -12,7 +12,7 @@ type AccountDeletionInput = Readonly<{
 }>;
 
 type AccountDeletionDependencies = Readonly<{
-  transaction: typeof transaction;
+  transactionWithUserScope: typeof transactionWithUserScope;
   deleteCognitoUser: (cognitoUsername: string) => Promise<void>;
   isDeletedSubject: (userId: string) => Promise<boolean>;
 }>;
@@ -27,7 +27,7 @@ type WorkspaceMembershipRow = Readonly<{
 }>;
 
 const defaultAccountDeletionDependencies: AccountDeletionDependencies = {
-  transaction,
+  transactionWithUserScope,
   deleteCognitoUser,
   isDeletedSubject,
 };
@@ -123,7 +123,7 @@ export async function deleteAccountForAuthenticatedUser(
     }
   }
 
-  await dependencies.transaction(async (executor) => {
+  await dependencies.transactionWithUserScope({ userId: input.userId }, async (executor) => {
     await deleteAccountDataInExecutor(executor, input.userId);
   });
 

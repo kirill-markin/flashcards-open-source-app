@@ -1,5 +1,5 @@
 import { HttpError } from "./errors";
-import { query } from "./db";
+import { queryWithWorkspaceScope } from "./db";
 
 export type SyncDevicePlatform = "ios" | "android" | "web";
 
@@ -14,7 +14,8 @@ export async function ensureSyncDevice(
   platform: SyncDevicePlatform,
   appVersion: string | null,
 ): Promise<void> {
-  const result = await query<SyncDeviceUpsertRow>(
+  const result = await queryWithWorkspaceScope<SyncDeviceUpsertRow>(
+    { userId, workspaceId },
     [
       "INSERT INTO sync.devices",
       "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",

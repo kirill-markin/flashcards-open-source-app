@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import { transaction, query, type DatabaseExecutor } from "../db.js";
+import {
+  applyWorkspaceDatabaseScopeInExecutor,
+  query,
+  transactionWithUserScope,
+  type DatabaseExecutor,
+} from "../db.js";
 import { verifySessionTokenIdentity } from "./browserSession.js";
 import { createCrockfordToken } from "./crockford.js";
 
@@ -95,6 +100,8 @@ async function createWorkspaceInExecutor(
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
 
+  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+
   await executor.query(
     [
       "INSERT INTO org.workspaces",
@@ -108,20 +115,20 @@ async function createWorkspaceInExecutor(
 
   await executor.query(
     [
-      "INSERT INTO sync.devices",
-      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
-      "VALUES ($1, $2, $3, 'ios', $4, now())",
-    ].join(" "),
-    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
-  );
-
-  await executor.query(
-    [
       "INSERT INTO org.workspace_memberships",
       "(workspace_id, user_id, role)",
       "VALUES ($1, $2, 'owner')",
     ].join(" "),
     [workspaceId, userId],
+  );
+
+  await executor.query(
+    [
+      "INSERT INTO sync.devices",
+      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
+      "VALUES ($1, $2, $3, 'ios', $4, now())",
+    ].join(" "),
+    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
   );
 
   return workspaceId;
@@ -149,7 +156,7 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
   const keySecret = createKeySecret();
   const keyHash = hashKeySecret(keySecret);
 
-  const result = await transaction(async (executor) => {
+  const result = await transactionWithUserScope({ userId: identity.userId }, async (executor) => {
     await executor.query(
       upsertUserSettingsSql,
       [identity.userId, identity.email],

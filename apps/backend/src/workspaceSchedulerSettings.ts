@@ -11,8 +11,11 @@
  *
  * Source-of-truth docs: docs/fsrs-scheduling-logic.md
  */
-import type { DatabaseExecutor } from "./db";
-import { query, transaction } from "./db";
+import {
+  queryWithWorkspaceScope,
+  transactionWithWorkspaceScope,
+  type DatabaseExecutor,
+} from "./db";
 import { HttpError } from "./errors";
 import {
   incomingLwwMetadataWins,
@@ -234,10 +237,12 @@ export function validateWorkspaceSchedulerSettingsInput(
 }
 
 export async function getWorkspaceSchedulerSettings(
+  userId: string,
   workspaceId: string,
 ): Promise<WorkspaceSchedulerSettings> {
   // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:).
-  const result = await query<WorkspaceSchedulerSettingsRow>(
+  const result = await queryWithWorkspaceScope<WorkspaceSchedulerSettingsRow>(
+    { userId, workspaceId },
     [
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
@@ -284,6 +289,7 @@ export async function getWorkspaceSchedulerConfig(
 }
 
 export async function updateWorkspaceSchedulerSettings(
+  userId: string,
   workspaceId: string,
   input: UpdateWorkspaceSchedulerSettingsInput,
   metadata: WorkspaceSchedulerSettingsMutationMetadata,
@@ -298,16 +304,17 @@ export async function updateWorkspaceSchedulerSettings(
     enableFuzz: input.enableFuzz,
   };
 
-  const result = await applyWorkspaceSchedulerSettingsSnapshot(workspaceId, snapshotInput, metadata);
+  const result = await applyWorkspaceSchedulerSettingsSnapshot(userId, workspaceId, snapshotInput, metadata);
   return result.settings;
 }
 
 export async function applyWorkspaceSchedulerSettingsSnapshot(
+  userId: string,
   workspaceId: string,
   input: WorkspaceSchedulerSettingsSnapshotInput,
   metadata: WorkspaceSchedulerSettingsMutationMetadata,
 ): Promise<WorkspaceSchedulerSettingsMutationResult> {
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     return applyWorkspaceSchedulerSettingsSnapshotInExecutor(executor, workspaceId, input, metadata);
   });
 }
