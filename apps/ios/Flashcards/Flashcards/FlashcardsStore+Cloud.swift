@@ -200,9 +200,20 @@ extension FlashcardsStore {
     }
 
     func finishCloudLink(linkedSession: CloudLinkedSession) async throws {
+        try await self.cloudRuntime.runCloudLinkTransition { [weak self] in
+            guard let self else {
+                throw LocalStoreError.uninitialized("Flashcards store is unavailable")
+            }
+
+            try await self.performCloudLink(linkedSession: linkedSession)
+        }
+    }
+
+    private func performCloudLink(linkedSession: CloudLinkedSession) async throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
 
         self.syncStatus = .syncing
+        var didCompleteLocalLink = false
         do {
             let needsBootstrap = self.cloudSettings?.cloudState != .linked
                 || self.cloudSettings?.linkedWorkspaceId != linkedSession.workspaceId
@@ -223,6 +234,13 @@ extension FlashcardsStore {
 
             self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
             try self.reload()
+            didCompleteLocalLink = true
+            logCloudPhase(
+                phase: .linkLocalWorkspace,
+                outcome: "success",
+                workspaceId: linkedSession.workspaceId,
+                deviceId: self.cloudSettings?.deviceId
+            )
             try await self.runLinkedSync(linkedSession: linkedSession)
             self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
             self.syncStatus = .idle
@@ -235,6 +253,15 @@ extension FlashcardsStore {
             )
             try self.reload()
         } catch {
+            if didCompleteLocalLink == false {
+                logCloudPhase(
+                    phase: .linkLocalWorkspace,
+                    outcome: "failure",
+                    workspaceId: linkedSession.workspaceId,
+                    deviceId: self.cloudSettings?.deviceId,
+                    errorMessage: localizedMessage(error: error)
+                )
+            }
             logCloudPhase(
                 phase: .linkedSync,
                 outcome: "failure",
@@ -250,19 +277,15 @@ extension FlashcardsStore {
 
     func refreshCloudCredentials(forceRefresh: Bool) async throws -> StoredCloudCredentials {
         let configuration = try loadCloudServiceConfiguration()
-        var cloudRuntime = self.cloudRuntime
-        let credentials = try await cloudRuntime.refreshCloudCredentials(
+        return try await self.cloudRuntime.refreshCloudCredentials(
             forceRefresh: forceRefresh,
             configuration: configuration,
             now: Date()
         )
-        self.cloudRuntime = cloudRuntime
-        return credentials
     }
 
     func prepareAuthenticatedCloudSessionForAI() async throws -> CloudLinkedSession {
-        var cloudRuntime = self.cloudRuntime
-        let session = try await cloudRuntime.prepareAuthenticatedCloudSessionForAI(
+        return try await self.cloudRuntime.prepareAuthenticatedCloudSessionForAI(
             restoreCloudLink: { [weak self] in
                 guard let self else {
                     throw LocalStoreError.uninitialized("Flashcards store is unavailable")
@@ -280,16 +303,24 @@ extension FlashcardsStore {
                 }
             }
         )
-        self.cloudRuntime = cloudRuntime
-        return session
     }
 
     func restoreCloudLinkFromStoredCredentials() async throws {
+        try await self.cloudRuntime.runCloudLinkTransition { [weak self] in
+            guard let self else {
+                throw LocalStoreError.uninitialized("Flashcards store is unavailable")
+            }
+
+            try await self.performRestoreCloudLinkFromStoredCredentials()
+        }
+    }
+
+    private func performRestoreCloudLinkFromStoredCredentials() async throws {
         let configuration = try loadCloudServiceConfiguration()
 
         do {
             let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
-            try await self.finishCloudLink(
+            try await self.performCloudLink(
                 linkedSession: try self.cloudRuntime.storedLinkedSession(
                     cloudSettings: self.cloudSettings,
                     apiBaseUrl: configuration.apiBaseUrl,
@@ -310,7 +341,7 @@ extension FlashcardsStore {
 
         do {
             let refreshedCredentials = try await self.refreshCloudCredentials(forceRefresh: true)
-            try await self.finishCloudLink(
+            try await self.performCloudLink(
                 linkedSession: try self.cloudRuntime.storedLinkedSession(
                     cloudSettings: self.cloudSettings,
                     apiBaseUrl: configuration.apiBaseUrl,
@@ -438,9 +469,7 @@ extension FlashcardsStore {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
-        var cloudRuntime = self.cloudRuntime
-        try await cloudRuntime.runLinkedSync(linkedSession: linkedSession)
-        self.cloudRuntime = cloudRuntime
+        try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
     }
 
     func triggerCloudSyncIfLinked() {
