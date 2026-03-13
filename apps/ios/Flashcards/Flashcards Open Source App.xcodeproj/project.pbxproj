@@ -355,7 +355,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.appTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.flashcards-open-source-app.appTests";
 				PRODUCT_MODULE_NAME = FlashcardsTests;
 				PRODUCT_NAME = "Flashcards Open Source App Tests";
 				SDKROOT = iphoneos;
@@ -377,7 +377,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.appTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.flashcards-open-source-app.appTests";
 				PRODUCT_MODULE_NAME = FlashcardsTests;
 				PRODUCT_NAME = "Flashcards Open Source App Tests";
 				SDKROOT = iphoneos;
