@@ -50,7 +50,7 @@ enum AIChatVoiceRecorderError: LocalizedError, Equatable {
         case .microphoneDenied:
             return "Microphone access was not granted."
         case .microphoneBlocked:
-            return "Microphone access is turned off for Flashcards. Enable it in Settings > Privacy & Security > Microphone."
+            return "Microphone access is turned off for Flashcards Open Source App. Enable it in Settings > Privacy & Security > Microphone."
         case .invalidRecording:
             return "Failed to prepare the recorded audio."
         case .recordingStartFailed:

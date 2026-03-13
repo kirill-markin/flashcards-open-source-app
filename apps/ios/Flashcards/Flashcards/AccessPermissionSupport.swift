@@ -131,13 +131,13 @@ func accessPermissionPrimaryActionTitle(
 func accessPermissionGuidance(kind: AccessPermissionKind, status: AccessPermissionStatus) -> String {
     switch (kind, status) {
     case (.photos, .limited):
-        return "Only the photos you already shared with Flashcards are available. Open Settings to grant broader photo access."
+        return "Only the photos you already shared with Flashcards Open Source App are available. Open Settings to grant broader photo access."
     case (.photos, .blocked):
-        return "Photo access is turned off for Flashcards. Open Settings > Privacy & Security > Photos to change it."
+        return "Photo access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Photos to change it."
     case (.camera, .blocked):
-        return "Camera access is turned off for Flashcards. Open Settings > Privacy & Security > Camera to change it."
+        return "Camera access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Camera to change it."
     case (.microphone, .blocked):
-        return "Microphone access is turned off for Flashcards. Open Settings > Privacy & Security > Microphone to change it."
+        return "Microphone access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Microphone to change it."
     case (_, .askEveryTime):
         return "Request access now, or open Settings later if you want to manage it manually."
     case (_, .allowed):

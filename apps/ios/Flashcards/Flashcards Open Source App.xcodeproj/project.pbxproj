@@ -16,17 +16,17 @@
 			containerPortal = A10000000000000000000001 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = A10000000000000000000004;
-			remoteInfo = Flashcards;
+			remoteInfo = "Flashcards Open Source App";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A10000000000000000000005 /* Flashcards.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Flashcards.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000005 /* Flashcards Open Source App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Flashcards Open Source App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000018 /* Config/Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000019 /* Config/Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Release.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1000000000000000000001A /* Config/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1000000000000000000001B /* Config/Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Local.xcconfig.example; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000020 /* FlashcardsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlashcardsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Flashcards Open Source App Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -74,8 +74,8 @@
 		A10000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A10000000000000000000005 /* Flashcards.app */,
-				A10000000000000000000020 /* FlashcardsTests.xctest */,
+				A10000000000000000000005 /* Flashcards Open Source App.app */,
+				A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -94,9 +94,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A10000000000000000000004 /* Flashcards */ = {
+		A10000000000000000000004 /* Flashcards Open Source App */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A1000000000000000000000A /* Build configuration list for PBXNativeTarget "Flashcards" */;
+			buildConfigurationList = A1000000000000000000000A /* Build configuration list for PBXNativeTarget "Flashcards Open Source App" */;
 			buildPhases = (
 				A10000000000000000000006 /* Sources */,
 				A10000000000000000000007 /* Frameworks */,
@@ -109,17 +109,17 @@
 			fileSystemSynchronizedGroups = (
 				A1000000000000000000000F /* Flashcards */,
 			);
-			name = Flashcards;
+			name = "Flashcards Open Source App";
 			packageProductDependencies = (
 				A1000000000000000000002C /* MarkdownUI */,
 			);
-			productName = Flashcards;
-			productReference = A10000000000000000000005 /* Flashcards.app */;
+			productName = "Flashcards Open Source App";
+			productReference = A10000000000000000000005 /* Flashcards Open Source App.app */;
 			productType = "com.apple.product-type.application";
 		};
-		A10000000000000000000022 /* FlashcardsTests */ = {
+		A10000000000000000000022 /* Flashcards Open Source App Tests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A10000000000000000000028 /* Build configuration list for PBXNativeTarget "FlashcardsTests" */;
+			buildConfigurationList = A10000000000000000000028 /* Build configuration list for PBXNativeTarget "Flashcards Open Source App Tests" */;
 			buildPhases = (
 				A10000000000000000000023 /* Sources */,
 				A10000000000000000000024 /* Frameworks */,
@@ -133,9 +133,9 @@
 			fileSystemSynchronizedGroups = (
 				A10000000000000000000021 /* FlashcardsTests */,
 			);
-			name = FlashcardsTests;
-			productName = FlashcardsTests;
-			productReference = A10000000000000000000020 /* FlashcardsTests.xctest */;
+			name = "Flashcards Open Source App Tests";
+			productName = "Flashcards Open Source App Tests";
+			productReference = A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -157,7 +157,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A10000000000000000000009 /* Build configuration list for PBXProject "Flashcards" */;
+			buildConfigurationList = A10000000000000000000009 /* Build configuration list for PBXProject "Flashcards Open Source App" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -174,8 +174,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A10000000000000000000004 /* Flashcards */,
-				A10000000000000000000022 /* FlashcardsTests */,
+				A10000000000000000000004 /* Flashcards Open Source App */,
+				A10000000000000000000022 /* Flashcards Open Source App Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -217,7 +217,7 @@
 /* Begin PBXTargetDependency section */
 		A10000000000000000000027 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = A10000000000000000000004 /* Flashcards */;
+			target = A10000000000000000000004 /* Flashcards Open Source App */;
 			targetProxy = A10000000000000000000026 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -326,6 +326,8 @@
 			buildSettings = {
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
+				PRODUCT_MODULE_NAME = Flashcards;
+				PRODUCT_NAME = "Flashcards Open Source App";
 			};
 			name = Debug;
 		};
@@ -335,6 +337,8 @@
 			buildSettings = {
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
+				PRODUCT_MODULE_NAME = Flashcards;
+				PRODUCT_NAME = "Flashcards Open Source App";
 			};
 			name = Release;
 		};
@@ -352,10 +356,11 @@
 					"@loader_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.appTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = FlashcardsTests;
+				PRODUCT_NAME = "Flashcards Open Source App Tests";
 				SDKROOT = iphoneos;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flashcards.app/Flashcards";
-				TEST_TARGET_NAME = Flashcards;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Flashcards Open Source App";
+				TEST_TARGET_NAME = "Flashcards Open Source App";
 			};
 			name = Debug;
 		};
@@ -373,17 +378,18 @@
 					"@loader_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.appTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = FlashcardsTests;
+				PRODUCT_NAME = "Flashcards Open Source App Tests";
 				SDKROOT = iphoneos;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flashcards.app/Flashcards";
-				TEST_TARGET_NAME = Flashcards;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Flashcards Open Source App.app/Flashcards Open Source App";
+				TEST_TARGET_NAME = "Flashcards Open Source App";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A10000000000000000000009 /* Build configuration list for PBXProject "Flashcards" */ = {
+		A10000000000000000000009 /* Build configuration list for PBXProject "Flashcards Open Source App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000000000000000000000B /* Debug */,
@@ -392,7 +398,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A1000000000000000000000A /* Build configuration list for PBXNativeTarget "Flashcards" */ = {
+		A1000000000000000000000A /* Build configuration list for PBXNativeTarget "Flashcards Open Source App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000000000000000000000D /* Debug */,
@@ -401,7 +407,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A10000000000000000000028 /* Build configuration list for PBXNativeTarget "FlashcardsTests" */ = {
+		A10000000000000000000028 /* Build configuration list for PBXNativeTarget "Flashcards Open Source App Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A10000000000000000000029 /* Debug */,

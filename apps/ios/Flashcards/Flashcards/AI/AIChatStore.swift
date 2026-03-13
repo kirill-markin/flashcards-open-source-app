@@ -25,7 +25,7 @@ enum AIChatDictationAlert: Identifiable, Equatable {
     var message: String {
         switch self {
         case .microphoneSettings:
-            return "Microphone access is turned off for Flashcards. Open Settings to allow it."
+            return "Microphone access is turned off for Flashcards Open Source App. Open Settings to allow it."
         case .transcriptionFailure(let message):
             return message
         }
