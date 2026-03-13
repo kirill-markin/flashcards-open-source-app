@@ -90,7 +90,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
         XCTAssertEqual(chatStore.inputText, "hello")
         XCTAssertEqual(chatStore.completedDictationTranscript?.transcript, "dictated text")
-        XCTAssertEqual(chatStore.errorMessage, "")
+        XCTAssertNil(chatStore.activeAlert)
     }
 
     func testAIChatStoreSilentlyStopsWhenMicrophonePermissionIsDeniedFromPrompt() async throws {
@@ -113,8 +113,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         chatStore.toggleDictation()
         try await self.waitForDictationState(chatStore: chatStore, state: .idle)
 
-        XCTAssertEqual(chatStore.errorMessage, "")
-        XCTAssertNil(chatStore.dictationAlert)
+        XCTAssertNil(chatStore.activeAlert)
     }
 
     func testAIChatStoreShowsSettingsAlertWhenMicrophonePermissionIsBlocked() async throws {
@@ -137,11 +136,10 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         chatStore.toggleDictation()
         try await self.waitForDictationState(chatStore: chatStore, state: .idle)
 
-        XCTAssertEqual(chatStore.errorMessage, "")
-        XCTAssertEqual(chatStore.dictationAlert, .microphoneSettings)
+        XCTAssertEqual(chatStore.activeAlert, .microphoneSettings)
     }
 
-    func testAIChatStoreShowsAlertForTranscriptionFailuresInsteadOfBanner() async throws {
+    func testAIChatStoreShowsGeneralAlertForTranscriptionFailures() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()
         let recorder = StubVoiceRecorder(mode: .success)
@@ -164,10 +162,9 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         chatStore.toggleDictation()
         try await self.waitForDictationState(chatStore: chatStore, state: .idle)
 
-        XCTAssertEqual(chatStore.errorMessage, "")
         XCTAssertEqual(
-            chatStore.dictationAlert,
-            .transcriptionFailure(message: "We couldn’t process that recording. Please try again.")
+            chatStore.activeAlert,
+            .generalError(message: "We couldn’t process that recording. Please try again.")
         )
     }
 
