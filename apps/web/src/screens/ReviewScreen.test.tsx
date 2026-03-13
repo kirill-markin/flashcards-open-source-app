@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
@@ -111,6 +113,12 @@ function createDeck(overrides?: Partial<Deck>): Deck {
 
 function clickElement(element: Element): void {
   element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+}
+
+const reviewStylesheet = readFileSync(resolve(process.cwd(), "src/styles/features/review.css"), "utf8");
+
+function reviewStylesContain(...fragments: ReadonlyArray<string>): boolean {
+  return fragments.every((fragment) => reviewStylesheet.includes(fragment));
 }
 
 describe("normalizeReviewMarkdownForWeb", () => {
@@ -537,8 +545,16 @@ describe("ReviewScreen", () => {
       container.querySelector(".review-reveal-btn")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(container.querySelector(".review-front")?.getAttribute("data-presentation-mode")).toBe("paragraphPlain");
-    expect(container.querySelector(".review-back")?.getAttribute("data-presentation-mode")).toBe("paragraphPlain");
+    const front = container.querySelector(".review-front");
+    const back = container.querySelector(".review-back");
+
+    expect(front?.getAttribute("data-presentation-mode")).toBe("paragraphPlain");
+    expect(back?.getAttribute("data-presentation-mode")).toBe("paragraphPlain");
+    expect(reviewStylesContain(
+      ".review-card-content-shortPlain,",
+      ".review-card-content-paragraphPlain",
+      "white-space: pre-wrap",
+    )).toBe(true);
   });
 
   it("renders markdown content with semantic elements instead of centered mode", async () => {
@@ -562,10 +578,14 @@ describe("ReviewScreen", () => {
       container.querySelector(".review-reveal-btn")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(container.querySelector(".review-front")?.getAttribute("data-presentation-mode")).toBe("markdown");
+    const front = container.querySelector(".review-front");
+    const back = container.querySelector(".review-back");
+
+    expect(front?.getAttribute("data-presentation-mode")).toBe("markdown");
+    expect(reviewStylesContain(".review-card-content-markdown", "white-space: normal")).toBe(true);
     expect(container.querySelector(".review-front h1")?.textContent).toBe("Heading");
     expect(container.querySelectorAll(".review-front ul li")).toHaveLength(2);
-    expect(container.querySelector(".review-back")?.getAttribute("data-presentation-mode")).toBe("markdown");
+    expect(back?.getAttribute("data-presentation-mode")).toBe("markdown");
     expect(container.querySelector(".review-back pre code")?.textContent).toContain("const answer = 42;");
   });
 
@@ -621,6 +641,7 @@ describe("ReviewScreen", () => {
       .filter((list) => list.textContent?.trim() === "");
 
     expect(back?.getAttribute("data-presentation-mode")).toBe("markdown");
+    expect(reviewStylesContain(".review-card-content-markdown", "white-space: normal")).toBe(true);
     expect(topLevelLists).toHaveLength(2);
     expect(Array.from(topLevelLists[0]?.children ?? [])).toHaveLength(5);
     expect(Array.from(topLevelLists[1]?.children ?? [])).toHaveLength(4);
