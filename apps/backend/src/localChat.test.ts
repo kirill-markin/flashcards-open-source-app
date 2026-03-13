@@ -227,6 +227,10 @@ test("buildLocalSystemInstructions includes strict tool-call rules, examples, an
   assert.match(instructions, /back side must contain the answer\./i);
   assert.match(instructions, /prefer a fenced markdown code block for structured examples\./i);
   assert.match(instructions, /Tool arguments must be exactly one JSON object\./);
+  assert.equal(
+    instructions.match(/Before calling any tool, send one short user-facing sentence explaining what you are about to check\./g)?.length ?? 0,
+    1,
+  );
   assert.match(instructions, /wait for explicit user confirmation before executing the write tool/i);
   assert.match(instructions, /before proposing or executing any new card or deck creation, you must first inspect the local workspace for exact or similar items/i);
   assert.match(instructions, /summarize what you found and discuss possible duplicates or overlap with the user/i);

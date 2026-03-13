@@ -121,6 +121,72 @@ final class FlashcardsStoreTests: XCTestCase {
         let database: LocalDatabase
     }
 
+    func testCurrentCloudSyncPollingIntervalReturnsFastForReviewTab() {
+        let now = Date(timeIntervalSince1970: 1_773_600_000)
+
+        XCTAssertEqual(
+            currentCloudSyncPollingInterval(
+                selectedTab: .review,
+                fastPollingUntil: nil,
+                now: now
+            ),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
+    func testCurrentCloudSyncPollingIntervalReturnsFastForCardsTab() {
+        let now = Date(timeIntervalSince1970: 1_773_600_000)
+
+        XCTAssertEqual(
+            currentCloudSyncPollingInterval(
+                selectedTab: .cards,
+                fastPollingUntil: nil,
+                now: now
+            ),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
+    func testCurrentCloudSyncPollingIntervalReturnsFastForTemporaryFastWindow() {
+        let now = Date(timeIntervalSince1970: 1_773_600_000)
+
+        XCTAssertEqual(
+            currentCloudSyncPollingInterval(
+                selectedTab: .ai,
+                fastPollingUntil: now.addingTimeInterval(30),
+                now: now
+            ),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
+    func testCurrentCloudSyncPollingIntervalReturnsDefaultAfterFastWindowExpires() {
+        let now = Date(timeIntervalSince1970: 1_773_600_000)
+
+        XCTAssertEqual(
+            currentCloudSyncPollingInterval(
+                selectedTab: .settings,
+                fastPollingUntil: now.addingTimeInterval(-1),
+                now: now
+            ),
+            cloudSyncDefaultPollingIntervalSeconds
+        )
+    }
+
+    func testExtendCloudSyncFastPollingUntilDoesNotShortenExistingDeadline() {
+        let now = Date(timeIntervalSince1970: 1_773_600_000)
+        let currentDeadline = now.addingTimeInterval(300)
+
+        XCTAssertEqual(
+            extendCloudSyncFastPollingUntil(
+                currentDeadline: currentDeadline,
+                now: now,
+                duration: cloudSyncFastPollingDurationSeconds
+            ),
+            currentDeadline
+        )
+    }
+
     func testSaveCardUpdatesPublishedStateImmediately() throws {
         let store = try self.makeStore()
 
@@ -201,6 +267,85 @@ final class FlashcardsStoreTests: XCTestCase {
         XCTAssertTrue(store.reviewQueue.isEmpty)
     }
 
+    func testSelectTabReviewEnablesFastCloudSyncPolling() throws {
+        let store = try self.makeStore()
+        store.cloudSyncFastPollingUntil = nil
+
+        store.selectTab(tab: .review)
+
+        XCTAssertEqual(
+            store.currentCloudSyncPollingInterval(now: Date()),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
+    func testSelectTabCardsEnablesFastCloudSyncPolling() throws {
+        let store = try self.makeStore()
+        store.cloudSyncFastPollingUntil = nil
+
+        store.selectTab(tab: .cards)
+
+        XCTAssertEqual(
+            store.currentCloudSyncPollingInterval(now: Date()),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
+    func testSaveCardExtendsTemporaryFastCloudSyncPolling() throws {
+        let store = try self.makeStore()
+        store.selectTab(tab: .ai)
+        store.cloudSyncFastPollingUntil = nil
+
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Front", backText: "Back", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+
+        let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
+        XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
+        XCTAssertEqual(
+            store.currentCloudSyncPollingInterval(now: Date()),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
+    func testCreateDeckExtendsTemporaryFastCloudSyncPolling() throws {
+        let store = try self.makeStore()
+        store.selectTab(tab: .ai)
+        store.cloudSyncFastPollingUntil = nil
+
+        try store.createDeck(
+            input: self.makeDeckInput(name: "Tagged", tags: ["tag-a"])
+        )
+
+        let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
+        XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
+        XCTAssertEqual(
+            store.currentCloudSyncPollingInterval(now: Date()),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
+    func testSubmitReviewExtendsTemporaryFastCloudSyncPolling() throws {
+        let store = try self.makeStore()
+        try store.saveCard(
+            input: self.makeCardInput(frontText: "Front", backText: "Back", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        let cardId = try XCTUnwrap(store.cards.first?.cardId)
+        store.selectTab(tab: .ai)
+        store.cloudSyncFastPollingUntil = nil
+
+        try store.submitReview(cardId: cardId, rating: .good)
+
+        let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
+        XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
+        XCTAssertEqual(
+            store.currentCloudSyncPollingInterval(now: Date()),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
     func testOpenAICardCreationSelectsAITabAndSetsPresentationRequest() throws {
         let store = try self.makeStore()
 
@@ -255,6 +400,42 @@ final class FlashcardsStoreTests: XCTestCase {
         let store = self.makeStore(environment: environment)
 
         XCTAssertEqual(store.selectedReviewFilter, .allCards)
+    }
+
+    func testSelectReviewFilterExtendsTemporaryFastCloudSyncPolling() throws {
+        let store = try self.makeStore()
+        store.selectTab(tab: .ai)
+        store.cloudSyncFastPollingUntil = nil
+
+        store.selectReviewFilter(reviewFilter: .allCards)
+
+        let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
+        XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
+        XCTAssertEqual(
+            store.currentCloudSyncPollingInterval(now: Date()),
+            cloudSyncFastPollingIntervalSeconds
+        )
+    }
+
+    func testUpdateSchedulerSettingsExtendsTemporaryFastCloudSyncPolling() throws {
+        let store = try self.makeStore()
+        store.selectTab(tab: .settings)
+        store.cloudSyncFastPollingUntil = nil
+
+        try store.updateSchedulerSettings(
+            desiredRetention: 0.9,
+            learningStepsMinutes: [1, 10],
+            relearningStepsMinutes: [10],
+            maximumIntervalDays: 36500,
+            enableFuzz: true
+        )
+
+        let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
+        XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
+        XCTAssertEqual(
+            store.currentCloudSyncPollingInterval(now: Date()),
+            cloudSyncFastPollingIntervalSeconds
+        )
     }
 
     func testSelectReviewFilterPublishesHeadBeforeCounts() async throws {

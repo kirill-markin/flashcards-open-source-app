@@ -12,17 +12,19 @@ type ChatHistoryState = Readonly<{
   messages: ReadonlyArray<StoredMessage>;
   isHydrated: boolean;
   appendUserMessage: (content: ReadonlyArray<ContentPart>) => void;
-  startAssistantMessage: () => void;
+  startAssistantMessage: (initialText: string | null) => void;
   appendAssistantChunk: (text: string) => void;
   appendToolCall: (name: string, toolCallId: string, input: string | null) => void;
   completeToolCall: (toolCallId: string, input: string | null, output: string | null) => void;
   finalizeAssistant: () => void;
   markAssistantError: (errorText: string) => void;
+  clearOptimisticAssistantStatus: () => void;
   clearHistory: () => void;
 }>;
 
 const STORAGE_KEY = "flashcards-chat-messages";
 const MAX_MESSAGES = 200;
+export const OPTIMISTIC_ASSISTANT_STATUS_TEXT = "Looking through your cards...";
 
 function normalizeAssistantText(text: string): string {
   return text.replace(/\r\n?/g, "\n");
@@ -43,6 +45,32 @@ function appendAssistantTextContent(
   }
 
   return [...content, { type: "text", text: normalizedText }];
+}
+
+function isOptimisticAssistantStatusContent(content: ReadonlyArray<ContentPart>): boolean {
+  return content.length === 1
+    && content[0]?.type === "text"
+    && content[0].text === OPTIMISTIC_ASSISTANT_STATUS_TEXT;
+}
+
+function replaceOptimisticAssistantStatus(
+  content: ReadonlyArray<ContentPart>,
+  text: string,
+): ReadonlyArray<ContentPart> {
+  const normalizedText = normalizeAssistantText(text);
+  if (normalizedText === "") {
+    return content;
+  }
+
+  if (isOptimisticAssistantStatusContent(content)) {
+    return [{ type: "text", text: normalizedText }];
+  }
+
+  return appendAssistantTextContent(content, normalizedText);
+}
+
+function removeOptimisticAssistantStatus(content: ReadonlyArray<ContentPart>): ReadonlyArray<ContentPart> {
+  return isOptimisticAssistantStatusContent(content) ? [] : content;
 }
 
 function normalizeAssistantContent(content: ReadonlyArray<ContentPart>): ReadonlyArray<ContentPart> {
@@ -154,6 +182,10 @@ export function appendAssistantErrorContent(
   content: ReadonlyArray<ContentPart>,
   errorText: string,
 ): ReadonlyArray<ContentPart> {
+  if (isOptimisticAssistantStatusContent(content)) {
+    return [{ type: "text", text: errorText }];
+  }
+
   if (content.length === 0) {
     return [{ type: "text", text: errorText }];
   }
@@ -223,12 +255,12 @@ export function useChatHistory(): ChatHistoryState {
     ]);
   }
 
-  function startAssistantMessage(): void {
+  function startAssistantMessage(initialText: string | null): void {
     setMessages((currentMessages) => [
       ...currentMessages,
       {
         role: "assistant",
-        content: [],
+        content: initialText === null ? [] : [{ type: "text", text: normalizeAssistantText(initialText) }],
         timestamp: Date.now(),
         isError: false,
       },
@@ -246,7 +278,7 @@ export function useChatHistory(): ChatHistoryState {
         return currentMessages;
       }
 
-      const nextContent = appendAssistantTextContent(lastMessage.content, text);
+      const nextContent = replaceOptimisticAssistantStatus(lastMessage.content, text);
 
       return [...currentMessages.slice(0, -1), { ...lastMessage, content: nextContent }];
     });
@@ -263,12 +295,14 @@ export function useChatHistory(): ChatHistoryState {
         return currentMessages;
       }
 
+      const nextContent = removeOptimisticAssistantStatus(lastMessage.content);
+
       return [
         ...currentMessages.slice(0, -1),
         {
           ...lastMessage,
           content: [
-            ...lastMessage.content,
+            ...nextContent,
             { type: "tool_call", toolCallId, name, status: "started", input, output: null },
           ],
         },
@@ -317,6 +351,21 @@ export function useChatHistory(): ChatHistoryState {
     setMessages((currentMessages) => [...currentMessages]);
   }
 
+  function clearOptimisticAssistantStatus(): void {
+    setMessages((currentMessages) => {
+      if (currentMessages.length === 0) {
+        return currentMessages;
+      }
+
+      const lastMessage = currentMessages[currentMessages.length - 1];
+      if (lastMessage.role !== "assistant" || isOptimisticAssistantStatusContent(lastMessage.content) === false) {
+        return currentMessages;
+      }
+
+      return [...currentMessages.slice(0, -1), { ...lastMessage, content: [] }];
+    });
+  }
+
   function markAssistantError(errorText: string): void {
     setMessages((currentMessages) => {
       const lastMessage = currentMessages[currentMessages.length - 1];
@@ -358,6 +407,7 @@ export function useChatHistory(): ChatHistoryState {
     completeToolCall,
     finalizeAssistant,
     markAssistantError,
+    clearOptimisticAssistantStatus,
     clearHistory,
   };
 }

@@ -99,6 +99,7 @@ export function buildLocalToolCallRulesSection(): string {
     "- Put the whole query in the sql string field and do not invent extra tool arguments.",
     "- SQL pagination uses LIMIT and OFFSET inside the SQL string.",
     "- Do not invent extra properties.",
+    "- Before calling any tool, send one short user-facing sentence explaining what you are about to check.",
   ]);
 }
 

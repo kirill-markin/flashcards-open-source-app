@@ -304,9 +304,34 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.messages[0].role, .user)
         XCTAssertEqual(chatStore.messages[0].content.count, 2)
         XCTAssertEqual(chatStore.messages[1].role, .assistant)
-        XCTAssertTrue(chatStore.messages[1].content.isEmpty)
+        XCTAssertEqual(chatStore.messages[1].text, aiChatOptimisticAssistantStatusText)
 
         chatStore.cancelStreaming()
+    }
+
+    @MainActor
+    func testAIChatStoreRemovesOptimisticStatusWhenToolCallStartsBeforeAnyDelta() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: ToolCallOnlyChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        XCTAssertEqual(chatStore.messages.count, 2)
+        XCTAssertEqual(chatStore.messages[1].role, .assistant)
+        XCTAssertEqual(chatStore.messages[1].text, "")
+        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
     }
 
     @MainActor

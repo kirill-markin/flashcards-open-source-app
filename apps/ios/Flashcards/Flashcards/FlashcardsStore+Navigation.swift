@@ -27,6 +27,9 @@ extension FlashcardsStore {
 
     func selectTab(tab: AppTab) {
         self.selectedTab = tab
+        if usesFastCloudSyncPolling(tab: tab) {
+            self.extendCloudSyncFastPolling(now: Date())
+        }
     }
 
     func openReview(reviewFilter: ReviewFilter) {
@@ -63,6 +66,9 @@ extension FlashcardsStore {
 
     private func requestTabSelection(tab: AppTab) {
         self.selectedTab = tab
+        if usesFastCloudSyncPolling(tab: tab) {
+            self.extendCloudSyncFastPolling(now: Date())
+        }
         self.tabSelectionRequest = TabSelectionRequest(
             id: UUID().uuidString.lowercased(),
             tab: tab
