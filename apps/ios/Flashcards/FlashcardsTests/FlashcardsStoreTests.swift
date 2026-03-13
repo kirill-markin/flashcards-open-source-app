@@ -114,6 +114,89 @@ private func makeReviewTimelinePageLoader() -> ReviewTimelinePageLoader {
     }
 }
 
+private enum MockCloudSyncRunOutcome {
+    case succeed
+    case fail(message: String)
+}
+
+@MainActor
+private final class MockCloudSyncService: CloudSyncServing {
+    private(set) var runLinkedSyncCallCount: Int
+    private(set) var runLinkedSyncSessions: [CloudLinkedSession]
+    private var runLinkedSyncOutcomes: [MockCloudSyncRunOutcome]
+    private var isRunLinkedSyncBlocked: Bool
+    private var runLinkedSyncContinuation: CheckedContinuation<Void, Never>?
+
+    init(runLinkedSyncOutcomes: [MockCloudSyncRunOutcome], isRunLinkedSyncBlocked: Bool) {
+        self.runLinkedSyncCallCount = 0
+        self.runLinkedSyncSessions = []
+        self.runLinkedSyncOutcomes = runLinkedSyncOutcomes
+        self.isRunLinkedSyncBlocked = isRunLinkedSyncBlocked
+    }
+
+    func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
+        throw LocalStoreError.validation("Unexpected fetchCloudAccount call in FlashcardsStoreTests")
+    }
+
+    func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
+        throw LocalStoreError.validation("Unexpected createWorkspace call in FlashcardsStoreTests")
+    }
+
+    func selectWorkspace(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ) async throws -> CloudWorkspaceSummary {
+        throw LocalStoreError.validation("Unexpected selectWorkspace call in FlashcardsStoreTests")
+    }
+
+    func listAgentApiKeys(apiBaseUrl: String, bearerToken: String) async throws -> ([AgentApiKeyConnection], String) {
+        throw LocalStoreError.validation("Unexpected listAgentApiKeys call in FlashcardsStoreTests")
+    }
+
+    func revokeAgentApiKey(
+        apiBaseUrl: String,
+        bearerToken: String,
+        connectionId: String
+    ) async throws -> (AgentApiKeyConnection, String) {
+        throw LocalStoreError.validation("Unexpected revokeAgentApiKey call in FlashcardsStoreTests")
+    }
+
+    func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws {
+        throw LocalStoreError.validation("Unexpected deleteAccount call in FlashcardsStoreTests")
+    }
+
+    func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
+        self.runLinkedSyncCallCount += 1
+        self.runLinkedSyncSessions.append(linkedSession)
+
+        if self.isRunLinkedSyncBlocked {
+            await withCheckedContinuation { continuation in
+                self.runLinkedSyncContinuation = continuation
+            }
+            try Task.checkCancellation()
+        }
+
+        guard self.runLinkedSyncOutcomes.isEmpty == false else {
+            return
+        }
+
+        let nextOutcome = self.runLinkedSyncOutcomes.removeFirst()
+        switch nextOutcome {
+        case .succeed:
+            return
+        case .fail(let message):
+            throw LocalStoreError.validation(message)
+        }
+    }
+
+    func resumeRunLinkedSync() {
+        self.isRunLinkedSyncBlocked = false
+        self.runLinkedSyncContinuation?.resume()
+        self.runLinkedSyncContinuation = nil
+    }
+}
+
 @MainActor
 final class FlashcardsStoreTests: XCTestCase {
     private struct StoreContext {
@@ -460,6 +543,159 @@ final class FlashcardsStoreTests: XCTestCase {
             store.currentCloudSyncPollingInterval(now: Date()),
             cloudSyncFastPollingIntervalSeconds
         )
+    }
+
+    func testFinishCloudLinkAndParallelSyncCloudIfLinkedShareSingleInitialSyncTask() async throws {
+        let context = try self.makeStoreWithMockCloudSyncService(
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: true
+        )
+        let linkedSession = self.makeLinkedSession(workspaceId: "remote-workspace")
+
+        try context.store.cloudRuntime.saveCredentials(credentials: self.makeStoredCloudCredentials())
+
+        let finishTask = Task { @MainActor in
+            try await context.store.finishCloudLink(linkedSession: linkedSession)
+        }
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            context.store.cloudRuntime.activeCloudSession()?.workspaceId == linkedSession.workspaceId
+        }
+
+        let syncTask = Task { @MainActor in
+            await context.store.syncCloudIfLinked()
+        }
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            context.cloudSyncService.runLinkedSyncCallCount == 1
+        }
+
+        try await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
+
+        context.cloudSyncService.resumeRunLinkedSync()
+        try await finishTask.value
+        await syncTask.value
+
+        let snapshot = try context.database.loadStateSnapshot()
+        XCTAssertEqual(snapshot.workspace.workspaceId, linkedSession.workspaceId)
+        XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, linkedSession.workspaceId)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+        XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
+    }
+
+    func testParallelSyncCloudIfLinkedCallsCoalesceIntoSingleRestoreFlow() async throws {
+        let context = try self.makeStoreWithMockCloudSyncService(
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: true
+        )
+        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+
+        try self.linkDatabaseWorkspace(
+            database: context.database,
+            workspaceId: workspaceId
+        )
+        try context.store.reload()
+        try context.store.cloudRuntime.saveCredentials(credentials: self.makeStoredCloudCredentials())
+
+        let firstTask = Task { @MainActor in
+            await context.store.syncCloudIfLinked()
+        }
+        let secondTask = Task { @MainActor in
+            await context.store.syncCloudIfLinked()
+        }
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            context.cloudSyncService.runLinkedSyncCallCount == 1
+        }
+
+        try await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
+
+        context.cloudSyncService.resumeRunLinkedSync()
+        await firstTask.value
+        await secondTask.value
+
+        XCTAssertEqual(context.store.cloudSettings?.cloudState, .linked)
+        XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, workspaceId)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+        XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
+    }
+
+    func testFailedInitialSyncClearsInFlightLinkTaskAndAllowsRetry() async throws {
+        let context = try self.makeStoreWithMockCloudSyncService(
+            runLinkedSyncOutcomes: [
+                .fail(message: "Mock sync failure"),
+                .succeed,
+            ],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+
+        try self.linkDatabaseWorkspace(
+            database: context.database,
+            workspaceId: workspaceId
+        )
+        try context.store.reload()
+        try context.store.cloudRuntime.saveCredentials(credentials: self.makeStoredCloudCredentials())
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
+        XCTAssertEqual(context.store.globalErrorMessage, "Mock sync failure")
+        XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 2)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+        XCTAssertNotNil(context.store.lastSuccessfulCloudSyncAt)
+        XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
+    }
+
+    func testCancelForAccountDeletionClearsActiveCloudLinkTask() async throws {
+        let context = try self.makeStoreWithMockCloudSyncService(
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: true
+        )
+        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+
+        try self.linkDatabaseWorkspace(
+            database: context.database,
+            workspaceId: workspaceId
+        )
+        try context.store.reload()
+        try context.store.cloudRuntime.saveCredentials(credentials: self.makeStoredCloudCredentials())
+
+        let syncTask = Task { @MainActor in
+            await context.store.syncCloudIfLinked()
+        }
+
+        await self.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            context.cloudSyncService.runLinkedSyncCallCount == 1
+        }
+
+        context.store.cloudRuntime.cancelForAccountDeletion()
+        XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
+        XCTAssertNil(context.store.cloudRuntime.activeCloudSession())
+
+        context.cloudSyncService.resumeRunLinkedSync()
+        await syncTask.value
+
+        XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
+        XCTAssertNil(context.store.cloudRuntime.activeCloudSession())
     }
 
     func testSelectReviewFilterPublishesHeadBeforeCounts() async throws {
@@ -1046,6 +1282,63 @@ final class FlashcardsStoreTests: XCTestCase {
                 service: "tests-\(UUID().uuidString)",
                 account: "primary"
             )
+        )
+    }
+
+    private func makeStoreWithMockCloudSyncService(
+        runLinkedSyncOutcomes: [MockCloudSyncRunOutcome],
+        isRunLinkedSyncBlocked: Bool
+    ) throws -> (
+        store: FlashcardsStore,
+        database: LocalDatabase,
+        credentialStore: CloudCredentialStore,
+        cloudSyncService: MockCloudSyncService
+    ) {
+        let environment = try self.makeStoreEnvironment()
+        let store = self.makeStore(environment: environment)
+        let cloudSyncService = MockCloudSyncService(
+            runLinkedSyncOutcomes: runLinkedSyncOutcomes,
+            isRunLinkedSyncBlocked: isRunLinkedSyncBlocked
+        )
+
+        store.cloudRuntime = CloudSessionRuntime(
+            cloudAuthService: CloudAuthService(),
+            cloudSyncService: cloudSyncService,
+            credentialStore: environment.credentialStore
+        )
+
+        return (
+            store: store,
+            database: environment.database,
+            credentialStore: environment.credentialStore,
+            cloudSyncService: cloudSyncService
+        )
+    }
+
+    private func makeStoredCloudCredentials() -> StoredCloudCredentials {
+        StoredCloudCredentials(
+            refreshToken: "refresh-token",
+            idToken: "id-token",
+            idTokenExpiresAt: "2030-01-01T00:00:00.000Z"
+        )
+    }
+
+    private func makeLinkedSession(workspaceId: String) -> CloudLinkedSession {
+        CloudLinkedSession(
+            userId: "user-1",
+            workspaceId: workspaceId,
+            email: "user@example.com",
+            apiBaseUrl: "https://api.example.com/v1",
+            bearerToken: "id-token"
+        )
+    }
+
+    private func linkDatabaseWorkspace(database: LocalDatabase, workspaceId: String) throws {
+        try database.updateCloudSettings(
+            cloudState: .linked,
+            linkedUserId: "user-1",
+            linkedWorkspaceId: workspaceId,
+            linkedEmail: "user@example.com"
         )
     }
 

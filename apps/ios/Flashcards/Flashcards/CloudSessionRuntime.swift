@@ -5,11 +5,12 @@ struct CloudSessionRuntimeState {
     var activeCloudSession: CloudLinkedSession?
     var activeCloudSyncTask: Task<Void, Error>?
     var pendingCloudResync: Bool
+    var activeCloudLinkTask: CloudLinkTransitionState?
     var activeAIChatSessionPreparation: AIChatSessionPreparationState?
 }
 
 @MainActor
-struct CloudSessionRuntime {
+final class CloudSessionRuntime {
     private let cloudAuthService: any CloudAuthServing
     private let cloudSyncService: (any CloudSyncServing)?
     private let credentialStore: any CredentialStoring
@@ -27,6 +28,7 @@ struct CloudSessionRuntime {
             activeCloudSession: nil,
             activeCloudSyncTask: nil,
             pendingCloudResync: false,
+            activeCloudLinkTask: nil,
             activeAIChatSessionPreparation: nil
         )
     }
@@ -88,11 +90,11 @@ struct CloudSessionRuntime {
         }
     }
 
-    mutating func saveCredentials(credentials: StoredCloudCredentials) throws {
+    func saveCredentials(credentials: StoredCloudCredentials) throws {
         try self.credentialStore.saveCredentials(credentials: credentials)
     }
 
-    mutating func clearCredentials() throws {
+    func clearCredentials() throws {
         try self.credentialStore.clearCredentials()
     }
 
@@ -100,7 +102,7 @@ struct CloudSessionRuntime {
         try self.credentialStore.loadCredentials()
     }
 
-    mutating func refreshCloudCredentials(
+    func refreshCloudCredentials(
         forceRefresh: Bool,
         configuration: CloudServiceConfiguration,
         now: Date
@@ -141,7 +143,7 @@ struct CloudSessionRuntime {
         return updatedCredentials
     }
 
-    mutating func prepareAuthenticatedCloudSessionForAI(
+    func prepareAuthenticatedCloudSessionForAI(
         restoreCloudLink: @escaping @MainActor () async throws -> Void,
         resolveSession: @escaping @MainActor () async throws -> CloudLinkedSession
     ) async throws -> CloudLinkedSession {
@@ -177,7 +179,36 @@ struct CloudSessionRuntime {
         }
     }
 
-    mutating func storedLinkedSession(
+    func runCloudLinkTransition(
+        operation: @escaping @MainActor () async throws -> Void
+    ) async throws {
+        if let activeCloudLinkTask = self.state.activeCloudLinkTask {
+            try await activeCloudLinkTask.task.value
+            return
+        }
+
+        let linkTransition = CloudLinkTransitionState(
+            id: UUID().uuidString.lowercased(),
+            task: Task { @MainActor in
+                try await operation()
+            }
+        )
+        self.state.activeCloudLinkTask = linkTransition
+
+        do {
+            try await linkTransition.task.value
+            if self.state.activeCloudLinkTask?.id == linkTransition.id {
+                self.state.activeCloudLinkTask = nil
+            }
+        } catch {
+            if self.state.activeCloudLinkTask?.id == linkTransition.id {
+                self.state.activeCloudLinkTask = nil
+            }
+            throw error
+        }
+    }
+
+    func storedLinkedSession(
         cloudSettings: CloudSettings?,
         apiBaseUrl: String,
         bearerToken: String
@@ -206,7 +237,7 @@ struct CloudSessionRuntime {
         return linkedSession
     }
 
-    mutating func sessionWithUpdatedBearerToken(
+    func sessionWithUpdatedBearerToken(
         credentials: StoredCloudCredentials
     ) throws -> CloudLinkedSession {
         guard let activeCloudSession = self.state.activeCloudSession else {
@@ -224,11 +255,11 @@ struct CloudSessionRuntime {
         return nextSession
     }
 
-    mutating func setActiveCloudSession(linkedSession: CloudLinkedSession) {
+    func setActiveCloudSession(linkedSession: CloudLinkedSession) {
         self.state.activeCloudSession = linkedSession
     }
 
-    mutating func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
+    func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
 
         if let activeCloudSyncTask = self.state.activeCloudSyncTask {
@@ -283,11 +314,13 @@ struct CloudSessionRuntime {
         return false
     }
 
-    mutating func disconnectSession() {
+    func disconnectSession() {
         self.state.activeCloudSession = nil
     }
 
-    mutating func cancelForAccountDeletion() {
+    func cancelForAccountDeletion() {
+        self.state.activeCloudLinkTask?.task.cancel()
+        self.state.activeCloudLinkTask = nil
         self.state.activeCloudSyncTask?.cancel()
         self.state.activeCloudSyncTask = nil
         self.state.pendingCloudResync = false

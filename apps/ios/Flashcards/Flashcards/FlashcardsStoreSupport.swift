@@ -64,6 +64,11 @@ struct AIChatSessionPreparationState {
     let task: Task<CloudLinkedSession, Error>
 }
 
+struct CloudLinkTransitionState {
+    let id: String
+    let task: Task<Void, Error>
+}
+
 struct FlashcardsStoreDependencies {
     let cloudAuthService: any CloudAuthServing
     let cloudSyncService: (any CloudSyncServing)?
