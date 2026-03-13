@@ -44,15 +44,6 @@ struct AIChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if self.chatStore.errorMessage.isEmpty == false {
-                Text(self.chatStore.errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-            }
-
             if self.flashcardsStore.cloudSettings?.cloudState == .linked {
                 self.chatContent
             } else {
@@ -126,7 +117,7 @@ struct AIChatView: View {
                     await self.handleImportedFiles(urls)
                 }
             case .failure(let error):
-                self.chatStore.showError(message: localizedMessage(error: error))
+                self.handleFileImportFailure(error)
             }
         }
         .photosPicker(
@@ -144,7 +135,7 @@ struct AIChatView: View {
                 },
                 onFailure: { error in
                     self.isCameraPresented = false
-                    self.chatStore.showError(message: localizedMessage(error: error))
+                    self.chatStore.showGeneralError(message: localizedMessage(error: error))
                 },
                 onCancel: {
                     self.isCameraPresented = false
@@ -156,33 +147,33 @@ struct AIChatView: View {
                 .environmentObject(self.flashcardsStore)
         }
         .alert(
-            self.chatStore.dictationAlert?.title ?? "",
+            self.chatStore.activeAlert?.title ?? "",
             isPresented: Binding(
                 get: {
-                    self.chatStore.dictationAlert != nil
+                    self.chatStore.activeAlert != nil
                 },
                 set: { isPresented in
                     if isPresented == false {
-                        self.chatStore.dismissDictationAlert()
+                        self.chatStore.dismissAlert()
                     }
                 }
             )
         ) {
-            if self.chatStore.dictationAlert == .microphoneSettings {
+            if self.chatStore.activeAlert?.showsSettingsAction == true {
                 Button("Cancel", role: .cancel) {
-                    self.chatStore.dismissDictationAlert()
+                    self.chatStore.dismissAlert()
                 }
                 Button("Open Settings") {
-                    self.chatStore.dismissDictationAlert()
+                    self.chatStore.dismissAlert()
                     openApplicationSettings()
                 }
             } else {
                 Button("OK", role: .cancel) {
-                    self.chatStore.dismissDictationAlert()
+                    self.chatStore.dismissAlert()
                 }
             }
         } message: {
-            Text(self.chatStore.dictationAlert?.message ?? "")
+            Text(self.chatStore.activeAlert?.message ?? "")
         }
     }
 
@@ -723,7 +714,7 @@ struct AIChatView: View {
     private func handleSelectedPhotoItem(_ item: PhotosPickerItem) async {
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                self.chatStore.showError(message: "Failed to read the selected photo.")
+                self.chatStore.showGeneralError(message: "Failed to read the selected photo.")
                 self.selectedPhotoItem = nil
                 return
             }
@@ -737,7 +728,7 @@ struct AIChatView: View {
             )
             self.chatStore.appendAttachment(attachment)
         } catch {
-            self.chatStore.showError(message: localizedMessage(error: error))
+            self.chatStore.showGeneralError(message: localizedMessage(error: error))
         }
 
         self.selectedPhotoItem = nil
@@ -752,7 +743,7 @@ struct AIChatView: View {
             )
             self.chatStore.appendAttachment(attachment)
         } catch {
-            self.chatStore.showError(message: localizedMessage(error: error))
+            self.chatStore.showGeneralError(message: localizedMessage(error: error))
         }
     }
 
@@ -763,7 +754,7 @@ struct AIChatView: View {
                 self.chatStore.appendAttachment(attachment)
             }
         } catch {
-            self.chatStore.showError(message: localizedMessage(error: error))
+            self.handleFileImportFailure(error)
         }
     }
 
@@ -787,7 +778,9 @@ struct AIChatView: View {
             }
         case .choosePhoto:
             self.selectedPhotoItem = nil
-            self.isPhotoPickerPresented = true
+            Task {
+                await self.presentPhotoPickerIfAvailable()
+            }
         case .chooseFile:
             self.isFileImporterPresented = true
         }
@@ -795,12 +788,46 @@ struct AIChatView: View {
 
     @MainActor
     private func presentCameraIfAvailable() async {
-        do {
-            try await aiChatEnsureCameraIsAvailable()
+        let initialStatus = accessPermissionStatus(kind: .camera)
+        let requestedStatus = initialStatus == .askEveryTime
+            ? await requestAccessPermission(kind: .camera)
+            : nil
+        let presentationResult = aiChatCameraPresentationResult(
+            initialStatus: initialStatus,
+            requestedStatus: requestedStatus
+        )
+        switch presentationResult {
+        case .present:
             self.isCameraPresented = true
-        } catch {
-            self.chatStore.showError(message: localizedMessage(error: error))
+        case .stopSilently:
+            return
+        case .showAlert(let alert):
+            self.chatStore.showAlert(alert)
         }
+    }
+
+    @MainActor
+    private func presentPhotoPickerIfAvailable() async {
+        let initialStatus = accessPermissionStatus(kind: .photos)
+        let requestedStatus = initialStatus == .askEveryTime
+            ? await requestAccessPermission(kind: .photos)
+            : nil
+        let presentationResult = aiChatPhotoPresentationResult(
+            initialStatus: initialStatus,
+            requestedStatus: requestedStatus
+        )
+        switch presentationResult {
+        case .present:
+            self.isPhotoPickerPresented = true
+        case .stopSilently:
+            return
+        case .showAlert(let alert):
+            self.chatStore.showAlert(alert)
+        }
+    }
+
+    private func handleFileImportFailure(_ error: Error) {
+        self.chatStore.showAlert(aiChatFileImportAlert(error: error))
     }
 
     private func handleInitialBottomSnap(proxy: ScrollViewProxy) {
@@ -1128,53 +1155,93 @@ func aiChatMakeImageAttachment(data: Data, fileName: String, mediaType: String) 
     )
 }
 
-private enum AIChatCameraAvailabilityError: LocalizedError {
-    case unavailable
-    case accessRestricted
-    case accessDenied
+enum AIChatAttachmentPresentationResult: Equatable {
+    case present
+    case stopSilently
+    case showAlert(AIChatAlert)
+}
 
-    var errorDescription: String? {
-        switch self {
+func aiChatCameraPresentationResult(
+    initialStatus: AccessPermissionStatus,
+    requestedStatus: AccessPermissionStatus?
+) -> AIChatAttachmentPresentationResult {
+    switch initialStatus {
+    case .allowed:
+        return .present
+    case .askEveryTime:
+        guard let requestedStatus else {
+            return .stopSilently
+        }
+
+        switch requestedStatus {
+        case .allowed:
+            return .present
+        case .blocked, .askEveryTime:
+            return .stopSilently
+        case .limited, .unavailable:
+            return .showAlert(.generalError(message: "Camera is not available on this device."))
+        }
+    case .blocked, .limited:
+        return .showAlert(.attachmentSettings(source: .camera))
+    case .unavailable:
+        return .showAlert(.generalError(message: "Camera is not available on this device."))
+    }
+}
+
+func aiChatPhotoPresentationResult(
+    initialStatus: AccessPermissionStatus,
+    requestedStatus: AccessPermissionStatus?
+) -> AIChatAttachmentPresentationResult {
+    switch initialStatus {
+    case .allowed, .limited:
+        return .present
+    case .askEveryTime:
+        guard let requestedStatus else {
+            return .stopSilently
+        }
+
+        switch requestedStatus {
+        case .allowed, .limited:
+            return .present
+        case .blocked, .askEveryTime:
+            return .stopSilently
         case .unavailable:
-            return "Camera is not available on this device."
-        case .accessRestricted:
-            return "Camera access is restricted on this device."
-        case .accessDenied:
-            return "Camera access is turned off for Flashcards Open Source App. Enable it in Settings > Privacy & Security > Camera."
+            return .showAlert(.generalError(message: "Photo access is not available on this device."))
         }
+    case .blocked:
+        return .showAlert(.attachmentSettings(source: .photos))
+    case .unavailable:
+        return .showAlert(.generalError(message: "Photo access is not available on this device."))
     }
 }
 
-@MainActor
-private func aiChatEnsureCameraIsAvailable() async throws {
-    guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-        throw AIChatCameraAvailabilityError.unavailable
+func aiChatFileImportAlert(error: Error) -> AIChatAlert {
+    if aiChatIsFilePermissionError(error: error) {
+        return .attachmentSettings(source: .files)
     }
 
-    let authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
-    switch authorizationStatus {
-    case .authorized:
-        return
-    case .notDetermined:
-        let isGranted = await aiChatRequestCameraAccess()
-        if isGranted == false {
-            throw AIChatCameraAvailabilityError.accessDenied
-        }
-    case .restricted:
-        throw AIChatCameraAvailabilityError.accessRestricted
-    case .denied:
-        throw AIChatCameraAvailabilityError.accessDenied
-    @unknown default:
-        throw AIChatCameraAvailabilityError.accessDenied
-    }
+    return .generalError(message: localizedMessage(error: error))
 }
 
-private func aiChatRequestCameraAccess() async -> Bool {
-    await withCheckedContinuation { continuation in
-        AVCaptureDevice.requestAccess(for: .video) { isGranted in
-            continuation.resume(returning: isGranted)
-        }
+func aiChatIsFilePermissionError(error: Error) -> Bool {
+    let nsError = error as NSError
+    if nsError.domain == NSCocoaErrorDomain {
+        let noPermissionCodes = [
+            CocoaError.Code.fileReadNoPermission.rawValue,
+            CocoaError.Code.fileWriteNoPermission.rawValue,
+        ]
+        return noPermissionCodes.contains(nsError.code)
     }
+
+    if nsError.domain == NSPOSIXErrorDomain {
+        let noPermissionCodes = [
+            Int(EACCES),
+            Int(EPERM),
+        ]
+        return noPermissionCodes.contains(nsError.code)
+    }
+
+    return false
 }
 
 private func aiChatValidateAttachmentSize(data: Data) throws {

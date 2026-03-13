@@ -1,15 +1,46 @@
 import Foundation
 
-enum AIChatDictationAlert: Identifiable, Equatable {
+enum AIChatAttachmentSettingsSource: String, Equatable {
+    case camera
+    case photos
+    case files
+
+    var title: String {
+        switch self {
+        case .camera:
+            return "Camera Access Needed"
+        case .photos:
+            return "Photo Access Needed"
+        case .files:
+            return "File Access Needed"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .camera:
+            return "Camera access is turned off for Flashcards Open Source App. Open Settings to allow it."
+        case .photos:
+            return "Photo access is turned off for Flashcards Open Source App. Open Settings to allow it."
+        case .files:
+            return "File access is turned off for Flashcards Open Source App. Open Settings to allow it."
+        }
+    }
+}
+
+enum AIChatAlert: Identifiable, Equatable {
     case microphoneSettings
-    case transcriptionFailure(message: String)
+    case attachmentSettings(source: AIChatAttachmentSettingsSource)
+    case generalError(message: String)
 
     var id: String {
         switch self {
         case .microphoneSettings:
             return "microphone-settings"
-        case .transcriptionFailure(let message):
-            return "transcription-failure-\(message)"
+        case .attachmentSettings(let source):
+            return "attachment-settings-\(source.rawValue)"
+        case .generalError(let message):
+            return "general-error-\(message)"
         }
     }
 
@@ -17,8 +48,10 @@ enum AIChatDictationAlert: Identifiable, Equatable {
         switch self {
         case .microphoneSettings:
             return "Microphone Access Needed"
-        case .transcriptionFailure:
-            return "Dictation Failed"
+        case .attachmentSettings(let source):
+            return source.title
+        case .generalError:
+            return "Error"
         }
     }
 
@@ -26,8 +59,19 @@ enum AIChatDictationAlert: Identifiable, Equatable {
         switch self {
         case .microphoneSettings:
             return "Microphone access is turned off for Flashcards Open Source App. Open Settings to allow it."
-        case .transcriptionFailure(let message):
+        case .attachmentSettings(let source):
+            return source.message
+        case .generalError(let message):
             return message
+        }
+    }
+
+    var showsSettingsAction: Bool {
+        switch self {
+        case .microphoneSettings, .attachmentSettings:
+            return true
+        case .generalError:
+            return false
         }
     }
 }
@@ -45,8 +89,7 @@ final class AIChatStore: ObservableObject {
     @Published private(set) var selectedModelId: String
     @Published private(set) var isStreaming: Bool
     @Published private(set) var dictationState: AIChatDictationState
-    @Published private(set) var errorMessage: String
-    @Published private(set) var dictationAlert: AIChatDictationAlert?
+    @Published private(set) var activeAlert: AIChatAlert?
     @Published private(set) var repairStatus: AIChatRepairAttemptStatus?
     @Published private(set) var completedDictationTranscript: AIChatCompletedDictationTranscript?
 
@@ -108,8 +151,7 @@ final class AIChatStore: ObservableObject {
         self.selectedModelId = persistedState.selectedModelId
         self.isStreaming = false
         self.dictationState = .idle
-        self.errorMessage = ""
-        self.dictationAlert = nil
+        self.activeAlert = nil
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeDictationTask = nil
@@ -149,8 +191,20 @@ final class AIChatStore: ObservableObject {
         }
     }
 
-    func showError(message: String) {
-        self.errorMessage = message
+    func showAlert(_ alert: AIChatAlert) {
+        self.activeAlert = alert
+    }
+
+    func showGeneralError(message: String) {
+        self.activeAlert = .generalError(message: message)
+    }
+
+    func showMicrophoneSettingsAlert() {
+        self.activeAlert = .microphoneSettings
+    }
+
+    func showAttachmentSettingsAlert(source: AIChatAttachmentSettingsSource) {
+        self.activeAlert = .attachmentSettings(source: source)
     }
 
     func clearHistory() {
@@ -158,8 +212,7 @@ final class AIChatStore: ObservableObject {
         self.cancelDictation()
         self.messages = []
         self.pendingAttachments = []
-        self.errorMessage = ""
-        self.dictationAlert = nil
+        self.activeAlert = nil
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
@@ -199,8 +252,8 @@ final class AIChatStore: ObservableObject {
         self.completedDictationTranscript = nil
     }
 
-    func dismissDictationAlert() {
-        self.dictationAlert = nil
+    func dismissAlert() {
+        self.activeAlert = nil
     }
 
     func consumeCompletedDictationTranscript(id: String) {
@@ -244,11 +297,11 @@ final class AIChatStore: ObservableObject {
         }
 
         guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
-            self.errorMessage = "AI chat requires cloud sign-in."
+            self.showGeneralError(message: "AI chat requires cloud sign-in.")
             return
         }
 
-        self.errorMessage = ""
+        self.activeAlert = nil
         self.repairStatus = nil
         self.messages.append(
             AIChatMessage(
@@ -329,7 +382,7 @@ final class AIChatStore: ObservableObject {
             return
         }
 
-        self.dictationAlert = nil
+        self.activeAlert = nil
         self.completedDictationTranscript = nil
         self.dictationState = .requestingPermission
         self.activeDictationTask = Task { @MainActor in
@@ -347,7 +400,7 @@ final class AIChatStore: ObservableObject {
                 self.handleStartDictationError(recorderError)
             } catch {
                 self.dictationState = .idle
-                self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: error))
+                self.showGeneralError(message: localizedMessage(error: error))
             }
         }
     }
@@ -366,7 +419,7 @@ final class AIChatStore: ObservableObject {
             do {
                 guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
                     self.dictationState = .idle
-                    self.errorMessage = "AI chat requires cloud sign-in."
+                    self.showGeneralError(message: "AI chat requires cloud sign-in.")
                     return
                 }
 
@@ -388,9 +441,9 @@ final class AIChatStore: ObservableObject {
             } catch let recorderError as AIChatVoiceRecorderError {
                 self.handleFinishDictationError(recorderError)
             } catch let transcriptionError as AIChatTranscriptionError {
-                self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: transcriptionError))
+                self.showGeneralError(message: localizedMessage(error: transcriptionError))
             } catch {
-                self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: error))
+                self.showGeneralError(message: localizedMessage(error: error))
             }
 
             self.dictationState = .idle
@@ -402,9 +455,9 @@ final class AIChatStore: ObservableObject {
         case .microphoneDenied:
             return
         case .microphoneBlocked:
-            self.dictationAlert = .microphoneSettings
+            self.showMicrophoneSettingsAlert()
         default:
-            self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: error))
+            self.showGeneralError(message: localizedMessage(error: error))
         }
     }
 
@@ -413,9 +466,9 @@ final class AIChatStore: ObservableObject {
         case .emptyRecording:
             return
         case .microphoneBlocked:
-            self.dictationAlert = .microphoneSettings
+            self.showMicrophoneSettingsAlert()
         default:
-            self.dictationAlert = .transcriptionFailure(message: localizedMessage(error: error))
+            self.showGeneralError(message: localizedMessage(error: error))
         }
     }
 

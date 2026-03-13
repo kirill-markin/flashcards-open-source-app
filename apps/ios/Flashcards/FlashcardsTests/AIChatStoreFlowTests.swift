@@ -21,7 +21,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         chatStore.sendMessage()
 
         XCTAssertEqual(chatStore.messages.count, 0)
-        XCTAssertEqual(chatStore.errorMessage, "AI chat requires cloud sign-in.")
+        XCTAssertEqual(chatStore.activeAlert, .generalError(message: "AI chat requires cloud sign-in."))
     }
 
     @MainActor
@@ -43,7 +43,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await self.waitForChatCompletion(chatStore: chatStore)
 
-        XCTAssertEqual(chatStore.errorMessage, "")
+        XCTAssertNil(chatStore.activeAlert)
         XCTAssertEqual(chatStore.messages.count, 2)
         XCTAssertEqual(chatStore.messages[0].role, .user)
         XCTAssertEqual(chatStore.messages[0].text, "hello")
@@ -165,7 +165,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         XCTAssertEqual(requests.count, 1)
         XCTAssertEqual(requests.first?.url?.path, "/api/refresh-token")
         XCTAssertEqual(chatStore.messages, [])
-        XCTAssertEqual(chatStore.errorMessage, "")
+        XCTAssertNil(chatStore.activeAlert)
         XCTAssertFalse(chatStore.isStreaming)
     }
 
@@ -225,7 +225,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         try await Task.sleep(nanoseconds: 20_000_000)
 
         XCTAssertEqual(chatStore.messages, [])
-        XCTAssertEqual(chatStore.errorMessage, "")
+        XCTAssertNil(chatStore.activeAlert)
         XCTAssertFalse(chatStore.isStreaming)
     }
 
@@ -266,7 +266,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(chatStore.messages, [])
-        XCTAssertEqual(chatStore.errorMessage, "")
+        XCTAssertNil(chatStore.activeAlert)
         XCTAssertFalse(chatStore.isStreaming)
     }
 

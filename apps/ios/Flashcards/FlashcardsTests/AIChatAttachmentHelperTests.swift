@@ -38,4 +38,64 @@ final class AIChatAttachmentHelperTests: XCTestCase {
             XCTAssertEqual(localizedMessage(error: error), "File is too large. Maximum allowed size is 20 MB.")
         }
     }
+
+    func testAIChatCameraPresentationResultShowsSettingsAlertWhenAlreadyBlocked() {
+        XCTAssertEqual(
+            aiChatCameraPresentationResult(initialStatus: .blocked, requestedStatus: nil),
+            .showAlert(.attachmentSettings(source: .camera))
+        )
+    }
+
+    func testAIChatCameraPresentationResultStopsSilentlyAfterPromptDenial() {
+        XCTAssertEqual(
+            aiChatCameraPresentationResult(initialStatus: .askEveryTime, requestedStatus: .blocked),
+            .stopSilently
+        )
+    }
+
+    func testAIChatCameraPresentationResultShowsGeneralAlertWhenUnavailable() {
+        XCTAssertEqual(
+            aiChatCameraPresentationResult(initialStatus: .unavailable, requestedStatus: nil),
+            .showAlert(.generalError(message: "Camera is not available on this device."))
+        )
+    }
+
+    func testAIChatPhotoPresentationResultShowsSettingsAlertWhenAlreadyBlocked() {
+        XCTAssertEqual(
+            aiChatPhotoPresentationResult(initialStatus: .blocked, requestedStatus: nil),
+            .showAlert(.attachmentSettings(source: .photos))
+        )
+    }
+
+    func testAIChatPhotoPresentationResultStopsSilentlyAfterPromptDenial() {
+        XCTAssertEqual(
+            aiChatPhotoPresentationResult(initialStatus: .askEveryTime, requestedStatus: .blocked),
+            .stopSilently
+        )
+    }
+
+    func testAIChatFileImportAlertShowsSettingsAlertForPermissionFailure() {
+        let error = NSError(
+            domain: NSCocoaErrorDomain,
+            code: CocoaError.Code.fileReadNoPermission.rawValue
+        )
+
+        XCTAssertEqual(
+            aiChatFileImportAlert(error: error),
+            .attachmentSettings(source: .files)
+        )
+    }
+
+    func testAIChatFileImportAlertShowsGeneralAlertForUnsupportedFileType() {
+        let error = NSError(
+            domain: "AIChatAttachment",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Unsupported file type: .exe"]
+        )
+
+        XCTAssertEqual(
+            aiChatFileImportAlert(error: error),
+            .generalError(message: "Unsupported file type: .exe")
+        )
+    }
 }
