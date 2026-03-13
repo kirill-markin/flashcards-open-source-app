@@ -607,7 +607,7 @@ private func extractAIChatTextContent(parts: [AIChatContentPart]) -> String {
         return ""
     }
 
-    parts.reduce(into: "") { partialResult, part in
+    return parts.reduce(into: "") { partialResult, part in
         if case .text(let text) = part {
             partialResult.append(text)
         }
