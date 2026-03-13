@@ -4,7 +4,7 @@ import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ReviewScreen } from "./ReviewScreen";
+import { normalizeReviewMarkdownForWeb, ReviewScreen } from "./ReviewScreen";
 import type { Card, Deck, ReviewFilter } from "../types";
 import { cardsRoute, chatRoute } from "../routes";
 
@@ -112,6 +112,51 @@ function createDeck(overrides?: Partial<Deck>): Deck {
 function clickElement(element: Element): void {
   element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
+
+describe("normalizeReviewMarkdownForWeb", () => {
+  it("escapes symbol-only unordered list items that reopen markdown", () => {
+    const source = [
+      "- +",
+      "- *",
+      "- -",
+      "- >",
+      "- #",
+    ].join("\n");
+
+    expect(normalizeReviewMarkdownForWeb(source)).toBe([
+      "- \\+",
+      "- \\*",
+      "- \\-",
+      "- \\>",
+      "- \\#",
+    ].join("\n"));
+  });
+
+  it("keeps ordinary unordered list items unchanged", () => {
+    const source = [
+      "- A-Z",
+      "- 0-9",
+    ].join("\n");
+
+    expect(normalizeReviewMarkdownForWeb(source)).toBe(source);
+  });
+
+  it("does not normalize symbol-only list items inside fenced code blocks", () => {
+    const source = [
+      "```md",
+      "- +",
+      "```",
+      "- +",
+    ].join("\n");
+
+    expect(normalizeReviewMarkdownForWeb(source)).toBe([
+      "```md",
+      "- +",
+      "```",
+      "- \\+",
+    ].join("\n"));
+  });
+});
 
 describe("ReviewScreen", () => {
   let container: HTMLDivElement;
@@ -522,6 +567,65 @@ describe("ReviewScreen", () => {
     expect(container.querySelectorAll(".review-front ul li")).toHaveLength(2);
     expect(container.querySelector(".review-back")?.getAttribute("data-presentation-mode")).toBe("markdown");
     expect(container.querySelector(".review-back pre code")?.textContent).toContain("const answer = 42;");
+  });
+
+  it("renders symbol-only markdown list items as literal bullets without nested empty lists", async () => {
+    const markdownCard = createCard({
+      frontText: "Front",
+      backText: [
+        "Base64 alphabet:",
+        "",
+        "- A-Z",
+        "",
+        "- a-z",
+        "",
+        "- 0-9",
+        "",
+        "- +",
+        "",
+        "- /",
+        "",
+        "Characters that are in Base64 but not in Base32:",
+        "",
+        "- a-z",
+        "",
+        "- 0, 1, 8, 9",
+        "",
+        "- +",
+        "",
+        "- /",
+      ].join("\n"),
+    });
+    mockAppData.cards = [markdownCard];
+    mockAppData.reviewQueue = [markdownCard];
+    mockAppData.reviewTimeline = [markdownCard];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      container.querySelector(".review-reveal-btn")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const back = container.querySelector(".review-back");
+    const backLists = Array.from(back?.querySelectorAll(".review-markdown-ul") ?? []);
+    const topLevelLists = backLists.filter((list) => list.parentElement?.classList.contains("review-card-content-markdown"));
+    const plusItems = Array.from(back?.querySelectorAll(".review-markdown-li") ?? [])
+      .filter((item) => item.textContent?.trim() === "+");
+    const emptyNestedLists = Array.from(back?.querySelectorAll(".review-markdown-li > .review-markdown-ul") ?? [])
+      .filter((list) => list.textContent?.trim() === "");
+
+    expect(back?.getAttribute("data-presentation-mode")).toBe("markdown");
+    expect(topLevelLists).toHaveLength(2);
+    expect(Array.from(topLevelLists[0]?.children ?? [])).toHaveLength(5);
+    expect(Array.from(topLevelLists[1]?.children ?? [])).toHaveLength(4);
+    expect(plusItems).toHaveLength(2);
+    expect(emptyNestedLists).toHaveLength(0);
   });
 
   it("renders the empty back placeholder through the adaptive content view", async () => {
