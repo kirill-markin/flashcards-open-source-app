@@ -20,7 +20,7 @@ struct AccessSettingsView: View {
             }
 
             Section {
-                Text("Flashcards requests only the access needed for attachments and chat dictation.")
+                Text("Flashcards Open Source App requests only the access needed for attachments and chat dictation.")
                     .foregroundStyle(.secondary)
             }
         }

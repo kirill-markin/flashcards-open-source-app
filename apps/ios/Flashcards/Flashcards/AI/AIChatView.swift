@@ -1140,7 +1140,7 @@ private enum AIChatCameraAvailabilityError: LocalizedError {
         case .accessRestricted:
             return "Camera access is restricted on this device."
         case .accessDenied:
-            return "Camera access is turned off for Flashcards. Enable it in Settings > Privacy & Security > Camera."
+            return "Camera access is turned off for Flashcards Open Source App. Enable it in Settings > Privacy & Security > Camera."
         }
     }
 }

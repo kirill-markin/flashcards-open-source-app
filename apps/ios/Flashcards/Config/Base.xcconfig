@@ -1,4 +1,4 @@
-APP_DISPLAY_NAME = Flashcards
+APP_DISPLAY_NAME = Flashcards Open Source App
 APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app
 APP_MARKETING_VERSION = 0.1.0
 APP_CURRENT_PROJECT_VERSION = 1

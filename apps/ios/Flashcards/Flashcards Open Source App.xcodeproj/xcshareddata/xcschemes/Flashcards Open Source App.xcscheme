@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A10000000000000000000004"
-               BuildableName = "Flashcards.app"
-               BlueprintName = "Flashcards"
-               ReferencedContainer = "container:Flashcards.xcodeproj">
+               BuildableName = "Flashcards Open Source App.app"
+               BlueprintName = "Flashcards Open Source App"
+               ReferencedContainer = "container:Flashcards Open Source App.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,9 +29,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A10000000000000000000022"
-               BuildableName = "FlashcardsTests.xctest"
-               BlueprintName = "FlashcardsTests"
-               ReferencedContainer = "container:Flashcards.xcodeproj">
+               BuildableName = "Flashcards Open Source App Tests.xctest"
+               BlueprintName = "Flashcards Open Source App Tests"
+               ReferencedContainer = "container:Flashcards Open Source App.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A10000000000000000000004"
-            BuildableName = "Flashcards.app"
-            BlueprintName = "Flashcards"
-            ReferencedContainer = "container:Flashcards.xcodeproj">
+            BuildableName = "Flashcards Open Source App.app"
+            BlueprintName = "Flashcards Open Source App"
+            ReferencedContainer = "container:Flashcards Open Source App.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -57,9 +57,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A10000000000000000000022"
-               BuildableName = "FlashcardsTests.xctest"
-               BlueprintName = "FlashcardsTests"
-               ReferencedContainer = "container:Flashcards.xcodeproj">
+               BuildableName = "Flashcards Open Source App Tests.xctest"
+               BlueprintName = "Flashcards Open Source App Tests"
+               ReferencedContainer = "container:Flashcards Open Source App.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -79,9 +79,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A10000000000000000000004"
-            BuildableName = "Flashcards.app"
-            BlueprintName = "Flashcards"
-            ReferencedContainer = "container:Flashcards.xcodeproj">
+            BuildableName = "Flashcards Open Source App.app"
+            BlueprintName = "Flashcards Open Source App"
+            ReferencedContainer = "container:Flashcards Open Source App.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -96,9 +96,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A10000000000000000000004"
-            BuildableName = "Flashcards.app"
-            BlueprintName = "Flashcards"
-            ReferencedContainer = "container:Flashcards.xcodeproj">
+            BuildableName = "Flashcards Open Source App.app"
+            BlueprintName = "Flashcards Open Source App"
+            ReferencedContainer = "container:Flashcards Open Source App.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
