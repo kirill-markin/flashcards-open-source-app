@@ -314,11 +314,11 @@ export function RoutedShell(): ReactElement {
           <Route path="/tags" element={<Navigate replace to={settingsTagsRoute} />} />
           <Route path={reviewRoute} element={<ReviewScreen />} />
           <Route path={settingsHubRoute} element={<SettingsScreen />} />
+          <Route path={settingsAccessRoute} element={<AccessSettingsScreen />} />
+          <Route path={settingsAccessDetailRoutePattern} element={<AccessPermissionDetailScreen />} />
           <Route path={workspaceSettingsRoute} element={<WorkspaceSettingsScreen />} />
           <Route path={settingsOverviewRoute} element={<WorkspaceOverviewScreen />} />
           <Route path={settingsSchedulerRoute} element={<WorkspaceSchedulerScreen />} />
-          <Route path={settingsAccessRoute} element={<AccessSettingsScreen />} />
-          <Route path={settingsAccessDetailRoutePattern} element={<AccessPermissionDetailScreen />} />
           <Route path={settingsDecksRoute} element={<DecksScreen />} />
           <Route path={settingsDeckNewRoute} element={<DeckFormScreen />} />
           <Route path={`${settingsDecksRoute}/:deckId/edit`} element={<DeckFormScreen />} />

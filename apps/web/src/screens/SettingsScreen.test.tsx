@@ -22,7 +22,7 @@ describe("SettingsScreen", () => {
     container.remove();
   });
 
-  it("renders the settings hub with workspace and account entry points", async () => {
+  it("renders the settings hub with workspace, account, and access entry points", async () => {
     await act(async () => {
       root.render(
         <MemoryRouter>
@@ -34,8 +34,9 @@ describe("SettingsScreen", () => {
     expect(container.textContent).toContain("Settings");
     expect(container.textContent).toContain("Workspace Settings");
     expect(container.textContent).toContain("Account Settings");
+    expect(container.textContent).toContain("Access");
 
     const links = Array.from(container.querySelectorAll(".settings-nav-card")).map((element) => element.getAttribute("href"));
-    expect(links).toEqual(["/settings/workspace", "/settings/account"]);
+    expect(links).toEqual(["/settings/workspace", "/settings/account", "/settings/access"]);
   });
 });

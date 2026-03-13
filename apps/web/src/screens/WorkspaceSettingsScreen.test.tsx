@@ -89,7 +89,7 @@ describe("WorkspaceSettingsScreen", () => {
     container.remove();
   });
 
-  it("renders workspace settings entries in the unified order", async () => {
+  it("renders workspace settings entries in grouped order", async () => {
     await act(async () => {
       root.render(
         <MemoryRouter>
@@ -101,20 +101,21 @@ describe("WorkspaceSettingsScreen", () => {
     expect(mockAppData.ensureCardsLoaded).toHaveBeenCalledTimes(1);
     expect(mockAppData.ensureDecksLoaded).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Workspace Settings");
-    expect(container.textContent).toContain("Overview");
-    expect(container.textContent).toContain("Scheduler");
+    expect(container.textContent).toContain("Workspace Data");
     expect(container.textContent).toContain("Decks");
     expect(container.textContent).toContain("Tags");
-    expect(container.textContent).toContain("Access");
+    expect(container.textContent).toContain("Settings");
+    expect(container.textContent).toContain("Overview");
+    expect(container.textContent).toContain("Scheduler");
+    expect(container.textContent).toContain("Device");
     expect(container.textContent).toContain("This Device");
 
     const links = Array.from(container.querySelectorAll(".settings-nav-card")).map((element) => element.getAttribute("href"));
     expect(links).toEqual([
-      "/settings/workspace/overview",
-      "/settings/workspace/scheduler",
       "/settings/workspace/decks",
       "/settings/workspace/tags",
-      "/settings/workspace/access",
+      "/settings/workspace/overview",
+      "/settings/workspace/scheduler",
       "/settings/workspace/device",
     ]);
   });

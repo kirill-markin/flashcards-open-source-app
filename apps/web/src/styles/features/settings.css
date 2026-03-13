@@ -53,6 +53,11 @@
   gap: 14px;
 }
 
+.settings-group {
+  display: grid;
+  gap: 14px;
+}
+
 .settings-nav-card {
   display: flex;
   gap: 16px;

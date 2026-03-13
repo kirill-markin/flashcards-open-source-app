@@ -43,6 +43,8 @@ struct RootTabView: View {
                 SettingsView()
                     .navigationDestination(for: SettingsNavigationDestination.self) { destination in
                         switch destination {
+                        case .access:
+                            AccessSettingsView()
                         case .workspace:
                             WorkspaceSettingsView()
                         case .workspaceOverview:
@@ -53,8 +55,6 @@ struct RootTabView: View {
                             DecksScreen()
                         case .workspaceTags:
                             TagsScreen()
-                        case .workspaceAccess:
-                            AccessSettingsView()
                         case .workspaceDevice:
                             ThisDeviceSettingsView()
                         case .account:
@@ -130,6 +130,8 @@ struct RootTabView: View {
 
     private func buildSettingsNavigationPath(request: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
         switch request {
+        case .access:
+            return [.access]
         case .workspace:
             return [.workspace]
         case .workspaceOverview:
@@ -140,8 +142,6 @@ struct RootTabView: View {
             return [.workspace, .workspaceDecks]
         case .workspaceTags:
             return [.workspace, .workspaceTags]
-        case .workspaceAccess:
-            return [.workspace, .workspaceAccess]
         case .workspaceDevice:
             return [.workspace, .workspaceDevice]
         case .account:
