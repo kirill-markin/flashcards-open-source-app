@@ -45,7 +45,10 @@ import { createLocalToolExecutor } from "./localToolExecutor";
 import { toLocalChatMessages } from "./localRuntime";
 import { ModelSelector } from "./ModelSelector";
 import { useChatAutoScroll } from "./useChatAutoScroll";
-import { useChatHistory } from "./useChatHistory";
+import {
+  OPTIMISTIC_ASSISTANT_STATUS_TEXT,
+  useChatHistory,
+} from "./useChatHistory";
 import {
   insertDictationTranscriptIntoDraft,
   type ChatDraftSelection,
@@ -147,6 +150,7 @@ export function ChatPanel(props: Props): ReactElement {
     completeToolCall,
     finalizeAssistant,
     markAssistantError,
+    clearOptimisticAssistantStatus,
     clearHistory,
   } = useChatHistory();
 
@@ -369,6 +373,7 @@ export function ChatPanel(props: Props): ReactElement {
     abortRef.current = null;
     activeStreamIdRef.current = 0;
     setIsStreaming(false);
+    clearOptimisticAssistantStatus();
   }
 
   function discardDictation(): void {
@@ -565,7 +570,7 @@ export function ChatPanel(props: Props): ReactElement {
     setIsStreaming(true);
 
     let hasStartedAssistant = false;
-    startAssistantMessage();
+    startAssistantMessage(OPTIMISTIC_ASSISTANT_STATUS_TEXT);
     hasStartedAssistant = true;
 
     const streamId = nextStreamIdRef.current;
@@ -611,7 +616,7 @@ export function ChatPanel(props: Props): ReactElement {
                 return;
               }
 
-              startAssistantMessage();
+              startAssistantMessage(OPTIMISTIC_ASSISTANT_STATUS_TEXT);
               hasStartedAssistant = true;
             },
             onAssistantText: appendAssistantChunk,

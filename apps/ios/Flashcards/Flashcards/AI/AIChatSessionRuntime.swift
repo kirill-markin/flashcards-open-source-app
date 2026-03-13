@@ -562,7 +562,7 @@ private func upsertAssistantToolCall(
 
     var messages = state.messages
     let lastMessage = messages[lastIndex]
-    var updatedContent = lastMessage.content
+    var updatedContent = removingOptimisticAssistantStatus(content: lastMessage.content)
     if let contentIndex = updatedContent.firstIndex(where: { part in
         guard case .toolCall(let existingToolCall) = part else {
             return false
@@ -681,9 +681,28 @@ private func markAssistantError(state: AIChatPersistedState, message: String) ->
     return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
 }
 
+private func isOptimisticAssistantStatus(content: [AIChatContentPart]) -> Bool {
+    guard content.count == 1 else {
+        return false
+    }
+    guard case .text(let text) = content[0] else {
+        return false
+    }
+
+    return text == aiChatOptimisticAssistantStatusText
+}
+
+private func removingOptimisticAssistantStatus(content: [AIChatContentPart]) -> [AIChatContentPart] {
+    return isOptimisticAssistantStatus(content: content) ? [] : content
+}
+
 private func appendingText(content: [AIChatContentPart], text: String) -> [AIChatContentPart] {
     guard text.isEmpty == false else {
         return content
+    }
+
+    if isOptimisticAssistantStatus(content: content) {
+        return [.text(text)]
     }
 
     var updatedContent = content
@@ -697,6 +716,10 @@ private func appendingText(content: [AIChatContentPart], text: String) -> [AICha
 }
 
 private func extractAIChatText(from content: [AIChatContentPart]) -> String {
+    if isOptimisticAssistantStatus(content: content) {
+        return ""
+    }
+
     content.reduce(into: "") { partialResult, part in
         if case .text(let text) = part {
             partialResult.append(text)

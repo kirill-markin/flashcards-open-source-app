@@ -173,6 +173,11 @@ final class AIChatStore: ObservableObject {
         self.activeSendTask = nil
         self.isStreaming = false
         self.repairStatus = nil
+        self.clearOptimisticAssistantStatusIfNeeded()
+        let state = self.currentPersistedState()
+        Task {
+            await self.historyStore.saveState(state: state)
+        }
     }
 
     func toggleDictation() {
@@ -258,7 +263,7 @@ final class AIChatStore: ObservableObject {
             AIChatMessage(
                 id: UUID().uuidString.lowercased(),
                 role: .assistant,
-                content: [],
+                content: [.text(aiChatOptimisticAssistantStatusText)],
                 timestamp: currentIsoTimestamp(),
                 isError: false
             )
@@ -495,7 +500,7 @@ final class AIChatStore: ObservableObject {
 
         self.repairStatus = nil
         let lastMessage = self.messages[lastIndex]
-        var updatedContent = lastMessage.content
+        var updatedContent = removingOptimisticAIChatStatus(content: lastMessage.content)
         if let contentIndex = updatedContent.firstIndex(where: { part in
             guard case .toolCall(let existingToolCall) = part else {
                 return false
@@ -540,11 +545,51 @@ final class AIChatStore: ObservableObject {
             )
         }
     }
+
+    private func clearOptimisticAssistantStatusIfNeeded() {
+        guard let lastIndex = self.messages.indices.last else {
+            return
+        }
+        guard self.messages[lastIndex].role == .assistant else {
+            return
+        }
+        guard isOptimisticAIChatStatusContent(content: self.messages[lastIndex].content) else {
+            return
+        }
+
+        let lastMessage = self.messages[lastIndex]
+        self.messages[lastIndex] = AIChatMessage(
+            id: lastMessage.id,
+            role: lastMessage.role,
+            content: [],
+            timestamp: lastMessage.timestamp,
+            isError: lastMessage.isError
+        )
+    }
+}
+
+private func isOptimisticAIChatStatusContent(content: [AIChatContentPart]) -> Bool {
+    guard content.count == 1 else {
+        return false
+    }
+    guard case .text(let text) = content[0] else {
+        return false
+    }
+
+    return text == aiChatOptimisticAssistantStatusText
+}
+
+private func removingOptimisticAIChatStatus(content: [AIChatContentPart]) -> [AIChatContentPart] {
+    return isOptimisticAIChatStatusContent(content: content) ? [] : content
 }
 
 private func appendingAIChatText(content: [AIChatContentPart], text: String) -> [AIChatContentPart] {
     guard text.isEmpty == false else {
         return content
+    }
+
+    if isOptimisticAIChatStatusContent(content: content) {
+        return [.text(text)]
     }
 
     var updatedContent = content
@@ -558,6 +603,10 @@ private func appendingAIChatText(content: [AIChatContentPart], text: String) -> 
 }
 
 private func extractAIChatTextContent(parts: [AIChatContentPart]) -> String {
+    if isOptimisticAIChatStatusContent(content: parts) {
+        return ""
+    }
+
     parts.reduce(into: "") { partialResult, part in
         if case .text(let text) = part {
             partialResult.append(text)

@@ -570,6 +570,45 @@ struct RepairingSuspendingChatService: AIChatStreaming, @unchecked Sendable {
     }
 }
 
+struct ToolCallOnlyChatService: AIChatStreaming, @unchecked Sendable {
+    func streamTurn(
+        session: CloudLinkedSession,
+        request: AILocalChatRequestBody,
+        tapStartedAt: Date?,
+        onDelta: @escaping @Sendable (String) async -> Void,
+        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
+        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
+        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
+        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
+    ) async throws -> AITurnStreamOutcome {
+        _ = tapStartedAt
+        _ = onDelta
+        _ = onToolCall
+        _ = onRepairAttempt
+        _ = onLatencyReported
+        await onToolCallRequest(
+            AIToolCallRequest(
+                toolCallId: "call-tool-only",
+                name: "sql",
+                input: "{\"sql\":\"SHOW TABLES\"}"
+            )
+        )
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-tool-only")
+    }
+
+    func reportFailureDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatFailureReportBody
+    ) async {
+    }
+
+    func reportLatencyDiagnostics(
+        session: CloudLinkedSession,
+        body: AIChatLatencyReportBody
+    ) async {
+    }
+}
+
 struct StubLocalizedError: LocalizedError {
     let message: String
 

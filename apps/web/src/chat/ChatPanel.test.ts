@@ -632,6 +632,32 @@ describe("ChatPanel autoscroll", () => {
     expect(assistantMessage?.textContent).toBe("\n\n   First paragraph\n\n\n\nSecond paragraph   \n");
   });
 
+  it("shows the optimistic assistant status immediately after send while the first stream request is pending", async () => {
+    const deferredResponse = createDeferred<Response>();
+    streamLocalChatMock.mockImplementationOnce(() => deferredResponse.promise);
+
+    await renderChatPanel();
+    await sendMessage("check cards");
+
+    const mountedContainer = container;
+    expect(mountedContainer).not.toBeNull();
+    if (mountedContainer === null) {
+      throw new Error("Expected container to be mounted");
+    }
+
+    expect(mountedContainer.textContent).toContain("Looking through your cards...");
+
+    await act(async () => {
+      deferredResponse.resolve(createTimedStreamResponse([{ atMs: 0, payload: streamDeltaPayload("Done") }], 1));
+      await Promise.resolve();
+      vi.advanceTimersByTime(5);
+      await Promise.resolve();
+    });
+
+    expect(mountedContainer.textContent).toContain("Done");
+    expect(mountedContainer.textContent).not.toContain("Looking through your cards...");
+  });
+
   it("preserves paragraph boundaries between consecutive persisted assistant text parts", async () => {
     localStorage.setItem("flashcards-chat-messages", JSON.stringify([{
       role: "assistant",
@@ -817,6 +843,7 @@ describe("ChatPanel autoscroll", () => {
     expect(pendingToolCall?.querySelector(".chat-tool-call-summary-main")?.textContent).toBe("SQL: SHOW TABLES");
     expect(pendingToolCall?.textContent).toContain("Running");
     expect(mountedContainer.querySelectorAll(".chat-tool-call")).toHaveLength(1);
+    expect(mountedContainer.textContent).not.toContain("Looking through your cards...");
 
     await act(async () => {
       deferredToolResult.resolve({

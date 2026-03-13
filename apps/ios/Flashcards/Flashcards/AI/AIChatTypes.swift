@@ -2,6 +2,7 @@ import Foundation
 
 let aiChatDefaultModelId: String = "gpt-5.4"
 let aiChatCreateCardDraftPrompt: String = "Help me create a card."
+let aiChatOptimisticAssistantStatusText: String = "Looking through your cards..."
 let aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
 let aiChatSupportedFileExtensions: Set<String> = [
     "pdf",

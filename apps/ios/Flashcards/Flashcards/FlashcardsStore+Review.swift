@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 extension FlashcardsStore {
     func selectReviewFilter(reviewFilter: ReviewFilter) {
+        self.extendCloudSyncFastPolling(now: Date())
         self.startReviewLoad(reviewFilter: reviewFilter, now: Date())
     }
 

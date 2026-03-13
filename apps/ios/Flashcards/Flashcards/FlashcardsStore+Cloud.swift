@@ -444,6 +444,7 @@ extension FlashcardsStore {
     }
 
     func triggerCloudSyncIfLinked() {
+        self.extendCloudSyncFastPolling(now: Date())
         Task { @MainActor in
             await self.syncCloudIfLinked()
         }

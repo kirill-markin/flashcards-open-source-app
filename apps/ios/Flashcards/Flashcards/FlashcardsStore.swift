@@ -2,6 +2,43 @@ import Foundation
 
 let accountDeletionPendingUserDefaultsKey: String = "account-deletion-pending"
 let accountDeletionConfirmationText: String = "delete my account"
+let cloudSyncFastPollingIntervalSeconds: TimeInterval = 15
+let cloudSyncDefaultPollingIntervalSeconds: TimeInterval = 60
+let cloudSyncFastPollingDurationSeconds: TimeInterval = 120
+
+func usesFastCloudSyncPolling(tab: AppTab) -> Bool {
+    tab == .review || tab == .cards
+}
+
+func isCloudSyncFastPollingActive(selectedTab: AppTab, fastPollingUntil: Date?, now: Date) -> Bool {
+    if usesFastCloudSyncPolling(tab: selectedTab) {
+        return true
+    }
+
+    guard let fastPollingUntil else {
+        return false
+    }
+
+    return now < fastPollingUntil
+}
+
+func currentCloudSyncPollingInterval(selectedTab: AppTab, fastPollingUntil: Date?, now: Date) -> TimeInterval {
+    if isCloudSyncFastPollingActive(selectedTab: selectedTab, fastPollingUntil: fastPollingUntil, now: now) {
+        return cloudSyncFastPollingIntervalSeconds
+    }
+
+    return cloudSyncDefaultPollingIntervalSeconds
+}
+
+func extendCloudSyncFastPollingUntil(currentDeadline: Date?, now: Date, duration: TimeInterval) -> Date {
+    let nextDeadline = now.addingTimeInterval(duration)
+
+    guard let currentDeadline else {
+        return nextDeadline
+    }
+
+    return max(currentDeadline, nextDeadline)
+}
 
 struct TabSelectionRequest: Equatable, Sendable {
     let id: String
@@ -33,6 +70,8 @@ final class FlashcardsStore: ObservableObject {
     @Published var globalErrorMessage: String
     @Published var syncStatus: SyncStatus
     @Published var lastSuccessfulCloudSyncAt: String?
+    @Published var selectedTab: AppTab
+    @Published var cloudSyncFastPollingUntil: Date?
     @Published var tabSelectionRequest: TabSelectionRequest?
     @Published var cardsPresentationRequest: CardsPresentationRequest?
     @Published var aiChatPresentationRequest: AIChatPresentationRequest?
@@ -47,7 +86,6 @@ final class FlashcardsStore: ObservableObject {
     let userDefaults: UserDefaults
     let encoder: JSONEncoder
     let decoder: JSONDecoder
-    var selectedTab: AppTab
     var reviewRuntime: ReviewQueueRuntime
     var cloudRuntime: CloudSessionRuntime
     var isAccountDeletionRunning: Bool
@@ -167,6 +205,7 @@ final class FlashcardsStore: ObservableObject {
         self.syncStatus = .idle
         self.lastSuccessfulCloudSyncAt = nil
         self.selectedTab = .review
+        self.cloudSyncFastPollingUntil = nil
         self.tabSelectionRequest = nil
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
@@ -203,5 +242,21 @@ final class FlashcardsStore: ObservableObject {
         if self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) {
             self.accountDeletionState = .inProgress
         }
+    }
+
+    func currentCloudSyncPollingInterval(now: Date) -> TimeInterval {
+        currentCloudSyncPollingInterval(
+            selectedTab: self.selectedTab,
+            fastPollingUntil: self.cloudSyncFastPollingUntil,
+            now: now
+        )
+    }
+
+    func extendCloudSyncFastPolling(now: Date) {
+        self.cloudSyncFastPollingUntil = extendCloudSyncFastPollingUntil(
+            currentDeadline: self.cloudSyncFastPollingUntil,
+            now: now,
+            duration: cloudSyncFastPollingDurationSeconds
+        )
     }
 }
