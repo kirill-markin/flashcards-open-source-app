@@ -570,7 +570,7 @@ struct RepairingSuspendingChatService: AIChatStreaming, @unchecked Sendable {
     }
 }
 
-struct ToolCallOnlyChatService: AIChatStreaming, @unchecked Sendable {
+struct ToolCallRequestOnlyChatService: AIChatStreaming, @unchecked Sendable {
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
