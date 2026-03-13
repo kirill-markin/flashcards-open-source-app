@@ -170,6 +170,9 @@ describe("AppShell", () => {
     expect(container.textContent).not.toContain("Decks");
     expect(container.textContent).not.toContain("Tags");
 
+    const settingsNavLink = Array.from(container.querySelectorAll(".nav-link")).find((element) => element.textContent?.trim() === "Settings");
+    expect(settingsNavLink?.getAttribute("href")).toBe("/settings/workspace");
+
     const accountMenuButton = container.querySelector(".account-menu-button");
     expect(accountMenuButton).not.toBeNull();
 
@@ -178,6 +181,7 @@ describe("AppShell", () => {
     });
 
     expect(container.textContent).toContain("Account settings");
+    expect(container.querySelector('.account-menu-link[href="/settings/account"]')?.textContent).toBe("Account settings");
   });
 });
 
@@ -345,5 +349,26 @@ describe("RoutedShell", () => {
 
     expect(container.textContent).toContain("account-settings-screen");
     expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/account");
+  });
+
+  it("renders the dedicated access settings route", async () => {
+    useChatLayoutMock.mockReturnValue({
+      isOpen: false,
+      setIsOpen: vi.fn(),
+      chatWidth: 560,
+      setChatWidth: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/settings/access"]}>
+          <RoutedShell />
+          <LocationProbe />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("access-settings-screen");
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/access");
   });
 });

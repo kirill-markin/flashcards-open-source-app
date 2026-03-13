@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { accountSettingsRoute, workspaceSettingsRoute } from "../routes";
+import { accountSettingsRoute, settingsAccessRoute, workspaceSettingsRoute } from "../routes";
 import { SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 export function SettingsScreen(): ReactElement {
@@ -12,8 +12,8 @@ export function SettingsScreen(): ReactElement {
       <div className="settings-nav-list">
         <SettingsNavigationCard
           title="Workspace Settings"
-          description="Manage workspace overview, scheduler, decks, tags, access, and device details."
-          value="6 sections"
+          description="Manage workspace data, overview, scheduler, and device details."
+          value="3 groups"
           to={workspaceSettingsRoute}
         />
         <SettingsNavigationCard
@@ -21,6 +21,12 @@ export function SettingsScreen(): ReactElement {
           description="Manage account status, agent connections, and the danger zone."
           value="3 sections"
           to={accountSettingsRoute}
+        />
+        <SettingsNavigationCard
+          title="Access"
+          description="Review app-wide permissions for camera, microphone, and file flows."
+          value="3 items"
+          to={settingsAccessRoute}
         />
       </div>
     </SettingsShell>

@@ -27,6 +27,14 @@ struct SettingsView: View {
                         systemImage: "person.crop.circle"
                     )
                 }
+
+                NavigationLink(value: SettingsNavigationDestination.access) {
+                    SettingsNavigationRow(
+                        title: "Access",
+                        value: "3 items",
+                        systemImage: "hand.raised"
+                    )
+                }
             }
         }
         .listStyle(.insetGrouped)

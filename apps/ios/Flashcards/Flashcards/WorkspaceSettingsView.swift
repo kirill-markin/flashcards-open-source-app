@@ -15,23 +15,7 @@ struct WorkspaceSettingsView: View {
                 }
             }
 
-            Section("Workspace Settings") {
-                NavigationLink(value: SettingsNavigationDestination.workspaceOverview) {
-                    SettingsNavigationRow(
-                        title: "Overview",
-                        value: store.workspace?.name ?? "Unavailable",
-                        systemImage: "square.text.square"
-                    )
-                }
-
-                NavigationLink(value: SettingsNavigationDestination.workspaceScheduler) {
-                    SettingsNavigationRow(
-                        title: "Scheduler",
-                        value: schedulerSummaryValue(settings: store.schedulerSettings),
-                        systemImage: "calendar.badge.clock"
-                    )
-                }
-
+            Section("Workspace Data") {
                 NavigationLink(value: SettingsNavigationDestination.workspaceDecks) {
                     SettingsNavigationRow(
                         title: "Decks",
@@ -47,15 +31,27 @@ struct WorkspaceSettingsView: View {
                         systemImage: "tag"
                     )
                 }
+            }
 
-                NavigationLink(value: SettingsNavigationDestination.workspaceAccess) {
+            Section("Settings") {
+                NavigationLink(value: SettingsNavigationDestination.workspaceOverview) {
                     SettingsNavigationRow(
-                        title: "Access",
-                        value: "3 items",
-                        systemImage: "hand.raised"
+                        title: "Overview",
+                        value: store.workspace?.name ?? "Unavailable",
+                        systemImage: "square.text.square"
                     )
                 }
 
+                NavigationLink(value: SettingsNavigationDestination.workspaceScheduler) {
+                    SettingsNavigationRow(
+                        title: "Scheduler",
+                        value: schedulerSummaryValue(settings: store.schedulerSettings),
+                        systemImage: "calendar.badge.clock"
+                    )
+                }
+            }
+
+            Section("Device") {
                 NavigationLink(value: SettingsNavigationDestination.workspaceDevice) {
                     SettingsNavigationRow(
                         title: "This Device",

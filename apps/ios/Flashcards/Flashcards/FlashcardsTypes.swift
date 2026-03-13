@@ -36,12 +36,12 @@ enum AIChatPresentationRequest: Hashable, Sendable {
 }
 
 enum SettingsNavigationDestination: Hashable, Sendable {
+    case access
     case workspace
     case workspaceOverview
     case workspaceScheduler
     case workspaceDecks
     case workspaceTags
-    case workspaceAccess
     case workspaceDevice
     case account
     case accountStatus

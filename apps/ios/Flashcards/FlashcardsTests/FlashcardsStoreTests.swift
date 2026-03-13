@@ -366,12 +366,12 @@ final class FlashcardsStoreTests: XCTestCase {
 
     func testSettingsNavigationDestinationsIncludeAccount() {
         let destinations: [SettingsNavigationDestination] = [
+            .access,
             .workspace,
             .workspaceOverview,
             .workspaceScheduler,
             .workspaceDecks,
             .workspaceTags,
-            .workspaceAccess,
             .workspaceDevice,
             .account,
             .accountStatus,
@@ -380,12 +380,12 @@ final class FlashcardsStoreTests: XCTestCase {
         ]
 
         XCTAssertEqual(destinations, [
+            .access,
             .workspace,
             .workspaceOverview,
             .workspaceScheduler,
             .workspaceDecks,
             .workspaceTags,
-            .workspaceAccess,
             .workspaceDevice,
             .account,
             .accountStatus,
