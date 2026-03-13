@@ -141,12 +141,14 @@ type AgentMutationContext = Readonly<{
 }>;
 
 type WorkspaceScopedLimitInput = Readonly<{
+  userId: string;
   workspaceId: string;
   cursor: string | null;
   limit: number;
 }>;
 
 type WorkspaceScopedCardLimitInput = Readonly<{
+  userId: string;
   workspaceId: string;
   cursor: string | null;
   limit: number;
@@ -154,6 +156,7 @@ type WorkspaceScopedCardLimitInput = Readonly<{
 }>;
 
 type WorkspaceScopedSearchInput = Readonly<{
+  userId: string;
   workspaceId: string;
   query: string;
   cursor: string | null;
@@ -161,6 +164,7 @@ type WorkspaceScopedSearchInput = Readonly<{
 }>;
 
 type WorkspaceScopedCardSearchInput = Readonly<{
+  userId: string;
   workspaceId: string;
   query: string;
   cursor: string | null;
@@ -175,16 +179,19 @@ type WorkspaceContextInput = Readonly<{
 }>;
 
 type WorkspaceScopedGetCardsInput = Readonly<{
+  userId: string;
   workspaceId: string;
   cardIds: ReadonlyArray<string>;
 }>;
 
 type WorkspaceScopedGetDecksInput = Readonly<{
+  userId: string;
   workspaceId: string;
   deckIds: ReadonlyArray<string>;
 }>;
 
 type WorkspaceScopedReviewHistoryInput = Readonly<{
+  userId: string;
   workspaceId: string;
   cursor: string | null;
   limit: number;
@@ -399,7 +406,7 @@ export async function loadAgentWorkspaceOperation(
   input: WorkspaceContextInput,
 ) : Promise<AgentWorkspacePayload> {
   const workspace = await loadSelectedWorkspaceSummary(dependencies, input);
-  const schedulerSettings = await dependencies.getWorkspaceSchedulerSettings(input.workspaceId);
+  const schedulerSettings = await dependencies.getWorkspaceSchedulerSettings(input.userId, input.workspaceId);
 
   return {
     workspace,
@@ -415,7 +422,7 @@ export async function listAgentCardsOperation(
   input: WorkspaceScopedCardLimitInput,
 ): Promise<AgentLimitedCardsPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  const result = await dependencies.queryCardsPage(input.workspaceId, {
+  const result = await dependencies.queryCardsPage(input.userId, input.workspaceId, {
     searchText: null,
     cursor: input.cursor,
     limit: limitApplied,
@@ -436,7 +443,7 @@ export async function getAgentCardsOperation(
   dependencies: AgentToolOperationDependencies,
   input: WorkspaceScopedGetCardsInput,
 ): Promise<AgentGetCardsPayload> {
-  const cards = await dependencies.getCards(input.workspaceId, input.cardIds);
+  const cards = await dependencies.getCards(input.userId, input.workspaceId, input.cardIds);
 
   return {
     cards,
@@ -452,7 +459,7 @@ export async function searchAgentCardsOperation(
   input: WorkspaceScopedCardSearchInput,
 ): Promise<AgentLimitedCardsPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  const result = await dependencies.queryCardsPage(input.workspaceId, {
+  const result = await dependencies.queryCardsPage(input.userId, input.workspaceId, {
     searchText: input.query,
     cursor: input.cursor,
     limit: limitApplied,
@@ -475,7 +482,7 @@ export async function listAgentDecksOperation(
   input: WorkspaceScopedLimitInput,
 ): Promise<AgentLimitedDecksPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  return dependencies.listDecksPage(input.workspaceId, {
+  return dependencies.listDecksPage(input.userId, input.workspaceId, {
     cursor: input.cursor,
     limit: limitApplied,
   });
@@ -488,7 +495,7 @@ export async function getAgentDecksOperation(
   dependencies: AgentToolOperationDependencies,
   input: WorkspaceScopedGetDecksInput,
 ): Promise<AgentGetDecksPayload> {
-  const decks = await dependencies.getDecks(input.workspaceId, input.deckIds);
+  const decks = await dependencies.getDecks(input.userId, input.workspaceId, input.deckIds);
 
   return {
     decks,
@@ -504,7 +511,7 @@ export async function searchAgentDecksOperation(
   input: WorkspaceScopedSearchInput,
 ): Promise<AgentLimitedDecksPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  return dependencies.searchDecksPage(input.workspaceId, input.query, {
+  return dependencies.searchDecksPage(input.userId, input.workspaceId, input.query, {
     cursor: input.cursor,
     limit: limitApplied,
   });
@@ -520,7 +527,7 @@ export async function listAgentReviewEventsOperation(
   input: WorkspaceScopedReviewHistoryInput,
 ): Promise<AgentReviewHistoryPayload> {
   const limitApplied = normalizeAgentToolLimit(input.limit);
-  return dependencies.listReviewHistoryPage(input.workspaceId, {
+  return dependencies.listReviewHistoryPage(input.userId, input.workspaceId, {
     cursor: input.cursor,
     limit: limitApplied,
     cardId: input.cardId,
@@ -539,7 +546,7 @@ export async function createAgentCardsOperation(
     input: toCreateCardInput(card),
     metadata: metadata[index],
   }));
-  const cards = await dependencies.createCards(input.workspaceId, items);
+  const cards = await dependencies.createCards(input.userId, input.workspaceId, items);
 
   return {
     cards,
@@ -560,7 +567,7 @@ export async function updateAgentCardsOperation(
     input: toUpdateCardInput(update),
     metadata: metadata[index],
   }));
-  const cards = await dependencies.updateCards(input.workspaceId, items);
+  const cards = await dependencies.updateCards(input.userId, input.workspaceId, items);
 
   return {
     cards,
@@ -581,7 +588,7 @@ export async function deleteAgentCardsOperation(
     metadata: metadata[index],
   }));
 
-  return dependencies.deleteCards(input.workspaceId, items);
+  return dependencies.deleteCards(input.userId, input.workspaceId, items);
 }
 
 /**
@@ -596,7 +603,7 @@ export async function createAgentDecksOperation(
     input: toCreateDeckInput(deck),
     metadata: metadata[index],
   }));
-  const decks = await dependencies.createDecks(input.workspaceId, items);
+  const decks = await dependencies.createDecks(input.userId, input.workspaceId, items);
 
   return {
     decks,
@@ -612,6 +619,7 @@ export async function updateAgentDecksOperation(
   input: UpdateDecksOperationInput,
 ): Promise<AgentUpdateDecksPayload> {
   const currentDecks = await dependencies.getDecks(
+    input.userId,
     input.workspaceId,
     input.updates.map((update) => update.deckId),
   );
@@ -629,7 +637,7 @@ export async function updateAgentDecksOperation(
       metadata: metadata[index],
     };
   });
-  const decks = await dependencies.updateDecks(input.workspaceId, items);
+  const decks = await dependencies.updateDecks(input.userId, input.workspaceId, items);
 
   return {
     decks,
@@ -650,5 +658,5 @@ export async function deleteAgentDecksOperation(
     metadata: metadata[index],
   }));
 
-  return dependencies.deleteDecks(input.workspaceId, items);
+  return dependencies.deleteDecks(input.userId, input.workspaceId, items);
 }

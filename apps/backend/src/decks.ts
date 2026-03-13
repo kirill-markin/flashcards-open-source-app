@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { query, transaction, type DatabaseExecutor } from "./db";
+import {
+  queryWithWorkspaceScope,
+  transactionWithWorkspaceScope,
+  type DatabaseExecutor,
+} from "./db";
 import { HttpError } from "./errors";
 import {
   incomingLwwMetadataWins,
@@ -390,6 +394,7 @@ export function parseCreateDeckInput(value: unknown): CreateDeckInput {
 }
 
 export async function listDecksPage(
+  userId: string,
   workspaceId: string,
   input: CursorPageInput,
 ): Promise<DeckPage> {
@@ -406,7 +411,8 @@ export async function listDecksPage(
     : [workspaceId, new Date(decodedCursor.updatedAt), new Date(decodedCursor.createdAt), decodedCursor.deckId, input.limit + 1];
   const limitParamIndex = decodedCursor === null ? 2 : 5;
 
-  const result = await query<DeckRow>(
+  const result = await queryWithWorkspaceScope<DeckRow>(
+    { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
@@ -433,8 +439,9 @@ export async function listDecksPage(
   };
 }
 
-export async function getDeck(workspaceId: string, deckId: string): Promise<Deck> {
-  const result = await query<DeckRow>(
+export async function getDeck(userId: string, workspaceId: string, deckId: string): Promise<Deck> {
+  const result = await queryWithWorkspaceScope<DeckRow>(
+    { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
@@ -453,13 +460,15 @@ export async function getDeck(workspaceId: string, deckId: string): Promise<Deck
 }
 
 export async function getDecks(
+  userId: string,
   workspaceId: string,
   deckIds: ReadonlyArray<string>,
 ): Promise<ReadonlyArray<Deck>> {
   validateDeckBatchCount(deckIds.length);
   validateUniqueDeckIds(deckIds);
 
-  const result = await query<DeckRow>(
+  const result = await queryWithWorkspaceScope<DeckRow>(
+    { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
@@ -485,6 +494,7 @@ export async function getDecks(
 }
 
 export async function searchDecksPage(
+  userId: string,
   workspaceId: string,
   searchText: string,
   input: CursorPageInput,
@@ -519,7 +529,8 @@ export async function searchDecksPage(
       input.limit + 1,
     ];
 
-  const result = await query<DeckRow>(
+  const result = await queryWithWorkspaceScope<DeckRow>(
+    { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
       "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
@@ -549,6 +560,7 @@ export async function searchDecksPage(
 }
 
 export async function createDeck(
+  userId: string,
   workspaceId: string,
   input: CreateDeckInput,
   metadata: DeckMutationMetadata,
@@ -556,6 +568,7 @@ export async function createDeck(
   const normalizedInput = normalizeCreateDeckInput(input);
   const now = normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt");
   const result = await upsertDeckSnapshot(
+    userId,
     workspaceId,
     {
       deckId: randomUUID(),
@@ -678,11 +691,15 @@ export async function upsertDeckSnapshotInExecutor(
 }
 
 export async function upsertDeckSnapshot(
+  userId: string,
   workspaceId: string,
   input: DeckSnapshotInput,
   metadata: DeckMutationMetadata,
 ): Promise<DeckMutationResult> {
-  return transaction(async (executor) => upsertDeckSnapshotInExecutor(executor, workspaceId, input, metadata));
+  return transactionWithWorkspaceScope(
+    { userId, workspaceId },
+    async (executor) => upsertDeckSnapshotInExecutor(executor, workspaceId, input, metadata),
+  );
 }
 
 async function updateDeckInExecutor(
@@ -726,12 +743,16 @@ async function updateDeckInExecutor(
 }
 
 export async function updateDeck(
+  userId: string,
   workspaceId: string,
   deckId: string,
   input: UpdateDeckInput,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  return transaction(async (executor) => updateDeckInExecutor(executor, workspaceId, deckId, input, metadata));
+  return transactionWithWorkspaceScope(
+    { userId, workspaceId },
+    async (executor) => updateDeckInExecutor(executor, workspaceId, deckId, input, metadata),
+  );
 }
 
 async function deleteDeckInExecutor(
@@ -775,20 +796,25 @@ async function deleteDeckInExecutor(
 }
 
 export async function deleteDeck(
+  userId: string,
   workspaceId: string,
   deckId: string,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  return transaction(async (executor) => deleteDeckInExecutor(executor, workspaceId, deckId, metadata));
+  return transactionWithWorkspaceScope(
+    { userId, workspaceId },
+    async (executor) => deleteDeckInExecutor(executor, workspaceId, deckId, metadata),
+  );
 }
 
 export async function createDecks(
+  userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkCreateDeckItem>,
 ): Promise<ReadonlyArray<Deck>> {
   validateDeckBatchCount(items.length);
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const createdDecks: Array<Deck> = [];
     for (const item of items) {
       const now = normalizeIsoTimestamp(item.metadata.clientUpdatedAt, "clientUpdatedAt");
@@ -813,13 +839,14 @@ export async function createDecks(
 }
 
 export async function updateDecks(
+  userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkUpdateDeckItem>,
 ): Promise<ReadonlyArray<Deck>> {
   validateDeckBatchCount(items.length);
   validateUniqueDeckIds(items.map((item) => item.deckId));
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const updatedDecks: Array<Deck> = [];
     for (const item of items) {
       updatedDecks.push(await updateDeckInExecutor(executor, workspaceId, item.deckId, item.input, item.metadata));
@@ -830,13 +857,14 @@ export async function updateDecks(
 }
 
 export async function deleteDecks(
+  userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkDeleteDeckItem>,
 ): Promise<BulkDeleteDecksResult> {
   validateDeckBatchCount(items.length);
   validateUniqueDeckIds(items.map((item) => item.deckId));
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const deletedDeckIds: Array<string> = [];
     for (const item of items) {
       const deletedDeck = await deleteDeckInExecutor(executor, workspaceId, item.deckId, item.metadata);

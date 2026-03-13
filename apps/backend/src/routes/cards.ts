@@ -115,7 +115,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
     const requestId = context.get("requestId");
 
     try {
-      const result = await listWorkspaceTagsSummary(workspaceId);
+      const result = await listWorkspaceTagsSummary(requestContext.userId, workspaceId);
       logCloudRouteEvent("workspace_tags_list", {
         requestId,
         route: context.req.path,
@@ -149,7 +149,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
     const requestId = context.get("requestId");
 
     try {
-      const result = await queryCardsPage(workspaceId, body);
+      const result = await queryCardsPage(requestContext.userId, workspaceId, body);
       logCloudRouteEvent("cards_query", {
         requestId,
         route: context.req.path,

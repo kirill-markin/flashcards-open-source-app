@@ -5,7 +5,11 @@ import {
   type Card,
   type ReviewEvent,
 } from "./cards";
-import { query, transaction, type DatabaseExecutor } from "./db";
+import {
+  queryWithWorkspaceScope,
+  transactionWithWorkspaceScope,
+  type DatabaseExecutor,
+} from "./db";
 import {
   ensureSyncDevice,
   type SyncDevicePlatform,
@@ -486,7 +490,10 @@ export async function processSyncPush(
   const operationResults: Array<SyncPushOperationResult> = [];
   for (const operation of input.operations) {
     operationResults.push(
-      await transaction(async (executor) => processOperationInExecutor(executor, workspaceId, input.deviceId, operation)),
+      await transactionWithWorkspaceScope(
+        { userId, workspaceId },
+        async (executor) => processOperationInExecutor(executor, workspaceId, input.deviceId, operation),
+      ),
     );
   }
 
@@ -508,7 +515,8 @@ export async function processSyncPull(
     input.appVersion ?? null,
   );
 
-  const result = await query<ChangeFeedRow>(
+  const result = await queryWithWorkspaceScope<ChangeFeedRow>(
+    { userId, workspaceId },
     [
       "SELECT change_id, entity_type, entity_id, action, payload",
       "FROM sync.changes",

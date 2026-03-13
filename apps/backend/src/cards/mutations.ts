@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { query, transaction, type DatabaseExecutor } from "../db";
+import {
+  transactionWithWorkspaceScope,
+  type DatabaseExecutor,
+} from "../db";
 import { HttpError } from "../errors";
 import {
   incomingLwwMetadataWins,
@@ -283,11 +286,12 @@ export async function upsertCardSnapshotInExecutor(
 }
 
 export async function upsertCardSnapshot(
+  userId: string,
   workspaceId: string,
   input: CardSnapshotInput,
   metadata: CardMutationMetadata,
 ): Promise<CardMutationResult> {
-  return transaction(async (executor) => (
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => (
     upsertCardSnapshotInExecutor(executor, workspaceId, input, metadata)
   ));
 }
@@ -337,20 +341,25 @@ async function createCardInExecutor(
 }
 
 export async function createCard(
+  userId: string,
   workspaceId: string,
   input: CreateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  return transaction(async (executor) => createCardInExecutor(executor, workspaceId, input, metadata));
+  return transactionWithWorkspaceScope(
+    { userId, workspaceId },
+    async (executor) => createCardInExecutor(executor, workspaceId, input, metadata),
+  );
 }
 
 export async function createCards(
+  userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkCreateCardItem>,
 ): Promise<ReadonlyArray<Card>> {
   validateCardBatchCount(items.length);
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const createdCards: Array<Card> = [];
     for (const item of items) {
       createdCards.push(await createCardInExecutor(executor, workspaceId, item.input, item.metadata));
@@ -407,22 +416,27 @@ async function updateCardInExecutor(
 }
 
 export async function updateCard(
+  userId: string,
   workspaceId: string,
   cardId: string,
   input: UpdateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  return transaction(async (executor) => updateCardInExecutor(executor, workspaceId, cardId, input, metadata));
+  return transactionWithWorkspaceScope(
+    { userId, workspaceId },
+    async (executor) => updateCardInExecutor(executor, workspaceId, cardId, input, metadata),
+  );
 }
 
 export async function updateCards(
+  userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkUpdateCardItem>,
 ): Promise<ReadonlyArray<Card>> {
   validateCardBatchCount(items.length);
   validateUniqueCardIds(items.map((item) => item.cardId));
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const updatedCards: Array<Card> = [];
     for (const item of items) {
       updatedCards.push(
@@ -471,21 +485,26 @@ async function deleteCardInExecutor(
 }
 
 export async function deleteCard(
+  userId: string,
   workspaceId: string,
   cardId: string,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  return transaction(async (executor) => deleteCardInExecutor(executor, workspaceId, cardId, metadata));
+  return transactionWithWorkspaceScope(
+    { userId, workspaceId },
+    async (executor) => deleteCardInExecutor(executor, workspaceId, cardId, metadata),
+  );
 }
 
 export async function deleteCards(
+  userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkDeleteCardItem>,
 ): Promise<BulkDeleteCardsResult> {
   validateCardBatchCount(items.length);
   validateUniqueCardIds(items.map((item) => item.cardId));
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const deletedCardIds: Array<string> = [];
     for (const item of items) {
       const deletedCard = await deleteCardInExecutor(executor, workspaceId, item.cardId, item.metadata);

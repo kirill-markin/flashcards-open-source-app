@@ -5,6 +5,15 @@ function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function getDatabaseSqlState(error: unknown): string | null {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return null;
+  }
+
+  const code = (error as Readonly<{ code?: unknown }>).code;
+  return typeof code === "string" && code !== "" ? code : null;
+}
+
 export function logRequestError(
   requestId: string,
   path: string,
@@ -46,6 +55,7 @@ export function logRequestError(
     statusCode: 500,
     code: "INTERNAL_ERROR",
     message: getInternalErrorMessage(error),
+    sqlState: getDatabaseSqlState(error),
   }));
 }
 

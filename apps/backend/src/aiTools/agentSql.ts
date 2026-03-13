@@ -119,6 +119,7 @@ function toCreatedDeckRows(decks: ReadonlyArray<Deck>): ReadonlyArray<SqlRow> {
 
 async function collectCardRows(
   dependencies: AgentToolOperationDependencies,
+  userId: string,
   workspaceId: string,
 ): Promise<ReadonlyArray<SqlRow>> {
   const rows: Array<SqlRow> = [];
@@ -126,6 +127,7 @@ async function collectCardRows(
 
   do {
     const page = await listAgentCardsOperation(dependencies, {
+      userId,
       workspaceId,
       cursor,
       limit: MAX_SQL_LIMIT,
@@ -140,6 +142,7 @@ async function collectCardRows(
 
 async function collectDeckRows(
   dependencies: AgentToolOperationDependencies,
+  userId: string,
   workspaceId: string,
 ): Promise<ReadonlyArray<SqlRow>> {
   const rows: Array<SqlRow> = [];
@@ -147,6 +150,7 @@ async function collectDeckRows(
 
   do {
     const page = await listAgentDecksOperation(dependencies, {
+      userId,
       workspaceId,
       cursor,
       limit: MAX_SQL_LIMIT,
@@ -160,6 +164,7 @@ async function collectDeckRows(
 
 async function collectReviewEventRows(
   dependencies: AgentToolOperationDependencies,
+  userId: string,
   workspaceId: string,
 ): Promise<ReadonlyArray<SqlRow>> {
   const rows: Array<SqlRow> = [];
@@ -167,6 +172,7 @@ async function collectReviewEventRows(
 
   do {
     const page = await listAgentReviewEventsOperation(dependencies, {
+      userId,
       workspaceId,
       cursor,
       limit: MAX_SQL_LIMIT,
@@ -212,14 +218,14 @@ async function loadSelectRows(
   }
 
   if (resourceName === "cards") {
-    return collectCardRows(dependencies, context.workspaceId);
+    return collectCardRows(dependencies, context.userId, context.workspaceId);
   }
 
   if (resourceName === "decks") {
-    return collectDeckRows(dependencies, context.workspaceId);
+    return collectDeckRows(dependencies, context.userId, context.workspaceId);
   }
 
-  return collectReviewEventRows(dependencies, context.workspaceId);
+  return collectReviewEventRows(dependencies, context.userId, context.workspaceId);
 }
 
 function buildCreateCardInput(

@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { query, transaction, type DatabaseExecutor } from "./db";
+import {
+  applyWorkspaceDatabaseScopeInExecutor,
+  queryWithUserScope,
+  transaction,
+  transactionWithUserScope,
+  type DatabaseExecutor,
+} from "./db";
 import { HttpError } from "./errors";
 import {
   decodeOpaqueCursor,
@@ -156,6 +162,8 @@ async function createWorkspaceInExecutor(
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
 
+  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+
   const workspaceInsertResult = await executor.query<WorkspaceSchedulerSeedRow>(
     [
       "INSERT INTO org.workspaces",
@@ -177,20 +185,20 @@ async function createWorkspaceInExecutor(
 
   await executor.query(
     [
-      "INSERT INTO sync.devices",
-      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
-      "VALUES ($1, $2, $3, 'ios', $4, now())",
-    ].join(" "),
-    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
-  );
-
-  await executor.query(
-    [
       "INSERT INTO org.workspace_memberships",
       "(workspace_id, user_id, role)",
       "VALUES ($1, $2, 'owner')",
     ].join(" "),
     [workspaceId, userId],
+  );
+
+  await executor.query(
+    [
+      "INSERT INTO sync.devices",
+      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
+      "VALUES ($1, $2, $3, 'ios', $4, now())",
+    ].join(" "),
+    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
   );
 
   await insertSyncChange(
@@ -305,7 +313,8 @@ export async function listUserWorkspacesForSelectedWorkspace(
   userId: string,
   selectedWorkspaceId: string | null,
 ): Promise<ReadonlyArray<WorkspaceSummary>> {
-  const result = await query<WorkspaceSummaryRow>(
+  const result = await queryWithUserScope<WorkspaceSummaryRow>(
+    { userId },
     [
       "SELECT",
       "workspaces.workspace_id,",
@@ -340,7 +349,8 @@ export async function listUserWorkspacesPageForSelectedWorkspace(
     : [userId, new Date(decodedCursor.createdAt), decodedCursor.workspaceId, input.limit + 1];
   const limitParamIndex = decodedCursor === null ? 2 : 4;
 
-  const result = await query<WorkspaceSummaryRow>(
+  const result = await queryWithUserScope<WorkspaceSummaryRow>(
+    { userId },
     [
       "SELECT",
       "workspaces.workspace_id,",
@@ -370,7 +380,7 @@ export async function listUserWorkspacesPageForSelectedWorkspace(
 }
 
 export async function createWorkspaceForUser(userId: string, name: string): Promise<WorkspaceSummary> {
-  return transaction(async (executor) => {
+  return transactionWithUserScope({ userId }, async (executor) => {
     const workspaceId = await createWorkspaceInExecutor(executor, userId, name);
 
     await executor.query(
@@ -387,7 +397,7 @@ export async function createWorkspaceForApiKeyConnection(
   connectionId: string,
   name: string,
 ): Promise<WorkspaceSummary> {
-  return transaction(async (executor) => {
+  return transactionWithUserScope({ userId }, async (executor) => {
     const workspaceId = await createWorkspaceInExecutor(executor, userId, name);
     await setSelectedWorkspaceForApiKeyConnectionInExecutor(executor, userId, connectionId, workspaceId);
 
@@ -396,7 +406,7 @@ export async function createWorkspaceForApiKeyConnection(
 }
 
 export async function selectWorkspaceForUser(userId: string, workspaceId: string): Promise<WorkspaceSummary> {
-  return transaction(async (executor) => {
+  return transactionWithUserScope({ userId }, async (executor) => {
     const membershipResult = await executor.query<WorkspaceMembershipRow>(
       [
         "SELECT workspace_id",
@@ -424,7 +434,7 @@ export async function selectWorkspaceForApiKeyConnection(
   connectionId: string,
   workspaceId: string,
 ): Promise<WorkspaceSummary> {
-  return transaction(async (executor) => {
+  return transactionWithUserScope({ userId }, async (executor) => {
     const membershipResult = await executor.query<WorkspaceMembershipRow>(
       [
         "SELECT workspace_id",
@@ -445,7 +455,8 @@ export async function selectWorkspaceForApiKeyConnection(
 }
 
 export async function assertUserHasWorkspaceAccess(userId: string, workspaceId: string): Promise<void> {
-  const result = await query<WorkspaceMembershipRow>(
+  const result = await queryWithUserScope<WorkspaceMembershipRow>(
+    { userId },
     [
       "SELECT workspace_id",
       "FROM org.workspace_memberships",

@@ -1,7 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type pg from "pg";
 import { deleteAccountConfirmationText, deleteAccountForAuthenticatedUser } from "./accountDeletion";
 import { HttpError } from "./errors";
+
+function makeQueryResult<Row extends pg.QueryResultRow>(
+  rows: ReadonlyArray<pg.QueryResultRow>,
+): pg.QueryResult<Row> {
+  return {
+    command: rows.length > 0 ? "SELECT" : "UPDATE",
+    rowCount: rows.length,
+    oid: 0,
+    fields: [],
+    rows: [...rows] as Array<Row>,
+  };
+}
 
 test("deleteAccountForAuthenticatedUser rejects the wrong confirmation text before any side effects", async () => {
   let transactionCalled = false;
@@ -13,7 +26,7 @@ test("deleteAccountForAuthenticatedUser rejects the wrong confirmation text befo
       cognitoUsername: "cognito-user-1",
       confirmationText: "wrong text",
     }, {
-      transaction: async () => {
+      transactionWithUserScope: async () => {
         transactionCalled = true
         throw new Error("unexpected")
       },
@@ -40,7 +53,7 @@ test("deleteAccountForAuthenticatedUser skips database work for already deleted 
     cognitoUsername: "cognito-user-1",
     confirmationText: deleteAccountConfirmationText,
   }, {
-    transaction: async () => {
+    transactionWithUserScope: async () => {
       transactionCalled = true
       throw new Error("unexpected")
     },
@@ -63,36 +76,30 @@ test("deleteAccountForAuthenticatedUser blocks shared workspaces before deleting
       cognitoUsername: "cognito-user-1",
       confirmationText: deleteAccountConfirmationText,
     }, {
-      transaction: async (callback) => callback({
-        query: async <Row extends Record<string, unknown>>(text: string): Promise<{ rows: Array<Row> }> => {
+      transactionWithUserScope: async (_scope, callback) => callback({
+        query: async <Row extends pg.QueryResultRow>(text: string): Promise<pg.QueryResult<Row>> => {
           queries.push(text);
 
           if (text.includes("SELECT workspace_id FROM org.workspace_memberships")) {
-            return {
-              rows: [{
-                workspace_id: "00000000-0000-4000-8000-000000000001",
-              }] as Array<Row>,
-            };
+            return makeQueryResult<Row>([{
+              workspace_id: "00000000-0000-4000-8000-000000000001",
+            }]);
           }
 
           if (text.includes("SELECT workspace_id, user_id")) {
-            return {
-              rows: [
-                {
-                  workspace_id: "00000000-0000-4000-8000-000000000001",
-                  user_id: "user-1",
-                },
-                {
-                  workspace_id: "00000000-0000-4000-8000-000000000001",
-                  user_id: "user-2",
-                },
-              ] as Array<Row>,
-            };
+            return makeQueryResult<Row>([
+              {
+                workspace_id: "00000000-0000-4000-8000-000000000001",
+                user_id: "user-1",
+              },
+              {
+                workspace_id: "00000000-0000-4000-8000-000000000001",
+                user_id: "user-2",
+              },
+            ]);
           }
 
-          return {
-            rows: [],
-          };
+          return makeQueryResult<Row>([]);
         },
       }),
       deleteCognitoUser: async () => {
@@ -117,30 +124,24 @@ test("deleteAccountForAuthenticatedUser deletes sole-member workspace data and t
     cognitoUsername: "cognito-user-1",
     confirmationText: deleteAccountConfirmationText,
   }, {
-    transaction: async (callback) => callback({
-      query: async <Row extends Record<string, unknown>>(text: string): Promise<{ rows: Array<Row> }> => {
+    transactionWithUserScope: async (_scope, callback) => callback({
+      query: async <Row extends pg.QueryResultRow>(text: string): Promise<pg.QueryResult<Row>> => {
         queries.push(text);
 
         if (text.includes("SELECT workspace_id FROM org.workspace_memberships")) {
-          return {
-            rows: [{
-              workspace_id: "00000000-0000-4000-8000-000000000001",
-            }] as Array<Row>,
-          };
+          return makeQueryResult<Row>([{
+            workspace_id: "00000000-0000-4000-8000-000000000001",
+          }]);
         }
 
         if (text.includes("SELECT workspace_id, user_id")) {
-          return {
-            rows: [{
-              workspace_id: "00000000-0000-4000-8000-000000000001",
-              user_id: "user-1",
-            }] as Array<Row>,
-          };
+          return makeQueryResult<Row>([{
+            workspace_id: "00000000-0000-4000-8000-000000000001",
+            user_id: "user-1",
+          }]);
         }
 
-        return {
-          rows: [],
-        };
+        return makeQueryResult<Row>([]);
       },
     }),
     deleteCognitoUser: async (cognitoUsername: string) => {

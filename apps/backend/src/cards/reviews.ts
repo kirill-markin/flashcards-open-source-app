@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { transaction, type DatabaseExecutor } from "../db";
+import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../db";
 import { HttpError } from "../errors";
 import {
   computeReviewSchedule,
@@ -150,6 +150,7 @@ export async function appendReviewEventSnapshotInExecutor(
 }
 
 export async function submitReview(
+  userId: string,
   workspaceId: string,
   deviceId: string,
   input: SubmitReviewInput,
@@ -163,7 +164,7 @@ export async function submitReview(
 
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
-  return transaction(async (executor) => {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const existingCard = await loadReviewableCardForUpdate(executor, workspaceId, input.cardId);
     const schedulerConfig = await getWorkspaceSchedulerConfig(executor, workspaceId);
     const schedule = computeReviewSchedule(

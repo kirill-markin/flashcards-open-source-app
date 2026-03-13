@@ -45,6 +45,10 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
       text: string,
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        return makeQueryResult<Row>([]);
+      }
+
       if (text.includes("INSERT INTO org.user_settings")) {
         assertUserSettingsInsertParams(params, "new-user", "new-user@example.com");
         return makeQueryResult<Row>([]);
@@ -133,6 +137,10 @@ test("ensureUserProfileInExecutor repairs missing selected workspace with earlie
       text: string,
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        return makeQueryResult<Row>([]);
+      }
+
       if (text.includes("INSERT INTO org.user_settings")) {
         assertUserSettingsInsertParams(params, "existing-user", "existing@example.com");
         return makeQueryResult<Row>([]);
@@ -190,6 +198,10 @@ test("ensureUserProfileInExecutor keeps selected workspace when it is accessible
       text: string,
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        return makeQueryResult<Row>([]);
+      }
+
       if (text.includes("INSERT INTO org.user_settings")) {
         assertUserSettingsInsertParams(params, "selected-user", "selected@example.com");
         return makeQueryResult<Row>([]);
@@ -233,6 +245,10 @@ test("ensureUserProfileInExecutor reuses existing membership when selection is e
       text: string,
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        return makeQueryResult<Row>([]);
+      }
+
       if (text.includes("INSERT INTO org.user_settings")) {
         assertUserSettingsInsertParams(params, "linked-user", "linked@example.com");
         return makeQueryResult<Row>([]);
@@ -287,6 +303,10 @@ test("ensureUserProfileInExecutor keeps existing non-null email value", async ()
       text: string,
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        return makeQueryResult<Row>([]);
+      }
+
       if (text.includes("INSERT INTO org.user_settings")) {
         assertUserSettingsInsertParams(params, "stable-user", "new@example.com");
         return makeQueryResult<Row>([]);

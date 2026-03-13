@@ -845,7 +845,7 @@ describe("ChatPanel autoscroll", () => {
         toolCallId: "tool-1",
         name: "sql",
         status: "completed",
-        input: "{\"sql\":\"SELECT cards.front_text, cards.back_text FROM cards WHERE workspace_id = 'workspace-123' ORDER BY updated_at DESC LIMIT 100\"}",
+        input: "{\"sql\":\"SELECT cards.front_text, cards.back_text FROM cards ORDER BY updated_at DESC LIMIT 100\"}",
         output: "{\"rows\":[{\"front_text\":\"Question\",\"back_text\":\"Answer\"}]}",
       }],
       timestamp: 1,
