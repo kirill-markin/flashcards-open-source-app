@@ -7,7 +7,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
         AIChatMockUrlProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/local-turn")
             XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
-            XCTAssertEqual(try self.readTotalCards(from: request), 3)
+            XCTAssertEqual(try readTotalCards(from: request), 3)
 
             let response = HTTPURLResponse(
                 url: try XCTUnwrap(request.url),
@@ -73,7 +73,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
     func testAIChatServiceReadsSequentialSSEEventsWithoutFramingFailure() async throws {
         AIChatMockUrlProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/local-turn")
-            XCTAssertEqual(try self.readTotalCards(from: request), 3)
+            XCTAssertEqual(try readTotalCards(from: request), 3)
 
             let response = HTTPURLResponse(
                 url: try XCTUnwrap(request.url),
@@ -153,13 +153,13 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
             userContext: AILocalChatUserContext(totalCards: 3)
         )
     }
+}
 
-    private func readTotalCards(from request: URLRequest) throws -> Int {
-        let bodyData = try XCTUnwrap(request.httpBody)
-        let jsonObject = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
-        let userContext = try XCTUnwrap(jsonObject?["userContext"] as? [String: Any])
-        return try XCTUnwrap(userContext["totalCards"] as? Int)
-    }
+private func readTotalCards(from request: URLRequest) throws -> Int {
+    let bodyData = try XCTUnwrap(request.httpBody)
+    let jsonObject = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
+    let userContext = try XCTUnwrap(jsonObject?["userContext"] as? [String: Any])
+    return try XCTUnwrap(userContext["totalCards"] as? Int)
 }
 
 private actor LatencyRecorder {
