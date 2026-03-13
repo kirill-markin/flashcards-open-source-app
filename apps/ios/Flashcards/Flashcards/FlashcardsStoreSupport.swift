@@ -80,6 +80,30 @@ struct LocalMutationContext {
     let workspaceId: String
 }
 
+func applyingCardMutation(cards: [Card], card: Card) -> [Card] {
+    let remainingCards = cards.filter { existingCard in
+        existingCard.cardId != card.cardId
+    }
+
+    if card.deletedAt != nil {
+        return remainingCards
+    }
+
+    return [card] + remainingCards
+}
+
+func applyingDeckMutation(decks: [Deck], deck: Deck) -> [Deck] {
+    let remainingDecks = decks.filter { existingDeck in
+        existingDeck.deckId != deck.deckId
+    }
+
+    if deck.deletedAt != nil {
+        return remainingDecks
+    }
+
+    return [deck] + remainingDecks
+}
+
 func requireLocalDatabase(database: LocalDatabase?) throws -> LocalDatabase {
     guard let database else {
         throw LocalStoreError.uninitialized("Local database is unavailable")
