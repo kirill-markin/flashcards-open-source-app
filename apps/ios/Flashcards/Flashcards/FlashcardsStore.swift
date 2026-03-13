@@ -70,21 +70,6 @@ private func applyingDeckMutation(decks: [Deck], deck: Deck) -> [Deck] {
     return [deck] + remainingDecks
 }
 
-/// Immutable payload for one pending optimistic review submission.
-private struct ReviewSubmissionRequest: Hashable, Sendable {
-    let id: String
-    let workspaceId: String
-    let cardId: String
-    let rating: ReviewRating
-    let reviewedAtClient: String
-}
-
-/// Represents one failed optimistic review submission shown in the Review alert.
-struct ReviewSubmissionFailure: Identifiable, Hashable, Sendable {
-    let id: String
-    let message: String
-}
-
 struct TabSelectionRequest: Equatable, Sendable {
     let id: String
     let tab: AppTab
@@ -94,11 +79,6 @@ enum AccountDeletionState: Equatable {
     case hidden
     case inProgress
     case failed(message: String)
-}
-
-private struct AIChatSessionPreparationState {
-    let id: String
-    let task: Task<CloudLinkedSession, Error>
 }
 
 typealias ReviewHeadLoader = @Sendable (
@@ -244,33 +224,13 @@ final class FlashcardsStore: ObservableObject {
     @Published private(set) var accountDeletionSuccessMessage: String?
 
     private let database: LocalDatabase?
-    private let cloudAuthService: CloudAuthService
-    private let cloudSyncService: CloudSyncService?
-    private let credentialStore: CloudCredentialStore
-    private let reviewSubmissionExecutor: ReviewSubmissionExecuting?
-    private let reviewHeadLoader: ReviewHeadLoader
-    private let reviewCountsLoader: ReviewCountsLoader
-    private let reviewQueueChunkLoader: ReviewQueueChunkLoader
-    private let reviewTimelinePageLoader: ReviewTimelinePageLoader
+    private let dependencies: FlashcardsStoreDependencies
     private let userDefaults: UserDefaults
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private(set) var selectedTab: AppTab
-    private var activeCloudSession: CloudLinkedSession?
-    private var activeCloudSyncTask: Task<Void, Error>?
-    private var activeAIChatSessionPreparation: AIChatSessionPreparationState?
-    private var activeReviewLoadTask: Task<Void, Never>?
-    private var activeReviewLoadRequestId: String?
-    private var activeReviewCountsTask: Task<Void, Never>?
-    private var activeReviewCountsRequestId: String?
-    private var activeReviewQueueChunkTask: Task<Void, Never>?
-    private var activeReviewQueueChunkRequestId: String?
-    private var pendingCloudResync: Bool
-    private var pendingReviewRequests: [ReviewSubmissionRequest]
-    private var isReviewProcessorRunning: Bool
-    private var reviewSourceVersion: Int
-    private var loadedReviewCardIds: Set<String>
-    private var hasMoreReviewQueueCards: Bool
+    private var reviewRuntime: ReviewQueueRuntime
+    private var cloudRuntime: CloudSessionRuntime
     private var isAccountDeletionRunning: Bool
     lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
 
@@ -344,6 +304,26 @@ final class FlashcardsStore: ObservableObject {
         reviewTimelinePageLoader: @escaping ReviewTimelinePageLoader,
         initialGlobalErrorMessage: String
     ) {
+        let initialSelectedReviewFilter = FlashcardsStore.loadSelectedReviewFilter(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
+        let initialReviewPublishedState = ReviewQueueRuntime.makeInitialPublishedState(
+            selectedReviewFilter: initialSelectedReviewFilter
+        )
+        let dependencies = FlashcardsStoreDependencies(
+            cloudAuthService: cloudAuthService,
+            cloudSyncService: database.map { initializedDatabase in
+                CloudSyncService(database: initializedDatabase)
+            },
+            credentialStore: credentialStore,
+            reviewSubmissionExecutor: reviewSubmissionExecutor,
+            reviewHeadLoader: reviewHeadLoader,
+            reviewCountsLoader: reviewCountsLoader,
+            reviewQueueChunkLoader: reviewQueueChunkLoader,
+            reviewTimelinePageLoader: reviewTimelinePageLoader
+        )
+
         self.workspace = nil
         self.userSettings = nil
         self.schedulerSettings = nil
@@ -351,15 +331,12 @@ final class FlashcardsStore: ObservableObject {
         self.cards = []
         self.decks = []
         self.deckItems = []
-        self.selectedReviewFilter = FlashcardsStore.loadSelectedReviewFilter(
-            userDefaults: userDefaults,
-            decoder: decoder
-        )
-        self.reviewQueue = []
-        self.reviewCounts = ReviewCounts(dueCount: 0, totalCount: 0)
-        self.isReviewHeadLoading = false
-        self.isReviewCountsLoading = false
-        self.isReviewQueueChunkLoading = false
+        self.selectedReviewFilter = initialReviewPublishedState.selectedReviewFilter
+        self.reviewQueue = initialReviewPublishedState.reviewQueue
+        self.reviewCounts = initialReviewPublishedState.reviewCounts
+        self.isReviewHeadLoading = initialReviewPublishedState.isReviewHeadLoading
+        self.isReviewCountsLoading = initialReviewPublishedState.isReviewCountsLoading
+        self.isReviewQueueChunkLoading = initialReviewPublishedState.isReviewQueueChunkLoading
         self.homeSnapshot = HomeSnapshot(
             deckCount: 0,
             totalCards: 0,
@@ -375,39 +352,25 @@ final class FlashcardsStore: ObservableObject {
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
         self.settingsPresentationRequest = nil
-        self.pendingReviewCardIds = []
-        self.reviewSubmissionFailure = nil
+        self.pendingReviewCardIds = initialReviewPublishedState.pendingReviewCardIds
+        self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
         self.database = database
-        self.cloudAuthService = cloudAuthService
-        self.cloudSyncService = database.map { initializedDatabase in
-            CloudSyncService(database: initializedDatabase)
-        }
-        self.credentialStore = credentialStore
-        self.reviewSubmissionExecutor = reviewSubmissionExecutor
-        self.reviewHeadLoader = reviewHeadLoader
-        self.reviewCountsLoader = reviewCountsLoader
-        self.reviewQueueChunkLoader = reviewQueueChunkLoader
-        self.reviewTimelinePageLoader = reviewTimelinePageLoader
+        self.dependencies = dependencies
         self.userDefaults = userDefaults
         self.encoder = encoder
         self.decoder = decoder
-        self.activeCloudSession = nil
-        self.activeCloudSyncTask = nil
-        self.activeAIChatSessionPreparation = nil
-        self.activeReviewLoadTask = nil
-        self.activeReviewLoadRequestId = nil
-        self.activeReviewCountsTask = nil
-        self.activeReviewCountsRequestId = nil
-        self.activeReviewQueueChunkTask = nil
-        self.activeReviewQueueChunkRequestId = nil
-        self.pendingCloudResync = false
-        self.pendingReviewRequests = []
-        self.isReviewProcessorRunning = false
-        self.reviewSourceVersion = 0
-        self.loadedReviewCardIds = []
-        self.hasMoreReviewQueueCards = false
+        self.reviewRuntime = ReviewQueueRuntime(
+            initialSelectedReviewFilter: initialSelectedReviewFilter,
+            reviewSeedQueueSize: reviewSeedQueueSize,
+            reviewQueueReplenishmentThreshold: reviewQueueReplenishmentThreshold
+        )
+        self.cloudRuntime = CloudSessionRuntime(
+            cloudAuthService: dependencies.cloudAuthService,
+            cloudSyncService: dependencies.cloudSyncService,
+            credentialStore: dependencies.credentialStore
+        )
         self.isAccountDeletionRunning = false
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
@@ -450,14 +413,19 @@ final class FlashcardsStore: ObservableObject {
     }
 
     var displayedReviewDueCount: Int {
-        max(0, self.reviewCounts.dueCount - self.pendingReviewCountForSelectedReviewFilter())
+        max(
+            0,
+            self.reviewCounts.dueCount - self.reviewRuntime.pendingReviewCount(
+                publishedState: self.currentReviewPublishedState(),
+                cards: self.cards,
+                decks: self.decks
+            )
+        )
     }
 
     /// Review queue visible to UI after optimistic removals are applied.
     var effectiveReviewQueue: [Card] {
-        self.reviewQueue.filter { card in
-            self.pendingReviewCardIds.contains(card.cardId) == false
-        }
+        self.reviewRuntime.effectiveReviewQueue(publishedState: self.currentReviewPublishedState())
     }
 
     func selectTab(tab: AppTab) {
@@ -501,122 +469,76 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func saveCard(input: CardEditorInput, editingCardId: String?) throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let persistedCard = try database.saveCard(workspaceId: workspaceId, input: input, cardId: editingCardId)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let persistedCard = try context.database.saveCard(
+            workspaceId: context.workspaceId,
+            input: input,
+            cardId: editingCardId
+        )
         self.applyCardMutation(card: persistedCard, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
     func createCards(inputs: [CardEditorInput]) throws -> [Card] {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let createdCards = try database.createCards(workspaceId: workspaceId, inputs: inputs)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let createdCards = try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
         try self.reload()
         self.triggerCloudSyncIfLinked()
         return createdCards
     }
 
     func deleteCard(cardId: String) throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let deletedCard = try database.deleteCard(workspaceId: workspaceId, cardId: cardId)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let deletedCard = try context.database.deleteCard(workspaceId: context.workspaceId, cardId: cardId)
         self.applyCardMutation(card: deletedCard, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
     func updateCards(updates: [CardUpdateInput]) throws -> [Card] {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let updatedCards = try database.updateCards(workspaceId: workspaceId, updates: updates)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let updatedCards = try context.database.updateCards(workspaceId: context.workspaceId, updates: updates)
         try self.reload()
         self.triggerCloudSyncIfLinked()
         return updatedCards
     }
 
     func deleteCards(cardIds: [String]) throws -> BulkDeleteCardsResult {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let result = try database.deleteCards(workspaceId: workspaceId, cardIds: cardIds)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let result = try context.database.deleteCards(workspaceId: context.workspaceId, cardIds: cardIds)
         try self.reload()
         self.triggerCloudSyncIfLinked()
         return result
     }
 
     func createDeck(input: DeckEditorInput) throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let createdDeck = try database.createDeck(workspaceId: workspaceId, input: input)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let createdDeck = try context.database.createDeck(workspaceId: context.workspaceId, input: input)
         self.applyDeckMutation(deck: createdDeck, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
     func updateDeck(deckId: String, input: DeckEditorInput) throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let updatedDeck = try database.updateDeck(workspaceId: workspaceId, deckId: deckId, input: input)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let updatedDeck = try context.database.updateDeck(
+            workspaceId: context.workspaceId,
+            deckId: deckId,
+            input: input
+        )
         self.applyDeckMutation(deck: updatedDeck, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
     func deleteDeck(deckId: String) throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let deletedDeck = try database.deleteDeck(workspaceId: workspaceId, deckId: deckId)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let deletedDeck = try context.database.deleteDeck(workspaceId: context.workspaceId, deckId: deckId)
         self.applyDeckMutation(deck: deletedDeck, now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
     func submitReview(cardId: String, rating: ReviewRating) throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let updatedCard = try database.submitReview(
-            workspaceId: workspaceId,
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let updatedCard = try context.database.submitReview(
+            workspaceId: context.workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
                 rating: rating,
@@ -629,31 +551,19 @@ final class FlashcardsStore: ObservableObject {
 
     /// Optimistically removes a card from the review queue and schedules submit in background.
     func enqueueReviewSubmission(cardId: String, rating: ReviewRating) throws {
-        guard self.reviewSubmissionExecutor != nil else {
-            throw LocalStoreError.uninitialized("Review submission executor is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-        guard self.cards.contains(where: { card in
-            card.cardId == cardId && card.deletedAt == nil
-        }) else {
-            throw LocalStoreError.notFound("Card not found")
-        }
-        guard self.pendingReviewCardIds.contains(cardId) == false else {
-            throw LocalStoreError.validation("Review submission is already pending for this card")
+        guard self.dependencies.reviewSubmissionExecutor != nil else {
+            throw self.reviewRuntime.reviewSubmissionExecutorUnavailableError()
         }
 
-        let request = ReviewSubmissionRequest(
-            id: UUID().uuidString.lowercased(),
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        let nextReviewState = try self.reviewRuntime.enqueueReviewSubmission(
+            publishedState: self.currentReviewPublishedState(),
             workspaceId: workspaceId,
             cardId: cardId,
             rating: rating,
-            reviewedAtClient: currentIsoTimestamp()
+            cards: self.cards
         )
-        self.pendingReviewCardIds.insert(cardId)
-        self.pendingReviewRequests.append(request)
-        self.reviewSubmissionFailure = nil
+        self.applyReviewPublishedState(reviewState: nextReviewState)
         self.startReviewQueueChunkLoadIfNeeded(now: Date())
         self.startReviewProcessorIfNeeded()
     }
@@ -675,15 +585,9 @@ final class FlashcardsStore: ObservableObject {
         maximumIntervalDays: Int,
         enableFuzz: Bool
     ) throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        try database.updateWorkspaceSchedulerSettings(
-            workspaceId: workspaceId,
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        try context.database.updateWorkspaceSchedulerSettings(
+            workspaceId: context.workspaceId,
             desiredRetention: desiredRetention,
             learningStepsMinutes: learningStepsMinutes,
             relearningStepsMinutes: relearningStepsMinutes,
@@ -696,38 +600,23 @@ final class FlashcardsStore: ObservableObject {
 
     func sendCloudSignInCode(email: String) async throws -> CloudOtpChallenge {
         let configuration = try loadCloudServiceConfiguration()
-        let challenge = try await self.cloudAuthService.sendCode(
-            email: email,
-            authBaseUrl: configuration.authBaseUrl
-        )
+        let challenge = try await self.cloudRuntime.sendCode(email: email, configuration: configuration)
         self.globalErrorMessage = ""
         return challenge
     }
 
     func verifyCloudOtp(challenge: CloudOtpChallenge, code: String) async throws -> CloudVerifiedAuthContext {
         let configuration = try loadCloudServiceConfiguration()
-        let credentials = try await self.cloudAuthService.verifyCode(
+        self.globalErrorMessage = ""
+        return try await self.cloudRuntime.verifyCode(
             challenge: challenge,
             code: code,
-            authBaseUrl: configuration.authBaseUrl
-        )
-
-        self.globalErrorMessage = ""
-        return CloudVerifiedAuthContext(
-            apiBaseUrl: configuration.apiBaseUrl,
-            credentials: credentials
+            configuration: configuration
         )
     }
 
     func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) async throws -> CloudWorkspaceLinkContext {
-        guard let cloudSyncService else {
-            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
-        }
-
-        let account = try await cloudSyncService.fetchCloudAccount(
-            apiBaseUrl: verifiedContext.apiBaseUrl,
-            bearerToken: verifiedContext.credentials.idToken
-        )
+        let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
 
         self.globalErrorMessage = ""
         return CloudWorkspaceLinkContext(
@@ -743,43 +632,17 @@ final class FlashcardsStore: ObservableObject {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ) async throws {
-        guard let cloudSyncService else {
-            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
-        }
         guard let workspace else {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
-        let linkedWorkspace: CloudWorkspaceSummary
-        switch selection {
-        case .existing(let workspaceId):
-            // Workspace choice is explicit now so future device-side workspace
-            // switching can reuse the same linking surface.
-            logCloudPhase(
-                phase: .workspaceSelect,
-                outcome: "start",
-                workspaceId: workspaceId,
-                selection: "existing"
-            )
-            linkedWorkspace = try await cloudSyncService.selectWorkspace(
-                apiBaseUrl: linkContext.apiBaseUrl,
-                bearerToken: linkContext.credentials.idToken,
-                workspaceId: workspaceId
-            )
-        case .createNew:
-            logCloudPhase(
-                phase: .workspaceCreate,
-                outcome: "start",
-                selection: "create_new"
-            )
-            linkedWorkspace = try await cloudSyncService.createWorkspace(
-                apiBaseUrl: linkContext.apiBaseUrl,
-                bearerToken: linkContext.credentials.idToken,
-                name: workspace.name
-            )
-        }
+        let linkedWorkspace = try await self.cloudRuntime.selectOrCreateWorkspace(
+            linkContext: linkContext,
+            selection: selection,
+            localWorkspaceName: workspace.name
+        )
 
-        try self.credentialStore.saveCredentials(credentials: linkContext.credentials)
+        try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
         try await self.finishCloudLink(
             linkedSession: CloudLinkedSession(
                 userId: linkContext.userId,
@@ -793,12 +656,9 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func disconnectCloudAccount() throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-
-        self.cloudAuthService.resetChallengeSession()
-        try self.credentialStore.clearCredentials()
+        let database = try requireLocalDatabase(database: self.database)
+        self.cloudRuntime.cancelForAccountDeletion()
+        try self.cloudRuntime.clearCredentials()
         try database.updateCloudSettings(
             cloudState: .disconnected,
             linkedUserId: nil,
@@ -807,7 +667,6 @@ final class FlashcardsStore: ObservableObject {
         )
         self.syncStatus = .idle
         self.lastSuccessfulCloudSyncAt = nil
-        self.activeCloudSession = nil
         self.globalErrorMessage = ""
         try self.reload()
     }
@@ -841,12 +700,7 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func finishCloudLink(linkedSession: CloudLinkedSession) async throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let localWorkspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
 
         self.syncStatus = .syncing
         do {
@@ -859,12 +713,15 @@ final class FlashcardsStore: ObservableObject {
                 workspaceId: linkedSession.workspaceId,
                 deviceId: self.cloudSettings?.deviceId
             )
-            try database.relinkWorkspace(localWorkspaceId: localWorkspaceId, linkedSession: linkedSession)
+            try context.database.relinkWorkspace(
+                localWorkspaceId: context.workspaceId,
+                linkedSession: linkedSession
+            )
             if needsBootstrap {
-                try database.bootstrapOutbox(workspaceId: linkedSession.workspaceId)
+                try context.database.bootstrapOutbox(workspaceId: linkedSession.workspaceId)
             }
 
-            self.activeCloudSession = linkedSession
+            self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
             try self.reload()
             try await self.runLinkedSync(linkedSession: linkedSession)
             self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
@@ -892,7 +749,7 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func syncCloudNow() async throws {
-        if self.activeCloudSession == nil {
+        if self.cloudRuntime.activeCloudSession() == nil {
             try await self.restoreCloudLinkFromStoredCredentials()
             return
         }
@@ -903,7 +760,7 @@ final class FlashcardsStore: ObservableObject {
                 try await self.runLinkedSync(linkedSession: session)
                 return session
             }
-            self.activeCloudSession = linkedSession
+            _ = linkedSession
             self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
             self.syncStatus = .idle
             self.globalErrorMessage = ""
@@ -924,8 +781,8 @@ final class FlashcardsStore: ObservableObject {
         }
 
         do {
-            let hasStoredCredentials = try self.credentialStore.loadCredentials() != nil
-            if self.activeCloudSession == nil && hasStoredCredentials == false {
+            let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
+            if self.cloudRuntime.activeCloudSession() == nil && hasStoredCredentials == false {
                 if self.cloudSettings?.cloudState == .linked {
                     try self.disconnectCloudAccount()
                 }
@@ -968,14 +825,8 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func loadAIReviewHistory(limit: Int, cardId: String?) throws -> [ReviewEvent] {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let events = try database.loadReviewEvents(workspaceId: workspaceId)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let events = try context.database.loadReviewEvents(workspaceId: context.workspaceId)
         let filteredEvents = cardId == nil
             ? events
             : events.filter { event in
@@ -986,24 +837,15 @@ final class FlashcardsStore: ObservableObject {
     }
 
     func loadAIOutboxEntries(limit: Int) throws -> [PersistedOutboxEntry] {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        return try database.loadOutboxEntries(workspaceId: workspaceId, limit: limit)
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        return try context.database.loadOutboxEntries(workspaceId: context.workspaceId, limit: limit)
     }
 
     /// Lists long-lived remote bot connections for the linked cloud account.
     func listAgentApiKeys() async throws -> (connections: [AgentApiKeyConnection], instructions: String) {
-        guard let cloudSyncService else {
-            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
-        }
-
         return try await self.withAuthenticatedCloudSession { session in
-            try await cloudSyncService.listAgentApiKeys(
+            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+            return try await cloudSyncService.listAgentApiKeys(
                 apiBaseUrl: session.apiBaseUrl,
                 bearerToken: session.bearerToken
             )
@@ -1012,12 +854,9 @@ final class FlashcardsStore: ObservableObject {
 
     /// Revokes one long-lived remote bot connection for the linked cloud account.
     func revokeAgentApiKey(connectionId: String) async throws -> (connection: AgentApiKeyConnection, instructions: String) {
-        guard let cloudSyncService else {
-            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
-        }
-
         return try await self.withAuthenticatedCloudSession { session in
-            try await cloudSyncService.revokeAgentApiKey(
+            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+            return try await cloudSyncService.revokeAgentApiKey(
                 apiBaseUrl: session.apiBaseUrl,
                 bearerToken: session.bearerToken,
                 connectionId: connectionId
@@ -1033,6 +872,30 @@ final class FlashcardsStore: ObservableObject {
         self.applyLocalState(cards: snapshot.cards, decks: snapshot.decks, now: now)
     }
 
+    private func currentReviewPublishedState() -> ReviewQueuePublishedState {
+        ReviewQueuePublishedState(
+            selectedReviewFilter: self.selectedReviewFilter,
+            reviewQueue: self.reviewQueue,
+            reviewCounts: self.reviewCounts,
+            isReviewHeadLoading: self.isReviewHeadLoading,
+            isReviewCountsLoading: self.isReviewCountsLoading,
+            isReviewQueueChunkLoading: self.isReviewQueueChunkLoading,
+            pendingReviewCardIds: self.pendingReviewCardIds,
+            reviewSubmissionFailure: self.reviewSubmissionFailure
+        )
+    }
+
+    private func applyReviewPublishedState(reviewState: ReviewQueuePublishedState) {
+        self.selectedReviewFilter = reviewState.selectedReviewFilter
+        self.reviewQueue = reviewState.reviewQueue
+        self.reviewCounts = reviewState.reviewCounts
+        self.isReviewHeadLoading = reviewState.isReviewHeadLoading
+        self.isReviewCountsLoading = reviewState.isReviewCountsLoading
+        self.isReviewQueueChunkLoading = reviewState.isReviewQueueChunkLoading
+        self.pendingReviewCardIds = reviewState.pendingReviewCardIds
+        self.reviewSubmissionFailure = reviewState.reviewSubmissionFailure
+    }
+
     func cardsMatchingDeck(deck: Deck) -> [Card] {
         matchingCardsForDeck(deck: deck, cards: self.cards)
     }
@@ -1046,8 +909,12 @@ final class FlashcardsStore: ObservableObject {
             throw LocalStoreError.uninitialized("Local database is unavailable")
         }
 
-        let resolvedReviewQuery = self.currentResolvedReviewQuery()
-        return try await self.reviewTimelinePageLoader(
+        let resolvedReviewQuery = resolveReviewQuery(
+            reviewFilter: self.selectedReviewFilter,
+            decks: self.decks,
+            cards: self.cards
+        )
+        return try await self.dependencies.reviewTimelinePageLoader(
             databaseURL,
             workspaceId,
             resolvedReviewQuery.queryDefinition,
@@ -1058,104 +925,74 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func startReviewLoad(reviewFilter: ReviewFilter, now: Date) {
-        self.cancelActiveReviewLoads()
-
-        let requestId = UUID().uuidString.lowercased()
-        let sourceVersion = self.reviewSourceVersion
-        let cards = self.cards
-        let decks = self.decks
-        let resolvedReviewQuery = resolveReviewQuery(
+        let plan = self.reviewRuntime.startReviewLoad(
+            publishedState: self.currentReviewPublishedState(),
             reviewFilter: reviewFilter,
-            decks: decks,
-            cards: cards
+            cards: self.cards,
+            decks: self.decks,
+            workspaceId: self.workspace?.workspaceId,
+            databaseURL: self.localDatabaseURL,
+            now: now
         )
-
-        self.selectedReviewFilter = resolvedReviewQuery.reviewFilter
-        self.persistSelectedReviewFilter(reviewFilter: resolvedReviewQuery.reviewFilter)
-        self.reviewQueue = []
-        self.reviewCounts = ReviewCounts(dueCount: 0, totalCount: 0)
-        self.isReviewHeadLoading = true
-        self.isReviewCountsLoading = true
-        self.isReviewQueueChunkLoading = false
-        self.activeReviewLoadRequestId = requestId
-        self.loadedReviewCardIds = []
-        self.hasMoreReviewQueueCards = false
+        self.applyReviewPublishedState(reviewState: plan.publishedState)
+        self.persistSelectedReviewFilter(reviewFilter: plan.publishedState.selectedReviewFilter)
         self.globalErrorMessage = ""
 
-        if let workspaceId = self.workspace?.workspaceId, let databaseURL = self.localDatabaseURL {
-            self.startReviewCountsLoad(
-                databaseURL: databaseURL,
-                workspaceId: workspaceId,
-                reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
-                now: now,
-                requestId: requestId,
-                sourceVersion: sourceVersion
-            )
-        } else {
-            self.isReviewCountsLoading = false
+        if let countsRequest = plan.countsRequest {
+            self.startReviewCountsLoad(request: countsRequest)
         }
 
-        self.activeReviewLoadTask = Task { @MainActor in
+        let headTask = Task { @MainActor in
             do {
-                let reviewHeadState = try await self.reviewHeadLoader(
-                    resolvedReviewQuery.reviewFilter,
-                    decks,
-                    cards,
-                    now,
-                    reviewSeedQueueSize
+                let reviewHeadState = try await self.dependencies.reviewHeadLoader(
+                    plan.headRequest.reviewFilter,
+                    plan.headRequest.decks,
+                    plan.headRequest.cards,
+                    plan.headRequest.now,
+                    plan.headRequest.seedQueueSize
                 )
-                guard self.shouldApplyReviewLoadResult(
-                    requestId: requestId,
-                    sourceVersion: sourceVersion
+                guard let nextReviewState = self.reviewRuntime.applyReviewHeadLoadSuccess(
+                    publishedState: self.currentReviewPublishedState(),
+                    reviewHeadState: reviewHeadState,
+                    requestId: plan.headRequest.requestId,
+                    sourceVersion: plan.headRequest.sourceVersion
                 ) else {
                     return
                 }
 
-                self.applyReviewHeadLoadState(reviewHeadState: reviewHeadState)
-                self.isReviewHeadLoading = false
-                self.clearActiveReviewLoad(requestId: requestId)
-                self.startReviewQueueChunkLoadIfNeeded(now: now)
+                self.applyReviewPublishedState(reviewState: nextReviewState)
+                self.persistSelectedReviewFilter(reviewFilter: nextReviewState.selectedReviewFilter)
+                self.startReviewQueueChunkLoadIfNeeded(now: plan.headRequest.now)
             } catch is CancellationError {
-                self.clearActiveReviewLoad(requestId: requestId)
+                return
             } catch {
-                guard self.shouldApplyReviewLoadResult(
-                    requestId: requestId,
-                    sourceVersion: sourceVersion
+                guard let nextReviewState = self.reviewRuntime.applyReviewHeadLoadFailure(
+                    publishedState: self.currentReviewPublishedState(),
+                    requestId: plan.headRequest.requestId,
+                    sourceVersion: plan.headRequest.sourceVersion
                 ) else {
                     return
                 }
 
-                self.isReviewHeadLoading = false
-                self.isReviewCountsLoading = false
-                self.cancelActiveReviewCountsLoad()
+                self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.globalErrorMessage = localizedMessage(error: error)
-                self.clearActiveReviewLoad(requestId: requestId)
             }
         }
+        self.reviewRuntime.setActiveReviewLoadTask(
+            task: headTask,
+            requestId: plan.headRequest.requestId
+        )
     }
 
     private func refreshReviewState(now: Date) {
-        let resolvedReviewQuery = self.currentResolvedReviewQuery()
-        let reviewHeadState = makeReviewHeadLoadState(
-            reviewFilter: resolvedReviewQuery.reviewFilter,
-            decks: self.decks,
+        let reviewState = self.reviewRuntime.refreshPublishedState(
+            publishedState: self.currentReviewPublishedState(),
             cards: self.cards,
-            now: now,
-            seedQueueSize: reviewSeedQueueSize
-        )
-
-        self.selectedReviewFilter = resolvedReviewQuery.reviewFilter
-        self.persistSelectedReviewFilter(reviewFilter: resolvedReviewQuery.reviewFilter)
-        self.applyReviewHeadLoadState(reviewHeadState: reviewHeadState)
-        self.reviewCounts = makeReviewCounts(
-            reviewFilter: resolvedReviewQuery.reviewFilter,
             decks: self.decks,
-            cards: self.cards,
             now: now
         )
-        self.isReviewHeadLoading = false
-        self.isReviewCountsLoading = false
-        self.isReviewQueueChunkLoading = false
+        self.applyReviewPublishedState(reviewState: reviewState)
+        self.persistSelectedReviewFilter(reviewFilter: reviewState.selectedReviewFilter)
         self.startReviewQueueChunkLoadIfNeeded(now: now)
     }
 
@@ -1176,8 +1013,6 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func applyLocalState(cards: [Card], decks: [Deck], now: Date) {
-        self.reviewSourceVersion += 1
-        self.cancelActiveReviewLoads()
         self.cards = cards
         self.decks = decks
         self.deckItems = makeDeckListItems(decks: decks, cards: cards, now: now)
@@ -1186,243 +1021,100 @@ final class FlashcardsStore: ObservableObject {
         self.globalErrorMessage = ""
     }
 
-    private func applyReviewHeadLoadState(reviewHeadState: ReviewHeadLoadState) {
-        self.selectedReviewFilter = reviewHeadState.resolvedReviewFilter
-        self.persistSelectedReviewFilter(reviewFilter: reviewHeadState.resolvedReviewFilter)
-        self.reviewQueue = reviewHeadState.seedReviewQueue
-        self.loadedReviewCardIds = Set(reviewHeadState.seedReviewQueue.map(\.cardId))
-        self.hasMoreReviewQueueCards = reviewHeadState.hasMoreCards
-    }
-
-    private func shouldApplyReviewLoadResult(requestId: String, sourceVersion: Int) -> Bool {
-        guard Task.isCancelled == false else {
-            return false
-        }
-        guard self.activeReviewLoadRequestId == requestId else {
-            return false
-        }
-
-        return self.reviewSourceVersion == sourceVersion
-    }
-
-    private func shouldApplyReviewCountsResult(requestId: String, sourceVersion: Int) -> Bool {
-        guard Task.isCancelled == false else {
-            return false
-        }
-        guard self.activeReviewCountsRequestId == requestId else {
-            return false
-        }
-
-        return self.reviewSourceVersion == sourceVersion
-    }
-
-    private func shouldApplyReviewQueueChunkResult(requestId: String, sourceVersion: Int) -> Bool {
-        guard Task.isCancelled == false else {
-            return false
-        }
-        guard self.activeReviewQueueChunkRequestId == requestId else {
-            return false
-        }
-
-        return self.reviewSourceVersion == sourceVersion
-    }
-
-    private func startReviewCountsLoad(
-        databaseURL: URL,
-        workspaceId: String,
-        reviewQueryDefinition: ReviewQueryDefinition,
-        now: Date,
-        requestId: String,
-        sourceVersion: Int
-    ) {
-        self.cancelActiveReviewCountsLoad()
-        self.activeReviewCountsRequestId = requestId
-        self.activeReviewCountsTask = Task { @MainActor in
+    private func startReviewCountsLoad(request: ReviewCountsLoadRequest) {
+        self.reviewRuntime.startReviewCountsLoad(request: request)
+        let countsTask = Task { @MainActor in
             do {
-                let reviewCounts = try await self.reviewCountsLoader(
-                    databaseURL,
-                    workspaceId,
-                    reviewQueryDefinition,
-                    now
+                let reviewCounts = try await self.dependencies.reviewCountsLoader(
+                    request.databaseURL,
+                    request.workspaceId,
+                    request.reviewQueryDefinition,
+                    request.now
                 )
-                guard self.shouldApplyReviewCountsResult(
-                    requestId: requestId,
-                    sourceVersion: sourceVersion
+                guard let nextReviewState = self.reviewRuntime.applyReviewCountsLoadSuccess(
+                    publishedState: self.currentReviewPublishedState(),
+                    reviewCounts: reviewCounts,
+                    requestId: request.requestId,
+                    sourceVersion: request.sourceVersion
                 ) else {
                     return
                 }
 
-                self.reviewCounts = reviewCounts
-                self.isReviewCountsLoading = false
-                self.clearActiveReviewCountsLoad(requestId: requestId)
+                self.applyReviewPublishedState(reviewState: nextReviewState)
             } catch is CancellationError {
-                self.clearActiveReviewCountsLoad(requestId: requestId)
+                return
             } catch {
-                guard self.shouldApplyReviewCountsResult(
-                    requestId: requestId,
-                    sourceVersion: sourceVersion
+                guard let nextReviewState = self.reviewRuntime.applyReviewCountsLoadFailure(
+                    publishedState: self.currentReviewPublishedState(),
+                    requestId: request.requestId,
+                    sourceVersion: request.sourceVersion
                 ) else {
                     return
                 }
 
-                self.isReviewCountsLoading = false
+                self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.globalErrorMessage = localizedMessage(error: error)
-                self.clearActiveReviewCountsLoad(requestId: requestId)
             }
         }
+        self.reviewRuntime.setActiveReviewCountsTask(task: countsTask, requestId: request.requestId)
     }
 
     /// Keeps review responsive by topping up only when the visible queue is running low.
     private func startReviewQueueChunkLoadIfNeeded(now: Date) {
-        guard self.isReviewHeadLoading == false else {
-            return
-        }
-        guard self.isReviewQueueChunkLoading == false else {
-            return
-        }
-        guard self.hasMoreReviewQueueCards else {
-            return
-        }
-        guard self.effectiveReviewQueue.count <= reviewQueueReplenishmentThreshold else {
-            return
-        }
-
-        let requestId = UUID().uuidString.lowercased()
-        let sourceVersion = self.reviewSourceVersion
-        let cards = self.cards
-        let decks = self.decks
-        let selectedReviewFilter = self.selectedReviewFilter
-        let excludedCardIds = self.loadedReviewCardIds
-
-        self.isReviewQueueChunkLoading = true
-        self.activeReviewQueueChunkRequestId = requestId
-        self.activeReviewQueueChunkTask = Task { @MainActor in
-            do {
-                let queueChunkLoadState = try await self.reviewQueueChunkLoader(
-                    selectedReviewFilter,
-                    decks,
-                    cards,
-                    excludedCardIds,
-                    now,
-                    reviewSeedQueueSize
-                )
-                guard self.shouldApplyReviewQueueChunkResult(
-                    requestId: requestId,
-                    sourceVersion: sourceVersion
-                ) else {
-                    return
-                }
-
-                self.reviewQueue.append(contentsOf: queueChunkLoadState.reviewQueueChunk)
-                self.loadedReviewCardIds.formUnion(queueChunkLoadState.reviewQueueChunk.map(\.cardId))
-                self.hasMoreReviewQueueCards = queueChunkLoadState.hasMoreCards
-                self.isReviewQueueChunkLoading = false
-                self.clearActiveReviewQueueChunkLoad(requestId: requestId)
-                self.startReviewQueueChunkLoadIfNeeded(now: now)
-            } catch is CancellationError {
-                self.clearActiveReviewQueueChunkLoad(requestId: requestId)
-            } catch {
-                guard self.shouldApplyReviewQueueChunkResult(
-                    requestId: requestId,
-                    sourceVersion: sourceVersion
-                ) else {
-                    return
-                }
-
-                self.isReviewQueueChunkLoading = false
-                self.globalErrorMessage = localizedMessage(error: error)
-                self.clearActiveReviewQueueChunkLoad(requestId: requestId)
-            }
-        }
-    }
-
-    private func currentResolvedReviewQuery() -> ResolvedReviewQuery {
-        resolveReviewQuery(
-            reviewFilter: self.selectedReviewFilter,
+        guard let request = self.reviewRuntime.makeReviewQueueChunkLoadRequestIfNeeded(
+            publishedState: self.currentReviewPublishedState(),
+            cards: self.cards,
             decks: self.decks,
-            cards: self.cards
+            now: now
+        ) else {
+            return
+        }
+
+        let loadingReviewState = self.reviewRuntime.markReviewQueueChunkLoading(
+            publishedState: self.currentReviewPublishedState(),
+            requestId: request.requestId
         )
-    }
+        self.applyReviewPublishedState(reviewState: loadingReviewState)
+        let queueChunkTask = Task { @MainActor in
+            do {
+                let queueChunkLoadState = try await self.dependencies.reviewQueueChunkLoader(
+                    request.reviewFilter,
+                    request.decks,
+                    request.cards,
+                    request.excludedCardIds,
+                    request.now,
+                    request.chunkSize
+                )
+                guard let nextReviewState = self.reviewRuntime.applyReviewQueueChunkLoadSuccess(
+                    publishedState: self.currentReviewPublishedState(),
+                    queueChunkLoadState: queueChunkLoadState,
+                    requestId: request.requestId,
+                    sourceVersion: request.sourceVersion
+                ) else {
+                    return
+                }
 
-    private func pendingReviewCountForSelectedReviewFilter() -> Int {
-        let resolvedReviewQuery = self.currentResolvedReviewQuery()
-
-        return self.pendingReviewCardIds.reduce(into: 0) { result, cardId in
-            guard let card = self.cards.first(where: { existingCard in
-                existingCard.cardId == cardId
-            }) else {
+                self.applyReviewPublishedState(reviewState: nextReviewState)
+                self.startReviewQueueChunkLoadIfNeeded(now: request.now)
+            } catch is CancellationError {
                 return
-            }
-            guard card.deletedAt == nil else {
-                return
-            }
+            } catch {
+                guard let nextReviewState = self.reviewRuntime.applyReviewQueueChunkLoadFailure(
+                    publishedState: self.currentReviewPublishedState(),
+                    requestId: request.requestId,
+                    sourceVersion: request.sourceVersion
+                ) else {
+                    return
+                }
 
-            let isIncluded: Bool
-            switch resolvedReviewQuery.queryDefinition {
-            case .allCards:
-                isIncluded = true
-            case .deck(let filterDefinition):
-                isIncluded = matchesDeckFilterDefinition(filterDefinition: filterDefinition, card: card)
-            case .tag(let tag):
-                isIncluded = card.tags.contains(tag)
-            }
-
-            if isIncluded {
-                result += 1
+                self.applyReviewPublishedState(reviewState: nextReviewState)
+                self.globalErrorMessage = localizedMessage(error: error)
             }
         }
-    }
-
-    private func cancelActiveReviewLoad() {
-        self.activeReviewLoadTask?.cancel()
-        self.activeReviewLoadTask = nil
-        self.activeReviewLoadRequestId = nil
-    }
-
-    private func cancelActiveReviewCountsLoad() {
-        self.activeReviewCountsTask?.cancel()
-        self.activeReviewCountsTask = nil
-        self.activeReviewCountsRequestId = nil
-    }
-
-    private func cancelActiveReviewQueueChunkLoad() {
-        self.activeReviewQueueChunkTask?.cancel()
-        self.activeReviewQueueChunkTask = nil
-        self.activeReviewQueueChunkRequestId = nil
-        self.isReviewQueueChunkLoading = false
-    }
-
-    private func cancelActiveReviewLoads() {
-        self.cancelActiveReviewLoad()
-        self.cancelActiveReviewCountsLoad()
-        self.cancelActiveReviewQueueChunkLoad()
-    }
-
-    private func clearActiveReviewLoad(requestId: String) {
-        guard self.activeReviewLoadRequestId == requestId else {
-            return
-        }
-
-        self.activeReviewLoadTask = nil
-        self.activeReviewLoadRequestId = nil
-    }
-
-    private func clearActiveReviewCountsLoad(requestId: String) {
-        guard self.activeReviewCountsRequestId == requestId else {
-            return
-        }
-
-        self.activeReviewCountsTask = nil
-        self.activeReviewCountsRequestId = nil
-    }
-
-    private func clearActiveReviewQueueChunkLoad(requestId: String) {
-        guard self.activeReviewQueueChunkRequestId == requestId else {
-            return
-        }
-
-        self.activeReviewQueueChunkTask = nil
-        self.activeReviewQueueChunkRequestId = nil
+        self.reviewRuntime.setActiveReviewQueueChunkTask(
+            task: queueChunkTask,
+            requestId: request.requestId
+        )
     }
 
     private func persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
@@ -1500,11 +1192,10 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func startReviewProcessorIfNeeded() {
-        guard self.isReviewProcessorRunning == false else {
+        guard self.reviewRuntime.startReviewProcessorIfNeeded() else {
             return
         }
 
-        self.isReviewProcessorRunning = true
         Task { @MainActor in
             await self.processPendingReviewRequests()
         }
@@ -1513,24 +1204,23 @@ final class FlashcardsStore: ObservableObject {
     /// Processes enqueued review submissions serially to preserve deterministic ordering.
     private func processPendingReviewRequests() async {
         defer {
-            self.isReviewProcessorRunning = false
+            let shouldRestart = self.reviewRuntime.finishReviewProcessor()
             // Enqueue can append while the processor is suspended on awaits.
-            if self.pendingReviewRequests.isEmpty == false {
+            if shouldRestart {
                 self.startReviewProcessorIfNeeded()
             }
         }
 
-        while self.pendingReviewRequests.isEmpty == false {
-            let request = self.pendingReviewRequests.removeFirst()
+        while let request = self.reviewRuntime.dequeuePendingReviewRequest() {
             await self.processReviewSubmissionRequest(request: request)
         }
     }
 
     private func processReviewSubmissionRequest(request: ReviewSubmissionRequest) async {
-        guard let reviewSubmissionExecutor else {
+        guard let reviewSubmissionExecutor = self.dependencies.reviewSubmissionExecutor else {
             self.handleReviewSubmissionFailure(
                 request: request,
-                submissionError: LocalStoreError.uninitialized("Review submission executor is unavailable")
+                submissionError: self.reviewRuntime.reviewSubmissionExecutorUnavailableError()
             )
             return
         }
@@ -1545,7 +1235,12 @@ final class FlashcardsStore: ObservableObject {
                 )
             )
             self.applyCardMutation(card: updatedCard, now: Date())
-            self.pendingReviewCardIds.remove(request.cardId)
+            self.applyReviewPublishedState(
+                reviewState: self.reviewRuntime.completeReviewSubmission(
+                    publishedState: self.currentReviewPublishedState(),
+                    request: request
+                )
+            )
             self.triggerCloudSyncIfLinked()
         } catch {
             self.handleReviewSubmissionFailure(request: request, submissionError: error)
@@ -1554,67 +1249,53 @@ final class FlashcardsStore: ObservableObject {
 
     /// Restores canonical queue state after a failed optimistic review submission.
     private func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) {
-        self.pendingReviewCardIds.remove(request.cardId)
         let submissionErrorMessage = localizedMessage(error: submissionError)
         do {
             try self.reload()
-            self.reviewSubmissionFailure = ReviewSubmissionFailure(
-                id: request.id,
-                message: submissionErrorMessage
+            self.applyReviewPublishedState(
+                reviewState: self.reviewRuntime.failReviewSubmission(
+                    publishedState: self.currentReviewPublishedState(),
+                    request: request,
+                    message: submissionErrorMessage
+                )
             )
         } catch {
             let reloadErrorMessage = localizedMessage(error: error)
-            self.reviewSubmissionFailure = ReviewSubmissionFailure(
-                id: request.id,
-                message: "\(submissionErrorMessage)\n\nReload failed: \(reloadErrorMessage)"
+            self.applyReviewPublishedState(
+                reviewState: self.reviewRuntime.failReviewSubmission(
+                    publishedState: self.currentReviewPublishedState(),
+                    request: request,
+                    message: "\(submissionErrorMessage)\n\nReload failed: \(reloadErrorMessage)"
+                )
             )
         }
     }
 
     private func refreshCloudCredentials(forceRefresh: Bool) async throws -> StoredCloudCredentials {
         let configuration = try loadCloudServiceConfiguration()
-        guard let storedCredentials = try self.credentialStore.loadCredentials() else {
-            throw LocalStoreError.uninitialized("Cloud credentials are unavailable")
-        }
-
-        if forceRefresh == false && shouldRefreshCloudIdToken(idTokenExpiresAt: storedCredentials.idTokenExpiresAt, now: Date()) == false {
-            return storedCredentials
-        }
-
-        let refreshedToken = try await self.cloudAuthService.refreshIdToken(
-            refreshToken: storedCredentials.refreshToken,
-            authBaseUrl: configuration.authBaseUrl
+        var cloudRuntime = self.cloudRuntime
+        let credentials = try await cloudRuntime.refreshCloudCredentials(
+            forceRefresh: forceRefresh,
+            configuration: configuration,
+            now: Date()
         )
-        let updatedCredentials = StoredCloudCredentials(
-            refreshToken: storedCredentials.refreshToken,
-            idToken: refreshedToken.idToken,
-            idTokenExpiresAt: refreshedToken.idTokenExpiresAt
-        )
-        try self.credentialStore.saveCredentials(credentials: updatedCredentials)
-
-        if let activeCloudSession {
-            self.activeCloudSession = CloudLinkedSession(
-                userId: activeCloudSession.userId,
-                workspaceId: activeCloudSession.workspaceId,
-                email: activeCloudSession.email,
-                apiBaseUrl: activeCloudSession.apiBaseUrl,
-                bearerToken: updatedCredentials.idToken
-            )
-        }
-
-        return updatedCredentials
+        self.cloudRuntime = cloudRuntime
+        return credentials
     }
 
     private func prepareAuthenticatedCloudSessionForAI() async throws -> CloudLinkedSession {
-        if let activePreparation = self.activeAIChatSessionPreparation {
-            return try await activePreparation.task.value
-        }
+        var cloudRuntime = self.cloudRuntime
+        let session = try await cloudRuntime.prepareAuthenticatedCloudSessionForAI(
+            restoreCloudLink: { [weak self] in
+                guard let self else {
+                    throw LocalStoreError.uninitialized("Flashcards store is unavailable")
+                }
 
-        let preparation = AIChatSessionPreparationState(
-            id: UUID().uuidString.lowercased(),
-            task: Task { @MainActor in
-                if self.activeCloudSession == nil {
-                    try await self.restoreCloudLinkFromStoredCredentials()
+                try await self.restoreCloudLinkFromStoredCredentials()
+            },
+            resolveSession: { [weak self] in
+                guard let self else {
+                    throw LocalStoreError.uninitialized("Flashcards store is unavailable")
                 }
 
                 return try await self.withAuthenticatedCloudSession { session in
@@ -1622,20 +1303,8 @@ final class FlashcardsStore: ObservableObject {
                 }
             }
         )
-        self.activeAIChatSessionPreparation = preparation
-
-        do {
-            let session = try await preparation.task.value
-            if self.activeAIChatSessionPreparation?.id == preparation.id {
-                self.activeAIChatSessionPreparation = nil
-            }
-            return session
-        } catch {
-            if self.activeAIChatSessionPreparation?.id == preparation.id {
-                self.activeAIChatSessionPreparation = nil
-            }
-            throw error
-        }
+        self.cloudRuntime = cloudRuntime
+        return session
     }
 
     private func restoreCloudLinkFromStoredCredentials() async throws {
@@ -1644,7 +1313,8 @@ final class FlashcardsStore: ObservableObject {
         do {
             let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
             try await self.finishCloudLink(
-                linkedSession: try self.storedLinkedSession(
+                linkedSession: try self.cloudRuntime.storedLinkedSession(
+                    cloudSettings: self.cloudSettings,
                     apiBaseUrl: configuration.apiBaseUrl,
                     bearerToken: credentials.idToken
                 )
@@ -1664,7 +1334,8 @@ final class FlashcardsStore: ObservableObject {
         do {
             let refreshedCredentials = try await self.refreshCloudCredentials(forceRefresh: true)
             try await self.finishCloudLink(
-                linkedSession: try self.storedLinkedSession(
+                linkedSession: try self.cloudRuntime.storedLinkedSession(
+                    cloudSettings: self.cloudSettings,
                     apiBaseUrl: configuration.apiBaseUrl,
                     bearerToken: refreshedCredentials.idToken
                 )
@@ -1688,7 +1359,7 @@ final class FlashcardsStore: ObservableObject {
     ) async throws -> Result {
         do {
             let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
-            let linkedSession = try self.sessionWithUpdatedBearerToken(credentials: credentials)
+            let linkedSession = try self.cloudRuntime.sessionWithUpdatedBearerToken(credentials: credentials)
             return try await operation(linkedSession)
         } catch {
             if self.isCloudAccountDeletedError(error) {
@@ -1703,7 +1374,7 @@ final class FlashcardsStore: ObservableObject {
 
         do {
             let refreshedCredentials = try await self.refreshCloudCredentials(forceRefresh: true)
-            let linkedSession = try self.sessionWithUpdatedBearerToken(credentials: refreshedCredentials)
+            let linkedSession = try self.cloudRuntime.sessionWithUpdatedBearerToken(credentials: refreshedCredentials)
             return try await operation(linkedSession)
         } catch {
             if self.isCloudAccountDeletedError(error) {
@@ -1719,70 +1390,12 @@ final class FlashcardsStore: ObservableObject {
         }
     }
 
-    private func sessionWithUpdatedBearerToken(credentials: StoredCloudCredentials) throws -> CloudLinkedSession {
-        guard let activeCloudSession else {
-            throw LocalStoreError.uninitialized("Cloud session is unavailable")
-        }
-
-        let nextSession = CloudLinkedSession(
-            userId: activeCloudSession.userId,
-            workspaceId: activeCloudSession.workspaceId,
-            email: activeCloudSession.email,
-            apiBaseUrl: activeCloudSession.apiBaseUrl,
-            bearerToken: credentials.idToken
-        )
-        self.activeCloudSession = nextSession
-        return nextSession
-    }
-
-    private func storedLinkedSession(apiBaseUrl: String, bearerToken: String) throws -> CloudLinkedSession {
-        guard let cloudSettings else {
-            throw LocalStoreError.uninitialized("Cloud settings are unavailable")
-        }
-        guard cloudSettings.cloudState == .linked else {
-            throw LocalStoreError.uninitialized("Cloud account is not linked")
-        }
-        guard let linkedUserId = cloudSettings.linkedUserId, linkedUserId.isEmpty == false else {
-            throw LocalStoreError.uninitialized("Linked user is unavailable")
-        }
-        guard let linkedWorkspaceId = cloudSettings.linkedWorkspaceId, linkedWorkspaceId.isEmpty == false else {
-            throw LocalStoreError.uninitialized("Linked workspace is unavailable")
-        }
-
-        let linkedSession = CloudLinkedSession(
-            userId: linkedUserId,
-            workspaceId: linkedWorkspaceId,
-            email: cloudSettings.linkedEmail,
-            apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken
-        )
-        self.activeCloudSession = linkedSession
-        return linkedSession
-    }
-
     private func isCloudAuthorizationError(_ error: Error) -> Bool {
-        if let syncError = error as? CloudSyncError, syncError.statusCode == 401 {
-            return true
-        }
-
-        if let authError = error as? CloudAuthError, authError.statusCode == 401 {
-            return true
-        }
-
-        return false
+        self.cloudRuntime.isCloudAuthorizationError(error)
     }
 
     private func isCloudAccountDeletedError(_ error: Error) -> Bool {
-        if let syncError = error as? CloudSyncError {
-            switch syncError {
-            case .invalidResponse(let details, let statusCode):
-                return statusCode == 410 && details.code == "ACCOUNT_DELETED"
-            case .invalidBaseUrl:
-                return false
-            }
-        }
-
-        return false
+        self.cloudRuntime.isCloudAccountDeletedError(error)
     }
 
     private func runPendingAccountDeletion() async {
@@ -1810,11 +1423,8 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func performCloudAccountDeletion() async throws {
-        guard let cloudSyncService else {
-            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
-        }
-
         try await self.withAuthenticatedCloudSession { session in
+            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
             try await cloudSyncService.deleteAccount(
                 apiBaseUrl: session.apiBaseUrl,
                 bearerToken: session.bearerToken,
@@ -1824,24 +1434,17 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func completeLocalAccountDeletion() throws {
-        guard let database else {
-            throw LocalStoreError.uninitialized("Local database is unavailable")
-        }
+        let database = try requireLocalDatabase(database: self.database)
 
-        self.activeCloudSyncTask?.cancel()
-        self.activeCloudSyncTask = nil
-        self.pendingCloudResync = false
-        self.activeAIChatSessionPreparation?.task.cancel()
-        self.activeAIChatSessionPreparation = nil
-        self.cloudAuthService.resetChallengeSession()
-        try self.credentialStore.clearCredentials()
+        self.reviewRuntime.cancelForAccountDeletion()
+        self.cloudRuntime.cancelForAccountDeletion()
+        try self.cloudRuntime.clearCredentials()
         self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
         self.aiChatStore.clearHistory()
         try database.resetForAccountDeletion()
         self.syncStatus = .idle
         self.lastSuccessfulCloudSyncAt = nil
-        self.activeCloudSession = nil
         self.globalErrorMessage = ""
         try self.reload()
     }
@@ -1858,34 +1461,9 @@ final class FlashcardsStore: ObservableObject {
     }
 
     private func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
-        guard let cloudSyncService else {
-            throw LocalStoreError.uninitialized("Cloud sync service is unavailable")
-        }
-
-        if let activeCloudSyncTask {
-            self.pendingCloudResync = true
-            try await activeCloudSyncTask.value
-            return
-        }
-
-        while true {
-            self.pendingCloudResync = false
-            let syncTask = Task {
-                try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
-            }
-            self.activeCloudSyncTask = syncTask
-
-            do {
-                try await syncTask.value
-                self.activeCloudSyncTask = nil
-            } catch {
-                self.activeCloudSyncTask = nil
-                throw error
-            }
-
-            if self.pendingCloudResync == false {
-                break
-            }
-        }
+        var cloudRuntime = self.cloudRuntime
+        try await cloudRuntime.runLinkedSync(linkedSession: linkedSession)
+        self.cloudRuntime = cloudRuntime
     }
+
 }
