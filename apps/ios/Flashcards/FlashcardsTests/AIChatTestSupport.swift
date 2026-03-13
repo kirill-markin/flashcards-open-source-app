@@ -806,7 +806,13 @@ extension AILocalChatWireMessage {
 
 extension AILocalChatRequestBody {
     init(messages: [AILocalChatWireMessage], model: String, timezone: String) {
-        self.init(messages: messages, model: model, timezone: timezone, devicePlatform: "ios")
+        self.init(
+            messages: messages,
+            model: model,
+            timezone: timezone,
+            devicePlatform: "ios",
+            userContext: AILocalChatUserContext(totalCards: 0)
+        )
     }
 }
 

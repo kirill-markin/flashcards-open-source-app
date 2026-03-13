@@ -576,24 +576,12 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
 
         let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
         let database = try LocalDatabase(databaseURL: databaseURL)
-        _ = try database.upsertCardSnapshot(
+        _ = try database.submitReview(
             workspaceId: snapshot.workspace.workspaceId,
-            deviceId: snapshot.cloudSettings.deviceId,
-            snapshot: CardSnapshotUpsertInput(
+            reviewSubmission: ReviewSubmission(
                 cardId: dueCard.cardId,
-                frontText: dueCard.frontText,
-                backText: dueCard.backText,
-                tags: dueCard.tags,
-                effortLevel: dueCard.effortLevel,
-                dueAt: "2000-01-01T00:00:00.000Z",
-                reps: dueCard.reps,
-                lapses: dueCard.lapses,
-                fsrsCardState: dueCard.fsrsCardState,
-                fsrsStepIndex: dueCard.fsrsStepIndex,
-                fsrsStability: dueCard.fsrsStability,
-                fsrsDifficulty: dueCard.fsrsDifficulty,
-                fsrsLastReviewedAt: dueCard.fsrsLastReviewedAt,
-                fsrsScheduledDays: dueCard.fsrsScheduledDays
+                rating: .good,
+                reviewedAtClient: "2026-03-08T10:00:00.000Z"
             )
         )
 
