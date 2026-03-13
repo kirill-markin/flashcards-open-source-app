@@ -36,10 +36,17 @@ enum AIChatPresentationRequest: Hashable, Sendable {
 }
 
 enum SettingsNavigationDestination: Hashable, Sendable {
-    case decks
-    case tags
+    case workspace
+    case workspaceOverview
+    case workspaceScheduler
+    case workspaceDecks
+    case workspaceTags
+    case workspaceAccess
+    case workspaceDevice
     case account
-    case access
+    case accountStatus
+    case accountAgentConnections
+    case accountDangerZone
 }
 
 let allCardsDeckLabel: String = "All cards"

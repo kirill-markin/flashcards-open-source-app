@@ -175,7 +175,7 @@ describe("DecksScreen", () => {
     expect(deckTitles).toEqual(["All cards", "Grammar"]);
     expect(container.textContent).toContain("2 total");
     const deckLinks = Array.from(container.querySelectorAll(".deck-card-link")).map((element) => element.getAttribute("href"));
-    expect(deckLinks).toEqual(["/settings/decks/all-cards", "/settings/decks/deck-1"]);
+    expect(deckLinks).toEqual(["/settings/workspace/decks/all-cards", "/settings/workspace/decks/deck-1"]);
 
     const deckCards = Array.from(container.querySelectorAll(".deck-card"));
 
@@ -198,7 +198,7 @@ describe("DecksScreen", () => {
     const deckLinks = Array.from(container.querySelectorAll(".deck-card-link")).map((element) => element.getAttribute("href"));
 
     expect(deckTitles).toEqual(["All cards"]);
-    expect(deckLinks).toEqual(["/settings/decks/all-cards"]);
+    expect(deckLinks).toEqual(["/settings/workspace/decks/all-cards"]);
     expect(container.textContent).toContain("1 total");
     expect(container.textContent).not.toContain("You haven't created any decks yet.");
   });

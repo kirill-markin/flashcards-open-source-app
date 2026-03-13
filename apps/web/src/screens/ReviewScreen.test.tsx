@@ -387,7 +387,7 @@ describe("ReviewScreen", () => {
     const editDecksLink = Array.from(container.querySelectorAll(".review-filter-menu-entry")).find((element) => element.textContent?.trim() === "Edit decks");
 
     expect(editDecksLink).not.toBeUndefined();
-    expect(editDecksLink?.getAttribute("href")).toBe("/settings/decks");
+    expect(editDecksLink?.getAttribute("href")).toBe("/settings/workspace/decks");
   });
 
   it("shows the review queue head as the current card", async () => {

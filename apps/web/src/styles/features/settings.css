@@ -7,9 +7,39 @@
   max-width: 980px;
 }
 
+.settings-switcher {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 6px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: rgba(22, 22, 28, 0.72);
+}
+
+.settings-switcher-link {
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.settings-switcher-link-active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
 .settings-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-detail-grid {
+  display: grid;
   gap: 14px;
 }
 

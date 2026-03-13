@@ -93,10 +93,10 @@ describe("DeckFormScreen", () => {
 
     await act(async () => {
       root.render(
-        <MemoryRouter initialEntries={["/settings/decks/deck-1/edit"]}>
+        <MemoryRouter initialEntries={["/settings/workspace/decks/deck-1/edit"]}>
           <Routes>
-            <Route path="/settings/decks/:deckId/edit" element={<DeckFormScreen />} />
-            <Route path="/settings/decks/:deckId" element={<LocationProbe />} />
+            <Route path="/settings/workspace/decks/:deckId/edit" element={<DeckFormScreen />} />
+            <Route path="/settings/workspace/decks/:deckId" element={<LocationProbe />} />
           </Routes>
         </MemoryRouter>,
       );
@@ -122,6 +122,6 @@ describe("DeckFormScreen", () => {
         tags: ["grammar"],
       },
     });
-    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/decks/deck-1");
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/workspace/decks/deck-1");
   });
 });

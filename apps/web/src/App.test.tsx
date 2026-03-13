@@ -63,7 +63,23 @@ vi.mock("./screens/TagsScreen", () => ({
 }));
 
 vi.mock("./screens/SettingsScreen", () => ({
-  SettingsScreen: () => <div>workspace-settings-screen</div>,
+  SettingsScreen: () => <div>settings-screen</div>,
+}));
+
+vi.mock("./screens/WorkspaceSettingsScreen", () => ({
+  WorkspaceSettingsScreen: () => <div>workspace-settings-screen</div>,
+}));
+
+vi.mock("./screens/WorkspaceOverviewScreen", () => ({
+  WorkspaceOverviewScreen: () => <div>workspace-overview-screen</div>,
+}));
+
+vi.mock("./screens/WorkspaceSchedulerScreen", () => ({
+  WorkspaceSchedulerScreen: () => <div>workspace-scheduler-screen</div>,
+}));
+
+vi.mock("./screens/ThisDeviceSettingsScreen", () => ({
+  ThisDeviceSettingsScreen: () => <div>this-device-settings-screen</div>,
 }));
 
 vi.mock("./screens/AccessSettingsScreen", () => ({
@@ -76,6 +92,18 @@ vi.mock("./screens/AccessPermissionDetailScreen", () => ({
 
 vi.mock("./screens/AccountSettingsScreen", () => ({
   AccountSettingsScreen: () => <div>account-settings-screen</div>,
+}));
+
+vi.mock("./screens/AccountStatusScreen", () => ({
+  AccountStatusScreen: () => <div>account-status-screen</div>,
+}));
+
+vi.mock("./screens/AgentConnectionsScreen", () => ({
+  AgentConnectionsScreen: () => <div>agent-connections-screen</div>,
+}));
+
+vi.mock("./screens/DangerZoneScreen", () => ({
+  DangerZoneScreen: () => <div>danger-zone-screen</div>,
 }));
 
 function LocationProbe(): ReactNode {
@@ -253,7 +281,7 @@ describe("RoutedShell", () => {
     });
 
     expect(container.textContent).toContain("deck-form-screen");
-    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/decks/deck-1/edit");
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/workspace/decks/deck-1/edit");
   });
 
   it("redirects legacy tags routes to workspace settings routes", async () => {
@@ -274,7 +302,28 @@ describe("RoutedShell", () => {
     });
 
     expect(container.textContent).toContain("tags-screen");
-    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/tags");
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/workspace/tags");
+  });
+
+  it("renders the settings hub route", async () => {
+    useChatLayoutMock.mockReturnValue({
+      isOpen: false,
+      setIsOpen: vi.fn(),
+      chatWidth: 560,
+      setChatWidth: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/settings"]}>
+          <RoutedShell />
+          <LocationProbe />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("settings-screen");
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings");
   });
 
   it("renders the dedicated account settings route", async () => {
@@ -287,7 +336,7 @@ describe("RoutedShell", () => {
 
     await act(async () => {
       root.render(
-        <MemoryRouter initialEntries={["/account"]}>
+        <MemoryRouter initialEntries={["/settings/account"]}>
           <RoutedShell />
           <LocationProbe />
         </MemoryRouter>,
@@ -295,6 +344,6 @@ describe("RoutedShell", () => {
     });
 
     expect(container.textContent).toContain("account-settings-screen");
-    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/account");
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/account");
   });
 });

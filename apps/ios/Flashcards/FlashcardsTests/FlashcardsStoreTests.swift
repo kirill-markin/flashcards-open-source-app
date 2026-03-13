@@ -361,13 +361,37 @@ final class FlashcardsStoreTests: XCTestCase {
         store.openDeckManagement()
 
         XCTAssertEqual(store.selectedTab, .settings)
-        XCTAssertEqual(store.settingsPresentationRequest, .decks)
+        XCTAssertEqual(store.settingsPresentationRequest, .workspaceDecks)
     }
 
     func testSettingsNavigationDestinationsIncludeAccount() {
-        let destinations: [SettingsNavigationDestination] = [.decks, .tags, .account, .access]
+        let destinations: [SettingsNavigationDestination] = [
+            .workspace,
+            .workspaceOverview,
+            .workspaceScheduler,
+            .workspaceDecks,
+            .workspaceTags,
+            .workspaceAccess,
+            .workspaceDevice,
+            .account,
+            .accountStatus,
+            .accountAgentConnections,
+            .accountDangerZone,
+        ]
 
-        XCTAssertEqual(destinations, [.decks, .tags, .account, .access])
+        XCTAssertEqual(destinations, [
+            .workspace,
+            .workspaceOverview,
+            .workspaceScheduler,
+            .workspaceDecks,
+            .workspaceTags,
+            .workspaceAccess,
+            .workspaceDevice,
+            .account,
+            .accountStatus,
+            .accountAgentConnections,
+            .accountDangerZone,
+        ])
     }
 
     func testReloadLoadsPersistedTagReviewFilterWhenTagExists() throws {

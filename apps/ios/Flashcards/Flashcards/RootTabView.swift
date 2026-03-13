@@ -43,14 +43,28 @@ struct RootTabView: View {
                 SettingsView()
                     .navigationDestination(for: SettingsNavigationDestination.self) { destination in
                         switch destination {
-                        case .decks:
+                        case .workspace:
+                            WorkspaceSettingsView()
+                        case .workspaceOverview:
+                            WorkspaceOverviewView()
+                        case .workspaceScheduler:
+                            SchedulerSettingsDetailView()
+                        case .workspaceDecks:
                             DecksScreen()
-                        case .tags:
+                        case .workspaceTags:
                             TagsScreen()
+                        case .workspaceAccess:
+                            AccessSettingsView()
+                        case .workspaceDevice:
+                            ThisDeviceSettingsView()
                         case .account:
                             AccountSettingsView()
-                        case .access:
-                            AccessSettingsView()
+                        case .accountStatus:
+                            AccountStatusView()
+                        case .accountAgentConnections:
+                            AgentConnectionsView()
+                        case .accountDangerZone:
+                            DangerZoneView()
                         }
                     }
             }
@@ -110,8 +124,35 @@ struct RootTabView: View {
             return
         }
 
-        self.settingsNavigationPath = [request]
+        self.settingsNavigationPath = self.buildSettingsNavigationPath(request: request)
         store.clearSettingsPresentationRequest()
+    }
+
+    private func buildSettingsNavigationPath(request: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
+        switch request {
+        case .workspace:
+            return [.workspace]
+        case .workspaceOverview:
+            return [.workspace, .workspaceOverview]
+        case .workspaceScheduler:
+            return [.workspace, .workspaceScheduler]
+        case .workspaceDecks:
+            return [.workspace, .workspaceDecks]
+        case .workspaceTags:
+            return [.workspace, .workspaceTags]
+        case .workspaceAccess:
+            return [.workspace, .workspaceAccess]
+        case .workspaceDevice:
+            return [.workspace, .workspaceDevice]
+        case .account:
+            return [.account]
+        case .accountStatus:
+            return [.account, .accountStatus]
+        case .accountAgentConnections:
+            return [.account, .accountAgentConnections]
+        case .accountDangerZone:
+            return [.account, .accountDangerZone]
+        }
     }
 }
 
