@@ -318,7 +318,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             historyStore: InMemoryHistoryStore(
                 savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
             ),
-            chatService: ToolCallOnlyChatService(),
+            chatService: ToolCallRequestOnlyChatService(),
             toolExecutor: failingToolExecutor,
             snapshotLoader: failingToolExecutor
         )
