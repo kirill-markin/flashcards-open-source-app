@@ -1,20 +1,24 @@
 /**
- * Keep web workspace navigation aligned with iOS:
- * the primary workspace destinations are Review, Cards, AI chat, and Settings.
- * Decks and tags belong under workspace settings on both platforms.
- * Web exposes account settings from the account menu, while iOS exposes account
- * settings as a nested destination inside the Settings tab.
+ * Keep web settings navigation aligned with iOS:
+ * Settings is a hub with separate workspace and account destinations.
  */
 export const reviewRoute: string = "/review";
 export const cardsRoute: string = "/cards";
 export const chatRoute: string = "/chat";
-export const workspaceSettingsRoute: string = "/settings";
-export const accountSettingsRoute: string = "/account";
-export const settingsAccessRoute: string = "/settings/access";
-export const settingsAccessDetailRoutePattern: string = "/settings/access/:accessKind";
-export const settingsDecksRoute: string = "/settings/decks";
-export const settingsDeckNewRoute: string = "/settings/decks/new";
-export const settingsTagsRoute: string = "/settings/tags";
+export const settingsHubRoute: string = "/settings";
+export const workspaceSettingsRoute: string = "/settings/workspace";
+export const accountSettingsRoute: string = "/settings/account";
+export const settingsOverviewRoute: string = "/settings/workspace/overview";
+export const settingsSchedulerRoute: string = "/settings/workspace/scheduler";
+export const settingsAccessRoute: string = "/settings/workspace/access";
+export const settingsAccessDetailRoutePattern: string = "/settings/workspace/access/:accessKind";
+export const settingsDecksRoute: string = "/settings/workspace/decks";
+export const settingsDeckNewRoute: string = "/settings/workspace/decks/new";
+export const settingsTagsRoute: string = "/settings/workspace/tags";
+export const settingsDeviceRoute: string = "/settings/workspace/device";
+export const accountStatusRoute: string = "/settings/account/status";
+export const accountAgentConnectionsRoute: string = "/settings/account/agent-connections";
+export const accountDangerZoneRoute: string = "/settings/account/danger-zone";
 
 export function buildSettingsDeckDetailRoute(deckId: string): string {
   return `${settingsDecksRoute}/${deckId}`;

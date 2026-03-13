@@ -49,7 +49,7 @@ extension FlashcardsStore {
 
     func openDeckManagement() {
         self.requestTabSelection(tab: .settings)
-        self.settingsPresentationRequest = .decks
+        self.settingsPresentationRequest = .workspaceDecks
     }
 
     func clearCardsPresentationRequest() {

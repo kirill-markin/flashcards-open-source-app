@@ -14,7 +14,10 @@ import { ChatPanel } from "./chat/ChatPanel";
 import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatToggle } from "./chat/ChatToggle";
 import {
+  accountAgentConnectionsRoute,
+  accountDangerZoneRoute,
   accountSettingsRoute,
+  accountStatusRoute,
   buildSettingsDeckDetailRoute,
   buildSettingsDeckEditRoute,
   cardsRoute,
@@ -24,20 +27,31 @@ import {
   settingsAccessDetailRoutePattern,
   settingsDeckNewRoute,
   settingsDecksRoute,
+  settingsDeviceRoute,
+  settingsHubRoute,
+  settingsOverviewRoute,
+  settingsSchedulerRoute,
   settingsTagsRoute,
   workspaceSettingsRoute,
 } from "./routes";
 import { AccessPermissionDetailScreen } from "./screens/AccessPermissionDetailScreen";
 import { AccessSettingsScreen } from "./screens/AccessSettingsScreen";
+import { AccountStatusScreen } from "./screens/AccountStatusScreen";
 import { AccountSettingsScreen } from "./screens/AccountSettingsScreen";
+import { AgentConnectionsScreen } from "./screens/AgentConnectionsScreen";
 import { CardFormScreen } from "./screens/CardFormScreen";
 import { CardsScreen } from "./screens/CardsScreen";
 import { DeckDetailScreen } from "./screens/DeckDetailScreen";
 import { DeckFormScreen } from "./screens/DeckFormScreen";
 import { DecksScreen } from "./screens/DecksScreen";
+import { DangerZoneScreen } from "./screens/DangerZoneScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { ThisDeviceSettingsScreen } from "./screens/ThisDeviceSettingsScreen";
 import { TagsScreen } from "./screens/TagsScreen";
+import { WorkspaceOverviewScreen } from "./screens/WorkspaceOverviewScreen";
+import { WorkspaceSchedulerScreen } from "./screens/WorkspaceSchedulerScreen";
+import { WorkspaceSettingsScreen } from "./screens/WorkspaceSettingsScreen";
 
 function LegacyDeckDetailRedirect(): ReactElement {
   const { deckId } = useParams();
@@ -299,7 +313,10 @@ export function RoutedShell(): ReactElement {
           <Route path="/decks/:deckId" element={<LegacyDeckDetailRedirect />} />
           <Route path="/tags" element={<Navigate replace to={settingsTagsRoute} />} />
           <Route path={reviewRoute} element={<ReviewScreen />} />
-          <Route path={workspaceSettingsRoute} element={<SettingsScreen />} />
+          <Route path={settingsHubRoute} element={<SettingsScreen />} />
+          <Route path={workspaceSettingsRoute} element={<WorkspaceSettingsScreen />} />
+          <Route path={settingsOverviewRoute} element={<WorkspaceOverviewScreen />} />
+          <Route path={settingsSchedulerRoute} element={<WorkspaceSchedulerScreen />} />
           <Route path={settingsAccessRoute} element={<AccessSettingsScreen />} />
           <Route path={settingsAccessDetailRoutePattern} element={<AccessPermissionDetailScreen />} />
           <Route path={settingsDecksRoute} element={<DecksScreen />} />
@@ -307,7 +324,11 @@ export function RoutedShell(): ReactElement {
           <Route path={`${settingsDecksRoute}/:deckId/edit`} element={<DeckFormScreen />} />
           <Route path={`${settingsDecksRoute}/:deckId`} element={<DeckDetailScreen />} />
           <Route path={settingsTagsRoute} element={<TagsScreen />} />
+          <Route path={settingsDeviceRoute} element={<ThisDeviceSettingsScreen />} />
           <Route path={accountSettingsRoute} element={<AccountSettingsScreen />} />
+          <Route path={accountStatusRoute} element={<AccountStatusScreen />} />
+          <Route path={accountAgentConnectionsRoute} element={<AgentConnectionsScreen />} />
+          <Route path={accountDangerZoneRoute} element={<DangerZoneScreen />} />
           <Route
             path={chatRoute}
             element={
