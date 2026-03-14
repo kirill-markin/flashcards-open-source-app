@@ -91,6 +91,31 @@ export type PersistentStorageState = Readonly<{
   usage: number | null;
 }>;
 
+type CardCursorIndexName = "createdAt_cardId" | "dueAt_cardId" | "effort_createdAt_cardId";
+
+type IndexedCardCursorOptions = Readonly<{
+  indexName: CardCursorIndexName;
+  range: IDBKeyRange | null;
+  direction: IDBCursorDirection;
+}>;
+
+type ReviewCandidateAccumulator = Readonly<{
+  matchingCards: ReadonlyArray<Card>;
+  dueCards: ReadonlyArray<Card>;
+}>;
+
+type CardPageAccumulator = Readonly<{
+  matchingCount: number;
+  pageCards: ReadonlyArray<Card>;
+  nextCursor: string | null;
+}>;
+
+type ReviewFilterResolution = Readonly<{
+  resolvedReviewFilter: ReviewFilter;
+  deck: Deck | null;
+  allowedTagCardIds: ReadonlySet<string> | null;
+}>;
+
 const databaseName = "flashcards-web-sync";
 const databaseVersion = 3;
 
@@ -338,6 +363,517 @@ async function getFromStore<RecordType extends StoredRecord>(
   return result;
 }
 
+function openIndexedCursor(
+  store: IDBObjectStore,
+  options: IndexedCardCursorOptions,
+): IDBRequest<IDBCursorWithValue | null> {
+  return store.index(options.indexName).openCursor(options.range, options.direction);
+}
+
+async function iterateCardsByIndex(
+  database: IDBDatabase,
+  options: IndexedCardCursorOptions,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["cards"], "readonly");
+    const cardsStore = transaction.objectStore("cards");
+    const request = openIndexedCursor(cardsStore, options);
+    let isResolved = false;
+
+    const finish = (): void => {
+      if (isResolved) {
+        return;
+      }
+
+      isResolved = true;
+      resolve();
+    };
+
+    request.onerror = () => {
+      reject(describeIndexedDbError("IndexedDB cursor iteration failed", request.error));
+    };
+
+    transaction.onerror = () => {
+      reject(describeIndexedDbError("IndexedDB transaction failed", transaction.error));
+    };
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (cursor === null) {
+        finish();
+        return;
+      }
+
+      const shouldContinue = onCard(cursor.value as Card);
+      if (shouldContinue === false) {
+        finish();
+        return;
+      }
+
+      cursor.continue();
+    };
+  });
+}
+
+async function iterateCardsByCreatedAtDesc(
+  database: IDBDatabase,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  let currentCreatedAt: string | null | undefined;
+  let currentGroup: Array<Card> = [];
+  let shouldStop = false;
+
+  function flushCurrentGroup(): boolean {
+    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => leftCard.cardId.localeCompare(rightCard.cardId));
+    currentGroup = [];
+
+    for (const card of sortedGroup) {
+      if (onCard(card) === false) {
+        shouldStop = true;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  await iterateCardsByIndex(
+    database,
+    {
+      indexName: "createdAt_cardId",
+      range: null,
+      direction: "prev",
+    },
+    (card) => {
+      if (shouldStop) {
+        return false;
+      }
+
+      if (currentCreatedAt === undefined) {
+        currentCreatedAt = card.createdAt;
+        currentGroup = [card];
+        return true;
+      }
+
+      if (currentCreatedAt === card.createdAt) {
+        currentGroup.push(card);
+        return true;
+      }
+
+      if (flushCurrentGroup() === false) {
+        return false;
+      }
+
+      currentCreatedAt = card.createdAt;
+      currentGroup = [card];
+      return true;
+    },
+  );
+
+  if (shouldStop === false && currentGroup.length > 0) {
+    flushCurrentGroup();
+  }
+}
+
+async function iterateCardsByDueAtAsc(
+  database: IDBDatabase,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  await iterateCardsByIndex(
+    database,
+    {
+      indexName: "dueAt_cardId",
+      range: null,
+      direction: "next",
+    },
+    onCard,
+  );
+}
+
+async function iterateCardsByEffortAndCreatedAtDesc(
+  database: IDBDatabase,
+  effortLevel: Card["effortLevel"],
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  let currentCreatedAt: string | null | undefined;
+  let currentGroup: Array<Card> = [];
+  let shouldStop = false;
+
+  function flushCurrentGroup(): boolean {
+    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => leftCard.cardId.localeCompare(rightCard.cardId));
+    currentGroup = [];
+
+    for (const card of sortedGroup) {
+      if (onCard(card) === false) {
+        shouldStop = true;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  await iterateCardsByIndex(
+    database,
+    {
+      indexName: "effort_createdAt_cardId",
+      range: IDBKeyRange.bound(
+        [effortLevel, "", ""],
+        [effortLevel, "\uffff", "\uffff"],
+      ),
+      direction: "prev",
+    },
+    (card) => {
+      if (shouldStop) {
+        return false;
+      }
+
+      if (currentCreatedAt === undefined) {
+        currentCreatedAt = card.createdAt;
+        currentGroup = [card];
+        return true;
+      }
+
+      if (currentCreatedAt === card.createdAt) {
+        currentGroup.push(card);
+        return true;
+      }
+
+      if (flushCurrentGroup() === false) {
+        return false;
+      }
+
+      currentCreatedAt = card.createdAt;
+      currentGroup = [card];
+      return true;
+    },
+  );
+
+  if (shouldStop === false && currentGroup.length > 0) {
+    flushCurrentGroup();
+  }
+}
+
+async function iterateCardTagsByTag(
+  database: IDBDatabase,
+  tag: string,
+  onRecord: (record: CardTagRecord) => boolean | void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["cardTags"], "readonly");
+    const cardTagsStore = transaction.objectStore("cardTags");
+    const request = cardTagsStore.index("tag_cardId").openCursor(
+      IDBKeyRange.bound(
+        [tag, ""],
+        [tag, "\uffff"],
+      ),
+      "next",
+    );
+    let isResolved = false;
+
+    const finish = (): void => {
+      if (isResolved) {
+        return;
+      }
+
+      isResolved = true;
+      resolve();
+    };
+
+    request.onerror = () => {
+      reject(describeIndexedDbError("IndexedDB card tag iteration failed", request.error));
+    };
+
+    transaction.onerror = () => {
+      reject(describeIndexedDbError("IndexedDB transaction failed", transaction.error));
+    };
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (cursor === null) {
+        finish();
+        return;
+      }
+
+      const shouldContinue = onRecord(cursor.value as CardTagRecord);
+      if (shouldContinue === false) {
+        finish();
+        return;
+      }
+
+      cursor.continue();
+    };
+  });
+}
+
+async function loadDeckRecord(database: IDBDatabase, deckId: string): Promise<Deck | null> {
+  const deck = await getFromStore<Deck>(database, "decks", deckId);
+  if (deck === undefined || deck.deletedAt !== null) {
+    return null;
+  }
+
+  return deck;
+}
+
+async function loadAllowedCardIdsForTags(
+  database: IDBDatabase,
+  tags: ReadonlyArray<string>,
+): Promise<ReadonlySet<string>> {
+  const allowedCardIds = new Set<string>();
+
+  for (const tag of tags) {
+    await iterateCardTagsByTag(database, tag, (record) => {
+      allowedCardIds.add(record.cardId);
+      return true;
+    });
+  }
+
+  return allowedCardIds;
+}
+
+async function resolveReviewFilterFromIndexedDb(
+  database: IDBDatabase,
+  reviewFilter: ReviewFilter,
+): Promise<ReviewFilterResolution> {
+  if (reviewFilter.kind === "allCards") {
+    return {
+      resolvedReviewFilter: ALL_CARDS_REVIEW_FILTER,
+      deck: null,
+      allowedTagCardIds: null,
+    };
+  }
+
+  if (reviewFilter.kind === "deck") {
+    const deck = await loadDeckRecord(database, reviewFilter.deckId);
+    if (deck === null) {
+      return {
+        resolvedReviewFilter: ALL_CARDS_REVIEW_FILTER,
+        deck: null,
+        allowedTagCardIds: null,
+      };
+    }
+
+    return {
+      resolvedReviewFilter: reviewFilter,
+      deck,
+      allowedTagCardIds: null,
+    };
+  }
+
+  const allowedTagCardIds = await loadAllowedCardIdsForTags(database, [reviewFilter.tag]);
+  if (allowedTagCardIds.size === 0) {
+    return {
+      resolvedReviewFilter: ALL_CARDS_REVIEW_FILTER,
+      deck: null,
+      allowedTagCardIds: null,
+    };
+  }
+
+  return {
+    resolvedReviewFilter: reviewFilter,
+    deck: null,
+    allowedTagCardIds,
+  };
+}
+
+function matchesResolvedReviewFilter(
+  card: Card,
+  filterResolution: ReviewFilterResolution,
+): boolean {
+  if (filterResolution.resolvedReviewFilter.kind === "allCards") {
+    return true;
+  }
+
+  if (filterResolution.resolvedReviewFilter.kind === "deck") {
+    if (filterResolution.deck === null) {
+      return true;
+    }
+
+    return matchesDeckFilterDefinition(filterResolution.deck.filterDefinition, card);
+  }
+
+  return filterResolution.allowedTagCardIds?.has(card.cardId) ?? false;
+}
+
+function createEmptyReviewCandidateAccumulator(): ReviewCandidateAccumulator {
+  return {
+    matchingCards: [],
+    dueCards: [],
+  };
+}
+
+function appendReviewCandidate(
+  accumulator: ReviewCandidateAccumulator,
+  card: Card,
+  nowTimestamp: number,
+): ReviewCandidateAccumulator {
+  return {
+    matchingCards: [...accumulator.matchingCards, card],
+    dueCards: isCardDue(card, nowTimestamp)
+      ? [...accumulator.dueCards, card]
+      : accumulator.dueCards,
+  };
+}
+
+async function collectReviewCandidates(
+  database: IDBDatabase,
+  reviewFilter: ReviewFilter,
+  nowTimestamp: number,
+): Promise<Readonly<{
+  filterResolution: ReviewFilterResolution;
+  accumulator: ReviewCandidateAccumulator;
+}>> {
+  const filterResolution = await resolveReviewFilterFromIndexedDb(database, reviewFilter);
+  let accumulator = createEmptyReviewCandidateAccumulator();
+  await iterateReviewCardsInCanonicalOrder(database, nowTimestamp, (card) => {
+    if (matchesResolvedReviewFilter(card, filterResolution) === false) {
+      return true;
+    }
+
+    accumulator = appendReviewCandidate(accumulator, card, nowTimestamp);
+    return true;
+  });
+
+  return {
+    filterResolution,
+    accumulator,
+  };
+}
+
+async function iterateReviewCardsInCanonicalOrder(
+  database: IDBDatabase,
+  nowTimestamp: number,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  let shouldStop = false;
+
+  await iterateCardsByCreatedAtDesc(database, (card) => {
+    if (shouldStop) {
+      return false;
+    }
+    if (card.deletedAt !== null || card.dueAt !== null) {
+      return true;
+    }
+
+    if (onCard(card) === false) {
+      shouldStop = true;
+      return false;
+    }
+
+    return true;
+  });
+
+  if (shouldStop) {
+    return;
+  }
+
+  let currentDueAt: string | null | undefined;
+  let currentGroup: Array<Card> = [];
+
+  function flushCurrentGroup(): boolean {
+    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
+    currentGroup = [];
+
+    for (const card of sortedGroup) {
+      if (onCard(card) === false) {
+        shouldStop = true;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  await iterateCardsByDueAtAsc(database, (card) => {
+    if (shouldStop) {
+      return false;
+    }
+    if (card.deletedAt !== null || card.dueAt === null) {
+      return true;
+    }
+
+    if (currentDueAt === undefined) {
+      currentDueAt = card.dueAt;
+      currentGroup = [card];
+      return true;
+    }
+
+    if (currentDueAt === card.dueAt) {
+      currentGroup = [...currentGroup, card];
+      return true;
+    }
+
+    if (flushCurrentGroup() === false) {
+      return false;
+    }
+
+    currentDueAt = card.dueAt;
+    currentGroup = [card];
+    return true;
+  });
+
+  if (shouldStop === false && currentGroup.length > 0) {
+    flushCurrentGroup();
+  }
+}
+
+function isDefaultCreatedAtDescendingSort(
+  sorts: QueryCardsInput["sorts"],
+): boolean {
+  return sorts.length === 0 || (
+    sorts.length === 1
+    && sorts[0]?.key === "createdAt"
+    && sorts[0].direction === "desc"
+  );
+}
+
+function makeCursorCardIdPredicate(cursor: string | null): Readonly<{
+  matches: (cardId: string) => boolean;
+  isSet: boolean;
+}> {
+  if (cursor === null) {
+    return {
+      matches: () => false,
+      isSet: false,
+    };
+  }
+
+  const parsedCursor = decodeCursor(cursor);
+  const cardId = parsedCursor.cardId;
+  if (typeof cardId !== "string" || cardId === "") {
+    throw new Error("cards cursor.cardId must be a non-empty string");
+  }
+
+  return {
+    matches: (candidateCardId) => candidateCardId === cardId,
+    isSet: true,
+  };
+}
+
+function makeReviewCursorCardIdPredicate(cursor: string | null): Readonly<{
+  matches: (cardId: string) => boolean;
+  isSet: boolean;
+}> {
+  if (cursor === null) {
+    return {
+      matches: () => false,
+      isSet: false,
+    };
+  }
+
+  const parsedCursor = decodeCursor(cursor);
+  const cardId = parsedCursor.cardId;
+  if (typeof cardId !== "string" || cardId === "") {
+    throw new Error("review cursor.cardId must be a non-empty string");
+  }
+
+  return {
+    matches: (candidateCardId) => candidateCardId === cardId,
+    isSet: true,
+  };
+}
+
 function compareTagSummaries(
   leftTag: Readonly<{ tag: string; cardsCount: number }>,
   rightTag: Readonly<{ tag: string; cardsCount: number }>,
@@ -490,47 +1026,6 @@ function buildCardsPageCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyArr
   return encodeCursor({ cardId: lastCard.cardId });
 }
 
-function resolveReviewFilterFromLocalData(
-  reviewFilter: ReviewFilter,
-  cards: ReadonlyArray<Card>,
-  decks: ReadonlyArray<Deck>,
-): ReviewFilter {
-  if (reviewFilter.kind === "allCards") {
-    return ALL_CARDS_REVIEW_FILTER;
-  }
-
-  if (reviewFilter.kind === "deck") {
-    const matchingDeck = decks.find((deck) => deck.deckId === reviewFilter.deckId);
-    return matchingDeck === undefined ? ALL_CARDS_REVIEW_FILTER : reviewFilter;
-  }
-
-  const hasActiveTag = cards.some((card) => card.tags.includes(reviewFilter.tag));
-  return hasActiveTag ? reviewFilter : ALL_CARDS_REVIEW_FILTER;
-}
-
-function cardsMatchingReviewFilter(
-  reviewFilter: ReviewFilter,
-  cards: ReadonlyArray<Card>,
-  decks: ReadonlyArray<Deck>,
-): ReadonlyArray<Card> {
-  const resolvedReviewFilter = resolveReviewFilterFromLocalData(reviewFilter, cards, decks);
-
-  if (resolvedReviewFilter.kind === "allCards") {
-    return cards;
-  }
-
-  if (resolvedReviewFilter.kind === "deck") {
-    const deck = decks.find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
-    if (deck === undefined) {
-      return cards;
-    }
-
-    return cards.filter((card) => matchesDeckFilterDefinition(deck.filterDefinition, card));
-  }
-
-  return cards.filter((card) => card.tags.includes(resolvedReviewFilter.tag));
-}
-
 async function listAllCards(database: IDBDatabase): Promise<ReadonlyArray<Card>> {
   const cards = await getAllFromStore<Card>(database, "cards");
   return cards.filter((card) => card.deletedAt === null);
@@ -563,25 +1058,6 @@ function buildReviewQueueCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyA
   }
 
   return encodeCursor({ cardId: lastCard.cardId });
-}
-
-function resolveReviewStartIndex(cards: ReadonlyArray<Card>, cursor: string | null): number {
-  if (cursor === null) {
-    return 0;
-  }
-
-  const parsedCursor = decodeCursor(cursor);
-  const cardId = parsedCursor.cardId;
-  if (typeof cardId !== "string" || cardId === "") {
-    throw new Error("review cursor.cardId must be a non-empty string");
-  }
-
-  const index = cards.findIndex((card) => card.cardId === cardId);
-  if (index === -1) {
-    return 0;
-  }
-
-  return index + 1;
 }
 
 async function readWebSyncCache(): Promise<WebSyncCache> {
@@ -640,23 +1116,152 @@ export async function loadWorkspaceSettings(): Promise<WorkspaceSchedulerSetting
  */
 export async function queryLocalCardsPage(input: QueryCardsInput): Promise<QueryCardsPage> {
   const database = await openDatabase();
-  const normalizedSearchText = normalizeSearchText(input.searchText);
-  const allCards = await listAllCards(database);
-  database.close();
+  try {
+    const normalizedSearchText = normalizeSearchText(input.searchText);
+    const allowedTagCardIds = input.filter === null || input.filter.tags.length === 0
+      ? null
+      : await loadAllowedCardIdsForTags(database, input.filter.tags);
+    const canUseStreamingPage = isDefaultCreatedAtDescendingSort(input.sorts);
 
-  const filteredCards = allCards
-    .filter((card) => matchesSearchText(card, normalizedSearchText))
-    .filter((card) => input.filter === null || matchesCardFilter(input.filter, card))
-    .sort((leftCard, rightCard) => compareCardsForCardsQuery(leftCard, rightCard, input.sorts));
+    if (canUseStreamingPage) {
+      const cursorPredicate = makeCursorCardIdPredicate(input.cursor);
+      let hasReachedCursor = cursorPredicate.isSet === false;
+      let matchingCount = 0;
+      let pageCards: Array<Card> = [];
+      let hasMoreCards = false;
 
-  const startIndex = resolveCardsPageStartIndex(filteredCards, input.cursor);
-  const pageCards = filteredCards.slice(startIndex, startIndex + input.limit);
+      const iterateCards = input.filter !== null && input.filter.effort.length === 1
+        ? iterateCardsByEffortAndCreatedAtDesc(database, input.filter.effort[0], (card) => {
+          if (card.deletedAt !== null) {
+            return true;
+          }
+          if (allowedTagCardIds !== null && allowedTagCardIds.has(card.cardId) === false) {
+            return true;
+          }
+          if (input.filter !== null && matchesCardFilter(input.filter, card) === false) {
+            return true;
+          }
+          if (matchesSearchText(card, normalizedSearchText) === false) {
+            return true;
+          }
 
-  return {
-    cards: pageCards,
-    nextCursor: buildCardsPageCursor(filteredCards, pageCards),
-    totalCount: filteredCards.length,
-  };
+          matchingCount += 1;
+
+          if (hasReachedCursor === false) {
+            if (cursorPredicate.matches(card.cardId)) {
+              hasReachedCursor = true;
+            }
+            return true;
+          }
+
+          if (pageCards.length < input.limit) {
+            pageCards = [...pageCards, card];
+            return true;
+          }
+
+          hasMoreCards = true;
+          return true;
+        })
+        : iterateCardsByCreatedAtDesc(database, (card) => {
+          if (card.deletedAt !== null) {
+            return true;
+          }
+          if (allowedTagCardIds !== null && allowedTagCardIds.has(card.cardId) === false) {
+            return true;
+          }
+          if (input.filter !== null && matchesCardFilter(input.filter, card) === false) {
+            return true;
+          }
+          if (matchesSearchText(card, normalizedSearchText) === false) {
+            return true;
+          }
+
+          matchingCount += 1;
+
+          if (hasReachedCursor === false) {
+            if (cursorPredicate.matches(card.cardId)) {
+              hasReachedCursor = true;
+            }
+            return true;
+          }
+
+          if (pageCards.length < input.limit) {
+            pageCards = [...pageCards, card];
+            return true;
+          }
+
+          hasMoreCards = true;
+          return true;
+        });
+
+      await iterateCards;
+
+      const accumulator: CardPageAccumulator = {
+        matchingCount,
+        pageCards,
+        nextCursor: hasMoreCards && pageCards.length > 0
+          ? encodeCursor({ cardId: pageCards[pageCards.length - 1]?.cardId ?? "" })
+          : null,
+      };
+
+      return {
+        cards: accumulator.pageCards,
+        nextCursor: accumulator.nextCursor,
+        totalCount: accumulator.matchingCount,
+      };
+    }
+
+    let matchingCards: Array<Card> = [];
+    const baseIterator = input.sorts[0]?.key === "dueAt"
+      ? iterateCardsByDueAtAsc(database, (card) => {
+        if (card.deletedAt !== null) {
+          return true;
+        }
+        if (allowedTagCardIds !== null && allowedTagCardIds.has(card.cardId) === false) {
+          return true;
+        }
+        if (input.filter !== null && matchesCardFilter(input.filter, card) === false) {
+          return true;
+        }
+        if (matchesSearchText(card, normalizedSearchText) === false) {
+          return true;
+        }
+
+        matchingCards = [...matchingCards, card];
+        return true;
+      })
+      : iterateCardsByCreatedAtDesc(database, (card) => {
+        if (card.deletedAt !== null) {
+          return true;
+        }
+        if (allowedTagCardIds !== null && allowedTagCardIds.has(card.cardId) === false) {
+          return true;
+        }
+        if (input.filter !== null && matchesCardFilter(input.filter, card) === false) {
+          return true;
+        }
+        if (matchesSearchText(card, normalizedSearchText) === false) {
+          return true;
+        }
+
+        matchingCards = [...matchingCards, card];
+        return true;
+      });
+
+    await baseIterator;
+    matchingCards = [...matchingCards].sort((leftCard, rightCard) => compareCardsForCardsQuery(leftCard, rightCard, input.sorts));
+
+    const startIndex = resolveCardsPageStartIndex(matchingCards, input.cursor);
+    const pageCards = matchingCards.slice(startIndex, startIndex + input.limit);
+
+    return {
+      cards: pageCards,
+      nextCursor: buildCardsPageCursor(matchingCards, pageCards),
+      totalCount: matchingCards.length,
+    };
+  } finally {
+    database.close();
+  }
 }
 
 export async function loadWorkspaceTagsSummary(): Promise<WorkspaceTagsSummary> {
@@ -773,22 +1378,20 @@ export async function loadReviewQueueSnapshot(
   limit: number,
 ): Promise<ReviewQueueSnapshot> {
   const database = await openDatabase();
-  const cards = await listAllCards(database);
-  const decks = await listAllDecks(database);
-  database.close();
-  const nowTimestamp = Date.now();
-  const resolvedReviewFilter = resolveReviewFilterFromLocalData(reviewFilter, cards, decks);
-  const matchingCards = [...cardsMatchingReviewFilter(resolvedReviewFilter, cards, decks)]
-    .sort((leftCard: Card, rightCard: Card) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
-  const dueCards = matchingCards.filter((card) => isCardDue(card, nowTimestamp));
-  const pageCards = dueCards.slice(0, limit);
+  try {
+    const nowTimestamp = Date.now();
+    const { filterResolution, accumulator } = await collectReviewCandidates(database, reviewFilter, nowTimestamp);
+    const pageCards = accumulator.dueCards.slice(0, limit);
 
-  return {
-    resolvedReviewFilter,
-    cards: pageCards,
-    nextCursor: buildReviewQueueCursor(dueCards, pageCards),
-    reviewCounts: makeReviewCountsFromCards(matchingCards, nowTimestamp),
-  };
+    return {
+      resolvedReviewFilter: filterResolution.resolvedReviewFilter,
+      cards: pageCards,
+      nextCursor: buildReviewQueueCursor(accumulator.dueCards, pageCards),
+      reviewCounts: makeReviewCountsFromCards(accumulator.matchingCards, nowTimestamp),
+    };
+  } finally {
+    database.close();
+  }
 }
 
 export async function loadReviewQueueChunk(
@@ -798,22 +1401,50 @@ export async function loadReviewQueueChunk(
   excludedCardIds: ReadonlySet<string>,
 ): Promise<Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>> {
   const database = await openDatabase();
-  const cards = await listAllCards(database);
-  const decks = await listAllDecks(database);
-  database.close();
-  const nowTimestamp = Date.now();
-  const resolvedReviewFilter = resolveReviewFilterFromLocalData(reviewFilter, cards, decks);
-  const dueCards = [...cardsMatchingReviewFilter(resolvedReviewFilter, cards, decks)]
-    .filter((card) => excludedCardIds.has(card.cardId) === false)
-    .filter((card) => isCardDue(card, nowTimestamp))
-    .sort((leftCard: Card, rightCard: Card) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
-  const startIndex = resolveReviewStartIndex(dueCards, cursor);
-  const pageCards = dueCards.slice(startIndex, startIndex + limit);
+  try {
+    const nowTimestamp = Date.now();
+    const filterResolution = await resolveReviewFilterFromIndexedDb(database, reviewFilter);
+    const cursorPredicate = makeReviewCursorCardIdPredicate(cursor);
+    let hasReachedCursor = cursorPredicate.isSet === false;
+    let pageCards: Array<Card> = [];
+    let hasMoreCards = false;
 
-  return {
-    cards: pageCards,
-    nextCursor: buildReviewQueueCursor(dueCards, pageCards),
-  };
+    await iterateReviewCardsInCanonicalOrder(database, nowTimestamp, (card) => {
+      if (excludedCardIds.has(card.cardId)) {
+        return true;
+      }
+      if (matchesResolvedReviewFilter(card, filterResolution) === false) {
+        return true;
+      }
+      if (isCardDue(card, nowTimestamp) === false) {
+        return true;
+      }
+
+      if (hasReachedCursor === false) {
+        if (cursorPredicate.matches(card.cardId)) {
+          hasReachedCursor = true;
+        }
+        return true;
+      }
+
+      if (pageCards.length < limit) {
+        pageCards = [...pageCards, card];
+        return true;
+      }
+
+      hasMoreCards = true;
+      return false;
+    });
+
+    return {
+      cards: pageCards,
+      nextCursor: hasMoreCards && pageCards.length > 0
+        ? encodeCursor({ cardId: pageCards[pageCards.length - 1]?.cardId ?? "" })
+        : null,
+    };
+  } finally {
+    database.close();
+  }
 }
 
 export async function loadReviewTimelinePage(
@@ -822,19 +1453,36 @@ export async function loadReviewTimelinePage(
   offset: number,
 ): Promise<ReviewTimelinePage> {
   const database = await openDatabase();
-  const cards = await listAllCards(database);
-  const decks = await listAllDecks(database);
-  database.close();
-  const nowTimestamp = Date.now();
-  const resolvedReviewFilter = resolveReviewFilterFromLocalData(reviewFilter, cards, decks);
-  const matchingCards = [...cardsMatchingReviewFilter(resolvedReviewFilter, cards, decks)]
-    .sort((leftCard: Card, rightCard: Card) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
-  const pageCards = matchingCards.slice(offset, offset + limit + 1);
+  try {
+    const nowTimestamp = Date.now();
+    const filterResolution = await resolveReviewFilterFromIndexedDb(database, reviewFilter);
+    let matchingIndex = 0;
+    let pageCards: Array<Card> = [];
+    let hasMoreCards = false;
 
-  return {
-    cards: pageCards.slice(0, limit),
-    hasMoreCards: pageCards.length > limit,
-  };
+    await iterateReviewCardsInCanonicalOrder(database, nowTimestamp, (card) => {
+      if (matchesResolvedReviewFilter(card, filterResolution) === false) {
+        return true;
+      }
+
+      if (matchingIndex >= offset && pageCards.length < limit) {
+        pageCards = [...pageCards, card];
+      } else if (matchingIndex >= offset + limit) {
+        hasMoreCards = true;
+        return false;
+      }
+
+      matchingIndex += 1;
+      return true;
+    });
+
+    return {
+      cards: pageCards,
+      hasMoreCards,
+    };
+  } finally {
+    database.close();
+  }
 }
 
 export async function relinkWorkspaceCache(workspaceId: string): Promise<void> {
