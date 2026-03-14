@@ -463,6 +463,31 @@ final class CloudSyncService: @unchecked Sendable {
         return (response.connection, response.instructions)
     }
 
+    func isWorkspaceEmptyForBootstrap(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        deviceId: String
+    ) async throws -> Bool {
+        let pullEnvelope: RemotePullResponseEnvelope = try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/workspaces/\(workspaceId)/sync/pull",
+            method: "POST",
+            body: PullRequest(
+                deviceId: deviceId,
+                platform: "ios",
+                appVersion: self.appVersion(),
+                afterChangeId: 0,
+                limit: 1
+            )
+        )
+
+        return pullEnvelope.changes.isEmpty
+            && pullEnvelope.nextChangeId == 0
+            && pullEnvelope.hasMore == false
+    }
+
     func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws {
         let response: DeleteAccountResponse = try await self.request(
             apiBaseUrl: apiBaseUrl,

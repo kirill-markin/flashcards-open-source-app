@@ -15,11 +15,49 @@ final class CloudSupportTests: XCTestCase {
                 "FLASHCARDS_AUTH_BASE_URL": "https://auth.example.com/"
             ]
         )
+        let userDefaults = try self.makeUserDefaults()
 
-        let configuration = try loadCloudServiceConfiguration(bundle: bundle)
+        let configuration = try loadCloudServiceConfiguration(
+            bundle: bundle,
+            userDefaults: userDefaults,
+            decoder: JSONDecoder()
+        )
 
+        XCTAssertEqual(configuration.mode, .official)
+        XCTAssertNil(configuration.customOrigin)
         XCTAssertEqual(configuration.apiBaseUrl, "https://api.example.com/v1")
         XCTAssertEqual(configuration.authBaseUrl, "https://auth.example.com")
+    }
+
+    func testLoadCloudServiceConfigurationUsesStoredCustomServerOverrideWhenPresent() throws {
+        let bundle = try self.makeBundle(
+            infoDictionary: [
+                "FLASHCARDS_API_BASE_URL": "https://api.flashcards-open-source-app.com/v1",
+                "FLASHCARDS_AUTH_BASE_URL": "https://auth.flashcards-open-source-app.com"
+            ]
+        )
+        let suiteName = "cloud-support-tests-\(UUID().uuidString)"
+        let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        userDefaults.removePersistentDomain(forName: suiteName)
+        self.addTeardownBlock {
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+        try saveCloudServerOverride(
+            override: CloudServerOverride(customOrigin: "https://self-hosted.example.com"),
+            userDefaults: userDefaults,
+            encoder: JSONEncoder()
+        )
+
+        let configuration = try loadCloudServiceConfiguration(
+            bundle: bundle,
+            userDefaults: userDefaults,
+            decoder: JSONDecoder()
+        )
+
+        XCTAssertEqual(configuration.mode, .custom)
+        XCTAssertEqual(configuration.customOrigin, "https://self-hosted.example.com")
+        XCTAssertEqual(configuration.apiBaseUrl, "https://api.self-hosted.example.com/v1")
+        XCTAssertEqual(configuration.authBaseUrl, "https://auth.self-hosted.example.com")
     }
 
     func testLoadCloudServiceConfigurationThrowsMissingValueWhenApiBaseUrlIsAbsent() throws {
@@ -28,8 +66,9 @@ final class CloudSupportTests: XCTestCase {
                 "FLASHCARDS_AUTH_BASE_URL": "https://auth.example.com"
             ]
         )
+        let userDefaults = try self.makeUserDefaults()
 
-        XCTAssertThrowsError(try loadCloudServiceConfiguration(bundle: bundle)) { error in
+        XCTAssertThrowsError(try loadCloudServiceConfiguration(bundle: bundle, userDefaults: userDefaults, decoder: JSONDecoder())) { error in
             XCTAssertEqual(
                 error as? CloudConfigurationError,
                 .missingValue("FLASHCARDS_API_BASE_URL")
@@ -44,11 +83,90 @@ final class CloudSupportTests: XCTestCase {
                 "FLASHCARDS_AUTH_BASE_URL": "https://auth.example.com"
             ]
         )
+        let userDefaults = try self.makeUserDefaults()
 
-        XCTAssertThrowsError(try loadCloudServiceConfiguration(bundle: bundle)) { error in
+        XCTAssertThrowsError(try loadCloudServiceConfiguration(bundle: bundle, userDefaults: userDefaults, decoder: JSONDecoder())) { error in
             XCTAssertEqual(
                 error as? CloudConfigurationError,
                 .invalidUrl("FLASHCARDS_API_BASE_URL", "not a url")
+            )
+        }
+    }
+
+    func testMakeCustomCloudServiceConfigurationRejectsInvalidOrigin() {
+        XCTAssertThrowsError(try makeCustomCloudServiceConfiguration(customOrigin: "http://example.com/path")) { error in
+            XCTAssertEqual(
+                error as? CloudConfigurationError,
+                .invalidCustomOrigin("http://example.com/path")
+            )
+        }
+    }
+
+    @MainActor
+    func testCloudServiceConfigurationValidatorChecksExpectedHealthEndpoints() async throws {
+        let recorder = CloudSupportRequestRecorder()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            recorder.appendPath(url.absoluteString)
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data())
+        }
+
+        let validator = CloudServiceConfigurationValidator(session: self.makeSession())
+
+        try await validator.validate(
+            configuration: CloudServiceConfiguration(
+                mode: .custom,
+                customOrigin: "https://example.com",
+                apiBaseUrl: "https://api.example.com/v1",
+                authBaseUrl: "https://auth.example.com"
+            )
+        )
+
+        XCTAssertEqual(
+            Set(recorder.requestPaths),
+            [
+                "https://api.example.com/v1/health",
+                "https://auth.example.com/health"
+            ]
+        )
+    }
+
+    @MainActor
+    func testCloudServiceConfigurationValidatorFailsWhenHealthCheckReturnsNonSuccessStatus() async throws {
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: url.absoluteString.contains("auth.") ? 503 : 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data())
+        }
+
+        let validator = CloudServiceConfigurationValidator(session: self.makeSession())
+
+        do {
+            try await validator.validate(
+                configuration: CloudServiceConfiguration(
+                    mode: .custom,
+                    customOrigin: "https://example.com",
+                    apiBaseUrl: "https://api.example.com/v1",
+                    authBaseUrl: "https://auth.example.com"
+                )
+            )
+            XCTFail("Expected health-check validation to fail")
+        } catch {
+            XCTAssertEqual(
+                localizedMessage(error: error),
+                "Auth service health check returned status 503 for https://auth.example.com/health"
             )
         }
     }
@@ -470,6 +588,16 @@ final class CloudSupportTests: XCTestCase {
         try infoPlistData.write(to: infoPlistUrl)
 
         return try XCTUnwrap(Bundle(url: bundleUrl))
+    }
+
+    private func makeUserDefaults() throws -> UserDefaults {
+        let suiteName = "cloud-support-tests-\(UUID().uuidString)"
+        let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        userDefaults.removePersistentDomain(forName: suiteName)
+        self.addTeardownBlock {
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+        return userDefaults
     }
 
     private func makeDatabaseWithURL() throws -> (URL, LocalDatabase) {

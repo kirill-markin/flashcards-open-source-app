@@ -98,6 +98,10 @@ vi.mock("./screens/AccountStatusScreen", () => ({
   AccountStatusScreen: () => <div>account-status-screen</div>,
 }));
 
+vi.mock("./screens/OpenSourceSettingsScreen", () => ({
+  OpenSourceSettingsScreen: () => <div>open-source-settings-screen</div>,
+}));
+
 vi.mock("./screens/AgentConnectionsScreen", () => ({
   AgentConnectionsScreen: () => <div>agent-connections-screen</div>,
 }));

@@ -1,16 +1,53 @@
 import Foundation
 
+enum CloudBootstrapEligibilityError: LocalizedError {
+    case remoteWorkspaceIsNotEmpty
+
+    var errorDescription: String? {
+        switch self {
+        case .remoteWorkspaceIsNotEmpty:
+            return "Choose a new or empty workspace on this server before uploading the current local data."
+        }
+    }
+}
+
 @MainActor
 extension FlashcardsStore {
+    func currentCloudServiceConfiguration() throws -> CloudServiceConfiguration {
+        try loadCloudServiceConfiguration(
+            bundle: .main,
+            userDefaults: self.userDefaults,
+            decoder: self.decoder
+        )
+    }
+
+    func validateCustomCloudServer(customOrigin: String) async throws -> CloudServiceConfiguration {
+        let configuration = try makeCustomCloudServiceConfiguration(customOrigin: customOrigin)
+        try await self.cloudServiceConfigurationValidator.validate(configuration: configuration)
+        return configuration
+    }
+
+    func applyCustomCloudServer(configuration: CloudServiceConfiguration) throws {
+        if configuration.mode != .custom {
+            throw LocalStoreError.validation("Custom server configuration is required")
+        }
+
+        try self.switchCloudServer(override: CloudServerOverride(customOrigin: try requireCustomOrigin(configuration: configuration)))
+    }
+
+    func resetToOfficialCloudServer() throws {
+        try self.switchCloudServer(override: nil)
+    }
+
     func sendCloudSignInCode(email: String) async throws -> CloudOtpChallenge {
-        let configuration = try loadCloudServiceConfiguration()
+        let configuration = try self.currentCloudServiceConfiguration()
         let challenge = try await self.cloudRuntime.sendCode(email: email, configuration: configuration)
         self.globalErrorMessage = ""
         return challenge
     }
 
     func verifyCloudOtp(challenge: CloudOtpChallenge, code: String) async throws -> CloudVerifiedAuthContext {
-        let configuration = try loadCloudServiceConfiguration()
+        let configuration = try self.currentCloudServiceConfiguration()
         self.globalErrorMessage = ""
         return try await self.cloudRuntime.verifyCode(
             challenge: challenge,
@@ -45,6 +82,20 @@ extension FlashcardsStore {
             selection: selection,
             localWorkspaceName: workspace.name
         )
+
+        if try await self.shouldValidateEmptyRemoteWorkspaceBeforeBootstrap() {
+            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+            let cloudSettings = try requireCloudSettings(cloudSettings: self.cloudSettings)
+            let isWorkspaceEmpty = try await cloudSyncService.isWorkspaceEmptyForBootstrap(
+                apiBaseUrl: linkContext.apiBaseUrl,
+                bearerToken: linkContext.credentials.idToken,
+                workspaceId: linkedWorkspace.workspaceId,
+                deviceId: cloudSettings.deviceId
+            )
+            if isWorkspaceEmpty == false {
+                throw CloudBootstrapEligibilityError.remoteWorkspaceIsNotEmpty
+            }
+        }
 
         try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
         try await self.finishCloudLink(
@@ -245,6 +296,7 @@ extension FlashcardsStore {
             self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
             self.syncStatus = .idle
             self.globalErrorMessage = ""
+            self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
             logCloudPhase(
                 phase: .linkedSync,
                 outcome: "success",
@@ -276,7 +328,7 @@ extension FlashcardsStore {
     }
 
     func refreshCloudCredentials(forceRefresh: Bool) async throws -> StoredCloudCredentials {
-        let configuration = try loadCloudServiceConfiguration()
+        let configuration = try self.currentCloudServiceConfiguration()
         return try await self.cloudRuntime.refreshCloudCredentials(
             forceRefresh: forceRefresh,
             configuration: configuration,
@@ -316,7 +368,7 @@ extension FlashcardsStore {
     }
 
     private func performRestoreCloudLinkFromStoredCredentials() async throws {
-        let configuration = try loadCloudServiceConfiguration()
+        let configuration = try self.currentCloudServiceConfiguration()
 
         do {
             let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
@@ -477,5 +529,45 @@ extension FlashcardsStore {
         Task { @MainActor in
             await self.syncCloudIfLinked()
         }
+    }
+
+    private func switchCloudServer(override: CloudServerOverride?) throws {
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+
+        self.cloudRuntime.cancelForAccountDeletion()
+        try self.cloudRuntime.clearCredentials()
+        try context.database.clearCloudSyncState(workspaceId: context.workspaceId)
+        try context.database.updateCloudSettings(
+            cloudState: .disconnected,
+            linkedUserId: nil,
+            linkedWorkspaceId: nil,
+            linkedEmail: nil
+        )
+
+        if let override {
+            try saveCloudServerOverride(
+                override: override,
+                userDefaults: self.userDefaults,
+                encoder: self.encoder
+            )
+        } else {
+            clearCloudServerOverride(userDefaults: self.userDefaults)
+        }
+
+        if override == nil {
+            self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
+        } else {
+            self.userDefaults.set(true, forKey: pendingCloudServerBootstrapUserDefaultsKey)
+        }
+        self.syncStatus = .idle
+        self.lastSuccessfulCloudSyncAt = nil
+        self.globalErrorMessage = ""
+        try self.reload()
+    }
+
+    private func shouldValidateEmptyRemoteWorkspaceBeforeBootstrap() async throws -> Bool {
+        let configuration = try self.currentCloudServiceConfiguration()
+        return configuration.mode == .custom
+            && self.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey)
     }
 }
