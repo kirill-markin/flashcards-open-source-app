@@ -3,6 +3,7 @@ import Foundation
 let aiChatDefaultModelId: String = "gpt-5.4"
 let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 let aiChatOptimisticAssistantStatusText: String = "Looking through your cards..."
+let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
 let aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
 let aiChatSupportedFileExtensions: Set<String> = [
     "pdf",
@@ -35,6 +36,14 @@ let aiChatLocalToolNames: Set<String> = [
     "get_cloud_settings",
     "list_outbox",
 ]
+
+func hasAIChatExternalProviderConsent(userDefaults: UserDefaults) -> Bool {
+    userDefaults.bool(forKey: aiChatExternalProviderConsentUserDefaultsKey)
+}
+
+func grantAIChatExternalProviderConsent(userDefaults: UserDefaults) {
+    userDefaults.set(true, forKey: aiChatExternalProviderConsentUserDefaultsKey)
+}
 
 func aiChatAppVersion() -> String {
     let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String

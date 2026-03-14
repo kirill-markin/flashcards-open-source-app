@@ -21,6 +21,7 @@ struct AIChatView: View {
     @State private var autoScrollTask: Task<Void, Never>?
     @State private var shouldRestoreComposerFocusAfterDictation: Bool
     @State private var composerSelection: TextSelection?
+    @State private var hasAcceptedExternalAIConsent: Bool
     @FocusState private var isComposerFocused: Bool
 
     @MainActor
@@ -40,12 +41,19 @@ struct AIChatView: View {
         self.autoScrollTask = nil
         self.shouldRestoreComposerFocusAfterDictation = false
         self.composerSelection = nil
+        self.hasAcceptedExternalAIConsent = hasAIChatExternalProviderConsent(
+            userDefaults: flashcardsStore.userDefaults
+        )
     }
 
     var body: some View {
         VStack(spacing: 0) {
             if self.flashcardsStore.cloudSettings?.cloudState == .linked {
-                self.chatContent
+                if self.hasAcceptedExternalAIConsent {
+                    self.chatContent
+                } else {
+                    self.consentGate
+                }
             } else {
                 self.signInGate
             }
@@ -53,24 +61,37 @@ struct AIChatView: View {
         .navigationTitle("AI")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("New") {
-                    self.chatStore.clearHistory()
+            if self.hasAcceptedExternalAIConsent {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("New") {
+                        self.chatStore.clearHistory()
+                    }
+                    .disabled(self.isNewChatDisabled)
                 }
-                .disabled(self.isNewChatDisabled)
             }
         }
         .onAppear {
+            guard self.hasAcceptedExternalAIConsent else {
+                return
+            }
+
             self.handleAIChatPresentationRequest(request: self.flashcardsStore.aiChatPresentationRequest)
             self.chatStore.warmUpSessionIfNeeded()
         }
         .onChange(of: self.flashcardsStore.aiChatPresentationRequest) { _, request in
+            guard self.hasAcceptedExternalAIConsent else {
+                return
+            }
+
             self.handleAIChatPresentationRequest(request: request)
         }
         .onChange(of: self.scenePhase) { _, nextPhase in
             guard nextPhase == .active else {
                 self.shouldRestoreComposerFocusAfterDictation = false
                 self.chatStore.cancelDictation()
+                return
+            }
+            guard self.hasAcceptedExternalAIConsent else {
                 return
             }
             guard self.flashcardsStore.selectedTab == .ai else {
@@ -201,6 +222,43 @@ struct AIChatView: View {
             .buttonStyle(.borderedProminent)
             Spacer()
         }
+    }
+
+    private var consentGate: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Spacer(minLength: 0)
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 42))
+                    .foregroundStyle(.secondary)
+
+                Text("Before you use AI")
+                    .font(.title3.weight(.semibold))
+
+                Text("AI chat sends your requests to external AI providers. Please confirm that you want to use that flow on this device.")
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Your chat text can be sent to external AI providers.", systemImage: "text.bubble")
+                    Label("Photos, files, and recorded audio you attach can be uploaded for processing.", systemImage: "paperclip")
+                    Label("We may send technical diagnostics for failed or slow AI requests.", systemImage: "waveform.path.ecg")
+                }
+                .font(.subheadline)
+
+                Text("Cards, decks, and review continue to work without AI.")
+                    .foregroundStyle(.secondary)
+
+                Button("I agree to use external AI") {
+                    self.acceptExternalAIConsent()
+                }
+                .buttonStyle(.borderedProminent)
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+        }
+        .background(Color(.systemGroupedBackground))
     }
 
     private var chatContent: some View {
@@ -493,6 +551,13 @@ struct AIChatView: View {
 
     private var primaryComposerButtonDisabled: Bool {
         self.chatStore.isStreaming == false && self.chatStore.canSendMessage == false
+    }
+
+    private func acceptExternalAIConsent() {
+        grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
+        self.hasAcceptedExternalAIConsent = true
+        self.handleAIChatPresentationRequest(request: self.flashcardsStore.aiChatPresentationRequest)
+        self.chatStore.warmUpSessionIfNeeded()
     }
 
     private func handleAIChatPresentationRequest(request: AIChatPresentationRequest?) {
