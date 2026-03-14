@@ -116,6 +116,13 @@ type ReviewFilterResolution = Readonly<{
   allowedTagCardIds: ReadonlySet<string> | null;
 }>;
 
+type DeckStatsAccumulator = Readonly<{
+  totalCards: number;
+  dueCards: number;
+  newCards: number;
+  reviewedCards: number;
+}>;
+
 const databaseName = "flashcards-web-sync";
 const databaseVersion = 3;
 
@@ -607,6 +614,96 @@ async function iterateCardTagsByTag(
   });
 }
 
+async function iterateAllCardTags(
+  database: IDBDatabase,
+  onRecord: (record: CardTagRecord) => boolean | void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["cardTags"], "readonly");
+    const cardTagsStore = transaction.objectStore("cardTags");
+    const request = cardTagsStore.index("tag_cardId").openCursor(null, "next");
+    let isResolved = false;
+
+    const finish = (): void => {
+      if (isResolved) {
+        return;
+      }
+
+      isResolved = true;
+      resolve();
+    };
+
+    request.onerror = () => {
+      reject(describeIndexedDbError("IndexedDB card tag iteration failed", request.error));
+    };
+
+    transaction.onerror = () => {
+      reject(describeIndexedDbError("IndexedDB transaction failed", transaction.error));
+    };
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (cursor === null) {
+        finish();
+        return;
+      }
+
+      const shouldContinue = onRecord(cursor.value as CardTagRecord);
+      if (shouldContinue === false) {
+        finish();
+        return;
+      }
+
+      cursor.continue();
+    };
+  });
+}
+
+async function iterateDecksByCreatedAtDesc(
+  database: IDBDatabase,
+  onDeck: (deck: Deck) => boolean | void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["decks"], "readonly");
+    const decksStore = transaction.objectStore("decks");
+    const request = decksStore.index("createdAt_deckId").openCursor(null, "prev");
+    let isResolved = false;
+
+    const finish = (): void => {
+      if (isResolved) {
+        return;
+      }
+
+      isResolved = true;
+      resolve();
+    };
+
+    request.onerror = () => {
+      reject(describeIndexedDbError("IndexedDB deck iteration failed", request.error));
+    };
+
+    transaction.onerror = () => {
+      reject(describeIndexedDbError("IndexedDB transaction failed", transaction.error));
+    };
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (cursor === null) {
+        finish();
+        return;
+      }
+
+      const shouldContinue = onDeck(cursor.value as Deck);
+      if (shouldContinue === false) {
+        finish();
+        return;
+      }
+
+      cursor.continue();
+    };
+  });
+}
+
 async function loadDeckRecord(database: IDBDatabase, deckId: string): Promise<Deck | null> {
   const deck = await getFromStore<Deck>(database, "decks", deckId);
   if (deck === undefined || deck.deletedAt !== null) {
@@ -1026,16 +1123,6 @@ function buildCardsPageCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyArr
   return encodeCursor({ cardId: lastCard.cardId });
 }
 
-async function listAllCards(database: IDBDatabase): Promise<ReadonlyArray<Card>> {
-  const cards = await getAllFromStore<Card>(database, "cards");
-  return cards.filter((card) => card.deletedAt === null);
-}
-
-async function listAllDecks(database: IDBDatabase): Promise<ReadonlyArray<Deck>> {
-  const decks = await getAllFromStore<Deck>(database, "decks");
-  return decks.filter((deck) => deck.deletedAt === null);
-}
-
 function makeReviewCountsFromCards(cards: ReadonlyArray<Card>, nowTimestamp: number): ReviewCounts {
   return cards.reduce<ReviewCounts>((result, card) => ({
     dueCount: result.dueCount + (isCardDue(card, nowTimestamp) ? 1 : 0),
@@ -1058,6 +1145,70 @@ function buildReviewQueueCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyA
   }
 
   return encodeCursor({ cardId: lastCard.cardId });
+}
+
+function emptyDeckStatsAccumulator(): DeckStatsAccumulator {
+  return {
+    totalCards: 0,
+    dueCards: 0,
+    newCards: 0,
+    reviewedCards: 0,
+  };
+}
+
+function appendCardToDeckStats(
+  stats: DeckStatsAccumulator,
+  card: Card,
+  nowTimestamp: number,
+): DeckStatsAccumulator {
+  return {
+    totalCards: stats.totalCards + 1,
+    dueCards: stats.dueCards + (isCardDue(card, nowTimestamp) ? 1 : 0),
+    newCards: stats.newCards + (isCardNew(card) ? 1 : 0),
+    reviewedCards: stats.reviewedCards + (isCardReviewed(card) ? 1 : 0),
+  };
+}
+
+function toDeckCardStats(stats: DeckStatsAccumulator): DeckCardStats {
+  return {
+    totalCards: stats.totalCards,
+    dueCards: stats.dueCards,
+    newCards: stats.newCards,
+    reviewedCards: stats.reviewedCards,
+  };
+}
+
+async function loadActiveCardCountWithDatabase(database: IDBDatabase): Promise<number> {
+  let count = 0;
+  await iterateCardsByCreatedAtDesc(database, (card) => {
+    if (card.deletedAt === null) {
+      count += 1;
+    }
+    return true;
+  });
+  return count;
+}
+
+async function loadActiveDecksWithDatabase(database: IDBDatabase): Promise<ReadonlyArray<Deck>> {
+  const decks: Array<Deck> = [];
+  await iterateDecksByCreatedAtDesc(database, (deck) => {
+    if (deck.deletedAt === null) {
+      decks.push(deck);
+    }
+    return true;
+  });
+  return decks;
+}
+
+async function loadActiveCardsForSqlWithDatabase(database: IDBDatabase): Promise<ReadonlyArray<Card>> {
+  const cards: Array<Card> = [];
+  await iterateCardsByCreatedAtDesc(database, (card) => {
+    if (card.deletedAt === null) {
+      cards.push(card);
+    }
+    return true;
+  });
+  return cards;
 }
 
 async function readWebSyncCache(): Promise<WebSyncCache> {
@@ -1086,15 +1237,6 @@ async function readWebSyncCache(): Promise<WebSyncCache> {
   };
 }
 
-/**
- * Local chat and settings diagnostics still need a holistic workspace view,
- * but they now build it directly from IndexedDB on demand instead of relying
- * on a UI-hydrated in-memory snapshot.
- */
-export async function loadLocalSnapshot(): Promise<WebSyncCache> {
-  return readWebSyncCache();
-}
-
 export async function loadCloudSettings(): Promise<CloudSettings | null> {
   const database = await openDatabase();
   const cloudSettingsRecord = await getFromStore<CloudSettingsRecord>(database, "meta", "cloud_settings");
@@ -1102,11 +1244,57 @@ export async function loadCloudSettings(): Promise<CloudSettings | null> {
   return cloudSettingsRecord?.settings ?? null;
 }
 
+export async function loadLastAppliedChangeId(): Promise<number> {
+  const database = await openDatabase();
+  const syncState = await getFromStore<SyncStateRecord>(database, "meta", "sync_state");
+  database.close();
+  return syncState?.lastAppliedChangeId ?? 0;
+}
+
 export async function loadWorkspaceSettings(): Promise<WorkspaceSchedulerSettings | null> {
   const database = await openDatabase();
   const workspaceSettingsRecords = await getAllFromStore<WorkspaceSettingsRecord>(database, "workspaceSettings");
   database.close();
   return workspaceSettingsRecords[0]?.settings ?? null;
+}
+
+export async function loadActiveCardCount(): Promise<number> {
+  const database = await openDatabase();
+  try {
+    return await loadActiveCardCountWithDatabase(database);
+  } finally {
+    database.close();
+  }
+}
+
+export async function loadAllActiveCardsForSql(): Promise<ReadonlyArray<Card>> {
+  const database = await openDatabase();
+  try {
+    return await loadActiveCardsForSqlWithDatabase(database);
+  } finally {
+    database.close();
+  }
+}
+
+export async function loadAllActiveDecksForSql(): Promise<ReadonlyArray<Deck>> {
+  const database = await openDatabase();
+  try {
+    return await loadActiveDecksWithDatabase(database);
+  } finally {
+    database.close();
+  }
+}
+
+export async function loadReviewEventsForSql(workspaceId: string): Promise<ReadonlyArray<ReviewEvent>> {
+  const database = await openDatabase();
+  try {
+    const reviewEvents = await getAllFromStore<ReviewEvent>(database, "reviewEvents");
+    return reviewEvents
+      .filter((reviewEvent) => reviewEvent.workspaceId === workspaceId)
+      .sort((leftEvent, rightEvent) => rightEvent.reviewedAtServer.localeCompare(leftEvent.reviewedAtServer));
+  } finally {
+    database.close();
+  }
 }
 
 /**
@@ -1266,41 +1454,65 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
 
 export async function loadWorkspaceTagsSummary(): Promise<WorkspaceTagsSummary> {
   const database = await openDatabase();
-  const cards = await listAllCards(database);
-  database.close();
+  try {
+    const counts = new Map<string, number>();
+    await iterateAllCardTags(database, (record) => {
+      counts.set(record.tag, (counts.get(record.tag) ?? 0) + 1);
+      return true;
+    });
 
-  const counts = cards.reduce((result, card) => {
-    for (const tag of new Set(card.tags)) {
-      result.set(tag, (result.get(tag) ?? 0) + 1);
-    }
-
-    return result;
-  }, new Map<string, number>());
-
-  return {
-    tags: [...counts.entries()]
-      .map(([tag, cardsCount]) => ({
-        tag,
-        cardsCount,
-      }))
-      .sort(compareTagSummaries),
-    totalCards: cards.length,
-  };
+    return {
+      tags: [...counts.entries()]
+        .map(([tag, cardsCount]) => ({
+          tag,
+          cardsCount,
+        }))
+        .sort(compareTagSummaries),
+      totalCards: await loadActiveCardCountWithDatabase(database),
+    };
+  } finally {
+    database.close();
+  }
 }
 
 export async function loadDecksListSnapshot(): Promise<DecksListSnapshot> {
   const database = await openDatabase();
-  const cards = await listAllCards(database);
-  const decks = await listAllDecks(database);
-  database.close();
-  const nowTimestamp = Date.now();
+  try {
+    const nowTimestamp = Date.now();
+    const decks = await loadActiveDecksWithDatabase(database);
+    let allCardsStats = emptyDeckStatsAccumulator();
+    const deckStatsById = new Map<string, DeckStatsAccumulator>(
+      decks.map((deck) => [deck.deckId, emptyDeckStatsAccumulator()] as const),
+    );
 
-  return {
-    allCardsStats: makeDeckCardStats(cards, nowTimestamp),
-    deckSummaries: decks
-      .map((deck) => {
-        const matchingCards = cards.filter((card) => matchesDeckFilterDefinition(deck.filterDefinition, card));
-        const stats = makeDeckCardStats(matchingCards, nowTimestamp);
+    await iterateCardsByCreatedAtDesc(database, (card) => {
+      if (card.deletedAt !== null) {
+        return true;
+      }
+
+      allCardsStats = appendCardToDeckStats(allCardsStats, card, nowTimestamp);
+      for (const deck of decks) {
+        if (matchesDeckFilterDefinition(deck.filterDefinition, card) === false) {
+          continue;
+        }
+
+        const currentStats = deckStatsById.get(deck.deckId);
+        if (currentStats === undefined) {
+          throw new Error(`Deck stats accumulator is missing: ${deck.deckId}`);
+        }
+        deckStatsById.set(deck.deckId, appendCardToDeckStats(currentStats, card, nowTimestamp));
+      }
+      return true;
+    });
+
+    return {
+      allCardsStats: toDeckCardStats(allCardsStats),
+      deckSummaries: decks.map((deck) => {
+        const stats = deckStatsById.get(deck.deckId);
+        if (stats === undefined) {
+          throw new Error(`Deck stats accumulator is missing: ${deck.deckId}`);
+        }
+
         return {
           deckId: deck.deckId,
           name: deck.name,
@@ -1311,16 +1523,11 @@ export async function loadDecksListSnapshot(): Promise<DecksListSnapshot> {
           newCards: stats.newCards,
           reviewedCards: stats.reviewedCards,
         };
-      })
-      .sort((leftDeck, rightDeck) => {
-        const createdAtDifference = rightDeck.createdAt.localeCompare(leftDeck.createdAt);
-        if (createdAtDifference !== 0) {
-          return createdAtDifference;
-        }
-
-        return rightDeck.deckId.localeCompare(leftDeck.deckId);
       }),
-  };
+    };
+  } finally {
+    database.close();
+  }
 }
 
 export async function loadWorkspaceOverviewSnapshot(workspace: WorkspaceSummary): Promise<WorkspaceOverviewSnapshot> {
@@ -1366,11 +1573,21 @@ export async function loadCardById(cardId: string): Promise<Card | null> {
 
 export async function loadCardsMatchingDeck(filterDefinition: Deck["filterDefinition"]): Promise<ReadonlyArray<Card>> {
   const database = await openDatabase();
-  const cards = await listAllCards(database);
-  database.close();
-  return cards
-    .filter((card) => matchesDeckFilterDefinition(filterDefinition, card))
-    .sort((leftCard, rightCard) => rightCard.createdAt.localeCompare(leftCard.createdAt) || leftCard.cardId.localeCompare(rightCard.cardId));
+  try {
+    const cards: Array<Card> = [];
+    await iterateCardsByCreatedAtDesc(database, (card) => {
+      if (card.deletedAt !== null) {
+        return true;
+      }
+      if (matchesDeckFilterDefinition(filterDefinition, card)) {
+        cards.push(card);
+      }
+      return true;
+    });
+    return cards;
+  } finally {
+    database.close();
+  }
 }
 
 export async function loadReviewQueueSnapshot(

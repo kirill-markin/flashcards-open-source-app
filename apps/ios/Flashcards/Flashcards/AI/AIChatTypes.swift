@@ -506,9 +506,15 @@ enum AIChatRuntimeEvent: Sendable {
     case appendAssistantText(String)
     case upsertToolCall(AIChatToolCall)
     case setRepairStatus(AIChatRepairAttemptStatus?)
-    case applySnapshot(AppStateSnapshot)
+    case refreshLocalState
     case finish
     case fail(String)
+}
+
+struct AIChatLocalContext: Sendable {
+    let workspace: Workspace
+    let schedulerSettings: WorkspaceSchedulerSettings
+    let totalActiveCards: Int
 }
 
 struct AIToolExecutionResult: Sendable {
@@ -554,6 +560,6 @@ protocol AIToolExecuting: Sendable {
     func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult
 }
 
-protocol AIChatSnapshotLoading: Sendable {
-    func loadSnapshot() async throws -> AppStateSnapshot
+protocol AIChatLocalContextLoading: Sendable {
+    func loadLocalContext() async throws -> AIChatLocalContext
 }

@@ -8,18 +8,24 @@
  * The iOS mirror lives in
  * `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`.
  */
-import type { AppDataContextValue, MutableSnapshot } from "../appData/types";
+import type { AppDataContextValue } from "../appData/types";
 import {
-  deriveActiveCards,
-  deriveActiveDecks,
-} from "../appData/domain";
-import type { PersistedOutboxRecord } from "../syncStorage";
+  listOutboxRecords,
+  loadAllActiveCardsForSql,
+  loadAllActiveDecksForSql,
+  loadCardById,
+  loadCloudSettings,
+  loadDeckById,
+  loadReviewEventsForSql,
+  loadWorkspaceSettings,
+  type PersistedOutboxRecord,
+} from "../syncStorage";
 import type {
   Card,
-  CloudSettings,
   CreateCardInput,
   CreateDeckInput,
   Deck,
+  ReviewEvent,
   UpdateCardInput,
   UpdateDeckInput,
   WorkspaceSummary,
@@ -79,7 +85,6 @@ type WebLocalToolExecutorDependencies = Pick<
   AppDataContextValue,
   | "session"
   | "activeWorkspace"
-  | "loadLocalSnapshot"
   | "createCardItem"
   | "createDeckItem"
   | "updateCardItem"
@@ -256,32 +261,6 @@ function compareDecksByCreatedAt(left: Deck, right: Deck): number {
   return right.deckId.localeCompare(left.deckId);
 }
 
-function currentActiveCards(snapshot: MutableSnapshot): ReadonlyArray<Card> {
-  return [...deriveActiveCards(snapshot.cards)].sort(compareCardsByCreatedAt);
-}
-
-function activeDecks(snapshot: MutableSnapshot): ReadonlyArray<Deck> {
-  return [...deriveActiveDecks(snapshot.decks)].sort(compareDecksByCreatedAt);
-}
-
-function findCard(snapshot: MutableSnapshot, cardId: string): Card {
-  const card = snapshot.cards.find((item) => item.cardId === cardId && item.deletedAt === null);
-  if (card === undefined) {
-    throw new Error(`Card not found: ${cardId}`);
-  }
-
-  return card;
-}
-
-function findDeck(snapshot: MutableSnapshot, deckId: string): Deck {
-  const deck = snapshot.decks.find((item) => item.deckId === deckId && item.deletedAt === null);
-  if (deck === undefined) {
-    throw new Error(`Deck not found: ${deckId}`);
-  }
-
-  return deck;
-}
-
 function describeOutboxPayload(record: PersistedOutboxRecord): string {
   if (record.operation.entityType === "card") {
     return `card ${record.operation.payload.cardId}`;
@@ -299,12 +278,12 @@ function describeOutboxPayload(record: PersistedOutboxRecord): string {
 }
 
 function makeOutboxPayload(
-  snapshot: MutableSnapshot,
+  outbox: ReadonlyArray<PersistedOutboxRecord>,
   workspaceId: string,
   startIndex: number,
   limit: number,
 ): LocalOutboxPagePayload {
-  const workspaceEntries = snapshot.outbox.filter((entry) => entry.workspaceId === workspaceId);
+  const workspaceEntries = outbox.filter((entry) => entry.workspaceId === workspaceId);
   const visibleEntries = workspaceEntries.slice(startIndex, startIndex + limit);
   return {
     outbox: visibleEntries.map((entry) => ({
@@ -357,13 +336,13 @@ function toDeckRow(deck: Deck): SqlRow {
   };
 }
 
-function loadSelectRows(
+async function loadSelectRows(
   activeWorkspace: WorkspaceSummary,
-  snapshot: MutableSnapshot,
   resourceName: SqlResourceName,
-): ReadonlyArray<SqlRow> {
+): Promise<ReadonlyArray<SqlRow>> {
   if (resourceName === "workspace") {
-    if (snapshot.workspaceSettings === null) {
+    const workspaceSettings = await loadWorkspaceSettings();
+    if (workspaceSettings === null) {
       throw new Error("Workspace scheduler settings are not loaded");
     }
 
@@ -371,24 +350,27 @@ function loadSelectRows(
       workspace_id: activeWorkspace.workspaceId,
       name: activeWorkspace.name,
       created_at: activeWorkspace.createdAt,
-      algorithm: snapshot.workspaceSettings.algorithm,
-      desired_retention: snapshot.workspaceSettings.desiredRetention,
-      learning_steps_minutes: snapshot.workspaceSettings.learningStepsMinutes,
-      relearning_steps_minutes: snapshot.workspaceSettings.relearningStepsMinutes,
-      maximum_interval_days: snapshot.workspaceSettings.maximumIntervalDays,
-      enable_fuzz: snapshot.workspaceSettings.enableFuzz,
+      algorithm: workspaceSettings.algorithm,
+      desired_retention: workspaceSettings.desiredRetention,
+      learning_steps_minutes: workspaceSettings.learningStepsMinutes,
+      relearning_steps_minutes: workspaceSettings.relearningStepsMinutes,
+      maximum_interval_days: workspaceSettings.maximumIntervalDays,
+      enable_fuzz: workspaceSettings.enableFuzz,
     }];
   }
 
   if (resourceName === "cards") {
-    return currentActiveCards(snapshot).map(toCardRow);
+    const cards = await loadAllActiveCardsForSql();
+    return [...cards].sort(compareCardsByCreatedAt).map(toCardRow);
   }
 
   if (resourceName === "decks") {
-    return activeDecks(snapshot).map(toDeckRow);
+    const decks = await loadAllActiveDecksForSql();
+    return [...decks].sort(compareDecksByCreatedAt).map(toDeckRow);
   }
 
-  return snapshot.reviewEvents.map((event) => ({
+  const reviewEvents = await loadReviewEventsForSql(activeWorkspace.workspaceId);
+  return reviewEvents.map((event: ReviewEvent) => ({
     review_event_id: event.reviewEventId,
     card_id: event.cardId,
     device_id: event.deviceId,
@@ -484,10 +466,7 @@ function rowFromInsert(
 
 async function ensureLocalWorkspace(
   dependencies: WebLocalToolExecutorDependencies,
-): Promise<Readonly<{
-  activeWorkspace: WorkspaceSummary;
-  snapshot: MutableSnapshot;
-}>> {
+): Promise<WorkspaceSummary> {
   if (dependencies.session === null) {
     throw new Error("Session is unavailable");
   }
@@ -496,16 +475,12 @@ async function ensureLocalWorkspace(
     throw new Error("Workspace is unavailable");
   }
 
-  return {
-    activeWorkspace: dependencies.activeWorkspace,
-    snapshot: await dependencies.loadLocalSnapshot(),
-  };
+  return dependencies.activeWorkspace;
 }
 
 async function executeSqlLocally(
   dependencies: WebLocalToolExecutorDependencies,
   activeWorkspace: WorkspaceSummary,
-  snapshot: MutableSnapshot,
   sql: string,
 ): Promise<Readonly<{
   payload: SqlExecutionPayload;
@@ -564,7 +539,7 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "select") {
-    const rows = loadSelectRows(activeWorkspace, snapshot, statement.source.resourceName);
+    const rows = await loadSelectRows(activeWorkspace, statement.source.resourceName);
     const result = executeSqlSelect(statement, rows, MAX_SQL_LIMIT);
     return {
       payload: {
@@ -617,6 +592,7 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "update" && statement.resourceName === "cards") {
+    const cardRows = await loadSelectRows(activeWorkspace, "cards");
     const currentRows = executeSqlSelect({
       type: "select",
       source: {
@@ -631,15 +607,19 @@ async function executeSqlLocally(
       limit: MAX_SQL_LIMIT,
       offset: 0,
       normalizedSql: statement.normalizedSql,
-    }, loadSelectRows(activeWorkspace, snapshot, "cards"), Number.MAX_SAFE_INTEGER).rows;
-    const updatedCards = await Promise.all(currentRows.map((row) => {
+    }, cardRows, Number.MAX_SAFE_INTEGER).rows;
+    const updatedCards = await Promise.all(currentRows.map(async (row) => {
       const cardId = row.card_id;
       if (typeof cardId !== "string") {
         throw new Error("Expected card_id in selected row");
       }
 
+      const existingCard = await loadCardById(cardId);
+      if (existingCard === null) {
+        throw new Error(`Card not found: ${cardId}`);
+      }
       const assignmentRow = Object.fromEntries(statement.assignments.map((assignment) => [assignment.columnName, assignment.value] as const));
-      return dependencies.updateCardItem(cardId, toResolvedCardUpdateInput(findCard(snapshot, cardId), assignmentRow));
+      return dependencies.updateCardItem(cardId, toResolvedCardUpdateInput(existingCard, assignmentRow));
     }));
     return {
       payload: {
@@ -655,6 +635,7 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "update" && statement.resourceName === "decks") {
+    const deckRows = await loadSelectRows(activeWorkspace, "decks");
     const currentRows = executeSqlSelect({
       type: "select",
       source: {
@@ -669,15 +650,19 @@ async function executeSqlLocally(
       limit: MAX_SQL_LIMIT,
       offset: 0,
       normalizedSql: statement.normalizedSql,
-    }, loadSelectRows(activeWorkspace, snapshot, "decks"), Number.MAX_SAFE_INTEGER).rows;
-    const updatedDecks = await Promise.all(currentRows.map((row) => {
+    }, deckRows, Number.MAX_SAFE_INTEGER).rows;
+    const updatedDecks = await Promise.all(currentRows.map(async (row) => {
       const deckId = row.deck_id;
       if (typeof deckId !== "string") {
         throw new Error("Expected deck_id in selected row");
       }
 
+      const existingDeck = await loadDeckById(deckId);
+      if (existingDeck === null) {
+        throw new Error(`Deck not found: ${deckId}`);
+      }
       const assignmentRow = Object.fromEntries(statement.assignments.map((assignment) => [assignment.columnName, assignment.value] as const));
-      return dependencies.updateDeckItem(deckId, toResolvedDeckUpdateInput(findDeck(snapshot, deckId), assignmentRow));
+      return dependencies.updateDeckItem(deckId, toResolvedDeckUpdateInput(existingDeck, assignmentRow));
     }));
     return {
       payload: {
@@ -693,6 +678,7 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "delete" && statement.resourceName === "cards") {
+    const cardRows = await loadSelectRows(activeWorkspace, "cards");
     const currentRows = executeSqlSelect({
       type: "select",
       source: {
@@ -707,7 +693,7 @@ async function executeSqlLocally(
       limit: MAX_SQL_LIMIT,
       offset: 0,
       normalizedSql: statement.normalizedSql,
-    }, loadSelectRows(activeWorkspace, snapshot, "cards"), Number.MAX_SAFE_INTEGER).rows;
+    }, cardRows, Number.MAX_SAFE_INTEGER).rows;
     const cardIds = currentRows.map((row) => {
       const cardId = row.card_id;
       if (typeof cardId !== "string") {
@@ -730,6 +716,7 @@ async function executeSqlLocally(
   }
 
   if (statement.type === "delete" && statement.resourceName === "decks") {
+    const deckRows = await loadSelectRows(activeWorkspace, "decks");
     const currentRows = executeSqlSelect({
       type: "select",
       source: {
@@ -744,7 +731,7 @@ async function executeSqlLocally(
       limit: MAX_SQL_LIMIT,
       offset: 0,
       normalizedSql: statement.normalizedSql,
-    }, loadSelectRows(activeWorkspace, snapshot, "decks"), Number.MAX_SAFE_INTEGER).rows;
+    }, deckRows, Number.MAX_SAFE_INTEGER).rows;
     const deckIds = currentRows.map((row) => {
       const deckId = row.deck_id;
       if (typeof deckId !== "string") {
@@ -771,7 +758,7 @@ async function executeSqlLocally(
 
 /**
  * Builds a browser-local AI tool executor that mirrors the backend SQL
- * surface while using the web app sync snapshot and IndexedDB-backed writes.
+ * surface while reading directly from IndexedDB query helpers.
  */
 export function createLocalToolExecutor(
   dependencies: WebLocalToolExecutorDependencies,
@@ -780,12 +767,12 @@ export function createLocalToolExecutor(
 }> {
   return {
     async execute(toolCallRequest: LocalToolCallRequest): Promise<LocalToolExecutionResult> {
-  const { activeWorkspace, snapshot } = await ensureLocalWorkspace(dependencies);
+      const activeWorkspace = await ensureLocalWorkspace(dependencies);
 
       switch (toolCallRequest.name) {
       case "sql": {
         const input = parseSqlInput(toolCallRequest);
-        const result = await executeSqlLocally(dependencies, activeWorkspace, snapshot, input.sql);
+        const result = await executeSqlLocally(dependencies, activeWorkspace, input.sql);
         return {
           output: JSON.stringify(result.payload),
           didMutateAppState: result.didMutateAppState,
@@ -793,20 +780,24 @@ export function createLocalToolExecutor(
       }
       case "get_cloud_settings":
         parseEmptyObjectInput(toolCallRequest);
-        if (snapshot.cloudSettings === null) {
-          throw new Error("Cloud settings are not loaded");
-        }
+        {
+          const cloudSettings = await loadCloudSettings();
+          if (cloudSettings === null) {
+            throw new Error("Cloud settings are not loaded");
+          }
 
-        return {
-          output: JSON.stringify(snapshot.cloudSettings satisfies CloudSettings),
-          didMutateAppState: false,
-        };
+          return {
+            output: JSON.stringify(cloudSettings),
+            didMutateAppState: false,
+          };
+        }
       case "list_outbox": {
         const input = parseListOutboxInput(toolCallRequest);
+        const outbox = await listOutboxRecords(activeWorkspace.workspaceId);
         return {
           output: JSON.stringify(
             makeOutboxPayload(
-              snapshot,
+              outbox,
               activeWorkspace.workspaceId,
               getPageStartIndex(input.cursor),
               normalizeLimit(input.limit),

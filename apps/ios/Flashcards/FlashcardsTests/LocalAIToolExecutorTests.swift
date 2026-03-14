@@ -569,15 +569,15 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             editingCardId: nil
         )
 
-        let snapshot = try await executor.loadSnapshot()
-        let dueCard = try XCTUnwrap(snapshot.cards.first { card in
+        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        let bootstrapSnapshot = try database.loadBootstrapSnapshot()
+        let dueCard = try XCTUnwrap(try database.loadActiveCards(workspaceId: bootstrapSnapshot.workspace.workspaceId).first { card in
             card.frontText == "Due Front"
         })
 
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let database = try LocalDatabase(databaseURL: databaseURL)
         _ = try database.submitReview(
-            workspaceId: snapshot.workspace.workspaceId,
+            workspaceId: bootstrapSnapshot.workspace.workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: dueCard.cardId,
                 rating: .good,

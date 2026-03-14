@@ -6,6 +6,7 @@ import {
   useState,
   type ReactElement,
 } from "react";
+import { loadActiveCardCount } from "../syncStorage";
 import type { CloudSettings, ReviewFilter, SessionInfo, WorkspaceSchedulerSettings, WorkspaceSummary } from "../types";
 import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "./domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
@@ -97,12 +98,12 @@ export function AppDataProvider(props: Props): ReactElement {
     let isCancelled = false;
 
     async function refreshLocalCardCount(): Promise<void> {
-      const localSnapshot = await syncEngine.loadLocalSnapshot();
+      const cardCount = await loadActiveCardCount();
       if (isCancelled) {
         return;
       }
 
-      setLocalCardCount(localSnapshot.cards.filter((card) => card.deletedAt === null).length);
+      setLocalCardCount(cardCount);
     }
 
     void refreshLocalCardCount();
@@ -170,7 +171,6 @@ export function AppDataProvider(props: Props): ReactElement {
     selectReviewFilter,
     openReview,
     submitReviewItem: syncEngine.submitReviewItem,
-    loadLocalSnapshot: syncEngine.loadLocalSnapshot,
   };
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -90,7 +90,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor,
+            localContextLoader: failingToolExecutor,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -119,7 +119,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor,
+            localContextLoader: failingToolExecutor,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -142,7 +142,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor,
+            localContextLoader: failingToolExecutor,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -165,7 +165,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor,
+            localContextLoader: failingToolExecutor,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -194,7 +194,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
             ),
             chatService: SuspendingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor,
+            localContextLoader: failingToolExecutor,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -230,7 +230,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor,
+            localContextLoader: failingToolExecutor,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )

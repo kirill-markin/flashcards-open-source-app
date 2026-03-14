@@ -108,14 +108,14 @@ final class AIChatStore: ObservableObject {
         historyStore: any AIChatHistoryStoring,
         chatService: any AIChatStreaming,
         toolExecutor: any AIToolExecuting,
-        snapshotLoader: any AIChatSnapshotLoading
+        localContextLoader: any AIChatLocalContextLoading
     ) {
         self.init(
             flashcardsStore: flashcardsStore,
             historyStore: historyStore,
             chatService: chatService,
             toolExecutor: toolExecutor,
-            snapshotLoader: snapshotLoader,
+            localContextLoader: localContextLoader,
             voiceRecorder: AIChatDisabledVoiceRecorder(),
             audioTranscriber: AIChatDisabledAudioTranscriber()
         )
@@ -126,7 +126,7 @@ final class AIChatStore: ObservableObject {
         historyStore: any AIChatHistoryStoring,
         chatService: any AIChatStreaming,
         toolExecutor: any AIToolExecuting,
-        snapshotLoader: any AIChatSnapshotLoading,
+        localContextLoader: any AIChatLocalContextLoading,
         voiceRecorder: any AIChatVoiceRecording,
         audioTranscriber: any AIChatAudioTranscribing
     ) {
@@ -139,7 +139,7 @@ final class AIChatStore: ObservableObject {
             historyStore: historyStore,
             chatService: chatService,
             toolExecutor: toolExecutor,
-            snapshotLoader: snapshotLoader,
+            localContextLoader: localContextLoader,
             streamFlushInterval: 0.1,
             historyCheckpointInterval: 2.0
         )
@@ -540,8 +540,8 @@ final class AIChatStore: ObservableObject {
             self.upsertToolCall(toolCall: toolCall)
         case .setRepairStatus(let status):
             self.repairStatus = status
-        case .applySnapshot(let snapshot):
-            self.flashcardsStore.applyExternalSnapshot(snapshot: snapshot)
+        case .refreshLocalState:
+            self.flashcardsStore.refreshLocalReadModels(now: Date())
         case .finish:
             self.repairStatus = nil
             if self.activeConversationId == conversationId {

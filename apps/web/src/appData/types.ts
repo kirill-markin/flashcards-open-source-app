@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { PersistedOutboxRecord } from "../syncStorage";
 import type {
   Card,
   CloudSettings,
@@ -7,7 +6,6 @@ import type {
   CreateDeckInput,
   Deck,
   ReviewFilter,
-  ReviewEvent,
   SessionInfo,
   UpdateCardInput,
   UpdateDeckInput,
@@ -47,18 +45,7 @@ export type AppDataContextValue = Readonly<{
   selectReviewFilter: (reviewFilter: ReviewFilter) => void;
   openReview: (reviewFilter: ReviewFilter) => void;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
-  loadLocalSnapshot: () => Promise<MutableSnapshot>;
 }>;
-
-export type MutableSnapshot = {
-  cards: Array<Card>;
-  decks: Array<Deck>;
-  reviewEvents: Array<ReviewEvent>;
-  workspaceSettings: WorkspaceSchedulerSettings | null;
-  cloudSettings: CloudSettings | null;
-  outbox: Array<PersistedOutboxRecord>;
-  lastAppliedChangeId: number;
-};
 
 export type Props = Readonly<{
   children: ReactNode;

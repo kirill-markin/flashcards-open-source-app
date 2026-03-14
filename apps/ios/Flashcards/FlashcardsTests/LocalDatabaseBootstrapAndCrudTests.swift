@@ -6,19 +6,19 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
     func testInitBootstrapsDefaultSnapshot() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
 
-        let snapshot = try database.loadStateSnapshot()
+        let bootstrapSnapshot = try testBootstrapSnapshot(database: database)
 
-        XCTAssertEqual(snapshot.workspace.name, "Personal")
-        XCTAssertEqual(snapshot.userSettings.userId, "local-user")
-        XCTAssertEqual(snapshot.schedulerSettings.algorithm, defaultSchedulerSettingsConfig.algorithm)
-        XCTAssertEqual(snapshot.cards, [])
-        XCTAssertEqual(snapshot.decks, [])
-        XCTAssertEqual(snapshot.cloudSettings.cloudState, .disconnected)
+        XCTAssertEqual(bootstrapSnapshot.workspace.name, "Personal")
+        XCTAssertEqual(bootstrapSnapshot.userSettings.userId, "local-user")
+        XCTAssertEqual(bootstrapSnapshot.schedulerSettings.algorithm, defaultSchedulerSettingsConfig.algorithm)
+        XCTAssertEqual(try testActiveCards(database: database), [])
+        XCTAssertEqual(try testActiveDecks(database: database), [])
+        XCTAssertEqual(bootstrapSnapshot.cloudSettings.cloudState, .disconnected)
     }
 
     func testCardCreateUpdateDeleteEnqueuesOutboxOperations() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
@@ -26,9 +26,9 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             cardId: nil
         )
 
-        var snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 1)
-        let cardId = try XCTUnwrap(snapshot.cards.first?.cardId)
+        var cards = try testActiveCards(database: database)
+        XCTAssertEqual(cards.count, 1)
+        let cardId = try XCTUnwrap(cards.first?.cardId)
 
         var outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 1)
@@ -46,8 +46,8 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             cardId: cardId
         )
 
-        snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.first?.frontText, "Front 2")
+        cards = try testActiveCards(database: database)
+        XCTAssertEqual(cards.first?.frontText, "Front 2")
 
         outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 2)
@@ -61,8 +61,8 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
 
         _ = try database.deleteCard(workspaceId: workspaceId, cardId: cardId)
 
-        snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 0)
+        cards = try testActiveCards(database: database)
+        XCTAssertEqual(cards.count, 0)
 
         outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 3)
@@ -77,7 +77,7 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
 
     func testSaveCardAllowsEmptyBackText() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
@@ -85,14 +85,14 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             cardId: nil
         )
 
-        let card = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let card = try testFirstActiveCard(database: database)
         XCTAssertEqual(card.frontText, "Front")
         XCTAssertEqual(card.backText, "")
     }
 
     func testBulkCardCreateUpdateDeleteEnqueuesOutboxOperations() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         let createdCards = try database.createCards(
             workspaceId: workspaceId,
@@ -102,9 +102,9 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             ]
         )
 
-        var snapshot = try database.loadStateSnapshot()
+        var cards = try testActiveCards(database: database)
         XCTAssertEqual(createdCards.count, 2)
-        XCTAssertEqual(snapshot.cards.count, 2)
+        XCTAssertEqual(cards.count, 2)
 
         var outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 2)
@@ -139,12 +139,12 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             ]
         )
 
-        snapshot = try database.loadStateSnapshot()
+        cards = try testActiveCards(database: database)
         XCTAssertEqual(updatedCards.count, 2)
-        XCTAssertTrue(snapshot.cards.contains { card in
+        XCTAssertTrue(cards.contains { card in
             card.cardId == createdCards[0].cardId && card.frontText == "Updated Front 1"
         })
-        XCTAssertTrue(snapshot.cards.contains { card in
+        XCTAssertTrue(cards.contains { card in
             card.cardId == createdCards[1].cardId && card.backText == "Updated Back 2" && card.effortLevel == .long
         })
 
@@ -156,10 +156,10 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             cardIds: createdCards.map(\.cardId)
         )
 
-        snapshot = try database.loadStateSnapshot()
+        cards = try testActiveCards(database: database)
         XCTAssertEqual(deleteResult.deletedCount, 2)
         XCTAssertEqual(Set(deleteResult.deletedCardIds), Set(createdCards.map(\.cardId)))
-        XCTAssertEqual(snapshot.cards.count, 0)
+        XCTAssertEqual(cards.count, 0)
 
         outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 6)
@@ -177,7 +177,7 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
 
     func testBulkCreateCardsAllowsEmptyBackText() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         let createdCards = try database.createCards(
             workspaceId: workspaceId,
@@ -195,7 +195,7 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
 
     func testBulkCreateCardsRollsBackOnInvalidInput() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         XCTAssertThrowsError(
             try database.createCards(
@@ -209,20 +209,19 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             XCTAssertEqual(localizedMessage(error: error), "Card front text must not be empty")
         }
 
-        let snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 0)
+        XCTAssertEqual(try testActiveCards(database: database).count, 0)
         XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 0)
     }
 
     func testBulkUpdateCardsRollsBackOnMissingCard() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
         )
-        let existingCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let existingCard = try testFirstActiveCard(database: database)
 
         XCTAssertThrowsError(
             try database.updateCards(
@@ -247,21 +246,21 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             XCTAssertEqual(localizedMessage(error: error), "Card not found")
         }
 
-        let snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 1)
-        XCTAssertEqual(snapshot.cards.first?.frontText, "Front 1")
+        let cards = try testActiveCards(database: database)
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards.first?.frontText, "Front 1")
         XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 1)
     }
 
     func testBulkUpdateCardsAllowsClearingBackText() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
         )
-        let existingCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let existingCard = try testFirstActiveCard(database: database)
 
         let updatedCards = try database.updateCards(
             workspaceId: workspaceId,
@@ -275,18 +274,18 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
 
         XCTAssertEqual(updatedCards.count, 1)
         XCTAssertEqual(updatedCards[0].backText, "")
-        XCTAssertEqual(try database.loadStateSnapshot().cards.first?.backText, "")
+        XCTAssertEqual(try testActiveCards(database: database).first?.backText, "")
     }
 
     func testBulkDeleteCardsRollsBackOnMissingCard() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
         )
-        let existingCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let existingCard = try testFirstActiveCard(database: database)
 
         XCTAssertThrowsError(
             try database.deleteCards(
@@ -297,21 +296,21 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             XCTAssertEqual(localizedMessage(error: error), "Card not found")
         }
 
-        let snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 1)
-        XCTAssertEqual(snapshot.cards.first?.cardId, existingCard.cardId)
+        let cards = try testActiveCards(database: database)
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards.first?.cardId, existingCard.cardId)
         XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 1)
     }
 
     func testBulkUpdateCardsRejectsDuplicateCardIds() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1"),
             cardId: nil
         )
-        let existingCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let existingCard = try testFirstActiveCard(database: database)
 
         XCTAssertThrowsError(
             try database.updateCards(
@@ -331,24 +330,24 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             XCTAssertEqual(localizedMessage(error: error), "Card batch must not contain duplicate cardId values")
         }
 
-        let snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.count, 1)
-        XCTAssertEqual(snapshot.cards.first?.frontText, "Front 1")
+        let cards = try testActiveCards(database: database)
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards.first?.frontText, "Front 1")
         XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50).count, 1)
     }
 
     func testDeckCreateUpdateDeleteEnqueuesOutboxOperations() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.createDeck(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeDeckInput(name: "Deck 1")
         )
 
-        var snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.decks.count, 1)
-        let deckId = try XCTUnwrap(snapshot.decks.first?.deckId)
+        var decks = try testActiveDecks(database: database)
+        XCTAssertEqual(decks.count, 1)
+        let deckId = try XCTUnwrap(decks.first?.deckId)
 
         var outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 1)
@@ -366,8 +365,8 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
             input: LocalDatabaseTestSupport.makeDeckInput(name: "Deck 2")
         )
 
-        snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.decks.first?.name, "Deck 2")
+        decks = try testActiveDecks(database: database)
+        XCTAssertEqual(decks.first?.name, "Deck 2")
 
         outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 2)
@@ -381,8 +380,8 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
 
         _ = try database.deleteDeck(workspaceId: workspaceId, deckId: deckId)
 
-        snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.decks.count, 0)
+        decks = try testActiveDecks(database: database)
+        XCTAssertEqual(decks.count, 0)
 
         outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 3)

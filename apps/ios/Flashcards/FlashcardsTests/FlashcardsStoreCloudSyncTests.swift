@@ -43,8 +43,8 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         try await finishTask.value
         await syncTask.value
 
-        let snapshot = try context.database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.workspace.workspaceId, linkedSession.workspaceId)
+        let bootstrapSnapshot = try testBootstrapSnapshot(database: context.database)
+        XCTAssertEqual(bootstrapSnapshot.workspace.workspaceId, linkedSession.workspaceId)
         XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, linkedSession.workspaceId)
         XCTAssertEqual(context.store.globalErrorMessage, "")
         XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
@@ -56,7 +56,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             runLinkedSyncOutcomes: [.succeed],
             isRunLinkedSyncBlocked: true
         )
-        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
             database: context.database,
@@ -101,7 +101,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             ],
             isRunLinkedSyncBlocked: false
         )
-        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
             database: context.database,
@@ -130,7 +130,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             runLinkedSyncOutcomes: [.succeed],
             isRunLinkedSyncBlocked: true
         )
-        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
             database: context.database,

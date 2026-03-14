@@ -5,7 +5,7 @@ import XCTest
 final class ReviewQueryDatabaseTests: XCTestCase {
     func testLoadReviewCountsReturnsExpectedCountsForAllTagAndDeckQueries() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
@@ -78,7 +78,7 @@ final class ReviewQueryDatabaseTests: XCTestCase {
 
     func testLoadReviewTimelinePageUsesStablePagingAndOrdering() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         let firstCard = try database.saveCard(
             workspaceId: workspaceId,

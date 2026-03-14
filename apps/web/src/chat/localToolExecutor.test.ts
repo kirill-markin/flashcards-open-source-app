@@ -1,6 +1,17 @@
+import "fake-indexeddb/auto";
 import { describe, expect, it, vi } from "vitest";
 import { createLocalToolExecutor } from "./localToolExecutor";
-import type { AppDataContextValue, MutableSnapshot } from "../appData/types";
+import type { AppDataContextValue } from "../appData/types";
+import {
+  clearWebSyncCache,
+  putCloudSettings,
+  putOutboxRecord,
+  putWorkspaceSettings,
+  replaceCards,
+  replaceDecks,
+  replaceReviewEvents,
+  setLastAppliedChangeId,
+} from "../syncStorage";
 import type { Card, CloudSettings, Deck, SessionInfo, WorkspaceSchedulerSettings, WorkspaceSummary } from "../types";
 
 function makeCard(overrides: Partial<Card>): Card {
@@ -99,7 +110,21 @@ function makeWorkspace(): WorkspaceSummary {
   };
 }
 
-function makeSnapshot(): MutableSnapshot {
+function makeSeedData(): Readonly<{
+  cards: ReadonlyArray<Card>;
+  decks: ReadonlyArray<Deck>;
+  reviewEvents: ReadonlyArray<{
+    reviewEventId: string;
+    workspaceId: string;
+    cardId: string;
+    deviceId: string;
+    clientEventId: string;
+    rating: 0 | 1 | 2 | 3;
+    reviewedAtClient: string;
+    reviewedAtServer: string;
+  }>;
+  cloudSettings: CloudSettings;
+}> {
   return {
     cards: [
       makeCard({ cardId: "card-1", tags: ["tag-a"], updatedAt: "2026-03-10T09:00:00.000Z" }),
@@ -122,49 +147,57 @@ function makeSnapshot(): MutableSnapshot {
       reviewedAtClient: "2026-03-10T08:00:00.000Z",
       reviewedAtServer: "2026-03-10T08:00:01.000Z",
     }],
-    workspaceSettings: makeSchedulerSettings(),
     cloudSettings: makeCloudSettings(),
-    outbox: [{
-      operationId: "outbox-1",
-      workspaceId: "workspace-1",
-      createdAt: "2026-03-10T08:00:00.000Z",
-      attemptCount: 1,
-      lastError: "Temporary failure",
-      operation: {
-        operationId: "outbox-1",
-        entityType: "card",
-        entityId: "card-2",
-        action: "upsert",
-        clientUpdatedAt: "2026-03-10T08:00:00.000Z",
-        payload: {
-          cardId: "card-2",
-          frontText: "Second",
-          backText: "Back",
-          tags: ["tag-a"],
-          effortLevel: "medium",
-          dueAt: null,
-          createdAt: "2026-03-10T08:00:00.000Z",
-          reps: 0,
-          lapses: 0,
-          fsrsCardState: "new",
-          fsrsStepIndex: null,
-          fsrsStability: null,
-          fsrsDifficulty: null,
-          fsrsLastReviewedAt: null,
-          fsrsScheduledDays: null,
-          deletedAt: null,
-        },
-      },
-    }],
-    lastAppliedChangeId: 12,
   };
 }
 
-function makeDependencies(snapshot: MutableSnapshot): Pick<
+async function seedLocalDatabase(cards: ReadonlyArray<Card>): Promise<void> {
+  const seedData = makeSeedData();
+  await clearWebSyncCache();
+  await replaceCards(cards);
+  await replaceDecks(seedData.decks);
+  await replaceReviewEvents(seedData.reviewEvents);
+  await putWorkspaceSettings(makeSchedulerSettings());
+  await putCloudSettings(seedData.cloudSettings);
+  await putOutboxRecord({
+    operationId: "outbox-1",
+    workspaceId: "workspace-1",
+    createdAt: "2026-03-10T08:00:00.000Z",
+    attemptCount: 1,
+    lastError: "Temporary failure",
+    operation: {
+      operationId: "outbox-1",
+      entityType: "card",
+      entityId: "card-2",
+      action: "upsert",
+      clientUpdatedAt: "2026-03-10T08:00:00.000Z",
+      payload: {
+        cardId: "card-2",
+        frontText: "Second",
+        backText: "Back",
+        tags: ["tag-a"],
+        effortLevel: "medium",
+        dueAt: null,
+        createdAt: "2026-03-10T08:00:00.000Z",
+        reps: 0,
+        lapses: 0,
+        fsrsCardState: "new",
+        fsrsStepIndex: null,
+        fsrsStability: null,
+        fsrsDifficulty: null,
+        fsrsLastReviewedAt: null,
+        fsrsScheduledDays: null,
+        deletedAt: null,
+      },
+    },
+  });
+  await setLastAppliedChangeId("workspace-1", 12);
+}
+
+function makeDependencies(): Pick<
   AppDataContextValue,
   | "session"
   | "activeWorkspace"
-  | "loadLocalSnapshot"
   | "createCardItem"
   | "createDeckItem"
   | "updateCardItem"
@@ -175,7 +208,6 @@ function makeDependencies(snapshot: MutableSnapshot): Pick<
   return {
     session: makeSession(),
     activeWorkspace: makeWorkspace(),
-    loadLocalSnapshot: async () => snapshot,
     createCardItem: vi.fn(async (input) => makeCard({ cardId: "created-card", ...input })),
     createDeckItem: vi.fn(async (input) => makeDeck({
       deckId: "created-deck",
@@ -199,8 +231,9 @@ function toSqlStringLiteral(value: string): string {
 
 describe("createLocalToolExecutor", () => {
   it("supports SQL introspection and reads", async () => {
-    const snapshot = makeSnapshot();
-    const executor = createLocalToolExecutor(makeDependencies(snapshot));
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const executor = createLocalToolExecutor(makeDependencies());
 
     const tablesResult = await executor.execute({
       toolCallId: "call-1",
@@ -264,8 +297,8 @@ describe("createLocalToolExecutor", () => {
   });
 
   it("supports standalone ORDER BY RANDOM() for SQL reads", async () => {
-    const snapshot = makeSnapshot();
-    snapshot.cards.push(
+    const seedData = makeSeedData();
+    const cards = [...seedData.cards, 
       makeCard({
         cardId: "card-3",
         frontText: "Third",
@@ -273,8 +306,9 @@ describe("createLocalToolExecutor", () => {
         tags: ["tag-c"],
         updatedAt: "2026-03-10T07:00:00.000Z",
       }),
-    );
-    const executor = createLocalToolExecutor(makeDependencies(snapshot));
+    ];
+    await seedLocalDatabase(cards);
+    const executor = createLocalToolExecutor(makeDependencies());
     const randomSpy = vi.spyOn(Math, "random")
       .mockReturnValueOnce(0.1)
       .mockReturnValueOnce(0.8);
@@ -315,8 +349,9 @@ describe("createLocalToolExecutor", () => {
   });
 
   it("supports SQL mutations for cards", async () => {
-    const snapshot = makeSnapshot();
-    const dependencies = makeDependencies(snapshot);
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const dependencies = makeDependencies();
     const executor = createLocalToolExecutor(dependencies);
 
     const insertResult = await executor.execute({
@@ -354,8 +389,9 @@ describe("createLocalToolExecutor", () => {
   });
 
   it("preserves multiline back_text in SQL updates", async () => {
-    const snapshot = makeSnapshot();
-    const dependencies = makeDependencies(snapshot);
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const dependencies = makeDependencies();
     const executor = createLocalToolExecutor(dependencies);
     const backText = [
       "Dijkstra finds the shortest paths.",
@@ -385,15 +421,16 @@ describe("createLocalToolExecutor", () => {
   });
 
   it("keeps cloud settings and outbox available as local-only tools", async () => {
-    const snapshot = makeSnapshot();
-    const executor = createLocalToolExecutor(makeDependencies(snapshot));
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const executor = createLocalToolExecutor(makeDependencies());
 
     const cloudResult = await executor.execute({
       toolCallId: "call-1",
       name: "get_cloud_settings",
       input: "{}",
     });
-    expect(JSON.parse(cloudResult.output)).toEqual(snapshot.cloudSettings);
+    expect(JSON.parse(cloudResult.output)).toEqual(seedData.cloudSettings);
 
     const outboxResult = await executor.execute({
       toolCallId: "call-2",

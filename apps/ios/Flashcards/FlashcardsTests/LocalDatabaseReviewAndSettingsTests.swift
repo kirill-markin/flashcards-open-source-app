@@ -5,13 +5,13 @@ import XCTest
 final class LocalDatabaseReviewAndSettingsTests: XCTestCase {
     func testSubmitReviewUpdatesCardAndEnqueuesReviewEventAndCardOperations() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
-        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        let cardId = try testFirstActiveCard(database: database).cardId
 
         _ = try database.submitReview(
             workspaceId: workspaceId,
@@ -22,8 +22,7 @@ final class LocalDatabaseReviewAndSettingsTests: XCTestCase {
             )
         )
 
-        let snapshot = try database.loadStateSnapshot()
-        let reviewedCard = try XCTUnwrap(snapshot.cards.first)
+        let reviewedCard = try testFirstActiveCard(database: database)
         XCTAssertEqual(reviewedCard.cardId, cardId)
         XCTAssertNotNil(reviewedCard.dueAt)
         XCTAssertGreaterThan(reviewedCard.reps, 0)
@@ -50,7 +49,7 @@ final class LocalDatabaseReviewAndSettingsTests: XCTestCase {
 
     func testUpdateWorkspaceSchedulerSettingsPersistsAndEnqueuesOperation() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         try database.updateWorkspaceSchedulerSettings(
             workspaceId: workspaceId,
@@ -61,12 +60,12 @@ final class LocalDatabaseReviewAndSettingsTests: XCTestCase {
             enableFuzz: false
         )
 
-        let snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.schedulerSettings.desiredRetention, 0.92, accuracy: 0.00000001)
-        XCTAssertEqual(snapshot.schedulerSettings.learningStepsMinutes, [2, 12])
-        XCTAssertEqual(snapshot.schedulerSettings.relearningStepsMinutes, [15])
-        XCTAssertEqual(snapshot.schedulerSettings.maximumIntervalDays, 1200)
-        XCTAssertFalse(snapshot.schedulerSettings.enableFuzz)
+        let schedulerSettings = try testSchedulerSettings(database: database)
+        XCTAssertEqual(schedulerSettings.desiredRetention, 0.92, accuracy: 0.00000001)
+        XCTAssertEqual(schedulerSettings.learningStepsMinutes, [2, 12])
+        XCTAssertEqual(schedulerSettings.relearningStepsMinutes, [15])
+        XCTAssertEqual(schedulerSettings.maximumIntervalDays, 1200)
+        XCTAssertFalse(schedulerSettings.enableFuzz)
 
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 50)
         XCTAssertEqual(outboxEntries.count, 1)
