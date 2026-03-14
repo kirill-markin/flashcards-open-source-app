@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct AIChatView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.tabViewBottomAccessoryPlacement) private var tabViewBottomAccessoryPlacement
     @ObservedObject private var flashcardsStore: FlashcardsStore
     @ObservedObject private var chatStore: AIChatStore
     @State private var isCloudSignInPresented: Bool
@@ -57,6 +58,11 @@ struct AIChatView: View {
         }
         .navigationTitle("AI")
         .navigationBarTitleDisplayMode(.inline)
+        .tabViewBottomAccessory {
+            if self.accessState == .ready {
+                self.composerAccessory
+            }
+        }
         .toolbar {
             if self.accessState == .ready {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -231,7 +237,7 @@ struct AIChatView: View {
                     Button("Sign in for AI chat") {
                         self.isCloudSignInPresented = true
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                 }
             }
 
@@ -287,232 +293,234 @@ struct AIChatView: View {
                     Button("I understand and continue") {
                         self.acceptExternalAIConsent()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
 
                     Spacer(minLength: 0)
                 }
                 .padding(.vertical, 24)
             }
         }
-        .background(Color(.systemGroupedBackground))
     }
 
     private var chatContent: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    if self.chatStore.messages.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Try asking")
-                                .font(.headline)
-                            Text("Summarize weak areas from my due cards.")
-                            Text("Find cards tagged with grammar and suggest cleanup.")
-                            Text("Propose a new deck filter and explain the exact change.")
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .foregroundStyle(.secondary)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 12) {
+                if self.chatStore.messages.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Try asking")
+                            .font(.headline)
+                        Text("Summarize weak areas from my due cards.")
+                        Text("Find cards tagged with grammar and suggest cleanup.")
+                        Text("Propose a new deck filter and explain the exact change.")
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .foregroundStyle(.secondary)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
 
-                    ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
-                        self.messageRow(
+                ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
+                    self.messageRow(
+                        message: message,
+                        repairStatus: self.repairStatus(for: message),
+                        showsTypingIndicator: aiChatShouldShowTypingIndicator(
                             message: message,
-                            repairStatus: self.repairStatus(for: message),
-                            showsTypingIndicator: aiChatShouldShowTypingIndicator(
-                                message: message,
-                                isLastMessage: index == self.chatStore.messages.indices.last,
-                                isStreaming: self.chatStore.isStreaming
-                            )
+                            isLastMessage: index == self.chatStore.messages.indices.last,
+                            isStreaming: self.chatStore.isStreaming
                         )
-                        .id(message.id)
-                    }
-                }
-                .scrollTargetLayout()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 12)
-            }
-            .defaultScrollAnchor(.bottom, for: .initialOffset)
-            .defaultScrollAnchor(.bottom, for: .alignment)
-            .scrollPosition(self.$scrollPosition, anchor: .bottom)
-            .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
-            .contentMargins(.horizontal, 0, for: .scrollIndicators)
-            .background(Color(.systemGroupedBackground))
-            .contentShape(Rectangle())
-            .scrollDismissesKeyboard(.interactively)
-            .onTapGesture {
-                self.isComposerFocused = false
-            }
-            .onScrollPhaseChange { _, nextPhase, context in
-                let nextScrollState = aiChatScrollState(
-                    scrollPhase: nextPhase,
-                    scrollGeometry: context.geometry,
-                    bottomThreshold: aiChatAutoScrollBottomThreshold
-                )
-                self.isUserScrolling = nextScrollState.isUserScrolling
-                self.isNearBottom = nextScrollState.isNearBottom
-                if nextPhase == .idle && nextScrollState.isNearBottom && self.chatStore.isStreaming {
-                    self.scrollToBottomIfNeeded(isAnimated: false)
+                    )
+                    .id(message.id)
                 }
             }
-            .onAppear {
-                if self.chatStore.isStreaming {
-                    self.startAutoScrollTask()
-                }
-            }
-            .onDisappear {
-                self.stopAutoScrollTask()
-            }
-            .onChange(of: self.chatStore.messages) { _, messages in
-                guard messages.isEmpty == false else {
-                    self.isNearBottom = true
-                    self.scrollToBottom(isAnimated: false)
-                    return
-                }
-
-                self.scrollToBottomIfNeeded(isAnimated: self.chatStore.isStreaming == false)
-            }
-            .onChange(of: self.chatStore.isStreaming) { _, isStreaming in
-                if isStreaming {
-                    self.startAutoScrollTask()
-                    return
-                }
-
-                self.stopAutoScrollTask()
-                self.scrollToBottomIfNeeded(isAnimated: true)
+            .scrollTargetLayout()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
+        }
+        .defaultScrollAnchor(.bottom, for: .initialOffset)
+        .defaultScrollAnchor(.bottom, for: .alignment)
+        .scrollPosition(self.$scrollPosition, anchor: .bottom)
+        .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
+        .contentMargins(.horizontal, 0, for: .scrollIndicators)
+        .contentShape(Rectangle())
+        .scrollDismissesKeyboard(.interactively)
+        .onTapGesture {
+            self.isComposerFocused = false
+        }
+        .onScrollPhaseChange { _, nextPhase, context in
+            let nextScrollState = aiChatScrollState(
+                scrollPhase: nextPhase,
+                scrollGeometry: context.geometry,
+                bottomThreshold: aiChatAutoScrollBottomThreshold
+            )
+            self.isUserScrolling = nextScrollState.isUserScrolling
+            self.isNearBottom = nextScrollState.isNearBottom
+            if nextPhase == .idle && nextScrollState.isNearBottom && self.chatStore.isStreaming {
+                self.scrollToBottomIfNeeded(isAnimated: false)
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            self.composerInset
+        .onAppear {
+            if self.chatStore.isStreaming {
+                self.startAutoScrollTask()
+            }
+        }
+        .onDisappear {
+            self.stopAutoScrollTask()
+        }
+        .onChange(of: self.chatStore.messages) { _, messages in
+            guard messages.isEmpty == false else {
+                self.isNearBottom = true
+                self.scrollToBottom(isAnimated: false)
+                return
+            }
+
+            self.scrollToBottomIfNeeded(isAnimated: self.chatStore.isStreaming == false)
+        }
+        .onChange(of: self.chatStore.isStreaming) { _, isStreaming in
+            if isStreaming {
+                self.startAutoScrollTask()
+                return
+            }
+
+            self.stopAutoScrollTask()
+            self.scrollToBottomIfNeeded(isAnimated: true)
         }
     }
 
-    private var composerInset: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Divider()
-
-            ReadableContentLayout(
-                maxWidth: flashcardsReadableContentMaxWidth,
-                horizontalPadding: 12
-            ) {
-                VStack(alignment: .leading, spacing: 12) {
-                    if self.chatStore.pendingAttachments.isEmpty == false {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(self.chatStore.pendingAttachments) { attachment in
-                                    HStack(spacing: 6) {
-                                        Image(systemName: attachment.isImage ? "photo" : "doc")
-                                            .foregroundStyle(.secondary)
-                                        Text(attachment.fileName)
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                        Button {
-                                            self.chatStore.removeAttachment(id: attachment.id)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 8)
-                                    .background(Color(.secondarySystemGroupedBackground))
-                                    .clipShape(Capsule())
-                                }
-                            }
-                        }
-                    }
-
-                    ZStack(alignment: .bottomTrailing) {
-                        TextField(
-                            "Ask about cards, review history, or propose a change...",
-                            text: self.$chatStore.inputText,
-                            selection: self.$composerSelection,
-                            axis: .vertical
-                        )
-                        .focused(self.$isComposerFocused)
-                        .lineLimit(1...aiChatComposerMaximumLineCount)
-                        .padding(.leading, 12)
-                        .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
-                        .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                        .padding(.bottom, 12)
-
-                        Button {
-                            self.handlePrimaryComposerAction()
-                        } label: {
-                            Image(systemName: self.chatStore.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
-                                .font(.system(size: 28))
-                                .frame(width: aiChatComposerSendButtonVisualSize, height: aiChatComposerSendButtonVisualSize)
-                                .foregroundStyle(self.chatStore.isStreaming ? Color.red : Color.accentColor)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(self.primaryComposerButtonDisabled)
-                        .accessibilityLabel(self.chatStore.isStreaming ? "Stop response" : "Send message")
-                        .padding(.trailing, aiChatComposerSendButtonInset)
-                        .padding(.bottom, aiChatComposerSendButtonInset)
-                    }
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color(.separator), lineWidth: 1)
-                    )
-                    .overlay(alignment: .topLeading) {
-                        if self.chatStore.dictationState != .idle {
-                            AIChatDictationStatusLane(statusText: self.dictationStatusText)
-                                .padding(.top, 12)
-                                .padding(.leading, 12)
-                                .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                        }
-                    }
-                    .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .simultaneousGesture(
-                        TapGesture().onEnded {
-                            self.isComposerFocused = true
-                        }
-                    )
-
-                    HStack {
-                        self.composerModelControl
-                        Spacer()
-
+    private var composerAccessory: some View {
+        ReadableContentLayout(
+            maxWidth: flashcardsReadableContentMaxWidth,
+            horizontalPadding: composerHorizontalPadding
+        ) {
+            VStack(alignment: .leading, spacing: composerVerticalSpacing) {
+                if self.chatStore.pendingAttachments.isEmpty == false {
+                    ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            Menu {
-                                ForEach(aiChatAttachmentMenuActions()) { action in
+                            ForEach(self.chatStore.pendingAttachments) { attachment in
+                                HStack(spacing: 6) {
+                                    Image(systemName: attachment.isImage ? "photo" : "doc")
+                                        .foregroundStyle(.secondary)
+                                    Text(attachment.fileName)
+                                        .font(.caption)
+                                        .lineLimit(1)
                                     Button {
-                                        self.handleAttachmentMenuAction(action)
+                                        self.chatStore.removeAttachment(id: attachment.id)
                                     } label: {
-                                        Label(action.title, systemImage: action.systemImage)
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.secondary)
                                     }
+                                    .buttonStyle(.plain)
                                 }
-                            } label: {
-                                aiChatComposerAccessoryIcon(systemName: "paperclip")
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(.thinMaterial, in: Capsule())
                             }
-                            .buttonStyle(.bordered)
-                            .tint(.accentColor)
-                            .disabled(self.chatStore.dictationState != .idle)
-                            .accessibilityLabel("Add attachment")
-                            .accessibilityHint("Take a photo, choose a photo, or select a file")
-                            .menuOrder(.fixed)
-
-                            Button {
-                                self.handleDictationButtonTap()
-                            } label: {
-                                aiChatComposerAccessoryIcon(
-                                    systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
-                                )
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
-                            .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
-                            .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
                         }
                     }
                 }
-                .padding(.top, aiChatComposerTopPadding)
-                .padding(.bottom, 16)
+
+                ZStack(alignment: .bottomTrailing) {
+                    TextField(
+                        "Ask about cards, review history, or propose a change...",
+                        text: self.$chatStore.inputText,
+                        selection: self.$composerSelection,
+                        axis: .vertical
+                    )
+                    .focused(self.$isComposerFocused)
+                    .lineLimit(1...aiChatComposerMaximumLineCount)
+                    .padding(.leading, 12)
+                    .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
+                    .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                    .padding(.bottom, 12)
+
+                    Button {
+                        self.handlePrimaryComposerAction()
+                    } label: {
+                        Image(systemName: self.chatStore.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
+                            .font(.system(size: 28))
+                            .frame(width: aiChatComposerSendButtonVisualSize, height: aiChatComposerSendButtonVisualSize)
+                            .foregroundStyle(self.chatStore.isStreaming ? Color.red : Color.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(self.primaryComposerButtonDisabled)
+                    .accessibilityLabel(self.chatStore.isStreaming ? "Stop response" : "Send message")
+                    .padding(.trailing, aiChatComposerSendButtonInset)
+                    .padding(.bottom, aiChatComposerSendButtonInset)
+                }
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(alignment: .topLeading) {
+                    if self.chatStore.dictationState != .idle {
+                        AIChatDictationStatusLane(statusText: self.dictationStatusText)
+                            .padding(.top, 12)
+                            .padding(.leading, 12)
+                            .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                    }
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        self.isComposerFocused = true
+                    }
+                )
+
+                HStack {
+                    self.composerModelControl
+                    Spacer()
+
+                    HStack(spacing: 8) {
+                        Menu {
+                            ForEach(aiChatAttachmentMenuActions()) { action in
+                                Button {
+                                    self.handleAttachmentMenuAction(action)
+                                } label: {
+                                    Label(action.title, systemImage: action.systemImage)
+                                }
+                            }
+                        } label: {
+                            aiChatComposerAccessoryIcon(systemName: "paperclip")
+                        }
+                        .buttonStyle(.glass)
+                        .disabled(self.chatStore.dictationState != .idle)
+                        .accessibilityLabel("Add attachment")
+                        .accessibilityHint("Take a photo, choose a photo, or select a file")
+                        .menuOrder(.fixed)
+
+                        Button {
+                            self.handleDictationButtonTap()
+                        } label: {
+                            aiChatComposerAccessoryIcon(
+                                systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
+                            )
+                        }
+                        .buttonStyle(.glass)
+                        .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
+                        .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
+                        .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
+                    }
+                }
             }
-            .background(Color(.systemBackground))
+            .padding(.top, composerTopPadding)
+            .padding(.bottom, composerBottomPadding)
         }
+    }
+
+    private var isBottomAccessoryInline: Bool {
+        self.tabViewBottomAccessoryPlacement == .inline
+    }
+
+    private var composerHorizontalPadding: CGFloat {
+        self.isBottomAccessoryInline ? 12 : 16
+    }
+
+    private var composerVerticalSpacing: CGFloat {
+        self.isBottomAccessoryInline ? 10 : 12
+    }
+
+    private var composerTopPadding: CGFloat {
+        self.isBottomAccessoryInline ? 10 : aiChatComposerTopPadding
+    }
+
+    private var composerBottomPadding: CGFloat {
+        self.isBottomAccessoryInline ? 10 : 16
     }
 
     private var dictationStatusText: String {
@@ -721,7 +729,12 @@ struct AIChatView: View {
         }
         .frame(maxWidth: aiChatBubbleMaximumWidth, alignment: .leading)
         .padding(12)
-        .background(message.role == .user ? Color.accentColor.opacity(0.12) : Color(.secondarySystemGroupedBackground))
+        .background(
+            message.role == .user
+                ? AnyShapeStyle(Color.accentColor.opacity(0.12))
+                : AnyShapeStyle(.thinMaterial),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -793,7 +806,7 @@ struct AIChatView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(Color(.tertiarySystemGroupedBackground))
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)

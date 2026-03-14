@@ -5,9 +5,6 @@ private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
-private let reviewBottomBarFloatingBottomPadding: CGFloat = 12
-private let reviewShowAnswerContentBottomPadding: CGFloat = 104
-private let reviewAnswerGridContentBottomPadding: CGFloat = 152
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 private let emptyBackTextPlaceholder: String = "No back text"
@@ -96,6 +93,9 @@ struct ReviewView: View {
         }
         .task(id: preparedRevealStatesTaskId) {
             await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
+        }
+        .safeAreaBar(edge: .bottom, spacing: 0) {
+            reviewBottomAccessory
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -254,12 +254,8 @@ struct ReviewView: View {
                 horizontalPadding: 20
             ) {
                 activeCardContentView(card: card, preparedRevealState: preparedRevealState)
-                    .padding(.top, 20)
-                    .padding(.bottom, reviewBottomBarContentBottomPadding(preparedRevealState: preparedRevealState))
+                    .padding(.vertical, 20)
             }
-        }
-        .overlay(alignment: .bottom) {
-            reviewBottomBarOverlay(card: card, preparedRevealState: preparedRevealState)
         }
     }
 
@@ -329,6 +325,31 @@ struct ReviewView: View {
         }
     }
 
+    private var reviewBottomAccessory: some View {
+        Group {
+            if self.shouldShowReviewLoader {
+                EmptyView()
+            } else if let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
+                reviewBottomBarContainer {
+                    reviewBottomBar(card: currentCard, preparedRevealState: preparedRevealState)
+                }
+            }
+        }
+    }
+
+    private func reviewBottomBarContainer<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ReadableContentLayout(
+            maxWidth: flashcardsReadableContentMaxWidth,
+            horizontalPadding: reviewBottomBarHorizontalPadding
+        ) {
+            content()
+                .padding(.top, reviewBottomBarTopPadding)
+                .padding(.bottom, reviewBottomBarBottomPadding)
+        }
+    }
+
     private var showAnswerButton: some View {
         Button {
             isAnswerVisible = true
@@ -337,8 +358,7 @@ struct ReviewView: View {
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: showAnswerButtonMinHeight)
         }
-        .buttonStyle(.glass)
-        .tint(.accentColor)
+        .buttonStyle(.glassProminent)
     }
 
     private func reviewAnswerButtonsGrid(cardId: String, options: ReviewAnswerGridOptions) -> some View {
@@ -377,31 +397,8 @@ struct ReviewView: View {
             }
             .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .center)
         }
-        .buttonStyle(.glass)
-        .tint(.accentColor)
+        .buttonStyle(.glassProminent)
         .disabled(store.isReviewPending(cardId: cardId))
-    }
-
-    private func reviewBottomBarOverlay(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
-        ReadableContentLayout(
-            maxWidth: flashcardsReadableContentMaxWidth,
-            horizontalPadding: reviewBottomBarHorizontalPadding
-        ) {
-            reviewBottomBar(card: card, preparedRevealState: preparedRevealState)
-                .padding(.top, reviewBottomBarTopPadding)
-                .padding(.bottom, reviewBottomBarBottomPadding)
-        }
-        .padding(.bottom, reviewBottomBarFloatingBottomPadding)
-    }
-
-    private func reviewBottomBarContentBottomPadding(
-        preparedRevealState: PreparedReviewRevealState
-    ) -> CGFloat {
-        if isAnswerVisible, preparedRevealState.reviewAnswerGridOptions != nil {
-            return reviewAnswerGridContentBottomPadding
-        }
-
-        return reviewShowAnswerContentBottomPadding
     }
 
     private func reviewActionErrorMessage(card: Card) -> String? {
@@ -489,7 +486,7 @@ struct ReviewView: View {
                 } label: {
                     Label("Create card", systemImage: "plus")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
 
                 Text("or")
                     .font(.footnote)
@@ -500,7 +497,7 @@ struct ReviewView: View {
                 } label: {
                     Label("Create with AI", systemImage: "sparkles")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
 
                 if shouldShowSwitchToAllCardsAction {
                     Text("or")
@@ -512,7 +509,7 @@ struct ReviewView: View {
                     } label: {
                         Text("switch to all cards deck")
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.glass)
                 }
             }
         }
@@ -891,7 +888,7 @@ private func reviewMarkdownTablePrimaryBackgroundColor(surfaceStyle: ReviewCardS
     case .front:
         return Color.clear
     case .back:
-        return Color(uiColor: .secondarySystemBackground)
+        return Color.primary.opacity(0.06)
     }
 }
 
@@ -900,7 +897,7 @@ private func reviewMarkdownTableSecondaryBackgroundColor(surfaceStyle: ReviewCar
     case .front:
         return Color.white.opacity(0.22)
     case .back:
-        return Color(uiColor: .tertiarySystemBackground)
+        return Color.primary.opacity(0.03)
     }
 }
 
@@ -976,7 +973,7 @@ private struct ReviewCardSideView: View {
         case .front:
             return AnyShapeStyle(.thinMaterial)
         case .back:
-            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+            return AnyShapeStyle(.regularMaterial)
         }
     }
 }
@@ -1096,7 +1093,7 @@ private struct ReviewQueuePreviewScreen: View {
                 .padding(.vertical, 20)
             }
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(.thinMaterial)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: self.activeLoadRequest) {
@@ -1233,10 +1230,7 @@ private struct ReviewQueuePreviewErrorCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -1279,10 +1273,7 @@ private struct ReviewQueuePreviewCardRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(
