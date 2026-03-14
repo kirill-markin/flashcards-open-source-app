@@ -24,45 +24,50 @@ struct CardEditorScreen: View {
     }
 
     var body: some View {
-        Form {
-            if errorMessage.isEmpty == false {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                }
-            }
-
-            Section("Text") {
-                TextField("Front", text: $formState.frontText, axis: .vertical)
-                    .lineLimit(3...)
-                TextField("Back", text: $formState.backText, axis: .vertical)
-                    .lineLimit(3...)
-            }
-
-            Section("Metadata") {
-                Picker("Effort", selection: $formState.effortLevel) {
-                    ForEach(EffortLevel.allCases) { effortLevel in
-                        Text(effortLevel.title).tag(effortLevel)
+        ReadableContentLayout(
+            maxWidth: flashcardsReadableFormMaxWidth,
+            horizontalPadding: 0
+        ) {
+            Form {
+                if errorMessage.isEmpty == false {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
                     }
                 }
 
-                NavigationLink {
-                    TagPickerView(
-                        selectedTags: formState.tags,
-                        suggestions: availableTagSuggestions,
-                        onSave: { nextTags in
-                            formState.tags = nextTags
-                        }
-                    )
-                } label: {
-                    TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
+                Section("Text") {
+                    TextField("Front", text: $formState.frontText, axis: .vertical)
+                        .lineLimit(3...)
+                    TextField("Back", text: $formState.backText, axis: .vertical)
+                        .lineLimit(3...)
                 }
-            }
 
-            if isEditing {
-                Section("Actions") {
-                    Button("Delete card", role: .destructive) {
-                        self.isDeleteConfirmationPresented = true
+                Section("Metadata") {
+                    Picker("Effort", selection: $formState.effortLevel) {
+                        ForEach(EffortLevel.allCases) { effortLevel in
+                            Text(effortLevel.title).tag(effortLevel)
+                        }
+                    }
+
+                    NavigationLink {
+                        TagPickerView(
+                            selectedTags: formState.tags,
+                            suggestions: availableTagSuggestions,
+                            onSave: { nextTags in
+                                formState.tags = nextTags
+                            }
+                        )
+                    } label: {
+                        TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
+                    }
+                }
+
+                if isEditing {
+                    Section("Actions") {
+                        Button("Delete card", role: .destructive) {
+                            self.isDeleteConfirmationPresented = true
+                        }
                     }
                 }
             }

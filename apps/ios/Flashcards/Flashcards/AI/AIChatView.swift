@@ -217,71 +217,84 @@ struct AIChatView: View {
     private var signInGate: some View {
         VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "sparkles.rectangle.stack")
-                .font(.system(size: 44))
-                .foregroundStyle(.secondary)
-            Text("Sign in to use AI. It can help you explore your cards, spot weak areas, and draft changes before you save them.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 24)
-            Button("Sign in for AI chat") {
-                self.isCloudSignInPresented = true
+
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 24,
+                alignment: .center
+            ) {
+                VStack(spacing: 16) {
+                    Image(systemName: "sparkles.rectangle.stack")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.secondary)
+                    Text("Sign in to use AI. It can help you explore your cards, spot weak areas, and draft changes before you save them.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                    Button("Sign in for AI chat") {
+                        self.isCloudSignInPresented = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             }
-            .buttonStyle(.borderedProminent)
+
             Spacer()
         }
     }
 
     private var consentGate: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Spacer(minLength: 0)
-                Image(systemName: "lock.shield")
-                    .font(.system(size: 42))
-                    .foregroundStyle(.secondary)
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 24
+            ) {
+                VStack(alignment: .leading, spacing: 20) {
+                    Spacer(minLength: 0)
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: 42))
+                        .foregroundStyle(.secondary)
 
-                Text("Before you use AI")
-                    .font(.title3.weight(.semibold))
+                    Text("Before you use AI")
+                        .font(.title3.weight(.semibold))
 
-                Text("Hosted AI is optional. Before you use it on this device, please confirm that you understand which request data can be sent to third-party AI providers configured on the current server.")
-                    .foregroundStyle(.secondary)
+                    Text("Hosted AI is optional. Before you use it on this device, please confirm that you understand which request data can be sent to third-party AI providers configured on the current server.")
+                        .foregroundStyle(.secondary)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(aiChatExternalProviderDisclosureItems, id: \.self) { item in
-                        Label(item, systemImage: "checkmark.circle")
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(aiChatExternalProviderDisclosureItems, id: \.self) { item in
+                            Label(item, systemImage: "checkmark.circle")
+                        }
+                        Label("The exact AI provider depends on the current hosted server configuration.", systemImage: "server.rack")
                     }
-                    Label("The exact AI provider depends on the current hosted server configuration.", systemImage: "server.rack")
+                    .font(.subheadline)
+
+                    Text(aiChatAccuracyWarningText)
+                        .foregroundStyle(.secondary)
+
+                    Text("Cards, decks, and review continue to work without AI.")
+                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        if let privacyUrl = URL(string: flashcardsPrivacyPolicyUrl) {
+                            Link("Privacy Policy", destination: privacyUrl)
+                        }
+                        if let termsUrl = URL(string: flashcardsTermsOfServiceUrl) {
+                            Link("Terms of Service", destination: termsUrl)
+                        }
+                        if let supportUrl = URL(string: flashcardsSupportUrl) {
+                            Link("Support", destination: supportUrl)
+                        }
+                    }
+                    .font(.subheadline.weight(.medium))
+
+                    Button("I understand and continue") {
+                        self.acceptExternalAIConsent()
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Spacer(minLength: 0)
                 }
-                .font(.subheadline)
-
-                Text(aiChatAccuracyWarningText)
-                    .foregroundStyle(.secondary)
-
-                Text("Cards, decks, and review continue to work without AI.")
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    if let privacyUrl = URL(string: flashcardsPrivacyPolicyUrl) {
-                        Link("Privacy Policy", destination: privacyUrl)
-                    }
-                    if let termsUrl = URL(string: flashcardsTermsOfServiceUrl) {
-                        Link("Terms of Service", destination: termsUrl)
-                    }
-                    if let supportUrl = URL(string: flashcardsSupportUrl) {
-                        Link("Support", destination: supportUrl)
-                    }
-                }
-                .font(.subheadline.weight(.medium))
-
-                Button("I understand and continue") {
-                    self.acceptExternalAIConsent()
-                }
-                .buttonStyle(.borderedProminent)
-
-                Spacer(minLength: 0)
+                .padding(.vertical, 24)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(24)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -408,123 +421,127 @@ struct AIChatView: View {
         VStack(alignment: .leading, spacing: 0) {
             Divider()
 
-            VStack(alignment: .leading, spacing: 12) {
-                if self.chatStore.pendingAttachments.isEmpty == false {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(self.chatStore.pendingAttachments) { attachment in
-                                HStack(spacing: 6) {
-                                    Image(systemName: attachment.isImage ? "photo" : "doc")
-                                        .foregroundStyle(.secondary)
-                                    Text(attachment.fileName)
-                                        .font(.caption)
-                                        .lineLimit(1)
-                                    Button {
-                                        self.chatStore.removeAttachment(id: attachment.id)
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableContentMaxWidth,
+                horizontalPadding: 16
+            ) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if self.chatStore.pendingAttachments.isEmpty == false {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(self.chatStore.pendingAttachments) { attachment in
+                                    HStack(spacing: 6) {
+                                        Image(systemName: attachment.isImage ? "photo" : "doc")
                                             .foregroundStyle(.secondary)
+                                        Text(attachment.fileName)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                        Button {
+                                            self.chatStore.removeAttachment(id: attachment.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(Color(.secondarySystemGroupedBackground))
+                                    .clipShape(Capsule())
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .background(Color(.secondarySystemGroupedBackground))
-                                .clipShape(Capsule())
                             }
                         }
                     }
-                }
 
-                ZStack(alignment: .bottomTrailing) {
-                    TextField(
-                        "Ask about cards, review history, or propose a change...",
-                        text: self.$chatStore.inputText,
-                        selection: self.$composerSelection,
-                        axis: .vertical
-                    )
-                    .focused(self.$isComposerFocused)
-                    .lineLimit(1...aiChatComposerMaximumLineCount)
-                    .padding(.leading, 12)
-                    .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
-                    .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                    .padding(.bottom, 12)
-
-                    Button {
-                        self.handlePrimaryComposerAction()
-                    } label: {
-                        Image(systemName: self.chatStore.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
-                            .font(.system(size: 28))
-                            .frame(width: aiChatComposerSendButtonVisualSize, height: aiChatComposerSendButtonVisualSize)
-                            .foregroundStyle(self.chatStore.isStreaming ? Color.red : Color.accentColor)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(self.primaryComposerButtonDisabled)
-                    .accessibilityLabel(self.chatStore.isStreaming ? "Stop response" : "Send message")
-                    .padding(.trailing, aiChatComposerSendButtonInset)
-                    .padding(.bottom, aiChatComposerSendButtonInset)
-                }
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color(.separator), lineWidth: 1)
-                )
-                .overlay(alignment: .topLeading) {
-                    if self.chatStore.dictationState != .idle {
-                        AIChatDictationStatusLane(statusText: self.dictationStatusText)
-                            .padding(.top, 12)
-                            .padding(.leading, 12)
-                            .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                    }
-                }
-                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        self.isComposerFocused = true
-                    }
-                )
-
-                HStack {
-                    self.composerModelControl
-                    Spacer()
-
-                    HStack(spacing: 8) {
-                        Menu {
-                            ForEach(aiChatAttachmentMenuActions()) { action in
-                                Button {
-                                    self.handleAttachmentMenuAction(action)
-                                } label: {
-                                    Label(action.title, systemImage: action.systemImage)
-                                }
-                            }
-                        } label: {
-                            aiChatComposerAccessoryIcon(systemName: "paperclip")
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.accentColor)
-                        .disabled(self.chatStore.dictationState != .idle)
-                        .accessibilityLabel("Add attachment")
-                        .accessibilityHint("Take a photo, choose a photo, or select a file")
-                        .menuOrder(.fixed)
+                    ZStack(alignment: .bottomTrailing) {
+                        TextField(
+                            "Ask about cards, review history, or propose a change...",
+                            text: self.$chatStore.inputText,
+                            selection: self.$composerSelection,
+                            axis: .vertical
+                        )
+                        .focused(self.$isComposerFocused)
+                        .lineLimit(1...aiChatComposerMaximumLineCount)
+                        .padding(.leading, 12)
+                        .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
+                        .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                        .padding(.bottom, 12)
 
                         Button {
-                            self.handleDictationButtonTap()
+                            self.handlePrimaryComposerAction()
                         } label: {
-                            aiChatComposerAccessoryIcon(
-                                systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
-                            )
+                            Image(systemName: self.chatStore.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
+                                .font(.system(size: 28))
+                                .frame(width: aiChatComposerSendButtonVisualSize, height: aiChatComposerSendButtonVisualSize)
+                                .foregroundStyle(self.chatStore.isStreaming ? Color.red : Color.accentColor)
                         }
-                        .buttonStyle(.bordered)
-                        .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
-                        .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
-                        .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
+                        .buttonStyle(.plain)
+                        .disabled(self.primaryComposerButtonDisabled)
+                        .accessibilityLabel(self.chatStore.isStreaming ? "Stop response" : "Send message")
+                        .padding(.trailing, aiChatComposerSendButtonInset)
+                        .padding(.bottom, aiChatComposerSendButtonInset)
+                    }
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color(.separator), lineWidth: 1)
+                    )
+                    .overlay(alignment: .topLeading) {
+                        if self.chatStore.dictationState != .idle {
+                            AIChatDictationStatusLane(statusText: self.dictationStatusText)
+                                .padding(.top, 12)
+                                .padding(.leading, 12)
+                                .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
+                        }
+                    }
+                    .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            self.isComposerFocused = true
+                        }
+                    )
+
+                    HStack {
+                        self.composerModelControl
+                        Spacer()
+
+                        HStack(spacing: 8) {
+                            Menu {
+                                ForEach(aiChatAttachmentMenuActions()) { action in
+                                    Button {
+                                        self.handleAttachmentMenuAction(action)
+                                    } label: {
+                                        Label(action.title, systemImage: action.systemImage)
+                                    }
+                                }
+                            } label: {
+                                aiChatComposerAccessoryIcon(systemName: "paperclip")
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(.accentColor)
+                            .disabled(self.chatStore.dictationState != .idle)
+                            .accessibilityLabel("Add attachment")
+                            .accessibilityHint("Take a photo, choose a photo, or select a file")
+                            .menuOrder(.fixed)
+
+                            Button {
+                                self.handleDictationButtonTap()
+                            } label: {
+                                aiChatComposerAccessoryIcon(
+                                    systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
+                                )
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
+                            .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
+                            .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
+                        }
                     }
                 }
+                .padding(.top, aiChatComposerTopPadding)
+                .padding(.bottom, 16)
             }
-            .padding(.top, aiChatComposerTopPadding)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
             .background(Color(.systemBackground))
         }
     }

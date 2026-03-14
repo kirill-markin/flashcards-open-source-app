@@ -439,53 +439,58 @@ private struct DeckEditorView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Name") {
-                TextField("Deck name", text: $formState.name)
-            }
+        ReadableContentLayout(
+            maxWidth: flashcardsReadableFormMaxWidth,
+            horizontalPadding: 0
+        ) {
+            Form {
+                Section("Name") {
+                    TextField("Deck name", text: $formState.name)
+                }
 
-            Section("Effort") {
-                ForEach(EffortLevel.allCases) { effortLevel in
-                    Toggle(
-                        effortLevel.title,
-                        isOn: Binding(
-                            get: {
-                                formState.selectedEffortLevels.contains(effortLevel)
-                            },
-                            set: { isSelected in
-                                formState.selectedEffortLevels = toggleEffortLevel(
-                                    effortLevels: formState.selectedEffortLevels,
-                                    effortLevel: effortLevel,
-                                    isSelected: isSelected
-                                )
+                Section("Effort") {
+                    ForEach(EffortLevel.allCases) { effortLevel in
+                        Toggle(
+                            effortLevel.title,
+                            isOn: Binding(
+                                get: {
+                                    formState.selectedEffortLevels.contains(effortLevel)
+                                },
+                                set: { isSelected in
+                                    formState.selectedEffortLevels = toggleEffortLevel(
+                                        effortLevels: formState.selectedEffortLevels,
+                                        effortLevel: effortLevel,
+                                        isSelected: isSelected
+                                    )
+                                }
+                            )
+                        )
+                    }
+                }
+
+                Section("Tags") {
+                    NavigationLink {
+                        TagPickerView(
+                            selectedTags: formState.tags,
+                            suggestions: availableTagSuggestions,
+                            onSave: { nextTags in
+                                formState.tags = nextTags
                             }
                         )
-                    )
-                }
-            }
+                    } label: {
+                        TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
+                    }
 
-            Section("Tags") {
-                NavigationLink {
-                    TagPickerView(
-                        selectedTags: formState.tags,
-                        suggestions: availableTagSuggestions,
-                        onSave: { nextTags in
-                            formState.tags = nextTags
-                        }
-                    )
-                } label: {
-                    TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
-                }
-
-                Text(
-                    formatDeckFilterDefinition(
-                        filterDefinition: buildDeckFilterDefinition(
-                            effortLevels: formState.selectedEffortLevels,
-                            tags: formState.tags
+                    Text(
+                        formatDeckFilterDefinition(
+                            filterDefinition: buildDeckFilterDefinition(
+                                effortLevels: formState.selectedEffortLevels,
+                                tags: formState.tags
+                            )
                         )
                     )
-                )
-                .foregroundStyle(.secondary)
+                    .foregroundStyle(.secondary)
+                }
             }
         }
         .navigationTitle(title)
