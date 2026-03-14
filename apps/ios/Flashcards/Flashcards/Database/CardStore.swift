@@ -331,7 +331,7 @@ struct CardStore {
                     ELSE 2
                 END ASC,
                 due_at ASC,
-                created_at ASC,
+                created_at DESC,
                 card_id ASC
             LIMIT ? OFFSET ?
             """,

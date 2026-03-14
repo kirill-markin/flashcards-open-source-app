@@ -98,7 +98,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertEqual(reviewTimeline.map(\.cardId), ["matching-active", "matching-future"])
     }
 
-    func testMakeReviewTimelineAppendsFutureCardsSortedByDueAtAndUpdatedAt() throws {
+    func testMakeReviewTimelineAppendsFutureCardsSortedByDueAtAndCreatedAtDescending() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [
             FsrsSchedulerTestSupport.makeTestCard(
@@ -141,7 +141,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         )
     }
 
-    func testMakeReviewQueuePlacesNilDueAtBeforeEarlierDueAtAndUsesUpdatedAtAsFinalTiebreaker() throws {
+    func testMakeReviewQueuePlacesNilDueAtBeforeEarlierDueAtAndUsesCreatedAtDescendingAsFinalTiebreaker() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [
             FsrsSchedulerTestSupport.makeTestCard(
