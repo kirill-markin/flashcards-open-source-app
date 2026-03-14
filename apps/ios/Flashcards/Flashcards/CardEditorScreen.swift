@@ -1,10 +1,5 @@
 import SwiftUI
 
-private enum CardEditorFocusedField: Hashable {
-    case frontText
-    case backText
-}
-
 struct CardFormState {
     var frontText: String
     var backText: String
@@ -15,7 +10,6 @@ struct CardFormState {
 struct CardEditorScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
     @State private var isDeleteConfirmationPresented: Bool = false
-    @FocusState private var focusedField: CardEditorFocusedField?
 
     let title: String
     let isEditing: Bool
@@ -43,21 +37,29 @@ struct CardEditorScreen: View {
                 }
 
                 Section("Text") {
-                    CardEditorTextEditorRow(
-                        title: "Front",
-                        placeholder: "Front",
-                        text: $formState.frontText,
-                        focusedField: self.$focusedField,
-                        field: .frontText
-                    )
+                    NavigationLink {
+                        CardTextEditorScreen(
+                            title: "Front",
+                            text: $formState.frontText
+                        )
+                    } label: {
+                        CardTextPreviewRow(
+                            title: "Front",
+                            text: formState.frontText
+                        )
+                    }
 
-                    CardEditorTextEditorRow(
-                        title: "Back",
-                        placeholder: "Back",
-                        text: $formState.backText,
-                        focusedField: self.$focusedField,
-                        field: .backText
-                    )
+                    NavigationLink {
+                        CardTextEditorScreen(
+                            title: "Back",
+                            text: $formState.backText
+                        )
+                    } label: {
+                        CardTextPreviewRow(
+                            title: "Back",
+                            text: formState.backText
+                        )
+                    }
                 }
 
                 Section("Metadata") {
@@ -88,12 +90,6 @@ struct CardEditorScreen: View {
                     }
                 }
             }
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    self.focusedField = nil
-                }
-            )
         }
         .navigationTitle(title)
         .alert("Delete this card?", isPresented: self.$isDeleteConfirmationPresented) {
@@ -114,43 +110,74 @@ struct CardEditorScreen: View {
     }
 }
 
-private struct CardEditorTextEditorRow: View {
+private struct CardTextPreviewRow: View {
     let title: String
-    let placeholder: String
-    @Binding var text: String
-    @FocusState.Binding var focusedField: CardEditorFocusedField?
-    let field: CardEditorFocusedField
+    let text: String
+
+    private var previewText: String {
+        formatCardTextPreview(text: text)
+    }
+
+    private var previewStyle: AnyShapeStyle {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? AnyShapeStyle(.tertiary)
+            : AnyShapeStyle(.primary)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.headline)
+                .font(.body)
+                .foregroundStyle(.secondary)
 
-            ZStack(alignment: .topLeading) {
-                if self.text.isEmpty {
-                    Text(placeholder)
-                        .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 16)
-                }
-
-                TextEditor(text: self.$text)
-                    .focused(self.$focusedField, equals: self.field)
-                    .frame(minHeight: 180)
-                    .scrollContentBackground(.hidden)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 8)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground))
-            }
-            .background(
-                Color(uiColor: .secondarySystemGroupedBackground),
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color(uiColor: .separator).opacity(0.28), lineWidth: 1)
-            )
+            Text(previewText)
+                .foregroundStyle(previewStyle)
+                .multilineTextAlignment(.leading)
+                .lineLimit(3)
         }
         .padding(.vertical, 4)
     }
+}
+
+private struct CardTextEditorScreen: View {
+    let title: String
+    @Binding var text: String
+    @State private var textSelection: TextSelection?
+    @FocusState private var isTextEditorFocused: Bool
+
+    var body: some View {
+        ZStack {
+            Color(uiColor: .systemGroupedBackground)
+                .ignoresSafeArea()
+
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 16
+            ) {
+                TextEditor(text: $text, selection: self.$textSelection)
+                    .focused(self.$isTextEditorFocused)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            .padding(.vertical, 16)
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            self.textSelection = TextSelection(insertionPoint: self.text.startIndex)
+            self.isTextEditorFocused = true
+        }
+    }
+}
+
+private func formatCardTextPreview(text: String) -> String {
+    let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    if trimmedText.isEmpty {
+        return "Tap to edit"
+    }
+
+    return trimmedText
+        .split(whereSeparator: \.isNewline)
+        .map(String.init)
+        .joined(separator: " ")
 }
