@@ -88,6 +88,7 @@ struct OutboxStore {
                 attemptCount: Int(DatabaseCore.columnInt64(statement: statement, index: 8)),
                 lastError: DatabaseCore.columnOptionalText(statement: statement, index: 9) ?? "",
                 operation: try self.decodeOutboxOperation(
+                    workspaceId: workspaceId,
                     operationId: operationId,
                     entityType: entityType,
                     entityId: entityId,
@@ -351,6 +352,7 @@ struct OutboxStore {
     }
 
     private func decodeOutboxOperation(
+        workspaceId: String,
         operationId: String,
         entityType: SyncEntityType,
         entityId: String,
@@ -368,7 +370,13 @@ struct OutboxStore {
                 entityId: entityId,
                 action: action,
                 clientUpdatedAt: clientUpdatedAt,
-                payload: .card(try self.core.decoder.decode(CardSyncPayload.self, from: payloadData))
+                payload: .card(
+                    try self.decodeCardPayload(
+                        workspaceId: workspaceId,
+                        cardId: entityId,
+                        payloadData: payloadData
+                    )
+                )
             )
         case .deck:
             return SyncOperation(
@@ -398,6 +406,59 @@ struct OutboxStore {
                 action: action,
                 clientUpdatedAt: clientUpdatedAt,
                 payload: .reviewEvent(try self.core.decoder.decode(ReviewEventSyncPayload.self, from: payloadData))
+            )
+        }
+    }
+
+    private func decodeCardPayload(
+        workspaceId: String,
+        cardId: String,
+        payloadData: Data
+    ) throws -> CardSyncPayload {
+        do {
+            return try self.core.decoder.decode(CardSyncPayload.self, from: payloadData)
+        } catch DecodingError.keyNotFound(let missingKey, _) where missingKey.stringValue == "createdAt" {
+            let legacyPayload = try self.core.decoder.decode(CardOutboxPayload.self, from: payloadData)
+            let createdAt = try self.loadCardCreatedAt(workspaceId: workspaceId, cardId: cardId)
+
+            return CardSyncPayload(
+                cardId: cardId,
+                frontText: legacyPayload.frontText,
+                backText: legacyPayload.backText,
+                tags: legacyPayload.tags,
+                effortLevel: legacyPayload.effortLevel,
+                dueAt: legacyPayload.dueAt,
+                createdAt: createdAt,
+                reps: legacyPayload.reps,
+                lapses: legacyPayload.lapses,
+                fsrsCardState: legacyPayload.fsrsCardState,
+                fsrsStepIndex: legacyPayload.fsrsStepIndex,
+                fsrsStability: legacyPayload.fsrsStability,
+                fsrsDifficulty: legacyPayload.fsrsDifficulty,
+                fsrsLastReviewedAt: legacyPayload.fsrsLastReviewedAt,
+                fsrsScheduledDays: legacyPayload.fsrsScheduledDays,
+                deletedAt: legacyPayload.deletedAt
+            )
+        }
+    }
+
+    private func loadCardCreatedAt(workspaceId: String, cardId: String) throws -> String {
+        do {
+            return try self.core.scalarText(
+                sql: """
+                SELECT created_at
+                FROM cards
+                WHERE workspace_id = ? AND card_id = ?
+                LIMIT 1
+                """,
+                values: [
+                    .text(workspaceId),
+                    .text(cardId)
+                ]
+            )
+        } catch {
+            throw LocalStoreError.database(
+                "Stored card outbox payload is missing createdAt and card \(cardId) in workspace \(workspaceId) could not be loaded"
             )
         }
     }
