@@ -24,6 +24,8 @@
 	<string>$(API_BASE_URL)</string>
 	<key>FLASHCARDS_AUTH_BASE_URL</key>
 	<string>$(AUTH_BASE_URL)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.education</string>
 	<key>LSRequiresIPhoneOS</key>
