@@ -17,7 +17,7 @@ AUTH_BASE_URL = https:/$()/auth.flashcards-open-source-app.com
 PRIVACY_POLICY_URL = https:/$()/flashcards-open-source-app.com/privacy/
 TERMS_OF_SERVICE_URL = https:/$()/flashcards-open-source-app.com/terms/
 SUPPORT_URL = https:/$()/flashcards-open-source-app.com/support/
-SUPPORT_EMAIL_ADDRESS = kirill@kirill-markin.com
+SUPPORT_EMAIL_ADDRESS = kirill+flashcards@kirill-markin.com
 
 // Set the same values in Xcode Cloud:
 // XCODE_CLOUD_DEVELOPMENT_TEAM
