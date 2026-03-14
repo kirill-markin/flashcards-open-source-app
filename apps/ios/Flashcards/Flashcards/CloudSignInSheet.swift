@@ -84,31 +84,36 @@ struct CloudSignInSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                if self.errorMessage.isEmpty == false {
-                    Section {
-                        CopyableErrorMessageView(message: self.errorMessage)
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 0
+            ) {
+                Form {
+                    if self.errorMessage.isEmpty == false {
+                        Section {
+                            CopyableErrorMessageView(message: self.errorMessage)
+                        }
                     }
-                }
 
-                Section("Cloud sync") {
-                    Text("Sign in with email and continue through the code and workspace steps. Local data stays on this device until you choose a cloud workspace.")
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Email") {
-                    TextField("Your email", text: self.$email)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.emailAddress)
-                        .textContentType(.emailAddress)
-                        .submitLabel(.done)
-                        .focused(self.$isEmailFieldFocused)
-
-                    Button("Send code") {
-                        self.sendCode()
+                    Section("Cloud sync") {
+                        Text("Sign in with email and continue through the code and workspace steps. Local data stays on this device until you choose a cloud workspace.")
+                            .foregroundStyle(.secondary)
                     }
-                    .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
+
+                    Section("Email") {
+                        TextField("Your email", text: self.$email)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.emailAddress)
+                            .textContentType(.emailAddress)
+                            .submitLabel(.done)
+                            .focused(self.$isEmailFieldFocused)
+
+                        Button("Send code") {
+                            self.sendCode()
+                        }
+                        .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
+                    }
                 }
             }
             .navigationTitle("Sign in")
@@ -396,54 +401,58 @@ private struct CloudOtpVerificationSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                if self.errorMessage.isEmpty == false {
-                    Section {
-                        CopyableErrorMessageView(message: self.errorMessage)
-                    }
-                }
-
-                Section("Email") {
-                    Text(self.currentEmail)
-                        .textSelection(.enabled)
-                }
-
-                Section("One-time code") {
-                    if self.currentChallenge == nil {
-                        Text("Sending the code…")
-                            .foregroundStyle(.secondary)
-
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                            Spacer()
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 0
+            ) {
+                Form {
+                    if self.errorMessage.isEmpty == false {
+                        Section {
+                            CopyableErrorMessageView(message: self.errorMessage)
                         }
-                        .padding(.vertical, 8)
-                    } else {
-                        Text(self.challengePrompt)
-                            .foregroundStyle(.secondary)
+                    }
 
-                        if self.challengeState == .active {
-                            TextField("12345678", text: self.$code)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .keyboardType(.numberPad)
-                                .textContentType(.oneTimeCode)
+                    Section("Email") {
+                        Text(self.currentEmail)
+                            .textSelection(.enabled)
+                    }
 
-                            Button("Continue") {
-                                self.verifyCode()
+                    Section("One-time code") {
+                        if self.currentChallenge == nil {
+                            Text("Sending the code…")
+                                .foregroundStyle(.secondary)
+
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                Spacer()
                             }
-                            .disabled(self.isVerifyingCode || self.isSendingCode || normalizedOtpCode(self.code).isEmpty)
+                            .padding(.vertical, 8)
                         } else {
-                            Button("Resend code") {
-                                self.resendCode()
+                            Text(self.challengePrompt)
+                                .foregroundStyle(.secondary)
+
+                            if self.challengeState == .active {
+                                TextField("12345678", text: self.$code)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .keyboardType(.numberPad)
+                                    .textContentType(.oneTimeCode)
+
+                                Button("Continue") {
+                                    self.verifyCode()
+                                }
+                                .disabled(self.isVerifyingCode || self.isSendingCode || normalizedOtpCode(self.code).isEmpty)
+                            } else {
+                                Button("Resend code") {
+                                    self.resendCode()
+                                }
+                                .disabled(self.isSendingCode || self.isVerifyingCode)
                             }
-                            .disabled(self.isSendingCode || self.isVerifyingCode)
                         }
                     }
                 }
-
             }
             .navigationTitle("Verify code")
             .navigationBarTitleDisplayMode(.inline)
@@ -572,22 +581,27 @@ private struct CloudWorkspaceSelectionSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section("Workspace") {
-                    Text("Choose one option to continue: link this device to an existing cloud workspace or create a new cloud workspace.")
-                        .foregroundStyle(.secondary)
-                }
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 0
+            ) {
+                List {
+                    Section("Workspace") {
+                        Text("Choose one option to continue: link this device to an existing cloud workspace or create a new cloud workspace.")
+                            .foregroundStyle(.secondary)
+                    }
 
-                if self.selectionItems.isEmpty == false {
-                    Section("Choose workspace") {
-                        ForEach(self.selectionItems) { item in
-                            Button {
-                                self.completeLink(selection: item.selection)
-                            } label: {
-                                CloudWorkspaceSelectionRow(item: item)
+                    if self.selectionItems.isEmpty == false {
+                        Section("Choose workspace") {
+                            ForEach(self.selectionItems) { item in
+                                Button {
+                                    self.completeLink(selection: item.selection)
+                                } label: {
+                                    CloudWorkspaceSelectionRow(item: item)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(self.isLinking)
                             }
-                            .buttonStyle(.plain)
-                            .disabled(self.isLinking)
                         }
                     }
                 }
@@ -715,30 +729,35 @@ private struct CloudPostAuthFailureSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    CopyableErrorMessageView(message: self.state.message)
-                }
-
-                Section("Cloud account") {
-                    Text(self.state.title)
-                        .font(.headline)
-                    Text("Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish.")
-                        .foregroundStyle(.secondary)
-                }
-
-                Section {
-                    Button("Retry") {
-                        self.onRetry()
-                    }
-                    .disabled(isCloudSignInSyncInFlight(status: self.store.syncStatus))
-
-                    Button("Close") {
-                        self.onClose()
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 0
+            ) {
+                Form {
+                    Section {
+                        CopyableErrorMessageView(message: self.state.message)
                     }
 
-                    Button("Disconnect account", role: .destructive) {
-                        self.onDisconnect()
+                    Section("Cloud account") {
+                        Text(self.state.title)
+                            .font(.headline)
+                        Text("Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish.")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Section {
+                        Button("Retry") {
+                            self.onRetry()
+                        }
+                        .disabled(isCloudSignInSyncInFlight(status: self.store.syncStatus))
+
+                        Button("Close") {
+                            self.onClose()
+                        }
+
+                        Button("Disconnect account", role: .destructive) {
+                            self.onDisconnect()
+                        }
                     }
                 }
             }
@@ -751,21 +770,26 @@ private struct CloudPostAuthFailureSheet: View {
 private struct CloudPostAuthLoadingSheet: View {
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Cloud sync") {
-                    Text("Loading workspaces…")
-                        .font(.headline)
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 0
+            ) {
+                Form {
+                    Section("Cloud sync") {
+                        Text("Loading workspaces…")
+                            .font(.headline)
 
-                    Text("Your sign-in succeeded. The app is now loading the cloud workspace step.")
-                        .foregroundStyle(.secondary)
+                        Text("Your sign-in succeeded. The app is now loading the cloud workspace step.")
+                            .foregroundStyle(.secondary)
 
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                        Spacer()
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, 8)
                 }
             }
             .navigationTitle("Cloud sync")

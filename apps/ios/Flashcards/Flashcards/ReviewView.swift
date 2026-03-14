@@ -246,8 +246,13 @@ struct ReviewView: View {
 
     private func activeCardView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
         ScrollView {
-            activeCardContentView(card: card, preparedRevealState: preparedRevealState)
-                .padding(20)
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableContentMaxWidth,
+                horizontalPadding: 20
+            ) {
+                activeCardContentView(card: card, preparedRevealState: preparedRevealState)
+                    .padding(.vertical, 20)
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             reviewBottomBar(card: card, preparedRevealState: preparedRevealState)
@@ -381,10 +386,14 @@ struct ReviewView: View {
         VStack(spacing: 0) {
             Divider()
 
-            content()
-            .padding(.top, reviewBottomBarTopPadding)
-            .padding(.horizontal, reviewBottomBarHorizontalPadding)
-            .padding(.bottom, reviewBottomBarBottomPadding)
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableContentMaxWidth,
+                horizontalPadding: reviewBottomBarHorizontalPadding
+            ) {
+                content()
+                    .padding(.top, reviewBottomBarTopPadding)
+                    .padding(.bottom, reviewBottomBarBottomPadding)
+            }
         }
         .background(.regularMaterial)
         .shadow(color: Color.black.opacity(0.08), radius: 10, y: -2)
@@ -1036,45 +1045,50 @@ private struct ReviewQueuePreviewScreen: View {
                 )
                 .padding(.top, 120)
             } else {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    if let errorMessage = self.errorMessage {
-                        ReviewQueuePreviewErrorCard(
-                            message: errorMessage,
-                            onRetry: {
-                                self.retryLoad()
-                            },
-                            onClose: {
-                                self.dismiss()
-                            }
-                        )
-                    }
-
-                    ForEach(self.previewItems) { item in
-                        switch item {
-                        case .separator:
-                            ReviewQueueSectionSeparator()
-                        case .card(let card):
-                            ReviewQueuePreviewCardRow(
-                                card: card,
-                                isCurrent: card.cardId == self.currentCardId
+                ReadableContentLayout(
+                    maxWidth: flashcardsReadableContentMaxWidth,
+                    horizontalPadding: 20
+                ) {
+                    LazyVStack(alignment: .leading, spacing: 12) {
+                        if let errorMessage = self.errorMessage {
+                            ReviewQueuePreviewErrorCard(
+                                message: errorMessage,
+                                onRetry: {
+                                    self.retryLoad()
+                                },
+                                onClose: {
+                                    self.dismiss()
+                                }
                             )
-                            .onAppear {
-                                self.loadNextPageIfNeeded(itemId: item.id)
+                        }
+
+                        ForEach(self.previewItems) { item in
+                            switch item {
+                            case .separator:
+                                ReviewQueueSectionSeparator()
+                            case .card(let card):
+                                ReviewQueuePreviewCardRow(
+                                    card: card,
+                                    isCurrent: card.cardId == self.currentCardId
+                                )
+                                .onAppear {
+                                    self.loadNextPageIfNeeded(itemId: item.id)
+                                }
                             }
                         }
-                    }
 
-                    if self.isNextPageLoading {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                                .controlSize(.small)
-                            Spacer()
+                        if self.isNextPageLoading {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .controlSize(.small)
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
                         }
-                        .padding(.vertical, 8)
                     }
                 }
-                .padding(20)
+                .padding(.vertical, 20)
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
