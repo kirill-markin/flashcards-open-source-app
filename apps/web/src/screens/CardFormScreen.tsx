@@ -3,20 +3,24 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, CreateCardInput, UpdateCardInput } from "../types";
+import { cardsRoute } from "../routes";
 
 export function CardFormScreen(): ReactElement {
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const { cards, ensureCardsLoaded, getCardById, createCardItem, updateCardItem, setErrorMessage } = useAppData();
+  const { cards, ensureCardsLoaded, getCardById, createCardItem, updateCardItem, deleteCardItem, setErrorMessage } = useAppData();
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [formState, setFormState] = useState<CardFormState>(toCardFormState(null));
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string>("");
+  const [actionErrorMessage, setActionErrorMessage] = useState<string>("");
   const isCreateMode = cardId === undefined;
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
-    setScreenErrorMessage("");
+    setLoadErrorMessage("");
+    setActionErrorMessage("");
 
     if (isCreateMode) {
       setCurrentCard(null);
@@ -25,7 +29,7 @@ export function CardFormScreen(): ReactElement {
       try {
         await ensureCardsLoaded();
       } catch (error) {
-        setScreenErrorMessage(error instanceof Error ? error.message : String(error));
+        setLoadErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
         setIsLoading(false);
       }
@@ -43,7 +47,7 @@ export function CardFormScreen(): ReactElement {
       setCurrentCard(card);
       setFormState(toCardFormState(card));
     } catch (error) {
-      setScreenErrorMessage(error instanceof Error ? error.message : String(error));
+      setLoadErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +59,7 @@ export function CardFormScreen(): ReactElement {
 
   async function handleSubmit(): Promise<void> {
     setIsSaving(true);
+    setActionErrorMessage("");
     setErrorMessage("");
 
     try {
@@ -76,11 +81,35 @@ export function CardFormScreen(): ReactElement {
         await updateCardItem(cardId, payload);
       }
 
-      navigate("/cards");
+      navigate(cardsRoute);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleDelete(): Promise<void> {
+    if (cardId === undefined) {
+      setActionErrorMessage("Card ID is required");
+      return;
+    }
+
+    if (window.confirm("Delete this card?") === false) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setActionErrorMessage("");
+    setErrorMessage("");
+
+    try {
+      await deleteCardItem(cardId);
+      navigate(cardsRoute);
+    } catch (error) {
+      setActionErrorMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -95,12 +124,12 @@ export function CardFormScreen(): ReactElement {
     );
   }
 
-  if (screenErrorMessage !== "") {
+  if (loadErrorMessage !== "") {
     return (
       <main className="container">
         <section className="panel">
           <h1 className="title">Card form</h1>
-          <p className="error-banner">{screenErrorMessage}</p>
+          <p className="error-banner">{loadErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void loadScreenData()}>
             Retry
           </button>
@@ -112,17 +141,28 @@ export function CardFormScreen(): ReactElement {
   return (
     <main className="container">
       <section className="panel">
+        {actionErrorMessage !== "" ? <p className="error-banner">{actionErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
             <h1 className="title">{isCreateMode ? "New card" : "Card form"}</h1>
             <p className="subtitle">Large editor in the same mono system as the tables.</p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to="/cards">Back</Link>
+            <Link className="ghost-btn" to={cardsRoute}>Back</Link>
+            {!isCreateMode ? (
+              <button
+                type="button"
+                className="ghost-btn settings-danger-btn"
+                disabled={isSaving || isDeleting}
+                onClick={() => void handleDelete()}
+              >
+                {isDeleting ? "Deleting…" : "Delete card"}
+              </button>
+            ) : null}
             <button
               type="button"
               className="primary-btn"
-              disabled={isSaving}
+              disabled={isSaving || isDeleting}
               onClick={() => void handleSubmit()}
             >
               {isSaving ? "Saving…" : "Save card"}
