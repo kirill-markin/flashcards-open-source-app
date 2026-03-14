@@ -4,6 +4,99 @@ import XCTest
 
 @MainActor
 final class FlashcardsStoreCloudSyncTests: XCTestCase {
+    func testSyncCloudIfLinkedNoOpKeepsPublishedReviewStateStable() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+
+        try context.store.saveCard(
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        try context.store.saveCard(
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 2", backText: "Back 2", tags: ["tag-b"]),
+            editingCardId: nil
+        )
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
+            database: context.database,
+            workspaceId: workspaceId
+        )
+        try context.store.reload()
+        context.store.cloudRuntime.setActiveCloudSession(
+            linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId)
+        )
+
+        let initialReviewQueue = context.store.reviewQueue
+        let initialCurrentCardId = context.store.effectiveReviewQueue.first?.cardId
+        let initialReadVersion = context.store.localReadVersion
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.store.reviewQueue, initialReviewQueue)
+        XCTAssertEqual(context.store.effectiveReviewQueue.first?.cardId, initialCurrentCardId)
+        XCTAssertEqual(context.store.localReadVersion, initialReadVersion)
+        XCTAssertFalse(context.store.isReviewHeadLoading)
+        XCTAssertNil(context.store.reviewOverlayBanner)
+    }
+
+    func testSyncCloudIfLinkedShowsOverlayBannerWhenRemoteSyncReplacesCurrentCard() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [
+                .succeedWithResult(
+                    CloudSyncResult(
+                        appliedPullChangeCount: 2,
+                        changedEntityTypes: [.card, .reviewEvent],
+                        acknowledgedOperationCount: 0,
+                        cleanedUpOperationCount: 0
+                    )
+                )
+            ],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+
+        try context.store.saveCard(
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        try context.store.saveCard(
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 2", backText: "Back 2", tags: ["tag-b"]),
+            editingCardId: nil
+        )
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
+            database: context.database,
+            workspaceId: workspaceId
+        )
+        try context.store.reload()
+        context.store.cloudRuntime.setActiveCloudSession(
+            linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId)
+        )
+
+        let firstCardId = try XCTUnwrap(context.store.effectiveReviewQueue.first?.cardId)
+        let secondCardId = try XCTUnwrap(context.store.effectiveReviewQueue.dropFirst().first?.cardId)
+        let initialReadVersion = context.store.localReadVersion
+
+        _ = try context.database.submitReview(
+            workspaceId: workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: firstCardId,
+                rating: .good,
+                reviewedAtClient: "2026-03-08T10:00:00.000Z"
+            )
+        )
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.store.effectiveReviewQueue.first?.cardId, secondCardId)
+        XCTAssertEqual(context.store.reviewOverlayBanner?.message, "This review updated on another device.")
+        XCTAssertGreaterThan(context.store.localReadVersion, initialReadVersion)
+        XCTAssertFalse(context.store.isReviewHeadLoading)
+    }
+
     func testFinishCloudLinkAndParallelSyncCloudIfLinkedShareSingleInitialSyncTask() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,

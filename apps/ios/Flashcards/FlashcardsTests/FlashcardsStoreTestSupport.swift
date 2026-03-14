@@ -72,6 +72,7 @@ enum FlashcardsStoreTestSupport {
 
     enum MockCloudSyncRunOutcome {
         case succeed
+        case succeedWithResult(CloudSyncResult)
         case fail(message: String)
     }
 
@@ -155,7 +156,7 @@ enum FlashcardsStoreTestSupport {
             throw LocalStoreError.validation("Unexpected deleteAccount call in FlashcardsStoreTests")
         }
 
-        func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
+        func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
             self.runLinkedSyncCallCount += 1
             self.runLinkedSyncSessions.append(linkedSession)
 
@@ -167,13 +168,15 @@ enum FlashcardsStoreTestSupport {
             }
 
             guard self.runLinkedSyncOutcomes.isEmpty == false else {
-                return
+                return .noChanges
             }
 
             let nextOutcome = self.runLinkedSyncOutcomes.removeFirst()
             switch nextOutcome {
             case .succeed:
-                return
+                return .noChanges
+            case .succeedWithResult(let result):
+                return result
             case .fail(let message):
                 throw LocalStoreError.validation(message)
             }
@@ -479,18 +482,19 @@ enum FlashcardsStoreTestSupport {
     }
 
     private static func makeDelayedReviewHeadLoader(delayNanoseconds: UInt64) -> ReviewHeadLoader {
-        return { reviewFilter, decks, cards, now, seedQueueSize in
+        return { databaseURL, workspaceId, resolvedReviewFilter, reviewQueryDefinition, now, seedQueueSize in
             if delayNanoseconds > 0 {
                 try await Task.sleep(nanoseconds: delayNanoseconds)
             }
 
             try Task.checkCancellation()
-            return makeReviewHeadLoadState(
-                reviewFilter: reviewFilter,
-                decks: decks,
-                cards: cards,
+            let database = try LocalDatabase(databaseURL: databaseURL)
+            return try database.loadReviewHead(
+                workspaceId: workspaceId,
+                resolvedReviewFilter: resolvedReviewFilter,
+                reviewQueryDefinition: reviewQueryDefinition,
                 now: now,
-                seedQueueSize: seedQueueSize
+                limit: seedQueueSize
             )
         }
     }
@@ -512,16 +516,16 @@ enum FlashcardsStoreTestSupport {
     }
 
     private static func makeDelayedReviewQueueChunkLoader(delayNanoseconds: UInt64) -> ReviewQueueChunkLoader {
-        return { reviewFilter, decks, cards, excludedCardIds, now, chunkSize in
+        return { databaseURL, workspaceId, reviewQueryDefinition, excludedCardIds, now, chunkSize in
             if delayNanoseconds > 0 {
                 try await Task.sleep(nanoseconds: delayNanoseconds)
             }
 
             try Task.checkCancellation()
-            return makeReviewQueueChunkLoadState(
-                reviewFilter: reviewFilter,
-                decks: decks,
-                cards: cards,
+            let database = try LocalDatabase(databaseURL: databaseURL)
+            return try database.loadReviewQueueChunk(
+                workspaceId: workspaceId,
+                reviewQueryDefinition: reviewQueryDefinition,
                 now: now,
                 limit: chunkSize,
                 excludedCardIds: excludedCardIds

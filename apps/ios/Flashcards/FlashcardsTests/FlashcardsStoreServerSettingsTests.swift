@@ -50,7 +50,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
         _ = try context.database.saveCard(
             workspaceId: workspaceId,
-            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
             cardId: nil
         )
         try context.database.setLastAppliedChangeId(workspaceId: workspaceId, changeId: 42)
@@ -96,7 +96,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         )
         _ = try context.database.saveCard(
             workspaceId: workspaceId,
-            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
             cardId: nil
         )
         try context.store.reload()
@@ -121,7 +121,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
         _ = try context.database.saveCard(
             workspaceId: workspaceId,
-            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
             cardId: nil
         )
         try context.store.reload()
@@ -162,7 +162,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
         _ = try context.database.saveCard(
             workspaceId: workspaceId,
-            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
             cardId: nil
         )
         try context.store.reload()

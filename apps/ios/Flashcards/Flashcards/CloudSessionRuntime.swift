@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 struct CloudSessionRuntimeState {
     var activeCloudSession: CloudLinkedSession?
-    var activeCloudSyncTask: Task<Void, Error>?
+    var activeCloudSyncTask: Task<CloudSyncResult, Error>?
     var pendingCloudResync: Bool
     var activeCloudLinkTask: CloudLinkTransitionState?
     var activeAIChatSessionPreparation: AIChatSessionPreparationState?
@@ -262,15 +262,15 @@ final class CloudSessionRuntime {
         self.state.activeCloudSession = linkedSession
     }
 
-    func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
+    func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
 
         if let activeCloudSyncTask = self.state.activeCloudSyncTask {
             self.state.pendingCloudResync = true
-            try await activeCloudSyncTask.value
-            return
+            return try await activeCloudSyncTask.value
         }
 
+        var accumulatedResult = CloudSyncResult.noChanges
         while true {
             self.state.pendingCloudResync = false
             let syncTask = Task { @MainActor in
@@ -279,7 +279,8 @@ final class CloudSessionRuntime {
             self.state.activeCloudSyncTask = syncTask
 
             do {
-                try await syncTask.value
+                let syncResult = try await syncTask.value
+                accumulatedResult = accumulatedResult.merging(syncResult)
                 self.state.activeCloudSyncTask = nil
             } catch {
                 self.state.activeCloudSyncTask = nil
@@ -290,6 +291,8 @@ final class CloudSessionRuntime {
                 break
             }
         }
+
+        return accumulatedResult
     }
 
     func isCloudAuthorizationError(_ error: Error) -> Bool {

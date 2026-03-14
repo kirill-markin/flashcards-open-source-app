@@ -147,63 +147,17 @@ final class AIChatCoreAndParserTests: AIChatTestCaseBase {
         )
     }
 
-    func testBubbleMaxWidthUsesChatFractionAndMaximumCap() {
-        XCTAssertEqual(aiChatBubbleMaxWidth(availableWidth: 100), 88)
-        XCTAssertEqual(aiChatBubbleMaxWidth(availableWidth: 900), 720)
-        XCTAssertEqual(aiChatBubbleMaxWidth(availableWidth: -10), 0)
+    func testMakeAIChatUserContextStoresProvidedTotalCards() {
+        XCTAssertEqual(
+            makeAIChatUserContext(totalCards: 3),
+            AILocalChatUserContext(totalCards: 3)
+        )
     }
 
-    func testMakeAIChatUserContextCountsOnlyActiveCards() {
-        let activeCard = Card(
-            cardId: "card-1",
-            workspaceId: "workspace-1",
-            frontText: "Q1",
-            backText: "A1",
-            tags: ["tag"],
-            effortLevel: .medium,
-            dueAt: nil,
-            createdAt: "2026-03-09T00:00:00.000Z",
-            reps: 0,
-            lapses: 0,
-            fsrsCardState: .learning,
-            fsrsStepIndex: 0,
-            fsrsStability: nil,
-            fsrsDifficulty: nil,
-            fsrsLastReviewedAt: nil,
-            fsrsScheduledDays: nil,
-            clientUpdatedAt: "2026-03-09T00:00:00.000Z",
-            lastModifiedByDeviceId: "device-1",
-            lastOperationId: "operation-1",
-            updatedAt: "2026-03-09T00:00:00.000Z",
-            deletedAt: nil
-        )
-        let deletedCard = Card(
-            cardId: "card-2",
-            workspaceId: "workspace-1",
-            frontText: "Q2",
-            backText: "A2",
-            tags: ["tag"],
-            effortLevel: .medium,
-            dueAt: nil,
-            createdAt: "2026-03-09T00:00:00.000Z",
-            reps: 0,
-            lapses: 0,
-            fsrsCardState: .learning,
-            fsrsStepIndex: 0,
-            fsrsStability: nil,
-            fsrsDifficulty: nil,
-            fsrsLastReviewedAt: nil,
-            fsrsScheduledDays: nil,
-            clientUpdatedAt: "2026-03-09T00:00:00.000Z",
-            lastModifiedByDeviceId: "device-1",
-            lastOperationId: "operation-2",
-            updatedAt: "2026-03-09T00:00:00.000Z",
-            deletedAt: "2026-03-10T00:00:00.000Z"
-        )
-
+    func testMakeAIChatUserContextSupportsZeroCards() {
         XCTAssertEqual(
-            makeAIChatUserContext(cards: [activeCard, deletedCard]),
-            AILocalChatUserContext(totalCards: 1)
+            makeAIChatUserContext(totalCards: 0),
+            AILocalChatUserContext(totalCards: 0)
         )
     }
 

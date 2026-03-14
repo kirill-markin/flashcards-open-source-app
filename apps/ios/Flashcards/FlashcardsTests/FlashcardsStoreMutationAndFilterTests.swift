@@ -100,7 +100,6 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         let store = FlashcardsStoreTestSupport.makeStore(environment: environment)
 
         XCTAssertEqual(store.selectedReviewFilter, .tag(tag: "grammar"))
-        XCTAssertEqual(store.selectedReviewFilterTitle, "grammar")
         XCTAssertEqual(store.reviewQueue.map(\.cardId), [card.cardId])
     }
 

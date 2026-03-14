@@ -309,6 +309,27 @@ struct ReviewQueueRuntime {
         )
     }
 
+    mutating func applyBackgroundReviewRefresh(
+        publishedState: ReviewQueuePublishedState,
+        reviewHeadState: ReviewHeadLoadState,
+        reviewCounts: ReviewCounts,
+        shouldReplaceSeedQueue: Bool
+    ) -> ReviewQueuePublishedState {
+        self.state.loadedReviewCardIds = Set(reviewHeadState.seedReviewQueue.map(\.cardId))
+        self.state.hasMoreReviewQueueCards = reviewHeadState.hasMoreCards
+
+        return ReviewQueuePublishedState(
+            selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
+            reviewQueue: shouldReplaceSeedQueue ? reviewHeadState.seedReviewQueue : publishedState.reviewQueue,
+            reviewCounts: reviewCounts,
+            isReviewHeadLoading: false,
+            isReviewCountsLoading: false,
+            isReviewQueueChunkLoading: false,
+            pendingReviewCardIds: publishedState.pendingReviewCardIds,
+            reviewSubmissionFailure: publishedState.reviewSubmissionFailure
+        )
+    }
+
     mutating func makeReviewQueueChunkLoadRequestIfNeeded(
         publishedState: ReviewQueuePublishedState,
         databaseURL: URL,
