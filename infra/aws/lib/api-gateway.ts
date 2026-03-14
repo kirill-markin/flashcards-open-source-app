@@ -11,7 +11,7 @@ export interface ApiGatewayProps {
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
-  appDbSecret: cdk.aws_secretsmanager.Secret;
+  backendDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   apiCertificateArn: string | undefined;
   openAiApiKeySecretArn: string | undefined;
@@ -33,7 +33,7 @@ interface BackendFunctionProps {
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
-  appDbSecret: cdk.aws_secretsmanager.Secret;
+  backendDbSecret: cdk.aws_secretsmanager.Secret;
   backendCsrfSecret: cdk.aws_secretsmanager.Secret;
   allowedOrigins: string[];
   userPoolId: string;
@@ -91,7 +91,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
-      DB_SECRET_ARN: props.appDbSecret.secretArn,
+      DB_SECRET_ARN: props.backendDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
       AUTH_MODE: "cognito",
@@ -105,7 +105,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     },
   });
 
-  props.appDbSecret.grantRead(fn);
+  props.backendDbSecret.grantRead(fn);
   props.backendCsrfSecret.grantRead(fn);
   fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
     actions: ["cognito-idp:AdminDeleteUser"],
@@ -157,7 +157,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
-    appDbSecret: props.appDbSecret,
+    backendDbSecret: props.backendDbSecret,
     backendCsrfSecret,
     allowedOrigins,
     userPoolId: props.userPoolId,
@@ -173,7 +173,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
-    appDbSecret: props.appDbSecret,
+    backendDbSecret: props.backendDbSecret,
     backendCsrfSecret,
     allowedOrigins,
     userPoolId: props.userPoolId,

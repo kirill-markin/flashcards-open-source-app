@@ -11,7 +11,8 @@ export interface MigrationRunnerProps {
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
-  appDbSecret: cdk.aws_secretsmanager.Secret;
+  backendDbSecret: cdk.aws_secretsmanager.Secret;
+  authDbSecret: cdk.aws_secretsmanager.Secret;
 }
 
 const dbAssetPaths = {
@@ -49,14 +50,16 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
       DB_OWNER_SECRET_ARN: props.dbOwnerSecret.secretArn,
-      DB_APP_SECRET_ARN: props.appDbSecret.secretArn,
+      DB_BACKEND_SECRET_ARN: props.backendDbSecret.secretArn,
+      DB_AUTH_SECRET_ARN: props.authDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
     },
   });
 
   props.dbOwnerSecret.grantRead(migrationFn);
-  props.appDbSecret.grantRead(migrationFn);
+  props.backendDbSecret.grantRead(migrationFn);
+  props.authDbSecret.grantRead(migrationFn);
 
   return migrationFn;
 }

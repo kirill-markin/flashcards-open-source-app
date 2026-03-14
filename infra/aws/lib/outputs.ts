@@ -11,7 +11,8 @@ export interface OutputsProps {
   baseDomain: string;
   db: rds.DatabaseInstance;
   dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
-  appDbSecret: cdk.aws_secretsmanager.Secret;
+  backendDbSecret: cdk.aws_secretsmanager.Secret;
+  authDbSecret: cdk.aws_secretsmanager.Secret;
   alertTopic: sns.Topic;
   restApi: apigw.RestApi;
   authRestApi: apigw.RestApi;
@@ -68,9 +69,14 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     description: "Secrets Manager ARN for DB owner credentials",
   });
 
-  new cdk.CfnOutput(scope, "AppDbSecretArn", {
-    value: props.appDbSecret.secretArn,
-    description: "Secrets Manager ARN for app role credentials",
+  new cdk.CfnOutput(scope, "BackendDbSecretArn", {
+    value: props.backendDbSecret.secretArn,
+    description: "Secrets Manager ARN for backend database role credentials",
+  });
+
+  new cdk.CfnOutput(scope, "AuthDbSecretArn", {
+    value: props.authDbSecret.secretArn,
+    description: "Secrets Manager ARN for auth database role credentials",
   });
 
   new cdk.CfnOutput(scope, "BackendFunctionName", {

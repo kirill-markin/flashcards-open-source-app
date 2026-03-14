@@ -11,7 +11,7 @@ export interface AuthGatewayProps {
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
-  appDbSecret: cdk.aws_secretsmanager.Secret;
+  authDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   authCertificateArn: string | undefined;
   userPoolId: string;
@@ -60,7 +60,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
-      DB_SECRET_ARN: props.appDbSecret.secretArn,
+      DB_SECRET_ARN: props.authDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
       COGNITO_USER_POOL_ID: props.userPoolId,
@@ -74,7 +74,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
   });
 
   sessionEncryptionKey.grantRead(authFn);
-  props.appDbSecret.grantRead(authFn);
+  props.authDbSecret.grantRead(authFn);
   authFn.addEnvironment(
     "SESSION_ENCRYPTION_KEY",
     sessionEncryptionKey.secretValue.unsafeUnwrap(),

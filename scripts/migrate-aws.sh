@@ -53,10 +53,16 @@ if not isinstance(payload, dict):
 
 applied_migrations = payload.get("appliedMigrations", [])
 applied_views = payload.get("appliedViews", [])
-app_role_configured = payload.get("appRoleConfigured")
+configured_runtime_roles = payload.get("configuredRuntimeRoles", [])
 
 print("Migrations complete.")
 print(f"Applied migrations: {', '.join(applied_migrations) if applied_migrations else 'none'}")
 print(f"Applied views: {', '.join(applied_views) if applied_views else 'none'}")
-print(f"App role configured: {app_role_configured}")
+if not isinstance(configured_runtime_roles, list):
+    raise SystemExit(f"ERROR: Unexpected configuredRuntimeRoles payload: {configured_runtime_roles!r}")
+
+for item in configured_runtime_roles:
+    role_name = item.get("roleName")
+    configured = item.get("configured")
+    print(f"Configured role {role_name}: {configured}")
 PY

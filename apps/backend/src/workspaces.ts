@@ -295,7 +295,7 @@ export async function setSelectedWorkspaceForApiKeyConnection(
   connectionId: string,
   selectedWorkspaceId: string | null,
 ): Promise<void> {
-  await transaction(async (executor) => {
+  await transactionWithUserScope({ userId }, async (executor) => {
     await setSelectedWorkspaceForApiKeyConnectionInExecutor(executor, userId, connectionId, selectedWorkspaceId);
   });
 }
