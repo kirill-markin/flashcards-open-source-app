@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
-  query,
+  queryWithUserScope,
   transactionWithUserScope,
   type DatabaseExecutor,
 } from "../db.js";
@@ -207,7 +207,8 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
 }
 
 export async function listAgentApiKeyConnectionsForUser(userId: string): Promise<ReadonlyArray<AgentApiKeyConnection>> {
-  const result = await query<AgentApiKeyRow>(
+  const result = await queryWithUserScope<AgentApiKeyRow>(
+    { userId },
     [
       "SELECT connection_id, user_id, label, key_id, selected_workspace_id, created_at, last_used_at, revoked_at",
       "FROM auth.agent_api_keys",

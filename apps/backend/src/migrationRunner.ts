@@ -6,7 +6,12 @@ import { getDatabaseCredentialsSecret } from "./secrets";
 interface MigrationRunResult {
   appliedMigrations: ReadonlyArray<string>;
   appliedViews: ReadonlyArray<string>;
-  appRoleConfigured: boolean;
+  configuredRuntimeRoles: ReadonlyArray<RuntimeRoleConfigurationResult>;
+}
+
+interface RuntimeRoleConfigurationResult {
+  roleName: string;
+  configured: boolean;
 }
 
 function getRequiredEnv(name: string): string {
@@ -102,16 +107,20 @@ async function applyViews(client: pg.Client, directoryPath: string): Promise<Rea
   return appliedViews;
 }
 
-async function configureAppRole(client: pg.Client, appPassword: string): Promise<boolean> {
+export async function configureRuntimeRole(
+  client: Pick<pg.Client, "query">,
+  roleName: string,
+  rolePassword: string,
+): Promise<boolean> {
   const roleExists = await client.query<{ exists: number }>(
-    "SELECT 1 AS exists FROM pg_roles WHERE rolname = 'app'",
-    [],
+    "SELECT 1 AS exists FROM pg_roles WHERE rolname = $1",
+    [roleName],
   );
   if (roleExists.rowCount === 0) {
     return false;
   }
 
-  await client.query(`ALTER ROLE app WITH PASSWORD ${getSqlLiteral(appPassword)}`);
+  await client.query(`ALTER ROLE ${pg.escapeIdentifier(roleName)} WITH PASSWORD ${getSqlLiteral(rolePassword)}`);
   return true;
 }
 
@@ -125,12 +134,14 @@ function getViewsDirectoryPath(): string {
 
 export async function runMigrations(): Promise<MigrationRunResult> {
   const ownerSecretArn = getRequiredEnv("DB_OWNER_SECRET_ARN");
-  const appSecretArn = getRequiredEnv("DB_APP_SECRET_ARN");
+  const backendSecretArn = getRequiredEnv("DB_BACKEND_SECRET_ARN");
+  const authSecretArn = getRequiredEnv("DB_AUTH_SECRET_ARN");
   const host = getRequiredEnv("DB_HOST");
   const dbName = getRequiredEnv("DB_NAME");
 
   const ownerCredentials = await getDatabaseCredentialsSecret(ownerSecretArn);
-  const appCredentials = await getDatabaseCredentialsSecret(appSecretArn);
+  const backendCredentials = await getDatabaseCredentialsSecret(backendSecretArn);
+  const authCredentials = await getDatabaseCredentialsSecret(authSecretArn);
   const connectionString = `postgresql://${ownerCredentials.username}:${encodeURIComponent(ownerCredentials.password)}@${host}:5432/${dbName}`;
 
   const client = new pg.Client({
@@ -143,12 +154,21 @@ export async function runMigrations(): Promise<MigrationRunResult> {
     await ensureSchemaMigrationsTable(client);
     const appliedMigrations = await applyPendingMigrations(client, getMigrationsDirectoryPath());
     const appliedViews = await applyViews(client, getViewsDirectoryPath());
-    const appRoleConfigured = await configureAppRole(client, appCredentials.password);
+    const configuredRuntimeRoles = [
+      {
+        roleName: "backend_app",
+        configured: await configureRuntimeRole(client, "backend_app", backendCredentials.password),
+      },
+      {
+        roleName: "auth_app",
+        configured: await configureRuntimeRole(client, "auth_app", authCredentials.password),
+      },
+    ] satisfies ReadonlyArray<RuntimeRoleConfigurationResult>;
 
     return {
       appliedMigrations,
       appliedViews,
-      appRoleConfigured,
+      configuredRuntimeRoles,
     };
   } finally {
     await client.end();

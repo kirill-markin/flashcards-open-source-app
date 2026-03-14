@@ -45,10 +45,18 @@ for f in "$ROOT_DIR"/db/views/*.sql; do
   run_psql -v ON_ERROR_STOP=1 -f "$f"
 done
 
-if [[ -n "${APP_DB_PASSWORD:-}" ]]; then
-  run_psql -v "app_pass=$APP_DB_PASSWORD" <<'SQL'
-SELECT format('ALTER ROLE app WITH PASSWORD %L', :'app_pass')
-WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app')
+if [[ -n "${BACKEND_DB_PASSWORD:-}" ]]; then
+  run_psql -v "role_name=backend_app" -v "role_pass=$BACKEND_DB_PASSWORD" <<'SQL'
+SELECT format('ALTER ROLE %I WITH PASSWORD %L', :'role_name', :'role_pass')
+WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role_name')
+\gexec
+SQL
+fi
+
+if [[ -n "${AUTH_DB_PASSWORD:-}" ]]; then
+  run_psql -v "role_name=auth_app" -v "role_pass=$AUTH_DB_PASSWORD" <<'SQL'
+SELECT format('ALTER ROLE %I WITH PASSWORD %L', :'role_name', :'role_pass')
+WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role_name')
 \gexec
 SQL
 fi

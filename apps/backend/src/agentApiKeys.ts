@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { query } from "./db";
+import { query, queryWithUserScope } from "./db";
 import { HttpError } from "./errors";
 import {
   decodeOpaqueCursor,
@@ -22,6 +22,15 @@ type AgentApiKeyRow = Readonly<{
   key_hash: string;
   selected_workspace_id: string | null;
   created_at: Date | string;
+  last_used_at: Date | string | null;
+  revoked_at: Date | string | null;
+}>;
+
+type AuthenticatedAgentApiKeyRow = Readonly<{
+  connection_id: string;
+  user_id: string;
+  key_hash: string;
+  selected_workspace_id: string | null;
   last_used_at: Date | string | null;
   revoked_at: Date | string | null;
 }>;
@@ -142,11 +151,10 @@ export function parseAgentApiKey(value: string): Readonly<{
  */
 export async function authenticateAgentApiKey(apiKey: string): Promise<AuthenticatedAgentApiKey> {
   const parsedKey = parseAgentApiKey(apiKey);
-  const result = await query<AgentApiKeyRow>(
+  const result = await query<AuthenticatedAgentApiKeyRow>(
     [
-      "SELECT connection_id, user_id, label, key_id, key_hash, selected_workspace_id, created_at, last_used_at, revoked_at",
-      "FROM auth.agent_api_keys",
-      "WHERE key_id = $1",
+      "SELECT connection_id, user_id, key_hash, selected_workspace_id, last_used_at, revoked_at",
+      "FROM auth.authenticate_agent_api_key($1)",
     ].join(" "),
     [parsedKey.keyId],
   );
@@ -168,7 +176,8 @@ export async function authenticateAgentApiKey(apiKey: string): Promise<Authentic
   const now = Date.now();
   const lastUsedAtMs = row.last_used_at === null ? null : new Date(row.last_used_at).getTime();
   if (lastUsedAtMs === null || now - lastUsedAtMs >= LAST_USED_UPDATE_INTERVAL_MS) {
-    await query(
+    await queryWithUserScope(
+      { userId: row.user_id },
       [
         "UPDATE auth.agent_api_keys",
         "SET last_used_at = now()",
@@ -203,7 +212,8 @@ export async function listAgentApiKeyConnectionsPageForUser(
     : [userId, new Date(decodedCursor.createdAt), decodedCursor.connectionId, input.limit + 1];
   const limitParamIndex = decodedCursor === null ? 2 : 4;
 
-  const result = await query<AgentApiKeyRow>(
+  const result = await queryWithUserScope<AgentApiKeyRow>(
+    { userId },
     [
       "SELECT connection_id, user_id, label, key_id, key_hash, selected_workspace_id, created_at, last_used_at, revoked_at",
       "FROM auth.agent_api_keys",
@@ -233,7 +243,8 @@ export async function listAgentApiKeyConnectionsPageForUser(
  * backing API key stops authenticating on the next request.
  */
 export async function revokeAgentApiKeyConnectionForUser(userId: string, connectionId: string): Promise<AgentApiKeyConnection> {
-  const result = await query<AgentApiKeyRow>(
+  const result = await queryWithUserScope<AgentApiKeyRow>(
+    { userId },
     [
       "UPDATE auth.agent_api_keys",
       "SET revoked_at = COALESCE(revoked_at, now())",

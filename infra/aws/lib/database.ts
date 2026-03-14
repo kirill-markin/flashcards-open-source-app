@@ -11,7 +11,8 @@ export interface DatabaseProps {
 export interface DatabaseResult {
   db: rds.DatabaseInstance;
   dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
-  appDbSecret: cdk.aws_secretsmanager.Secret;
+  backendDbSecret: cdk.aws_secretsmanager.Secret;
+  authDbSecret: cdk.aws_secretsmanager.Secret;
 }
 
 export function database(scope: Construct, props: DatabaseProps): DatabaseResult {
@@ -55,15 +56,25 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
     throw new Error("Database owner secret must be defined for generated credentials");
   }
 
-  const appDbSecret = new cdk.aws_secretsmanager.Secret(scope, "AppDbSecret", {
-    secretName: "flashcards-open-source-app/app-db-password",
+  const backendDbSecret = new cdk.aws_secretsmanager.Secret(scope, "BackendDbSecret", {
+    secretName: "flashcards-open-source-app/backend-db-password",
     generateSecretString: {
-      secretStringTemplate: JSON.stringify({ username: "app" }),
+      secretStringTemplate: JSON.stringify({ username: "backend_app" }),
       generateStringKey: "password",
       excludePunctuation: true,
       passwordLength: 32,
     },
   });
 
-  return { db, dbOwnerSecret, appDbSecret };
+  const authDbSecret = new cdk.aws_secretsmanager.Secret(scope, "AuthDbSecret", {
+    secretName: "flashcards-open-source-app/auth-db-password",
+    generateSecretString: {
+      secretStringTemplate: JSON.stringify({ username: "auth_app" }),
+      generateStringKey: "password",
+      excludePunctuation: true,
+      passwordLength: 32,
+    },
+  });
+
+  return { db, dbOwnerSecret, backendDbSecret, authDbSecret };
 }
