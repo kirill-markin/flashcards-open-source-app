@@ -14,6 +14,7 @@ struct AIChatView: View {
     @State private var isPhotoPickerPresented: Bool
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isNearBottom: Bool
+    @State private var isUserScrolling: Bool
     @State private var scrollPosition: ScrollPosition
     @State private var autoScrollTask: Task<Void, Never>?
     @State private var shouldRestoreComposerFocusAfterDictation: Bool
@@ -32,7 +33,8 @@ struct AIChatView: View {
         self.isPhotoPickerPresented = false
         self.selectedPhotoItem = nil
         self.isNearBottom = true
-        self.scrollPosition = ScrollPosition(idType: String.self, edge: .bottom)
+        self.isUserScrolling = false
+        self.scrollPosition = ScrollPosition(idType: String.self)
         self.autoScrollTask = nil
         self.shouldRestoreComposerFocusAfterDictation = false
         self.composerSelection = nil
@@ -296,95 +298,87 @@ struct AIChatView: View {
     }
 
     private var chatContent: some View {
-        GeometryReader { geometry in
-            let availableWidth = max(
-                geometry.size.width - (aiChatMessageListHorizontalPadding * 2),
-                0
-            )
-
-            VStack(spacing: 0) {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        if self.chatStore.messages.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Try asking")
-                                    .font(.headline)
-                                Text("Summarize weak areas from my due cards.")
-                                Text("Find cards tagged with grammar and suggest cleanup.")
-                                Text("Propose a new deck filter and explain the exact change.")
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(16)
-                            .foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    if self.chatStore.messages.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Try asking")
+                                .font(.headline)
+                            Text("Summarize weak areas from my due cards.")
+                            Text("Find cards tagged with grammar and suggest cleanup.")
+                            Text("Propose a new deck filter and explain the exact change.")
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                        .foregroundStyle(.secondary)
+                    }
 
-                        ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
-                            self.messageRow(
+                    ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
+                        self.messageRow(
+                            message: message,
+                            repairStatus: self.repairStatus(for: message),
+                            showsTypingIndicator: aiChatShouldShowTypingIndicator(
                                 message: message,
-                                repairStatus: self.repairStatus(for: message),
-                                availableWidth: availableWidth,
-                                showsTypingIndicator: aiChatShouldShowTypingIndicator(
-                                    message: message,
-                                    isLastMessage: index == self.chatStore.messages.indices.last,
-                                    isStreaming: self.chatStore.isStreaming
-                                )
+                                isLastMessage: index == self.chatStore.messages.indices.last,
+                                isStreaming: self.chatStore.isStreaming
                             )
-                            .id(message.id)
-                        }
-                    }
-                    .scrollTargetLayout()
-                    .padding(.horizontal, aiChatMessageListHorizontalPadding)
-                    .padding(.vertical, 12)
-                }
-                .defaultScrollAnchor(.bottom, for: .initialOffset)
-                .scrollPosition(self.$scrollPosition, anchor: .bottom)
-                .background(Color(.systemGroupedBackground))
-                .contentShape(Rectangle())
-                .scrollDismissesKeyboard(.interactively)
-                .onTapGesture {
-                    self.isComposerFocused = false
-                }
-                .onScrollGeometryChange(
-                    for: Bool.self,
-                    of: { geometry in
-                        aiChatIsNearBottom(
-                            scrollGeometry: geometry,
-                            bottomThreshold: aiChatAutoScrollBottomThreshold
                         )
-                    },
-                    action: { _, nextIsNearBottom in
-                        guard self.isNearBottom != nextIsNearBottom else {
-                            return
-                        }
-                        self.isNearBottom = nextIsNearBottom
+                        .id(message.id)
                     }
+                }
+                .scrollTargetLayout()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 12)
+            }
+            .defaultScrollAnchor(.bottom, for: .initialOffset)
+            .defaultScrollAnchor(.bottom, for: .alignment)
+            .scrollPosition(self.$scrollPosition, anchor: .bottom)
+            .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
+            .contentMargins(.horizontal, 0, for: .scrollIndicators)
+            .background(Color(.systemGroupedBackground))
+            .contentShape(Rectangle())
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                self.isComposerFocused = false
+            }
+            .onScrollPhaseChange { _, nextPhase, context in
+                let nextScrollState = aiChatScrollState(
+                    scrollPhase: nextPhase,
+                    scrollGeometry: context.geometry,
+                    bottomThreshold: aiChatAutoScrollBottomThreshold
                 )
-                .onAppear {
-                    if self.chatStore.isStreaming {
-                        self.startAutoScrollTask()
-                    }
+                self.isUserScrolling = nextScrollState.isUserScrolling
+                self.isNearBottom = nextScrollState.isNearBottom
+                if nextPhase == .idle && nextScrollState.isNearBottom && self.chatStore.isStreaming {
+                    self.scrollToBottomIfNeeded(isAnimated: false)
                 }
-                .onDisappear {
-                    self.stopAutoScrollTask()
+            }
+            .onAppear {
+                if self.chatStore.isStreaming {
+                    self.startAutoScrollTask()
                 }
-                .onChange(of: self.chatStore.messages) { _, messages in
-                    guard messages.isEmpty == false else {
-                        self.isNearBottom = true
-                        self.scrollToBottom(isAnimated: false)
-                        return
-                    }
+            }
+            .onDisappear {
+                self.stopAutoScrollTask()
+            }
+            .onChange(of: self.chatStore.messages) { _, messages in
+                guard messages.isEmpty == false else {
+                    self.isNearBottom = true
+                    self.scrollToBottom(isAnimated: false)
+                    return
+                }
 
-                    self.scrollToBottomIfNeeded(isAnimated: self.chatStore.isStreaming == false)
+                self.scrollToBottomIfNeeded(isAnimated: self.chatStore.isStreaming == false)
+            }
+            .onChange(of: self.chatStore.isStreaming) { _, isStreaming in
+                if isStreaming {
+                    self.startAutoScrollTask()
+                    return
                 }
-                .onChange(of: self.chatStore.isStreaming) { _, isStreaming in
-                    if isStreaming {
-                        self.startAutoScrollTask()
-                        return
-                    }
 
-                    self.stopAutoScrollTask()
-                    self.scrollToBottomIfNeeded(isAnimated: true)
-                }
+                self.stopAutoScrollTask()
+                self.scrollToBottomIfNeeded(isAnimated: true)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -398,7 +392,7 @@ struct AIChatView: View {
 
             ReadableContentLayout(
                 maxWidth: flashcardsReadableContentMaxWidth,
-                horizontalPadding: 16
+                horizontalPadding: 12
             ) {
                 VStack(alignment: .leading, spacing: 12) {
                     if self.chatStore.pendingAttachments.isEmpty == false {
@@ -675,7 +669,6 @@ struct AIChatView: View {
     private func messageRow(
         message: AIChatMessage,
         repairStatus: AIChatRepairAttemptStatus?,
-        availableWidth: CGFloat,
         showsTypingIndicator: Bool
     ) -> some View {
         HStack(alignment: .bottom, spacing: 0) {
@@ -683,7 +676,6 @@ struct AIChatView: View {
                 self.messageBubble(
                     message: message,
                     repairStatus: repairStatus,
-                    availableWidth: availableWidth,
                     showsTypingIndicator: showsTypingIndicator
                 )
                 Spacer(minLength: 0)
@@ -692,7 +684,6 @@ struct AIChatView: View {
                 self.messageBubble(
                     message: message,
                     repairStatus: repairStatus,
-                    availableWidth: availableWidth,
                     showsTypingIndicator: showsTypingIndicator
                 )
             }
@@ -703,7 +694,6 @@ struct AIChatView: View {
     private func messageBubble(
         message: AIChatMessage,
         repairStatus: AIChatRepairAttemptStatus?,
-        availableWidth: CGFloat,
         showsTypingIndicator: Bool
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -729,7 +719,7 @@ struct AIChatView: View {
                 AIChatTypingIndicator()
             }
         }
-        .frame(maxWidth: aiChatBubbleMaxWidth(availableWidth: availableWidth), alignment: .leading)
+        .frame(maxWidth: aiChatBubbleMaximumWidth, alignment: .leading)
         .padding(12)
         .background(message.role == .user ? Color.accentColor.opacity(0.12) : Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -955,6 +945,10 @@ struct AIChatView: View {
             return
         }
 
+        guard self.isUserScrolling == false else {
+            return
+        }
+
         guard self.chatStore.messages.isEmpty == false else {
             self.scrollToBottom(isAnimated: isAnimated)
             return
@@ -1015,8 +1009,7 @@ private let aiChatMessageListHorizontalPadding: CGFloat = 16
 private let aiChatAutoScrollIntervalSeconds: Double = 2.0
 private let aiChatAutoScrollBottomThreshold: CGFloat = 24
 private let aiChatAutoScrollAnimationDurationSeconds: Double = 0.25
-private let aiChatBubbleWidthFraction: CGFloat = 0.88
-private let aiChatBubbleWidthMaximum: CGFloat = 720
+private let aiChatBubbleMaximumWidth: CGFloat = 720
 private let aiChatTypingIndicatorDotCount: Int = 3
 private let aiChatTypingIndicatorAnimationStepSeconds: Double = 0.3
 
@@ -1028,12 +1021,21 @@ struct AIChatToolSection: Hashable, Sendable, Identifiable {
     let copyAccessibilityLabel: String
 }
 
-private func aiChatIsNearBottom(
+private struct AIChatScrollState: Equatable {
+    let isNearBottom: Bool
+    let isUserScrolling: Bool
+}
+
+private func aiChatScrollState(
+    scrollPhase: ScrollPhase,
     scrollGeometry: ScrollGeometry,
     bottomThreshold: CGFloat
-) -> Bool {
+) -> AIChatScrollState {
     let distanceToBottom = max(scrollGeometry.contentSize.height - scrollGeometry.visibleRect.maxY, 0)
-    return distanceToBottom <= bottomThreshold
+    return AIChatScrollState(
+        isNearBottom: distanceToBottom <= bottomThreshold,
+        isUserScrolling: scrollPhase.isScrolling
+    )
 }
 
 private struct AIChatDictationStatusLane: View {
@@ -1117,11 +1119,6 @@ private struct AIChatTypingIndicator: View {
             .accessibilityLabel("Assistant is typing")
         }
     }
-}
-
-func aiChatBubbleMaxWidth(availableWidth: CGFloat) -> CGFloat {
-    let clampedWidth = max(availableWidth, 0)
-    return min(clampedWidth * aiChatBubbleWidthFraction, aiChatBubbleWidthMaximum)
 }
 
 func aiChatShouldShowTypingIndicator(
