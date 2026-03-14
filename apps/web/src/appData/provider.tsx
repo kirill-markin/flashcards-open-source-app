@@ -111,7 +111,7 @@ export function AppDataProvider(props: Props): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [localReadVersion, syncEngine]);
+  }, [localReadVersion]);
 
   const selectReviewFilter = useCallback(function selectReviewFilter(reviewFilter: ReviewFilter): void {
     if (isReviewFilterEqual(selectedReviewFilterState, reviewFilter)) {

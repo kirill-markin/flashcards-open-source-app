@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   type Dispatch,
   type SetStateAction,
 } from "react";
@@ -263,9 +264,17 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     }
   }, [activateWorkspace, availableWorkspaces, session, setErrorMessage, setIsChoosingWorkspace]);
 
+  const initializeRef = useRef(initialize);
+
   useEffect(() => {
-    void initialize();
+    initializeRef.current = initialize;
   }, [initialize]);
+
+  useEffect(() => {
+    // Bootstrap only on mount. Re-running initialize after session/workspace
+    // state updates resets the whole app back to the top-level loading screen.
+    void initializeRef.current();
+  }, []);
 
   /**
    * Revalidates the browser session when the tab resumes so background sync
