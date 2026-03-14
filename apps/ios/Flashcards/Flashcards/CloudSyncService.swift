@@ -504,14 +504,23 @@ final class CloudSyncService: @unchecked Sendable {
         }
     }
 
-    func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
+    func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSettings = try self.database.loadBootstrapSnapshot().cloudSettings
         let workspaceId = linkedSession.workspaceId
         let syncBasePath = "/workspaces/\(workspaceId)/sync"
+        var syncResult = CloudSyncResult.noChanges
 
         while true {
             let removedReviewEventCount = try self.database.deleteStaleReviewEventOutboxEntries(workspaceId: workspaceId)
             if removedReviewEventCount > 0 {
+                syncResult = syncResult.merging(
+                    CloudSyncResult(
+                        appliedPullChangeCount: 0,
+                        changedEntityTypes: [],
+                        acknowledgedOperationCount: 0,
+                        cleanedUpOperationCount: removedReviewEventCount
+                    )
+                )
                 logCloudPhase(
                     phase: .initialPush,
                     outcome: "self_heal",
@@ -553,6 +562,14 @@ final class CloudSyncService: @unchecked Sendable {
                     operationIds: pushResponse.operations.map { result in
                         result.operationId
                     }
+                )
+                syncResult = syncResult.merging(
+                    CloudSyncResult(
+                        appliedPullChangeCount: 0,
+                        changedEntityTypes: [],
+                        acknowledgedOperationCount: pushResponse.operations.count,
+                        cleanedUpOperationCount: 0
+                    )
                 )
                 logCloudPhase(
                     phase: .initialPush,
@@ -608,6 +625,14 @@ final class CloudSyncService: @unchecked Sendable {
                     change: makeSyncChange(workspaceId: workspaceId, change: change)
                 )
             }
+            syncResult = syncResult.merging(
+                CloudSyncResult(
+                    appliedPullChangeCount: pullEnvelope.changes.count,
+                    changedEntityTypes: Set(pullEnvelope.changes.map(\.entityType)),
+                    acknowledgedOperationCount: 0,
+                    cleanedUpOperationCount: 0
+                )
+            )
 
             afterChangeId = pullEnvelope.nextChangeId
             try self.database.setLastAppliedChangeId(workspaceId: workspaceId, changeId: afterChangeId)
@@ -623,6 +648,8 @@ final class CloudSyncService: @unchecked Sendable {
                 break
             }
         }
+
+        return syncResult
     }
 
     private func appVersion() -> String {

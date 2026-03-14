@@ -53,6 +53,39 @@ extension FlashcardsStore {
         self.refreshReviewState(now: now)
     }
 
+    @discardableResult
+    func refreshBootstrapSnapshotWithoutReset(now: Date) throws -> Bool {
+        let database = try requireLocalDatabase(database: self.database)
+        let bootstrapSnapshot = try database.loadBootstrapSnapshot()
+        let nextHomeSnapshot = try database.loadWorkspaceOverviewSnapshot(
+            workspaceId: bootstrapSnapshot.workspace.workspaceId,
+            workspaceName: bootstrapSnapshot.workspace.name,
+            now: now
+        )
+        let resolvedHomeSnapshot = HomeSnapshot(
+            deckCount: nextHomeSnapshot.deckCount,
+            totalCards: nextHomeSnapshot.totalCards,
+            dueCount: nextHomeSnapshot.dueCount,
+            newCount: nextHomeSnapshot.newCount,
+            reviewedCount: nextHomeSnapshot.reviewedCount
+        )
+
+        let didChange = self.workspace != bootstrapSnapshot.workspace
+            || self.userSettings != bootstrapSnapshot.userSettings
+            || self.schedulerSettings != bootstrapSnapshot.schedulerSettings
+            || self.cloudSettings != bootstrapSnapshot.cloudSettings
+            || self.homeSnapshot != resolvedHomeSnapshot
+
+        self.workspace = bootstrapSnapshot.workspace
+        self.userSettings = bootstrapSnapshot.userSettings
+        self.schedulerSettings = bootstrapSnapshot.schedulerSettings
+        self.cloudSettings = bootstrapSnapshot.cloudSettings
+        self.homeSnapshot = resolvedHomeSnapshot
+        self.globalErrorMessage = ""
+
+        return didChange
+    }
+
     func applyReviewPublishedState(reviewState: ReviewQueuePublishedState) {
         self.selectedReviewFilter = reviewState.selectedReviewFilter
         self.reviewQueue = reviewState.reviewQueue
@@ -146,5 +179,9 @@ extension FlashcardsStore {
                 decoder: self.decoder
             )
         )
+    }
+
+    func dismissReviewOverlayBanner() {
+        self.reviewOverlayBanner = nil
     }
 }

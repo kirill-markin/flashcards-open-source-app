@@ -88,6 +88,16 @@ extension FlashcardsStore {
         self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
     }
 
+    func refreshReviewState(now: Date, mode: ReviewRefreshMode) async throws -> Bool {
+        switch mode {
+        case .blockingReset:
+            self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+            return true
+        case .backgroundReconcile:
+            return try await self.reconcileReviewStateAfterCloudSync(now: now)
+        }
+    }
+
     func startReviewCountsLoad(request: ReviewCountsLoadRequest) {
         self.reviewRuntime.startReviewCountsLoad(request: request)
         let countsTask = Task { @MainActor in
@@ -287,5 +297,93 @@ extension FlashcardsStore {
                 )
             )
         }
+    }
+
+    private func reconcileReviewStateAfterCloudSync(now: Date) async throws -> Bool {
+        guard self.isReviewHeadLoading == false else {
+            return false
+        }
+        guard let database = self.database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            throw LocalStoreError.uninitialized("Workspace is unavailable")
+        }
+
+        let resolvedReviewQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspaceId,
+            reviewFilter: self.selectedReviewFilter
+        )
+        let currentReviewState = self.currentReviewPublishedState()
+        let currentEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: currentReviewState)
+        let currentCardId = currentReviewCard(reviewQueue: currentEffectiveQueue)?.cardId
+        let currentSignature = makeReviewSessionSignature(
+            selectedReviewFilter: currentReviewState.selectedReviewFilter,
+            reviewQueue: currentReviewState.reviewQueue,
+            schedulerSettings: self.schedulerSettings,
+            seedQueueSize: reviewSeedQueueSize
+        )
+        let databaseURL = database.databaseURL
+        let reviewHeadLoader = self.dependencies.reviewHeadLoader
+        let reviewCountsLoader = self.dependencies.reviewCountsLoader
+
+        async let reviewHeadTask = reviewHeadLoader(
+            databaseURL,
+            workspaceId,
+            resolvedReviewQuery.reviewFilter,
+            resolvedReviewQuery.queryDefinition,
+            now,
+            reviewSeedQueueSize
+        )
+        async let reviewCountsTask = reviewCountsLoader(
+            databaseURL,
+            workspaceId,
+            resolvedReviewQuery.queryDefinition,
+            now
+        )
+
+        let reviewHeadState = try await reviewHeadTask
+        let reviewCounts = try await reviewCountsTask
+
+        guard workspaceId == self.workspace?.workspaceId else {
+            return false
+        }
+        guard resolvedReviewQuery.reviewFilter == self.selectedReviewFilter else {
+            return false
+        }
+
+        let nextSignature = makeReviewSessionSignature(
+            selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
+            reviewQueue: reviewHeadState.seedReviewQueue,
+            schedulerSettings: self.schedulerSettings,
+            seedQueueSize: reviewSeedQueueSize
+        )
+        let shouldReplaceSeedQueue = currentSignature != nextSignature
+        let didChangeReviewCounts = currentReviewState.reviewCounts != reviewCounts
+
+        guard shouldReplaceSeedQueue || didChangeReviewCounts else {
+            return false
+        }
+
+        let nextReviewState = self.reviewRuntime.applyBackgroundReviewRefresh(
+            publishedState: currentReviewState,
+            reviewHeadState: reviewHeadState,
+            reviewCounts: reviewCounts,
+            shouldReplaceSeedQueue: shouldReplaceSeedQueue
+        )
+        self.applyReviewPublishedState(reviewState: nextReviewState)
+        self.persistSelectedReviewFilter(reviewFilter: nextReviewState.selectedReviewFilter)
+        self.startReviewQueueChunkLoadIfNeeded(now: now)
+
+        let nextEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: nextReviewState)
+        let nextCardId = currentReviewCard(reviewQueue: nextEffectiveQueue)?.cardId
+        if let currentCardId, currentCardId != nextCardId {
+            self.reviewOverlayBanner = ReviewOverlayBanner(
+                id: UUID().uuidString.lowercased(),
+                message: "This review updated on another device."
+            )
+        }
+
+        return true
     }
 }

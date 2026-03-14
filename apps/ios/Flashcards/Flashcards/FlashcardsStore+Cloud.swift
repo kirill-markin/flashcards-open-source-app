@@ -164,18 +164,25 @@ extension FlashcardsStore {
 
         self.syncStatus = .syncing
         do {
-            _ = try await self.withAuthenticatedCloudSession { session in
+            let syncResult = try await self.withAuthenticatedCloudSession { session in
                 try await self.runLinkedSync(linkedSession: session)
-                return session
+            }
+            let now = Date()
+            _ = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+            if syncResult.reviewDataChanged {
+                _ = try await self.refreshReviewState(
+                    now: now,
+                    mode: .backgroundReconcile
+                )
+                self.localReadVersion += 1
             }
             self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
             self.syncStatus = .idle
             self.globalErrorMessage = ""
-            try self.reload()
         } catch {
             self.syncStatus = self.cloudSettings?.cloudState == .linked
                 ? .failed(message: localizedMessage(error: error))
-                : .idle
+            : .idle
             self.globalErrorMessage = localizedMessage(error: error)
             throw error
         }
@@ -294,7 +301,7 @@ extension FlashcardsStore {
                 workspaceId: linkedSession.workspaceId,
                 deviceId: self.cloudSettings?.deviceId
             )
-            try await self.runLinkedSync(linkedSession: linkedSession)
+            _ = try await self.runLinkedSync(linkedSession: linkedSession)
             self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
             self.syncStatus = .idle
             self.globalErrorMessage = ""
@@ -523,7 +530,7 @@ extension FlashcardsStore {
         }
     }
 
-    func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
+    func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
     }
 

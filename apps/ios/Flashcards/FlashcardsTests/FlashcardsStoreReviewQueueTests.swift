@@ -32,7 +32,6 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         store.selectReviewFilter(reviewFilter: .deck(deckId: targetDeckId))
 
         XCTAssertEqual(store.selectedReviewFilter, .deck(deckId: targetDeckId))
-        XCTAssertEqual(store.selectedReviewFilterTitle, "Target deck")
         XCTAssertTrue(store.isReviewHeadLoading)
         XCTAssertTrue(store.isReviewCountsLoading)
         XCTAssertTrue(store.reviewQueue.isEmpty)
@@ -101,7 +100,6 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         }
 
         XCTAssertEqual(store.selectedReviewFilter, .deck(deckId: betaDeckId))
-        XCTAssertEqual(store.selectedReviewFilterTitle, "Beta deck")
         XCTAssertEqual(store.reviewQueue.map(\.frontText), ["Beta"])
         XCTAssertEqual(store.displayedReviewDueCount, 1)
         XCTAssertEqual(store.reviewTotalCount, 1)

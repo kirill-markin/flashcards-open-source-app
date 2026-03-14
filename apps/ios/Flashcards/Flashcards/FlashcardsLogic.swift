@@ -680,6 +680,17 @@ struct ReviewHeadLoadState: Hashable, Sendable {
     let hasMoreCards: Bool
 }
 
+struct ReviewSessionCardSignature: Hashable, Sendable {
+    let cardId: String
+    let updatedAt: String
+}
+
+struct ReviewSessionSignature: Hashable, Sendable {
+    let selectedReviewFilter: ReviewFilter
+    let seedQueue: [ReviewSessionCardSignature]
+    let schedulerSettingsUpdatedAt: String
+}
+
 struct ReviewQueueChunkLoadState: Hashable, Sendable {
     let reviewQueueChunk: [Card]
     let hasMoreCards: Bool
@@ -835,6 +846,26 @@ func makeReviewHeadLoadState(
         resolvedReviewFilter: resolvedReviewFilter,
         seedReviewQueue: queueChunkLoadState.reviewQueueChunk,
         hasMoreCards: queueChunkLoadState.hasMoreCards
+    )
+}
+
+func makeReviewSessionSignature(
+    selectedReviewFilter: ReviewFilter,
+    reviewQueue: [Card],
+    schedulerSettings: WorkspaceSchedulerSettings?,
+    seedQueueSize: Int
+) -> ReviewSessionSignature {
+    let seedQueue = Array(reviewQueue.prefix(seedQueueSize)).map { card in
+        ReviewSessionCardSignature(
+            cardId: card.cardId,
+            updatedAt: card.updatedAt
+        )
+    }
+
+    return ReviewSessionSignature(
+        selectedReviewFilter: selectedReviewFilter,
+        seedQueue: seedQueue,
+        schedulerSettingsUpdatedAt: schedulerSettings?.updatedAt ?? "no-scheduler-settings"
     )
 }
 

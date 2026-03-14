@@ -78,6 +78,7 @@ final class FlashcardsStore: ObservableObject {
     @Published var settingsPresentationRequest: SettingsNavigationDestination?
     @Published var pendingReviewCardIds: Set<String>
     @Published var reviewSubmissionFailure: ReviewSubmissionFailure?
+    @Published var reviewOverlayBanner: ReviewOverlayBanner?
     @Published var accountDeletionState: AccountDeletionState
     @Published var accountDeletionSuccessMessage: String?
     @Published var localReadVersion: Int
@@ -214,6 +215,7 @@ final class FlashcardsStore: ObservableObject {
         self.settingsPresentationRequest = nil
         self.pendingReviewCardIds = initialReviewPublishedState.pendingReviewCardIds
         self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
+        self.reviewOverlayBanner = nil
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
         self.localReadVersion = 0

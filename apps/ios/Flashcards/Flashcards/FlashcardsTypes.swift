@@ -394,6 +394,55 @@ enum SyncStatus: Hashable {
     case failed(message: String)
 }
 
+struct CloudSyncResult: Hashable, Sendable {
+    let appliedPullChangeCount: Int
+    let changedEntityTypes: Set<SyncEntityType>
+    let acknowledgedOperationCount: Int
+    let cleanedUpOperationCount: Int
+
+    static let noChanges = CloudSyncResult(
+        appliedPullChangeCount: 0,
+        changedEntityTypes: [],
+        acknowledgedOperationCount: 0,
+        cleanedUpOperationCount: 0
+    )
+
+    var appliedPullChanges: Bool {
+        self.appliedPullChangeCount > 0
+    }
+
+    var reviewDataChanged: Bool {
+        self.changedEntityTypes.contains(.card)
+            || self.changedEntityTypes.contains(.deck)
+            || self.changedEntityTypes.contains(.workspaceSchedulerSettings)
+            || self.changedEntityTypes.contains(.reviewEvent)
+    }
+
+    var technicalChangesOnly: Bool {
+        self.reviewDataChanged == false
+            && (self.acknowledgedOperationCount > 0 || self.cleanedUpOperationCount > 0)
+    }
+
+    func merging(_ other: CloudSyncResult) -> CloudSyncResult {
+        CloudSyncResult(
+            appliedPullChangeCount: self.appliedPullChangeCount + other.appliedPullChangeCount,
+            changedEntityTypes: self.changedEntityTypes.union(other.changedEntityTypes),
+            acknowledgedOperationCount: self.acknowledgedOperationCount + other.acknowledgedOperationCount,
+            cleanedUpOperationCount: self.cleanedUpOperationCount + other.cleanedUpOperationCount
+        )
+    }
+}
+
+enum ReviewRefreshMode: Hashable, Sendable {
+    case blockingReset
+    case backgroundReconcile
+}
+
+struct ReviewOverlayBanner: Identifiable, Hashable, Sendable {
+    let id: String
+    let message: String
+}
+
 struct CardSyncPayload: Codable, Hashable {
     let cardId: String
     let frontText: String

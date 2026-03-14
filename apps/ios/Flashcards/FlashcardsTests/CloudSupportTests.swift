@@ -62,8 +62,8 @@ final class CloudSupportTests: XCTestCase {
         let suiteName = "cloud-support-tests-\(UUID().uuidString)"
         let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         userDefaults.removePersistentDomain(forName: suiteName)
-        self.addTeardownBlock {
-            userDefaults.removePersistentDomain(forName: suiteName)
+        self.addTeardownBlock { [suiteName] in
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
         }
         try saveCloudServerOverride(
             override: CloudServerOverride(customOrigin: "https://self-hosted.example.com"),
@@ -573,7 +573,7 @@ final class CloudSupportTests: XCTestCase {
 
         let service = CloudSyncService(database: database, session: self.makeSession())
 
-        try await service.runLinkedSync(
+        _ = try await service.runLinkedSync(
             linkedSession: CloudLinkedSession(
                 userId: "user-id",
                 workspaceId: workspaceId,
@@ -648,7 +648,7 @@ final class CloudSupportTests: XCTestCase {
 
         let service = CloudSyncService(database: database, session: self.makeSession())
 
-        try await service.runLinkedSync(
+        _ = try await service.runLinkedSync(
             linkedSession: CloudLinkedSession(
                 userId: "user-id",
                 workspaceId: workspaceId,
@@ -718,7 +718,7 @@ final class CloudSupportTests: XCTestCase {
 
         let service = CloudSyncService(database: database, session: self.makeSession())
 
-        try await Task.detached {
+        _ = try await Task.detached {
             try await service.runLinkedSync(
                 linkedSession: CloudLinkedSession(
                     userId: "user-id",
@@ -758,8 +758,8 @@ final class CloudSupportTests: XCTestCase {
         let suiteName = "cloud-support-tests-\(UUID().uuidString)"
         let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         userDefaults.removePersistentDomain(forName: suiteName)
-        self.addTeardownBlock {
-            userDefaults.removePersistentDomain(forName: suiteName)
+        self.addTeardownBlock { [suiteName] in
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
         }
         return userDefaults
     }
