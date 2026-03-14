@@ -25,6 +25,7 @@ import {
   streamLocalAgentTurn as streamAnthropicLocalAgentTurn,
 } from "./chat/anthropic/localAgent";
 import type { LocalChatStreamEvent, LocalContentPart } from "./chat/localTypes";
+import { hashAIProviderUserId } from "./chat/providerSafety";
 
 const testUserContext = {
   totalCards: 42,
@@ -55,8 +56,10 @@ type CapturedStreamBody = Readonly<{
   model: string;
   instructions: string;
   input: ReadonlyArray<unknown>;
+  safety_identifier?: string;
   tools: ReadonlyArray<unknown>;
   parallel_tool_calls: boolean;
+  user?: string;
 }>;
 
 function makeFakeClient(
@@ -131,6 +134,9 @@ type FakeAnthropicFinalMessage = Readonly<{
 
 type CapturedAnthropicStreamBody = Readonly<{
   model: string;
+  metadata?: Readonly<{
+    user_id?: string | null;
+  }>;
   system: string;
   messages: ReadonlyArray<unknown>;
   tools: ReadonlyArray<unknown>;
@@ -211,6 +217,25 @@ test("isSupportedLocalChatModel accepts only OpenAI local-chat models", () => {
 test("isSupportedAnthropicLocalChatModel accepts only Anthropic local-chat models", () => {
   assert.equal(isSupportedAnthropicLocalChatModel("claude-sonnet-4-6"), true);
   assert.equal(isSupportedAnthropicLocalChatModel("gpt-5.4"), false);
+});
+
+test("hashAIProviderUserId returns a stable 64-character lowercase hex hash", () => {
+  const firstHash = hashAIProviderUserId("user-123");
+  const secondHash = hashAIProviderUserId("user-123");
+
+  assert.equal(firstHash, "fcdec6df4d44dbc637c7c5b58efface52a7f8a88535423430255be0bb89bedd8");
+  assert.equal(secondHash, firstHash);
+  assert.equal(firstHash.length, 64);
+  assert.match(firstHash, /^[0-9a-f]{64}$/);
+});
+
+test("hashAIProviderUserId rejects empty values", () => {
+  assert.throws(
+    () => {
+      hashAIProviderUserId("");
+    },
+    (error: unknown) => error instanceof Error && error.message === "AI provider user ID must not be empty",
+  );
 });
 
 test("buildLocalSystemInstructions includes strict tool-call rules, examples, and user context", () => {
@@ -332,6 +357,7 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
     userContext: testUserContext,
+    providerSafetyUserId: "fcdec6df4d44dbc637c7c5b58efface52a7f8a88535423430255be0bb89bedd8",
     requestId: "request-1",
   }, client));
 
@@ -342,6 +368,8 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
   ]);
   assert.equal(capturedBodies[0]?.model, "gpt-5.2");
   assert.equal(capturedBodies[0]?.parallel_tool_calls, false);
+  assert.equal(capturedBodies[0]?.safety_identifier, "fcdec6df4d44dbc637c7c5b58efface52a7f8a88535423430255be0bb89bedd8");
+  assert.equal(capturedBodies[0]?.user, undefined);
   assert.match(String(capturedBodies[0]?.instructions), /ios app chat on iphone/i);
   assert.match(String(capturedBodies[0]?.instructions), /plain text for a chat surface that does not render markdown/i);
   assert.match(String(capturedBodies[0]?.instructions), /The current workspace has 42 cards\./);
@@ -734,6 +762,7 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
     userContext: testUserContext,
+    providerSafetyUserId: "fcdec6df4d44dbc637c7c5b58efface52a7f8a88535423430255be0bb89bedd8",
     requestId: "request-anthropic-1",
   }, client));
 
@@ -743,6 +772,9 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
     { type: "await_tool_results" },
   ]);
   assert.equal(capturedBodies[0]?.model, "claude-sonnet-4-6");
+  assert.deepEqual(capturedBodies[0]?.metadata, {
+    user_id: "fcdec6df4d44dbc637c7c5b58efface52a7f8a88535423430255be0bb89bedd8",
+  });
   assert.match(String(capturedBodies[0]?.system), /web browser chat/i);
   assert.match(String(capturedBodies[0]?.system), /plain text for a chat surface that does not render markdown/i);
   assert.match(String(capturedBodies[0]?.system), /The current workspace has 42 cards\./);
@@ -843,6 +875,15 @@ test("streamLocalChatResponse rejects only unknown local models", async () => {
           userContext: testUserContext,
         },
         "request-id",
+        {
+          userId: "user-1",
+          selectedWorkspaceId: "workspace-1",
+          email: "user@example.com",
+          locale: "en",
+          userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
+          transport: "bearer",
+          connectionId: null,
+        },
       );
     },
     (error: unknown) => error instanceof HttpError && error.statusCode === 400,
@@ -865,6 +906,15 @@ test("streamLocalChatResponse returns a stable not-configured error when the pro
             userContext: testUserContext,
           },
           "request-id",
+          {
+            userId: "user-1",
+            selectedWorkspaceId: "workspace-1",
+            email: "user@example.com",
+            locale: "en",
+            userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
+            transport: "bearer",
+            connectionId: null,
+          },
         );
       },
       (error: unknown) => error instanceof HttpError

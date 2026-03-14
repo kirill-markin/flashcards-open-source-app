@@ -166,6 +166,7 @@ export async function transcribeChatAudioUpload(
     const transcriptionClient = client ?? createOpenAITranscriptionClient();
     const buffer = Buffer.from(await upload.file.arrayBuffer());
     const file = await toFile(buffer, upload.file.name, { type: upload.file.type });
+    // OpenAI transcription requests do not expose an end-user safety identifier field.
     const result = await transcriptionClient.audio.transcriptions.create({
       file,
       model: CHAT_TRANSCRIPTION_MODEL,

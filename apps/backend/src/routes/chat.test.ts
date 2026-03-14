@@ -2,10 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import { HttpError } from "../errors";
+import type { RequestContext } from "../server/requestContext";
 import { createChatRoutes } from "./chat";
 
 function createChatTestApp(
-  transcribeAudioFn: Parameters<typeof createChatRoutes>[0]["transcribeAudioFn"],
+  options: Readonly<{
+    requestContext?: RequestContext;
+    streamLocalChatResponseFn?: Parameters<typeof createChatRoutes>[0]["streamLocalChatResponseFn"];
+    transcribeAudioFn: Parameters<typeof createChatRoutes>[0]["transcribeAudioFn"];
+  }>,
 ): Hono {
   const app = new Hono();
   app.onError((error, context) => {
@@ -28,16 +33,19 @@ function createChatTestApp(
         secFetchSiteHeader: undefined,
       },
       requestContext: {
-        userId: "user-1",
-        selectedWorkspaceId: "workspace-1",
-        email: "user@example.com",
-        locale: "en",
-        userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
-        transport: "bearer",
-        connectionId: null,
+        ...(options.requestContext ?? {
+          userId: "user-1",
+          selectedWorkspaceId: "workspace-1",
+          email: "user@example.com",
+          locale: "en",
+          userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
+          transport: "bearer",
+          connectionId: null,
+        }),
       },
     }),
-    transcribeAudioFn,
+    streamLocalChatResponseFn: options.streamLocalChatResponseFn,
+    transcribeAudioFn: options.transcribeAudioFn,
   }));
   return app;
 }
@@ -45,10 +53,12 @@ function createChatTestApp(
 test("chat transcriptions route accepts multipart uploads and returns text", async () => {
   let observedSource: string | null = null;
   let observedFileName: string | null = null;
-  const app = createChatTestApp(async (upload) => {
-    observedSource = upload.source;
-    observedFileName = upload.file.name;
-    return "recognized text";
+  const app = createChatTestApp({
+    transcribeAudioFn: async (upload) => {
+      observedSource = upload.source;
+      observedFileName = upload.file.name;
+      return "recognized text";
+    },
   });
 
   const formData = new FormData();
@@ -67,7 +77,7 @@ test("chat transcriptions route accepts multipart uploads and returns text", asy
 });
 
 test("chat transcriptions route rejects requests without a file upload", async () => {
-  const app = createChatTestApp(async () => "ignored");
+  const app = createChatTestApp({ transcribeAudioFn: async () => "ignored" });
   const formData = new FormData();
   formData.append("source", "ios");
 
@@ -84,7 +94,7 @@ test("chat transcriptions route rejects requests without a file upload", async (
 });
 
 test("chat transcriptions route rejects unsupported media types", async () => {
-  const app = createChatTestApp(async () => "ignored");
+  const app = createChatTestApp({ transcribeAudioFn: async () => "ignored" });
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.mp3", { type: "audio/mpeg" }));
   formData.append("source", "web");
@@ -102,8 +112,10 @@ test("chat transcriptions route rejects unsupported media types", async () => {
 });
 
 test("chat transcriptions route surfaces upstream failures as 503", async () => {
-  const app = createChatTestApp(async () => {
-    throw new HttpError(503, "There is a network problem. Fix it and try again.", "CHAT_TRANSCRIPTION_UNAVAILABLE");
+  const app = createChatTestApp({
+    transcribeAudioFn: async () => {
+      throw new HttpError(503, "There is a network problem. Fix it and try again.", "CHAT_TRANSCRIPTION_UNAVAILABLE");
+    },
   });
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.wav", { type: "audio/wav" }));
@@ -122,8 +134,10 @@ test("chat transcriptions route surfaces upstream failures as 503", async () => 
 });
 
 test("chat transcriptions route surfaces invalid audio failures as 422", async () => {
-  const app = createChatTestApp(async () => {
-    throw new HttpError(422, "We couldn’t process that recording. Please try again.", "CHAT_TRANSCRIPTION_INVALID_AUDIO");
+  const app = createChatTestApp({
+    transcribeAudioFn: async () => {
+      throw new HttpError(422, "We couldn’t process that recording. Please try again.", "CHAT_TRANSCRIPTION_INVALID_AUDIO");
+    },
   });
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
@@ -139,4 +153,44 @@ test("chat transcriptions route surfaces invalid audio failures as 422", async (
     error: "We couldn’t process that recording. Please try again.",
     code: "CHAT_TRANSCRIPTION_INVALID_AUDIO",
   });
+});
+
+test("chat local-turn route forwards the authenticated request context to the local chat response pipeline", async () => {
+  let observedUserId: string | null = null;
+  let observedTransport: string | null = null;
+  const app = createChatTestApp({
+    requestContext: {
+      userId: "user-42",
+      selectedWorkspaceId: "workspace-1",
+      email: "user@example.com",
+      locale: "en",
+      userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
+      transport: "bearer",
+      connectionId: null,
+    },
+    streamLocalChatResponseFn: async (_body, _requestId, requestContext) => {
+      observedUserId = requestContext.userId;
+      observedTransport = requestContext.transport;
+      return new Response(null, { status: 204 });
+    },
+    transcribeAudioFn: async () => "ignored",
+  });
+
+  const response = await app.request("https://api.example.com/chat/local-turn", {
+    method: "POST",
+    body: JSON.stringify({
+      messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],
+      model: "gpt-5.4",
+      timezone: "Europe/Madrid",
+      devicePlatform: "web",
+      userContext: { totalCards: 5 },
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  assert.equal(response.status, 204);
+  assert.equal(observedUserId, "user-42");
+  assert.equal(observedTransport, "bearer");
 });

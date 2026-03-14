@@ -169,6 +169,7 @@ export type StreamLocalTurnParams = Readonly<{
   timezone: string;
   devicePlatform: "ios" | "web";
   userContext: LocalChatUserContext;
+  providerSafetyUserId?: string | null;
   requestId: string;
 }>;
 
@@ -535,6 +536,9 @@ export async function* streamLocalAgentTurn(
       model: params.model,
       instructions: buildLocalSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
       input: buildInput(params.messages, uploadPlan, repairState),
+      ...(params.providerSafetyUserId === undefined || params.providerSafetyUserId === null
+        ? {}
+        : { safety_identifier: params.providerSafetyUserId }),
       tools: [
         ...OPENAI_LOCAL_FLASHCARDS_TOOLS,
         {

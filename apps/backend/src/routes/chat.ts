@@ -22,21 +22,23 @@ import type { AppEnv } from "../app";
 type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  streamLocalChatResponseFn?: typeof streamLocalChatResponse;
   transcribeAudioFn?: (upload: ChatTranscriptionUpload) => Promise<string>;
 }>;
 
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
+  const streamLocalChatResponseFn = options.streamLocalChatResponseFn ?? streamLocalChatResponse;
   const transcribeAudioFn = options.transcribeAudioFn ?? transcribeChatAudioUpload;
 
   app.post("/chat/local-turn", async (context) => {
     const requestId = randomUUID();
 
     try {
-      await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+      const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
       const body = parseLocalChatRequestBody(await parseJsonBody(context.req.raw));
-      return await streamLocalChatResponse(body, requestId);
+      return await streamLocalChatResponseFn(body, requestId, requestContext);
     } catch (error) {
       if (error instanceof HttpError || error instanceof AuthError) {
         throw error;
