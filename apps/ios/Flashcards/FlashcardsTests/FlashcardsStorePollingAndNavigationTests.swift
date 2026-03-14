@@ -203,7 +203,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         XCTAssertEqual(flashcardsPrivacyPolicyUrl, "https://flashcards-open-source-app.com/privacy/")
         XCTAssertEqual(flashcardsTermsOfServiceUrl, "https://flashcards-open-source-app.com/terms/")
         XCTAssertEqual(flashcardsSupportUrl, "https://flashcards-open-source-app.com/support/")
-        XCTAssertEqual(flashcardsSupportEmailAddress, "kirill@kirill-markin.com")
+        XCTAssertEqual(flashcardsSupportEmailAddress, "kirill+flashcards@kirill-markin.com")
         XCTAssertEqual(
             flashcardsRepositoryUrl,
             "https://github.com/kirill-markin/flashcards-open-source-app"

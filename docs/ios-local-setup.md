@@ -21,7 +21,7 @@ AUTH_BASE_URL = https:/$()/auth.flashcards-open-source-app.com
 PRIVACY_POLICY_URL = https:/$()/flashcards-open-source-app.com/privacy/
 TERMS_OF_SERVICE_URL = https:/$()/flashcards-open-source-app.com/terms/
 SUPPORT_URL = https:/$()/flashcards-open-source-app.com/support/
-SUPPORT_EMAIL_ADDRESS = kirill@kirill-markin.com
+SUPPORT_EMAIL_ADDRESS = kirill+flashcards@kirill-markin.com
 ```
 
 Add `DEVELOPMENT_TEAM` when you need to run on a physical device or create signed archives:
