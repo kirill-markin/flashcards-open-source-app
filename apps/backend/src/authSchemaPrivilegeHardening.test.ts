@@ -50,8 +50,9 @@ test("0024_auth_runtime_roles keeps runtime roles off broad auth schema grants a
 });
 
 test("0025_remove_legacy_app_role removes the shared app role", () => {
-  assert.match(cleanupMigrationSql, /DROP ROLE app;/);
+  assert.match(cleanupMigrationSql, /DROP ROLE IF EXISTS app;/);
   assert.match(cleanupMigrationSql, /REVOKE USAGE ON SCHEMA auth FROM app;/);
+  assert.doesNotMatch(cleanupMigrationSql, /DROP OWNED BY app;/);
 });
 
 test("backend auth agent key flows use scoped queries and the bootstrap function", () => {
