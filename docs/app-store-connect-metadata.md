@@ -20,7 +20,13 @@ The app is open source, and the same stack can be self-hosted. Support, privacy 
 
 flashcards,study,spaced repetition,offline,decks,tags,review,memory,learning,fsrs,open source
 
-## App Review Notes
+## App Review Information
+
+### Sign-In Required
+
+No
+
+### Notes for Reviewers
 
 Flashcards Open Source App is an offline-first flashcards app for studying, reviewing cards, and managing decks and tags.
 
