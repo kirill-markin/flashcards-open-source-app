@@ -277,4 +277,83 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
             1
         )
     }
+
+    func testLoadOutboxEntriesRepairsLegacyCardPayloadMissingCreatedAt() throws {
+        let (databaseURL, database) = try LocalDatabaseTestSupport.makeDatabaseWithURL(testCase: self)
+        let snapshot = try database.loadStateSnapshot()
+        let workspaceId = snapshot.workspace.workspaceId
+        let deviceId = snapshot.cloudSettings.deviceId
+
+        _ = try database.saveCard(
+            workspaceId: workspaceId,
+            input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+
+        let card = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let existingEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        try database.deleteOutboxEntries(operationIds: existingEntries.map { entry in
+            entry.operationId
+        })
+
+        let legacyPayloadJson = #"""
+        {
+          "cardId": "\#(card.cardId)",
+          "frontText": "\#(card.frontText)",
+          "backText": "\#(card.backText)",
+          "tags": ["tag-a"],
+          "effortLevel": "\#(card.effortLevel.rawValue)",
+          "dueAt": null,
+          "reps": \#(card.reps),
+          "lapses": \#(card.lapses),
+          "fsrsCardState": "\#(card.fsrsCardState.rawValue)",
+          "fsrsStepIndex": null,
+          "fsrsStability": null,
+          "fsrsDifficulty": null,
+          "fsrsLastReviewedAt": null,
+          "fsrsScheduledDays": null,
+          "deletedAt": null
+        }
+        """#
+        let core = try DatabaseCore(databaseURL: databaseURL)
+        _ = try core.execute(
+            sql: """
+            INSERT INTO outbox (
+                operation_id,
+                workspace_id,
+                device_id,
+                entity_type,
+                entity_id,
+                operation_type,
+                payload_json,
+                client_updated_at,
+                created_at,
+                attempt_count,
+                last_error
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
+            """,
+            values: [
+                .text("legacy-card-upsert"),
+                .text(workspaceId),
+                .text(deviceId),
+                .text("card"),
+                .text(card.cardId),
+                .text("upsert"),
+                .text(legacyPayloadJson),
+                .text(card.updatedAt),
+                .text(currentIsoTimestamp())
+            ]
+        )
+
+        let repairedEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        XCTAssertEqual(repairedEntries.count, 1)
+
+        guard case .card(let repairedCardPayload) = repairedEntries[0].operation.payload else {
+            return XCTFail("Expected card payload")
+        }
+
+        XCTAssertEqual(repairedCardPayload.createdAt, card.createdAt)
+        XCTAssertEqual(repairedCardPayload.cardId, card.cardId)
+    }
 }
