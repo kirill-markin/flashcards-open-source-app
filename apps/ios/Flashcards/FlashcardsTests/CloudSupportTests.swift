@@ -453,6 +453,7 @@ final class CloudSupportTests: XCTestCase {
                 userId: "user-id",
                 workspaceId: workspaceId,
                 email: "user@example.com",
+                configurationMode: .official,
                 apiBaseUrl: "https://api.example.com/v1",
                 bearerToken: "id-token"
             )
@@ -528,6 +529,7 @@ final class CloudSupportTests: XCTestCase {
                 userId: "user-id",
                 workspaceId: workspaceId,
                 email: "user@example.com",
+                configurationMode: .official,
                 apiBaseUrl: "https://api.example.com/v1",
                 bearerToken: "id-token"
             )
@@ -599,6 +601,7 @@ final class CloudSupportTests: XCTestCase {
                     userId: "user-id",
                     workspaceId: workspaceId,
                     email: "user@example.com",
+                    configurationMode: .official,
                     apiBaseUrl: "https://api.example.com/v1",
                     bearerToken: "id-token"
                 )

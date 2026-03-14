@@ -37,6 +37,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
                     userId: "user-1",
                     workspaceId: "workspace-1",
                     email: "user@example.com",
+                    configurationMode: .official,
                     apiBaseUrl: "https://api.example.com",
                     bearerToken: "test-token"
                 ),
@@ -108,6 +109,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
                 userId: "user-1",
                 workspaceId: "workspace-1",
                 email: "user@example.com",
+                configurationMode: .official,
                 apiBaseUrl: "https://api.example.com",
                 bearerToken: "test-token"
             ),
@@ -136,6 +138,60 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
         XCTAssertEqual(latencyBody?.didReceiveFirstSseLine, true)
         XCTAssertEqual(latencyBody?.didReceiveFirstDelta, true)
         XCTAssertNil(latencyBody?.backendRequestId?.range(of: "user@example.com"))
+    }
+
+    func testAIChatServiceMapsAvailabilityErrorsForCustomServers() async throws {
+        AIChatMockUrlProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 503,
+                httpVersion: nil,
+                headerFields: [
+                    "Content-Type": "application/json",
+                    "X-Request-Id": "request-availability-1"
+                ]
+            )!
+            let data = """
+            {"error":"AI chat is not configured on this server.","requestId":"request-availability-1","code":"LOCAL_CHAT_NOT_CONFIGURED"}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = AIChatService(
+            session: self.makeSession(),
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        do {
+            _ = try await service.streamTurn(
+                session: CloudLinkedSession(
+                    userId: "user-1",
+                    workspaceId: "workspace-1",
+                    email: "user@example.com",
+                    configurationMode: .custom,
+                    apiBaseUrl: "https://api.example.com",
+                    bearerToken: "test-token"
+                ),
+                request: self.makeRequestBody(text: "hello"),
+                tapStartedAt: nil,
+                onDelta: { _ in },
+                onToolCall: { _ in },
+                onToolCallRequest: { _ in },
+                onRepairAttempt: { _ in },
+                onLatencyReported: { _ in }
+            )
+            XCTFail("Expected invalid response error")
+        } catch let error as AIChatServiceError {
+            XCTAssertEqual(
+                error.errorDescription,
+                """
+                AI chat request failed with status 503: AI is unavailable on this server. Contact the server operator. Reference: request-availability-1
+                Request: request-availability-1
+                Stage: response_not_ok
+                """
+            )
+        }
     }
 
     private func makeRequestBody(text: String) -> AILocalChatRequestBody {

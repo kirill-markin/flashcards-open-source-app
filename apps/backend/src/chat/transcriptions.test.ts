@@ -17,6 +17,21 @@ function restoreEnvironment(): void {
 
 test.afterEach(restoreEnvironment);
 
+test("transcribeChatAudioUpload returns a stable not-configured error when the provider key is missing", async () => {
+  delete process.env.OPENAI_API_KEY;
+
+  await assert.rejects(
+    () => transcribeChatAudioUpload({
+      file: new File(["audio"], "clip.webm", { type: "audio/webm" }),
+      source: "web",
+    }),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 503
+      && error.code === "CHAT_TRANSCRIPTION_NOT_CONFIGURED"
+      && error.message === "AI audio transcription is not configured on this server.",
+  );
+});
+
 test("transcribeChatAudioUpload maps invalid upstream audio failures to 422", async () => {
   process.env.OPENAI_API_KEY = "test-key";
   const client = {
@@ -66,6 +81,64 @@ test("transcribeChatAudioUpload keeps provider connectivity failures as 503", as
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 503
       && error.code === "CHAT_TRANSCRIPTION_UNAVAILABLE"
-      && error.message === "There is a network problem. Fix it and try again.",
+      && error.message === "AI audio transcription is temporarily unavailable on this server. Try again later.",
+  );
+});
+
+test("transcribeChatAudioUpload maps provider auth failures to a stable 503 error", async () => {
+  process.env.OPENAI_API_KEY = "test-key";
+  const client = {
+    audio: {
+      transcriptions: {
+        create: async () => {
+          throw APIError.generate(
+            401,
+            { error: { message: "Invalid API key" } },
+            undefined,
+            new Headers({ "x-request-id": "openai-request-auth" }),
+          );
+        },
+      },
+    },
+  };
+
+  await assert.rejects(
+    () => transcribeChatAudioUpload({
+      file: new File(["audio"], "clip.m4a", { type: "audio/mp4" }),
+      source: "ios",
+    }, client),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 503
+      && error.code === "CHAT_TRANSCRIPTION_PROVIDER_AUTH_FAILED"
+      && error.message === "AI audio transcription is temporarily unavailable on this server. Try again later.",
+  );
+});
+
+test("transcribeChatAudioUpload maps provider rate limits to a stable 429 error", async () => {
+  process.env.OPENAI_API_KEY = "test-key";
+  const client = {
+    audio: {
+      transcriptions: {
+        create: async () => {
+          throw APIError.generate(
+            429,
+            { error: { message: "insufficient credits" } },
+            undefined,
+            new Headers({ "x-request-id": "openai-request-rate-limit" }),
+          );
+        },
+      },
+    },
+  };
+
+  await assert.rejects(
+    () => transcribeChatAudioUpload({
+      file: new File(["audio"], "clip.m4a", { type: "audio/mp4" }),
+      source: "ios",
+    }, client),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 429
+      && error.code === "CHAT_TRANSCRIPTION_RATE_LIMITED"
+      && error.message === "AI audio transcription is temporarily unavailable on this server. Try again later.",
   );
 });

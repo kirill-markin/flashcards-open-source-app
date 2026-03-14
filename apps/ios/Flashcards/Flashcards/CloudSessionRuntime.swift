@@ -135,6 +135,7 @@ final class CloudSessionRuntime {
                 userId: activeCloudSession.userId,
                 workspaceId: activeCloudSession.workspaceId,
                 email: activeCloudSession.email,
+                configurationMode: activeCloudSession.configurationMode,
                 apiBaseUrl: activeCloudSession.apiBaseUrl,
                 bearerToken: updatedCredentials.idToken
             )
@@ -210,7 +211,7 @@ final class CloudSessionRuntime {
 
     func storedLinkedSession(
         cloudSettings: CloudSettings?,
-        apiBaseUrl: String,
+        configuration: CloudServiceConfiguration,
         bearerToken: String
     ) throws -> CloudLinkedSession {
         guard let cloudSettings else {
@@ -230,7 +231,8 @@ final class CloudSessionRuntime {
             userId: linkedUserId,
             workspaceId: linkedWorkspaceId,
             email: cloudSettings.linkedEmail,
-            apiBaseUrl: apiBaseUrl,
+            configurationMode: configuration.mode,
+            apiBaseUrl: configuration.apiBaseUrl,
             bearerToken: bearerToken
         )
         self.state.activeCloudSession = linkedSession
@@ -248,6 +250,7 @@ final class CloudSessionRuntime {
             userId: activeCloudSession.userId,
             workspaceId: activeCloudSession.workspaceId,
             email: activeCloudSession.email,
+            configurationMode: activeCloudSession.configurationMode,
             apiBaseUrl: activeCloudSession.apiBaseUrl,
             bearerToken: credentials.idToken
         )

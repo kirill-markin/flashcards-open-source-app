@@ -103,7 +103,7 @@ struct ServerSettingsView: View {
             }
 
             Section("Custom Server") {
-                Text("Enter your self-hosted HTTPS domain. The app will automatically use api.<domain>/v1 and auth.<domain>.")
+                Text("Enter your self-hosted HTTPS domain. The app will automatically use api.<domain>/v1 and auth.<domain>. Self-hosted servers may omit AI chat and dictation.")
                     .foregroundStyle(.secondary)
 
                 TextField("https://example.com", text: self.$customOriginInput)

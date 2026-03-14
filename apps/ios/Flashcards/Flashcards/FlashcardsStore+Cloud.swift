@@ -98,11 +98,13 @@ extension FlashcardsStore {
         }
 
         try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+        let configuration = try self.currentCloudServiceConfiguration()
         try await self.finishCloudLink(
             linkedSession: CloudLinkedSession(
                 userId: linkContext.userId,
                 workspaceId: linkedWorkspace.workspaceId,
                 email: linkContext.email,
+                configurationMode: configuration.mode,
                 apiBaseUrl: linkContext.apiBaseUrl,
                 bearerToken: linkContext.credentials.idToken
             )
@@ -375,7 +377,7 @@ extension FlashcardsStore {
             try await self.performCloudLink(
                 linkedSession: try self.cloudRuntime.storedLinkedSession(
                     cloudSettings: self.cloudSettings,
-                    apiBaseUrl: configuration.apiBaseUrl,
+                    configuration: configuration,
                     bearerToken: credentials.idToken
                 )
             )
@@ -396,7 +398,7 @@ extension FlashcardsStore {
             try await self.performCloudLink(
                 linkedSession: try self.cloudRuntime.storedLinkedSession(
                     cloudSettings: self.cloudSettings,
-                    apiBaseUrl: configuration.apiBaseUrl,
+                    configuration: configuration,
                     bearerToken: refreshedCredentials.idToken
                 )
             )

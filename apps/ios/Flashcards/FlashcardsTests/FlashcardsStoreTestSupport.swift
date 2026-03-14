@@ -394,6 +394,7 @@ enum FlashcardsStoreTestSupport {
             userId: "user-1",
             workspaceId: workspaceId,
             email: "user@example.com",
+            configurationMode: .official,
             apiBaseUrl: "https://api.example.com/v1",
             bearerToken: "id-token"
         )
