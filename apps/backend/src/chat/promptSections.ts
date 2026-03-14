@@ -41,6 +41,7 @@ export function buildPlainTextChatFormattingSection(): string {
   return joinLines([
     "Chat response formatting:",
     "- Respond to the user as plain text for a chat surface that does not render markdown.",
+    "- Keep replies compact and comfortable to read in a small chat window on mobile devices and in the browser.",
     "- Do not rely on markdown styling or markdown-only presentation.",
     "- Simple lists and numbering are allowed when they remain readable as raw plain text.",
     "- If you need a more complex structure, use short labels, indentation, and blank lines between blocks.",
