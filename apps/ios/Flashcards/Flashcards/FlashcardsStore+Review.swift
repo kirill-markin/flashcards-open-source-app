@@ -1,5 +1,10 @@
 import Foundation
 
+private enum ReviewStateReconcileTrigger {
+    case cloudSync
+    case localReview
+}
+
 @MainActor
 extension FlashcardsStore {
     func selectReviewFilter(reviewFilter: ReviewFilter) {
@@ -94,7 +99,10 @@ extension FlashcardsStore {
             self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
             return true
         case .backgroundReconcile:
-            return try await self.reconcileReviewStateAfterCloudSync(now: now)
+            return try await self.reconcileReviewState(
+                now: now,
+                trigger: .cloudSync
+            )
         }
     }
 
@@ -263,13 +271,21 @@ extension FlashcardsStore {
                     reviewedAtClient: request.reviewedAtClient
                 )
             )
-            self.refreshLocalReadModels(now: Date())
+            let now = Date()
+            let didRefreshBootstrapSnapshot = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+            let didReconcileReviewState = try await self.reconcileReviewState(
+                now: now,
+                trigger: .localReview
+            )
             self.applyReviewPublishedState(
                 reviewState: self.reviewRuntime.completeReviewSubmission(
                     publishedState: self.currentReviewPublishedState(),
                     request: request
                 )
             )
+            if didRefreshBootstrapSnapshot || didReconcileReviewState {
+                self.localReadVersion += 1
+            }
             self.triggerCloudSyncIfLinked()
         } catch {
             self.handleReviewSubmissionFailure(request: request, submissionError: error)
@@ -299,7 +315,10 @@ extension FlashcardsStore {
         }
     }
 
-    private func reconcileReviewStateAfterCloudSync(now: Date) async throws -> Bool {
+    private func reconcileReviewState(
+        now: Date,
+        trigger: ReviewStateReconcileTrigger
+    ) async throws -> Bool {
         guard self.isReviewHeadLoading == false else {
             return false
         }
@@ -377,7 +396,7 @@ extension FlashcardsStore {
 
         let nextEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: nextReviewState)
         let nextCardId = currentReviewCard(reviewQueue: nextEffectiveQueue)?.cardId
-        if let currentCardId, currentCardId != nextCardId {
+        if case .cloudSync = trigger, let currentCardId, currentCardId != nextCardId {
             self.reviewOverlayBanner = ReviewOverlayBanner(
                 id: UUID().uuidString.lowercased(),
                 message: "This review updated on another device."

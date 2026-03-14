@@ -267,6 +267,59 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         )
     }
 
+    func testReviewSubmissionReconcilesInPlaceWithoutLoaderFlashOrRemoteBanner() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreContext(
+            testCase: self,
+            makeReviewSubmissionExecutor: { database in
+                FlashcardsStoreTestSupport.ScriptedReviewSubmissionExecutor(
+                    databaseURL: database.databaseURL,
+                    outcomes: [.submitToDatabase],
+                    delayNanoseconds: 50_000_000
+                )
+            },
+            reviewHeadDelayNanoseconds: 400_000_000,
+            reviewCountsDelayNanoseconds: 400_000_000
+        )
+        let store = context.store
+
+        try store.saveCard(
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "First front", backText: "First back", tags: ["tag-a"]),
+            editingCardId: nil
+        )
+        try store.saveCard(
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Second front", backText: "Second back", tags: ["tag-b"]),
+            editingCardId: nil
+        )
+
+        await FlashcardsStoreTestSupport.waitUntil(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewHeadLoading == false && store.reviewQueue.count == 2
+        }
+
+        let initialQueue = store.effectiveReviewQueue
+        let firstCard = try XCTUnwrap(initialQueue.first)
+        let secondCard = try XCTUnwrap(initialQueue.dropFirst().first)
+
+        try store.enqueueReviewSubmission(cardId: firstCard.cardId, rating: .good)
+
+        XCTAssertFalse(store.isReviewHeadLoading)
+        XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, secondCard.cardId)
+
+        await FlashcardsStoreTestSupport.waitUntil(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewPending(cardId: firstCard.cardId) == false
+        }
+
+        XCTAssertFalse(store.isReviewHeadLoading)
+        XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, secondCard.cardId)
+        XCTAssertEqual(store.displayedReviewDueCount, 1)
+        XCTAssertNil(store.reviewOverlayBanner)
+    }
+
     func testEnqueueReviewSubmissionRejectsDuplicatePendingCard() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self) { database in
             FlashcardsStoreTestSupport.ScriptedReviewSubmissionExecutor(
