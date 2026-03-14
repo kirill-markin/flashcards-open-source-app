@@ -1090,37 +1090,69 @@ function decodeCursor(cursor: string): Record<string, unknown> {
   }
 }
 
-function resolveCardsPageStartIndex(cards: ReadonlyArray<Card>, cursor: string | null): number {
-  if (cursor === null) {
-    return 0;
-  }
-
+function decodeCardsCursorCardId(cursor: string): string {
   const parsedCursor = decodeCursor(cursor);
   const cardId = parsedCursor.cardId;
   if (typeof cardId !== "string" || cardId === "") {
     throw new Error("cards cursor.cardId must be a non-empty string");
   }
 
-  const index = cards.findIndex((card) => card.cardId === cardId);
-  if (index === -1) {
-    return 0;
-  }
-
-  return index + 1;
+  return cardId;
 }
 
-function buildCardsPageCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyArray<Card>): string | null {
-  if (pageCards.length === 0) {
+async function loadCardsCursorCard(
+  database: IDBDatabase,
+  cursor: string | null,
+): Promise<Card | null> {
+  if (cursor === null) {
+    return null;
+  }
+
+  const cardId = decodeCardsCursorCardId(cursor);
+  const cursorCard = await getFromStore<Card>(database, "cards", cardId);
+  return cursorCard ?? null;
+}
+
+function buildCardsPageCursorFromPage(
+  pageCards: ReadonlyArray<Card>,
+  hasMoreCards: boolean,
+): string | null {
+  if (hasMoreCards === false || pageCards.length === 0) {
     return null;
   }
 
   const lastCard = pageCards[pageCards.length - 1];
-  const lastCardIndex = cards.findIndex((card) => card.cardId === lastCard.cardId);
-  if (lastCardIndex === -1 || lastCardIndex >= cards.length - 1) {
-    return null;
+  if (lastCard === undefined) {
+    throw new Error("Cards page cursor cannot be built without a last card");
   }
 
   return encodeCursor({ cardId: lastCard.cardId });
+}
+
+function insertCardIntoSortedWindow(
+  currentWindow: ReadonlyArray<Card>,
+  candidateCard: Card,
+  sorts: QueryCardsInput["sorts"],
+  limit: number,
+): ReadonlyArray<Card> {
+  if (limit < 1) {
+    throw new Error("Cards sorted window limit must be positive");
+  }
+
+  const nextWindow = [...currentWindow];
+  const insertIndex = nextWindow.findIndex((existingCard) => compareCardsForCardsQuery(candidateCard, existingCard, sorts) < 0);
+  const resolvedInsertIndex = insertIndex === -1 ? nextWindow.length : insertIndex;
+
+  if (nextWindow.length >= limit && resolvedInsertIndex >= limit) {
+    return nextWindow;
+  }
+
+  nextWindow.splice(resolvedInsertIndex, 0, candidateCard);
+  if (nextWindow.length > limit) {
+    nextWindow.pop();
+  }
+
+  return nextWindow;
 }
 
 function makeReviewCountsFromCards(cards: ReadonlyArray<Card>, nowTimestamp: number): ReviewCounts {
@@ -1399,7 +1431,15 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
       };
     }
 
-    let matchingCards: Array<Card> = [];
+    const cursorCard = await loadCardsCursorCard(database, input.cursor);
+    const shouldUseCursorCard = cursorCard !== null
+      && cursorCard.deletedAt === null
+      && (allowedTagCardIds === null || allowedTagCardIds.has(cursorCard.cardId))
+      && (input.filter === null || matchesCardFilter(input.filter, cursorCard))
+      && matchesSearchText(cursorCard, normalizedSearchText);
+    let matchingCount = 0;
+    let pageWindow: Array<Card> = [];
+    const pageWindowLimit = input.limit + 1;
     const baseIterator = input.sorts[0]?.key === "dueAt"
       ? iterateCardsByDueAtAsc(database, (card) => {
         if (card.deletedAt !== null) {
@@ -1415,7 +1455,12 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
           return true;
         }
 
-        matchingCards = [...matchingCards, card];
+        matchingCount += 1;
+        if (shouldUseCursorCard && compareCardsForCardsQuery(card, cursorCard, input.sorts) <= 0) {
+          return true;
+        }
+
+        pageWindow = insertCardIntoSortedWindow(pageWindow, card, input.sorts, pageWindowLimit) as Array<Card>;
         return true;
       })
       : iterateCardsByCreatedAtDesc(database, (card) => {
@@ -1432,20 +1477,25 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
           return true;
         }
 
-        matchingCards = [...matchingCards, card];
+        matchingCount += 1;
+        if (shouldUseCursorCard && compareCardsForCardsQuery(card, cursorCard, input.sorts) <= 0) {
+          return true;
+        }
+
+        pageWindow = insertCardIntoSortedWindow(pageWindow, card, input.sorts, pageWindowLimit) as Array<Card>;
         return true;
       });
 
     await baseIterator;
-    matchingCards = [...matchingCards].sort((leftCard, rightCard) => compareCardsForCardsQuery(leftCard, rightCard, input.sorts));
-
-    const startIndex = resolveCardsPageStartIndex(matchingCards, input.cursor);
-    const pageCards = matchingCards.slice(startIndex, startIndex + input.limit);
+    const hasMoreCards = pageWindow.length > input.limit;
+    const pageCards = hasMoreCards
+      ? pageWindow.slice(0, input.limit)
+      : pageWindow;
 
     return {
       cards: pageCards,
-      nextCursor: buildCardsPageCursor(matchingCards, pageCards),
-      totalCount: matchingCards.length,
+      nextCursor: buildCardsPageCursorFromPage(pageCards, hasMoreCards),
+      totalCount: matchingCount,
     };
   } finally {
     database.close();
