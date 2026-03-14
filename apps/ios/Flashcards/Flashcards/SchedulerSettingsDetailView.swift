@@ -125,8 +125,16 @@ struct SchedulerSettingsDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .scrollDismissesKeyboard(.immediately)
         .navigationTitle("Scheduler settings")
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+
+                Button("Done") {
+                    self.focusedField = nil
+                }
+            }
+        }
         .alert(
             "Apply scheduler settings?",
             isPresented: self.$isSaveConfirmationPresented,
@@ -239,6 +247,10 @@ struct SchedulerSettingsDetailView: View {
                 .keyboardType(keyboardType)
                 .textInputAutocapitalization(autocapitalization)
                 .focused(focusedField, equals: field)
+                .submitLabel(.done)
+                .onSubmit {
+                    focusedField.wrappedValue = nil
+                }
 
             SchedulerSettingNote(text: note)
         }

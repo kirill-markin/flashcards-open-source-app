@@ -163,8 +163,11 @@ struct CloudSignInSheet: View {
                             .autocorrectionDisabled()
                             .keyboardType(.emailAddress)
                             .textContentType(.emailAddress)
-                            .submitLabel(.done)
+                            .submitLabel(.send)
                             .focused(self.$isEmailFieldFocused)
+                            .onSubmit {
+                                self.sendCode()
+                            }
 
                         Button("Send code") {
                             self.sendCode()
@@ -172,7 +175,6 @@ struct CloudSignInSheet: View {
                         .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
                     }
                 }
-                .scrollDismissesKeyboard(.immediately)
             }
             .navigationTitle("Sign in")
             .navigationBarTitleDisplayMode(.inline)
@@ -262,6 +264,8 @@ struct CloudSignInSheet: View {
     }
 
     private func sendCode() {
+        self.isEmailFieldFocused = false
+
         guard isValidCloudEmail(self.email) else {
             self.errorMessage = "Enter a valid email address"
             return
@@ -524,7 +528,6 @@ private struct CloudOtpVerificationSheet: View {
                     }
                 }
             }
-            .scrollDismissesKeyboard(.immediately)
             .navigationTitle("Verify code")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -533,6 +536,14 @@ private struct CloudOtpVerificationSheet: View {
                         self.onReturnToEmail()
                     }
                     .disabled(self.isVerifyingCode || self.isSendingCode || self.currentChallenge == nil)
+                }
+
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+
+                    Button("Done") {
+                        self.isCodeFieldFocused = false
+                    }
                 }
             }
         }
@@ -558,6 +569,8 @@ private struct CloudOtpVerificationSheet: View {
     }
 
     private func verifyCode() {
+        self.isCodeFieldFocused = false
+
         let nextCode = normalizedOtpCode(self.code)
         guard nextCode.isEmpty == false else {
             self.errorMessage = "Code is required"
