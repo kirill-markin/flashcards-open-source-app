@@ -4,6 +4,7 @@ let aiChatDefaultModelId: String = "gpt-5.4"
 let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 let aiChatOptimisticAssistantStatusText: String = "Looking through your cards..."
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
+let aiChatExternalProviderConsentRequiredMessage: String = "Review AI data use and accept it on this device before using AI features."
 let aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
 let aiChatSupportedFileExtensions: Set<String> = [
     "pdf",
@@ -36,6 +37,17 @@ let aiChatLocalToolNames: Set<String> = [
     "get_cloud_settings",
     "list_outbox",
 ]
+let aiChatExternalProviderDisclosureItems: [String] = [
+    "Typed prompts and card-derived context needed for your request can be sent to external AI providers.",
+    "Uploaded files and images can be uploaded for AI processing.",
+    "Dictated audio and transcription requests can be sent for speech processing.",
+]
+
+enum AIChatAccessState: Equatable {
+    case signInRequired
+    case consentRequired
+    case ready
+}
 
 func hasAIChatExternalProviderConsent(userDefaults: UserDefaults) -> Bool {
     userDefaults.bool(forKey: aiChatExternalProviderConsentUserDefaultsKey)
@@ -43,6 +55,21 @@ func hasAIChatExternalProviderConsent(userDefaults: UserDefaults) -> Bool {
 
 func grantAIChatExternalProviderConsent(userDefaults: UserDefaults) {
     userDefaults.set(true, forKey: aiChatExternalProviderConsentUserDefaultsKey)
+}
+
+func aiChatAccessState(
+    cloudState: CloudAccountState?,
+    hasExternalProviderConsent: Bool
+) -> AIChatAccessState {
+    guard cloudState == .linked else {
+        return .signInRequired
+    }
+
+    guard hasExternalProviderConsent else {
+        return .consentRequired
+    }
+
+    return .ready
 }
 
 func aiChatAppVersion() -> String {

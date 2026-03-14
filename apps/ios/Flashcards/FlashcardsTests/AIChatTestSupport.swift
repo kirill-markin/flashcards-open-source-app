@@ -916,7 +916,7 @@ class AIChatTestCaseBase: XCTestCase {
             )
         )
 
-        return FlashcardsStore(
+        let store = FlashcardsStore(
             userDefaults: userDefaults,
             encoder: encoder,
             decoder: decoder,
@@ -925,6 +925,15 @@ class AIChatTestCaseBase: XCTestCase {
             credentialStore: credentialStore,
             initialGlobalErrorMessage: ""
         )
+        grantAIChatExternalProviderConsent(userDefaults: userDefaults)
+        return store
+    }
+
+    @MainActor
+    func makeLinkedStoreWithoutAIConsent() throws -> FlashcardsStore {
+        let store = try self.makeLinkedStore()
+        store.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
+        return store
     }
 
     @MainActor

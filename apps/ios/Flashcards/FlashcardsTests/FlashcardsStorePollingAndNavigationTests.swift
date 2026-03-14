@@ -178,6 +178,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
             .workspaceDevice,
             .account,
             .accountStatus,
+            .accountLegalSupport,
             .accountAgentConnections,
             .accountDangerZone,
         ]
@@ -192,8 +193,20 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
             .workspaceDevice,
             .account,
             .accountStatus,
+            .accountLegalSupport,
             .accountAgentConnections,
             .accountDangerZone,
         ])
+    }
+
+    func testFlashcardsPublicUrlsMatchAppReviewSubmissionContract() {
+        XCTAssertEqual(flashcardsMainWebsiteUrl, "https://flashcards-open-source-app.com")
+        XCTAssertEqual(flashcardsPrivacyPolicyUrl, "https://flashcards-open-source-app.com/privacy/")
+        XCTAssertEqual(flashcardsTermsOfServiceUrl, "https://flashcards-open-source-app.com/terms/")
+        XCTAssertEqual(flashcardsSupportUrl, "https://flashcards-open-source-app.com/support/")
+        XCTAssertEqual(
+            flashcardsRepositoryUrl,
+            "https://github.com/kirill-markin/flashcards-open-source-app"
+        )
     }
 }

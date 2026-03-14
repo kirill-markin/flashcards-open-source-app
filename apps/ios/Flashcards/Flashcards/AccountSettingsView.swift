@@ -20,6 +20,14 @@ struct AccountSettingsView: View {
                     )
                 }
 
+                NavigationLink(value: SettingsNavigationDestination.accountLegalSupport) {
+                    SettingsNavigationRow(
+                        title: "Legal & Support",
+                        value: "Privacy + Support",
+                        systemImage: "doc.text"
+                    )
+                }
+
                 NavigationLink(value: SettingsNavigationDestination.accountOpenSource) {
                     SettingsNavigationRow(
                         title: "Open Source",

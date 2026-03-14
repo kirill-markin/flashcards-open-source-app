@@ -166,7 +166,12 @@ final class AIChatStore: ObservableObject {
         self.isStreaming == false
             && self.dictationState == .idle
             && self.flashcardsStore.cloudSettings?.cloudState == .linked
+            && self.hasExternalProviderConsent
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
+    }
+
+    private var hasExternalProviderConsent: Bool {
+        hasAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
     }
 
     func setSelectedModel(modelId: String) {
@@ -182,6 +187,11 @@ final class AIChatStore: ObservableObject {
     }
 
     func appendAttachment(_ attachment: AIChatAttachment) {
+        guard self.hasExternalProviderConsent else {
+            self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
+            return
+        }
+
         self.pendingAttachments.append(attachment)
     }
 
@@ -236,8 +246,17 @@ final class AIChatStore: ObservableObject {
     func toggleDictation() {
         switch self.dictationState {
         case .idle:
+            guard self.hasExternalProviderConsent else {
+                self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
+                return
+            }
             self.startDictation()
         case .recording:
+            guard self.hasExternalProviderConsent else {
+                self.cancelDictation()
+                self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
+                return
+            }
             self.finishDictation()
         case .requestingPermission, .transcribing:
             return
@@ -278,6 +297,9 @@ final class AIChatStore: ObservableObject {
         guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
             return
         }
+        guard self.hasExternalProviderConsent else {
+            return
+        }
 
         Task {
             await self.flashcardsStore.warmUpAuthenticatedCloudSessionForAI()
@@ -298,6 +320,10 @@ final class AIChatStore: ObservableObject {
 
         guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
             self.showGeneralError(message: "AI chat requires cloud sign-in.")
+            return
+        }
+        guard self.hasExternalProviderConsent else {
+            self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
             return
         }
 
@@ -417,6 +443,11 @@ final class AIChatStore: ObservableObject {
             }
 
             do {
+                guard self.hasExternalProviderConsent else {
+                    self.dictationState = .idle
+                    self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
+                    return
+                }
                 guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
                     self.dictationState = .idle
                     self.showGeneralError(message: "AI chat requires cloud sign-in.")

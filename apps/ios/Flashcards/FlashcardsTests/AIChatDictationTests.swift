@@ -204,6 +204,32 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         chatStore.cancelStreaming()
     }
 
+    func testAIChatStoreBlocksDictationWhenExternalAIConsentIsMissing() throws {
+        let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
+        let failingToolExecutor = FailingToolExecutor()
+        let recorder = StubVoiceRecorder(mode: .success)
+        let transcriber = StubAudioTranscriber(result: .success("dictated text"))
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor,
+            voiceRecorder: recorder,
+            audioTranscriber: transcriber
+        )
+
+        chatStore.toggleDictation()
+
+        XCTAssertEqual(chatStore.dictationState, .idle)
+        XCTAssertEqual(
+            chatStore.activeAlert,
+            .generalError(message: aiChatExternalProviderConsentRequiredMessage)
+        )
+    }
+
     func testAIChatAvailabilityMessageUsesOfficialAndCustomServerCopy() {
         XCTAssertEqual(
             aiChatAvailabilityMessage(

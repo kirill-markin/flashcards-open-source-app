@@ -48,20 +48,19 @@ struct AIChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if self.flashcardsStore.cloudSettings?.cloudState == .linked {
-                if self.hasAcceptedExternalAIConsent {
-                    self.chatContent
-                } else {
-                    self.consentGate
-                }
-            } else {
+            switch self.accessState {
+            case .signInRequired:
                 self.signInGate
+            case .consentRequired:
+                self.consentGate
+            case .ready:
+                self.chatContent
             }
         }
         .navigationTitle("AI")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if self.hasAcceptedExternalAIConsent {
+            if self.accessState == .ready {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("New") {
                         self.chatStore.clearHistory()
@@ -71,6 +70,7 @@ struct AIChatView: View {
             }
         }
         .onAppear {
+            self.refreshExternalAIConsentState()
             guard self.hasAcceptedExternalAIConsent else {
                 return
             }
@@ -91,6 +91,7 @@ struct AIChatView: View {
                 self.chatStore.cancelDictation()
                 return
             }
+            self.refreshExternalAIConsentState()
             guard self.hasAcceptedExternalAIConsent else {
                 return
             }
@@ -206,6 +207,13 @@ struct AIChatView: View {
             && self.chatStore.dictationState == .idle
     }
 
+    private var accessState: AIChatAccessState {
+        aiChatAccessState(
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            hasExternalProviderConsent: self.hasAcceptedExternalAIConsent
+        )
+    }
+
     private var signInGate: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -235,20 +243,34 @@ struct AIChatView: View {
                 Text("Before you use AI")
                     .font(.title3.weight(.semibold))
 
-                Text("AI chat sends your requests to external AI providers. Please confirm that you want to use that flow on this device.")
+                Text("Hosted AI is optional. Before you use it on this device, please confirm that you understand which requests can be sent to external AI providers configured on the server.")
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Label("Your chat text can be sent to external AI providers.", systemImage: "text.bubble")
-                    Label("Photos, files, and recorded audio you attach can be uploaded for processing.", systemImage: "paperclip")
-                    Label("We may send technical diagnostics for failed or slow AI requests.", systemImage: "waveform.path.ecg")
+                    ForEach(aiChatExternalProviderDisclosureItems, id: \.self) { item in
+                        Label(item, systemImage: "checkmark.circle")
+                    }
+                    Label("The exact AI provider depends on the current hosted server configuration.", systemImage: "server.rack")
                 }
                 .font(.subheadline)
 
                 Text("Cards, decks, and review continue to work without AI.")
                     .foregroundStyle(.secondary)
 
-                Button("I agree to use external AI") {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let privacyUrl = URL(string: flashcardsPrivacyPolicyUrl) {
+                        Link("Privacy Policy", destination: privacyUrl)
+                    }
+                    if let termsUrl = URL(string: flashcardsTermsOfServiceUrl) {
+                        Link("Terms of Service", destination: termsUrl)
+                    }
+                    if let supportUrl = URL(string: flashcardsSupportUrl) {
+                        Link("Support", destination: supportUrl)
+                    }
+                }
+                .font(.subheadline.weight(.medium))
+
+                Button("I understand and continue") {
                     self.acceptExternalAIConsent()
                 }
                 .buttonStyle(.borderedProminent)
@@ -560,6 +582,22 @@ struct AIChatView: View {
         self.chatStore.warmUpSessionIfNeeded()
     }
 
+    private func refreshExternalAIConsentState() {
+        self.hasAcceptedExternalAIConsent = hasAIChatExternalProviderConsent(
+            userDefaults: self.flashcardsStore.userDefaults
+        )
+    }
+
+    private func ensureExternalAIConsent() -> Bool {
+        self.refreshExternalAIConsentState()
+        guard self.hasAcceptedExternalAIConsent else {
+            self.chatStore.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
+            return false
+        }
+
+        return true
+    }
+
     private func handleAIChatPresentationRequest(request: AIChatPresentationRequest?) {
         guard let request else {
             return
@@ -583,6 +621,9 @@ struct AIChatView: View {
 
     private func handleDictationButtonTap() {
         if self.chatStore.dictationState == .idle {
+            guard self.ensureExternalAIConsent() else {
+                return
+            }
             self.shouldRestoreComposerFocusAfterDictation = self.isComposerFocused
             if self.isComposerFocused == false {
                 self.composerSelection = nil
@@ -778,6 +819,10 @@ struct AIChatView: View {
 
     private func handleSelectedPhotoItem(_ item: PhotosPickerItem) async {
         do {
+            guard self.ensureExternalAIConsent() else {
+                self.selectedPhotoItem = nil
+                return
+            }
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 self.chatStore.showGeneralError(message: "Failed to read the selected photo.")
                 self.selectedPhotoItem = nil
@@ -801,6 +846,9 @@ struct AIChatView: View {
 
     private func handleCapturedPhotoData(_ data: Data) {
         do {
+            guard self.ensureExternalAIConsent() else {
+                return
+            }
             let attachment = try aiChatMakeImageAttachment(
                 data: data,
                 fileName: "photo.jpg",
@@ -814,6 +862,9 @@ struct AIChatView: View {
 
     private func handleImportedFiles(_ urls: [URL]) async {
         do {
+            guard self.ensureExternalAIConsent() else {
+                return
+            }
             for url in urls {
                 let attachment = try aiChatMakeAttachmentFromFile(url: url)
                 self.chatStore.appendAttachment(attachment)
@@ -829,11 +880,17 @@ struct AIChatView: View {
             return
         }
 
+        guard self.ensureExternalAIConsent() else {
+            return
+        }
         self.chatStore.sendMessage()
         self.isComposerFocused = true
     }
 
     private func handleAttachmentMenuAction(_ action: AIChatAttachmentMenuAction) {
+        guard self.ensureExternalAIConsent() else {
+            return
+        }
         self.isComposerFocused = false
 
         switch action {
