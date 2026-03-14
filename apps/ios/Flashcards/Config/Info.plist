@@ -30,6 +30,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Allow camera access to take photos for AI chat attachments.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow photo library access to choose photos for AI chat attachments.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Allow microphone access to dictate text into AI chat.</string>
 	<key>UIApplicationSceneManifest</key>
