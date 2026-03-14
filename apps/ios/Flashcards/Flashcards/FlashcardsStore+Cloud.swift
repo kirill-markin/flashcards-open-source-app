@@ -503,6 +503,7 @@ extension FlashcardsStore {
         try self.cloudRuntime.clearCredentials()
         self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
+        self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
         self.aiChatStore.clearHistory()
         try database.resetForAccountDeletion()
         self.syncStatus = .idle
