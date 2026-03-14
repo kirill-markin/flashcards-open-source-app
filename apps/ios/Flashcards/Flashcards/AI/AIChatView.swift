@@ -1065,7 +1065,7 @@ private func aiChatComposerAccessoryIcon(systemName: String) -> some View {
         .frame(width: 16, height: 16)
 }
 
-private func aiChatDictationInsertionSelection(
+func aiChatDictationInsertionSelection(
     text: String,
     selection: TextSelection?
 ) -> AIChatDictationInsertionSelection? {
@@ -1075,15 +1075,30 @@ private func aiChatDictationInsertionSelection(
 
     switch selection.indices {
     case .selection(let range):
+        guard
+            let startUtf16Offset = aiChatUtf16Offset(text: text, index: range.lowerBound),
+            let endUtf16Offset = aiChatUtf16Offset(text: text, index: range.upperBound)
+        else {
+            return nil
+        }
+
         return AIChatDictationInsertionSelection(
-            startUtf16Offset: range.lowerBound.utf16Offset(in: text),
-            endUtf16Offset: range.upperBound.utf16Offset(in: text)
+            startUtf16Offset: startUtf16Offset,
+            endUtf16Offset: endUtf16Offset
         )
     case .multiSelection:
         return nil
     @unknown default:
         return nil
     }
+}
+
+private func aiChatUtf16Offset(text: String, index: String.Index) -> Int? {
+    guard let utf16Index = index.samePosition(in: text.utf16) else {
+        return nil
+    }
+
+    return text.utf16.distance(from: text.utf16.startIndex, to: utf16Index)
 }
 
 private func aiChatTextSelection(
