@@ -12,6 +12,8 @@ const makeJsonRequest = (body: Readonly<Record<string, string>>): Request =>
 test("agent verify-code rejects an invalid OTP handle", async () => {
   const app = createAgentVerifyCodeApp({
     lookupAgentOtpChallenge: async () => ({ status: "invalid" }),
+    getOtpVerifyAttemptState: async () => ({ status: "expired_or_missing" }),
+    recordOtpVerifyFailure: async () => ({ failedAttemptCount: 1, locked: false }),
     verifyEmailOtp: async () => {
       throw new Error("verifyEmailOtp should not be called");
     },
@@ -40,7 +42,10 @@ test("agent verify-code returns env-var guidance with the new API key", async ()
       status: "active",
       email: "user@example.com",
       cognitoSession: "session-1",
+      expiresAt: "2026-03-14T07:03:00.000Z",
     }),
+    getOtpVerifyAttemptState: async () => ({ status: "expired_or_missing" }),
+    recordOtpVerifyFailure: async () => ({ failedAttemptCount: 1, locked: false }),
     verifyEmailOtp: async () => ({
       idToken: "header.payload.signature",
       accessToken: "access-token",
@@ -95,4 +100,79 @@ test("agent verify-code returns env-var guidance with the new API key", async ()
     "create_workspace",
     "select_workspace",
   ]);
+});
+
+test("agent verify-code returns OTP_TOO_MANY_ATTEMPTS on the fifth invalid code", async () => {
+  const invalidCodeError = new Error("Code mismatch") as Error & { cognitoType: string };
+  invalidCodeError.cognitoType = "CodeMismatchException";
+
+  const app = createAgentVerifyCodeApp({
+    lookupAgentOtpChallenge: async () => ({
+      status: "active",
+      email: "user@example.com",
+      cognitoSession: "session-1",
+      expiresAt: "2026-03-14T07:03:00.000Z",
+    }),
+    getOtpVerifyAttemptState: async () => ({ status: "active", failedAttemptCount: 4, expiresAt: "2026-03-14T07:03:00.000Z" }),
+    recordOtpVerifyFailure: async () => ({ failedAttemptCount: 5, locked: true }),
+    verifyEmailOtp: async () => {
+      throw invalidCodeError;
+    },
+    markAgentOtpChallengeUsed: async () => Promise.resolve(),
+    normalizeAgentApiKeyLabel: (label: string) => label.trim(),
+    createAgentApiKeyFromIdToken: async () => {
+      throw new Error("createAgentApiKeyFromIdToken should not be called");
+    },
+    now: () => 123_456,
+  });
+
+  const response = await app.request(makeJsonRequest({
+    code: "12345678",
+    otpSessionToken: "ABCD-EFGH-IJKL-MNPQ-1234",
+    label: "agent",
+  }));
+  const body = await response.json() as { error: { code: string } };
+
+  assert.equal(response.status, 429);
+  assert.equal(body.error.code, "OTP_TOO_MANY_ATTEMPTS");
+});
+
+test("agent verify-code short-circuits locked challenges", async () => {
+  let verifyCalls = 0;
+  const app = createAgentVerifyCodeApp({
+    lookupAgentOtpChallenge: async () => ({
+      status: "active",
+      email: "user@example.com",
+      cognitoSession: "session-1",
+      expiresAt: "2026-03-14T07:03:00.000Z",
+    }),
+    getOtpVerifyAttemptState: async () => ({
+      status: "locked",
+      failedAttemptCount: 5,
+      expiresAt: "2026-03-14T07:03:00.000Z",
+      lockedAt: "2026-03-14T07:01:00.000Z",
+    }),
+    recordOtpVerifyFailure: async () => ({ failedAttemptCount: 5, locked: true }),
+    verifyEmailOtp: async () => {
+      verifyCalls += 1;
+      throw new Error("verifyEmailOtp should not be called");
+    },
+    markAgentOtpChallengeUsed: async () => Promise.resolve(),
+    normalizeAgentApiKeyLabel: (label: string) => label.trim(),
+    createAgentApiKeyFromIdToken: async () => {
+      throw new Error("createAgentApiKeyFromIdToken should not be called");
+    },
+    now: () => 123_456,
+  });
+
+  const response = await app.request(makeJsonRequest({
+    code: "12345678",
+    otpSessionToken: "ABCD-EFGH-IJKL-MNPQ-1234",
+    label: "agent",
+  }));
+  const body = await response.json() as { error: { code: string } };
+
+  assert.equal(response.status, 429);
+  assert.equal(body.error.code, "OTP_TOO_MANY_ATTEMPTS");
+  assert.equal(verifyCalls, 0);
 });

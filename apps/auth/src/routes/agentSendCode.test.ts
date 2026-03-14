@@ -57,3 +57,20 @@ test("agent send-code reissues the latest handle without sending another email",
   assert.equal(body.data.otpSessionToken, "QRST-VWXY-Z234-5678-9ABC");
   assert.deepEqual(calls, []);
 });
+
+test("agent send-code stays rate-limited when suppression has no reusable challenge", async () => {
+  const app = createAgentSendCodeApp({
+    initiateEmailOtp: async () => ({ session: "session-1" }),
+    decideOtpRateLimit: async () => ({ kind: "suppress_email_limit" }),
+    recordOtpSendDecision: async () => Promise.resolve(),
+    createAgentOtpChallenge: async () => "UNUSED",
+    reissueLatestAgentOtpChallenge: async () => null,
+    now: () => 123_456,
+  });
+
+  const response = await app.request(makeJsonRequest({ email: "user@example.com" }));
+  const body = await response.json() as { error: { code: string } };
+
+  assert.equal(response.status, 429);
+  assert.equal(body.error.code, "RATE_LIMITED");
+});

@@ -1,5 +1,6 @@
 import { query, transaction } from "../db.js";
 import { createCrockfordToken, hashOpaqueToken, normalizeCrockfordToken } from "./crockford.js";
+import { getOtpVerifyAttemptState } from "./otpVerifyAttempts.js";
 
 const AGENT_OTP_HANDLE_LENGTH = 20;
 export const AGENT_OTP_HANDLE_TTL_MS = 180_000;
@@ -14,7 +15,7 @@ type AgentOtpChallengeRow = Readonly<{
 }>;
 
 export type AgentOtpChallengeLookup =
-  | Readonly<{ status: "active"; email: string; cognitoSession: string }>
+  | Readonly<{ status: "active"; email: string; cognitoSession: string; expiresAt: string }>
   | Readonly<{ status: "invalid" }>
   | Readonly<{ status: "expired"; email: string }>
   | Readonly<{ status: "used"; email: string }>;
@@ -65,26 +66,31 @@ export async function reissueLatestAgentOtpChallenge(
         "AND used_at IS NULL",
         "AND expires_at > $2",
         "ORDER BY created_at DESC, challenge_id_hash DESC",
-        "LIMIT 1",
+        "LIMIT 20",
       ].join(" "),
       [email, new Date(nowMs)],
     );
-    const row = result.rows[0];
-    if (row === undefined) {
-      return null;
+
+    for (const row of result.rows) {
+      const state = await getOtpVerifyAttemptState(row.email, row.cognito_session, nowMs);
+      if (state.status === "locked") {
+        continue;
+      }
+
+      const handle = createCrockfordToken(AGENT_OTP_HANDLE_LENGTH);
+      await executor.query(
+        [
+          "INSERT INTO auth.agent_otp_challenges",
+          "(challenge_id_hash, email, cognito_session, created_at, expires_at)",
+          "VALUES ($1, $2, $3, $4, $5)",
+        ].join(" "),
+        [hashOpaqueToken(handle), email, row.cognito_session, new Date(nowMs), row.expires_at],
+      );
+
+      return handle;
     }
 
-    const handle = createCrockfordToken(AGENT_OTP_HANDLE_LENGTH);
-    await executor.query(
-      [
-        "INSERT INTO auth.agent_otp_challenges",
-        "(challenge_id_hash, email, cognito_session, created_at, expires_at)",
-        "VALUES ($1, $2, $3, $4, $5)",
-      ].join(" "),
-      [hashOpaqueToken(handle), email, row.cognito_session, new Date(nowMs), row.expires_at],
-    );
-
-    return handle;
+    return null;
   });
 }
 
@@ -129,7 +135,12 @@ export async function lookupAgentOtpChallenge(
     status: "active",
     email: row.email,
     cognitoSession: row.cognito_session,
+    expiresAt: toIsoString(row.expires_at),
   };
+}
+
+function toIsoString(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
 /**
