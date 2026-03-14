@@ -445,6 +445,7 @@ struct CardSyncPayload: Codable, Hashable {
             try container.encodeNil(forKey: .dueAt)
         }
 
+        try container.encode(self.createdAt, forKey: .createdAt)
         try container.encode(self.reps, forKey: .reps)
         try container.encode(self.lapses, forKey: .lapses)
         try container.encode(self.fsrsCardState, forKey: .fsrsCardState)

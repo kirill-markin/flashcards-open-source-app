@@ -5,6 +5,9 @@ private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
+private let reviewBottomBarFloatingBottomPadding: CGFloat = 12
+private let reviewShowAnswerContentBottomPadding: CGFloat = 104
+private let reviewAnswerGridContentBottomPadding: CGFloat = 152
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 private let emptyBackTextPlaceholder: String = "No back text"
@@ -251,11 +254,12 @@ struct ReviewView: View {
                 horizontalPadding: 20
             ) {
                 activeCardContentView(card: card, preparedRevealState: preparedRevealState)
-                    .padding(.vertical, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, reviewBottomBarContentBottomPadding(preparedRevealState: preparedRevealState))
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            reviewBottomBar(card: card, preparedRevealState: preparedRevealState)
+        .overlay(alignment: .bottom) {
+            reviewBottomBarOverlay(card: card, preparedRevealState: preparedRevealState)
         }
     }
 
@@ -318,14 +322,10 @@ struct ReviewView: View {
     private func reviewBottomBar(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
         if isAnswerVisible {
             if let options = preparedRevealState.reviewAnswerGridOptions {
-                reviewBottomBarContainer {
-                    reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
-                }
+                reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
             }
         } else {
-            reviewBottomBarContainer {
-                showAnswerButton
-            }
+            showAnswerButton
         }
     }
 
@@ -337,7 +337,8 @@ struct ReviewView: View {
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: showAnswerButtonMinHeight)
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.glass)
+        .tint(.accentColor)
     }
 
     private func reviewAnswerButtonsGrid(cardId: String, options: ReviewAnswerGridOptions) -> some View {
@@ -376,27 +377,31 @@ struct ReviewView: View {
             }
             .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .center)
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.glass)
+        .tint(.accentColor)
         .disabled(store.isReviewPending(cardId: cardId))
     }
 
-    private func reviewBottomBarContainer<Content: View>(
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(spacing: 0) {
-            Divider()
-
-            ReadableContentLayout(
-                maxWidth: flashcardsReadableContentMaxWidth,
-                horizontalPadding: reviewBottomBarHorizontalPadding
-            ) {
-                content()
-                    .padding(.top, reviewBottomBarTopPadding)
-                    .padding(.bottom, reviewBottomBarBottomPadding)
-            }
+    private func reviewBottomBarOverlay(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
+        ReadableContentLayout(
+            maxWidth: flashcardsReadableContentMaxWidth,
+            horizontalPadding: reviewBottomBarHorizontalPadding
+        ) {
+            reviewBottomBar(card: card, preparedRevealState: preparedRevealState)
+                .padding(.top, reviewBottomBarTopPadding)
+                .padding(.bottom, reviewBottomBarBottomPadding)
         }
-        .background(.regularMaterial)
-        .shadow(color: Color.black.opacity(0.08), radius: 10, y: -2)
+        .padding(.bottom, reviewBottomBarFloatingBottomPadding)
+    }
+
+    private func reviewBottomBarContentBottomPadding(
+        preparedRevealState: PreparedReviewRevealState
+    ) -> CGFloat {
+        if isAnswerVisible, preparedRevealState.reviewAnswerGridOptions != nil {
+            return reviewAnswerGridContentBottomPadding
+        }
+
+        return reviewShowAnswerContentBottomPadding
     }
 
     private func reviewActionErrorMessage(card: Card) -> String? {
