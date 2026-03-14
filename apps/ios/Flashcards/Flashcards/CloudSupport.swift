@@ -19,6 +19,12 @@ enum CloudConfigurationError: LocalizedError, Equatable {
 
 let customCloudServerOverrideUserDefaultsKey: String = "custom-cloud-server-override"
 let pendingCloudServerBootstrapUserDefaultsKey: String = "pending-cloud-server-bootstrap"
+let flashcardsMainWebsiteUrl: String = "https://flashcards-open-source-app.com"
+let flashcardsPrivacyPolicyUrl: String = "\(flashcardsMainWebsiteUrl)/privacy/"
+let flashcardsTermsOfServiceUrl: String = "\(flashcardsMainWebsiteUrl)/terms/"
+let flashcardsSupportUrl: String = "\(flashcardsMainWebsiteUrl)/support/"
+let flashcardsSupportEmailAddress: String = "kirill@kirill-markin.com"
+let flashcardsSupportEmailUrl: String = "mailto:\(flashcardsSupportEmailAddress)"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
 
 func loadCloudServiceConfiguration(

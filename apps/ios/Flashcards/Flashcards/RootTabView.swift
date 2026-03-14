@@ -61,6 +61,8 @@ struct RootTabView: View {
                             AccountSettingsView()
                         case .accountStatus:
                             AccountStatusView()
+                        case .accountLegalSupport:
+                            AccountLegalSupportView()
                         case .accountOpenSource:
                             AccountOpenSourceView()
                         case .accountAdvanced:
@@ -154,6 +156,8 @@ struct RootTabView: View {
             return [.account]
         case .accountStatus:
             return [.account, .accountStatus]
+        case .accountLegalSupport:
+            return [.account, .accountLegalSupport]
         case .accountOpenSource:
             return [.account, .accountOpenSource]
         case .accountAdvanced:

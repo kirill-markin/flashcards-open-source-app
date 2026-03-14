@@ -25,6 +25,30 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testAIChatStoreBlocksSendWhenExternalAIConsentIsMissing() throws {
+        let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        XCTAssertEqual(chatStore.messages.count, 0)
+        XCTAssertEqual(
+            chatStore.activeAlert,
+            .generalError(message: aiChatExternalProviderConsentRequiredMessage)
+        )
+    }
+
+    @MainActor
     func testAIChatStoreShowsStreamFailureOnlyInsideAssistantMessage() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()
@@ -227,6 +251,75 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.messages, [])
         XCTAssertNil(chatStore.activeAlert)
         XCTAssertFalse(chatStore.isStreaming)
+    }
+
+    @MainActor
+    func testAIChatStoreWarmUpIsNoOpWhenExternalAIConsentIsMissing() async throws {
+        let requestRecorder = RequestRecorder()
+        AIChatMockUrlProtocol.requestHandler = { request in
+            requestRecorder.append(request)
+
+            let response = HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let body = """
+            {"ok":true,"idToken":"refreshed-token","expiresIn":3600}
+            """.data(using: .utf8)!
+            return (response, body)
+        }
+
+        let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.warmUpSessionIfNeeded()
+        try await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(requestRecorder.snapshot().count, 0)
+        XCTAssertEqual(chatStore.messages, [])
+        XCTAssertNil(chatStore.activeAlert)
+        XCTAssertFalse(chatStore.isStreaming)
+    }
+
+    @MainActor
+    func testAIChatStoreBlocksAttachmentWhenExternalAIConsentIsMissing() throws {
+        let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            snapshotLoader: failingToolExecutor
+        )
+
+        chatStore.appendAttachment(
+            AIChatAttachment(
+                id: "attachment-1",
+                fileName: "notes.txt",
+                mediaType: "text/plain",
+                base64Data: Data("hello".utf8).base64EncodedString()
+            )
+        )
+
+        XCTAssertTrue(chatStore.pendingAttachments.isEmpty)
+        XCTAssertEqual(
+            chatStore.activeAlert,
+            .generalError(message: aiChatExternalProviderConsentRequiredMessage)
+        )
     }
 
     @MainActor
