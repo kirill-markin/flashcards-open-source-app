@@ -20,10 +20,45 @@ private struct CloudOtpSheetState: Identifiable, Hashable {
     }
 }
 
-private enum CloudPostAuthRetryAction: Hashable {
+enum CloudPostAuthRetryAction: Hashable {
     case prepareLink(verifiedContext: CloudVerifiedAuthContext)
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case syncOnly
+}
+
+enum CloudPostAuthSyncOperation: Hashable {
+    case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
+    case syncOnly
+}
+
+struct CloudPostAuthFailurePresentation: Equatable {
+    let title: String
+    let retryAction: CloudPostAuthRetryAction
+}
+
+func makeCloudPostAuthFailurePresentation(
+    operation: CloudPostAuthSyncOperation,
+    cloudState: CloudAccountState?
+) -> CloudPostAuthFailurePresentation {
+    switch operation {
+    case .completeLink(let linkContext, let selection):
+        if cloudState == .linked {
+            return CloudPostAuthFailurePresentation(
+                title: "Signed in, but initial sync failed.",
+                retryAction: .syncOnly
+            )
+        }
+
+        return CloudPostAuthFailurePresentation(
+            title: "Signed in, but cloud setup failed.",
+            retryAction: .completeLink(linkContext: linkContext, selection: selection)
+        )
+    case .syncOnly:
+        return CloudPostAuthFailurePresentation(
+            title: "Signed in, but initial sync failed.",
+            retryAction: .syncOnly
+        )
+    }
 }
 
 private struct CloudPostAuthFailureState: Identifiable, Hashable {
@@ -48,6 +83,28 @@ private struct CloudPostAuthLoadingState: Identifiable, Hashable {
         self.id = UUID().uuidString
         self.verifiedContext = verifiedContext
     }
+}
+
+private struct CloudPostAuthSyncState: Identifiable, Hashable {
+    let id: String
+    let operation: CloudPostAuthSyncOperation
+
+    init(operation: CloudPostAuthSyncOperation) {
+        self.id = UUID().uuidString
+        self.operation = operation
+    }
+}
+
+struct CloudPostAuthSyncPresentation: Equatable {
+    let title: String
+    let message: String
+}
+
+func makeCloudPostAuthSyncPresentation() -> CloudPostAuthSyncPresentation {
+    CloudPostAuthSyncPresentation(
+        title: "Your account is syncing with the cloud.",
+        message: "Please do not turn off your phone. This usually takes a few minutes."
+    )
 }
 
 enum CloudWorkspacePostAuthRoute: Equatable {
@@ -75,11 +132,11 @@ struct CloudSignInSheet: View {
     @State private var email: String = ""
     @State private var otpSheetState: CloudOtpSheetState?
     @State private var postAuthLoadingState: CloudPostAuthLoadingState?
+    @State private var postAuthSyncState: CloudPostAuthSyncState?
     @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
     @State private var postAuthFailureState: CloudPostAuthFailureState?
     @State private var errorMessage: String = ""
     @State private var isSendingCode: Bool = false
-    @State private var isAutoLinkingWorkspace: Bool = false
     @State private var isDisconnectConfirmationPresented: Bool = false
 
     var body: some View {
@@ -123,7 +180,7 @@ struct CloudSignInSheet: View {
                     Button("Close") {
                         self.dismiss()
                     }
-                    .disabled(self.isSendingCode || self.isAutoLinkingWorkspace)
+                    .disabled(self.isSendingCode)
                 }
             }
             .sheet(item: self.$otpSheetState) { otpState in
@@ -135,6 +192,7 @@ struct CloudSignInSheet: View {
                     onReturnToEmail: {
                         self.otpSheetState = nil
                         self.postAuthLoadingState = nil
+                        self.postAuthSyncState = nil
                         self.workspaceLinkContext = nil
                         self.postAuthFailureState = nil
                         self.scheduleEmailFieldFocus()
@@ -148,28 +206,17 @@ struct CloudSignInSheet: View {
                         self.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
                     }
             }
+            .sheet(item: self.$postAuthSyncState) { syncState in
+                CloudPostAuthSyncSheet()
+                    .task(id: syncState.id) {
+                        self.runPostAuthSync(syncState)
+                    }
+            }
             .sheet(item: self.$workspaceLinkContext) { linkContext in
                 CloudWorkspaceSelectionSheet(
                     linkContext: linkContext,
-                    onLinked: {
-                        self.workspaceLinkContext = nil
-                        self.postAuthFailureState = nil
-                        self.errorMessage = ""
-                        self.dismiss()
-                    },
-                    onLinkFailed: { selection, message in
-                        self.workspaceLinkContext = nil
-                        let retryAction: CloudPostAuthRetryAction = self.store.cloudSettings?.cloudState == .linked
-                            ? .syncOnly
-                            : .completeLink(linkContext: linkContext, selection: selection)
-                        let title = self.store.cloudSettings?.cloudState == .linked
-                            ? "Signed in, but initial sync failed."
-                            : "Signed in, but cloud setup failed."
-                        self.presentPostAuthFailure(
-                            title: title,
-                            message: message,
-                            retryAction: retryAction
-                        )
+                    onSelection: { selection in
+                        self.completeLink(linkContext: linkContext, selection: selection)
                     },
                     onCancelled: {
                         self.workspaceLinkContext = nil
@@ -263,6 +310,7 @@ struct CloudSignInSheet: View {
     private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
         self.otpSheetState = nil
         self.postAuthLoadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
+        self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
         self.errorMessage = ""
     }
@@ -275,6 +323,7 @@ struct CloudSignInSheet: View {
                 self.handlePreparedLinkContext(linkContext)
             } catch {
                 self.postAuthLoadingState = nil
+                self.postAuthSyncState = nil
                 self.presentPostAuthFailure(
                     title: "Signed in, but cloud setup failed.",
                     message: localizedMessage(error: error),
@@ -285,36 +334,9 @@ struct CloudSignInSheet: View {
     }
 
     private func completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection) {
-        Task { @MainActor in
-            self.isAutoLinkingWorkspace = true
-            defer {
-                self.isAutoLinkingWorkspace = false
-            }
-
-            do {
-                self.postAuthLoadingState = nil
-                try await self.store.completeCloudLink(
-                    linkContext: linkContext,
-                    selection: selection
-                )
-                self.postAuthFailureState = nil
-                self.dismiss()
-            } catch {
-                let retryAction: CloudPostAuthRetryAction = self.store.cloudSettings?.cloudState == .linked
-                    ? .syncOnly
-                    : .completeLink(linkContext: linkContext, selection: selection)
-                let title = self.store.cloudSettings?.cloudState == .linked
-                    ? "Signed in, but initial sync failed."
-                    : "Signed in, but cloud setup failed."
-                self.postAuthLoadingState = nil
-                self.workspaceLinkContext = nil
-                self.presentPostAuthFailure(
-                    title: title,
-                    message: localizedMessage(error: error),
-                    retryAction: retryAction
-                )
-            }
-        }
+        self.presentPostAuthSync(
+            operation: .completeLink(linkContext: linkContext, selection: selection)
+        )
     }
 
     private func retryPostAuthFailure(_ failureState: CloudPostAuthFailureState) {
@@ -326,17 +348,60 @@ struct CloudSignInSheet: View {
         case .completeLink(let linkContext, let selection):
             self.completeLink(linkContext: linkContext, selection: selection)
         case .syncOnly:
-            Task { @MainActor in
-                do {
-                    try await self.store.syncCloudNow()
-                    self.dismiss()
-                } catch {
-                    self.presentPostAuthFailure(
-                        title: "Signed in, but initial sync failed.",
-                        message: localizedMessage(error: error),
-                        retryAction: .syncOnly
+            self.presentPostAuthSync(operation: .syncOnly)
+        }
+    }
+
+    private func presentPostAuthSync(operation: CloudPostAuthSyncOperation) {
+        let nextState = CloudPostAuthSyncState(operation: operation)
+
+        self.errorMessage = ""
+        self.postAuthLoadingState = nil
+        self.postAuthSyncState = nil
+        self.workspaceLinkContext = nil
+        self.postAuthFailureState = nil
+
+        DispatchQueue.main.async {
+            self.postAuthSyncState = nextState
+        }
+    }
+
+    private func runPostAuthSync(_ syncState: CloudPostAuthSyncState) {
+        Task { @MainActor in
+            do {
+                switch syncState.operation {
+                case .completeLink(let linkContext, let selection):
+                    try await self.store.completeCloudLink(
+                        linkContext: linkContext,
+                        selection: selection
                     )
+                case .syncOnly:
+                    try await self.store.syncCloudNow()
                 }
+
+                guard self.postAuthSyncState?.id == syncState.id else {
+                    return
+                }
+
+                self.postAuthFailureState = nil
+                self.postAuthSyncState = nil
+                self.dismiss()
+            } catch {
+                guard self.postAuthSyncState?.id == syncState.id else {
+                    return
+                }
+
+                let failurePresentation = makeCloudPostAuthFailurePresentation(
+                    operation: syncState.operation,
+                    cloudState: self.store.cloudSettings?.cloudState
+                )
+
+                self.postAuthSyncState = nil
+                self.presentPostAuthFailure(
+                    title: failurePresentation.title,
+                    message: localizedMessage(error: error),
+                    retryAction: failurePresentation.retryAction
+                )
             }
         }
     }
@@ -348,6 +413,7 @@ struct CloudSignInSheet: View {
     ) {
         self.errorMessage = ""
         self.postAuthLoadingState = nil
+        self.postAuthSyncState = nil
         self.postAuthFailureState = CloudPostAuthFailureState(
             title: title,
             message: message,
@@ -363,6 +429,7 @@ struct CloudSignInSheet: View {
         }
 
         self.postAuthLoadingState = nil
+        self.postAuthSyncState = nil
         self.postAuthFailureState = nil
         self.workspaceLinkContext = nil
         self.otpSheetState = nil
@@ -566,11 +633,8 @@ private struct CloudWorkspaceSelectionSheet: View {
     @EnvironmentObject private var store: FlashcardsStore
 
     let linkContext: CloudWorkspaceLinkContext
-    let onLinked: () -> Void
-    let onLinkFailed: (CloudWorkspaceLinkSelection, String) -> Void
+    let onSelection: (CloudWorkspaceLinkSelection) -> Void
     let onCancelled: () -> Void
-
-    @State private var isLinking: Bool = false
 
     private var selectionItems: [CloudWorkspaceSelectionItem] {
         makeCloudWorkspaceSelectionItems(
@@ -595,12 +659,11 @@ private struct CloudWorkspaceSelectionSheet: View {
                         Section("Choose workspace") {
                             ForEach(self.selectionItems) { item in
                                 Button {
-                                    self.completeLink(selection: item.selection)
+                                    self.onSelection(item.selection)
                                 } label: {
                                     CloudWorkspaceSelectionRow(item: item)
                                 }
                                 .buttonStyle(.plain)
-                                .disabled(self.isLinking)
                             }
                         }
                     }
@@ -613,27 +676,7 @@ private struct CloudWorkspaceSelectionSheet: View {
                     Button("Close") {
                         self.onCancelled()
                     }
-                    .disabled(self.isLinking)
                 }
-            }
-        }
-    }
-
-    private func completeLink(selection: CloudWorkspaceLinkSelection) {
-        Task { @MainActor in
-            self.isLinking = true
-            defer {
-                self.isLinking = false
-            }
-
-            do {
-                try await self.store.completeCloudLink(
-                    linkContext: self.linkContext,
-                    selection: selection
-                )
-                self.onLinked()
-            } catch {
-                self.onLinkFailed(selection, localizedMessage(error: error))
             }
         }
     }
@@ -791,6 +834,35 @@ private struct CloudPostAuthLoadingSheet: View {
                         .padding(.vertical, 8)
                     }
                 }
+            }
+            .navigationTitle("Cloud sync")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+private struct CloudPostAuthSyncSheet: View {
+    private let presentation: CloudPostAuthSyncPresentation = makeCloudPostAuthSyncPresentation()
+
+    var body: some View {
+        NavigationStack {
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 24
+            ) {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+
+                    Text(self.presentation.title)
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+
+                    Text(self.presentation.message)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .navigationTitle("Cloud sync")
             .navigationBarTitleDisplayMode(.inline)
