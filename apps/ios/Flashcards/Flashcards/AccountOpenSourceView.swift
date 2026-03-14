@@ -12,19 +12,9 @@ struct AccountOpenSourceView: View {
                 if let repositoryUrl = URL(string: flashcardsRepositoryUrl) {
                     Link(destination: repositoryUrl) {
                         SettingsNavigationRow(
-                            title: "GitHub Repository",
+                            title: "GitHub Repository (MIT License)",
                             value: "Open",
                             systemImage: "arrow.up.forward.square"
-                        )
-                    }
-                }
-
-                if let licenseUrl = URL(string: flashcardsRepositoryLicenseUrl) {
-                    Link(destination: licenseUrl) {
-                        SettingsNavigationRow(
-                            title: "MIT License",
-                            value: "Open",
-                            systemImage: "doc.text"
                         )
                     }
                 }

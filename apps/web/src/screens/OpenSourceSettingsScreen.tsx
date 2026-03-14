@@ -2,7 +2,6 @@ import type { ReactElement } from "react";
 import { SettingsShell } from "./SettingsShared";
 
 const repositoryUrl: string = "https://github.com/kirill-markin/flashcards-open-source-app";
-const mitLicenseUrl: string = "https://github.com/kirill-markin/flashcards-open-source-app/blob/main/LICENSE";
 
 export function OpenSourceSettingsScreen(): ReactElement {
   return (
@@ -19,15 +18,9 @@ export function OpenSourceSettingsScreen(): ReactElement {
           </p>
         </article>
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">GitHub Repository</span>
+          <span className="cell-secondary">GitHub Repository (MIT License)</span>
           <a className="ghost-btn" href={repositoryUrl} rel="noreferrer" target="_blank">
             Open repository
-          </a>
-        </article>
-        <article className="content-card settings-summary-card">
-          <span className="cell-secondary">MIT License</span>
-          <a className="ghost-btn" href={mitLicenseUrl} rel="noreferrer" target="_blank">
-            Open license
           </a>
         </article>
         <article className="content-card settings-summary-card">
