@@ -30,56 +30,30 @@ struct CardEditorScreen: View {
     }
 
     var body: some View {
-        ReadableContentLayout(
-            maxWidth: flashcardsReadableFormMaxWidth,
-            horizontalPadding: 0
-        ) {
-            Form {
-                if errorMessage.isEmpty == false {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                    }
-                }
+        ZStack {
+            Color(uiColor: .systemGroupedBackground)
+                .ignoresSafeArea()
 
-                Section("Text") {
-                    TextField("Front", text: $formState.frontText, axis: .vertical)
-                        .lineLimit(3...)
-                        .focused(self.$focusedField, equals: .frontText)
-                    TextField("Back", text: $formState.backText, axis: .vertical)
-                        .lineLimit(3...)
-                        .focused(self.$focusedField, equals: .backText)
-                }
+            ScrollView {
+                ReadableContentLayout(
+                    maxWidth: flashcardsReadableFormMaxWidth,
+                    horizontalPadding: 16
+                ) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        if errorMessage.isEmpty == false {
+                            self.errorCard
+                        }
 
-                Section("Metadata") {
-                    Picker("Effort", selection: $formState.effortLevel) {
-                        ForEach(EffortLevel.allCases) { effortLevel in
-                            Text(effortLevel.title).tag(effortLevel)
+                        self.textSection
+                        self.metadataSection
+
+                        if isEditing {
+                            self.actionsSection
                         }
                     }
-
-                    NavigationLink {
-                        TagPickerView(
-                            selectedTags: formState.tags,
-                            suggestions: availableTagSuggestions,
-                            onSave: { nextTags in
-                                formState.tags = nextTags
-                            }
-                        )
-                    } label: {
-                        TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
-                    }
-                }
-
-                if isEditing {
-                    Section("Actions") {
-                        Button("Delete card", role: .destructive) {
-                            self.isDeleteConfirmationPresented = true
-                        }
-                    }
+                    .padding(.vertical, 20)
                 }
             }
-            .scrollDismissesKeyboard(.immediately)
             .contentShape(Rectangle())
             .simultaneousGesture(
                 TapGesture().onEnded {
@@ -103,5 +77,164 @@ struct CardEditorScreen: View {
                 Button("Save", action: onSave)
             }
         }
+    }
+
+    private var errorCard: some View {
+        Text(errorMessage)
+            .foregroundStyle(.red)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(self.cardBackground, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.red.opacity(0.18), lineWidth: 1)
+            )
+    }
+
+    private var textSection: some View {
+        self.sectionContainer(title: "Text") {
+            VStack(alignment: .leading, spacing: 16) {
+                self.multilineInput(
+                    title: "Front",
+                    placeholder: "Front",
+                    text: $formState.frontText,
+                    field: .frontText
+                )
+
+                self.multilineInput(
+                    title: "Back",
+                    placeholder: "Back",
+                    text: $formState.backText,
+                    field: .backText
+                )
+            }
+            .padding(16)
+        }
+    }
+
+    private var metadataSection: some View {
+        self.sectionContainer(title: "Metadata") {
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    Text("Effort")
+
+                    Spacer()
+
+                    Picker("Effort", selection: $formState.effortLevel) {
+                        ForEach(EffortLevel.allCases) { effortLevel in
+                            Text(effortLevel.title).tag(effortLevel)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                }
+                .padding(16)
+
+                Divider()
+
+                NavigationLink {
+                    TagPickerView(
+                        selectedTags: formState.tags,
+                        suggestions: availableTagSuggestions,
+                        onSave: { nextTags in
+                            formState.tags = nextTags
+                        }
+                    )
+                } label: {
+                    HStack(spacing: 12) {
+                        TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
+
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .foregroundStyle(.primary)
+            }
+        }
+    }
+
+    private var actionsSection: some View {
+        self.sectionContainer(title: "Actions") {
+            Button("Delete card", role: .destructive) {
+                self.isDeleteConfirmationPresented = true
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+        }
+    }
+
+    private func multilineInput(
+        title: String,
+        placeholder: String,
+        text: Binding<String>,
+        field: FocusedField
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+
+            ZStack(alignment: .topLeading) {
+                if text.wrappedValue.isEmpty {
+                    Text(placeholder)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 14)
+                }
+
+                TextEditor(text: text)
+                    .focused(self.$focusedField, equals: field)
+                    .frame(minHeight: 180)
+                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 8)
+                    .background(self.editorBackground)
+            }
+            .background(self.editorBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(self.editorBorderColor, lineWidth: 1)
+            )
+        }
+    }
+
+    private func sectionContainer<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .background(self.cardBackground, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(self.cardBorderColor, lineWidth: 1)
+            )
+        }
+    }
+
+    private var cardBackground: Color {
+        Color(uiColor: .secondarySystemGroupedBackground)
+    }
+
+    private var cardBorderColor: Color {
+        Color(uiColor: .separator).opacity(0.35)
+    }
+
+    private var editorBackground: Color {
+        Color(uiColor: .systemBackground)
+    }
+
+    private var editorBorderColor: Color {
+        Color(uiColor: .separator).opacity(0.28)
     }
 }
