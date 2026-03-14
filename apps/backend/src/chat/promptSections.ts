@@ -34,6 +34,7 @@ export function buildCardSideContractSection(): string {
     "- Make the front side specific enough that it stays unambiguous among many cards.",
     "- Back side must contain the answer.",
     "- When helpful, include a concrete example on the back side. Prefer a fenced markdown code block for structured examples.",
+    "- Keep chat replies plain text, but card content may freely use markdown.",
   ]);
 }
 
