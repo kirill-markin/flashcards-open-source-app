@@ -6,6 +6,7 @@ import {
   ALL_CARDS_REVIEW_FILTER,
   currentReviewCard,
   isCardDue,
+  isReviewFilterEqual,
 } from "../appData/domain";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
 import {
@@ -427,8 +428,10 @@ export function ReviewScreen(): ReactElement {
   const [resolvedReviewFilter, setResolvedReviewFilter] = useState<ReviewFilter>(ALL_CARDS_REVIEW_FILTER);
   const [isReviewLoading, setIsReviewLoading] = useState<boolean>(true);
   const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
+  const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
   const reviewFilterMenuWrapRef = useRef<HTMLDivElement | null>(null);
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const previousReviewFilterRef = useRef<ReviewFilter | null>(null);
   const nowTimestamp = Date.now();
   const selectedCard = currentReviewCard(activeReviewQueue);
   const editingCard = queueCards.find((card) => card.cardId === editingCardId) ?? selectedCard ?? null;
@@ -454,9 +457,15 @@ export function ReviewScreen(): ReactElement {
 
   useEffect(() => {
     let isCancelled = false;
+    const previousReviewFilter = previousReviewFilterRef.current;
+    const shouldShowBlockingLoader = previousReviewFilter === null
+      || isReviewFilterEqual(previousReviewFilter, selectedReviewFilter) === false;
+    previousReviewFilterRef.current = selectedReviewFilter;
 
     async function loadReviewData(): Promise<void> {
-      setIsReviewLoading(true);
+      if (shouldShowBlockingLoader) {
+        setIsReviewLoading(true);
+      }
       setReviewLoadErrorMessage("");
 
       try {
@@ -495,6 +504,7 @@ export function ReviewScreen(): ReactElement {
           cardsCount: tagSummary.cardsCount,
         })));
         setDeckSummaries(decksSnapshot.deckSummaries);
+        setHasLoadedReviewData(true);
       } catch (error) {
         if (isCancelled) {
           return;
@@ -502,7 +512,7 @@ export function ReviewScreen(): ReactElement {
 
         setReviewLoadErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
-        if (!isCancelled) {
+        if (!isCancelled && shouldShowBlockingLoader) {
           setIsReviewLoading(false);
         }
       }
@@ -650,7 +660,7 @@ export function ReviewScreen(): ReactElement {
     setIsReviewFilterMenuOpen(false);
   }
 
-  if (isReviewLoading) {
+  if (isReviewLoading && hasLoadedReviewData === false) {
     return (
       <main className="container">
         <section className="panel">
@@ -661,7 +671,7 @@ export function ReviewScreen(): ReactElement {
     );
   }
 
-  if (reviewLoadErrorMessage !== "") {
+  if (reviewLoadErrorMessage !== "" && hasLoadedReviewData === false) {
     return (
       <main className="container">
         <section className="panel">
@@ -682,6 +692,7 @@ export function ReviewScreen(): ReactElement {
           <div>
             <h1 className="title">Review</h1>
             <p className="subtitle">Queue table plus a focused flip flow.</p>
+            {reviewLoadErrorMessage !== "" ? <p className="error-banner">{reviewLoadErrorMessage}</p> : null}
           </div>
           <div className="screen-actions review-screen-actions">
             <div className="review-filter-summary-wrap">
