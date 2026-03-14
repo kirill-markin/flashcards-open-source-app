@@ -622,8 +622,8 @@ describe("appData domain helpers", () => {
     ])).toEqual([
       noDueDateCard,
       earlyDueCard,
-      tiedDueEarlierCreatedCard,
       tiedDueLaterCreatedCard,
+      tiedDueEarlierCreatedCard,
     ]);
   });
 
@@ -676,8 +676,8 @@ describe("appData domain helpers", () => {
       noDueDateCard,
       earlyDueCard,
       futureEarlierCard,
-      futureTieEarlierCreatedCard,
       futureTieLaterCreatedCard,
+      futureTieEarlierCreatedCard,
       malformedDueAtCard,
     ]);
   });
@@ -702,10 +702,10 @@ describe("appData domain helpers", () => {
     ]);
 
     expect(reviewQueue.map((card) => card.cardId)).toEqual([
-      "top-queue-card",
       "remotely-updated-card",
+      "top-queue-card",
     ]);
-    expect(currentReviewCard(reviewQueue)?.cardId).toBe("top-queue-card");
+    expect(currentReviewCard(reviewQueue)?.cardId).toBe("remotely-updated-card");
     expect(currentReviewCard([])).toBeNull();
   });
 

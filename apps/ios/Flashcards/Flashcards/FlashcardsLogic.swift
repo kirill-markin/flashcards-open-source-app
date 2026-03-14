@@ -517,7 +517,7 @@ private func compareCardsForReviewOrder(leftCard: Card, rightCard: Card, now: Da
     let leftCreatedAt = parseIsoTimestamp(value: leftCard.createdAt) ?? .distantFuture
     let rightCreatedAt = parseIsoTimestamp(value: rightCard.createdAt) ?? .distantFuture
     if leftCreatedAt != rightCreatedAt {
-        return leftCreatedAt < rightCreatedAt
+        return leftCreatedAt > rightCreatedAt
     }
 
     return leftCard.cardId < rightCard.cardId

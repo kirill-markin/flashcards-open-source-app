@@ -300,7 +300,7 @@ export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowT
   const leftCreatedAtTimestamp = getReviewOrderCreatedTimestamp(leftCard);
   const rightCreatedAtTimestamp = getReviewOrderCreatedTimestamp(rightCard);
   if (leftCreatedAtTimestamp !== rightCreatedAtTimestamp) {
-    return leftCreatedAtTimestamp - rightCreatedAtTimestamp;
+    return rightCreatedAtTimestamp - leftCreatedAtTimestamp;
   }
 
   return leftCard.cardId.localeCompare(rightCard.cardId);
