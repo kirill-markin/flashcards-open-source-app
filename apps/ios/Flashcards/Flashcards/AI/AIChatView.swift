@@ -6,7 +6,6 @@ import UniformTypeIdentifiers
 
 struct AIChatView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.tabViewBottomAccessoryPlacement) private var tabViewBottomAccessoryPlacement
     @ObservedObject private var flashcardsStore: FlashcardsStore
     @ObservedObject private var chatStore: AIChatStore
     @State private var isCloudSignInPresented: Bool
@@ -58,7 +57,7 @@ struct AIChatView: View {
         }
         .navigationTitle("AI")
         .navigationBarTitleDisplayMode(.inline)
-        .tabViewBottomAccessory {
+        .safeAreaBar(edge: .bottom, spacing: 0) {
             if self.accessState == .ready {
                 self.composerAccessory
             }
@@ -389,9 +388,9 @@ struct AIChatView: View {
     private var composerAccessory: some View {
         ReadableContentLayout(
             maxWidth: flashcardsReadableContentMaxWidth,
-            horizontalPadding: composerHorizontalPadding
+            horizontalPadding: 16
         ) {
-            VStack(alignment: .leading, spacing: composerVerticalSpacing) {
+            VStack(alignment: .leading, spacing: 12) {
                 if self.chatStore.pendingAttachments.isEmpty == false {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -498,29 +497,9 @@ struct AIChatView: View {
                     }
                 }
             }
-            .padding(.top, composerTopPadding)
-            .padding(.bottom, composerBottomPadding)
+            .padding(.top, aiChatComposerTopPadding)
+            .padding(.bottom, 16)
         }
-    }
-
-    private var isBottomAccessoryInline: Bool {
-        self.tabViewBottomAccessoryPlacement == .inline
-    }
-
-    private var composerHorizontalPadding: CGFloat {
-        self.isBottomAccessoryInline ? 12 : 16
-    }
-
-    private var composerVerticalSpacing: CGFloat {
-        self.isBottomAccessoryInline ? 10 : 12
-    }
-
-    private var composerTopPadding: CGFloat {
-        self.isBottomAccessoryInline ? 10 : aiChatComposerTopPadding
-    }
-
-    private var composerBottomPadding: CGFloat {
-        self.isBottomAccessoryInline ? 10 : 16
     }
 
     private var dictationStatusText: String {
