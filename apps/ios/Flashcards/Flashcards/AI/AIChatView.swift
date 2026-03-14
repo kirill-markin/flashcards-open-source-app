@@ -351,7 +351,6 @@ struct AIChatView: View {
                         .padding(.horizontal, aiChatMessageListHorizontalPadding)
                         .padding(.vertical, 12)
                     }
-                    .defaultScrollAnchor(.bottom)
                     .coordinateSpace(name: aiChatScrollCoordinateSpaceName)
                     .background(Color(.systemGroupedBackground))
                     .contentShape(Rectangle())
@@ -369,14 +368,19 @@ struct AIChatView: View {
                     )
                     .onPreferenceChange(AIChatBottomMarkerPreferenceKey.self) { nextBottomMarkerMaxY in
                         self.bottomMarkerMaxY = nextBottomMarkerMaxY
+                        self.handleInitialBottomSnap(proxy: proxy)
                         self.updateAutoScrollEnabled(proxy: proxy)
                     }
                     .onPreferenceChange(AIChatViewportHeightPreferenceKey.self) { nextScrollViewportHeight in
                         self.scrollViewportHeight = nextScrollViewportHeight
+                        self.handleInitialBottomSnap(proxy: proxy)
                         self.updateAutoScrollEnabled(proxy: proxy)
                     }
                     .onAppear {
-                        self.handleInitialBottomSnap(proxy: proxy)
+                        Task { @MainActor in
+                            await Task.yield()
+                            self.handleInitialBottomSnap(proxy: proxy)
+                        }
                         if self.chatStore.isStreaming {
                             self.startAutoScrollTask(proxy: proxy)
                         }
@@ -977,8 +981,16 @@ struct AIChatView: View {
             return
         }
 
+        guard self.scrollViewportHeight > 0 else {
+            return
+        }
+
         guard let lastMessageId = self.chatStore.messages.last?.id else {
             self.hasInitialBottomSnap = true
+            return
+        }
+
+        guard self.bottomMarkerMaxY > 0 else {
             return
         }
 
