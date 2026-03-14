@@ -128,11 +128,11 @@ describe("buildNextCardsTableSorts", () => {
     expect(buildNextCardsTableSorts([
       { key: "frontText", direction: "asc" },
       { key: "reps", direction: "asc" },
-      { key: "updatedAt", direction: "desc" },
+      { key: "createdAt", direction: "desc" },
     ], "reps")).toEqual([
       { key: "reps", direction: "desc" },
       { key: "frontText", direction: "asc" },
-      { key: "updatedAt", direction: "desc" },
+      { key: "createdAt", direction: "desc" },
     ]);
   });
 });

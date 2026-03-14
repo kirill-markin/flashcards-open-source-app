@@ -48,7 +48,7 @@ const allowedCardQuerySortKeys: ReadonlyArray<CardQuerySortKey> = [
   "dueAt",
   "reps",
   "lapses",
-  "updatedAt",
+  "createdAt",
 ];
 
 function getInternalErrorMessage(error: unknown): string {

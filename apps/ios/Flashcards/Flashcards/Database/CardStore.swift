@@ -43,7 +43,7 @@ struct CardStore {
                 deleted_at
             FROM cards
             WHERE workspace_id = ? AND deleted_at IS NULL
-            ORDER BY updated_at DESC
+            ORDER BY created_at DESC, card_id ASC
             """,
             values: [.text(workspaceId)]
         ) { statement in
@@ -85,7 +85,7 @@ struct CardStore {
                 deleted_at
             FROM cards
             WHERE workspace_id = ?
-            ORDER BY updated_at DESC
+            ORDER BY created_at DESC, card_id ASC
             """,
             values: [.text(workspaceId)]
         ) { statement in

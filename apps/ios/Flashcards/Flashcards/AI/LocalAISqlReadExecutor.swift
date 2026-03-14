@@ -20,11 +20,7 @@ func normalizeSqlOffset(_ offset: Int?) throws -> Int {
     return offset
 }
 
-private func compareCardsByUpdatedAt(left: Card, right: Card) -> Bool {
-    if left.updatedAt != right.updatedAt {
-        return left.updatedAt > right.updatedAt
-    }
-
+private func compareCardsByCreatedAt(left: Card, right: Card) -> Bool {
     if left.createdAt != right.createdAt {
         return left.createdAt > right.createdAt
     }
@@ -32,12 +28,12 @@ private func compareCardsByUpdatedAt(left: Card, right: Card) -> Bool {
     return left.cardId < right.cardId
 }
 
-private func compareDecksByUpdatedAt(left: Deck, right: Deck) -> Bool {
-    if left.updatedAt != right.updatedAt {
-        return left.updatedAt > right.updatedAt
+private func compareDecksByCreatedAt(left: Deck, right: Deck) -> Bool {
+    if left.createdAt != right.createdAt {
+        return left.createdAt > right.createdAt
     }
 
-    return left.createdAt > right.createdAt
+    return left.deckId > right.deckId
 }
 
 /**
@@ -46,13 +42,13 @@ private func compareDecksByUpdatedAt(left: Deck, right: Deck) -> Bool {
  reads so the same SQL query returns rows in the same implicit order.
  */
 func currentActiveCards(snapshot: AppStateSnapshot) -> [Card] {
-    activeCards(cards: snapshot.cards).sorted(by: compareCardsByUpdatedAt)
+    activeCards(cards: snapshot.cards).sorted(by: compareCardsByCreatedAt)
 }
 
 func activeDecks(snapshot: AppStateSnapshot) -> [Deck] {
     snapshot.decks.filter { deck in
         deck.deletedAt == nil
-    }.sorted(by: compareDecksByUpdatedAt)
+    }.sorted(by: compareDecksByCreatedAt)
 }
 
 func toSqlRowValue(literal: LocalAISqlLiteralValue) -> LocalAISqlRowValue {

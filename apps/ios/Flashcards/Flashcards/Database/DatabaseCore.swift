@@ -9,7 +9,7 @@ enum SQLiteValue {
 }
 
 let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-let localDatabaseSchemaVersion: Int = 5
+let localDatabaseSchemaVersion: Int = 6
 let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 final class DatabaseCore {
@@ -255,6 +255,9 @@ final class DatabaseCore {
         if schemaVersion == 4 {
             try self.migrateCardsCreatedAtFromSchemaVersion4()
         }
+        if schemaVersion < 6 {
+            try self.migrateCreatedAtOrderingIndexes()
+        }
 
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
         let migrationSQL = """
@@ -362,8 +365,8 @@ final class DatabaseCore {
             updated_at TEXT NOT NULL
         );
 
-        CREATE INDEX IF NOT EXISTS idx_cards_workspace_updated_at
-            ON cards(workspace_id, updated_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_created_at
+            ON cards(workspace_id, created_at DESC, card_id ASC);
 
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_active
             ON cards(workspace_id, due_at)
@@ -373,9 +376,8 @@ final class DatabaseCore {
             ON cards(workspace_id, fsrs_last_reviewed_at DESC)
             WHERE deleted_at IS NULL;
 
-        CREATE INDEX IF NOT EXISTS idx_decks_workspace_updated_active
-            ON decks(workspace_id, updated_at DESC)
-            WHERE deleted_at IS NULL;
+        CREATE INDEX IF NOT EXISTS idx_decks_workspace_created_at
+            ON decks(workspace_id, created_at DESC, deck_id DESC);
 
         CREATE INDEX IF NOT EXISTS idx_review_events_workspace_card_time
             ON review_events(workspace_id, card_id, reviewed_at_server DESC);
@@ -410,6 +412,17 @@ final class DatabaseCore {
             SET created_at = updated_at
             WHERE created_at = ''
             """,
+            values: []
+        )
+    }
+
+    private func migrateCreatedAtOrderingIndexes() throws {
+        try self.execute(
+            sql: "DROP INDEX IF EXISTS idx_cards_workspace_updated_at",
+            values: []
+        )
+        try self.execute(
+            sql: "DROP INDEX IF EXISTS idx_decks_workspace_updated_active",
             values: []
         )
     }

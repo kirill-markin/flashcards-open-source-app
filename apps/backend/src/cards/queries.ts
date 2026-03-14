@@ -63,9 +63,9 @@ type QueryCardsRow = CardRow & Readonly<{
   sort_tags: string;
   sort_effort_level: string;
   sort_due_at: Date | string | null;
+  sort_created_at: Date | string;
   sort_reps: number;
   sort_lapses: number;
-  sort_updated_at: Date | string;
   sort_card_id: string;
 }>;
 
@@ -126,9 +126,9 @@ const sortFieldByKey: Readonly<Record<CardQuerySortKey | "cardId", InternalSortF
     column: "sort_lapses",
     nullable: false,
   },
-  updatedAt: {
-    key: "updatedAt",
-    column: "sort_updated_at",
+  createdAt: {
+    key: "createdAt",
+    column: "sort_created_at",
     nullable: false,
   },
   cardId: {
@@ -153,7 +153,12 @@ async function validateOrResetCardRowsForRead(
 
 function compareCardsForReviewQueue(leftCard: CardRow, rightCard: CardRow): number {
   if (leftCard.due_at === null && rightCard.due_at === null) {
-    return toDate(rightCard.updated_at).getTime() - toDate(leftCard.updated_at).getTime();
+    const createdAtDifference = toDate(rightCard.created_at).getTime() - toDate(leftCard.created_at).getTime();
+    if (createdAtDifference !== 0) {
+      return createdAtDifference;
+    }
+
+    return leftCard.card_id.localeCompare(rightCard.card_id);
   }
 
   if (leftCard.due_at === null) {
@@ -169,7 +174,12 @@ function compareCardsForReviewQueue(leftCard: CardRow, rightCard: CardRow): numb
     return dueDifference;
   }
 
-  return toDate(rightCard.updated_at).getTime() - toDate(leftCard.updated_at).getTime();
+  const createdAtDifference = toDate(rightCard.created_at).getTime() - toDate(leftCard.created_at).getTime();
+  if (createdAtDifference !== 0) {
+    return createdAtDifference;
+  }
+
+  return leftCard.card_id.localeCompare(rightCard.card_id);
 }
 
 function createCardQueryError(message: string): HttpError {
@@ -209,7 +219,7 @@ function decodeCardsQueryCursor(cursor: string): DecodedCursor {
 
 type DueCardsPageCursor = Readonly<{
   dueAt: string | null;
-  updatedAt: string;
+  createdAt: string;
   cardId: string;
 }>;
 
@@ -229,15 +239,15 @@ function decodeDueCardsPageCursor(cursor: string): DueCardsPageCursor {
   }
 
   const dueAt = decodedCursor.values[0];
-  const updatedAt = decodedCursor.values[1];
+  const createdAt = decodedCursor.values[1];
   const cardId = decodedCursor.values[2];
-  if ((typeof dueAt !== "string" && dueAt !== null) || typeof updatedAt !== "string" || typeof cardId !== "string") {
+  if ((typeof dueAt !== "string" && dueAt !== null) || typeof createdAt !== "string" || typeof cardId !== "string") {
     throw createCardQueryError("cursor does not match the requested due-cards order");
   }
 
   return {
     dueAt,
-    updatedAt,
+    createdAt,
     cardId,
   };
 }
@@ -308,11 +318,11 @@ function buildEffectiveCardsQuerySorts(sorts: ReadonlyArray<CardQuerySort>): Rea
     nullable: sortFieldByKey[sort.key].nullable,
   }));
 
-  if (!sorts.some((sort) => sort.key === "updatedAt")) {
+  if (!sorts.some((sort) => sort.key === "createdAt")) {
     effectiveSorts.push({
-      key: "updatedAt",
+      key: "createdAt",
       direction: "desc",
-      column: sortFieldByKey.updatedAt.column,
+      column: sortFieldByKey.createdAt.column,
       nullable: false,
     });
   }
@@ -483,8 +493,8 @@ function makeCursorValueFromRow(row: QueryCardsRow, sort: InternalSort): CursorV
     return row.sort_reps;
   case "lapses":
     return row.sort_lapses;
-  case "updatedAt":
-    return toIsoString(row.sort_updated_at);
+  case "createdAt":
+    return toIsoString(row.sort_created_at);
   case "cardId":
     return row.sort_card_id;
   }
@@ -500,7 +510,7 @@ export async function listCards(userId: string, workspaceId: string): Promise<Re
       [
         CARD_SELECT,
         "WHERE workspace_id = $1 AND deleted_at IS NULL",
-        "ORDER BY updated_at DESC",
+        "ORDER BY created_at DESC, card_id ASC",
       ].join(" "),
       [workspaceId],
     );
@@ -557,9 +567,9 @@ export async function queryCardsPage(
         "lower(array_to_string(tags, ', ')) AS sort_tags,",
         "effort_level AS sort_effort_level,",
         "due_at AS sort_due_at,",
+        "created_at AS sort_created_at,",
         "reps AS sort_reps,",
         "lapses AS sort_lapses,",
-        "updated_at AS sort_updated_at,",
         "card_id AS sort_card_id",
         "FROM content.cards",
         "WHERE workspace_id = $1",
@@ -670,7 +680,7 @@ export async function listReviewQueue(
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
         "AND (due_at IS NULL OR due_at <= now() OR fsrs_card_state = 'new')",
-        "ORDER BY updated_at DESC",
+        "ORDER BY created_at DESC, card_id ASC",
       ].join(" "),
       [workspaceId],
     );
@@ -696,7 +706,7 @@ export async function listReviewQueuePage(
     ? 0
     : dueCards.findIndex((card) => (
       card.dueAt === decodedCursor.dueAt
-      && card.updatedAt === decodedCursor.updatedAt
+      && card.createdAt === decodedCursor.createdAt
       && card.cardId === decodedCursor.cardId
     )) + 1;
   if (decodedCursor !== null && startIndex === 0) {
@@ -709,7 +719,7 @@ export async function listReviewQueuePage(
     ? null
     : encodeOpaqueCursor([
       visibleCards[visibleCards.length - 1]?.dueAt ?? null,
-      visibleCards[visibleCards.length - 1]?.updatedAt ?? "",
+      visibleCards[visibleCards.length - 1]?.createdAt ?? "",
       visibleCards[visibleCards.length - 1]?.cardId ?? "",
     ]);
 
@@ -740,7 +750,7 @@ export async function searchCards(
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
         searchClauseResult.clause,
-        "ORDER BY updated_at DESC",
+        "ORDER BY created_at DESC, card_id ASC",
         `LIMIT $${limitParamIndex}`,
       ].join(" "),
       [workspaceId, ...searchClauseResult.params, limit],

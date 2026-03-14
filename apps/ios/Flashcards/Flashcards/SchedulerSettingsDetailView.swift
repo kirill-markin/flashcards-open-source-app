@@ -125,12 +125,7 @@ struct SchedulerSettingsDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .contentShape(Rectangle())
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                self.focusedField = nil
-            }
-        )
+        .scrollDismissesKeyboard(.immediately)
         .navigationTitle("Scheduler settings")
         .alert(
             "Apply scheduler settings?",

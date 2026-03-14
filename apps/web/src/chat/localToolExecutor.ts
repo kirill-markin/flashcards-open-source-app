@@ -238,12 +238,7 @@ function getNextCursorForPage(totalCount: number, startIndex: number, visibleCou
   return encodePageCursor(nextIndex);
 }
 
-function compareCardsByUpdatedAt(left: Card, right: Card): number {
-  const updatedAtDifference = right.updatedAt.localeCompare(left.updatedAt);
-  if (updatedAtDifference !== 0) {
-    return updatedAtDifference;
-  }
-
+function compareCardsByCreatedAt(left: Card, right: Card): number {
   const createdAtDifference = right.createdAt.localeCompare(left.createdAt);
   if (createdAtDifference !== 0) {
     return createdAtDifference;
@@ -252,21 +247,21 @@ function compareCardsByUpdatedAt(left: Card, right: Card): number {
   return left.cardId.localeCompare(right.cardId);
 }
 
-function compareDecksByUpdatedAt(left: Deck, right: Deck): number {
-  const updatedAtDifference = right.updatedAt.localeCompare(left.updatedAt);
-  if (updatedAtDifference !== 0) {
-    return updatedAtDifference;
+function compareDecksByCreatedAt(left: Deck, right: Deck): number {
+  const createdAtDifference = right.createdAt.localeCompare(left.createdAt);
+  if (createdAtDifference !== 0) {
+    return createdAtDifference;
   }
 
-  return right.createdAt.localeCompare(left.createdAt);
+  return right.deckId.localeCompare(left.deckId);
 }
 
 function currentActiveCards(snapshot: MutableSnapshot): ReadonlyArray<Card> {
-  return [...deriveActiveCards(snapshot.cards)].sort(compareCardsByUpdatedAt);
+  return [...deriveActiveCards(snapshot.cards)].sort(compareCardsByCreatedAt);
 }
 
 function activeDecks(snapshot: MutableSnapshot): ReadonlyArray<Deck> {
-  return [...deriveActiveDecks(snapshot.decks)].sort(compareDecksByUpdatedAt);
+  return [...deriveActiveDecks(snapshot.decks)].sort(compareDecksByCreatedAt);
 }
 
 function findCard(snapshot: MutableSnapshot, cardId: string): Card {

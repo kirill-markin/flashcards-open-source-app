@@ -19,7 +19,7 @@ struct DeckStore {
             SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at
             FROM decks
             WHERE workspace_id = ? AND deleted_at IS NULL
-            ORDER BY updated_at DESC, created_at DESC
+            ORDER BY created_at DESC, deck_id DESC
             """,
             values: [.text(workspaceId)]
         ) { statement in
@@ -56,7 +56,7 @@ struct DeckStore {
             SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at
             FROM decks
             WHERE workspace_id = ?
-            ORDER BY updated_at DESC, created_at DESC
+            ORDER BY created_at DESC, deck_id DESC
             """,
             values: [.text(workspaceId)]
         ) { statement in
