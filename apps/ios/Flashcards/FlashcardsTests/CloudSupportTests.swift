@@ -29,6 +29,29 @@ final class CloudSupportTests: XCTestCase {
         XCTAssertEqual(configuration.authBaseUrl, "https://auth.example.com")
     }
 
+    func testLoadFlashcardsLegalSupportConfigurationReadsValuesFromBundleInfoDictionary() throws {
+        let bundle = try self.makeBundle(
+            infoDictionary: [
+                "FLASHCARDS_PRIVACY_POLICY_URL": "https://flashcards.example.com/privacy/",
+                "FLASHCARDS_TERMS_OF_SERVICE_URL": "https://flashcards.example.com/terms/",
+                "FLASHCARDS_SUPPORT_URL": "https://flashcards.example.com/support/",
+                "FLASHCARDS_SUPPORT_EMAIL_ADDRESS": "support@example.com"
+            ]
+        )
+
+        let configuration = try loadFlashcardsLegalSupportConfiguration(bundle: bundle)
+
+        XCTAssertEqual(
+            configuration,
+            FlashcardsLegalSupportConfiguration(
+                privacyPolicyUrl: "https://flashcards.example.com/privacy/",
+                termsOfServiceUrl: "https://flashcards.example.com/terms/",
+                supportUrl: "https://flashcards.example.com/support/",
+                supportEmailAddress: "support@example.com"
+            )
+        )
+    }
+
     func testLoadCloudServiceConfigurationUsesStoredCustomServerOverrideWhenPresent() throws {
         let bundle = try self.makeBundle(
             infoDictionary: [
@@ -89,6 +112,42 @@ final class CloudSupportTests: XCTestCase {
             XCTAssertEqual(
                 error as? CloudConfigurationError,
                 .invalidUrl("FLASHCARDS_API_BASE_URL", "not a url")
+            )
+        }
+    }
+
+    func testLoadFlashcardsLegalSupportConfigurationThrowsMissingValueWhenPrivacyUrlIsEmpty() throws {
+        let bundle = try self.makeBundle(
+            infoDictionary: [
+                "FLASHCARDS_PRIVACY_POLICY_URL": "   ",
+                "FLASHCARDS_TERMS_OF_SERVICE_URL": "https://flashcards.example.com/terms/",
+                "FLASHCARDS_SUPPORT_URL": "https://flashcards.example.com/support/",
+                "FLASHCARDS_SUPPORT_EMAIL_ADDRESS": "support@example.com"
+            ]
+        )
+
+        XCTAssertThrowsError(try loadFlashcardsLegalSupportConfiguration(bundle: bundle)) { error in
+            XCTAssertEqual(
+                error as? CloudConfigurationError,
+                .missingValue("FLASHCARDS_PRIVACY_POLICY_URL")
+            )
+        }
+    }
+
+    func testLoadFlashcardsLegalSupportConfigurationThrowsInvalidUrlWhenSupportUrlIsMalformed() throws {
+        let bundle = try self.makeBundle(
+            infoDictionary: [
+                "FLASHCARDS_PRIVACY_POLICY_URL": "https://flashcards.example.com/privacy/",
+                "FLASHCARDS_TERMS_OF_SERVICE_URL": "https://flashcards.example.com/terms/",
+                "FLASHCARDS_SUPPORT_URL": "not a url",
+                "FLASHCARDS_SUPPORT_EMAIL_ADDRESS": "support@example.com"
+            ]
+        )
+
+        XCTAssertThrowsError(try loadFlashcardsLegalSupportConfiguration(bundle: bundle)) { error in
+            XCTAssertEqual(
+                error as? CloudConfigurationError,
+                .invalidUrl("FLASHCARDS_SUPPORT_URL", "not a url")
             )
         }
     }

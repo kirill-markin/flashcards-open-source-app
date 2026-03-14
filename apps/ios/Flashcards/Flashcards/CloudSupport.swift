@@ -1,5 +1,12 @@
 import Foundation
 
+struct FlashcardsLegalSupportConfiguration: Equatable {
+    let privacyPolicyUrl: String
+    let termsOfServiceUrl: String
+    let supportUrl: String
+    let supportEmailAddress: String
+}
+
 enum CloudConfigurationError: LocalizedError, Equatable {
     case missingValue(String)
     case invalidUrl(String, String)
@@ -19,13 +26,27 @@ enum CloudConfigurationError: LocalizedError, Equatable {
 
 let customCloudServerOverrideUserDefaultsKey: String = "custom-cloud-server-override"
 let pendingCloudServerBootstrapUserDefaultsKey: String = "pending-cloud-server-bootstrap"
-let flashcardsMainWebsiteUrl: String = "https://flashcards-open-source-app.com"
-let flashcardsPrivacyPolicyUrl: String = "\(flashcardsMainWebsiteUrl)/privacy/"
-let flashcardsTermsOfServiceUrl: String = "\(flashcardsMainWebsiteUrl)/terms/"
-let flashcardsSupportUrl: String = "\(flashcardsMainWebsiteUrl)/support/"
-let flashcardsSupportEmailAddress: String = "kirill@kirill-markin.com"
-let flashcardsSupportEmailUrl: String = "mailto:\(flashcardsSupportEmailAddress)"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
+
+var flashcardsPrivacyPolicyUrl: String {
+    flashcardsLegalSupportConfiguration.privacyPolicyUrl
+}
+
+var flashcardsTermsOfServiceUrl: String {
+    flashcardsLegalSupportConfiguration.termsOfServiceUrl
+}
+
+var flashcardsSupportUrl: String {
+    flashcardsLegalSupportConfiguration.supportUrl
+}
+
+var flashcardsSupportEmailAddress: String {
+    flashcardsLegalSupportConfiguration.supportEmailAddress
+}
+
+var flashcardsSupportEmailUrl: String {
+    "mailto:\(flashcardsSupportEmailAddress)"
+}
 
 func loadCloudServiceConfiguration(
     bundle: Bundle = .main,
@@ -37,6 +58,27 @@ func loadCloudServiceConfiguration(
     }
 
     return try loadOfficialCloudServiceConfiguration(bundle: bundle)
+}
+
+func loadFlashcardsLegalSupportConfiguration(bundle: Bundle) throws -> FlashcardsLegalSupportConfiguration {
+    FlashcardsLegalSupportConfiguration(
+        privacyPolicyUrl: try loadCloudPageUrlString(
+            bundle: bundle,
+            key: "FLASHCARDS_PRIVACY_POLICY_URL"
+        ),
+        termsOfServiceUrl: try loadCloudPageUrlString(
+            bundle: bundle,
+            key: "FLASHCARDS_TERMS_OF_SERVICE_URL"
+        ),
+        supportUrl: try loadCloudPageUrlString(
+            bundle: bundle,
+            key: "FLASHCARDS_SUPPORT_URL"
+        ),
+        supportEmailAddress: try loadCloudString(
+            bundle: bundle,
+            key: "FLASHCARDS_SUPPORT_EMAIL_ADDRESS"
+        )
+    )
 }
 
 func loadCloudServerOverride(
@@ -123,7 +165,21 @@ func shouldRefreshCloudIdToken(idTokenExpiresAt: String, now: Date) -> Bool {
     return expirationDate.timeIntervalSince(now) <= 300
 }
 
-private func loadCloudUrlString(bundle: Bundle, key: String) throws -> String {
+private var flashcardsLegalSupportConfiguration: FlashcardsLegalSupportConfiguration {
+    loadRequiredFlashcardsLegalSupportConfiguration(bundle: .main)
+}
+
+private func loadRequiredFlashcardsLegalSupportConfiguration(
+    bundle: Bundle
+) -> FlashcardsLegalSupportConfiguration {
+    do {
+        return try loadFlashcardsLegalSupportConfiguration(bundle: bundle)
+    } catch {
+        fatalError("Flashcards legal/support configuration is invalid: \(localizedMessage(error: error))")
+    }
+}
+
+private func loadCloudString(bundle: Bundle, key: String) throws -> String {
     guard let rawValue = bundle.object(forInfoDictionaryKey: key) as? String else {
         throw CloudConfigurationError.missingValue(key)
     }
@@ -133,12 +189,26 @@ private func loadCloudUrlString(bundle: Bundle, key: String) throws -> String {
         throw CloudConfigurationError.missingValue(key)
     }
 
-    let normalizedValue = trimmedValue.hasSuffix("/") ? String(trimmedValue.dropLast()) : trimmedValue
+    return trimmedValue
+}
+
+private func loadCloudUrlString(bundle: Bundle, key: String) throws -> String {
+    let rawValue = try loadCloudString(bundle: bundle, key: key)
+    let normalizedValue = rawValue.hasSuffix("/") ? String(rawValue.dropLast()) : rawValue
     guard URL(string: normalizedValue) != nil else {
         throw CloudConfigurationError.invalidUrl(key, rawValue)
     }
 
     return normalizedValue
+}
+
+private func loadCloudPageUrlString(bundle: Bundle, key: String) throws -> String {
+    let rawValue = try loadCloudString(bundle: bundle, key: key)
+    guard URL(string: rawValue) != nil else {
+        throw CloudConfigurationError.invalidUrl(key, rawValue)
+    }
+
+    return rawValue
 }
 
 private func loadOfficialCloudServiceConfiguration(bundle: Bundle) throws -> CloudServiceConfiguration {
