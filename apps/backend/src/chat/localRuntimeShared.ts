@@ -14,6 +14,7 @@ import {
   buildConciseStyleSection,
   buildDatetimeSection,
   buildLocalRepairSection,
+  buildPlainTextChatFormattingSection,
   buildLocalToolCallExamplesSection,
   buildLocalToolCallRulesSection,
   buildLocalWorkspaceSection,
@@ -88,7 +89,9 @@ function formatSchemaIssues(error: ZodError): string {
 }
 
 function platformPromptLabel(devicePlatform: LocalChatDevicePlatform): string {
-  return devicePlatform === "web" ? "Use this assistant in the browser." : "Use this assistant on iPhone.";
+  return devicePlatform === "web"
+    ? "The user is chatting with you in the web browser chat."
+    : "The user is chatting with you in the iOS app chat on iPhone.";
 }
 
 function normalizeMediaType(mediaType: string): string {
@@ -155,6 +158,7 @@ export function buildLocalSystemInstructions(
   return buildPromptFromSections([
     buildAssistantRoleSection(),
     platformPromptLabel(devicePlatform),
+    buildPlainTextChatFormattingSection(),
     buildUserContextSection(userContext.totalCards),
     buildLocalWorkspaceSection(),
     buildCardSideContractSection(),
