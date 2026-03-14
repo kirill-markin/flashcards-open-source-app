@@ -15,7 +15,11 @@ LOCAL_XCCONFIG_PATH="${PROJECT_DIR}/Config/Local.xcconfig"
 if [ -z "${XCODE_CLOUD_DEVELOPMENT_TEAM:-}" ] \
   && [ -z "${XCODE_CLOUD_APP_BUNDLE_IDENTIFIER:-}" ] \
   && [ -z "${XCODE_CLOUD_API_BASE_URL:-}" ] \
-  && [ -z "${XCODE_CLOUD_AUTH_BASE_URL:-}" ]; then
+  && [ -z "${XCODE_CLOUD_AUTH_BASE_URL:-}" ] \
+  && [ -z "${XCODE_CLOUD_PRIVACY_POLICY_URL:-}" ] \
+  && [ -z "${XCODE_CLOUD_TERMS_OF_SERVICE_URL:-}" ] \
+  && [ -z "${XCODE_CLOUD_SUPPORT_URL:-}" ] \
+  && [ -z "${XCODE_CLOUD_SUPPORT_EMAIL_ADDRESS:-}" ]; then
   echo "Xcode Cloud override variables are not set. Skipping Local.xcconfig generation."
   exit 0
 fi
@@ -39,6 +43,22 @@ fi
 
 if [ -n "${XCODE_CLOUD_AUTH_BASE_URL:-}" ]; then
   printf 'AUTH_BASE_URL = %s\n' "${XCODE_CLOUD_AUTH_BASE_URL}" >> "${LOCAL_XCCONFIG_PATH}"
+fi
+
+if [ -n "${XCODE_CLOUD_PRIVACY_POLICY_URL:-}" ]; then
+  printf 'PRIVACY_POLICY_URL = %s\n' "${XCODE_CLOUD_PRIVACY_POLICY_URL}" >> "${LOCAL_XCCONFIG_PATH}"
+fi
+
+if [ -n "${XCODE_CLOUD_TERMS_OF_SERVICE_URL:-}" ]; then
+  printf 'TERMS_OF_SERVICE_URL = %s\n' "${XCODE_CLOUD_TERMS_OF_SERVICE_URL}" >> "${LOCAL_XCCONFIG_PATH}"
+fi
+
+if [ -n "${XCODE_CLOUD_SUPPORT_URL:-}" ]; then
+  printf 'SUPPORT_URL = %s\n' "${XCODE_CLOUD_SUPPORT_URL}" >> "${LOCAL_XCCONFIG_PATH}"
+fi
+
+if [ -n "${XCODE_CLOUD_SUPPORT_EMAIL_ADDRESS:-}" ]; then
+  printf 'SUPPORT_EMAIL_ADDRESS = %s\n' "${XCODE_CLOUD_SUPPORT_EMAIL_ADDRESS}" >> "${LOCAL_XCCONFIG_PATH}"
 fi
 
 echo "Generated ${LOCAL_XCCONFIG_PATH} for Xcode Cloud."

@@ -199,11 +199,11 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         ])
     }
 
-    func testFlashcardsPublicUrlsMatchAppReviewSubmissionContract() {
-        XCTAssertEqual(flashcardsMainWebsiteUrl, "https://flashcards-open-source-app.com")
+    func testFlashcardsLegalAndRepositoryUrlsMatchAppReviewSubmissionContract() {
         XCTAssertEqual(flashcardsPrivacyPolicyUrl, "https://flashcards-open-source-app.com/privacy/")
         XCTAssertEqual(flashcardsTermsOfServiceUrl, "https://flashcards-open-source-app.com/terms/")
         XCTAssertEqual(flashcardsSupportUrl, "https://flashcards-open-source-app.com/support/")
+        XCTAssertEqual(flashcardsSupportEmailAddress, "kirill@kirill-markin.com")
         XCTAssertEqual(
             flashcardsRepositoryUrl,
             "https://github.com/kirill-markin/flashcards-open-source-app"
