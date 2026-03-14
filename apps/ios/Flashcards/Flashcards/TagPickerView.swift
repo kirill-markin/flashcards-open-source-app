@@ -226,12 +226,7 @@ struct TagPickerView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .contentShape(Rectangle())
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                self.isInputFocused = false
-            }
-        )
+        .scrollDismissesKeyboard(.immediately)
         .navigationTitle("Tags")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

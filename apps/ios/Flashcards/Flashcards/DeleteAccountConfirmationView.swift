@@ -6,7 +6,6 @@ struct DeleteAccountConfirmationView: View {
 
     @State private var confirmationText: String = ""
     @FocusState private var isConfirmationFieldFocused: Bool
-
     private var isDeleteEnabled: Bool {
         self.confirmationText == accountDeletionConfirmationText
     }
@@ -30,7 +29,11 @@ struct DeleteAccountConfirmationView: View {
                     .autocorrectionDisabled(true)
                     .keyboardType(.asciiCapable)
                     .textFieldStyle(.roundedBorder)
+                    .submitLabel(.done)
                     .focused(self.$isConfirmationFieldFocused)
+                    .onSubmit {
+                        self.isConfirmationFieldFocused = false
+                    }
 
                 Spacer()
 
@@ -43,12 +46,6 @@ struct DeleteAccountConfirmationView: View {
                 .disabled(self.isDeleteEnabled == false)
             }
             .padding(24)
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    self.isConfirmationFieldFocused = false
-                }
-            )
             .navigationTitle("Delete account")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

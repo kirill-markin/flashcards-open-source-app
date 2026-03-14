@@ -44,15 +44,25 @@ test("parseQueryCardsRequestBody preserves valid sorts and cursor", () => {
       searchText: "hola",
       cursor: "cursor-1",
       limit: 25,
-      sorts: [{ key: "updatedAt", direction: "desc" }],
+      sorts: [{ key: "createdAt", direction: "desc" }],
     }),
     {
       searchText: "hola",
       cursor: "cursor-1",
       limit: 25,
-      sorts: [{ key: "updatedAt", direction: "desc" }],
+      sorts: [{ key: "createdAt", direction: "desc" }],
       filter: null,
     },
+  );
+});
+
+test("parseQueryCardsRequestBody rejects legacy updatedAt sort key", () => {
+  assert.throws(
+    () => parseQueryCardsRequestBody({
+      limit: 25,
+      sorts: [{ key: "updatedAt", direction: "desc" }],
+    }),
+    /sorts key is unsupported/,
   );
 });
 

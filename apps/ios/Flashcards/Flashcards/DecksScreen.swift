@@ -428,7 +428,6 @@ private struct DeckDetailScreen: View {
 
 private struct DeckEditorView: View {
     @EnvironmentObject private var store: FlashcardsStore
-    @FocusState private var isNameFieldFocused: Bool
 
     let title: String
     @Binding var formState: DeckFormState
@@ -447,7 +446,6 @@ private struct DeckEditorView: View {
             Form {
                 Section("Name") {
                     TextField("Deck name", text: $formState.name)
-                        .focused(self.$isNameFieldFocused)
                 }
 
                 Section("Effort") {
@@ -494,12 +492,7 @@ private struct DeckEditorView: View {
                     .foregroundStyle(.secondary)
                 }
             }
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    self.isNameFieldFocused = false
-                }
-            )
+            .scrollDismissesKeyboard(.immediately)
         }
         .navigationTitle(title)
         .toolbar {

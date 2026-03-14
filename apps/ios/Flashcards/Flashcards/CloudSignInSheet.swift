@@ -172,13 +172,8 @@ struct CloudSignInSheet: View {
                         .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
                     }
                 }
+                .scrollDismissesKeyboard(.immediately)
             }
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    self.isEmailFieldFocused = false
-                }
-            )
             .navigationTitle("Sign in")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -529,12 +524,7 @@ private struct CloudOtpVerificationSheet: View {
                     }
                 }
             }
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    self.isCodeFieldFocused = false
-                }
-            )
+            .scrollDismissesKeyboard(.immediately)
             .navigationTitle("Verify code")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

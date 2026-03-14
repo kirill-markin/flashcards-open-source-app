@@ -115,7 +115,6 @@ export type BulkDeleteDecksResult = Readonly<{
 const MAX_DECK_BATCH_SIZE = 100;
 
 type DeckPageCursor = Readonly<{
-  updatedAt: string;
   createdAt: string;
   deckId: string;
 }>;
@@ -263,19 +262,17 @@ function mapDeck(row: DeckRow): Deck {
 
 function decodeDeckPageCursor(cursor: string): DeckPageCursor {
   const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
-  if (decodedCursor.values.length !== 3) {
+  if (decodedCursor.values.length !== 2) {
     throw createRequestError("cursor does not match the requested deck order");
   }
 
-  const updatedAt = decodedCursor.values[0];
-  const createdAt = decodedCursor.values[1];
-  const deckId = decodedCursor.values[2];
-  if (typeof updatedAt !== "string" || typeof createdAt !== "string" || typeof deckId !== "string") {
+  const createdAt = decodedCursor.values[0];
+  const deckId = decodedCursor.values[1];
+  if (typeof createdAt !== "string" || typeof deckId !== "string") {
     throw createRequestError("cursor does not match the requested deck order");
   }
 
   return {
-    updatedAt,
     createdAt,
     deckId,
   };
@@ -405,11 +402,11 @@ export async function listDecksPage(
   const decodedCursor = input.cursor === null ? null : decodeDeckPageCursor(input.cursor);
   const cursorClause = decodedCursor === null
     ? ""
-    : "AND (updated_at < $2 OR (updated_at = $2 AND (created_at < $3 OR (created_at = $3 AND deck_id < $4))))";
+    : "AND (created_at < $2 OR (created_at = $2 AND deck_id < $3))";
   const params = decodedCursor === null
     ? [workspaceId, input.limit + 1]
-    : [workspaceId, new Date(decodedCursor.updatedAt), new Date(decodedCursor.createdAt), decodedCursor.deckId, input.limit + 1];
-  const limitParamIndex = decodedCursor === null ? 2 : 5;
+    : [workspaceId, new Date(decodedCursor.createdAt), decodedCursor.deckId, input.limit + 1];
+  const limitParamIndex = decodedCursor === null ? 2 : 4;
 
   const result = await queryWithWorkspaceScope<DeckRow>(
     { userId, workspaceId },
@@ -419,7 +416,7 @@ export async function listDecksPage(
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deleted_at IS NULL",
       cursorClause,
-      "ORDER BY updated_at DESC, created_at DESC, deck_id DESC",
+      "ORDER BY created_at DESC, deck_id DESC",
       `LIMIT $${limitParamIndex}`,
     ].join(" "),
     params,
@@ -432,7 +429,6 @@ export async function listDecksPage(
   return {
     decks: visibleRows.map(mapDeck),
     nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
-      toIsoString(nextRow.updated_at),
       toIsoString(nextRow.created_at),
       nextRow.deck_id,
     ]),
@@ -516,14 +512,13 @@ export async function searchDecksPage(
   const decodedCursor = input.cursor === null ? null : decodeDeckPageCursor(input.cursor);
   const cursorClause = decodedCursor === null
     ? ""
-    : `AND (updated_at < $${searchClauseResult.params.length + 2} OR (updated_at = $${searchClauseResult.params.length + 2} AND (created_at < $${searchClauseResult.params.length + 3} OR (created_at = $${searchClauseResult.params.length + 3} AND deck_id < $${searchClauseResult.params.length + 4}))))`;
-  const limitParamIndex = searchClauseResult.params.length + (decodedCursor === null ? 2 : 5);
+    : `AND (created_at < $${searchClauseResult.params.length + 2} OR (created_at = $${searchClauseResult.params.length + 2} AND deck_id < $${searchClauseResult.params.length + 3}))`;
+  const limitParamIndex = searchClauseResult.params.length + (decodedCursor === null ? 2 : 4);
   const params = decodedCursor === null
     ? [workspaceId, ...searchClauseResult.params, input.limit + 1]
     : [
       workspaceId,
       ...searchClauseResult.params,
-      new Date(decodedCursor.updatedAt),
       new Date(decodedCursor.createdAt),
       decodedCursor.deckId,
       input.limit + 1,
@@ -539,7 +534,7 @@ export async function searchDecksPage(
       "AND deleted_at IS NULL",
       `AND (${searchClauseResult.clause})`,
       cursorClause,
-      "ORDER BY updated_at DESC, created_at DESC, deck_id DESC",
+      "ORDER BY created_at DESC, deck_id DESC",
       `LIMIT $${limitParamIndex}`,
     ].join(" "),
     params,
@@ -552,7 +547,6 @@ export async function searchDecksPage(
   return {
     decks: visibleRows.map(mapDeck),
     nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
-      toIsoString(nextRow.updated_at),
       toIsoString(nextRow.created_at),
       nextRow.deck_id,
     ]),
