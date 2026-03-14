@@ -30,6 +30,12 @@ protocol CloudSyncServing {
         bearerToken: String,
         connectionId: String
     ) async throws -> (AgentApiKeyConnection, String)
+    func isWorkspaceEmptyForBootstrap(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        deviceId: String
+    ) async throws -> Bool
     func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws
 }
@@ -41,10 +47,16 @@ protocol CredentialStoring {
 }
 
 @MainActor
+protocol CloudServiceConfigurationValidating {
+    func validate(configuration: CloudServiceConfiguration) async throws
+}
+
+@MainActor
 extension CloudAuthService: CloudAuthServing {}
 @MainActor
 extension CloudSyncService: CloudSyncServing {}
 extension CloudCredentialStore: CredentialStoring {}
+extension CloudServiceConfigurationValidator: CloudServiceConfigurationValidating {}
 
 struct ReviewSubmissionRequest: Hashable, Sendable {
     let id: String
@@ -138,4 +150,20 @@ func requireCloudSyncService(cloudSyncService: (any CloudSyncServing)?) throws -
     }
 
     return cloudSyncService
+}
+
+func requireCloudSettings(cloudSettings: CloudSettings?) throws -> CloudSettings {
+    guard let cloudSettings else {
+        throw LocalStoreError.uninitialized("Cloud settings are unavailable")
+    }
+
+    return cloudSettings
+}
+
+func requireCustomOrigin(configuration: CloudServiceConfiguration) throws -> String {
+    guard let customOrigin = configuration.customOrigin, customOrigin.isEmpty == false else {
+        throw LocalStoreError.validation("Custom server origin is unavailable")
+    }
+
+    return customOrigin
 }

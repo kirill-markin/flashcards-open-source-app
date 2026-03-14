@@ -17,6 +17,7 @@ export const settingsDeckNewRoute: string = "/settings/workspace/decks/new";
 export const settingsTagsRoute: string = "/settings/workspace/tags";
 export const settingsDeviceRoute: string = "/settings/workspace/device";
 export const accountStatusRoute: string = "/settings/account/status";
+export const accountOpenSourceRoute: string = "/settings/account/open-source";
 export const accountAgentConnectionsRoute: string = "/settings/account/agent-connections";
 export const accountDangerZoneRoute: string = "/settings/account/danger-zone";
 

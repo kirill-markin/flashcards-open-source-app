@@ -45,6 +45,9 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case workspaceDevice
     case account
     case accountStatus
+    case accountOpenSource
+    case accountAdvanced
+    case accountServer
     case accountAgentConnections
     case accountDangerZone
 }
@@ -337,7 +340,18 @@ enum CloudWorkspaceLinkSelection: Hashable, Sendable {
     case createNew
 }
 
+enum CloudServiceConfigurationMode: String, Codable, Hashable, Sendable {
+    case official
+    case custom
+}
+
+struct CloudServerOverride: Codable, Hashable, Sendable {
+    let customOrigin: String
+}
+
 struct CloudServiceConfiguration: Hashable {
+    let mode: CloudServiceConfigurationMode
+    let customOrigin: String?
     let apiBaseUrl: String
     let authBaseUrl: String
 }

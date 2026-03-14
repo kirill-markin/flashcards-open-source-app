@@ -86,6 +86,7 @@ final class FlashcardsStore: ObservableObject {
     let userDefaults: UserDefaults
     let encoder: JSONEncoder
     let decoder: JSONDecoder
+    var cloudServiceConfigurationValidator: any CloudServiceConfigurationValidating
     var reviewRuntime: ReviewQueueRuntime
     var cloudRuntime: CloudSessionRuntime
     var isAccountDeletionRunning: Bool
@@ -219,6 +220,7 @@ final class FlashcardsStore: ObservableObject {
         self.userDefaults = userDefaults
         self.encoder = encoder
         self.decoder = decoder
+        self.cloudServiceConfigurationValidator = CloudServiceConfigurationValidator()
         self.reviewRuntime = ReviewQueueRuntime(
             initialSelectedReviewFilter: initialSelectedReviewFilter,
             reviewSeedQueueSize: reviewSeedQueueSize,

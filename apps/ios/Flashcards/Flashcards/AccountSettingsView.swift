@@ -20,6 +20,22 @@ struct AccountSettingsView: View {
                     )
                 }
 
+                NavigationLink(value: SettingsNavigationDestination.accountOpenSource) {
+                    SettingsNavigationRow(
+                        title: "Open Source",
+                        value: "GitHub + MIT",
+                        systemImage: "chevron.left.forwardslash.chevron.right"
+                    )
+                }
+
+                NavigationLink(value: SettingsNavigationDestination.accountAdvanced) {
+                    SettingsNavigationRow(
+                        title: "Advanced",
+                        value: "Server",
+                        systemImage: "gearshape.2"
+                    )
+                }
+
                 NavigationLink(value: SettingsNavigationDestination.accountAgentConnections) {
                     SettingsNavigationRow(
                         title: "Agent Connections",

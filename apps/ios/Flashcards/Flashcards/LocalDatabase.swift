@@ -545,6 +545,40 @@ final class LocalDatabase {
         try self.outboxStore.deleteOutboxEntries(operationIds: operationIds)
     }
 
+    func clearCloudSyncState(workspaceId: String) throws {
+        try self.core.inTransaction {
+            _ = try self.core.execute(
+                sql: "DELETE FROM outbox WHERE workspace_id = ?",
+                values: [.text(workspaceId)]
+            )
+
+            let updatedRows = try self.core.execute(
+                sql: """
+                UPDATE sync_state
+                SET last_applied_change_id = 0, updated_at = ?
+                WHERE workspace_id = ?
+                """,
+                values: [
+                    .text(currentIsoTimestamp()),
+                    .text(workspaceId)
+                ]
+            )
+
+            if updatedRows == 0 {
+                try self.core.execute(
+                    sql: """
+                    INSERT INTO sync_state (workspace_id, last_applied_change_id, updated_at)
+                    VALUES (?, 0, ?)
+                    """,
+                    values: [
+                        .text(workspaceId),
+                        .text(currentIsoTimestamp())
+                    ]
+                )
+            }
+        }
+    }
+
     func deleteStaleReviewEventOutboxEntries(workspaceId: String) throws -> Int {
         try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()

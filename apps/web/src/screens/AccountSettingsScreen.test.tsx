@@ -70,12 +70,14 @@ describe("AccountSettingsScreen", () => {
 
     expect(container.textContent).toContain("Account Settings");
     expect(container.textContent).toContain("Account Status");
+    expect(container.textContent).toContain("Open Source");
     expect(container.textContent).toContain("Agent Connections");
     expect(container.textContent).toContain("Danger Zone");
 
     const links = Array.from(container.querySelectorAll(".settings-nav-card")).map((element) => element.getAttribute("href"));
     expect(links).toEqual([
       "/settings/account/status",
+      "/settings/account/open-source",
       "/settings/account/agent-connections",
       "/settings/account/danger-zone",
     ]);

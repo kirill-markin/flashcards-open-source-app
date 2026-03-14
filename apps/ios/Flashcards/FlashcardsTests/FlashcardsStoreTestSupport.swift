@@ -79,6 +79,10 @@ enum FlashcardsStoreTestSupport {
     final class MockCloudSyncService: CloudSyncServing {
         private(set) var runLinkedSyncCallCount: Int
         private(set) var runLinkedSyncSessions: [CloudLinkedSession]
+        var fetchCloudAccountSnapshot: CloudAccountSnapshot?
+        var createWorkspaceResult: CloudWorkspaceSummary?
+        var selectedWorkspacesById: [String: CloudWorkspaceSummary]
+        var workspaceBootstrapEmptinessById: [String: Bool]
         private var runLinkedSyncOutcomes: [MockCloudSyncRunOutcome]
         private var isRunLinkedSyncBlocked: Bool
         private var runLinkedSyncContinuation: CheckedContinuation<Void, Never>?
@@ -86,16 +90,28 @@ enum FlashcardsStoreTestSupport {
         init(runLinkedSyncOutcomes: [MockCloudSyncRunOutcome], isRunLinkedSyncBlocked: Bool) {
             self.runLinkedSyncCallCount = 0
             self.runLinkedSyncSessions = []
+            self.fetchCloudAccountSnapshot = nil
+            self.createWorkspaceResult = nil
+            self.selectedWorkspacesById = [:]
+            self.workspaceBootstrapEmptinessById = [:]
             self.runLinkedSyncOutcomes = runLinkedSyncOutcomes
             self.isRunLinkedSyncBlocked = isRunLinkedSyncBlocked
         }
 
         func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
-            throw LocalStoreError.validation("Unexpected fetchCloudAccount call in FlashcardsStoreTests")
+            guard let fetchCloudAccountSnapshot else {
+                throw LocalStoreError.validation("Unexpected fetchCloudAccount call in FlashcardsStoreTests")
+            }
+
+            return fetchCloudAccountSnapshot
         }
 
         func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
-            throw LocalStoreError.validation("Unexpected createWorkspace call in FlashcardsStoreTests")
+            guard let createWorkspaceResult else {
+                throw LocalStoreError.validation("Unexpected createWorkspace call in FlashcardsStoreTests")
+            }
+
+            return createWorkspaceResult
         }
 
         func selectWorkspace(
@@ -103,7 +119,11 @@ enum FlashcardsStoreTestSupport {
             bearerToken: String,
             workspaceId: String
         ) async throws -> CloudWorkspaceSummary {
-            throw LocalStoreError.validation("Unexpected selectWorkspace call in FlashcardsStoreTests")
+            guard let selectedWorkspace = self.selectedWorkspacesById[workspaceId] else {
+                throw LocalStoreError.validation("Unexpected selectWorkspace call in FlashcardsStoreTests")
+            }
+
+            return selectedWorkspace
         }
 
         func listAgentApiKeys(apiBaseUrl: String, bearerToken: String) async throws -> ([AgentApiKeyConnection], String) {
@@ -116,6 +136,19 @@ enum FlashcardsStoreTestSupport {
             connectionId: String
         ) async throws -> (AgentApiKeyConnection, String) {
             throw LocalStoreError.validation("Unexpected revokeAgentApiKey call in FlashcardsStoreTests")
+        }
+
+        func isWorkspaceEmptyForBootstrap(
+            apiBaseUrl: String,
+            bearerToken: String,
+            workspaceId: String,
+            deviceId: String
+        ) async throws -> Bool {
+            guard let isEmpty = self.workspaceBootstrapEmptinessById[workspaceId] else {
+                throw LocalStoreError.validation("Unexpected isWorkspaceEmptyForBootstrap call in FlashcardsStoreTests")
+            }
+
+            return isEmpty
         }
 
         func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws {
@@ -150,6 +183,25 @@ enum FlashcardsStoreTestSupport {
             self.isRunLinkedSyncBlocked = false
             self.runLinkedSyncContinuation?.resume()
             self.runLinkedSyncContinuation = nil
+        }
+    }
+
+    @MainActor
+    final class MockCloudServiceConfigurationValidator: CloudServiceConfigurationValidating {
+        var validatedConfigurations: [CloudServiceConfiguration]
+        var nextValidationError: Error?
+
+        init() {
+            self.validatedConfigurations = []
+            self.nextValidationError = nil
+        }
+
+        func validate(configuration: CloudServiceConfiguration) async throws {
+            self.validatedConfigurations.append(configuration)
+
+            if let nextValidationError {
+                throw nextValidationError
+            }
         }
     }
 

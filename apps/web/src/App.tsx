@@ -16,6 +16,7 @@ import { ChatToggle } from "./chat/ChatToggle";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
+  accountOpenSourceRoute,
   accountSettingsRoute,
   accountStatusRoute,
   buildSettingsDeckDetailRoute,
@@ -47,6 +48,7 @@ import { DecksScreen } from "./screens/DecksScreen";
 import { DangerZoneScreen } from "./screens/DangerZoneScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { OpenSourceSettingsScreen } from "./screens/OpenSourceSettingsScreen";
 import { ThisDeviceSettingsScreen } from "./screens/ThisDeviceSettingsScreen";
 import { TagsScreen } from "./screens/TagsScreen";
 import { WorkspaceOverviewScreen } from "./screens/WorkspaceOverviewScreen";
@@ -327,6 +329,7 @@ export function RoutedShell(): ReactElement {
           <Route path={settingsDeviceRoute} element={<ThisDeviceSettingsScreen />} />
           <Route path={accountSettingsRoute} element={<AccountSettingsScreen />} />
           <Route path={accountStatusRoute} element={<AccountStatusScreen />} />
+          <Route path={accountOpenSourceRoute} element={<OpenSourceSettingsScreen />} />
           <Route path={accountAgentConnectionsRoute} element={<AgentConnectionsScreen />} />
           <Route path={accountDangerZoneRoute} element={<DangerZoneScreen />} />
           <Route

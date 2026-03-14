@@ -3,6 +3,7 @@ import Foundation
 enum CloudConfigurationError: LocalizedError, Equatable {
     case missingValue(String)
     case invalidUrl(String, String)
+    case invalidCustomOrigin(String)
 
     var errorDescription: String? {
         switch self {
@@ -10,15 +11,95 @@ enum CloudConfigurationError: LocalizedError, Equatable {
             return "Cloud configuration is missing \(key)"
         case .invalidUrl(let key, let value):
             return "Cloud configuration \(key) is invalid: \(value)"
+        case .invalidCustomOrigin(let value):
+            return "Custom server must be a base HTTPS URL like https://example.com. Received: \(value)"
         }
     }
 }
 
-func loadCloudServiceConfiguration(bundle: Bundle = .main) throws -> CloudServiceConfiguration {
-    let apiBaseUrl = try loadCloudUrlString(bundle: bundle, key: "FLASHCARDS_API_BASE_URL")
-    let authBaseUrl = try loadCloudUrlString(bundle: bundle, key: "FLASHCARDS_AUTH_BASE_URL")
+let customCloudServerOverrideUserDefaultsKey: String = "custom-cloud-server-override"
+let pendingCloudServerBootstrapUserDefaultsKey: String = "pending-cloud-server-bootstrap"
+let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
+let flashcardsRepositoryLicenseUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app/blob/main/LICENSE"
+
+func loadCloudServiceConfiguration(
+    bundle: Bundle = .main,
+    userDefaults: UserDefaults = .standard,
+    decoder: JSONDecoder = JSONDecoder()
+) throws -> CloudServiceConfiguration {
+    if let override = try loadCloudServerOverride(userDefaults: userDefaults, decoder: decoder) {
+        return try makeCustomCloudServiceConfiguration(customOrigin: override.customOrigin)
+    }
+
+    return try loadOfficialCloudServiceConfiguration(bundle: bundle)
+}
+
+func loadCloudServerOverride(
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder
+) throws -> CloudServerOverride? {
+    guard let storedData = userDefaults.data(forKey: customCloudServerOverrideUserDefaultsKey) else {
+        return nil
+    }
+
+    do {
+        return try decoder.decode(CloudServerOverride.self, from: storedData)
+    } catch {
+        throw LocalStoreError.validation(
+            "Stored custom server override is invalid: \(localizedMessage(error: error))"
+        )
+    }
+}
+
+func saveCloudServerOverride(
+    override: CloudServerOverride,
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder
+) throws {
+    do {
+        let storedData = try encoder.encode(override)
+        userDefaults.set(storedData, forKey: customCloudServerOverrideUserDefaultsKey)
+    } catch {
+        throw LocalStoreError.validation(
+            "Custom server override could not be saved: \(localizedMessage(error: error))"
+        )
+    }
+}
+
+func clearCloudServerOverride(userDefaults: UserDefaults) {
+    userDefaults.removeObject(forKey: customCloudServerOverrideUserDefaultsKey)
+}
+
+func makeCustomCloudServiceConfiguration(customOrigin: String) throws -> CloudServiceConfiguration {
+    let normalizedOrigin = try normalizeCustomCloudOrigin(customOrigin)
+    let baseUrl = URLComponents(string: normalizedOrigin)
+        .flatMap { components -> URLComponents? in
+            guard components.host != nil else {
+                return nil
+            }
+
+            return components
+        }
+    guard let baseUrl else {
+        throw CloudConfigurationError.invalidCustomOrigin(customOrigin)
+    }
+
+    let apiBaseUrl = try deriveSubdomainUrlString(
+        components: baseUrl,
+        subdomainPrefix: "api",
+        suffixPath: "/v1",
+        inputValue: customOrigin
+    )
+    let authBaseUrl = try deriveSubdomainUrlString(
+        components: baseUrl,
+        subdomainPrefix: "auth",
+        suffixPath: "",
+        inputValue: customOrigin
+    )
 
     return CloudServiceConfiguration(
+        mode: .custom,
+        customOrigin: normalizedOrigin,
         apiBaseUrl: apiBaseUrl,
         authBaseUrl: authBaseUrl
     )
@@ -53,4 +134,75 @@ private func loadCloudUrlString(bundle: Bundle, key: String) throws -> String {
     }
 
     return normalizedValue
+}
+
+private func loadOfficialCloudServiceConfiguration(bundle: Bundle) throws -> CloudServiceConfiguration {
+    let apiBaseUrl = try loadCloudUrlString(bundle: bundle, key: "FLASHCARDS_API_BASE_URL")
+    let authBaseUrl = try loadCloudUrlString(bundle: bundle, key: "FLASHCARDS_AUTH_BASE_URL")
+
+    return CloudServiceConfiguration(
+        mode: .official,
+        customOrigin: nil,
+        apiBaseUrl: apiBaseUrl,
+        authBaseUrl: authBaseUrl
+    )
+}
+
+private func normalizeCustomCloudOrigin(_ value: String) throws -> String {
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.isEmpty == false else {
+        throw CloudConfigurationError.invalidCustomOrigin(value)
+    }
+
+    guard let parsedUrl = URL(string: trimmedValue), var components = URLComponents(url: parsedUrl, resolvingAgainstBaseURL: false) else {
+        throw CloudConfigurationError.invalidCustomOrigin(value)
+    }
+    guard components.scheme?.lowercased() == "https" else {
+        throw CloudConfigurationError.invalidCustomOrigin(value)
+    }
+    guard let host = components.host?.trimmingCharacters(in: .whitespacesAndNewlines), host.isEmpty == false else {
+        throw CloudConfigurationError.invalidCustomOrigin(value)
+    }
+    guard components.user == nil, components.password == nil else {
+        throw CloudConfigurationError.invalidCustomOrigin(value)
+    }
+    guard components.query == nil, components.fragment == nil else {
+        throw CloudConfigurationError.invalidCustomOrigin(value)
+    }
+    guard components.path.isEmpty || components.path == "/" else {
+        throw CloudConfigurationError.invalidCustomOrigin(value)
+    }
+
+    components.scheme = "https"
+    components.host = host.lowercased()
+    components.path = ""
+    components.query = nil
+    components.fragment = nil
+
+    guard let normalizedValue = components.string else {
+        throw CloudConfigurationError.invalidCustomOrigin(value)
+    }
+
+    return normalizedValue
+}
+
+private func deriveSubdomainUrlString(
+    components: URLComponents,
+    subdomainPrefix: String,
+    suffixPath: String,
+    inputValue: String
+) throws -> String {
+    var derivedComponents = components
+    guard let host = components.host else {
+        throw CloudConfigurationError.invalidCustomOrigin(inputValue)
+    }
+
+    derivedComponents.host = "\(subdomainPrefix).\(host)"
+    derivedComponents.path = suffixPath
+
+    guard let urlString = derivedComponents.string, URL(string: urlString) != nil else {
+        throw CloudConfigurationError.invalidCustomOrigin(inputValue)
+    }
+
+    return urlString
 }

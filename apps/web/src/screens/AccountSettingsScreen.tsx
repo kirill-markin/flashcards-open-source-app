@@ -2,6 +2,7 @@ import { useAppData } from "../appData";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
+  accountOpenSourceRoute,
   accountStatusRoute,
 } from "../routes";
 import { SettingsNavigationCard, SettingsShell } from "./SettingsShared";
@@ -31,6 +32,12 @@ export function AccountSettingsScreen(): ReactElement {
           description="Review the signed-in account and current browser session state."
           value={accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null)}
           to={accountStatusRoute}
+        />
+        <SettingsNavigationCard
+          title="Open Source"
+          description="Review the repository, MIT license, and self-hosting links."
+          value="GitHub + MIT"
+          to={accountOpenSourceRoute}
         />
         <SettingsNavigationCard
           title="Agent Connections"
