@@ -14,7 +14,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -35,7 +35,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -59,7 +59,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: ThrowingChatService(error: StubLocalizedError(message: "Chat failed")),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -87,7 +87,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: RepairingChatService(terminalError: nil),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -111,7 +111,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: RepairingChatService(terminalError: StubLocalizedError(message: "Still invalid")),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -136,7 +136,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             historyStore: historyStore,
             chatService: BurstChatService(deltas: Array(repeating: "A", count: 20)),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -178,7 +178,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.warmUpSessionIfNeeded()
@@ -242,7 +242,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.warmUpSessionIfNeeded()
@@ -280,7 +280,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.warmUpSessionIfNeeded()
@@ -303,7 +303,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.appendAttachment(
@@ -352,7 +352,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.warmUpSessionIfNeeded()
@@ -375,7 +375,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             historyStore: historyStore,
             chatService: SuspendingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.appendAttachment(
@@ -413,7 +413,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: ToolCallRequestOnlyChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -438,7 +438,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: RepairingSuspendingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -465,7 +465,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: SuspendingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -490,7 +490,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: SuspendingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -534,7 +534,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: FailingChatService(),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         flashcardsStore.openAICardCreation()
@@ -564,7 +564,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: MutatingChatService(),
             toolExecutor: workspaceRuntime,
-            snapshotLoader: workspaceRuntime
+            localContextLoader: workspaceRuntime
         )
 
         chatStore.inputText = "create a card"
@@ -589,7 +589,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: DelayedToolCompletionChatService(),
             toolExecutor: SlowSuccessToolExecutor(pauseNanoseconds: 200_000_000),
-            snapshotLoader: SlowSuccessToolExecutor(pauseNanoseconds: 200_000_000)
+            localContextLoader: SlowSuccessToolExecutor(pauseNanoseconds: 200_000_000)
         )
 
         chatStore.inputText = "hello"
@@ -624,7 +624,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: chatService,
             toolExecutor: toolExecutor,
-            snapshotLoader: toolExecutor
+            localContextLoader: toolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -668,7 +668,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             ),
             chatService: chatService,
             toolExecutor: toolExecutor,
-            snapshotLoader: toolExecutor
+            localContextLoader: toolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -706,7 +706,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
                 pauseBeforeCompletionNanoseconds: 200_000_000
             ),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"
@@ -748,7 +748,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
                 )
             ),
             toolExecutor: failingToolExecutor,
-            snapshotLoader: failingToolExecutor
+            localContextLoader: failingToolExecutor
         )
 
         chatStore.inputText = "hello"

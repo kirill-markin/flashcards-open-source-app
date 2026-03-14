@@ -403,21 +403,22 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         let pendingCardId = try XCTUnwrap(store.effectiveReviewQueue.first?.cardId)
         try store.enqueueReviewSubmission(cardId: pendingCardId, rating: .good)
 
-        let baseSnapshot = try context.database.loadStateSnapshot()
+        let baseBootstrapSnapshot = try testBootstrapSnapshot(database: context.database)
         let remoteCard = FlashcardsStoreTestSupport.makeRemoteDueCard(
-            workspaceId: baseSnapshot.workspace.workspaceId,
+            workspaceId: baseBootstrapSnapshot.workspace.workspaceId,
             cardId: "remote-due-card"
         )
-        store.applyExternalSnapshot(
-            snapshot: AppStateSnapshot(
-                workspace: baseSnapshot.workspace,
-                userSettings: baseSnapshot.userSettings,
-                schedulerSettings: baseSnapshot.schedulerSettings,
-                cloudSettings: baseSnapshot.cloudSettings,
-                cards: baseSnapshot.cards + [remoteCard],
-                decks: baseSnapshot.decks
+        try context.database.applySyncChange(
+            workspaceId: baseBootstrapSnapshot.workspace.workspaceId,
+            change: SyncChange(
+                changeId: 1,
+                entityType: .card,
+                entityId: remoteCard.cardId,
+                action: .upsert,
+                payload: .card(remoteCard)
             )
         )
+        store.refreshLocalReadModels(now: Date())
 
         XCTAssertTrue(store.effectiveReviewQueue.contains(where: { card in
             card.cardId == "remote-due-card"

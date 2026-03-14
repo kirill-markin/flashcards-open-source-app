@@ -86,7 +86,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
 
     func testReloadLoadsPersistedTagReviewFilterWhenTagExists() throws {
         let environment = try FlashcardsStoreTestSupport.makeStoreEnvironment(testCase: self)
-        let workspaceId = try environment.database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: environment.database)
         let card = try environment.database.saveCard(
             workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: ["grammar"]),

@@ -58,6 +58,21 @@ struct CardStore {
         return repairedCards
     }
 
+    func loadActiveCardCount(workspaceId: String) throws -> Int {
+        let counts = try self.core.query(
+            sql: """
+            SELECT COUNT(*)
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL
+            """,
+            values: [.text(workspaceId)]
+        ) { statement in
+            Int(DatabaseCore.columnInt64(statement: statement, index: 0))
+        }
+
+        return counts.first ?? 0
+    }
+
     func loadCardsIncludingDeleted(workspaceId: String) throws -> [Card] {
         try self.core.query(
             sql: """

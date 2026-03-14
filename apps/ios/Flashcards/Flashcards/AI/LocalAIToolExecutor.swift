@@ -202,7 +202,7 @@ private func describeOutboxPayload(_ payload: SyncOperationPayload) -> String {
  */
 private func executeSqlLocally(
     database: LocalDatabase,
-    snapshot: AppStateSnapshot,
+    bootstrapSnapshot: AppBootstrapSnapshot,
     sql: String,
     encoder: JSONEncoder
 ) throws -> LocalAISqlExecutionResult {
@@ -212,7 +212,7 @@ private func executeSqlLocally(
     case .showTables, .describe, .select:
         return try executeLocalAISqlReadStatement(
             database: database,
-            snapshot: snapshot,
+            bootstrapSnapshot: bootstrapSnapshot,
             sql: sql,
             statement: statement,
             encoder: encoder
@@ -220,7 +220,7 @@ private func executeSqlLocally(
     case .insert, .update, .delete:
         return try executeLocalAISqlMutationStatement(
             database: database,
-            snapshot: snapshot,
+            bootstrapSnapshot: bootstrapSnapshot,
             sql: sql,
             statement: statement,
             encoder: encoder
@@ -240,13 +240,13 @@ func encodeJSON<Value: Encodable>(
 }
 
 /**
- Executes local AI tools against the iOS app snapshot and local database.
+ Executes local AI tools against the iOS local database.
 
  Mirrors:
  - `apps/web/src/chat/localToolExecutor.ts::createLocalToolExecutor`
  - `apps/backend/src/chat/openai/localTools.ts`
  */
-actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+actor LocalAIToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
     private let databaseURL: URL
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
@@ -261,14 +261,14 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
 
     func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
         let database = try self.databaseInstance()
-        let snapshot = try database.loadStateSnapshot()
+        let bootstrapSnapshot = try database.loadBootstrapSnapshot()
 
         switch toolCallRequest.name {
         case "sql":
             let input = try self.decodeInput(SqlToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             let result = try executeSqlLocally(
                 database: database,
-                snapshot: snapshot,
+                bootstrapSnapshot: bootstrapSnapshot,
                 sql: input.sql,
                 encoder: self.encoder
             )
@@ -279,7 +279,7 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         case "get_cloud_settings":
             _ = try self.decodeInput(EmptyToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
             return AIToolExecutionResult(
-                output: try encodeJSON(value: snapshot.cloudSettings, encoder: self.encoder),
+                output: try encodeJSON(value: bootstrapSnapshot.cloudSettings, encoder: self.encoder),
                 didMutateAppState: false
             )
         case "list_outbox":
@@ -288,7 +288,7 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
                 output: try encodeJSON(
                     value: try self.makeOutboxPayload(
                         database: database,
-                        workspaceId: snapshot.workspace.workspaceId,
+                        workspaceId: bootstrapSnapshot.workspace.workspaceId,
                         startIndex: try pageStartIndex(cursor: input.cursor),
                         limit: try normalizeOutboxLimit(input.limit)
                     ),
@@ -301,8 +301,8 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         }
     }
 
-    func loadSnapshot() async throws -> AppStateSnapshot {
-        try self.loadSnapshotNow()
+    func loadLocalContext() async throws -> AIChatLocalContext {
+        try self.loadLocalContextNow()
     }
 
     private func databaseInstance() throws -> LocalDatabase {
@@ -315,8 +315,8 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         return database
     }
 
-    private func loadSnapshotNow() throws -> AppStateSnapshot {
-        try self.databaseInstance().loadStateSnapshot()
+    private func loadLocalContextNow() throws -> AIChatLocalContext {
+        try self.databaseInstance().loadAIChatLocalContext()
     }
 
     private func makeOutboxPayload(
@@ -385,14 +385,14 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
     }
 }
 
-struct UnavailableAIToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+struct UnavailableAIToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
     func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
         _ = toolCallRequest
         _ = requestId
         throw LocalStoreError.uninitialized("AI tool executor is unavailable")
     }
 
-    func loadSnapshot() async throws -> AppStateSnapshot {
+    func loadLocalContext() async throws -> AIChatLocalContext {
         throw LocalStoreError.uninitialized("AI tool executor is unavailable")
     }
 }

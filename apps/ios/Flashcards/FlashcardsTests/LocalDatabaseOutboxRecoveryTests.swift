@@ -5,14 +5,14 @@ import XCTest
 final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
     func testBootstrapOutboxRecreatesMissingOperationsWithoutDuplicates() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
-        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        let cardId = try testFirstActiveCard(database: database).cardId
         _ = try database.createDeck(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeDeckInput(name: "Deck")
@@ -76,7 +76,7 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
 
     func testBootstrapOutboxSkipsReviewEventsFromAnotherDevice() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
@@ -84,7 +84,7 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
             cardId: nil
         )
 
-        let localCard = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let localCard = try testFirstActiveCard(database: database)
         let remoteReviewEvent = ReviewEvent(
             reviewEventId: "remote-review-event",
             workspaceId: workspaceId,
@@ -137,14 +137,14 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
 
     func testBootstrapOutboxDoesNotDuplicatePendingLocalReviewEvent() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
-        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        let cardId = try testFirstActiveCard(database: database).cardId
         _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
@@ -185,16 +185,15 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
 
     func testDeleteStaleReviewEventOutboxEntriesRemovesOnlyMismatchedReviewEventOperations() throws {
         let (databaseURL, database) = try LocalDatabaseTestSupport.makeDatabaseWithURL(testCase: self)
-        let snapshot = try database.loadStateSnapshot()
-        let workspaceId = snapshot.workspace.workspaceId
-        let originalDeviceId = snapshot.cloudSettings.deviceId
+        let workspaceId = try testWorkspaceId(database: database)
+        let originalDeviceId = try testCloudSettings(database: database).deviceId
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
-        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        let cardId = try testFirstActiveCard(database: database).cardId
         try database.updateWorkspaceSchedulerSettings(
             workspaceId: workspaceId,
             desiredRetention: 0.92,
@@ -249,14 +248,14 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
 
     func testDeleteStaleReviewEventOutboxEntriesKeepsMatchingReviewEventOperations() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: LocalDatabaseTestSupport.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
-        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        let cardId = try testFirstActiveCard(database: database).cardId
         _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
@@ -280,9 +279,8 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
 
     func testLoadOutboxEntriesRepairsLegacyCardPayloadMissingCreatedAt() throws {
         let (databaseURL, database) = try LocalDatabaseTestSupport.makeDatabaseWithURL(testCase: self)
-        let snapshot = try database.loadStateSnapshot()
-        let workspaceId = snapshot.workspace.workspaceId
-        let deviceId = snapshot.cloudSettings.deviceId
+        let workspaceId = try testWorkspaceId(database: database)
+        let deviceId = try testCloudSettings(database: database).deviceId
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
@@ -290,7 +288,7 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
             cardId: nil
         )
 
-        let card = try XCTUnwrap(try database.loadStateSnapshot().cards.first)
+        let card = try testFirstActiveCard(database: database)
         let existingEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
         try database.deleteOutboxEntries(operationIds: existingEntries.map { entry in
             entry.operationId

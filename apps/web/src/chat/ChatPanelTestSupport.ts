@@ -422,18 +422,6 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
     useAppDataMock.mockReturnValue({
       localCardCount: 1,
-      loadLocalSnapshot: async () => ({
-        cards: [
-          { cardId: "card-active", deletedAt: null },
-          { cardId: "card-deleted", deletedAt: "2026-03-09T00:00:00.000Z" },
-        ],
-        decks: [],
-        reviewEvents: [],
-        workspaceSettings: null,
-        cloudSettings: null,
-        outbox: [],
-        lastAppliedChangeId: 0,
-      }),
     });
     createLocalChatRequestBodyMock.mockImplementation(
       (messages: ReadonlyArray<unknown>, model: string, timezone: string, userContext: unknown) => ({

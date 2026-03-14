@@ -40,7 +40,7 @@ actor AIChatSessionRuntime {
     private let historyStore: any AIChatHistoryStoring
     private let chatService: any AIChatStreaming
     private let toolExecutor: any AIToolExecuting
-    private let snapshotLoader: any AIChatSnapshotLoading
+    private let localContextLoader: any AIChatLocalContextLoading
     private let streamFlushInterval: TimeInterval
     private let historyCheckpointInterval: TimeInterval
 
@@ -55,14 +55,14 @@ actor AIChatSessionRuntime {
         historyStore: any AIChatHistoryStoring,
         chatService: any AIChatStreaming,
         toolExecutor: any AIToolExecuting,
-        snapshotLoader: any AIChatSnapshotLoading,
+        localContextLoader: any AIChatLocalContextLoading,
         streamFlushInterval: TimeInterval,
         historyCheckpointInterval: TimeInterval
     ) {
         self.historyStore = historyStore
         self.chatService = chatService
         self.toolExecutor = toolExecutor
-        self.snapshotLoader = snapshotLoader
+        self.localContextLoader = localContextLoader
         self.streamFlushInterval = streamFlushInterval
         self.historyCheckpointInterval = historyCheckpointInterval
         self.persistedState = AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
@@ -300,8 +300,7 @@ actor AIChatSessionRuntime {
         }
 
         if didMutateAppState {
-            let snapshot = try await self.snapshotLoader.loadSnapshot()
-            await eventHandler(.applySnapshot(snapshot))
+            await eventHandler(.refreshLocalState)
         }
     }
 
@@ -361,10 +360,10 @@ actor AIChatSessionRuntime {
     }
 
     private func makeRequestBody() async throws -> AILocalChatRequestBody {
-        let snapshot = try await self.snapshotLoader.loadSnapshot()
+        let localContext = try await self.localContextLoader.loadLocalContext()
         return makeRuntimeRequestBody(
             state: self.persistedState,
-            userContext: makeAIChatUserContext(cards: snapshot.cards)
+            userContext: makeAIChatUserContext(totalCards: localContext.totalActiveCards)
         )
     }
 
@@ -458,8 +457,8 @@ private func makeTerminalToolExecutionFailure(
     )
 }
 
-func makeAIChatUserContext(cards: [Card]) -> AILocalChatUserContext {
-    AILocalChatUserContext(totalCards: activeCards(cards: cards).count)
+func makeAIChatUserContext(totalCards: Int) -> AILocalChatUserContext {
+    AILocalChatUserContext(totalCards: totalCards)
 }
 
 private func makeRuntimeRequestBody(

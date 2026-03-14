@@ -20,37 +20,6 @@ func normalizeSqlOffset(_ offset: Int?) throws -> Int {
     return offset
 }
 
-private func compareCardsByCreatedAt(left: Card, right: Card) -> Bool {
-    if left.createdAt != right.createdAt {
-        return left.createdAt > right.createdAt
-    }
-
-    return left.cardId < right.cardId
-}
-
-private func compareDecksByCreatedAt(left: Deck, right: Deck) -> Bool {
-    if left.createdAt != right.createdAt {
-        return left.createdAt > right.createdAt
-    }
-
-    return left.deckId > right.deckId
-}
-
-/**
- Mirrors `apps/web/src/chat/localToolExecutor.ts::currentActiveCards`.
- Keep the default card ordering aligned across browser-local and iOS-local SQL
- reads so the same SQL query returns rows in the same implicit order.
- */
-func currentActiveCards(snapshot: AppStateSnapshot) -> [Card] {
-    activeCards(cards: snapshot.cards).sorted(by: compareCardsByCreatedAt)
-}
-
-func activeDecks(snapshot: AppStateSnapshot) -> [Deck] {
-    snapshot.decks.filter { deck in
-        deck.deletedAt == nil
-    }.sorted(by: compareDecksByCreatedAt)
-}
-
 func toSqlRowValue(literal: LocalAISqlLiteralValue) -> LocalAISqlRowValue {
     switch literal {
     case .string(let value):
@@ -66,17 +35,17 @@ func toSqlRowValue(literal: LocalAISqlLiteralValue) -> LocalAISqlRowValue {
     }
 }
 
-func toSqlWorkspaceRow(snapshot: AppStateSnapshot) -> LocalAISqlRow {
+func toSqlWorkspaceRow(bootstrapSnapshot: AppBootstrapSnapshot) -> LocalAISqlRow {
     [
-        "workspace_id": .string(snapshot.workspace.workspaceId),
-        "name": .string(snapshot.workspace.name),
-        "created_at": .string(snapshot.workspace.createdAt),
-        "algorithm": .string(snapshot.schedulerSettings.algorithm),
-        "desired_retention": .number(snapshot.schedulerSettings.desiredRetention),
-        "learning_steps_minutes": .integerArray(snapshot.schedulerSettings.learningStepsMinutes),
-        "relearning_steps_minutes": .integerArray(snapshot.schedulerSettings.relearningStepsMinutes),
-        "maximum_interval_days": .integer(snapshot.schedulerSettings.maximumIntervalDays),
-        "enable_fuzz": .boolean(snapshot.schedulerSettings.enableFuzz),
+        "workspace_id": .string(bootstrapSnapshot.workspace.workspaceId),
+        "name": .string(bootstrapSnapshot.workspace.name),
+        "created_at": .string(bootstrapSnapshot.workspace.createdAt),
+        "algorithm": .string(bootstrapSnapshot.schedulerSettings.algorithm),
+        "desired_retention": .number(bootstrapSnapshot.schedulerSettings.desiredRetention),
+        "learning_steps_minutes": .integerArray(bootstrapSnapshot.schedulerSettings.learningStepsMinutes),
+        "relearning_steps_minutes": .integerArray(bootstrapSnapshot.schedulerSettings.relearningStepsMinutes),
+        "maximum_interval_days": .integer(bootstrapSnapshot.schedulerSettings.maximumIntervalDays),
+        "enable_fuzz": .boolean(bootstrapSnapshot.schedulerSettings.enableFuzz),
     ]
 }
 
@@ -496,18 +465,18 @@ func regexMatches(
 
 func loadSelectRows(
     database: LocalDatabase,
-    snapshot: AppStateSnapshot,
+    bootstrapSnapshot: AppBootstrapSnapshot,
     resourceName: LocalAISqlResourceName
 ) throws -> [LocalAISqlRow] {
     switch resourceName {
     case .workspace:
-        return [toSqlWorkspaceRow(snapshot: snapshot)]
+        return [toSqlWorkspaceRow(bootstrapSnapshot: bootstrapSnapshot)]
     case .cards:
-        return currentActiveCards(snapshot: snapshot).map(toSqlCardRow)
+        return try database.loadActiveCards(workspaceId: bootstrapSnapshot.workspace.workspaceId).map(toSqlCardRow)
     case .decks:
-        return activeDecks(snapshot: snapshot).map(toSqlDeckRow)
+        return try database.loadActiveDecks(workspaceId: bootstrapSnapshot.workspace.workspaceId).map(toSqlDeckRow)
     case .reviewEvents:
-        return try database.loadReviewEvents(workspaceId: snapshot.workspace.workspaceId).map(toSqlReviewEventRow)
+        return try database.loadReviewEvents(workspaceId: bootstrapSnapshot.workspace.workspaceId).map(toSqlReviewEventRow)
     }
 }
 
@@ -812,7 +781,7 @@ func executeSqlSelect(
 
 func executeLocalAISqlReadStatement(
     database: LocalDatabase,
-    snapshot: AppStateSnapshot,
+    bootstrapSnapshot: AppBootstrapSnapshot,
     sql: String,
     statement: LocalAISqlStatement,
     encoder: JSONEncoder
@@ -884,7 +853,7 @@ func executeLocalAISqlReadStatement(
             statement: selectStatement,
             rows: try loadSelectRows(
                 database: database,
-                snapshot: snapshot,
+                bootstrapSnapshot: bootstrapSnapshot,
                 resourceName: selectStatement.source.resourceName
             )
         )

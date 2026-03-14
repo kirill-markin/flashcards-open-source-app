@@ -54,19 +54,29 @@ final class LocalDatabase {
         )
     }
 
-    func loadStateSnapshot() throws -> AppStateSnapshot {
+    func loadAIChatLocalContext() throws -> AIChatLocalContext {
         let bootstrapSnapshot = try self.loadBootstrapSnapshot()
-        let cards = try self.cardStore.loadCards(workspaceId: bootstrapSnapshot.workspace.workspaceId)
-        let decks = try self.deckStore.loadDecks(workspaceId: bootstrapSnapshot.workspace.workspaceId)
-
-        return AppStateSnapshot(
+        return AIChatLocalContext(
             workspace: bootstrapSnapshot.workspace,
-            userSettings: bootstrapSnapshot.userSettings,
             schedulerSettings: bootstrapSnapshot.schedulerSettings,
-            cloudSettings: bootstrapSnapshot.cloudSettings,
-            cards: cards,
-            decks: decks
+            totalActiveCards: try self.cardStore.loadActiveCardCount(workspaceId: bootstrapSnapshot.workspace.workspaceId)
         )
+    }
+
+    func loadActiveCards(workspaceId: String) throws -> [Card] {
+        try self.cardStore.loadCards(workspaceId: workspaceId)
+    }
+
+    func loadActiveCard(workspaceId: String, cardId: String) throws -> Card {
+        try self.cardStore.loadCard(workspaceId: workspaceId, cardId: cardId)
+    }
+
+    func loadActiveCardCount(workspaceId: String) throws -> Int {
+        try self.cardStore.loadActiveCardCount(workspaceId: workspaceId)
+    }
+
+    func loadActiveDecks(workspaceId: String) throws -> [Deck] {
+        try self.deckStore.loadDecks(workspaceId: workspaceId)
     }
 
     func loadResolvedReviewQuery(

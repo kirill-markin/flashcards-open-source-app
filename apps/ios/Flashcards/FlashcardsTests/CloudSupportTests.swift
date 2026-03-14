@@ -495,15 +495,14 @@ final class CloudSupportTests: XCTestCase {
     @MainActor
     func testRunLinkedSyncDropsStaleReviewEventOperationsBeforePush() async throws {
         let (databaseURL, database) = try self.makeDatabaseWithURL()
-        let snapshot = try database.loadStateSnapshot()
-        let workspaceId = snapshot.workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
-        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        let cardId = try testFirstActiveCard(database: database).cardId
         _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
@@ -603,15 +602,14 @@ final class CloudSupportTests: XCTestCase {
     @MainActor
     func testRunLinkedSyncSkipsPushWhenCleanupRemovesEntireOutboxBatch() async throws {
         let (databaseURL, database) = try self.makeDatabaseWithURL()
-        let snapshot = try database.loadStateSnapshot()
-        let workspaceId = snapshot.workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
             input: self.makeCardInput(frontText: "Front", backText: "Back"),
             cardId: nil
         )
-        let cardId = try XCTUnwrap(try database.loadStateSnapshot().cards.first?.cardId)
+        let cardId = try testFirstActiveCard(database: database).cardId
         _ = try database.submitReview(
             workspaceId: workspaceId,
             reviewSubmission: ReviewSubmission(
@@ -669,8 +667,7 @@ final class CloudSupportTests: XCTestCase {
 
     func testRunLinkedSyncCanExecuteOffMainActor() async throws {
         let (_, database) = try self.makeDatabaseWithURL()
-        let snapshot = try database.loadStateSnapshot()
-        let workspaceId = snapshot.workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,

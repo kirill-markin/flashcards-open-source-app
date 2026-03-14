@@ -15,19 +15,6 @@ extension FlashcardsStore {
         self.database?.databaseURL
     }
 
-    func applyExternalSnapshot(snapshot: AppStateSnapshot) {
-        self.applyLoadedBootstrapSnapshot(
-            snapshot: AppBootstrapSnapshot(
-                workspace: snapshot.workspace,
-                userSettings: snapshot.userSettings,
-                schedulerSettings: snapshot.schedulerSettings,
-                cloudSettings: snapshot.cloudSettings
-            ),
-            now: Date()
-        )
-        self.triggerCloudSyncIfLinked()
-    }
-
     func applyLoadedBootstrapSnapshot(snapshot: AppBootstrapSnapshot, now: Date) {
         self.workspace = snapshot.workspace
         self.userSettings = snapshot.userSettings
@@ -136,7 +123,7 @@ extension FlashcardsStore {
             encoder: self.encoder,
             decoder: self.decoder
         )
-        let workspaceRuntime: any AIToolExecuting & AIChatSnapshotLoading
+        let workspaceRuntime: any AIToolExecuting & AIChatLocalContextLoading
         if let databaseURL = self.localDatabaseURL {
             workspaceRuntime = LocalAIToolExecutor(
                 databaseURL: databaseURL,
@@ -152,7 +139,7 @@ extension FlashcardsStore {
             historyStore: historyStore,
             chatService: chatService,
             toolExecutor: workspaceRuntime,
-            snapshotLoader: workspaceRuntime,
+            localContextLoader: workspaceRuntime,
             voiceRecorder: AIChatVoiceRecorder(),
             audioTranscriber: AIChatTranscriptionService(
                 session: URLSession.shared,

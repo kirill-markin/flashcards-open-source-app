@@ -25,44 +25,11 @@ final class InMemoryHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 }
 
-func makeStubAIChatSnapshot(totalCards: Int) -> AppStateSnapshot {
-    let cards = (0..<totalCards).map { index in
-        Card(
-            cardId: "card-\(index)",
-            workspaceId: "workspace-1",
-            frontText: "Question \(index)",
-            backText: "Answer \(index)",
-            tags: ["tag"],
-            effortLevel: .medium,
-            dueAt: nil,
-            createdAt: "2026-03-09T00:00:00.000Z",
-            reps: 0,
-            lapses: 0,
-            fsrsCardState: .learning,
-            fsrsStepIndex: 0,
-            fsrsStability: nil,
-            fsrsDifficulty: nil,
-            fsrsLastReviewedAt: nil,
-            fsrsScheduledDays: nil,
-            clientUpdatedAt: "2026-03-09T00:00:00.000Z",
-            lastModifiedByDeviceId: "device-1",
-            lastOperationId: "operation-\(index)",
-            updatedAt: "2026-03-09T00:00:00.000Z",
-            deletedAt: nil
-        )
-    }
-
-    return AppStateSnapshot(
+func makeStubAIChatLocalContext(totalCards: Int) -> AIChatLocalContext {
+    AIChatLocalContext(
         workspace: Workspace(
             workspaceId: "workspace-1",
             name: "Workspace",
-            createdAt: "2026-03-09T00:00:00.000Z"
-        ),
-        userSettings: UserSettings(
-            userId: "user-1",
-            workspaceId: "workspace-1",
-            email: "user@example.com",
-            locale: "en",
             createdAt: "2026-03-09T00:00:00.000Z"
         ),
         schedulerSettings: WorkspaceSchedulerSettings(
@@ -77,17 +44,7 @@ func makeStubAIChatSnapshot(totalCards: Int) -> AppStateSnapshot {
             lastOperationId: "operation-settings",
             updatedAt: "2026-03-09T00:00:00.000Z"
         ),
-        cloudSettings: CloudSettings(
-            deviceId: "device-1",
-            cloudState: .linked,
-            linkedUserId: "user-1",
-            linkedWorkspaceId: "workspace-1",
-            linkedEmail: "user@example.com",
-            onboardingCompleted: true,
-            updatedAt: "2026-03-09T00:00:00.000Z"
-        ),
-        cards: cards,
-        decks: []
+        totalActiveCards: totalCards
     )
 }
 
@@ -204,14 +161,14 @@ struct RepairingChatService: AIChatStreaming, @unchecked Sendable {
     }
 }
 
-struct FailingToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+struct FailingToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
     func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
         XCTFail("execute should not be called in this test")
         return AIToolExecutionResult(output: "", didMutateAppState: false)
     }
 
-    func loadSnapshot() async throws -> AppStateSnapshot {
-        return makeStubAIChatSnapshot(totalCards: 1)
+    func loadLocalContext() async throws -> AIChatLocalContext {
+        makeStubAIChatLocalContext(totalCards: 1)
     }
 }
 
@@ -328,7 +285,7 @@ actor RepeatingToolFailureChatService: AIChatStreaming {
     }
 }
 
-actor RecoveringToolFailureExecutor: AIToolExecuting, AIChatSnapshotLoading {
+actor RecoveringToolFailureExecutor: AIToolExecuting, AIChatLocalContextLoading {
     private var executionCount: Int
 
     init() {
@@ -344,18 +301,18 @@ actor RecoveringToolFailureExecutor: AIToolExecuting, AIChatSnapshotLoading {
         return AIToolExecutionResult(output: "{\"ok\":true}", didMutateAppState: false)
     }
 
-    func loadSnapshot() async throws -> AppStateSnapshot {
-        return makeStubAIChatSnapshot(totalCards: 1)
+    func loadLocalContext() async throws -> AIChatLocalContext {
+        makeStubAIChatLocalContext(totalCards: 1)
     }
 }
 
-actor AlwaysFailingToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+actor AlwaysFailingToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
     func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
         throw StubLocalizedError(message: "Unsupported SELECT statement")
     }
 
-    func loadSnapshot() async throws -> AppStateSnapshot {
-        return makeStubAIChatSnapshot(totalCards: 1)
+    func loadLocalContext() async throws -> AIChatLocalContext {
+        makeStubAIChatLocalContext(totalCards: 1)
     }
 }
 
@@ -490,7 +447,7 @@ actor DelayedToolCompletionChatService: AIChatStreaming {
     }
 }
 
-struct SlowSuccessToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
+struct SlowSuccessToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
     let pauseNanoseconds: UInt64
 
     func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
@@ -498,8 +455,8 @@ struct SlowSuccessToolExecutor: AIToolExecuting, AIChatSnapshotLoading {
         return AIToolExecutionResult(output: "{\"ok\":true}", didMutateAppState: false)
     }
 
-    func loadSnapshot() async throws -> AppStateSnapshot {
-        return makeStubAIChatSnapshot(totalCards: 1)
+    func loadLocalContext() async throws -> AIChatLocalContext {
+        makeStubAIChatLocalContext(totalCards: 1)
     }
 }
 

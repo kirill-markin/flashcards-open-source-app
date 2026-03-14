@@ -13,7 +13,7 @@ import {
   loadCardById,
   loadCloudSettings,
   loadDeckById,
-  loadLocalSnapshot,
+  loadLastAppliedChangeId,
   loadWorkspaceSettings,
   putCard,
   putCloudSettings,
@@ -58,7 +58,7 @@ import {
   nowIso,
   toReviewableCardState,
 } from "./domain";
-import type { MutableSnapshot, SessionLoadState } from "./types";
+import type { SessionLoadState } from "./types";
 
 const syncPageSize = 200;
 
@@ -76,7 +76,6 @@ type UseSyncEngineParams = Readonly<{
 type SyncEngine = Readonly<{
   runSync: () => Promise<void>;
   refreshLocalData: () => Promise<void>;
-  loadLocalSnapshot: () => Promise<MutableSnapshot>;
   getCardById: (cardId: string) => Promise<Card>;
   getDeckById: (deckId: string) => Promise<Deck>;
   createCardItem: (input: CreateCardInput) => Promise<Card>;
@@ -204,8 +203,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           currentOutbox = await listOutboxRecords(workspaceId);
         }
 
-        const localSnapshot = await loadLocalSnapshot();
-        let afterChangeId = localSnapshot.lastAppliedChangeId;
+        let afterChangeId = await loadLastAppliedChangeId();
         while (true) {
           const pullResult = await pullSyncChanges(
             workspaceId,
@@ -520,18 +518,6 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   return {
     runSync,
     refreshLocalData,
-    loadLocalSnapshot: async (): Promise<MutableSnapshot> => {
-      const snapshot = await loadLocalSnapshot();
-      return {
-        cards: [...snapshot.cards],
-        decks: [...snapshot.decks],
-        reviewEvents: [...snapshot.reviewEvents],
-        workspaceSettings: snapshot.workspaceSettings,
-        cloudSettings: snapshot.cloudSettings,
-        outbox: [...snapshot.outbox],
-        lastAppliedChangeId: snapshot.lastAppliedChangeId,
-      };
-    },
     getCardById,
     getDeckById,
     createCardItem,

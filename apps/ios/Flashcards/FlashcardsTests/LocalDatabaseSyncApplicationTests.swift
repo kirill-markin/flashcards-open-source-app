@@ -5,7 +5,7 @@ import XCTest
 final class LocalDatabaseSyncApplicationTests: XCTestCase {
     func testApplySyncChangePreservesLwwAndReviewEventIdempotency() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
-        let workspaceId = try database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: database)
 
         _ = try database.saveCard(
             workspaceId: workspaceId,
@@ -25,10 +25,9 @@ final class LocalDatabaseSyncApplicationTests: XCTestCase {
             enableFuzz: true
         )
 
-        let localSnapshot = try database.loadStateSnapshot()
-        let localCard = try XCTUnwrap(localSnapshot.cards.first)
-        let localDeck = try XCTUnwrap(localSnapshot.decks.first)
-        let localSettings = localSnapshot.schedulerSettings
+        let localCard = try testFirstActiveCard(database: database)
+        let localDeck = try testFirstActiveDeck(database: database)
+        let localSettings = try testSchedulerSettings(database: database)
 
         try database.applySyncChange(
             workspaceId: workspaceId,
@@ -87,10 +86,12 @@ final class LocalDatabaseSyncApplicationTests: XCTestCase {
             )
         )
 
-        var snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.first?.frontText, localCard.frontText)
-        XCTAssertEqual(snapshot.decks.first?.name, localDeck.name)
-        XCTAssertEqual(snapshot.schedulerSettings.desiredRetention, localSettings.desiredRetention, accuracy: 0.00000001)
+        var cards = try testActiveCards(database: database)
+        var decks = try testActiveDecks(database: database)
+        var schedulerSettings = try testSchedulerSettings(database: database)
+        XCTAssertEqual(cards.first?.frontText, localCard.frontText)
+        XCTAssertEqual(decks.first?.name, localDeck.name)
+        XCTAssertEqual(schedulerSettings.desiredRetention, localSettings.desiredRetention, accuracy: 0.00000001)
 
         try database.applySyncChange(
             workspaceId: workspaceId,
@@ -180,10 +181,12 @@ final class LocalDatabaseSyncApplicationTests: XCTestCase {
             )
         )
 
-        snapshot = try database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cards.first?.frontText, "Newer remote card")
-        XCTAssertEqual(snapshot.decks.first?.name, "Newer remote deck")
-        XCTAssertEqual(snapshot.schedulerSettings.desiredRetention, 0.95, accuracy: 0.00000001)
+        cards = try testActiveCards(database: database)
+        decks = try testActiveDecks(database: database)
+        schedulerSettings = try testSchedulerSettings(database: database)
+        XCTAssertEqual(cards.first?.frontText, "Newer remote card")
+        XCTAssertEqual(decks.first?.name, "Newer remote deck")
+        XCTAssertEqual(schedulerSettings.desiredRetention, 0.95, accuracy: 0.00000001)
 
         let reviewEvents = try database.loadReviewEvents(workspaceId: workspaceId)
         XCTAssertEqual(reviewEvents.filter { event in

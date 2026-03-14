@@ -42,7 +42,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             runLinkedSyncOutcomes: [],
             isRunLinkedSyncBlocked: false
         )
-        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: context.database)
         let validator = FlashcardsStoreTestSupport.MockCloudServiceConfigurationValidator()
         context.store.cloudServiceConfigurationValidator = validator
 
@@ -59,12 +59,12 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         let configuration = try await context.store.validateCustomCloudServer(customOrigin: "https://self-hosted.example.com")
         try context.store.applyCustomCloudServer(configuration: configuration)
 
-        let snapshot = try context.database.loadStateSnapshot()
+        let cloudSettings = try testCloudSettings(database: context.database)
         let outboxEntries = try context.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
 
         XCTAssertEqual(validator.validatedConfigurations, [configuration])
-        XCTAssertEqual(snapshot.cloudSettings.cloudState, .disconnected)
-        XCTAssertNil(snapshot.cloudSettings.linkedUserId)
+        XCTAssertEqual(cloudSettings.cloudState, .disconnected)
+        XCTAssertNil(cloudSettings.linkedUserId)
         XCTAssertTrue(outboxEntries.isEmpty)
         XCTAssertEqual(try context.database.loadLastAppliedChangeId(workspaceId: workspaceId), 0)
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
@@ -85,7 +85,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             runLinkedSyncOutcomes: [],
             isRunLinkedSyncBlocked: false
         )
-        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
         try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
@@ -103,8 +103,8 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
 
         try context.store.resetToOfficialCloudServer()
 
-        let snapshot = try context.database.loadStateSnapshot()
-        XCTAssertEqual(snapshot.cloudSettings.cloudState, .disconnected)
+        let cloudSettings = try testCloudSettings(database: context.database)
+        XCTAssertEqual(cloudSettings.cloudState, .disconnected)
         XCTAssertNil(try loadCloudServerOverride(userDefaults: context.store.userDefaults, decoder: context.store.decoder))
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
         XCTAssertTrue(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
@@ -116,7 +116,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             runLinkedSyncOutcomes: [.succeed],
             isRunLinkedSyncBlocked: false
         )
-        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
         _ = try context.database.saveCard(
@@ -157,7 +157,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             runLinkedSyncOutcomes: [],
             isRunLinkedSyncBlocked: false
         )
-        let workspaceId = try context.database.loadStateSnapshot().workspace.workspaceId
+        let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
         _ = try context.database.saveCard(
@@ -192,9 +192,9 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             )
         }
 
-        let disconnectedSnapshot = try context.database.loadStateSnapshot()
+        let disconnectedCloudSettings = try testCloudSettings(database: context.database)
         let originalOutbox = try context.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
-        XCTAssertEqual(disconnectedSnapshot.cloudSettings.cloudState, .disconnected)
+        XCTAssertEqual(disconnectedCloudSettings.cloudState, .disconnected)
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
         XCTAssertTrue(originalOutbox.isEmpty)
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)

@@ -685,15 +685,6 @@ struct AppBootstrapSnapshot: Hashable, Sendable {
     let cloudSettings: CloudSettings
 }
 
-struct AppStateSnapshot: Hashable, Sendable {
-    let workspace: Workspace
-    let userSettings: UserSettings
-    let schedulerSettings: WorkspaceSchedulerSettings
-    let cloudSettings: CloudSettings
-    let cards: [Card]
-    let decks: [Deck]
-}
-
 struct CardEditorInput: Hashable, Sendable {
     let frontText: String
     let backText: String

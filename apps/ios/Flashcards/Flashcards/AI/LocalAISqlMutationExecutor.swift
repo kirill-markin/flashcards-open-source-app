@@ -104,36 +104,20 @@ private func toResolvedDeckUpdateInput(
     )
 }
 
-private func findCard(snapshot: AppStateSnapshot, cardId: String) throws -> Card {
-    guard let card = snapshot.cards.first(where: { item in
-        item.cardId == cardId && item.deletedAt == nil
-    }) else {
-        throw LocalStoreError.notFound("Card not found")
-    }
-    return card
-}
-
-private func findDeck(snapshot: AppStateSnapshot, deckId: String) throws -> Deck {
-    guard let deck = snapshot.decks.first(where: { item in
-        item.deckId == deckId && item.deletedAt == nil
-    }) else {
-        throw LocalStoreError.notFound("Deck not found")
-    }
-    return deck
-}
-
 func executeLocalAISqlMutationStatement(
     database: LocalDatabase,
-    snapshot: AppStateSnapshot,
+    bootstrapSnapshot: AppBootstrapSnapshot,
     sql: String,
     statement: LocalAISqlStatement,
     encoder: JSONEncoder
 ) throws -> LocalAISqlExecutionResult {
+    let workspaceId = bootstrapSnapshot.workspace.workspaceId
+
     switch statement {
     case .insert(let insertStatement):
         if insertStatement.resourceName == .cards {
             let createdCards = try database.createCards(
-                workspaceId: snapshot.workspace.workspaceId,
+                workspaceId: workspaceId,
                 inputs: try insertStatement.rows.map { values in
                     try toCreateCardInput(row: rowFromInsert(columnNames: insertStatement.columnNames, values: values))
                 }
@@ -155,7 +139,7 @@ func executeLocalAISqlMutationStatement(
         }
 
         let createdDecks = try database.createDecks(
-            workspaceId: snapshot.workspace.workspaceId,
+            workspaceId: workspaceId,
             inputs: try insertStatement.rows.map { values in
                 try toCreateDeckInput(row: rowFromInsert(columnNames: insertStatement.columnNames, values: values))
             }
@@ -179,7 +163,7 @@ func executeLocalAISqlMutationStatement(
             source: LocalAISqlFromSource(resourceName: updateStatement.resourceName, unnestColumnName: nil, unnestAlias: nil),
             rows: try loadSelectRows(
                 database: database,
-                snapshot: snapshot,
+                bootstrapSnapshot: bootstrapSnapshot,
                 resourceName: updateStatement.resourceName
             ),
             predicateClauses: updateStatement.predicateClauses
@@ -196,12 +180,12 @@ func executeLocalAISqlMutationStatement(
                 return CardUpdateInput(
                     cardId: cardId,
                     input: toResolvedCardUpdateInput(
-                        existingCard: try findCard(snapshot: snapshot, cardId: cardId),
+                        existingCard: try database.loadActiveCard(workspaceId: workspaceId, cardId: cardId),
                         row: assignmentRow
                     )
                 )
             }
-            let updatedCards = try database.updateCards(workspaceId: snapshot.workspace.workspaceId, updates: updates)
+            let updatedCards = try database.updateCards(workspaceId: workspaceId, updates: updates)
             return LocalAISqlExecutionResult(
                 output: try encodeJSON(
                     value: LocalAISqlMutationPayload(
@@ -225,12 +209,12 @@ func executeLocalAISqlMutationStatement(
             return DeckUpdateInput(
                 deckId: deckId,
                 input: toResolvedDeckUpdateInput(
-                    existingDeck: try findDeck(snapshot: snapshot, deckId: deckId),
+                    existingDeck: try database.loadDeck(workspaceId: workspaceId, deckId: deckId),
                     row: assignmentRow
                 )
             )
         }
-        let updatedDecks = try database.updateDecks(workspaceId: snapshot.workspace.workspaceId, updates: updates)
+        let updatedDecks = try database.updateDecks(workspaceId: workspaceId, updates: updates)
         return LocalAISqlExecutionResult(
             output: try encodeJSON(
                 value: LocalAISqlMutationPayload(
@@ -250,7 +234,7 @@ func executeLocalAISqlMutationStatement(
             source: LocalAISqlFromSource(resourceName: deleteStatement.resourceName, unnestColumnName: nil, unnestAlias: nil),
             rows: try loadSelectRows(
                 database: database,
-                snapshot: snapshot,
+                bootstrapSnapshot: bootstrapSnapshot,
                 resourceName: deleteStatement.resourceName
             ),
             predicateClauses: deleteStatement.predicateClauses
@@ -263,7 +247,7 @@ func executeLocalAISqlMutationStatement(
                 }
                 return cardId
             }
-            _ = try database.deleteCards(workspaceId: snapshot.workspace.workspaceId, cardIds: cardIds)
+            _ = try database.deleteCards(workspaceId: workspaceId, cardIds: cardIds)
             return LocalAISqlExecutionResult(
                 output: try encodeJSON(
                     value: LocalAISqlMutationPayload(
@@ -283,10 +267,10 @@ func executeLocalAISqlMutationStatement(
         let deckIds = try matchingRows.map { row in
             guard case .string(let deckId) = row["deck_id"] else {
                 throw LocalStoreError.validation("Expected deck_id in selected row")
+                }
+                return deckId
             }
-            return deckId
-        }
-        _ = try database.deleteDecks(workspaceId: snapshot.workspace.workspaceId, deckIds: deckIds)
+        _ = try database.deleteDecks(workspaceId: workspaceId, deckIds: deckIds)
         return LocalAISqlExecutionResult(
             output: try encodeJSON(
                 value: LocalAISqlMutationPayload(
