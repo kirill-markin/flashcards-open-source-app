@@ -12,6 +12,7 @@ import type {
   LocalChatStreamEvent,
 } from "./localTypes";
 import { CHAT_MODELS } from "./models";
+import { hashAIProviderUserId } from "./providerSafety";
 import type { RequestContext } from "../server/requestContext";
 import {
   expectNonEmptyString,
@@ -400,9 +401,18 @@ export function createLocalChatErrorResponse(
   });
 }
 
+function getProviderSafetyUserId(requestContext: RequestContext): string | null {
+  if (requestContext.transport === "none") {
+    return null;
+  }
+
+  return hashAIProviderUserId(requestContext.userId);
+}
+
 export async function streamLocalChatResponse(
   body: LocalChatRequestBody,
   requestId: string,
+  requestContext: RequestContext,
 ): Promise<Response> {
   const validModel = CHAT_MODELS.find((model) => model.id === body.model);
   if (validModel === undefined) {
@@ -429,6 +439,7 @@ export async function streamLocalChatResponse(
           timezone: body.timezone,
           devicePlatform: body.devicePlatform,
           userContext: body.userContext,
+          providerSafetyUserId: getProviderSafetyUserId(requestContext),
           requestId,
         })) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));

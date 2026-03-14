@@ -214,6 +214,7 @@ export type StreamLocalTurnParams = Readonly<{
   timezone: string;
   devicePlatform: "ios" | "web";
   userContext: LocalChatUserContext;
+  providerSafetyUserId?: string | null;
   requestId: string;
 }>;
 
@@ -676,6 +677,9 @@ export async function* streamLocalAgentTurn(
       max_tokens: MAX_TOKENS,
       system: buildLocalSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
       messages: buildInput(params.messages, uploadPlan, repairState),
+      ...(params.providerSafetyUserId === undefined || params.providerSafetyUserId === null
+        ? {}
+        : { metadata: { user_id: params.providerSafetyUserId } }),
       tools: localAnthropicTools(),
       betas: [FILES_BETA],
     });
