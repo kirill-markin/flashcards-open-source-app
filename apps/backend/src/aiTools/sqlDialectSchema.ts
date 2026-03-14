@@ -61,6 +61,15 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     description: "Next due timestamp.",
   },
   {
+    columnName: "created_at",
+    type: "datetime",
+    nullable: false,
+    readOnly: true,
+    filterable: true,
+    sortable: true,
+    description: "Card creation timestamp.",
+  },
+  {
     columnName: "reps",
     type: "integer",
     nullable: false,

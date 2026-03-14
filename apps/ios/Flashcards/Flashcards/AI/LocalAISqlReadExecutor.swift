@@ -21,7 +21,15 @@ func normalizeSqlOffset(_ offset: Int?) throws -> Int {
 }
 
 private func compareCardsByUpdatedAt(left: Card, right: Card) -> Bool {
-    left.updatedAt > right.updatedAt
+    if left.updatedAt != right.updatedAt {
+        return left.updatedAt > right.updatedAt
+    }
+
+    if left.createdAt != right.createdAt {
+        return left.createdAt > right.createdAt
+    }
+
+    return left.cardId < right.cardId
 }
 
 private func compareDecksByUpdatedAt(left: Deck, right: Deck) -> Bool {
@@ -84,6 +92,7 @@ func toSqlCardRow(card: Card) -> LocalAISqlRow {
         "tags": .stringArray(card.tags),
         "effort_level": .string(card.effortLevel.rawValue),
         "due_at": card.dueAt.map(LocalAISqlRowValue.string) ?? .null,
+        "created_at": .string(card.createdAt),
         "reps": .integer(card.reps),
         "lapses": .integer(card.lapses),
         "updated_at": .string(card.updatedAt),

@@ -9,7 +9,7 @@ enum SQLiteValue {
 }
 
 let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-let localDatabaseSchemaVersion: Int = 4
+let localDatabaseSchemaVersion: Int = 5
 let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 final class DatabaseCore {
@@ -242,12 +242,18 @@ final class DatabaseCore {
     }
 
     private func migrate() throws {
-        let schemaVersion = try self.loadSchemaVersion()
+        var schemaVersion = try self.loadSchemaVersion()
         let hasPreFullFsrsSchema = try self.hasPreFullFsrsSchema()
-        if schemaVersion > 0 && schemaVersion < localDatabaseSchemaVersion {
+        if schemaVersion > 0 && schemaVersion < 4 {
             try self.resetLocalSchema()
+            schemaVersion = try self.loadSchemaVersion()
         } else if schemaVersion == 0 && hasPreFullFsrsSchema {
             try self.resetLocalSchema()
+            schemaVersion = try self.loadSchemaVersion()
+        }
+
+        if schemaVersion == 4 {
+            try self.migrateCardsCreatedAtFromSchemaVersion4()
         }
 
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -284,6 +290,7 @@ final class DatabaseCore {
             tags_json TEXT NOT NULL, -- JSON-encoded tag list used by local filtering and sync payload generation
             effort_level TEXT NOT NULL CHECK (effort_level IN ('fast', 'medium', 'long')), -- effort classification mirrored from the backend card row
             due_at TEXT, -- next scheduled review timestamp; NULL for cards that have never been scheduled
+            created_at TEXT NOT NULL, -- original card creation timestamp that must survive later edits, reviews, deletes, and sync merges
             reps INTEGER NOT NULL CHECK (reps >= 0), -- denormalized total successful review count cached on the row
             lapses INTEGER NOT NULL CHECK (lapses >= 0), -- denormalized lapse count cached on the row
             fsrs_card_state TEXT NOT NULL CHECK (fsrs_card_state IN ('new', 'learning', 'review', 'relearning')), -- persisted FSRS state required for offline scheduling
@@ -383,6 +390,28 @@ final class DatabaseCore {
         }
 
         try self.setSchemaVersion(version: localDatabaseSchemaVersion)
+    }
+
+    private func migrateCardsCreatedAtFromSchemaVersion4() throws {
+        if try self.columnExists(tableName: "cards", columnName: "created_at") {
+            return
+        }
+
+        try self.execute(
+            sql: """
+            ALTER TABLE cards
+            ADD COLUMN created_at TEXT NOT NULL DEFAULT ''
+            """,
+            values: []
+        )
+        try self.execute(
+            sql: """
+            UPDATE cards
+            SET created_at = updated_at
+            WHERE created_at = ''
+            """,
+            values: []
+        )
     }
 
     private func ensureDefaultState() throws {

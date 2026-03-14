@@ -439,6 +439,7 @@ enum FlashcardsStoreTestSupport {
             tags: [],
             effortLevel: .medium,
             dueAt: nil,
+            createdAt: now,
             reps: 0,
             lapses: 0,
             fsrsCardState: .new,

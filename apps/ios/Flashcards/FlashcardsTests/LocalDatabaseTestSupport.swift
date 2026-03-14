@@ -67,6 +67,7 @@ enum LocalDatabaseTestSupport {
             tags: card.tags,
             effortLevel: card.effortLevel,
             dueAt: card.dueAt,
+            createdAt: card.createdAt,
             reps: card.reps,
             lapses: card.lapses,
             fsrsCardState: card.fsrsCardState,

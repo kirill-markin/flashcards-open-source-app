@@ -239,7 +239,17 @@ function getNextCursorForPage(totalCount: number, startIndex: number, visibleCou
 }
 
 function compareCardsByUpdatedAt(left: Card, right: Card): number {
-  return right.updatedAt.localeCompare(left.updatedAt);
+  const updatedAtDifference = right.updatedAt.localeCompare(left.updatedAt);
+  if (updatedAtDifference !== 0) {
+    return updatedAtDifference;
+  }
+
+  const createdAtDifference = right.createdAt.localeCompare(left.createdAt);
+  if (createdAtDifference !== 0) {
+    return createdAtDifference;
+  }
+
+  return left.cardId.localeCompare(right.cardId);
 }
 
 function compareDecksByUpdatedAt(left: Deck, right: Deck): number {
@@ -326,6 +336,7 @@ function toCardRow(card: Card): SqlRow {
     tags: card.tags,
     effort_level: card.effortLevel,
     due_at: card.dueAt,
+    created_at: card.createdAt,
     reps: card.reps,
     lapses: card.lapses,
     updated_at: card.updatedAt,

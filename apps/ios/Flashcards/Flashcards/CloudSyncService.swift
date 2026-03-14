@@ -132,6 +132,7 @@ private struct RemoteCardChangePayload: Decodable {
     let tags: [String]
     let effortLevel: EffortLevel
     let dueAt: String?
+    let createdAt: String
     let reps: Int
     let lapses: Int
     let fsrsCardState: FsrsCardState
@@ -243,6 +244,7 @@ private func makeCard(workspaceId: String, payload: RemoteCardChangePayload) -> 
         tags: payload.tags,
         effortLevel: payload.effortLevel,
         dueAt: payload.dueAt,
+        createdAt: payload.createdAt,
         reps: payload.reps,
         lapses: payload.lapses,
         fsrsCardState: payload.fsrsCardState,

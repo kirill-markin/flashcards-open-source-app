@@ -38,6 +38,7 @@ function createCard(overrides: Partial<Card>): Card {
     tags: [],
     effortLevel: "medium",
     dueAt: "2026-03-10T09:00:00.000Z",
+    createdAt: "2026-03-10T09:00:00.000Z",
     reps: 0,
     lapses: 0,
     fsrsCardState: "review",
@@ -568,38 +569,45 @@ describe("appData domain helpers", () => {
     const noDueDateCard = createCard({
       cardId: "no-due-date-card",
       dueAt: null,
+      createdAt: "2026-03-10T06:00:00.000Z",
       updatedAt: "2026-03-10T09:00:00.000Z",
     });
     const earlyDueCard = createCard({
       cardId: "early-due-card",
       dueAt: "2026-03-10T09:30:00.000Z",
+      createdAt: "2026-03-10T07:00:00.000Z",
       updatedAt: "2026-03-10T08:00:00.000Z",
     });
-    const tiedDueNewerCard = createCard({
-      cardId: "tied-due-newer-card",
+    const tiedDueEarlierCreatedCard = createCard({
+      cardId: "tied-due-earlier-created-card",
       dueAt: "2026-03-10T10:00:00.000Z",
+      createdAt: "2026-03-10T07:30:00.000Z",
       updatedAt: "2026-03-10T11:00:00.000Z",
     });
-    const tiedDueOlderCard = createCard({
-      cardId: "tied-due-older-card",
+    const tiedDueLaterCreatedCard = createCard({
+      cardId: "tied-due-later-created-card",
       dueAt: "2026-03-10T10:00:00.000Z",
+      createdAt: "2026-03-10T08:30:00.000Z",
       updatedAt: "2026-03-10T10:00:00.000Z",
     });
     const futureReviewCard = createCard({
       cardId: "future-review-card",
       dueAt: "2026-03-10T15:00:00.000Z",
       fsrsCardState: "review",
+      createdAt: "2026-03-10T09:00:00.000Z",
       updatedAt: "2026-03-10T12:00:00.000Z",
     });
     const malformedDueAtCard = createCard({
       cardId: "malformed-due-at-card",
       dueAt: "not-an-iso-date",
+      createdAt: "2026-03-10T10:00:00.000Z",
       updatedAt: "2026-03-10T13:00:00.000Z",
     });
     const deletedCard = createCard({
       cardId: "deleted-card",
       dueAt: "2026-03-10T08:00:00.000Z",
       deletedAt: "2026-03-10T08:30:00.000Z",
+      createdAt: "2026-03-10T05:00:00.000Z",
       updatedAt: "2026-03-10T14:00:00.000Z",
     });
 
@@ -608,14 +616,14 @@ describe("appData domain helpers", () => {
       futureReviewCard,
       noDueDateCard,
       earlyDueCard,
-      tiedDueOlderCard,
-      tiedDueNewerCard,
+      tiedDueLaterCreatedCard,
+      tiedDueEarlierCreatedCard,
       malformedDueAtCard,
     ])).toEqual([
       noDueDateCard,
       earlyDueCard,
-      tiedDueNewerCard,
-      tiedDueOlderCard,
+      tiedDueEarlierCreatedCard,
+      tiedDueLaterCreatedCard,
     ]);
   });
 
@@ -623,47 +631,53 @@ describe("appData domain helpers", () => {
     const noDueDateCard = createCard({
       cardId: "no-due-date-card",
       dueAt: null,
+      createdAt: "2026-03-10T06:00:00.000Z",
       updatedAt: "2026-03-10T09:00:00.000Z",
     });
     const earlyDueCard = createCard({
       cardId: "early-due-card",
       dueAt: "2026-03-10T09:30:00.000Z",
+      createdAt: "2026-03-10T07:00:00.000Z",
       updatedAt: "2026-03-10T08:00:00.000Z",
     });
     const futureEarlierCard = createCard({
       cardId: "future-earlier-card",
       dueAt: "2026-03-10T14:00:00.000Z",
+      createdAt: "2026-03-10T08:00:00.000Z",
       updatedAt: "2026-03-10T12:00:00.000Z",
     });
-    const futureTieNewerCard = createCard({
-      cardId: "future-tie-newer-card",
+    const futureTieEarlierCreatedCard = createCard({
+      cardId: "future-tie-earlier-created-card",
       dueAt: "2026-03-10T15:00:00.000Z",
+      createdAt: "2026-03-10T08:30:00.000Z",
       updatedAt: "2026-03-10T13:00:00.000Z",
     });
-    const futureTieOlderCard = createCard({
-      cardId: "future-tie-older-card",
+    const futureTieLaterCreatedCard = createCard({
+      cardId: "future-tie-later-created-card",
       dueAt: "2026-03-10T15:00:00.000Z",
+      createdAt: "2026-03-10T09:30:00.000Z",
       updatedAt: "2026-03-10T11:00:00.000Z",
     });
     const malformedDueAtCard = createCard({
       cardId: "malformed-due-at-card",
       dueAt: "not-an-iso-date",
+      createdAt: "2026-03-10T10:00:00.000Z",
       updatedAt: "2026-03-10T14:00:00.000Z",
     });
 
     expect(deriveReviewTimeline([
-      futureTieOlderCard,
+      futureTieLaterCreatedCard,
       malformedDueAtCard,
       noDueDateCard,
       futureEarlierCard,
-      futureTieNewerCard,
+      futureTieEarlierCreatedCard,
       earlyDueCard,
     ])).toEqual([
       noDueDateCard,
       earlyDueCard,
       futureEarlierCard,
-      futureTieNewerCard,
-      futureTieOlderCard,
+      futureTieEarlierCreatedCard,
+      futureTieLaterCreatedCard,
       malformedDueAtCard,
     ]);
   });
@@ -672,11 +686,13 @@ describe("appData domain helpers", () => {
     const topQueueCard = createCard({
       cardId: "top-queue-card",
       dueAt: "2026-03-10T09:30:00.000Z",
+      createdAt: "2026-03-10T07:00:00.000Z",
       updatedAt: "2026-03-10T08:00:00.000Z",
     });
     const remotelyUpdatedCard = createCard({
       cardId: "remotely-updated-card",
-      dueAt: "2026-03-10T10:00:00.000Z",
+      dueAt: "2026-03-10T09:30:00.000Z",
+      createdAt: "2026-03-10T08:00:00.000Z",
       updatedAt: "2026-03-10T14:00:00.000Z",
     });
 
@@ -691,6 +707,29 @@ describe("appData domain helpers", () => {
     ]);
     expect(currentReviewCard(reviewQueue)?.cardId).toBe("top-queue-card");
     expect(currentReviewCard([])).toBeNull();
+  });
+
+  it("uses cardId as the final deterministic review-order tie-breaker", () => {
+    const alphaCard = createCard({
+      cardId: "alpha-card",
+      dueAt: "2026-03-10T09:30:00.000Z",
+      createdAt: "2026-03-10T07:00:00.000Z",
+      updatedAt: "2026-03-10T11:00:00.000Z",
+    });
+    const betaCard = createCard({
+      cardId: "beta-card",
+      dueAt: "2026-03-10T09:30:00.000Z",
+      createdAt: "2026-03-10T07:00:00.000Z",
+      updatedAt: "2026-03-10T08:00:00.000Z",
+    });
+
+    expect(deriveReviewQueue([
+      betaCard,
+      alphaCard,
+    ])).toEqual([
+      alphaCard,
+      betaCard,
+    ]);
   });
 
   it("does not treat future new cards as due when dueAt is in the future", () => {

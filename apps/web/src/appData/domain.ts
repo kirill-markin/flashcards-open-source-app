@@ -274,6 +274,15 @@ function getReviewOrderDueTimestamp(card: Card): number {
   return dueAtTimestamp;
 }
 
+function getReviewOrderCreatedTimestamp(card: Card): number {
+  const createdAtTimestamp = new Date(card.createdAt).getTime();
+  if (Number.isNaN(createdAtTimestamp)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return createdAtTimestamp;
+}
+
 export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowTimestamp: number): number {
   const leftIsDue = isCardDue(leftCard, nowTimestamp);
   const rightIsDue = isCardDue(rightCard, nowTimestamp);
@@ -288,7 +297,13 @@ export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowT
     return leftDueTimestamp - rightDueTimestamp;
   }
 
-  return new Date(rightCard.updatedAt).getTime() - new Date(leftCard.updatedAt).getTime();
+  const leftCreatedAtTimestamp = getReviewOrderCreatedTimestamp(leftCard);
+  const rightCreatedAtTimestamp = getReviewOrderCreatedTimestamp(rightCard);
+  if (leftCreatedAtTimestamp !== rightCreatedAtTimestamp) {
+    return leftCreatedAtTimestamp - rightCreatedAtTimestamp;
+  }
+
+  return leftCard.cardId.localeCompare(rightCard.cardId);
 }
 
 export function deriveReviewTimeline(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {
@@ -396,6 +411,7 @@ export function buildInitialCard(
     tags: input.tags,
     effortLevel: input.effortLevel,
     dueAt: null,
+    createdAt: clientUpdatedAt,
     reps: 0,
     lapses: 0,
     fsrsCardState: "new",
@@ -638,6 +654,7 @@ export function buildCardUpsertOperation(card: Card): SyncPushOperation {
       tags: card.tags,
       effortLevel: card.effortLevel,
       dueAt: card.dueAt,
+      createdAt: card.createdAt,
       reps: card.reps,
       lapses: card.lapses,
       fsrsCardState: card.fsrsCardState,

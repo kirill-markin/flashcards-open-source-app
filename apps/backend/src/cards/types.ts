@@ -21,6 +21,7 @@ export type CardRow = Readonly<{
   tags: ReadonlyArray<string>;
   effort_level: EffortLevel;
   due_at: TimestampValue | null;
+  created_at: TimestampValue;
   reps: number;
   lapses: number;
   fsrs_card_state: FsrsCardState;
@@ -78,6 +79,7 @@ export type Card = Readonly<{
   tags: ReadonlyArray<string>;
   effortLevel: EffortLevel;
   dueAt: string | null;
+  createdAt: string;
   reps: number;
   lapses: number;
   fsrsCardState: FsrsCardState;
@@ -209,6 +211,7 @@ export type CardSnapshotInput = Readonly<{
   tags: ReadonlyArray<string>;
   effortLevel: EffortLevel;
   dueAt: string | null;
+  createdAt: string;
   reps: number;
   lapses: number;
   fsrsCardState: FsrsCardState;
