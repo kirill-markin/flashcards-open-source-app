@@ -18,6 +18,13 @@ import {
 import { verifyEmailOtp, type TokenResult } from "../server/cognitoAuth.js";
 import { log } from "../server/logger.js";
 import { getPublicApiBaseUrl } from "../server/publicUrls.js";
+import {
+  getOtpVerifyAttemptState,
+  MAX_OTP_VERIFY_ATTEMPTS,
+  recordOtpVerifyFailure,
+  type OtpVerifyAttemptState,
+  type OtpVerifyFailureRecordResult,
+} from "../server/otpVerifyAttempts.js";
 
 const CODE_RE = /^\d{8}$/;
 
@@ -28,6 +35,14 @@ type VerifyFailureResult = Readonly<{
 
 type AgentVerifyCodeDependencies = Readonly<{
   lookupAgentOtpChallenge: (otpSessionToken: string, nowMs: number) => Promise<AgentOtpChallengeLookup>;
+  getOtpVerifyAttemptState: (email: string, cognitoSession: string, nowMs: number) => Promise<OtpVerifyAttemptState>;
+  recordOtpVerifyFailure: (
+    email: string,
+    cognitoSession: string,
+    expiresAt: string,
+    nowMs: number,
+    maxAttempts: number,
+  ) => Promise<OtpVerifyFailureRecordResult>;
   verifyEmailOtp: (email: string, code: string, session: string) => Promise<TokenResult>;
   markAgentOtpChallengeUsed: (email: string, cognitoSession: string, nowMs: number) => Promise<void>;
   normalizeAgentApiKeyLabel: (label: string) => string;
@@ -149,6 +164,33 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
     }
 
     const requestId = getRequestId(c);
+    const attemptState = await dependencies.getOtpVerifyAttemptState(
+      challenge.email,
+      challenge.cognitoSession,
+      dependencies.now(),
+    );
+    if (attemptState.status === "locked") {
+      log({
+        domain: "auth",
+        action: "agent_verify_code_error",
+        requestId,
+        route: c.req.path,
+        statusCode: 429,
+        code: "OTP_TOO_MANY_ATTEMPTS",
+        reasonCategory: "too_many_attempts",
+        error: "Challenge is locked after too many invalid attempts",
+      });
+      return c.json(
+        createAgentErrorEnvelope(
+          c.req.url,
+          "OTP_TOO_MANY_ATTEMPTS",
+          "Too many invalid attempts. Request a new code.",
+          "Start a fresh login by calling POST /api/agent/send-code again.",
+        ),
+        429,
+      );
+    }
+
     try {
       const tokens = await dependencies.verifyEmailOtp(challenge.email, code, challenge.cognitoSession);
       await dependencies.markAgentOtpChallengeUsed(challenge.email, challenge.cognitoSession, dependencies.now());
@@ -207,6 +249,36 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
       ));
     } catch (error) {
       const failure = classifyVerifyFailure(error);
+      if (failure.code === "OTP_CODE_INVALID") {
+        const result = await dependencies.recordOtpVerifyFailure(
+          challenge.email,
+          challenge.cognitoSession,
+          challenge.expiresAt,
+          dependencies.now(),
+          MAX_OTP_VERIFY_ATTEMPTS,
+        );
+        if (result.locked) {
+          log({
+            domain: "auth",
+            action: "agent_verify_code_error",
+            requestId,
+            route: c.req.path,
+            statusCode: 429,
+            code: "OTP_TOO_MANY_ATTEMPTS",
+            reasonCategory: "too_many_attempts",
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return c.json(
+            createAgentErrorEnvelope(
+              c.req.url,
+              "OTP_TOO_MANY_ATTEMPTS",
+              "Too many invalid attempts. Request a new code.",
+              "Start a fresh login by calling POST /api/agent/send-code again.",
+            ),
+            429,
+          );
+        }
+      }
       log({
         domain: "auth",
         action: "agent_verify_code_error",
@@ -214,6 +286,7 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
         route: c.req.path,
         statusCode: 400,
         code: failure.code,
+        reasonCategory: failure.code === "OTP_CODE_INVALID" ? "invalid_code" : undefined,
         error: error instanceof Error ? error.message : String(error),
       });
       return c.json(
@@ -235,6 +308,8 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
 
 const app = createAgentVerifyCodeApp({
   lookupAgentOtpChallenge,
+  getOtpVerifyAttemptState,
+  recordOtpVerifyFailure,
   verifyEmailOtp,
   markAgentOtpChallengeUsed,
   normalizeAgentApiKeyLabel,

@@ -23,8 +23,6 @@ import {
 } from "../server/otpRateLimit.js";
 import { log, maskEmail } from "../server/logger.js";
 
-const app = new Hono<AuthAppEnv>();
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const JITTER_MIN_MS = 200;
@@ -40,6 +38,23 @@ type OtpPayload = Readonly<{
   e: string;
   csrf: string;
   t: number;
+}>;
+
+type SendCodeDependencies = Readonly<{
+  initiateEmailOtp: (email: string) => Promise<Readonly<{ session: string }>>;
+  decideOtpRateLimit: (email: string, ipAddress: string) => Promise<Awaited<ReturnType<typeof decideOtpRateLimit>>>;
+  loadLatestSentOtpSessionToken: (email: string, nowMs: number) => Promise<string | null>;
+  recordOtpSendDecision: (
+    email: string,
+    ipAddress: string,
+    decision: "sent" | "suppressed_email_limit" | "blocked_ip_limit",
+    otpSessionToken: string | null,
+  ) => Promise<void>;
+  createCsrfToken: () => string;
+  signPayload: (payload: string) => string;
+  parseSignedOtpSessionToken: (otpSessionToken: string) => OtpPayload;
+  jitterDelay: () => Promise<void>;
+  now: () => number;
 }>;
 
 function getClientIpAddress(request: Request): string {
@@ -60,96 +75,110 @@ function parseOtpPayload(otpSessionToken: string): OtpPayload {
   return JSON.parse(verify(otpSessionToken)) as OtpPayload;
 }
 
-app.post("/api/send-code", async (c) => {
-  let body: { email?: string };
-  try {
-    body = await c.req.json<{ email?: string }>();
-  } catch {
-    return jsonAuthError(c, 400, "INVALID_REQUEST", "Invalid request.");
-  }
+export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<AuthAppEnv> {
+  const app = new Hono<AuthAppEnv>();
 
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-
-  if (!EMAIL_RE.test(email) || email.length > 256) {
-    return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
-  }
-
-  const requestId = getRequestId(c);
-  const ipAddress = getClientIpAddress(c.req.raw);
-  const rateLimitDecision = await decideOtpRateLimit(email, ipAddress);
-
-  if (rateLimitDecision.kind === "block_ip_limit") {
-    await recordOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
-    return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
-  }
-
-  let csrfToken: string;
-  let signed: string;
-
-  if (rateLimitDecision.kind === "suppress_email_limit") {
-    const [existingOtpSessionToken] = await Promise.all([
-      loadLatestSentOtpSessionToken(email, Date.now()),
-      jitterDelay(),
-    ]);
-    if (existingOtpSessionToken === null) {
-      return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
-    }
-
-    let payload: OtpPayload;
+  app.post("/api/send-code", async (c) => {
+    let body: { email?: string };
     try {
-      payload = parseOtpPayload(existingOtpSessionToken);
+      body = await c.req.json<{ email?: string }>();
     } catch {
+      return jsonAuthError(c, 400, "INVALID_REQUEST", "Invalid request.");
+    }
+
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+
+    if (!EMAIL_RE.test(email) || email.length > 256) {
+      return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
+    }
+
+    const requestId = getRequestId(c);
+    const ipAddress = getClientIpAddress(c.req.raw);
+    const rateLimitDecision = await dependencies.decideOtpRateLimit(email, ipAddress);
+
+    if (rateLimitDecision.kind === "block_ip_limit") {
+      await dependencies.recordOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
       return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
     }
 
-    csrfToken = payload.csrf;
-    signed = existingOtpSessionToken;
-    await recordOtpSendDecision(email, ipAddress, "suppressed_email_limit", signed);
-  } else {
-    let session: string;
-    try {
-      const [result] = await Promise.all([initiateEmailOtp(email), jitterDelay()]);
-      session = result.session;
-    } catch (err) {
-      log({
-        domain: "auth",
-        action: "send_code_error",
-        requestId,
-        route: c.req.path,
-        statusCode: 500,
-        code: "OTP_SEND_FAILED",
-        error: err instanceof Error ? err.message : String(err),
+    let csrfToken: string;
+    let signed: string;
+
+    if (rateLimitDecision.kind === "suppress_email_limit") {
+      const [existingOtpSessionToken] = await Promise.all([
+        dependencies.loadLatestSentOtpSessionToken(email, dependencies.now()),
+        dependencies.jitterDelay(),
+      ]);
+      if (existingOtpSessionToken === null) {
+        return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
+      }
+
+      let payload: OtpPayload;
+      try {
+        payload = dependencies.parseSignedOtpSessionToken(existingOtpSessionToken);
+      } catch {
+        return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
+      }
+
+      csrfToken = payload.csrf;
+      signed = existingOtpSessionToken;
+      await dependencies.recordOtpSendDecision(email, ipAddress, "suppressed_email_limit", signed);
+    } else {
+      let session: string;
+      try {
+        const [result] = await Promise.all([dependencies.initiateEmailOtp(email), dependencies.jitterDelay()]);
+        session = result.session;
+      } catch (err) {
+        log({
+          domain: "auth",
+          action: "send_code_error",
+          requestId,
+          route: c.req.path,
+          statusCode: 500,
+          code: "OTP_SEND_FAILED",
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return jsonAuthError(c, 500, "OTP_SEND_FAILED", "Could not send a code. Try again.");
+      }
+
+      log({ domain: "auth", action: "send_code", requestId, route: c.req.path, maskedEmail: maskEmail(email) });
+
+      csrfToken = dependencies.createCsrfToken();
+      const payload = JSON.stringify({
+        s: session,
+        e: email,
+        csrf: csrfToken,
+        t: dependencies.now(),
       });
-      return jsonAuthError(c, 500, "OTP_SEND_FAILED", "Could not send a code. Try again.");
+
+      signed = dependencies.signPayload(payload);
+      await dependencies.recordOtpSendDecision(email, ipAddress, "sent", signed);
     }
 
-    log({ domain: "auth", action: "send_code", requestId, route: c.req.path, maskedEmail: maskEmail(email) });
-
-    csrfToken = randomBytes(32).toString("hex");
-
-    const payload = JSON.stringify({
-      s: session,
-      e: email,
-      csrf: csrfToken,
-      t: Date.now(),
+    setCookie(c, "otp_session", signed, {
+      path: "/",
+      maxAge: 180,
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
     });
 
-    signed = sign(payload);
-    await recordOtpSendDecision(email, ipAddress, "sent", signed);
-  }
-
-  setCookie(c, "otp_session", signed, {
-    path: "/",
-    maxAge: 180,
-    httpOnly: true,
-    secure: true,
-    sameSite: "Strict",
+    return c.json({ ok: true, csrfToken, otpSessionToken: signed });
   });
 
-  // Browser login keeps using the httpOnly cookie, but native clients need the
-  // same signed OTP session in the response body because they should not depend
-  // on browser-cookie behavior to complete verify-code.
-  return c.json({ ok: true, csrfToken, otpSessionToken: signed });
+  return app;
+}
+
+const app = createSendCodeApp({
+  initiateEmailOtp,
+  decideOtpRateLimit,
+  loadLatestSentOtpSessionToken,
+  recordOtpSendDecision,
+  createCsrfToken: () => randomBytes(32).toString("hex"),
+  signPayload: sign,
+  parseSignedOtpSessionToken: parseOtpPayload,
+  jitterDelay,
+  now: () => Date.now(),
 });
 
 export default app;

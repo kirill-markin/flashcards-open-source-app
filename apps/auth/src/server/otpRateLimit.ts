@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { query } from "../db.js";
+import { verify } from "./crypto.js";
+import { getOtpVerifyAttemptState } from "./otpVerifyAttempts.js";
 
 const EMAIL_COOLDOWN_WINDOW_MS = 60_000;
 const EMAIL_SHORT_WINDOW_MS = 15 * 60_000;
@@ -29,6 +31,13 @@ type DistinctEmailCountRow = Readonly<{
 type TokenRow = Readonly<{
   otp_session_token: string | null;
   created_at: Date | string;
+}>;
+
+type OtpPayload = Readonly<{
+  s: string;
+  e: string;
+  csrf: string;
+  t: number;
 }>;
 
 export type OtpRateLimitDecision =
@@ -181,20 +190,35 @@ export async function loadLatestSentOtpSessionToken(email: string, nowMs: number
       "FROM auth.otp_send_events",
       "WHERE email = $1 AND decision = 'sent' AND otp_session_token IS NOT NULL",
       "ORDER BY created_at DESC, event_id DESC",
-      "LIMIT 1",
+      "LIMIT 20",
     ].join(" "),
     [email],
   );
 
-  const row = result.rows[0];
-  if (row === undefined || row.otp_session_token === null) {
-    return null;
+  for (const row of result.rows) {
+    if (row.otp_session_token === null) {
+      continue;
+    }
+
+    const createdAtMs = new Date(row.created_at).getTime();
+    if (Number.isNaN(createdAtMs) || nowMs - createdAtMs > OTP_SESSION_TTL_MS) {
+      continue;
+    }
+
+    let payload: OtpPayload;
+    try {
+      payload = JSON.parse(verify(row.otp_session_token)) as OtpPayload;
+    } catch {
+      continue;
+    }
+
+    const state = await getOtpVerifyAttemptState(payload.e, payload.s, nowMs);
+    if (state.status === "locked") {
+      continue;
+    }
+
+    return row.otp_session_token;
   }
 
-  const createdAtMs = new Date(row.created_at).getTime();
-  if (Number.isNaN(createdAtMs) || nowMs - createdAtMs > OTP_SESSION_TTL_MS) {
-    return null;
-  }
-
-  return row.otp_session_token;
+  return null;
 }
