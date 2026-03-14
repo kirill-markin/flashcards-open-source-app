@@ -173,6 +173,13 @@ struct CloudSignInSheet: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    self.isEmailFieldFocused = false
+                }
+            )
             .navigationTitle("Sign in")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -449,6 +456,7 @@ private struct CloudOtpVerificationSheet: View {
     @State private var isVerifyingCode: Bool = false
     @State private var isSendingCode: Bool = false
     @State private var challengeState: OtpChallengeState = .active
+    @FocusState private var isCodeFieldFocused: Bool
 
     private enum OtpChallengeState: Hashable {
         case active
@@ -506,6 +514,7 @@ private struct CloudOtpVerificationSheet: View {
                                     .autocorrectionDisabled()
                                     .keyboardType(.numberPad)
                                     .textContentType(.oneTimeCode)
+                                    .focused(self.$isCodeFieldFocused)
 
                                 Button("Continue") {
                                     self.verifyCode()
@@ -521,6 +530,13 @@ private struct CloudOtpVerificationSheet: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    self.isCodeFieldFocused = false
+                }
+            )
             .navigationTitle("Verify code")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

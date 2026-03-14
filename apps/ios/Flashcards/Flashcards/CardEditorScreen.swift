@@ -10,6 +10,7 @@ struct CardFormState {
 struct CardEditorScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
     @State private var isDeleteConfirmationPresented: Bool = false
+    @FocusState private var focusedField: FocusedField?
 
     let title: String
     let isEditing: Bool
@@ -18,6 +19,11 @@ struct CardEditorScreen: View {
     let onCancel: () -> Void
     let onSave: () -> Void
     let onDelete: () -> Void
+
+    private enum FocusedField: Hashable {
+        case frontText
+        case backText
+    }
 
     private var availableTagSuggestions: [TagSuggestion] {
         tagSuggestions(cards: store.cards)
@@ -39,8 +45,10 @@ struct CardEditorScreen: View {
                 Section("Text") {
                     TextField("Front", text: $formState.frontText, axis: .vertical)
                         .lineLimit(3...)
+                        .focused(self.$focusedField, equals: .frontText)
                     TextField("Back", text: $formState.backText, axis: .vertical)
                         .lineLimit(3...)
+                        .focused(self.$focusedField, equals: .backText)
                 }
 
                 Section("Metadata") {
@@ -71,6 +79,13 @@ struct CardEditorScreen: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    self.focusedField = nil
+                }
+            )
         }
         .navigationTitle(title)
         .alert("Delete this card?", isPresented: self.$isDeleteConfirmationPresented) {

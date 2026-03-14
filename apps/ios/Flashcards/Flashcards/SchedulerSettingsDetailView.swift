@@ -7,6 +7,14 @@ struct SchedulerSettingsDetailView: View {
     @State private var draft: SchedulerSettingsDraft = makeDefaultSchedulerSettingsDraft()
     @State private var isSaveConfirmationPresented: Bool = false
     @State private var pendingSchedulerSettingsUpdate: PendingSchedulerSettingsUpdate?
+    @FocusState private var focusedField: FocusedField?
+
+    private enum FocusedField: Hashable {
+        case desiredRetention
+        case learningSteps
+        case relearningSteps
+        case maximumIntervalDays
+    }
 
     private var isResetDisabled: Bool {
         self.draft == makeDefaultSchedulerSettingsDraft()
@@ -40,6 +48,8 @@ struct SchedulerSettingsDetailView: View {
                         title: "Desired retention",
                         prompt: "0.90",
                         text: self.$draft.desiredRetentionText,
+                        focusedField: self.$focusedField,
+                        field: .desiredRetention,
                         note: "Higher values shorten intervals and increase review frequency. Lower values lengthen intervals and increase forgetting risk.",
                         keyboardType: .decimalPad,
                         autocapitalization: .sentences
@@ -49,6 +59,8 @@ struct SchedulerSettingsDetailView: View {
                         title: "Learning steps (minutes)",
                         prompt: "1, 10",
                         text: self.$draft.learningStepsText,
+                        focusedField: self.$focusedField,
+                        field: .learningSteps,
                         note: "Short-term minute steps for new cards before they graduate. More or longer steps keep cards in learning longer.",
                         keyboardType: .numbersAndPunctuation,
                         autocapitalization: .never
@@ -58,6 +70,8 @@ struct SchedulerSettingsDetailView: View {
                         title: "Relearning steps (minutes)",
                         prompt: "10",
                         text: self.$draft.relearningStepsText,
+                        focusedField: self.$focusedField,
+                        field: .relearningSteps,
                         note: "Short-term minute steps after a failed review. More or longer steps keep lapsed cards in relearning longer.",
                         keyboardType: .numbersAndPunctuation,
                         autocapitalization: .never
@@ -67,6 +81,8 @@ struct SchedulerSettingsDetailView: View {
                         title: "Maximum interval (days)",
                         prompt: "36500",
                         text: self.$draft.maximumIntervalDaysText,
+                        focusedField: self.$focusedField,
+                        field: .maximumIntervalDays,
                         note: "Hard cap for long-term intervals. Lower values bring mature cards back sooner.",
                         keyboardType: .numberPad,
                         autocapitalization: .sentences
@@ -109,6 +125,13 @@ struct SchedulerSettingsDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollDismissesKeyboard(.immediately)
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                self.focusedField = nil
+            }
+        )
         .navigationTitle("Scheduler settings")
         .alert(
             "Apply scheduler settings?",
@@ -208,6 +231,8 @@ struct SchedulerSettingsDetailView: View {
         title: String,
         prompt: String,
         text: Binding<String>,
+        focusedField: FocusState<FocusedField?>.Binding,
+        field: FocusedField,
         note: String,
         keyboardType: UIKeyboardType,
         autocapitalization: TextInputAutocapitalization
@@ -219,6 +244,7 @@ struct SchedulerSettingsDetailView: View {
             TextField(prompt, text: text)
                 .keyboardType(keyboardType)
                 .textInputAutocapitalization(autocapitalization)
+                .focused(focusedField, equals: field)
 
             SchedulerSettingNote(text: note)
         }

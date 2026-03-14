@@ -24,6 +24,7 @@ struct ServerSettingsView: View {
     @State private var isSaving: Bool = false
     @State private var confirmationAction: ServerSettingsConfirmationAction?
     @State private var isConfirmationPresented: Bool = false
+    @FocusState private var isCustomOriginFieldFocused: Bool
 
     private var isApplyDisabled: Bool {
         guard let previewConfiguration else {
@@ -111,6 +112,7 @@ struct ServerSettingsView: View {
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
                     .textContentType(.URL)
+                    .focused(self.$isCustomOriginFieldFocused)
                     .onChange(of: self.customOriginInput) { _, _ in
                         self.updatePreviewConfiguration()
                     }
@@ -149,6 +151,13 @@ struct ServerSettingsView: View {
                 .disabled(self.isResetDisabled)
             }
         }
+        .scrollDismissesKeyboard(.immediately)
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                self.isCustomOriginFieldFocused = false
+            }
+        )
         .navigationTitle("Server")
         .alert(self.confirmationTitle, isPresented: self.$isConfirmationPresented) {
             Button("Cancel", role: .cancel) {
