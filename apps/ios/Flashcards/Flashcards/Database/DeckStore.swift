@@ -50,6 +50,15 @@ struct DeckStore {
         return deck
     }
 
+    func loadDeck(workspaceId: String, deckId: String) throws -> Deck {
+        let deck = try self.loadDeckIncludingDeleted(workspaceId: workspaceId, deckId: deckId)
+        guard deck.deletedAt == nil else {
+            throw LocalStoreError.notFound("Deck not found")
+        }
+
+        return deck
+    }
+
     func loadDecksIncludingDeleted(workspaceId: String) throws -> [Deck] {
         try self.core.query(
             sql: """

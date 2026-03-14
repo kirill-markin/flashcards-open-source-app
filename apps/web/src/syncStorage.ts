@@ -1,11 +1,33 @@
 import type {
   Card,
   CloudSettings,
+  DeckCardStats,
+  DecksListSnapshot,
   Deck,
+  QueryCardsInput,
+  QueryCardsPage,
   ReviewEvent,
+  ReviewCounts,
+  ReviewFilter,
+  ReviewQueueSnapshot,
+  ReviewTimelinePage,
   SyncPushOperation,
+  WorkspaceOverviewSnapshot,
   WorkspaceSchedulerSettings,
+  WorkspaceSummary,
+  WorkspaceTagsSummary,
 } from "./types";
+import {
+  ALL_CARDS_REVIEW_FILTER,
+  compareCardsForReviewOrder,
+  isCardDue,
+  isCardNew,
+  isCardReviewed,
+  isReviewFilterEqual,
+  makeDeckCardStats,
+  matchesCardFilter,
+  matchesDeckFilterDefinition,
+} from "./appData/domain";
 
 export type PersistedOutboxRecord = Readonly<{
   operationId: string;
@@ -70,7 +92,7 @@ export type PersistentStorageState = Readonly<{
 }>;
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 2;
+const databaseVersion = 3;
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
@@ -116,6 +138,78 @@ function ensureCardTagsStoreIndexes(store: IDBObjectStore): void {
   if (store.indexNames.contains("cardId_tag") === false) {
     store.createIndex("cardId_tag", ["cardId", "tag"], { unique: false });
   }
+}
+
+function upgradeToVersion1(database: IDBDatabase): void {
+  if (database.objectStoreNames.contains("cards") === false) {
+    database.createObjectStore("cards", { keyPath: "cardId" });
+  }
+
+  if (database.objectStoreNames.contains("decks") === false) {
+    database.createObjectStore("decks", { keyPath: "deckId" });
+  }
+
+  if (database.objectStoreNames.contains("reviewEvents") === false) {
+    database.createObjectStore("reviewEvents", { keyPath: "reviewEventId" });
+  }
+
+  if (database.objectStoreNames.contains("workspaceSettings") === false) {
+    database.createObjectStore("workspaceSettings", { keyPath: "id" });
+  }
+
+  if (database.objectStoreNames.contains("outbox") === false) {
+    const outboxStore = database.createObjectStore("outbox", { keyPath: "operationId" });
+    outboxStore.createIndex("workspaceId_createdAt", ["workspaceId", "createdAt"], { unique: false });
+  }
+
+  if (database.objectStoreNames.contains("meta") === false) {
+    database.createObjectStore("meta", { keyPath: "key" });
+  }
+}
+
+function backfillCardTagsStore(transaction: IDBTransaction): void {
+  const cardsStore = transaction.objectStore("cards");
+  const cardTagsStore = transaction.objectStore("cardTags");
+  cardsStore.openCursor().onsuccess = (event) => {
+    const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+    if (cursor === null) {
+      return;
+    }
+
+    const card = cursor.value as Card;
+    if (card.deletedAt === null) {
+      for (const tag of card.tags) {
+        if (tag === "") {
+          continue;
+        }
+
+        cardTagsStore.put({
+          cardId: card.cardId,
+          tag,
+        } satisfies CardTagRecord);
+      }
+    }
+
+    cursor.continue();
+  };
+}
+
+function upgradeToVersion2(database: IDBDatabase, transaction: IDBTransaction): void {
+  ensureCardsStoreIndexes(transaction.objectStore("cards"));
+
+  if (database.objectStoreNames.contains("cardTags") === false) {
+    database.createObjectStore("cardTags", { keyPath: ["cardId", "tag"] });
+  }
+  ensureCardTagsStoreIndexes(transaction.objectStore("cardTags"));
+  ensureDecksStoreIndexes(transaction.objectStore("decks"));
+
+  backfillCardTagsStore(transaction);
+}
+
+function upgradeToVersion3(transaction: IDBTransaction): void {
+  ensureCardsStoreIndexes(transaction.objectStore("cards"));
+  ensureDecksStoreIndexes(transaction.objectStore("decks"));
+  ensureCardTagsStoreIndexes(transaction.objectStore("cardTags"));
 }
 
 function writeCardTagRecords(transaction: IDBTransaction, card: Card): void {
@@ -166,63 +260,14 @@ function openDatabase(): Promise<IDBDatabase> {
         return;
       }
 
-      if (database.objectStoreNames.contains("cards") === false) {
-        database.createObjectStore("cards", { keyPath: "cardId" });
+      if (event.oldVersion < 1) {
+        upgradeToVersion1(database);
       }
-      ensureCardsStoreIndexes(transaction.objectStore("cards"));
-
-      if (database.objectStoreNames.contains("cardTags") === false) {
-        database.createObjectStore("cardTags", { keyPath: ["cardId", "tag"] });
-      }
-      ensureCardTagsStoreIndexes(transaction.objectStore("cardTags"));
-
-      if (database.objectStoreNames.contains("decks") === false) {
-        database.createObjectStore("decks", { keyPath: "deckId" });
-      }
-      ensureDecksStoreIndexes(transaction.objectStore("decks"));
-
-      if (database.objectStoreNames.contains("reviewEvents") === false) {
-        database.createObjectStore("reviewEvents", { keyPath: "reviewEventId" });
-      }
-
-      if (database.objectStoreNames.contains("workspaceSettings") === false) {
-        database.createObjectStore("workspaceSettings", { keyPath: "id" });
-      }
-
-      if (database.objectStoreNames.contains("outbox") === false) {
-        const outboxStore = database.createObjectStore("outbox", { keyPath: "operationId" });
-        outboxStore.createIndex("workspaceId_createdAt", ["workspaceId", "createdAt"], { unique: false });
-      }
-
-      if (database.objectStoreNames.contains("meta") === false) {
-        database.createObjectStore("meta", { keyPath: "key" });
-      }
-
       if (event.oldVersion < 2) {
-        const cardsStore = transaction.objectStore("cards");
-        const cardTagsStore = transaction.objectStore("cardTags");
-        cardsStore.openCursor().onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
-          if (cursor === null) {
-            return;
-          }
-
-          const card = cursor.value as Card;
-          if (card.deletedAt === null) {
-            for (const tag of card.tags) {
-              if (tag === "") {
-                continue;
-              }
-
-              cardTagsStore.put({
-                cardId: card.cardId,
-                tag,
-              } satisfies CardTagRecord);
-            }
-          }
-
-          cursor.continue();
-        };
+        upgradeToVersion2(database, transaction);
+      }
+      if (event.oldVersion < 3) {
+        upgradeToVersion3(transaction);
       }
     };
 
@@ -293,7 +338,253 @@ async function getFromStore<RecordType extends StoredRecord>(
   return result;
 }
 
-export async function loadWebSyncCache(): Promise<WebSyncCache> {
+function compareTagSummaries(
+  leftTag: Readonly<{ tag: string; cardsCount: number }>,
+  rightTag: Readonly<{ tag: string; cardsCount: number }>,
+): number {
+  if (leftTag.cardsCount !== rightTag.cardsCount) {
+    return rightTag.cardsCount - leftTag.cardsCount;
+  }
+
+  return leftTag.tag.localeCompare(rightTag.tag, undefined, { sensitivity: "base" });
+}
+
+function normalizeSearchText(searchText: string | null): string | null {
+  if (searchText === null) {
+    return null;
+  }
+
+  const normalizedSearchText = searchText.trim().toLowerCase();
+  return normalizedSearchText === "" ? null : normalizedSearchText;
+}
+
+function matchesSearchText(card: Card, searchText: string | null): boolean {
+  if (searchText === null) {
+    return true;
+  }
+
+  const cardFields = [card.frontText, card.backText, ...card.tags].map((value) => value.toLowerCase());
+  return cardFields.some((value) => value.includes(searchText));
+}
+
+function compareNullableText(left: string | null, right: string | null, direction: "asc" | "desc"): number {
+  if (left === right) {
+    return 0;
+  }
+  if (left === null) {
+    return direction === "asc" ? -1 : 1;
+  }
+  if (right === null) {
+    return direction === "asc" ? 1 : -1;
+  }
+
+  return direction === "asc"
+    ? left.localeCompare(right)
+    : right.localeCompare(left);
+}
+
+function compareText(left: string, right: string, direction: "asc" | "desc"): number {
+  return direction === "asc"
+    ? left.localeCompare(right, undefined, { sensitivity: "base" })
+    : right.localeCompare(left, undefined, { sensitivity: "base" });
+}
+
+function compareNumber(left: number, right: number, direction: "asc" | "desc"): number {
+  return direction === "asc" ? left - right : right - left;
+}
+
+function compareCardsForCardsQuery(
+  leftCard: Card,
+  rightCard: Card,
+  sorts: QueryCardsInput["sorts"],
+): number {
+  for (const sort of sorts) {
+    let difference = 0;
+
+    if (sort.key === "frontText") {
+      difference = compareText(leftCard.frontText, rightCard.frontText, sort.direction);
+    } else if (sort.key === "backText") {
+      difference = compareText(leftCard.backText, rightCard.backText, sort.direction);
+    } else if (sort.key === "tags") {
+      difference = compareText(leftCard.tags.join(","), rightCard.tags.join(","), sort.direction);
+    } else if (sort.key === "effortLevel") {
+      difference = compareText(leftCard.effortLevel, rightCard.effortLevel, sort.direction);
+    } else if (sort.key === "dueAt") {
+      difference = compareNullableText(leftCard.dueAt, rightCard.dueAt, sort.direction);
+    } else if (sort.key === "reps") {
+      difference = compareNumber(leftCard.reps, rightCard.reps, sort.direction);
+    } else if (sort.key === "lapses") {
+      difference = compareNumber(leftCard.lapses, rightCard.lapses, sort.direction);
+    } else if (sort.key === "createdAt") {
+      difference = compareText(leftCard.createdAt, rightCard.createdAt, sort.direction);
+    }
+
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+
+  const createdAtDifference = rightCard.createdAt.localeCompare(leftCard.createdAt);
+  if (createdAtDifference !== 0) {
+    return createdAtDifference;
+  }
+
+  return leftCard.cardId.localeCompare(rightCard.cardId);
+}
+
+function encodeCursor(value: Record<string, string | number | null>): string {
+  return globalThis.btoa(JSON.stringify(value))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
+}
+
+function decodeCursor(cursor: string): Record<string, unknown> {
+  try {
+    const normalizedCursor = cursor.replaceAll("-", "+").replaceAll("_", "/");
+    const paddingLength = (4 - (normalizedCursor.length % 4)) % 4;
+    const paddedCursor = `${normalizedCursor}${"=".repeat(paddingLength)}`;
+    const parsedValue = JSON.parse(globalThis.atob(paddedCursor)) as unknown;
+
+    if (typeof parsedValue !== "object" || parsedValue === null || Array.isArray(parsedValue)) {
+      throw new Error("cursor must decode to an object");
+    }
+
+    return parsedValue as Record<string, unknown>;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`cursor is invalid: ${message}`);
+  }
+}
+
+function resolveCardsPageStartIndex(cards: ReadonlyArray<Card>, cursor: string | null): number {
+  if (cursor === null) {
+    return 0;
+  }
+
+  const parsedCursor = decodeCursor(cursor);
+  const cardId = parsedCursor.cardId;
+  if (typeof cardId !== "string" || cardId === "") {
+    throw new Error("cards cursor.cardId must be a non-empty string");
+  }
+
+  const index = cards.findIndex((card) => card.cardId === cardId);
+  if (index === -1) {
+    return 0;
+  }
+
+  return index + 1;
+}
+
+function buildCardsPageCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyArray<Card>): string | null {
+  if (pageCards.length === 0) {
+    return null;
+  }
+
+  const lastCard = pageCards[pageCards.length - 1];
+  const lastCardIndex = cards.findIndex((card) => card.cardId === lastCard.cardId);
+  if (lastCardIndex === -1 || lastCardIndex >= cards.length - 1) {
+    return null;
+  }
+
+  return encodeCursor({ cardId: lastCard.cardId });
+}
+
+function resolveReviewFilterFromLocalData(
+  reviewFilter: ReviewFilter,
+  cards: ReadonlyArray<Card>,
+  decks: ReadonlyArray<Deck>,
+): ReviewFilter {
+  if (reviewFilter.kind === "allCards") {
+    return ALL_CARDS_REVIEW_FILTER;
+  }
+
+  if (reviewFilter.kind === "deck") {
+    const matchingDeck = decks.find((deck) => deck.deckId === reviewFilter.deckId);
+    return matchingDeck === undefined ? ALL_CARDS_REVIEW_FILTER : reviewFilter;
+  }
+
+  const hasActiveTag = cards.some((card) => card.tags.includes(reviewFilter.tag));
+  return hasActiveTag ? reviewFilter : ALL_CARDS_REVIEW_FILTER;
+}
+
+function cardsMatchingReviewFilter(
+  reviewFilter: ReviewFilter,
+  cards: ReadonlyArray<Card>,
+  decks: ReadonlyArray<Deck>,
+): ReadonlyArray<Card> {
+  const resolvedReviewFilter = resolveReviewFilterFromLocalData(reviewFilter, cards, decks);
+
+  if (resolvedReviewFilter.kind === "allCards") {
+    return cards;
+  }
+
+  if (resolvedReviewFilter.kind === "deck") {
+    const deck = decks.find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
+    if (deck === undefined) {
+      return cards;
+    }
+
+    return cards.filter((card) => matchesDeckFilterDefinition(deck.filterDefinition, card));
+  }
+
+  return cards.filter((card) => card.tags.includes(resolvedReviewFilter.tag));
+}
+
+async function listAllCards(database: IDBDatabase): Promise<ReadonlyArray<Card>> {
+  const cards = await getAllFromStore<Card>(database, "cards");
+  return cards.filter((card) => card.deletedAt === null);
+}
+
+async function listAllDecks(database: IDBDatabase): Promise<ReadonlyArray<Deck>> {
+  const decks = await getAllFromStore<Deck>(database, "decks");
+  return decks.filter((deck) => deck.deletedAt === null);
+}
+
+function makeReviewCountsFromCards(cards: ReadonlyArray<Card>, nowTimestamp: number): ReviewCounts {
+  return cards.reduce<ReviewCounts>((result, card) => ({
+    dueCount: result.dueCount + (isCardDue(card, nowTimestamp) ? 1 : 0),
+    totalCount: result.totalCount + 1,
+  }), {
+    dueCount: 0,
+    totalCount: 0,
+  });
+}
+
+function buildReviewQueueCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyArray<Card>): string | null {
+  if (pageCards.length === 0) {
+    return null;
+  }
+
+  const lastCard = pageCards[pageCards.length - 1];
+  const lastCardIndex = cards.findIndex((card) => card.cardId === lastCard.cardId);
+  if (lastCardIndex === -1 || lastCardIndex >= cards.length - 1) {
+    return null;
+  }
+
+  return encodeCursor({ cardId: lastCard.cardId });
+}
+
+function resolveReviewStartIndex(cards: ReadonlyArray<Card>, cursor: string | null): number {
+  if (cursor === null) {
+    return 0;
+  }
+
+  const parsedCursor = decodeCursor(cursor);
+  const cardId = parsedCursor.cardId;
+  if (typeof cardId !== "string" || cardId === "") {
+    throw new Error("review cursor.cardId must be a non-empty string");
+  }
+
+  const index = cards.findIndex((card) => card.cardId === cardId);
+  if (index === -1) {
+    return 0;
+  }
+
+  return index + 1;
+}
+
+async function readWebSyncCache(): Promise<WebSyncCache> {
   const database = await openDatabase();
   const [cards, decks, reviewEvents, workspaceSettingsRecords, outbox, syncState, cloudSettingsRecord] = await Promise.all([
     getAllFromStore<Card>(database, "cards"),
@@ -319,8 +610,235 @@ export async function loadWebSyncCache(): Promise<WebSyncCache> {
   };
 }
 
+/**
+ * Local chat and settings diagnostics still need a holistic workspace view,
+ * but they now build it directly from IndexedDB on demand instead of relying
+ * on a UI-hydrated in-memory snapshot.
+ */
+export async function loadLocalSnapshot(): Promise<WebSyncCache> {
+  return readWebSyncCache();
+}
+
+export async function loadCloudSettings(): Promise<CloudSettings | null> {
+  const database = await openDatabase();
+  const cloudSettingsRecord = await getFromStore<CloudSettingsRecord>(database, "meta", "cloud_settings");
+  database.close();
+  return cloudSettingsRecord?.settings ?? null;
+}
+
+export async function loadWorkspaceSettings(): Promise<WorkspaceSchedulerSettings | null> {
+  const database = await openDatabase();
+  const workspaceSettingsRecords = await getAllFromStore<WorkspaceSettingsRecord>(database, "workspaceSettings");
+  database.close();
+  return workspaceSettingsRecords[0]?.settings ?? null;
+}
+
+/**
+ * Query-driven cards page used by the web cards tab. This intentionally reads
+ * from the local IndexedDB mirror so first paint does not depend on backend
+ * list endpoints or a pre-hydrated app-wide cards array.
+ */
+export async function queryLocalCardsPage(input: QueryCardsInput): Promise<QueryCardsPage> {
+  const database = await openDatabase();
+  const normalizedSearchText = normalizeSearchText(input.searchText);
+  const allCards = await listAllCards(database);
+  database.close();
+
+  const filteredCards = allCards
+    .filter((card) => matchesSearchText(card, normalizedSearchText))
+    .filter((card) => input.filter === null || matchesCardFilter(input.filter, card))
+    .sort((leftCard, rightCard) => compareCardsForCardsQuery(leftCard, rightCard, input.sorts));
+
+  const startIndex = resolveCardsPageStartIndex(filteredCards, input.cursor);
+  const pageCards = filteredCards.slice(startIndex, startIndex + input.limit);
+
+  return {
+    cards: pageCards,
+    nextCursor: buildCardsPageCursor(filteredCards, pageCards),
+    totalCount: filteredCards.length,
+  };
+}
+
+export async function loadWorkspaceTagsSummary(): Promise<WorkspaceTagsSummary> {
+  const database = await openDatabase();
+  const cards = await listAllCards(database);
+  database.close();
+
+  const counts = cards.reduce((result, card) => {
+    for (const tag of new Set(card.tags)) {
+      result.set(tag, (result.get(tag) ?? 0) + 1);
+    }
+
+    return result;
+  }, new Map<string, number>());
+
+  return {
+    tags: [...counts.entries()]
+      .map(([tag, cardsCount]) => ({
+        tag,
+        cardsCount,
+      }))
+      .sort(compareTagSummaries),
+    totalCards: cards.length,
+  };
+}
+
+export async function loadDecksListSnapshot(): Promise<DecksListSnapshot> {
+  const database = await openDatabase();
+  const cards = await listAllCards(database);
+  const decks = await listAllDecks(database);
+  database.close();
+  const nowTimestamp = Date.now();
+
+  return {
+    allCardsStats: makeDeckCardStats(cards, nowTimestamp),
+    deckSummaries: decks
+      .map((deck) => {
+        const matchingCards = cards.filter((card) => matchesDeckFilterDefinition(deck.filterDefinition, card));
+        const stats = makeDeckCardStats(matchingCards, nowTimestamp);
+        return {
+          deckId: deck.deckId,
+          name: deck.name,
+          filterDefinition: deck.filterDefinition,
+          createdAt: deck.createdAt,
+          totalCards: stats.totalCards,
+          dueCards: stats.dueCards,
+          newCards: stats.newCards,
+          reviewedCards: stats.reviewedCards,
+        };
+      })
+      .sort((leftDeck, rightDeck) => {
+        const createdAtDifference = rightDeck.createdAt.localeCompare(leftDeck.createdAt);
+        if (createdAtDifference !== 0) {
+          return createdAtDifference;
+        }
+
+        return rightDeck.deckId.localeCompare(leftDeck.deckId);
+      }),
+  };
+}
+
+export async function loadWorkspaceOverviewSnapshot(workspace: WorkspaceSummary): Promise<WorkspaceOverviewSnapshot> {
+  const [tagsSummary, decksSnapshot] = await Promise.all([
+    loadWorkspaceTagsSummary(),
+    loadDecksListSnapshot(),
+  ]);
+
+  return {
+    workspaceName: workspace.name,
+    deckCount: decksSnapshot.deckSummaries.length,
+    tagsCount: tagsSummary.tags.length,
+    totalCards: decksSnapshot.allCardsStats.totalCards,
+    dueCount: decksSnapshot.allCardsStats.dueCards,
+    newCount: decksSnapshot.allCardsStats.newCards,
+    reviewedCount: decksSnapshot.allCardsStats.reviewedCards,
+  };
+}
+
+export async function loadDeckById(deckId: string): Promise<Deck | null> {
+  const database = await openDatabase();
+  const deck = await getFromStore<Deck>(database, "decks", deckId);
+  database.close();
+
+  if (deck === undefined || deck.deletedAt !== null) {
+    return null;
+  }
+
+  return deck;
+}
+
+export async function loadCardById(cardId: string): Promise<Card | null> {
+  const database = await openDatabase();
+  const card = await getFromStore<Card>(database, "cards", cardId);
+  database.close();
+
+  if (card === undefined || card.deletedAt !== null) {
+    return null;
+  }
+
+  return card;
+}
+
+export async function loadCardsMatchingDeck(filterDefinition: Deck["filterDefinition"]): Promise<ReadonlyArray<Card>> {
+  const database = await openDatabase();
+  const cards = await listAllCards(database);
+  database.close();
+  return cards
+    .filter((card) => matchesDeckFilterDefinition(filterDefinition, card))
+    .sort((leftCard, rightCard) => rightCard.createdAt.localeCompare(leftCard.createdAt) || leftCard.cardId.localeCompare(rightCard.cardId));
+}
+
+export async function loadReviewQueueSnapshot(
+  reviewFilter: ReviewFilter,
+  limit: number,
+): Promise<ReviewQueueSnapshot> {
+  const database = await openDatabase();
+  const cards = await listAllCards(database);
+  const decks = await listAllDecks(database);
+  database.close();
+  const nowTimestamp = Date.now();
+  const resolvedReviewFilter = resolveReviewFilterFromLocalData(reviewFilter, cards, decks);
+  const matchingCards = [...cardsMatchingReviewFilter(resolvedReviewFilter, cards, decks)]
+    .sort((leftCard: Card, rightCard: Card) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
+  const dueCards = matchingCards.filter((card) => isCardDue(card, nowTimestamp));
+  const pageCards = dueCards.slice(0, limit);
+
+  return {
+    resolvedReviewFilter,
+    cards: pageCards,
+    nextCursor: buildReviewQueueCursor(dueCards, pageCards),
+    reviewCounts: makeReviewCountsFromCards(matchingCards, nowTimestamp),
+  };
+}
+
+export async function loadReviewQueueChunk(
+  reviewFilter: ReviewFilter,
+  cursor: string | null,
+  limit: number,
+  excludedCardIds: ReadonlySet<string>,
+): Promise<Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>> {
+  const database = await openDatabase();
+  const cards = await listAllCards(database);
+  const decks = await listAllDecks(database);
+  database.close();
+  const nowTimestamp = Date.now();
+  const resolvedReviewFilter = resolveReviewFilterFromLocalData(reviewFilter, cards, decks);
+  const dueCards = [...cardsMatchingReviewFilter(resolvedReviewFilter, cards, decks)]
+    .filter((card) => excludedCardIds.has(card.cardId) === false)
+    .filter((card) => isCardDue(card, nowTimestamp))
+    .sort((leftCard: Card, rightCard: Card) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
+  const startIndex = resolveReviewStartIndex(dueCards, cursor);
+  const pageCards = dueCards.slice(startIndex, startIndex + limit);
+
+  return {
+    cards: pageCards,
+    nextCursor: buildReviewQueueCursor(dueCards, pageCards),
+  };
+}
+
+export async function loadReviewTimelinePage(
+  reviewFilter: ReviewFilter,
+  limit: number,
+  offset: number,
+): Promise<ReviewTimelinePage> {
+  const database = await openDatabase();
+  const cards = await listAllCards(database);
+  const decks = await listAllDecks(database);
+  database.close();
+  const nowTimestamp = Date.now();
+  const resolvedReviewFilter = resolveReviewFilterFromLocalData(reviewFilter, cards, decks);
+  const matchingCards = [...cardsMatchingReviewFilter(resolvedReviewFilter, cards, decks)]
+    .sort((leftCard: Card, rightCard: Card) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
+  const pageCards = matchingCards.slice(offset, offset + limit + 1);
+
+  return {
+    cards: pageCards.slice(0, limit),
+    hasMoreCards: pageCards.length > limit,
+  };
+}
+
 export async function relinkWorkspaceCache(workspaceId: string): Promise<void> {
-  const cache = await loadWebSyncCache();
+  const cache = await readWebSyncCache();
   if (cache.workspaceId === workspaceId) {
     return;
   }

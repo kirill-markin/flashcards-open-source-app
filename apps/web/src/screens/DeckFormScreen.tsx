@@ -4,8 +4,8 @@ import { useAppData } from "../appData";
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition } from "../deckFilters";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../routes";
 import { CardFormTagsField } from "./CardFormTagsField";
-import { getTagSuggestionsFromCards } from "./CardTagsInput";
-import type { Deck, EffortLevel, UpdateDeckInput } from "../types";
+import { loadWorkspaceTagsSummary } from "../syncStorage";
+import type { EffortLevel, TagSuggestion, UpdateDeckInput } from "../types";
 
 type FormState = Readonly<{
   name: string;
@@ -18,14 +18,6 @@ function createInitialFormState(): FormState {
     name: "",
     effortLevels: [],
     tags: [],
-  };
-}
-
-function toFormState(deck: Deck): FormState {
-  return {
-    name: deck.name,
-    effortLevels: deck.filterDefinition.effortLevels,
-    tags: deck.filterDefinition.tags,
   };
 }
 
@@ -44,19 +36,17 @@ export function DeckFormScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const {
-    cards,
-    ensureCardsLoaded,
-    ensureDecksLoaded,
     createDeckItem,
     getDeckById,
     updateDeckItem,
     setErrorMessage,
+    localReadVersion,
   } = useAppData();
   const [formState, setFormState] = useState<FormState>(createInitialFormState());
+  const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
-  const tagSuggestions = getTagSuggestionsFromCards(cards);
   const filterDefinition = buildDeckFilterDefinition(formState.effortLevels, formState.tags);
   const nameFieldId = "deck-name";
   const tagsFieldId = "deck-tags-input";
@@ -69,27 +59,39 @@ export function DeckFormScreen(): ReactElement {
     setScreenErrorMessage("");
 
     try {
-      await Promise.all([ensureDecksLoaded(), ensureCardsLoaded()]);
-      if (deckId !== undefined) {
-        if (deckId === ALL_CARDS_DECK_SLUG) {
-          throw new Error("System deck cannot be edited.");
-        }
+      const [tagsSummary, loadedDeck] = await Promise.all([
+        loadWorkspaceTagsSummary(),
+        deckId === undefined
+          ? Promise.resolve(null)
+          : deckId === ALL_CARDS_DECK_SLUG
+            ? Promise.reject(new Error("System deck cannot be edited."))
+            : getDeckById(deckId),
+      ]);
 
-        const deck = await getDeckById(deckId);
-        setFormState(toFormState(deck));
-      } else {
+      setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
+        tag: tagSummary.tag,
+        countState: "ready",
+        cardsCount: tagSummary.cardsCount,
+      })));
+      if (loadedDeck === null) {
         setFormState(createInitialFormState());
+      } else {
+        setFormState({
+          name: loadedDeck.name,
+          effortLevels: loadedDeck.filterDefinition.effortLevels,
+          tags: loadedDeck.filterDefinition.tags,
+        });
       }
     } catch (error) {
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
     }
-  }, [deckId, ensureCardsLoaded, ensureDecksLoaded, getDeckById]);
+  }, [deckId, getDeckById]);
 
   useEffect(() => {
     void loadScreenData();
-  }, [loadScreenData]);
+  }, [loadScreenData, localReadVersion]);
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]): void {
     setFormState((currentFormState) => ({
@@ -218,16 +220,8 @@ export function DeckFormScreen(): ReactElement {
             <h2 className="panel-subtitle">Filter preview</h2>
             <dl className="meta-list">
               <div className="meta-row">
-                <dt>Name</dt>
-                <dd>{formState.name.trim() === "" ? "new deck" : formState.name.trim()}</dd>
-              </div>
-              <div className="meta-row">
                 <dt>Summary</dt>
                 <dd>{formatDeckFilterDefinition(filterDefinition)}</dd>
-              </div>
-              <div className="meta-row">
-                <dt>Conditions</dt>
-                <dd>{Number(filterDefinition.effortLevels.length > 0) + Number(filterDefinition.tags.length > 0)}</dd>
               </div>
             </dl>
           </aside>

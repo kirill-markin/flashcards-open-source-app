@@ -17,8 +17,7 @@ function accountStatusValue(linkedEmail: string | null): string {
 }
 
 export function AccountSettingsScreen(): ReactElement {
-  const { getLocalSnapshot, session } = useAppData();
-  const cloudSettings = getLocalSnapshot().cloudSettings;
+  const { cloudSettings, session } = useAppData();
 
   return (
     <SettingsShell

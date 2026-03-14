@@ -1,16 +1,10 @@
-import { useEffect, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../appData";
-import {
-  cardsMatchingDeck,
-  deriveActiveCards,
-  deriveActiveDecks,
-  makeDeckCardStats,
-  type DeckCardStats,
-} from "../appData/domain";
 import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../routes";
-import type { Card, Deck } from "../types";
+import { loadDecksListSnapshot } from "../syncStorage";
+import type { DeckCardStats, DecksListSnapshot } from "../types";
 
 type DeckListEntry = Readonly<{
   id: string;
@@ -24,54 +18,80 @@ function buildDeckDetailPath(deckId: string): string {
   return buildSettingsDeckDetailRoute(deckId);
 }
 
-/** Prepends the synthetic All cards entry and keeps deck cards read-only on the web list. */
-function makeDeckListEntries(cards: ReadonlyArray<Card>, decks: ReadonlyArray<Deck>, nowTimestamp: number): Array<DeckListEntry> {
-  const activeCards = deriveActiveCards(cards);
-
+function makeDeckListEntries(decksSnapshot: DecksListSnapshot): ReadonlyArray<DeckListEntry> {
   return [{
     id: ALL_CARDS_DECK_SLUG,
     title: ALL_CARDS_DECK_LABEL,
     filterSummary: ALL_CARDS_DECK_LABEL,
-    stats: makeDeckCardStats(activeCards, nowTimestamp),
+    stats: decksSnapshot.allCardsStats,
     href: buildDeckDetailPath(ALL_CARDS_DECK_SLUG),
-  }, ...deriveActiveDecks(decks).map((deck) => ({
-    id: deck.deckId,
-    title: deck.name,
-    filterSummary: formatDeckFilterDefinition(deck.filterDefinition),
-    stats: makeDeckCardStats(cardsMatchingDeck(deck, cards), nowTimestamp),
-    href: buildDeckDetailPath(deck.deckId),
+  }, ...decksSnapshot.deckSummaries.map((deckSummary) => ({
+    id: deckSummary.deckId,
+    title: deckSummary.name,
+    filterSummary: formatDeckFilterDefinition(deckSummary.filterDefinition),
+    stats: {
+      totalCards: deckSummary.totalCards,
+      dueCards: deckSummary.dueCards,
+      newCards: deckSummary.newCards,
+      reviewedCards: deckSummary.reviewedCards,
+    },
+    href: buildDeckDetailPath(deckSummary.deckId),
   }))];
 }
 
+const emptyDecksSnapshot: DecksListSnapshot = {
+  deckSummaries: [],
+  allCardsStats: {
+    totalCards: 0,
+    dueCards: 0,
+    newCards: 0,
+    reviewedCards: 0,
+  },
+};
+
 export function DecksScreen(): ReactElement {
-  const {
-    cards,
-    cardsState,
-    decks,
-    decksState,
-    ensureCardsLoaded,
-    ensureDecksLoaded,
-    refreshCards,
-    refreshDecks,
-  } = useAppData();
+  const { localReadVersion, refreshLocalData } = useAppData();
+  const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
-    void ensureCardsLoaded();
-    void ensureDecksLoaded();
-  }, [ensureCardsLoaded, ensureDecksLoaded]);
+    let isCancelled = false;
 
-  const deckListEntries = makeDeckListEntries(cards, decks, Date.now());
+    async function loadScreenData(): Promise<void> {
+      setIsLoading(true);
+      setErrorMessage("");
 
-  const resourceErrorMessage = decksState.status === "error"
-    ? decksState.errorMessage
-    : cardsState.status === "error"
-      ? cardsState.errorMessage
-      : "";
+      try {
+        const nextDecksSnapshot = await loadDecksListSnapshot();
+        if (isCancelled) {
+          return;
+        }
 
-  if (
-    (decksState.status === "loading" && !decksState.hasLoaded)
-    || (cardsState.status === "loading" && !cardsState.hasLoaded)
-  ) {
+        setDecksSnapshot(nextDecksSnapshot);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadScreenData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [localReadVersion]);
+
+  const deckListEntries = makeDeckListEntries(decksSnapshot);
+
+  if (isLoading) {
     return (
       <main className="container">
         <section className="panel">
@@ -82,23 +102,13 @@ export function DecksScreen(): ReactElement {
     );
   }
 
-  if (
-    (decksState.status === "error" && !decksState.hasLoaded)
-    || (cardsState.status === "error" && !cardsState.hasLoaded)
-  ) {
+  if (errorMessage !== "") {
     return (
       <main className="container">
         <section className="panel">
           <h1 className="title">Decks</h1>
-          <p className="error-banner">{resourceErrorMessage}</p>
-          <button
-            className="primary-btn"
-            type="button"
-            onClick={() => {
-              void refreshCards();
-              void refreshDecks();
-            }}
-          >
+          <p className="error-banner">{errorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
             Retry
           </button>
         </section>
@@ -109,7 +119,6 @@ export function DecksScreen(): ReactElement {
   return (
     <main className="container">
       <section className="panel">
-        {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
             <h1 className="title">Decks</h1>

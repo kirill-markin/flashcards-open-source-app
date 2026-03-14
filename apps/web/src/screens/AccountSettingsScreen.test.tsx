@@ -19,23 +19,15 @@ const { mockAppData } = vi.hoisted(() => ({
         createdAt: "2026-03-10T09:00:00.000Z",
       },
     },
-    getLocalSnapshot: () => ({
-      cards: [],
-      decks: [],
-      reviewEvents: [],
-      workspaceSettings: null,
-      cloudSettings: {
-        deviceId: "device-1",
-        cloudState: "linked",
-        linkedUserId: "user-1",
-        linkedWorkspaceId: "workspace-1",
-        linkedEmail: "user@example.com",
-        onboardingCompleted: true,
-        updatedAt: "2026-03-10T09:00:00.000Z",
-      },
-      outbox: [],
-      lastAppliedChangeId: 0,
-    }),
+    cloudSettings: {
+      deviceId: "device-1",
+      cloudState: "linked",
+      linkedUserId: "user-1",
+      linkedWorkspaceId: "workspace-1",
+      linkedEmail: "user@example.com",
+      onboardingCompleted: true,
+      updatedAt: "2026-03-10T09:00:00.000Z",
+    },
   },
 }));
 

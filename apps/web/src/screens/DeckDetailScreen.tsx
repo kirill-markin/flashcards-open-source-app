@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
-import {
-  ALL_CARDS_REVIEW_FILTER,
-  cardsMatchingDeck,
-  deriveActiveCards,
-  makeDeckCardStats,
-} from "../appData/domain";
+import { ALL_CARDS_REVIEW_FILTER } from "../appData/domain";
 import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
 import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../routes";
+import { loadCardsMatchingDeck, loadDeckById, loadDecksListSnapshot } from "../syncStorage";
 import type { Card, Deck, ReviewFilter } from "../types";
 
 type DeckDetailState = Readonly<{
@@ -36,62 +32,22 @@ function buildDeckEditPath(deckId: string): string {
   return buildSettingsDeckEditRoute(deckId);
 }
 
-function makeDeckDetailState(
-  deckId: string,
-  cards: ReadonlyArray<Card>,
-  decks: ReadonlyArray<Deck>,
-): DeckDetailState | null {
-  if (deckId === ALL_CARDS_DECK_SLUG) {
-    return {
-      title: ALL_CARDS_DECK_LABEL,
-      filterSummary: ALL_CARDS_DECK_LABEL,
-      cards: deriveActiveCards(cards),
-      reviewFilter: ALL_CARDS_REVIEW_FILTER,
-      allowsEditing: false,
-      emptyMessage: "You haven't created any cards yet.",
-    };
-  }
-
-  const deck = decks.find((candidateDeck) => candidateDeck.deckId === deckId && candidateDeck.deletedAt === null);
-  if (deck === undefined) {
-    return null;
-  }
-
-  return {
-    title: deck.name,
-    filterSummary: formatDeckFilterDefinition(deck.filterDefinition),
-    cards: cardsMatchingDeck(deck, cards),
-    reviewFilter: {
-      kind: "deck",
-      deckId: deck.deckId,
-    },
-    allowsEditing: true,
-    emptyMessage: "This deck doesn't have any matching cards yet.",
-  };
-}
-
 export function DeckDetailScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const {
-    cards,
-    decks,
-    ensureCardsLoaded,
-    ensureDecksLoaded,
-    refreshCards,
-    refreshDecks,
-    getDeckById,
     deleteDeckItem,
     openReview,
     setErrorMessage,
+    localReadVersion,
+    refreshLocalData,
   } = useAppData();
+  const [detailState, setDetailState] = useState<DeckDetailState | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const currentDeckId = deckId ?? "";
-  const detailState = makeDeckDetailState(currentDeckId, cards, decks);
-  const stats = detailState === null ? null : makeDeckCardStats(detailState.cards, Date.now());
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     if (deckId === undefined) {
@@ -104,20 +60,57 @@ export function DeckDetailScreen(): ReactElement {
     setScreenErrorMessage("");
 
     try {
-      await Promise.all([ensureCardsLoaded(), ensureDecksLoaded()]);
-      if (deckId !== ALL_CARDS_DECK_SLUG) {
-        await getDeckById(deckId);
+      if (deckId === ALL_CARDS_DECK_SLUG) {
+        const decksSnapshot = await loadDecksListSnapshot();
+        const allCards = await loadCardsMatchingDeck({
+          version: 2,
+          effortLevels: [],
+          tags: [],
+        });
+        setDetailState({
+          title: ALL_CARDS_DECK_LABEL,
+          filterSummary: ALL_CARDS_DECK_LABEL,
+          cards: allCards,
+          reviewFilter: ALL_CARDS_REVIEW_FILTER,
+          allowsEditing: false,
+          emptyMessage: "You haven't created any cards yet.",
+        });
+        setScreenErrorMessage("");
+        setIsLoading(false);
+        void decksSnapshot;
+        return;
       }
+
+      const deck = await loadDeckById(deckId);
+      if (deck === null) {
+        setDetailState(null);
+        setScreenErrorMessage("Deck not found.");
+        setIsLoading(false);
+        return;
+      }
+
+      const matchingCards = await loadCardsMatchingDeck(deck.filterDefinition);
+      setDetailState({
+        title: deck.name,
+        filterSummary: formatDeckFilterDefinition(deck.filterDefinition),
+        cards: matchingCards,
+        reviewFilter: {
+          kind: "deck",
+          deckId: deck.deckId,
+        },
+        allowsEditing: true,
+        emptyMessage: "This deck doesn't have any matching cards yet.",
+      });
     } catch (error) {
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
     }
-  }, [deckId, ensureCardsLoaded, ensureDecksLoaded, getDeckById]);
+  }, [deckId]);
 
   useEffect(() => {
     void loadScreenData();
-  }, [loadScreenData]);
+  }, [loadScreenData, localReadVersion]);
 
   async function handleDelete(): Promise<void> {
     if (deckId === undefined || deckId === ALL_CARDS_DECK_SLUG) {
@@ -169,15 +162,7 @@ export function DeckDetailScreen(): ReactElement {
         <section className="panel">
           <h1 className="title">Deck</h1>
           <p className="error-banner">{screenErrorMessage}</p>
-          <button
-            className="primary-btn"
-            type="button"
-            onClick={() => {
-              void refreshCards();
-              void refreshDecks();
-              void loadScreenData();
-            }}
-          >
+          <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
             Retry
           </button>
         </section>
@@ -207,7 +192,7 @@ export function DeckDetailScreen(): ReactElement {
           </div>
         </div>
 
-        {detailState === null || stats === null ? (
+        {detailState === null ? (
           <section className="content-card deck-detail-empty">
             <p className="subtitle">Deck not found.</p>
           </section>
@@ -218,15 +203,15 @@ export function DeckDetailScreen(): ReactElement {
               <div className="deck-detail-stats">
                 <div className="content-card deck-detail-stat-card">
                   <span className="deck-detail-stat-label">Cards</span>
-                  <span className="deck-detail-stat-value">{stats.totalCards}</span>
+                  <span className="deck-detail-stat-value">{detailState.cards.length}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">
                   <span className="deck-detail-stat-label">Due</span>
-                  <span className="deck-detail-stat-value">{stats.dueCards}</span>
+                  <span className="deck-detail-stat-value">{detailState.cards.filter((card) => card.dueAt === null || new Date(card.dueAt).getTime() <= Date.now()).length}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">
                   <span className="deck-detail-stat-label">New</span>
-                  <span className="deck-detail-stat-value">{stats.newCards}</span>
+                  <span className="deck-detail-stat-value">{detailState.cards.filter((card) => card.reps === 0 && card.lapses === 0).length}</span>
                 </div>
               </div>
               <div className="content-card deck-detail-summary-card">
@@ -260,15 +245,12 @@ export function DeckDetailScreen(): ReactElement {
                   {detailState.cards.map((card) => (
                     <article key={card.cardId} className="content-card deck-detail-card">
                       <div className="deck-detail-card-head">
-                        <h3 className="panel-subtitle deck-detail-card-title">{card.frontText}</h3>
-                        <Link className="ghost-btn deck-detail-card-open" to={`/cards/${card.cardId}`}>
-                          Open
-                        </Link>
+                        <span className="badge">{card.effortLevel}</span>
+                        <span className="badge">{renderTags(card.tags)}</span>
                       </div>
-                      <p className="deck-detail-card-back">{card.backText === "" ? "No back text" : card.backText}</p>
-                      <div className="deck-detail-card-meta">
-                        <span>{card.effortLevel}</span>
-                        <span>{renderTags(card.tags)}</span>
+                      <h3 className="panel-subtitle">{card.frontText}</h3>
+                      <p className="subtitle">{card.backText}</p>
+                      <div className="review-meta">
                         <span>Due {formatTimestamp(card.dueAt)}</span>
                         <span>Reps {card.reps}</span>
                         <span>Lapses {card.lapses}</span>

@@ -161,6 +161,56 @@ export type QueryCardsPage = Readonly<{
   totalCount: number;
 }>;
 
+export type ReviewCounts = Readonly<{
+  dueCount: number;
+  totalCount: number;
+}>;
+
+export type ReviewQueueSnapshot = Readonly<{
+  resolvedReviewFilter: ReviewFilter;
+  cards: ReadonlyArray<Card>;
+  nextCursor: string | null;
+  reviewCounts: ReviewCounts;
+}>;
+
+export type ReviewTimelinePage = Readonly<{
+  cards: ReadonlyArray<Card>;
+  hasMoreCards: boolean;
+}>;
+
+export type DeckCardStats = Readonly<{
+  totalCards: number;
+  dueCards: number;
+  newCards: number;
+  reviewedCards: number;
+}>;
+
+export type DeckSummary = Readonly<{
+  deckId: string;
+  name: string;
+  filterDefinition: DeckFilterDefinition;
+  createdAt: string;
+  totalCards: number;
+  dueCards: number;
+  newCards: number;
+  reviewedCards: number;
+}>;
+
+export type DecksListSnapshot = Readonly<{
+  deckSummaries: ReadonlyArray<DeckSummary>;
+  allCardsStats: DeckCardStats;
+}>;
+
+export type WorkspaceOverviewSnapshot = Readonly<{
+  workspaceName: string;
+  deckCount: number;
+  tagsCount: number;
+  totalCards: number;
+  dueCount: number;
+  newCount: number;
+  reviewedCount: number;
+}>;
+
 export type WorkspaceTagSummary = Readonly<{
   tag: string;
   cardsCount: number;

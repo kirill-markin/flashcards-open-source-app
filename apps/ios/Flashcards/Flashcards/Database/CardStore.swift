@@ -287,6 +287,61 @@ struct CardStore {
         return reviewCounts
     }
 
+    /**
+     Loads the first review queue page directly from SQLite so the review tab
+     can show the first card without hydrating all cards in memory.
+     */
+    func loadReviewHead(
+        workspaceId: String,
+        resolvedReviewFilter: ReviewFilter,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int
+    ) throws -> ReviewHeadLoadState {
+        precondition(limit > 0, "Review head limit must be greater than zero")
+
+        let pageRows = try self.loadReviewQueueRows(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit,
+            excludedCardIds: []
+        )
+
+        return ReviewHeadLoadState(
+            resolvedReviewFilter: resolvedReviewFilter,
+            seedReviewQueue: Array(pageRows.prefix(limit)),
+            hasMoreCards: pageRows.count > limit
+        )
+    }
+
+    /**
+     Loads the next review queue chunk while excluding cards that are already
+     present in the in-memory review queue.
+     */
+    func loadReviewQueueChunk(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int,
+        excludedCardIds: Set<String>
+    ) throws -> ReviewQueueChunkLoadState {
+        precondition(limit > 0, "Review queue chunk limit must be greater than zero")
+
+        let pageRows = try self.loadReviewQueueRows(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit,
+            excludedCardIds: excludedCardIds
+        )
+
+        return ReviewQueueChunkLoadState(
+            reviewQueueChunk: Array(pageRows.prefix(limit)),
+            hasMoreCards: pageRows.count > limit
+        )
+    }
+
     func loadReviewTimelinePage(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,
@@ -928,8 +983,10 @@ struct CardStore {
                 clause: """
                  AND EXISTS (
                     SELECT 1
-                    FROM json_each(cards.tags_json) AS review_tag
-                    WHERE review_tag.value = ?
+                    FROM card_tags
+                    WHERE card_tags.workspace_id = cards.workspace_id
+                        AND card_tags.card_id = cards.card_id
+                        AND card_tags.tag = ?
                 )
                 """,
                 values: [.text(tag)]
@@ -958,8 +1015,10 @@ struct CardStore {
                     """
                     EXISTS (
                         SELECT 1
-                        FROM json_each(cards.tags_json) AS review_tag
-                        WHERE review_tag.value IN (\(tagPlaceholders))
+                        FROM card_tags
+                        WHERE card_tags.workspace_id = cards.workspace_id
+                            AND card_tags.card_id = cards.card_id
+                            AND card_tags.tag IN (\(tagPlaceholders))
                     )
                     """
                 )
@@ -1088,6 +1147,76 @@ struct CardStore {
                 """,
                 values: [.text(workspaceId), .text(cardId), .text(tag)]
             )
+        }
+    }
+
+    private func loadReviewQueueRows(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int,
+        excludedCardIds: Set<String>
+    ) throws -> [Card] {
+        let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+        let excludedCardIdsClause: String
+        let excludedCardValues: [SQLiteValue]
+        if excludedCardIds.isEmpty {
+            excludedCardIdsClause = ""
+            excludedCardValues = []
+        } else {
+            let placeholders = Array(repeating: "?", count: excludedCardIds.count).joined(separator: ", ")
+            excludedCardIdsClause = " AND card_id NOT IN (\(placeholders))"
+            excludedCardValues = excludedCardIds.sorted().map(SQLiteValue.text)
+        }
+
+        return try self.core.query(
+            sql: """
+            SELECT
+                card_id,
+                workspace_id,
+                front_text,
+                back_text,
+                tags_json,
+                effort_level,
+                due_at,
+                created_at,
+                reps,
+                lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
+                client_updated_at,
+                last_modified_by_device_id,
+                last_operation_id,
+                updated_at,
+                deleted_at
+            FROM cards
+            WHERE workspace_id = ?
+                AND deleted_at IS NULL
+                AND (due_at IS NULL OR due_at <= ?)\(querySQL.clause)\(excludedCardIdsClause)
+            ORDER BY
+                CASE
+                    WHEN due_at IS NULL THEN 0
+                    WHEN due_at <= ? THEN 1
+                    ELSE 2
+                END ASC,
+                due_at ASC,
+                created_at DESC,
+                card_id ASC
+            LIMIT ?
+            """,
+            values: [
+                .text(workspaceId),
+                .text(isoTimestamp(date: now))
+            ] + querySQL.values + excludedCardValues + [
+                .text(isoTimestamp(date: now)),
+                .integer(Int64(limit + 1))
+            ]
+        ) { statement in
+            try self.mapCard(statement: statement)
         }
     }
 }

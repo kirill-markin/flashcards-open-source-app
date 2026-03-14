@@ -15,21 +15,14 @@ import {
 import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
 import { getStableDeviceId } from "../clientIdentity";
 import { clearWebSyncCache, putCloudSettings, relinkWorkspaceCache } from "../syncStorage";
-import type { Card, CloudSettings, Deck, SessionInfo, WorkspaceSummary } from "../types";
+import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
 import {
   findWorkspaceById,
   getErrorMessage,
   markSelectedWorkspaces,
   upsertWorkspaceSummary,
 } from "./domain";
-import {
-  createErrorResourceState,
-  createLoadingResourceState,
-} from "./resourceState";
-import type {
-  ResourceState,
-  SessionLoadState,
-} from "./types";
+import type { SessionLoadState } from "./types";
 
 const defaultWorkspaceName = "Personal";
 
@@ -43,11 +36,9 @@ type UseWorkspaceSessionParams = Readonly<{
   setActiveWorkspace: Dispatch<SetStateAction<WorkspaceSummary | null>>;
   setAvailableWorkspaces: Dispatch<SetStateAction<ReadonlyArray<WorkspaceSummary>>>;
   setIsChoosingWorkspace: Dispatch<SetStateAction<boolean>>;
-  setCardsState: Dispatch<SetStateAction<ResourceState<Card>>>;
-  setDecksState: Dispatch<SetStateAction<ResourceState<Deck>>>;
-  setReviewQueueState: Dispatch<SetStateAction<ResourceState<Card>>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
-  hydrateCache: () => Promise<void>;
+  setCloudSettings: Dispatch<SetStateAction<CloudSettings | null>>;
+  refreshLocalData: () => Promise<void>;
   runSync: () => Promise<void>;
 }>;
 
@@ -104,11 +95,9 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setActiveWorkspace,
     setAvailableWorkspaces,
     setIsChoosingWorkspace,
-    setCardsState,
-    setDecksState,
-    setReviewQueueState,
     setErrorMessage,
-    hydrateCache,
+    setCloudSettings,
+    refreshLocalData,
     runSync,
   } = params;
 
@@ -117,9 +106,11 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
   ): Promise<void> {
-    await putCloudSettings(buildLinkedCloudSettings(currentSession, workspace.workspaceId));
+    const linkedCloudSettings = buildLinkedCloudSettings(currentSession, workspace.workspaceId);
+    await putCloudSettings(linkedCloudSettings);
     await relinkWorkspaceCache(workspace.workspaceId);
-    await hydrateCache();
+    setCloudSettings(linkedCloudSettings);
+    await refreshLocalData();
 
     const nextWorkspaces = markSelectedWorkspaces(currentWorkspaces, workspace.workspaceId);
     setAvailableWorkspaces(nextWorkspaces);
@@ -135,9 +126,10 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setSessionErrorMessage("");
     setErrorMessage("");
   }, [
-    hydrateCache,
+    refreshLocalData,
     setActiveWorkspace,
     setAvailableWorkspaces,
+    setCloudSettings,
     setErrorMessage,
     setSession,
     setSessionErrorMessage,
@@ -182,9 +174,6 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setErrorMessage("");
     setActiveWorkspace(null);
     setAvailableWorkspaces([]);
-    setCardsState((currentState) => createLoadingResourceState(currentState));
-    setDecksState((currentState) => createLoadingResourceState(currentState));
-    setReviewQueueState((currentState) => createLoadingResourceState(currentState));
 
     try {
       if (consumeLoggedOutMarker()) {
@@ -200,7 +189,9 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       }
 
       const currentSession = await getSession();
-      await putCloudSettings(buildLinkingReadyCloudSettings(currentSession));
+      const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
+      await putCloudSettings(linkingReadyCloudSettings);
+      setCloudSettings(linkingReadyCloudSettings);
       await resolveInitialWorkspace(currentSession);
     } catch (error) {
       if (isAuthRedirectError(error)) {
@@ -211,18 +202,13 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       const nextErrorMessage = getErrorMessage(error);
       setSessionLoadState("error");
       setSessionErrorMessage(nextErrorMessage);
-      setCardsState((currentState) => createErrorResourceState(currentState, nextErrorMessage));
-      setDecksState((currentState) => createErrorResourceState(currentState, nextErrorMessage));
-      setReviewQueueState((currentState) => createErrorResourceState(currentState, nextErrorMessage));
     }
   }, [
     resolveInitialWorkspace,
     setActiveWorkspace,
     setAvailableWorkspaces,
-    setCardsState,
-    setDecksState,
+    setCloudSettings,
     setErrorMessage,
-    setReviewQueueState,
     setSessionErrorMessage,
     setSessionLoadState,
   ]);

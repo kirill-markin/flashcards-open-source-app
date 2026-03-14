@@ -3,7 +3,6 @@ import {
   useEffect,
   useRef,
   type Dispatch,
-  type MutableRefObject,
   type SetStateAction,
 } from "react";
 import { isAuthRedirectError, pullSyncChanges, pushSyncOperations } from "../api";
@@ -11,8 +10,13 @@ import { getStableDeviceId, webAppVersion } from "../clientIdentity";
 import {
   deleteOutboxRecord,
   listOutboxRecords,
-  loadWebSyncCache,
+  loadCardById,
+  loadCloudSettings,
+  loadDeckById,
+  loadLocalSnapshot,
+  loadWorkspaceSettings,
   putCard,
+  putCloudSettings,
   putDeck,
   putOutboxRecord,
   putReviewEvent,
@@ -22,6 +26,7 @@ import {
 } from "../syncStorage";
 import type {
   Card,
+  CloudSettings,
   CreateCardInput,
   CreateDeckInput,
   Deck,
@@ -29,6 +34,7 @@ import type {
   SyncChange,
   UpdateCardInput,
   UpdateDeckInput,
+  WorkspaceSchedulerSettings,
   WorkspaceSummary,
 } from "../types";
 import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/schedule";
@@ -44,10 +50,6 @@ import {
   buildReviewedCard,
   buildUpdatedCard,
   buildUpdatedDeck,
-  compareLww,
-  deriveActiveCards,
-  deriveActiveDecks,
-  deriveReviewQueue,
   getErrorMessage,
   normalizeCreateCardInput,
   normalizeCreateDeckInput,
@@ -55,20 +57,8 @@ import {
   normalizeUpdateDeckInput,
   nowIso,
   toReviewableCardState,
-  upsertCard,
-  upsertDeck,
-  upsertReviewEvent,
 } from "./domain";
-import {
-  createErrorResourceState,
-  createLoadingResourceState,
-  createReadyResourceState,
-} from "./resourceState";
-import type {
-  MutableSnapshot,
-  ResourceState,
-  SessionLoadState,
-} from "./types";
+import type { MutableSnapshot, SessionLoadState } from "./types";
 
 const syncPageSize = 200;
 
@@ -76,25 +66,17 @@ type UseSyncEngineParams = Readonly<{
   sessionLoadState: SessionLoadState;
   session: SessionInfo | null;
   activeWorkspace: WorkspaceSummary | null;
-  cardsState: ResourceState<Card>;
-  decksState: ResourceState<Deck>;
-  reviewQueueState: ResourceState<Card>;
-  setCardsState: Dispatch<SetStateAction<ResourceState<Card>>>;
-  setDecksState: Dispatch<SetStateAction<ResourceState<Deck>>>;
-  setReviewQueueState: Dispatch<SetStateAction<ResourceState<Card>>>;
+  setWorkspaceSettings: Dispatch<SetStateAction<WorkspaceSchedulerSettings | null>>;
+  setCloudSettings: Dispatch<SetStateAction<CloudSettings | null>>;
+  setLocalReadVersion: Dispatch<SetStateAction<number>>;
+  setIsSyncing: Dispatch<SetStateAction<boolean>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
 }>;
 
 type SyncEngine = Readonly<{
-  snapshotRef: MutableRefObject<MutableSnapshot>;
-  hydrateCache: () => Promise<void>;
   runSync: () => Promise<void>;
-  ensureCardsLoaded: () => Promise<void>;
-  ensureDecksLoaded: () => Promise<void>;
-  ensureReviewQueueLoaded: () => Promise<void>;
-  refreshCards: () => Promise<void>;
-  refreshDecks: () => Promise<void>;
-  refreshReviewQueue: () => Promise<void>;
+  refreshLocalData: () => Promise<void>;
+  loadLocalSnapshot: () => Promise<MutableSnapshot>;
   getCardById: (cardId: string) => Promise<Card>;
   getDeckById: (deckId: string) => Promise<Deck>;
   createCardItem: (input: CreateCardInput) => Promise<Card>;
@@ -106,143 +88,73 @@ type SyncEngine = Readonly<{
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
 }>;
 
+async function requireCard(cardId: string): Promise<Card> {
+  const card = await loadCardById(cardId);
+  if (card === null) {
+    throw new Error(`Card not found: ${cardId}`);
+  }
+
+  return card;
+}
+
+async function requireDeck(deckId: string): Promise<Deck> {
+  const deck = await loadDeckById(deckId);
+  if (deck === null) {
+    throw new Error(`Deck not found: ${deckId}`);
+  }
+
+  return deck;
+}
+
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const {
     sessionLoadState,
     session,
     activeWorkspace,
-    cardsState,
-    decksState,
-    reviewQueueState,
-    setCardsState,
-    setDecksState,
-    setReviewQueueState,
+    setWorkspaceSettings,
+    setCloudSettings,
+    setLocalReadVersion,
+    setIsSyncing,
     setErrorMessage,
   } = params;
-  const snapshotRef = useRef<MutableSnapshot>({
-    cards: [],
-    decks: [],
-    reviewEvents: [],
-    workspaceSettings: null,
-    cloudSettings: null,
-    outbox: [],
-    lastAppliedChangeId: 0,
-  });
   const syncPromiseRef = useRef<Promise<void> | null>(null);
   const needsResyncRef = useRef<boolean>(false);
 
-  const publishSnapshot = useCallback(function publishSnapshot(snapshot: MutableSnapshot): void {
-    snapshotRef.current = snapshot;
-    const activeCards = deriveActiveCards(snapshot.cards);
-    const activeDecks = deriveActiveDecks(snapshot.decks);
-    setCardsState(createReadyResourceState(activeCards));
-    setDecksState(createReadyResourceState(activeDecks));
-    setReviewQueueState(createReadyResourceState(deriveReviewQueue(activeCards)));
-  }, [setCardsState, setDecksState, setReviewQueueState]);
+  const bumpLocalReadVersion = useCallback(function bumpLocalReadVersion(): void {
+    setLocalReadVersion((currentValue) => currentValue + 1);
+  }, [setLocalReadVersion]);
 
-  const hydrateCache = useCallback(async function hydrateCache(): Promise<void> {
-    const cache = await loadWebSyncCache();
-    publishSnapshot({
-      cards: [...cache.cards],
-      decks: [...cache.decks],
-      reviewEvents: [...cache.reviewEvents],
-      workspaceSettings: cache.workspaceSettings,
-      cloudSettings: cache.cloudSettings,
-      outbox: [...cache.outbox],
-      lastAppliedChangeId: cache.lastAppliedChangeId,
-    });
-  }, [publishSnapshot]);
+  const refreshLocalMetadata = useCallback(async function refreshLocalMetadata(): Promise<void> {
+    const [workspaceSettings, cloudSettings] = await Promise.all([
+      loadWorkspaceSettings(),
+      loadCloudSettings(),
+    ]);
+    setWorkspaceSettings(workspaceSettings);
+    setCloudSettings(cloudSettings);
+  }, [setCloudSettings, setWorkspaceSettings]);
 
   const applySyncChange = useCallback(async function applySyncChange(change: SyncChange): Promise<void> {
-    const currentSnapshot = snapshotRef.current;
-
     if (change.entityType === "card") {
-      const existingCard = currentSnapshot.cards.find((card) => card.cardId === change.entityId);
-      if (
-        existingCard === undefined
-        || compareLww(
-          {
-            clientUpdatedAt: existingCard.clientUpdatedAt,
-            lastModifiedByDeviceId: existingCard.lastModifiedByDeviceId,
-            lastOperationId: existingCard.lastOperationId,
-          },
-          {
-            clientUpdatedAt: change.payload.clientUpdatedAt,
-            lastModifiedByDeviceId: change.payload.lastModifiedByDeviceId,
-            lastOperationId: change.payload.lastOperationId,
-          },
-        ) <= 0
-      ) {
-        await putCard(change.payload);
-        publishSnapshot({
-          ...currentSnapshot,
-          cards: upsertCard(currentSnapshot.cards, change.payload),
-        });
-      }
+      await putCard(change.payload);
+      bumpLocalReadVersion();
       return;
     }
 
     if (change.entityType === "deck") {
-      const existingDeck = currentSnapshot.decks.find((deck) => deck.deckId === change.entityId);
-      if (
-        existingDeck === undefined
-        || compareLww(
-          {
-            clientUpdatedAt: existingDeck.clientUpdatedAt,
-            lastModifiedByDeviceId: existingDeck.lastModifiedByDeviceId,
-            lastOperationId: existingDeck.lastOperationId,
-          },
-          {
-            clientUpdatedAt: change.payload.clientUpdatedAt,
-            lastModifiedByDeviceId: change.payload.lastModifiedByDeviceId,
-            lastOperationId: change.payload.lastOperationId,
-          },
-        ) <= 0
-      ) {
-        await putDeck(change.payload);
-        publishSnapshot({
-          ...currentSnapshot,
-          decks: upsertDeck(currentSnapshot.decks, change.payload),
-        });
-      }
+      await putDeck(change.payload);
+      bumpLocalReadVersion();
       return;
     }
 
     if (change.entityType === "workspace_scheduler_settings") {
-      const existingSettings = currentSnapshot.workspaceSettings;
-      if (
-        existingSettings === null
-        || compareLww(
-          {
-            clientUpdatedAt: existingSettings.clientUpdatedAt,
-            lastModifiedByDeviceId: existingSettings.lastModifiedByDeviceId,
-            lastOperationId: existingSettings.lastOperationId,
-          },
-          {
-            clientUpdatedAt: change.payload.clientUpdatedAt,
-            lastModifiedByDeviceId: change.payload.lastModifiedByDeviceId,
-            lastOperationId: change.payload.lastOperationId,
-          },
-        ) <= 0
-      ) {
-        await putWorkspaceSettings(change.payload);
-        publishSnapshot({
-          ...currentSnapshot,
-          workspaceSettings: change.payload,
-        });
-      }
+      await putWorkspaceSettings(change.payload);
+      setWorkspaceSettings(change.payload);
       return;
     }
 
-    const existingReviewEvent = currentSnapshot.reviewEvents.find((reviewEvent) => reviewEvent.reviewEventId === change.entityId);
-    if (existingReviewEvent === undefined) {
-      await putReviewEvent(change.payload);
-      publishSnapshot({
-        ...currentSnapshot,
-        reviewEvents: upsertReviewEvent(currentSnapshot.reviewEvents, change.payload),
-      });
-    }
-  }, [publishSnapshot]);
+    await putReviewEvent(change.payload);
+    bumpLocalReadVersion();
+  }, [bumpLocalReadVersion, setWorkspaceSettings]);
 
   const runSync = useCallback(async function runSync(): Promise<void> {
     if (session === null || activeWorkspace === null) {
@@ -258,15 +170,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const deviceId = getStableDeviceId();
     const syncTask = (async (): Promise<void> => {
+      setIsSyncing(true);
       try {
-        const initialOutbox = await listOutboxRecords(workspaceId);
-        snapshotRef.current = {
-          ...snapshotRef.current,
-          outbox: [...initialOutbox],
-        };
-
-        while (snapshotRef.current.outbox.length > 0) {
-          const batch = snapshotRef.current.outbox.slice(0, 100);
+        let currentOutbox = await listOutboxRecords(workspaceId);
+        while (currentOutbox.length > 0) {
+          const batch = currentOutbox.slice(0, 100);
           try {
             const pushResult = await pushSyncOperations(
               workspaceId,
@@ -293,14 +201,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             throw error;
           }
 
-          const nextOutbox = await listOutboxRecords(workspaceId);
-          snapshotRef.current = {
-            ...snapshotRef.current,
-            outbox: [...nextOutbox],
-          };
+          currentOutbox = await listOutboxRecords(workspaceId);
         }
 
-        let afterChangeId = snapshotRef.current.lastAppliedChangeId;
+        const localSnapshot = await loadLocalSnapshot();
+        let afterChangeId = localSnapshot.lastAppliedChangeId;
         while (true) {
           const pullResult = await pullSyncChanges(
             workspaceId,
@@ -315,10 +220,6 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           }
 
           afterChangeId = pullResult.nextChangeId;
-          snapshotRef.current = {
-            ...snapshotRef.current,
-            lastAppliedChangeId: afterChangeId,
-          };
           await setLastAppliedChangeId(workspaceId, afterChangeId);
 
           if (pullResult.hasMore === false) {
@@ -326,6 +227,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           }
         }
 
+        await refreshLocalMetadata();
         setErrorMessage("");
       } catch (error) {
         if (isAuthRedirectError(error)) {
@@ -336,6 +238,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         throw error;
       } finally {
         syncPromiseRef.current = null;
+        setIsSyncing(false);
 
         if (needsResyncRef.current) {
           needsResyncRef.current = false;
@@ -346,105 +249,37 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     syncPromiseRef.current = syncTask;
     return syncTask;
-  }, [activeWorkspace, applySyncChange, session, setErrorMessage]);
+  }, [
+    activeWorkspace,
+    applySyncChange,
+    refreshLocalMetadata,
+    session,
+    setErrorMessage,
+    setIsSyncing,
+  ]);
 
   useEffect(() => {
     if (sessionLoadState !== "ready" || session === null) {
       return;
     }
 
+    void refreshLocalMetadata();
     void runSync();
-  }, [runSync, session, sessionLoadState]);
+  }, [refreshLocalMetadata, runSync, session, sessionLoadState]);
 
-  const ensureCardsLoaded = useCallback(async function ensureCardsLoaded(): Promise<void> {
-    if (cardsState.hasLoaded === false) {
-      await hydrateCache();
-    }
-  }, [cardsState.hasLoaded, hydrateCache]);
-
-  const ensureDecksLoaded = useCallback(async function ensureDecksLoaded(): Promise<void> {
-    if (decksState.hasLoaded === false) {
-      await hydrateCache();
-    }
-  }, [decksState.hasLoaded, hydrateCache]);
-
-  const ensureReviewQueueLoaded = useCallback(async function ensureReviewQueueLoaded(): Promise<void> {
-    if (reviewQueueState.hasLoaded === false) {
-      await hydrateCache();
-    }
-  }, [hydrateCache, reviewQueueState.hasLoaded]);
-
-  const refreshCards = useCallback(async function refreshCards(): Promise<void> {
-    setCardsState((currentState) => createLoadingResourceState(currentState));
-    try {
-      await runSync();
-      publishSnapshot(snapshotRef.current);
-    } catch (error) {
-      if (isAuthRedirectError(error)) {
-        return;
-      }
-
-      setCardsState((currentState) => createErrorResourceState(currentState, getErrorMessage(error)));
-    }
-  }, [publishSnapshot, runSync, setCardsState]);
-
-  const refreshDecks = useCallback(async function refreshDecks(): Promise<void> {
-    setDecksState((currentState) => createLoadingResourceState(currentState));
-    try {
-      await runSync();
-      publishSnapshot(snapshotRef.current);
-    } catch (error) {
-      if (isAuthRedirectError(error)) {
-        return;
-      }
-
-      setDecksState((currentState) => createErrorResourceState(currentState, getErrorMessage(error)));
-    }
-  }, [publishSnapshot, runSync, setDecksState]);
-
-  const refreshReviewQueue = useCallback(async function refreshReviewQueue(): Promise<void> {
-    setReviewQueueState((currentState) => createLoadingResourceState(currentState));
-    try {
-      await runSync();
-      publishSnapshot(snapshotRef.current);
-    } catch (error) {
-      if (isAuthRedirectError(error)) {
-        return;
-      }
-
-      setReviewQueueState((currentState) => createErrorResourceState(currentState, getErrorMessage(error)));
-    }
-  }, [publishSnapshot, runSync, setReviewQueueState]);
+  const refreshLocalData = useCallback(async function refreshLocalData(): Promise<void> {
+    await refreshLocalMetadata();
+    bumpLocalReadVersion();
+    await runSync();
+  }, [bumpLocalReadVersion, refreshLocalMetadata, runSync]);
 
   const getCardById = useCallback(async function getCardById(cardId: string): Promise<Card> {
-    const existingCard = snapshotRef.current.cards.find((card) => card.cardId === cardId && card.deletedAt === null);
-    if (existingCard !== undefined) {
-      return existingCard;
-    }
-
-    await runSync();
-    const syncedCard = snapshotRef.current.cards.find((card) => card.cardId === cardId && card.deletedAt === null);
-    if (syncedCard === undefined) {
-      throw new Error(`Card not found: ${cardId}`);
-    }
-
-    return syncedCard;
-  }, [runSync]);
+    return requireCard(cardId);
+  }, []);
 
   const getDeckById = useCallback(async function getDeckById(deckId: string): Promise<Deck> {
-    const existingDeck = snapshotRef.current.decks.find((deck) => deck.deckId === deckId && deck.deletedAt === null);
-    if (existingDeck !== undefined) {
-      return existingDeck;
-    }
-
-    await runSync();
-    const syncedDeck = snapshotRef.current.decks.find((deck) => deck.deckId === deckId && deck.deletedAt === null);
-    if (syncedDeck === undefined) {
-      throw new Error(`Deck not found: ${deckId}`);
-    }
-
-    return syncedDeck;
-  }, [runSync]);
+    return requireDeck(deckId);
+  }, []);
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
 
@@ -469,14 +304,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await putCard(nextCard);
     await putOutboxRecord(nextOutboxRecord);
-    publishSnapshot({
-      ...snapshotRef.current,
-      cards: upsertCard(snapshotRef.current.cards, nextCard),
-      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
-    });
+    bumpLocalReadVersion();
     void runSync();
     return nextCard;
-  }, [activeWorkspaceId, publishSnapshot, runSync]);
+  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
 
   const createDeckItem = useCallback(async function createDeckItem(input: CreateDeckInput): Promise<Deck> {
     if (activeWorkspaceId === null) {
@@ -502,25 +333,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await putDeck(nextDeck);
     await putOutboxRecord(nextOutboxRecord);
-    publishSnapshot({
-      ...snapshotRef.current,
-      decks: upsertDeck(snapshotRef.current.decks, nextDeck),
-      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
-    });
+    bumpLocalReadVersion();
     void runSync();
     return nextDeck;
-  }, [activeWorkspaceId, publishSnapshot, runSync]);
+  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
 
   const updateCardItem = useCallback(async function updateCardItem(cardId: string, input: UpdateCardInput): Promise<Card> {
     if (activeWorkspaceId === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingCard = snapshotRef.current.cards.find((card) => card.cardId === cardId && card.deletedAt === null);
-    if (existingCard === undefined) {
-      throw new Error("Card not found");
-    }
-
+    const existingCard = await requireCard(cardId);
     const normalizedInput = normalizeUpdateCardInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
@@ -537,25 +360,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await putCard(nextCard);
     await putOutboxRecord(nextOutboxRecord);
-    publishSnapshot({
-      ...snapshotRef.current,
-      cards: upsertCard(snapshotRef.current.cards, nextCard),
-      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
-    });
+    bumpLocalReadVersion();
     void runSync();
     return nextCard;
-  }, [activeWorkspaceId, publishSnapshot, runSync]);
+  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
 
   const updateDeckItem = useCallback(async function updateDeckItem(deckId: string, input: UpdateDeckInput): Promise<Deck> {
     if (activeWorkspaceId === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingDeck = snapshotRef.current.decks.find((deck) => deck.deckId === deckId && deck.deletedAt === null);
-    if (existingDeck === undefined) {
-      throw new Error("Deck not found");
-    }
-
+    const existingDeck = await requireDeck(deckId);
     const normalizedInput = normalizeUpdateDeckInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
@@ -572,25 +387,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await putDeck(nextDeck);
     await putOutboxRecord(nextOutboxRecord);
-    publishSnapshot({
-      ...snapshotRef.current,
-      decks: upsertDeck(snapshotRef.current.decks, nextDeck),
-      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
-    });
+    bumpLocalReadVersion();
     void runSync();
     return nextDeck;
-  }, [activeWorkspaceId, publishSnapshot, runSync]);
+  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
 
   const deleteCardItem = useCallback(async function deleteCardItem(cardId: string): Promise<Card> {
     if (activeWorkspaceId === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingCard = snapshotRef.current.cards.find((card) => card.cardId === cardId && card.deletedAt === null);
-    if (existingCard === undefined) {
-      throw new Error("Card not found");
-    }
-
+    const existingCard = await requireCard(cardId);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = getStableDeviceId();
@@ -606,25 +413,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await putCard(nextCard);
     await putOutboxRecord(nextOutboxRecord);
-    publishSnapshot({
-      ...snapshotRef.current,
-      cards: upsertCard(snapshotRef.current.cards, nextCard),
-      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
-    });
+    bumpLocalReadVersion();
     void runSync();
     return nextCard;
-  }, [activeWorkspaceId, publishSnapshot, runSync]);
+  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
 
   const deleteDeckItem = useCallback(async function deleteDeckItem(deckId: string): Promise<Deck> {
     if (activeWorkspaceId === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingDeck = snapshotRef.current.decks.find((deck) => deck.deckId === deckId && deck.deletedAt === null);
-    if (existingDeck === undefined) {
-      throw new Error("Deck not found");
-    }
-
+    const existingDeck = await requireDeck(deckId);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = getStableDeviceId();
@@ -640,14 +439,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await putDeck(nextDeck);
     await putOutboxRecord(nextOutboxRecord);
-    publishSnapshot({
-      ...snapshotRef.current,
-      decks: upsertDeck(snapshotRef.current.decks, nextDeck),
-      outbox: [...snapshotRef.current.outbox, nextOutboxRecord],
-    });
+    bumpLocalReadVersion();
     void runSync();
     return nextDeck;
-  }, [activeWorkspaceId, publishSnapshot, runSync]);
+  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
 
   const submitReviewItem = useCallback(async function submitReviewItem(
     cardId: string,
@@ -657,12 +452,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingCard = snapshotRef.current.cards.find((card) => card.cardId === cardId && card.deletedAt === null);
-    if (existingCard === undefined) {
-      throw new Error("Card not found");
-    }
-
-    const schedulerSettings = snapshotRef.current.workspaceSettings;
+    const [existingCard, schedulerSettings] = await Promise.all([
+      requireCard(cardId),
+      loadWorkspaceSettings(),
+    ]);
     if (schedulerSettings === null) {
       throw new Error("Workspace scheduler settings are not loaded");
     }
@@ -719,26 +512,26 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     await putCard(nextCard);
     await putOutboxRecord(reviewEventOutboxRecord);
     await putOutboxRecord(cardOutboxRecord);
-    publishSnapshot({
-      ...snapshotRef.current,
-      cards: upsertCard(snapshotRef.current.cards, nextCard),
-      reviewEvents: upsertReviewEvent(snapshotRef.current.reviewEvents, nextReviewEvent),
-      outbox: [...snapshotRef.current.outbox, reviewEventOutboxRecord, cardOutboxRecord],
-    });
+    bumpLocalReadVersion();
     void runSync();
     return nextCard;
-  }, [activeWorkspaceId, publishSnapshot, runSync]);
+  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
 
   return {
-    snapshotRef,
-    hydrateCache,
     runSync,
-    ensureCardsLoaded,
-    ensureDecksLoaded,
-    ensureReviewQueueLoaded,
-    refreshCards,
-    refreshDecks,
-    refreshReviewQueue,
+    refreshLocalData,
+    loadLocalSnapshot: async (): Promise<MutableSnapshot> => {
+      const snapshot = await loadLocalSnapshot();
+      return {
+        cards: [...snapshot.cards],
+        decks: [...snapshot.decks],
+        reviewEvents: [...snapshot.reviewEvents],
+        workspaceSettings: snapshot.workspaceSettings,
+        cloudSettings: snapshot.cloudSettings,
+        outbox: [...snapshot.outbox],
+        lastAppliedChangeId: snapshot.lastAppliedChangeId,
+      };
+    },
     getCardById,
     getDeckById,
     createCardItem,

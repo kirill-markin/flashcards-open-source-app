@@ -1,7 +1,6 @@
 import { type ChangeEvent, type ReactElement } from "react";
-import { getTagSuggestionsFromCards } from "./CardTagsInput";
 import { CardFormTagsField } from "./CardFormTagsField";
-import type { Card, EffortLevel } from "../types";
+import type { Card, EffortLevel, TagSuggestion } from "../types";
 
 export type CardFormState = Readonly<{
   frontText: string;
@@ -11,7 +10,7 @@ export type CardFormState = Readonly<{
 }>;
 
 type Props = Readonly<{
-  cards: ReadonlyArray<Card>;
+  tagSuggestions: ReadonlyArray<TagSuggestion>;
   currentCard: Card | null;
   formState: CardFormState;
   formIdPrefix: string;
@@ -46,8 +45,7 @@ export function toCardFormState(card: Card | null): CardFormState {
 }
 
 export function CardFormFields(props: Props): ReactElement {
-  const { cards, currentCard, formState, formIdPrefix, isSaving, onChange } = props;
-  const tagSuggestions = getTagSuggestionsFromCards(cards);
+  const { tagSuggestions, currentCard, formState, formIdPrefix, isSaving, onChange } = props;
   const frontFieldId = `${formIdPrefix}-front-text`;
   const backFieldId = `${formIdPrefix}-back-text`;
   const tagsFieldId = `${formIdPrefix}-tags-input`;

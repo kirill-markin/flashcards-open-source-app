@@ -28,9 +28,10 @@ struct ReviewQueueRuntimeState {
 struct ReviewHeadLoadRequest {
     let requestId: String
     let sourceVersion: Int
-    let reviewFilter: ReviewFilter
-    let decks: [Deck]
-    let cards: [Card]
+    let databaseURL: URL
+    let workspaceId: String
+    let resolvedReviewFilter: ReviewFilter
+    let reviewQueryDefinition: ReviewQueryDefinition
     let now: Date
     let seedQueueSize: Int
 }
@@ -47,9 +48,9 @@ struct ReviewCountsLoadRequest {
 struct ReviewQueueChunkLoadRequest {
     let requestId: String
     let sourceVersion: Int
-    let reviewFilter: ReviewFilter
-    let decks: [Deck]
-    let cards: [Card]
+    let databaseURL: URL
+    let workspaceId: String
+    let reviewQueryDefinition: ReviewQueryDefinition
     let excludedCardIds: Set<String>
     let now: Date
     let chunkSize: Int
@@ -58,7 +59,7 @@ struct ReviewQueueChunkLoadRequest {
 struct ReviewLoadPlan {
     let publishedState: ReviewQueuePublishedState
     let headRequest: ReviewHeadLoadRequest
-    let countsRequest: ReviewCountsLoadRequest?
+    let countsRequest: ReviewCountsLoadRequest
 }
 
 struct ReviewQueueRuntime {
@@ -147,22 +148,15 @@ struct ReviewQueueRuntime {
 
     mutating func startReviewLoad(
         publishedState: ReviewQueuePublishedState,
-        reviewFilter: ReviewFilter,
-        cards: [Card],
-        decks: [Deck],
-        workspaceId: String?,
-        databaseURL: URL?,
+        resolvedReviewQuery: ResolvedReviewQuery,
+        workspaceId: String,
+        databaseURL: URL,
         now: Date
     ) -> ReviewLoadPlan {
         self.cancelActiveReviewLoads()
 
         let requestId = UUID().uuidString.lowercased()
         let sourceVersion = self.state.reviewSourceVersion
-        let resolvedReviewQuery = resolveReviewQuery(
-            reviewFilter: reviewFilter,
-            decks: decks,
-            cards: cards
-        )
 
         let nextPublishedState = ReviewQueuePublishedState(
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
@@ -181,84 +175,27 @@ struct ReviewQueueRuntime {
         let headRequest = ReviewHeadLoadRequest(
             requestId: requestId,
             sourceVersion: sourceVersion,
-            reviewFilter: resolvedReviewQuery.reviewFilter,
-            decks: decks,
-            cards: cards,
+            databaseURL: databaseURL,
+            workspaceId: workspaceId,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
             now: now,
             seedQueueSize: self.reviewSeedQueueSize
         )
 
-        let countsRequest: ReviewCountsLoadRequest?
-        if let workspaceId, let databaseURL {
-            countsRequest = ReviewCountsLoadRequest(
-                databaseURL: databaseURL,
-                workspaceId: workspaceId,
-                reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
-                now: now,
-                requestId: requestId,
-                sourceVersion: sourceVersion
-            )
-        } else {
-            countsRequest = nil
-        }
+        let countsRequest = ReviewCountsLoadRequest(
+            databaseURL: databaseURL,
+            workspaceId: workspaceId,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+            now: now,
+            requestId: requestId,
+            sourceVersion: sourceVersion
+        )
 
         return ReviewLoadPlan(
-            publishedState: countsRequest == nil
-                ? ReviewQueuePublishedState(
-                    selectedReviewFilter: nextPublishedState.selectedReviewFilter,
-                    reviewQueue: nextPublishedState.reviewQueue,
-                    reviewCounts: nextPublishedState.reviewCounts,
-                    isReviewHeadLoading: nextPublishedState.isReviewHeadLoading,
-                    isReviewCountsLoading: false,
-                    isReviewQueueChunkLoading: nextPublishedState.isReviewQueueChunkLoading,
-                    pendingReviewCardIds: nextPublishedState.pendingReviewCardIds,
-                    reviewSubmissionFailure: nextPublishedState.reviewSubmissionFailure
-                )
-                : nextPublishedState,
+            publishedState: nextPublishedState,
             headRequest: headRequest,
             countsRequest: countsRequest
-        )
-    }
-
-    mutating func refreshPublishedState(
-        publishedState: ReviewQueuePublishedState,
-        cards: [Card],
-        decks: [Deck],
-        now: Date
-    ) -> ReviewQueuePublishedState {
-        self.state.reviewSourceVersion += 1
-        self.cancelActiveReviewLoads()
-
-        let resolvedReviewQuery = resolveReviewQuery(
-            reviewFilter: publishedState.selectedReviewFilter,
-            decks: decks,
-            cards: cards
-        )
-        let reviewHeadState = makeReviewHeadLoadState(
-            reviewFilter: resolvedReviewQuery.reviewFilter,
-            decks: decks,
-            cards: cards,
-            now: now,
-            seedQueueSize: self.reviewSeedQueueSize
-        )
-
-        self.state.loadedReviewCardIds = Set(reviewHeadState.seedReviewQueue.map(\.cardId))
-        self.state.hasMoreReviewQueueCards = reviewHeadState.hasMoreCards
-
-        return ReviewQueuePublishedState(
-            selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
-            reviewQueue: reviewHeadState.seedReviewQueue,
-            reviewCounts: makeReviewCounts(
-                reviewFilter: resolvedReviewQuery.reviewFilter,
-                decks: decks,
-                cards: cards,
-                now: now
-            ),
-            isReviewHeadLoading: false,
-            isReviewCountsLoading: false,
-            isReviewQueueChunkLoading: false,
-            pendingReviewCardIds: publishedState.pendingReviewCardIds,
-            reviewSubmissionFailure: publishedState.reviewSubmissionFailure
         )
     }
 
@@ -374,8 +311,9 @@ struct ReviewQueueRuntime {
 
     mutating func makeReviewQueueChunkLoadRequestIfNeeded(
         publishedState: ReviewQueuePublishedState,
-        cards: [Card],
-        decks: [Deck],
+        databaseURL: URL,
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
         now: Date
     ) -> ReviewQueueChunkLoadRequest? {
         guard publishedState.isReviewHeadLoading == false else {
@@ -398,9 +336,9 @@ struct ReviewQueueRuntime {
         return ReviewQueueChunkLoadRequest(
             requestId: requestId,
             sourceVersion: sourceVersion,
-            reviewFilter: publishedState.selectedReviewFilter,
-            decks: decks,
-            cards: cards,
+            databaseURL: databaseURL,
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
             excludedCardIds: self.state.loadedReviewCardIds,
             now: now,
             chunkSize: self.reviewSeedQueueSize
@@ -481,14 +419,8 @@ struct ReviewQueueRuntime {
         publishedState: ReviewQueuePublishedState,
         workspaceId: String,
         cardId: String,
-        rating: ReviewRating,
-        cards: [Card]
+        rating: ReviewRating
     ) throws -> ReviewQueuePublishedState {
-        guard cards.contains(where: { card in
-            card.cardId == cardId && card.deletedAt == nil
-        }) else {
-            throw LocalStoreError.notFound("Card not found")
-        }
         guard publishedState.pendingReviewCardIds.contains(cardId) == false else {
             throw LocalStoreError.validation("Review submission is already pending for this card")
         }

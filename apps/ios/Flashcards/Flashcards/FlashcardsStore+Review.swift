@@ -8,29 +8,46 @@ extension FlashcardsStore {
     }
 
     func startReviewLoad(reviewFilter: ReviewFilter, now: Date) {
+        guard let database = self.database else {
+            self.globalErrorMessage = "Local database is unavailable"
+            return
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            self.globalErrorMessage = "Workspace is unavailable"
+            return
+        }
+
+        let resolvedReviewQuery: ResolvedReviewQuery
+        do {
+            resolvedReviewQuery = try database.loadResolvedReviewQuery(
+                workspaceId: workspaceId,
+                reviewFilter: reviewFilter
+            )
+        } catch {
+            self.globalErrorMessage = localizedMessage(error: error)
+            return
+        }
+
         let plan = self.reviewRuntime.startReviewLoad(
             publishedState: self.currentReviewPublishedState(),
-            reviewFilter: reviewFilter,
-            cards: self.cards,
-            decks: self.decks,
-            workspaceId: self.workspace?.workspaceId,
-            databaseURL: self.localDatabaseURL,
+            resolvedReviewQuery: resolvedReviewQuery,
+            workspaceId: workspaceId,
+            databaseURL: database.databaseURL,
             now: now
         )
         self.applyReviewPublishedState(reviewState: plan.publishedState)
         self.persistSelectedReviewFilter(reviewFilter: plan.publishedState.selectedReviewFilter)
         self.globalErrorMessage = ""
 
-        if let countsRequest = plan.countsRequest {
-            self.startReviewCountsLoad(request: countsRequest)
-        }
+        self.startReviewCountsLoad(request: plan.countsRequest)
 
         let headTask = Task { @MainActor in
             do {
                 let reviewHeadState = try await self.dependencies.reviewHeadLoader(
-                    plan.headRequest.reviewFilter,
-                    plan.headRequest.decks,
-                    plan.headRequest.cards,
+                    plan.headRequest.databaseURL,
+                    plan.headRequest.workspaceId,
+                    plan.headRequest.resolvedReviewFilter,
+                    plan.headRequest.reviewQueryDefinition,
                     plan.headRequest.now,
                     plan.headRequest.seedQueueSize
                 )
@@ -68,15 +85,7 @@ extension FlashcardsStore {
     }
 
     func refreshReviewState(now: Date) {
-        let reviewState = self.reviewRuntime.refreshPublishedState(
-            publishedState: self.currentReviewPublishedState(),
-            cards: self.cards,
-            decks: self.decks,
-            now: now
-        )
-        self.applyReviewPublishedState(reviewState: reviewState)
-        self.persistSelectedReviewFilter(reviewFilter: reviewState.selectedReviewFilter)
-        self.startReviewQueueChunkLoadIfNeeded(now: now)
+        self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
     }
 
     func startReviewCountsLoad(request: ReviewCountsLoadRequest) {
@@ -118,10 +127,29 @@ extension FlashcardsStore {
     }
 
     func startReviewQueueChunkLoadIfNeeded(now: Date) {
+        guard let databaseURL = self.localDatabaseURL else {
+            return
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
+            return
+        }
+
+        let resolvedReviewQuery: ResolvedReviewQuery
+        do {
+            resolvedReviewQuery = try requireLocalDatabase(database: self.database).loadResolvedReviewQuery(
+                workspaceId: workspaceId,
+                reviewFilter: self.selectedReviewFilter
+            )
+        } catch {
+            self.globalErrorMessage = localizedMessage(error: error)
+            return
+        }
+
         guard let request = self.reviewRuntime.makeReviewQueueChunkLoadRequestIfNeeded(
             publishedState: self.currentReviewPublishedState(),
-            cards: self.cards,
-            decks: self.decks,
+            databaseURL: databaseURL,
+            workspaceId: workspaceId,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
             now: now
         ) else {
             return
@@ -135,9 +163,9 @@ extension FlashcardsStore {
         let queueChunkTask = Task { @MainActor in
             do {
                 let queueChunkLoadState = try await self.dependencies.reviewQueueChunkLoader(
-                    request.reviewFilter,
-                    request.decks,
-                    request.cards,
+                    request.databaseURL,
+                    request.workspaceId,
+                    request.reviewQueryDefinition,
                     request.excludedCardIds,
                     request.now,
                     request.chunkSize
@@ -217,7 +245,7 @@ extension FlashcardsStore {
         }
 
         do {
-            let updatedCard = try await reviewSubmissionExecutor.submitReview(
+            _ = try await reviewSubmissionExecutor.submitReview(
                 workspaceId: request.workspaceId,
                 submission: ReviewSubmission(
                     cardId: request.cardId,
@@ -225,7 +253,7 @@ extension FlashcardsStore {
                     reviewedAtClient: request.reviewedAtClient
                 )
             )
-            self.applyCardMutation(card: updatedCard, now: Date())
+            self.refreshLocalReadModels(now: Date())
             self.applyReviewPublishedState(
                 reviewState: self.reviewRuntime.completeReviewSubmission(
                     publishedState: self.currentReviewPublishedState(),

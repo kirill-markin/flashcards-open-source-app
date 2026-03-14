@@ -421,7 +421,8 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       setChatWidth: vi.fn(),
     });
     useAppDataMock.mockReturnValue({
-      getLocalSnapshot: () => ({
+      localCardCount: 1,
+      loadLocalSnapshot: async () => ({
         cards: [
           { cardId: "card-active", deletedAt: null },
           { cardId: "card-deleted", deletedAt: "2026-03-09T00:00:00.000Z" },

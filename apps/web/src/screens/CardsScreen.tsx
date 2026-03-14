@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { isAuthRedirectError, queryCards } from "../api";
 import { useAppData } from "../appData";
 import { formatCardFilterSummary, getCardFilterActiveDimensionCount, normalizeCardFilter } from "../cardFilters";
 import { EFFORT_LEVELS } from "../deckFilters";
-import { CardTagsInput, type CardTagsInputHandle, getTagSuggestionsFromCards } from "./CardTagsInput";
+import { CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
-import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, UpdateCardInput } from "../types";
+import { loadWorkspaceTagsSummary, queryLocalCardsPage } from "../syncStorage";
+import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion, UpdateCardInput } from "../types";
 
 type CardsQueryState = Readonly<{
   items: ReadonlyArray<Card>;
@@ -123,9 +123,8 @@ function mergeCardsPage(
 export function CardsScreen(): ReactElement {
   const {
     activeWorkspace,
-    cards,
-    ensureCardsLoaded,
-    refreshCards,
+    localReadVersion,
+    refreshLocalData,
     updateCardItem,
     setErrorMessage,
   } = useAppData();
@@ -143,16 +142,12 @@ export function CardsScreen(): ReactElement {
   const filterPopoverRef = useRef<HTMLDivElement | null>(null);
   const filterTagsInputRef = useRef<CardTagsInputHandle | null>(null);
   const requestSequenceRef = useRef<number>(0);
+  const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
 
   const normalizedSearchText = normalizeCardsSearchText(debouncedSearchText);
-  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
   const activeFilterDimensionCount = getCardFilterActiveDimensionCount(cardFilter);
   const hasActiveSearchOrFilter = normalizedSearchText !== null || cardFilter !== null;
   const draftFilterValue = draftCardFilter ?? createEmptyCardFilter();
-
-  useEffect(() => {
-    void ensureCardsLoaded();
-  }, [ensureCardsLoaded]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -163,7 +158,7 @@ export function CardsScreen(): ReactElement {
   }, [searchText]);
 
   async function loadFirstPage(): Promise<void> {
-    if (activeWorkspaceId === null) {
+    if (activeWorkspace === null) {
       setCardsQueryState(createInitialCardsQueryState());
       return;
     }
@@ -178,18 +173,26 @@ export function CardsScreen(): ReactElement {
     }));
 
     try {
-      const nextPage = await queryCards(activeWorkspaceId, {
-        searchText: normalizedSearchText,
-        cursor: null,
-        limit: cardsPageSize,
-        sorts,
-        filter: cardFilter,
-      });
+      const [nextPage, tagsSummary] = await Promise.all([
+        queryLocalCardsPage({
+          searchText: normalizedSearchText,
+          cursor: null,
+          limit: cardsPageSize,
+          sorts,
+          filter: cardFilter,
+        }),
+        loadWorkspaceTagsSummary(),
+      ]);
 
       if (requestSequenceRef.current !== requestSequence) {
         return;
       }
 
+      setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
+        tag: tagSummary.tag,
+        countState: "ready",
+        cardsCount: tagSummary.cardsCount,
+      })));
       setCardsQueryState({
         items: nextPage.cards,
         totalCount: nextPage.totalCount,
@@ -200,10 +203,6 @@ export function CardsScreen(): ReactElement {
         errorMessage: "",
       });
     } catch (error) {
-      if (isAuthRedirectError(error)) {
-        return;
-      }
-
       if (requestSequenceRef.current !== requestSequence) {
         return;
       }
@@ -220,7 +219,7 @@ export function CardsScreen(): ReactElement {
 
   async function loadNextPage(): Promise<void> {
     if (
-      activeWorkspaceId === null
+      activeWorkspace === null
       || cardsQueryState.nextCursor === null
       || cardsQueryState.isLoading
       || cardsQueryState.isLoadingMore
@@ -238,7 +237,7 @@ export function CardsScreen(): ReactElement {
     }));
 
     try {
-      const nextPage = await queryCards(activeWorkspaceId, {
+      const nextPage = await queryLocalCardsPage({
         searchText: normalizedSearchText,
         cursor: currentCursor,
         limit: cardsPageSize,
@@ -252,10 +251,6 @@ export function CardsScreen(): ReactElement {
 
       setCardsQueryState((currentState) => mergeCardsPage(currentState, nextPage));
     } catch (error) {
-      if (isAuthRedirectError(error)) {
-        return;
-      }
-
       if (requestSequenceRef.current !== requestSequence) {
         return;
       }
@@ -270,7 +265,7 @@ export function CardsScreen(): ReactElement {
 
   useEffect(() => {
     void loadFirstPage();
-  }, [activeWorkspaceId, cardFilter, normalizedSearchText, sorts]);
+  }, [activeWorkspace, cardFilter, localReadVersion, normalizedSearchText, sorts]);
 
   useEffect(() => {
     if (!isFilterPopoverOpen) {
@@ -342,7 +337,7 @@ export function CardsScreen(): ReactElement {
 
     try {
       await updateCardItem(card.cardId, patch);
-      await refreshCards();
+      await refreshLocalData();
       await loadFirstPage();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
@@ -413,7 +408,6 @@ export function CardsScreen(): ReactElement {
     setIsFilterPopoverOpen(false);
   }
 
-  const tagSuggestions = getTagSuggestionsFromCards(cards);
   const countLabel = hasActiveSearchOrFilter
     ? `${cardsQueryState.totalCount} matches`
     : `${cardsQueryState.totalCount} total`;
@@ -600,7 +594,7 @@ export function CardsScreen(): ReactElement {
               {cardsQueryState.items.length === 0 ? (
                 <tr>
                   <td className="txn-cell txn-empty" colSpan={9}>
-                    {cards.length === 0 && hasActiveSearchOrFilter === false
+                    {cardsQueryState.totalCount === 0 && hasActiveSearchOrFilter === false
                       ? "You haven't created any cards yet."
                       : "No matching cards. Try a different search or clear filters."}
                   </td>

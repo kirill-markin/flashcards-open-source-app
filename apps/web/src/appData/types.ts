@@ -16,14 +16,6 @@ import type {
 } from "../types";
 
 export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
-type ResourceLoadStatus = "idle" | "loading" | "ready" | "error";
-
-export type ResourceState<Item> = Readonly<{
-  status: ResourceLoadStatus;
-  items: ReadonlyArray<Item>;
-  errorMessage: string;
-  hasLoaded: boolean;
-}>;
 
 export type AppDataContextValue = Readonly<{
   sessionLoadState: SessionLoadState;
@@ -33,26 +25,17 @@ export type AppDataContextValue = Readonly<{
   availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
   isChoosingWorkspace: boolean;
   workspaceSettings: WorkspaceSchedulerSettings | null;
+  cloudSettings: CloudSettings | null;
+  localReadVersion: number;
+  localCardCount: number;
+  isSyncing: boolean;
   selectedReviewFilter: ReviewFilter;
-  selectedReviewFilterTitle: string;
-  cardsState: ResourceState<Card>;
-  decksState: ResourceState<Deck>;
-  reviewQueueState: ResourceState<Card>;
-  cards: ReadonlyArray<Card>;
-  decks: ReadonlyArray<Deck>;
-  reviewQueue: ReadonlyArray<Card>;
-  reviewTimeline: ReadonlyArray<Card>;
   errorMessage: string;
   setErrorMessage: (message: string) => void;
   initialize: () => Promise<void>;
   chooseWorkspace: (workspaceId: string) => Promise<void>;
   createWorkspace: (name: string) => Promise<void>;
-  ensureCardsLoaded: () => Promise<void>;
-  ensureDecksLoaded: () => Promise<void>;
-  ensureReviewQueueLoaded: () => Promise<void>;
-  refreshCards: () => Promise<void>;
-  refreshDecks: () => Promise<void>;
-  refreshReviewQueue: () => Promise<void>;
+  refreshLocalData: () => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;
   getDeckById: (deckId: string) => Promise<Deck>;
   createCardItem: (input: CreateCardInput) => Promise<Card>;
@@ -64,7 +47,7 @@ export type AppDataContextValue = Readonly<{
   selectReviewFilter: (reviewFilter: ReviewFilter) => void;
   openReview: (reviewFilter: ReviewFilter) => void;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
-  getLocalSnapshot: () => MutableSnapshot;
+  loadLocalSnapshot: () => Promise<MutableSnapshot>;
 }>;
 
 export type MutableSnapshot = {

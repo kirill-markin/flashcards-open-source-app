@@ -6,9 +6,15 @@ struct DecksScreen: View {
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var screenErrorMessage: String = ""
+    @State private var decksSnapshot: DecksListSnapshot = DecksListSnapshot(
+        deckSummaries: [],
+        allCardsStats: DeckCardStats(totalCards: 0, dueCards: 0, newCards: 0, reviewedCards: 0)
+    )
+    @State private var availableTagSuggestions: [TagSuggestion] = []
+    @State private var isLoading: Bool = true
 
     private var deckListEntries: [DeckScreenListItem] {
-        makeDeckScreenListItems(deckItems: store.deckItems, cards: store.cards)
+        makeDeckScreenListItems(decksSnapshot: self.decksSnapshot)
     }
 
     var body: some View {
@@ -26,25 +32,30 @@ struct DecksScreen: View {
             }
 
             Section("Decks") {
-                ForEach(deckListEntries) { deckListEntry in
-                    if let persistedDeckId = deckListEntry.persistedDeckId {
-                        NavigationLink {
-                            DeckDetailScreen(destination: deckListEntry.destination)
-                        } label: {
-                            DeckListRow(deckListEntry: deckListEntry)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                self.deleteDeck(deckId: persistedDeckId)
+                if self.isLoading {
+                    Text("Loading decks…")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(deckListEntries) { deckListEntry in
+                        if let persistedDeckId = deckListEntry.persistedDeckId {
+                            NavigationLink {
+                                DeckDetailScreen(destination: deckListEntry.destination)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                DeckListRow(deckListEntry: deckListEntry)
                             }
-                        }
-                    } else {
-                        NavigationLink {
-                            DeckDetailScreen(destination: deckListEntry.destination)
-                        } label: {
-                            DeckListRow(deckListEntry: deckListEntry)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    self.deleteDeck(deckId: persistedDeckId)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        } else {
+                            NavigationLink {
+                                DeckDetailScreen(destination: deckListEntry.destination)
+                            } label: {
+                                DeckListRow(deckListEntry: deckListEntry)
+                            }
                         }
                     }
                 }
@@ -52,6 +63,9 @@ struct DecksScreen: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Decks")
+        .task(id: store.localReadVersion) {
+            await self.reloadDecksSnapshot()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -65,6 +79,7 @@ struct DecksScreen: View {
             NavigationStack {
                 DeckEditorView(
                     title: "New deck",
+                    availableTagSuggestions: self.availableTagSuggestions,
                     formState: $deckFormState,
                     onCancel: {
                         isEditorPresented = false
@@ -98,6 +113,26 @@ struct DecksScreen: View {
             try store.deleteDeck(deckId: deckId)
             self.screenErrorMessage = ""
         } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
+
+    private func reloadDecksSnapshot() async {
+        do {
+            let now = Date()
+            let decksSnapshot = try store.loadDecksListSnapshot(now: now)
+            let tagsSummary = try store.loadWorkspaceTagsSummary()
+            self.decksSnapshot = decksSnapshot
+            self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
+                TagSuggestion(
+                    tag: tagSummary.tag,
+                    countState: .ready(cardsCount: tagSummary.cardsCount)
+                )
+            }
+            self.isLoading = false
+            self.screenErrorMessage = ""
+        } catch {
+            self.isLoading = false
             self.screenErrorMessage = localizedMessage(error: error)
         }
     }
@@ -245,23 +280,8 @@ private struct DeckDetailScreen: View {
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var screenErrorMessage: String = ""
-
-    private var detailState: DeckDetailScreenState? {
-        switch destination {
-        case .allCards:
-            let cards = activeCards(cards: store.cards)
-            let stats = makeDeckCardStats(cards: cards, now: Date())
-            return .allCards(stats: stats, cards: cards)
-        case .deck(let deckId):
-            guard let deckItem = store.deckItems.first(where: { deckListItem in
-                deckListItem.deck.deckId == deckId
-            }) else {
-                return nil
-            }
-
-            return .deck(deckItem: deckItem, cards: store.cardsMatchingDeck(deck: deckItem.deck))
-        }
-    }
+    @State private var detailState: DeckDetailScreenState? = nil
+    @State private var availableTagSuggestions: [TagSuggestion] = []
 
     private var currentDeckId: String? {
         switch destination {
@@ -346,6 +366,9 @@ private struct DeckDetailScreen: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(detailState?.title ?? "Deck")
+        .task(id: "\(self.currentDeckId ?? "all")|\(store.localReadVersion)") {
+            await self.reloadDetailState()
+        }
         .toolbar {
             if detailState?.allowsEditing == true {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -359,6 +382,7 @@ private struct DeckDetailScreen: View {
             NavigationStack {
                 DeckEditorView(
                     title: "Edit deck",
+                    availableTagSuggestions: self.availableTagSuggestions,
                     formState: $deckFormState,
                     onCancel: {
                         isEditorPresented = false
@@ -424,19 +448,48 @@ private struct DeckDetailScreen: View {
     private func openReview() {
         store.openReview(reviewFilter: reviewFilter)
     }
+
+    private func reloadDetailState() async {
+        do {
+            let tagsSummary = try store.loadWorkspaceTagsSummary()
+            self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
+                TagSuggestion(
+                    tag: tagSummary.tag,
+                    countState: .ready(cardsCount: tagSummary.cardsCount)
+                )
+            }
+
+            switch self.destination {
+            case .allCards:
+                let cards = try store.loadCardsMatchingDeck(
+                    filterDefinition: DeckFilterDefinition(version: 2, effortLevels: [], tags: [])
+                )
+                self.detailState = .allCards(
+                    stats: makeDeckCardStats(cards: cards, now: Date()),
+                    cards: cards
+                )
+            case .deck(let deckId):
+                let deck = try store.loadDeck(deckId: deckId)
+                let cards = try store.loadCardsMatchingDeck(filterDefinition: deck.filterDefinition)
+                self.detailState = .deck(
+                    deckItem: makeDeckListItem(deck: deck, cards: cards, now: Date()),
+                    cards: cards
+                )
+            }
+            self.screenErrorMessage = ""
+        } catch {
+            self.detailState = nil
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
 }
 
 private struct DeckEditorView: View {
-    @EnvironmentObject private var store: FlashcardsStore
-
     let title: String
+    let availableTagSuggestions: [TagSuggestion]
     @Binding var formState: DeckFormState
     let onCancel: () -> Void
     let onSave: () -> Void
-
-    private var availableTagSuggestions: [TagSuggestion] {
-        tagSuggestions(cards: store.cards)
-    }
 
     var body: some View {
         ReadableContentLayout(
@@ -538,32 +591,30 @@ private func makeDeckFormState(deck: Deck) throws -> DeckFormState {
     )
 }
 
-private func makeDeckScreenListItems(deckItems: [DeckListItem], cards: [Card]) -> [DeckScreenListItem] {
-    [makeAllCardsDeckScreenListItem(cards: cards)] + deckItems.map { deckItem in
+private func makeDeckScreenListItems(decksSnapshot: DecksListSnapshot) -> [DeckScreenListItem] {
+    [makeAllCardsDeckScreenListItem(stats: decksSnapshot.allCardsStats)] + decksSnapshot.deckSummaries.map { deckSummary in
         DeckScreenListItem(
-            id: deckItem.id,
-            title: deckItem.deck.name,
-            filterSummary: formatDeckFilterDefinition(filterDefinition: deckItem.deck.filterDefinition),
+            id: deckSummary.id,
+            title: deckSummary.name,
+            filterSummary: formatDeckFilterDefinition(filterDefinition: deckSummary.filterDefinition),
             stats: DeckCardStats(
-                totalCards: deckItem.totalCards,
-                dueCards: deckItem.dueCards,
-                newCards: deckItem.newCards,
-                reviewedCards: deckItem.reviewedCards
+                totalCards: deckSummary.totalCards,
+                dueCards: deckSummary.dueCards,
+                newCards: deckSummary.newCards,
+                reviewedCards: deckSummary.reviewedCards
             ),
-            destination: .deck(deckId: deckItem.deck.deckId),
-            persistedDeckId: deckItem.deck.deckId
+            destination: .deck(deckId: deckSummary.deckId),
+            persistedDeckId: deckSummary.deckId
         )
     }
 }
 
-private func makeAllCardsDeckScreenListItem(cards: [Card]) -> DeckScreenListItem {
-    let allCards = activeCards(cards: cards)
-
+private func makeAllCardsDeckScreenListItem(stats: DeckCardStats) -> DeckScreenListItem {
     return DeckScreenListItem(
         id: "system-all-cards",
         title: allCardsDeckLabel,
         filterSummary: allCardsDeckLabel,
-        stats: makeDeckCardStats(cards: allCards, now: Date()),
+        stats: stats,
         destination: .allCards,
         persistedDeckId: nil
     )

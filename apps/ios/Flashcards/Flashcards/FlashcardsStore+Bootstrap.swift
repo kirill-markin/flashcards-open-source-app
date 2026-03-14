@@ -7,8 +7,8 @@ extension FlashcardsStore {
             throw LocalStoreError.uninitialized("Local database is unavailable")
         }
 
-        let snapshot = try database.loadStateSnapshot()
-        self.applyLoadedSnapshot(snapshot: snapshot, now: Date())
+        let bootstrapSnapshot = try database.loadBootstrapSnapshot()
+        self.applyLoadedBootstrapSnapshot(snapshot: bootstrapSnapshot, now: Date())
     }
 
     var localDatabaseURL: URL? {
@@ -16,16 +16,65 @@ extension FlashcardsStore {
     }
 
     func applyExternalSnapshot(snapshot: AppStateSnapshot) {
-        self.applyLoadedSnapshot(snapshot: snapshot, now: Date())
+        self.applyLoadedBootstrapSnapshot(
+            snapshot: AppBootstrapSnapshot(
+                workspace: snapshot.workspace,
+                userSettings: snapshot.userSettings,
+                schedulerSettings: snapshot.schedulerSettings,
+                cloudSettings: snapshot.cloudSettings
+            ),
+            now: Date()
+        )
         self.triggerCloudSyncIfLinked()
     }
 
-    func applyLoadedSnapshot(snapshot: AppStateSnapshot, now: Date) {
+    func applyLoadedBootstrapSnapshot(snapshot: AppBootstrapSnapshot, now: Date) {
         self.workspace = snapshot.workspace
         self.userSettings = snapshot.userSettings
         self.schedulerSettings = snapshot.schedulerSettings
         self.cloudSettings = snapshot.cloudSettings
-        self.applyLocalState(cards: snapshot.cards, decks: snapshot.decks, now: now)
+        self.cards = []
+        self.decks = []
+        self.deckItems = []
+        self.homeSnapshot = HomeSnapshot(
+            deckCount: 0,
+            totalCards: 0,
+            dueCount: 0,
+            newCount: 0,
+            reviewedCount: 0
+        )
+        if let database {
+            do {
+                let overviewSnapshot = try database.loadWorkspaceOverviewSnapshot(
+                    workspaceId: snapshot.workspace.workspaceId,
+                    workspaceName: snapshot.workspace.name,
+                    now: now
+                )
+                self.homeSnapshot = HomeSnapshot(
+                    deckCount: overviewSnapshot.deckCount,
+                    totalCards: overviewSnapshot.totalCards,
+                    dueCount: overviewSnapshot.dueCount,
+                    newCount: overviewSnapshot.newCount,
+                    reviewedCount: overviewSnapshot.reviewedCount
+                )
+            } catch {
+                self.globalErrorMessage = localizedMessage(error: error)
+            }
+        }
+        self.globalErrorMessage = ""
+        self.localReadVersion += 1
+        self.refreshReviewState(now: now)
+    }
+
+    func applyReviewPublishedState(reviewState: ReviewQueuePublishedState) {
+        self.selectedReviewFilter = reviewState.selectedReviewFilter
+        self.reviewQueue = reviewState.reviewQueue
+        self.reviewCounts = reviewState.reviewCounts
+        self.isReviewHeadLoading = reviewState.isReviewHeadLoading
+        self.isReviewCountsLoading = reviewState.isReviewCountsLoading
+        self.isReviewQueueChunkLoading = reviewState.isReviewQueueChunkLoading
+        self.pendingReviewCardIds = reviewState.pendingReviewCardIds
+        self.reviewSubmissionFailure = reviewState.reviewSubmissionFailure
     }
 
     func currentReviewPublishedState() -> ReviewQueuePublishedState {
@@ -41,41 +90,39 @@ extension FlashcardsStore {
         )
     }
 
-    func applyReviewPublishedState(reviewState: ReviewQueuePublishedState) {
-        self.selectedReviewFilter = reviewState.selectedReviewFilter
-        self.reviewQueue = reviewState.reviewQueue
-        self.reviewCounts = reviewState.reviewCounts
-        self.isReviewHeadLoading = reviewState.isReviewHeadLoading
-        self.isReviewCountsLoading = reviewState.isReviewCountsLoading
-        self.isReviewQueueChunkLoading = reviewState.isReviewQueueChunkLoading
-        self.pendingReviewCardIds = reviewState.pendingReviewCardIds
-        self.reviewSubmissionFailure = reviewState.reviewSubmissionFailure
+    func refreshLocalReadModels(now: Date) {
+        do {
+            try self.reload()
+        } catch {
+            self.globalErrorMessage = localizedMessage(error: error)
+        }
     }
 
-    func applyCardMutation(card: Card, now: Date) {
-        self.applyLocalState(
-            cards: applyingCardMutation(cards: self.cards, card: card),
-            decks: self.decks,
-            now: now
+    func loadWorkspaceTagsSummary() throws -> WorkspaceTagsSummary {
+        let database = try requireLocalDatabase(database: self.database)
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        return try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+    }
+
+    func loadDecksListSnapshot(now: Date) throws -> DecksListSnapshot {
+        let database = try requireLocalDatabase(database: self.database)
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        return try database.loadDecksListSnapshot(workspaceId: workspaceId, now: now)
+    }
+
+    func loadDeck(deckId: String) throws -> Deck {
+        let database = try requireLocalDatabase(database: self.database)
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        return try database.loadDeck(workspaceId: workspaceId, deckId: deckId)
+    }
+
+    func loadCardsMatchingDeck(filterDefinition: DeckFilterDefinition) throws -> [Card] {
+        let database = try requireLocalDatabase(database: self.database)
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        return try database.loadCardsMatchingDeck(
+            workspaceId: workspaceId,
+            filterDefinition: filterDefinition
         )
-    }
-
-    func applyDeckMutation(deck: Deck, now: Date) {
-        self.applyLocalState(
-            cards: self.cards,
-            decks: applyingDeckMutation(decks: self.decks, deck: deck),
-            now: now
-        )
-    }
-
-    func applyLocalState(cards: [Card], decks: [Deck], now: Date) {
-        self.cards = cards
-        self.decks = decks
-        self.deckItems = makeDeckListItems(decks: decks, cards: cards, now: now)
-        self.refreshReviewState(now: now)
-        self.homeSnapshot = makeHomeSnapshot(cards: cards, deckCount: decks.count, now: now)
-        self.globalErrorMessage = ""
-        self.localReadVersion += 1
     }
 
     func makeAIChatStore() -> AIChatStore {

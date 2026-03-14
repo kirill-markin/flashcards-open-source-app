@@ -1,9 +1,10 @@
 import Foundation
 
 typealias ReviewHeadLoader = @Sendable (
-    _ reviewFilter: ReviewFilter,
-    _ decks: [Deck],
-    _ cards: [Card],
+    _ databaseURL: URL,
+    _ workspaceId: String,
+    _ resolvedReviewFilter: ReviewFilter,
+    _ reviewQueryDefinition: ReviewQueryDefinition,
     _ now: Date,
     _ seedQueueSize: Int
 ) async throws -> ReviewHeadLoadState
@@ -16,9 +17,9 @@ typealias ReviewCountsLoader = @Sendable (
 ) async throws -> ReviewCounts
 
 typealias ReviewQueueChunkLoader = @Sendable (
-    _ reviewFilter: ReviewFilter,
-    _ decks: [Deck],
-    _ cards: [Card],
+    _ databaseURL: URL,
+    _ workspaceId: String,
+    _ reviewQueryDefinition: ReviewQueryDefinition,
     _ excludedCardIds: Set<String>,
     _ now: Date,
     _ chunkSize: Int
@@ -37,20 +38,22 @@ let reviewSeedQueueSize: Int = 8
 let reviewQueueReplenishmentThreshold: Int = 4
 
 func defaultReviewHeadLoader(
-    reviewFilter: ReviewFilter,
-    decks: [Deck],
-    cards: [Card],
+    databaseURL: URL,
+    workspaceId: String,
+    resolvedReviewFilter: ReviewFilter,
+    reviewQueryDefinition: ReviewQueryDefinition,
     now: Date,
     seedQueueSize: Int
 ) async throws -> ReviewHeadLoadState {
     try await Task.detached(priority: .userInitiated) {
         try Task.checkCancellation()
-        return makeReviewHeadLoadState(
-            reviewFilter: reviewFilter,
-            decks: decks,
-            cards: cards,
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        return try database.loadReviewHead(
+            workspaceId: workspaceId,
+            resolvedReviewFilter: resolvedReviewFilter,
+            reviewQueryDefinition: reviewQueryDefinition,
             now: now,
-            seedQueueSize: seedQueueSize
+            limit: seedQueueSize
         )
     }.value
 }
@@ -73,19 +76,19 @@ func defaultReviewCountsLoader(
 }
 
 func defaultReviewQueueChunkLoader(
-    reviewFilter: ReviewFilter,
-    decks: [Deck],
-    cards: [Card],
+    databaseURL: URL,
+    workspaceId: String,
+    reviewQueryDefinition: ReviewQueryDefinition,
     excludedCardIds: Set<String>,
     now: Date,
     chunkSize: Int
 ) async throws -> ReviewQueueChunkLoadState {
     try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
-        return makeReviewQueueChunkLoadState(
-            reviewFilter: reviewFilter,
-            decks: decks,
-            cards: cards,
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        return try database.loadReviewQueueChunk(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
             now: now,
             limit: chunkSize,
             excludedCardIds: excludedCardIds

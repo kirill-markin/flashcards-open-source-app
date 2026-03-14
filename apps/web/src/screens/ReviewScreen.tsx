@@ -6,11 +6,16 @@ import {
   ALL_CARDS_REVIEW_FILTER,
   currentReviewCard,
   isCardDue,
-  makeWorkspaceTagsSummary,
-  shouldShowSwitchToAllCardsReviewAction,
 } from "../appData/domain";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
-import type { Card, Deck, ReviewFilter, WorkspaceSchedulerSettings, WorkspaceTagSummary } from "../types";
+import {
+  loadDecksListSnapshot,
+  loadReviewQueueChunk,
+  loadReviewQueueSnapshot,
+  loadReviewTimelinePage,
+  loadWorkspaceTagsSummary,
+} from "../syncStorage";
+import type { Card, DeckSummary, ReviewCounts, ReviewFilter, WorkspaceSchedulerSettings, WorkspaceTagSummary, TagSuggestion } from "../types";
 import {
   computeReviewSchedule,
   type ReviewRating,
@@ -90,7 +95,7 @@ function toReviewFilterMenuItemKey(reviewFilter: ReviewFilter): string {
 }
 
 function buildReviewFilterMenuItems(
-  decks: ReadonlyArray<Deck>,
+  decks: ReadonlyArray<DeckSummary>,
   reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>,
   selectedReviewFilter: ReviewFilter,
 ): Array<ReviewFilterMenuItem> {
@@ -389,19 +394,11 @@ function ReviewFilterCheckIcon(): ReactElement {
 
 export function ReviewScreen(): ReactElement {
   const {
-    cards,
-    cardsState,
-    decks,
-    reviewQueue,
-    reviewTimeline,
-    reviewQueueState,
     selectedReviewFilter,
-    selectedReviewFilterTitle,
     workspaceSettings,
-    ensureCardsLoaded,
-    ensureDecksLoaded,
-    ensureReviewQueueLoaded,
-    refreshReviewQueue,
+    localReadVersion,
+    localCardCount,
+    refreshLocalData,
     selectReviewFilter,
     submitReviewItem,
     updateCardItem,
@@ -416,17 +413,28 @@ export function ReviewScreen(): ReactElement {
   const [editorErrorMessage, setEditorErrorMessage] = useState<string>("");
   const [isEditorSaving, setIsEditorSaving] = useState<boolean>(false);
   const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
+  const [selectedReviewFilterTitle, setSelectedReviewFilterTitle] = useState<string>("All cards");
+  const [activeReviewQueue, setActiveReviewQueue] = useState<ReadonlyArray<Card>>([]);
+  const [queueCards, setQueueCards] = useState<ReadonlyArray<Card>>([]);
+  const [reviewCounts, setReviewCounts] = useState<ReviewCounts>({
+    dueCount: 0,
+    totalCount: 0,
+  });
+  const [reviewQueueCursor, setReviewQueueCursor] = useState<string | null>(null);
+  const [reviewTagSummaries, setReviewTagSummaries] = useState<ReadonlyArray<WorkspaceTagSummary>>([]);
+  const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
+  const [deckSummaries, setDeckSummaries] = useState<ReadonlyArray<DeckSummary>>([]);
+  const [resolvedReviewFilter, setResolvedReviewFilter] = useState<ReviewFilter>(ALL_CARDS_REVIEW_FILTER);
+  const [isReviewLoading, setIsReviewLoading] = useState<boolean>(true);
+  const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
   const reviewFilterMenuWrapRef = useRef<HTMLDivElement | null>(null);
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
   const nowTimestamp = Date.now();
-  const activeReviewQueue = reviewQueue;
-  const queueCards = cardsState.hasLoaded ? reviewTimeline : reviewQueue;
   const selectedCard = currentReviewCard(activeReviewQueue);
-  const editingCard = cards.find((card) => card.cardId === editingCardId && card.deletedAt === null) ?? null;
-  const reviewTagSummaries = makeWorkspaceTagsSummary(cards).tags;
-  const reviewFilterMenuItems = buildReviewFilterMenuItems(decks, reviewTagSummaries, selectedReviewFilter);
-  const shouldShowSwitchToAllCardsAction = shouldShowSwitchToAllCardsReviewAction(selectedReviewFilter, decks, cards);
-  const hasCards = cards.some((card) => card.deletedAt === null);
+  const editingCard = queueCards.find((card) => card.cardId === editingCardId) ?? selectedCard ?? null;
+  const reviewFilterMenuItems = buildReviewFilterMenuItems(deckSummaries, reviewTagSummaries, resolvedReviewFilter);
+  const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
+  const hasCards = localCardCount > 0;
   const reviewButtonsNow = new Date();
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
   let reviewButtonErrorMessage: string = "";
@@ -445,10 +453,67 @@ export function ReviewScreen(): ReactElement {
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
 
   useEffect(() => {
-    void ensureCardsLoaded();
-    void ensureDecksLoaded();
-    void ensureReviewQueueLoaded();
-  }, [ensureCardsLoaded, ensureDecksLoaded, ensureReviewQueueLoaded]);
+    let isCancelled = false;
+
+    async function loadReviewData(): Promise<void> {
+      setIsReviewLoading(true);
+      setReviewLoadErrorMessage("");
+
+      try {
+        const [
+          reviewQueueSnapshot,
+          reviewTimelinePage,
+          tagsSummary,
+          decksSnapshot,
+        ] = await Promise.all([
+          loadReviewQueueSnapshot(selectedReviewFilter, 8),
+          loadReviewTimelinePage(selectedReviewFilter, 200, 0),
+          loadWorkspaceTagsSummary(),
+          loadDecksListSnapshot(),
+        ]);
+        if (isCancelled) {
+          return;
+        }
+
+        const nextResolvedReviewFilter = reviewQueueSnapshot.resolvedReviewFilter;
+        const nextReviewFilterTitle = nextResolvedReviewFilter.kind === "allCards"
+          ? "All cards"
+          : nextResolvedReviewFilter.kind === "tag"
+            ? nextResolvedReviewFilter.tag
+            : decksSnapshot.deckSummaries.find((deck) => deck.deckId === nextResolvedReviewFilter.deckId)?.name ?? "All cards";
+
+        setResolvedReviewFilter(nextResolvedReviewFilter);
+        setSelectedReviewFilterTitle(nextReviewFilterTitle);
+        setActiveReviewQueue(reviewQueueSnapshot.cards);
+        setReviewCounts(reviewQueueSnapshot.reviewCounts);
+        setReviewQueueCursor(reviewQueueSnapshot.nextCursor);
+        setQueueCards(reviewTimelinePage.cards);
+        setReviewTagSummaries(tagsSummary.tags);
+        setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
+          tag: tagSummary.tag,
+          countState: "ready",
+          cardsCount: tagSummary.cardsCount,
+        })));
+        setDeckSummaries(decksSnapshot.deckSummaries);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setReviewLoadErrorMessage(error instanceof Error ? error.message : String(error));
+      } finally {
+        if (!isCancelled) {
+          setIsReviewLoading(false);
+        }
+      }
+    }
+
+    void loadReviewData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [localReadVersion, selectedReviewFilter]);
 
   useEffect(() => {
     setIsAnswerVisible(false);
@@ -495,6 +560,24 @@ export function ReviewScreen(): ReactElement {
     setErrorMessage("");
     try {
       await submitReviewItem(card.cardId, rating);
+      const nextReviewQueue = activeReviewQueue.filter((queuedCard) => queuedCard.cardId !== card.cardId);
+      setActiveReviewQueue(nextReviewQueue);
+      setQueueCards((currentCards) => currentCards.filter((queuedCard) => queuedCard.cardId !== card.cardId));
+      setReviewCounts((currentCounts) => ({
+        dueCount: Math.max(0, currentCounts.dueCount - 1),
+        totalCount: Math.max(0, currentCounts.totalCount - 1),
+      }));
+
+      if (nextReviewQueue.length <= 4 && reviewQueueCursor !== null) {
+        const nextChunk = await loadReviewQueueChunk(
+          resolvedReviewFilter,
+          reviewQueueCursor,
+          8 - nextReviewQueue.length,
+          new Set(nextReviewQueue.map((queuedCard) => queuedCard.cardId)),
+        );
+        setActiveReviewQueue([...nextReviewQueue, ...nextChunk.cards]);
+        setReviewQueueCursor(nextChunk.nextCursor);
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -567,13 +650,7 @@ export function ReviewScreen(): ReactElement {
     setIsReviewFilterMenuOpen(false);
   }
 
-  const resourceErrorMessage = reviewQueueState.status === "error"
-    ? reviewQueueState.errorMessage
-    : cardsState.status === "error"
-      ? cardsState.errorMessage
-      : "";
-
-  if (reviewQueueState.status === "loading" && !reviewQueueState.hasLoaded) {
+  if (isReviewLoading) {
     return (
       <main className="container">
         <section className="panel">
@@ -584,13 +661,13 @@ export function ReviewScreen(): ReactElement {
     );
   }
 
-  if (reviewQueueState.status === "error" && !reviewQueueState.hasLoaded) {
+  if (reviewLoadErrorMessage !== "") {
     return (
       <main className="container">
         <section className="panel">
           <h1 className="title">Review</h1>
-          <p className="error-banner">{reviewQueueState.errorMessage}</p>
-          <button className="primary-btn" type="button" onClick={() => void refreshReviewQueue()}>
+          <p className="error-banner">{reviewLoadErrorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
             Retry
           </button>
         </section>
@@ -601,7 +678,6 @@ export function ReviewScreen(): ReactElement {
   return (
     <main className="container">
       <section className="panel">
-        {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
             <h1 className="title">Review</h1>
@@ -610,7 +686,7 @@ export function ReviewScreen(): ReactElement {
           <div className="screen-actions review-screen-actions">
             <div className="review-filter-summary-wrap">
               <span className="review-filter-label">Queue</span>
-              <span className="badge review-filter-summary">{formatQueueBadge(activeReviewQueue.length, queueCards.length)}</span>
+              <span className="badge review-filter-summary">{formatQueueBadge(reviewCounts.dueCount, reviewCounts.totalCount)}</span>
             </div>
             <div ref={reviewFilterMenuWrapRef} className="review-filter-menu-wrap">
               <span className="review-filter-label">Deck</span>
@@ -870,7 +946,7 @@ export function ReviewScreen(): ReactElement {
             {editorErrorMessage !== "" ? <p className="error-banner">{editorErrorMessage}</p> : null}
 
             <CardFormFields
-              cards={cards}
+              tagSuggestions={tagSuggestions}
               currentCard={editingCard}
               formState={editorFormState}
               formIdPrefix="review-card-editor"

@@ -505,7 +505,7 @@ final class CloudSyncService: @unchecked Sendable {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws {
-        let cloudSettings = try self.database.loadStateSnapshot().cloudSettings
+        let cloudSettings = try self.database.loadBootstrapSnapshot().cloudSettings
         let workspaceId = linkedSession.workspaceId
         let syncBasePath = "/workspaces/\(workspaceId)/sync"
 

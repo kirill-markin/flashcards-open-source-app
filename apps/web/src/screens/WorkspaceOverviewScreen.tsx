@@ -1,42 +1,66 @@
-import { useEffect, type ReactElement } from "react";
-import { makeWorkspaceTagsSummary } from "../appData/domain";
+import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
+import { loadWorkspaceOverviewSnapshot } from "../syncStorage";
+import type { WorkspaceOverviewSnapshot } from "../types";
 import { SettingsShell } from "./SettingsShared";
 
+const emptyOverviewSnapshot: WorkspaceOverviewSnapshot = {
+  workspaceName: "Workspace unavailable",
+  deckCount: 0,
+  tagsCount: 0,
+  totalCards: 0,
+  dueCount: 0,
+  newCount: 0,
+  reviewedCount: 0,
+};
+
 export function WorkspaceOverviewScreen(): ReactElement {
-  const {
-    activeWorkspace,
-    cards,
-    cardsState,
-    decks,
-    decksState,
-    ensureCardsLoaded,
-    ensureDecksLoaded,
-    refreshCards,
-    refreshDecks,
-  } = useAppData();
+  const { activeWorkspace, localReadVersion, refreshLocalData } = useAppData();
+  const [overviewSnapshot, setOverviewSnapshot] = useState<WorkspaceOverviewSnapshot>(emptyOverviewSnapshot);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
-    void ensureCardsLoaded();
-    void ensureDecksLoaded();
-  }, [ensureCardsLoaded, ensureDecksLoaded]);
+    let isCancelled = false;
 
-  const activeCards = cards.filter((card) => card.deletedAt === null);
-  const activeDecks = decks.filter((deck) => deck.deletedAt === null);
-  const tagsCount = makeWorkspaceTagsSummary(cards).tags.length;
-  const dueCount = activeCards.filter((card) => card.dueAt !== null && new Date(card.dueAt).getTime() <= Date.now()).length;
-  const newCount = activeCards.filter((card) => card.fsrsCardState === "new").length;
-  const reviewedCount = activeCards.filter((card) => card.reps > 0).length;
-  const resourceErrorMessage = decksState.status === "error"
-    ? decksState.errorMessage
-    : cardsState.status === "error"
-      ? cardsState.errorMessage
-      : "";
+    async function loadScreenData(): Promise<void> {
+      if (activeWorkspace === null) {
+        setOverviewSnapshot(emptyOverviewSnapshot);
+        setIsLoading(false);
+        return;
+      }
 
-  if (
-    (decksState.status === "loading" && !decksState.hasLoaded)
-    || (cardsState.status === "loading" && !cardsState.hasLoaded)
-  ) {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        const nextOverviewSnapshot = await loadWorkspaceOverviewSnapshot(activeWorkspace);
+        if (isCancelled) {
+          return;
+        }
+
+        setOverviewSnapshot(nextOverviewSnapshot);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadScreenData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeWorkspace, localReadVersion]);
+
+  if (isLoading) {
     return (
       <SettingsShell
         title="Overview"
@@ -48,25 +72,15 @@ export function WorkspaceOverviewScreen(): ReactElement {
     );
   }
 
-  if (
-    (decksState.status === "error" && !decksState.hasLoaded)
-    || (cardsState.status === "error" && !cardsState.hasLoaded)
-  ) {
+  if (errorMessage !== "") {
     return (
       <SettingsShell
         title="Overview"
         subtitle="Review workspace details and today counts."
         activeSection="workspace"
       >
-        <p className="error-banner">{resourceErrorMessage}</p>
-        <button
-          className="primary-btn"
-          type="button"
-          onClick={() => {
-            void refreshCards();
-            void refreshDecks();
-          }}
-        >
+        <p className="error-banner">{errorMessage}</p>
+        <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
           Retry
         </button>
       </SettingsShell>
@@ -79,36 +93,34 @@ export function WorkspaceOverviewScreen(): ReactElement {
       subtitle="Review workspace details and today counts."
       activeSection="workspace"
     >
-      {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
-
       <div className="settings-summary-grid">
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">Workspace</span>
-          <strong className="panel-subtitle">{activeWorkspace?.name ?? "Workspace unavailable"}</strong>
+          <strong className="panel-subtitle">{overviewSnapshot.workspaceName}</strong>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">Cards</span>
-          <strong className="panel-subtitle">{activeCards.length}</strong>
+          <strong className="panel-subtitle">{overviewSnapshot.totalCards}</strong>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">Decks</span>
-          <strong className="panel-subtitle">{activeDecks.length}</strong>
+          <strong className="panel-subtitle">{overviewSnapshot.deckCount}</strong>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">Tags</span>
-          <strong className="panel-subtitle">{tagsCount}</strong>
+          <strong className="panel-subtitle">{overviewSnapshot.tagsCount}</strong>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">Due</span>
-          <strong className="panel-subtitle">{dueCount}</strong>
+          <strong className="panel-subtitle">{overviewSnapshot.dueCount}</strong>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">New</span>
-          <strong className="panel-subtitle">{newCount}</strong>
+          <strong className="panel-subtitle">{overviewSnapshot.newCount}</strong>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">Reviewed</span>
-          <strong className="panel-subtitle">{reviewedCount}</strong>
+          <strong className="panel-subtitle">{overviewSnapshot.reviewedCount}</strong>
         </article>
       </div>
     </SettingsShell>

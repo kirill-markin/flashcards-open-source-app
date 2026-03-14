@@ -2,23 +2,12 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
-    var selectedReviewFilterTitle: String {
-        reviewFilterTitle(reviewFilter: self.selectedReviewFilter, decks: self.decks, cards: self.cards)
-    }
-
     var reviewTotalCount: Int {
         self.reviewCounts.totalCount
     }
 
     var displayedReviewDueCount: Int {
-        max(
-            0,
-            self.reviewCounts.dueCount - self.reviewRuntime.pendingReviewCount(
-                publishedState: self.currentReviewPublishedState(),
-                cards: self.cards,
-                decks: self.decks
-            )
-        )
+        max(0, self.reviewCounts.dueCount - self.pendingReviewCardIds.count)
     }
 
     var effectiveReviewQueue: [Card] {

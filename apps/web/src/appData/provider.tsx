@@ -6,22 +6,9 @@ import {
   useState,
   type ReactElement,
 } from "react";
-import type { Card, Deck, ReviewFilter, SessionInfo, WorkspaceSummary } from "../types";
-import type { MutableSnapshot } from "./types";
-import {
-  ALL_CARDS_REVIEW_FILTER,
-  isReviewFilterEqual,
-  makeReviewQueue,
-  makeReviewTimeline,
-  resolveReviewFilter,
-  reviewFilterTitle,
-} from "./domain";
-import { createIdleResourceState } from "./resourceState";
-import type {
-  AppDataContextValue,
-  Props,
-  SessionLoadState,
-} from "./types";
+import type { CloudSettings, ReviewFilter, SessionInfo, WorkspaceSchedulerSettings, WorkspaceSummary } from "../types";
+import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "./domain";
+import type { AppDataContextValue, Props, SessionLoadState } from "./types";
 import { useSyncEngine } from "./useSyncEngine";
 import { useWorkspaceSession } from "./useWorkspaceSession";
 
@@ -83,9 +70,11 @@ export function AppDataProvider(props: Props): ReactElement {
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(null);
   const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>([]);
   const [isChoosingWorkspace, setIsChoosingWorkspace] = useState<boolean>(false);
-  const [cardsState, setCardsState] = useState(createIdleResourceState<Card>());
-  const [decksState, setDecksState] = useState(createIdleResourceState<Deck>());
-  const [reviewQueueState, setReviewQueueState] = useState(createIdleResourceState<Card>());
+  const [workspaceSettings, setWorkspaceSettings] = useState<WorkspaceSchedulerSettings | null>(null);
+  const [cloudSettings, setCloudSettings] = useState<CloudSettings | null>(null);
+  const [localReadVersion, setLocalReadVersion] = useState<number>(0);
+  const [localCardCount, setLocalCardCount] = useState<number>(0);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [selectedReviewFilterState, setSelectedReviewFilterState] = useState<ReviewFilter>(loadSelectedReviewFilter);
 
@@ -93,35 +82,43 @@ export function AppDataProvider(props: Props): ReactElement {
     sessionLoadState,
     session,
     activeWorkspace,
-    cardsState,
-    decksState,
-    reviewQueueState,
-    setCardsState,
-    setDecksState,
-    setReviewQueueState,
+    setWorkspaceSettings,
+    setCloudSettings,
+    setLocalReadVersion,
+    setIsSyncing,
     setErrorMessage,
   });
 
-  const selectedReviewFilter = resolveReviewFilter(selectedReviewFilterState, decksState.items, cardsState.items);
-  const reviewQueue = makeReviewQueue(selectedReviewFilter, decksState.items, cardsState.items);
-  const reviewTimeline = makeReviewTimeline(selectedReviewFilter, decksState.items, cardsState.items);
-  const selectedReviewFilterTitle = reviewFilterTitle(selectedReviewFilter, decksState.items, cardsState.items);
+  useEffect(() => {
+    window.localStorage.setItem(SELECTED_REVIEW_FILTER_STORAGE_KEY, JSON.stringify(selectedReviewFilterState));
+  }, [selectedReviewFilterState]);
 
   useEffect(() => {
-    if (isReviewFilterEqual(selectedReviewFilterState, selectedReviewFilter)) {
+    let isCancelled = false;
+
+    async function refreshLocalCardCount(): Promise<void> {
+      const localSnapshot = await syncEngine.loadLocalSnapshot();
+      if (isCancelled) {
+        return;
+      }
+
+      setLocalCardCount(localSnapshot.cards.filter((card) => card.deletedAt === null).length);
+    }
+
+    void refreshLocalCardCount();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [localReadVersion, syncEngine]);
+
+  const selectReviewFilter = useCallback(function selectReviewFilter(reviewFilter: ReviewFilter): void {
+    if (isReviewFilterEqual(selectedReviewFilterState, reviewFilter)) {
       return;
     }
 
-    setSelectedReviewFilterState(selectedReviewFilter);
-  }, [selectedReviewFilter, selectedReviewFilterState]);
-
-  useEffect(() => {
-    window.localStorage.setItem(SELECTED_REVIEW_FILTER_STORAGE_KEY, JSON.stringify(selectedReviewFilter));
-  }, [selectedReviewFilter]);
-
-  const selectReviewFilter = useCallback(function selectReviewFilter(reviewFilter: ReviewFilter): void {
     setSelectedReviewFilterState(reviewFilter);
-  }, []);
+  }, [selectedReviewFilterState]);
 
   const openReview = useCallback(function openReview(reviewFilter: ReviewFilter): void {
     setSelectedReviewFilterState(reviewFilter);
@@ -137,11 +134,9 @@ export function AppDataProvider(props: Props): ReactElement {
     setActiveWorkspace,
     setAvailableWorkspaces,
     setIsChoosingWorkspace,
-    setCardsState,
-    setDecksState,
-    setReviewQueueState,
     setErrorMessage,
-    hydrateCache: syncEngine.hydrateCache,
+    setCloudSettings,
+    refreshLocalData: syncEngine.refreshLocalData,
     runSync: syncEngine.runSync,
   });
 
@@ -152,27 +147,18 @@ export function AppDataProvider(props: Props): ReactElement {
     activeWorkspace,
     availableWorkspaces,
     isChoosingWorkspace,
-    workspaceSettings: syncEngine.snapshotRef.current.workspaceSettings,
-    selectedReviewFilter,
-    selectedReviewFilterTitle,
-    cardsState,
-    decksState,
-    reviewQueueState,
-    cards: cardsState.items,
-    decks: decksState.items,
-    reviewQueue,
-    reviewTimeline,
+    workspaceSettings,
+    cloudSettings,
+    localReadVersion,
+    localCardCount,
+    isSyncing,
+    selectedReviewFilter: selectedReviewFilterState,
     errorMessage,
     setErrorMessage,
     initialize,
     chooseWorkspace,
     createWorkspace,
-    ensureCardsLoaded: syncEngine.ensureCardsLoaded,
-    ensureDecksLoaded: syncEngine.ensureDecksLoaded,
-    ensureReviewQueueLoaded: syncEngine.ensureReviewQueueLoaded,
-    refreshCards: syncEngine.refreshCards,
-    refreshDecks: syncEngine.refreshDecks,
-    refreshReviewQueue: syncEngine.refreshReviewQueue,
+    refreshLocalData: syncEngine.refreshLocalData,
     getCardById: syncEngine.getCardById,
     getDeckById: syncEngine.getDeckById,
     createCardItem: syncEngine.createCardItem,
@@ -184,15 +170,7 @@ export function AppDataProvider(props: Props): ReactElement {
     selectReviewFilter,
     openReview,
     submitReviewItem: syncEngine.submitReviewItem,
-    getLocalSnapshot: (): MutableSnapshot => ({
-      cards: [...syncEngine.snapshotRef.current.cards],
-      decks: [...syncEngine.snapshotRef.current.decks],
-      reviewEvents: [...syncEngine.snapshotRef.current.reviewEvents],
-      workspaceSettings: syncEngine.snapshotRef.current.workspaceSettings,
-      cloudSettings: syncEngine.snapshotRef.current.cloudSettings,
-      outbox: [...syncEngine.snapshotRef.current.outbox],
-      lastAppliedChangeId: syncEngine.snapshotRef.current.lastAppliedChangeId,
-    }),
+    loadLocalSnapshot: syncEngine.loadLocalSnapshot,
   };
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

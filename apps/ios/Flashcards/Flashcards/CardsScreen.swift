@@ -144,6 +144,7 @@ struct CardsScreen: View {
                     title: presentation.title,
                     isEditing: presentation.isEditing,
                     errorMessage: self.screenErrorMessage,
+                    availableTagSuggestions: self.availableTagSuggestions,
                     formState: self.$cardFormState,
                     onCancel: {
                         self.editorPresentation = nil

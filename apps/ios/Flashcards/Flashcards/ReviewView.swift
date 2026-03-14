@@ -27,15 +27,40 @@ struct ReviewView: View {
         effortLevel: .fast
     )
     @State private var screenErrorMessage: String = ""
+    @State private var reviewTagSummaries: [WorkspaceTagSummary] = []
+    @State private var reviewDeckSummaries: [DeckSummary] = []
+    @State private var totalCardsCount: Int = 0
 
-    private var reviewTagSummaries: [WorkspaceTagSummary] {
-        workspaceTagsSummary(cards: store.cards).tags
+    private var availableTagSuggestions: [TagSuggestion] {
+        self.reviewTagSummaries.map { tagSummary in
+            TagSuggestion(
+                tag: tagSummary.tag,
+                countState: .ready(cardsCount: tagSummary.cardsCount)
+            )
+        }
+    }
+
+    private var selectedReviewFilterTitle: String {
+        switch store.selectedReviewFilter {
+        case .allCards:
+            return allCardsDeckLabel
+        case .deck(let deckId):
+            return self.reviewDeckSummaries.first(where: { deckSummary in
+                deckSummary.deckId == deckId
+            })?.name ?? allCardsDeckLabel
+        case .tag(let tag):
+            return tag
+        }
     }
 
     private func reviewFilterMenuItemLabel(reviewFilter: ReviewFilter) -> String {
         switch reviewFilter {
-        case .allCards, .deck:
-            return reviewFilterTitle(reviewFilter: reviewFilter, decks: store.decks, cards: store.cards)
+        case .allCards:
+            return allCardsDeckLabel
+        case .deck(let deckId):
+            return self.reviewDeckSummaries.first(where: { deckSummary in
+                deckSummary.deckId == deckId
+            })?.name ?? allCardsDeckLabel
         case .tag(let tag):
             guard let tagSummary = reviewTagSummaries.first(where: { summary in
                 summary.tag == tag
@@ -94,6 +119,9 @@ struct ReviewView: View {
         .task(id: preparedRevealStatesTaskId) {
             await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
         }
+        .task(id: store.localReadVersion) {
+            await self.reloadReviewMetadata()
+        }
         .safeAreaBar(edge: .bottom, spacing: 0) {
             reviewBottomAccessory
         }
@@ -124,7 +152,7 @@ struct ReviewView: View {
         .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
             NavigationStack {
                 ReviewQueuePreviewScreen(
-                    title: store.selectedReviewFilterTitle,
+                    title: self.selectedReviewFilterTitle,
                     activeCount: store.displayedReviewDueCount,
                     currentCardId: currentCard?.cardId,
                     hiddenCardIds: store.pendingReviewCardIds,
@@ -143,6 +171,7 @@ struct ReviewView: View {
                     title: "Edit card",
                     isEditing: true,
                     errorMessage: screenErrorMessage,
+                    availableTagSuggestions: self.availableTagSuggestions,
                     formState: self.$cardFormState,
                     onCancel: {
                         self.isEditorPresented = false
@@ -190,8 +219,8 @@ struct ReviewView: View {
                     }
                 )
             ) {
-                ForEach([ReviewFilter.allCards] + store.decks.map { deck in
-                    .deck(deckId: deck.deckId)
+                ForEach([ReviewFilter.allCards] + self.reviewDeckSummaries.map { deckSummary in
+                    .deck(deckId: deckSummary.deckId)
                 }) { reviewFilter in
                     Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
                         .tag(reviewFilter)
@@ -228,7 +257,7 @@ struct ReviewView: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Text(store.selectedReviewFilterTitle)
+                Text(self.selectedReviewFilterTitle)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Image(systemName: "chevron.down")
@@ -461,20 +490,16 @@ struct ReviewView: View {
     }
 
     private var emptyStateView: some View {
-        let shouldShowSwitchToAllCardsAction = shouldShowSwitchToAllCardsReviewAction(
-            reviewFilter: store.selectedReviewFilter,
-            decks: store.decks,
-            cards: store.cards
-        )
+        let shouldShowSwitchToAllCardsAction = store.selectedReviewFilter != .allCards
 
         return ContentUnavailableView {
-            if store.cards.isEmpty {
+            if self.totalCardsCount == 0 {
                 Label("No Cards Yet", systemImage: "tray")
             } else {
                 Label("Nothing Due", systemImage: "checkmark.circle")
             }
         } description: {
-            if store.cards.isEmpty {
+            if self.totalCardsCount == 0 {
                 Text("You haven't created any cards yet. Add your first card to start studying.")
             } else {
                 Text("You're all caught up for now. Come back later or add more cards.")
@@ -518,6 +543,20 @@ struct ReviewView: View {
     private func submitReview(cardId: String, rating: ReviewRating) {
         do {
             try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
+            self.screenErrorMessage = ""
+        } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
+    }
+
+    private func reloadReviewMetadata() async {
+        do {
+            let now = Date()
+            let decksSnapshot = try store.loadDecksListSnapshot(now: now)
+            let tagsSummary = try store.loadWorkspaceTagsSummary()
+            self.reviewDeckSummaries = decksSnapshot.deckSummaries
+            self.reviewTagSummaries = tagsSummary.tags
+            self.totalCardsCount = tagsSummary.totalCards
             self.screenErrorMessage = ""
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)

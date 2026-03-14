@@ -8,11 +8,9 @@ import {
   type ReactElement,
 } from "react";
 import { createLocalChatRequestBody, streamLocalChat, transcribeChatAudio } from "../api";
-import type { MutableSnapshot } from "../appData/types";
 import { webAppVersion } from "../clientIdentity";
 import { DEFAULT_MODEL_ID } from "../chatModels";
 import { useAppData } from "../appData";
-import { deriveActiveCards } from "../appData/domain";
 import { ensurePersistentStorage } from "../syncStorage";
 import {
   explainBrowserMediaPermissionError,
@@ -58,12 +56,6 @@ import {
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
 }>;
-
-function buildLocalChatUserContext(snapshot: MutableSnapshot): Readonly<{ totalCards: number }> {
-  return {
-    totalCards: deriveActiveCards(snapshot.cards).length,
-  };
-}
 
 function stopMediaStream(stream: MediaStream | null): void {
   if (stream === null) {
@@ -212,7 +204,7 @@ export function ChatPanel(props: Props): ReactElement {
       draftWireMessages,
       selectedModel,
       timezone,
-      buildLocalChatUserContext(appData.getLocalSnapshot()),
+      { totalCards: appData.localCardCount },
     );
   }
 
@@ -555,7 +547,7 @@ export function ChatPanel(props: Props): ReactElement {
       initialWireMessages,
       selectedModel,
       timezone,
-      buildLocalChatUserContext(appData.getLocalSnapshot()),
+      { totalCards: appData.localCardCount },
     );
     if (toRequestBodySizeBytes(initialRequestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       markAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
@@ -594,7 +586,7 @@ export function ChatPanel(props: Props): ReactElement {
             runtimeMessages,
             runtimeModel,
             runtimeTimezone,
-            buildLocalChatUserContext(appData.getLocalSnapshot()),
+            { totalCards: appData.localCardCount },
           ),
           streamChat: streamLocalChat,
           executeTool: localToolExecutor.execute,
