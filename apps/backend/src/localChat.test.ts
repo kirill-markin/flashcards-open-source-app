@@ -218,6 +218,7 @@ test("buildLocalSystemInstructions includes strict tool-call rules, examples, an
 
   assert.match(instructions, /the user is chatting with you in the ios app chat on iphone\./i);
   assert.match(instructions, /respond to the user as plain text for a chat surface that does not render markdown\./i);
+  assert.match(instructions, /keep replies compact and comfortable to read in a small chat window on mobile devices and in the browser\./i);
   assert.match(instructions, /simple lists and numbering are allowed when they remain readable as raw plain text\./i);
   assert.match(instructions, /use short labels, indentation, and blank lines between blocks\./i);
   assert.match(instructions, /do not use markdown headings, fenced code blocks, tables, blockquotes, or similar markdown formatting in user-facing chat replies\./i);
@@ -260,6 +261,7 @@ test("buildLocalSystemInstructions uses explicit web browser chat context", () =
 
   assert.match(instructions, /the user is chatting with you in the web browser chat\./i);
   assert.match(instructions, /respond to the user as plain text for a chat surface that does not render markdown\./i);
+  assert.match(instructions, /keep replies compact and comfortable to read in a small chat window on mobile devices and in the browser\./i);
 });
 
 test("isInlineTextAttachmentCandidate accepts supported text-like files and excludes csv", () => {
