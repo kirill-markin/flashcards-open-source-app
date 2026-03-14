@@ -7,7 +7,7 @@
     "lint": "redocly lint src/openapi.yaml"
   },
   "devDependencies": {
-    "@redocly/cli": "2.21.0"
+    "@redocly/cli": "^2.21.1"
   },
   "engines": {
     "node": "24.x"
