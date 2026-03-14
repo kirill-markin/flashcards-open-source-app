@@ -78,7 +78,7 @@ bash scripts/first-deploy.sh \
   --alert-email alerts@example.com
 ```
 
-`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional. When present, the deploy flow writes them to AWS Secrets Manager and stores the resulting secret ARNs in `infra/aws/cdk.context.local.json` so CDK can inject them into the backend Lambda. When absent, infrastructure still deploys and the chat endpoint remains disabled until the keys are configured later.
+`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional. When present, the deploy flow writes them to AWS Secrets Manager and stores the resulting secret ARNs in `infra/aws/cdk.context.local.json` so CDK can inject them into the backend Lambda. When absent, infrastructure still deploys and AI chat or transcription requests return stable "not configured" or temporary-unavailable errors until the keys are configured later.
 
 To use custom domains:
 

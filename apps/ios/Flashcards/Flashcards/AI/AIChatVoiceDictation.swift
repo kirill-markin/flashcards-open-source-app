@@ -65,6 +65,7 @@ enum AIChatTranscriptionError: LocalizedError {
     case invalidBaseUrl
     case invalidAudio
     case serviceUnavailable
+    case serverMessage(String)
 
     var errorDescription: String? {
         switch self {
@@ -74,6 +75,8 @@ enum AIChatTranscriptionError: LocalizedError {
             return "We couldn’t process that recording. Please try again."
         case .serviceUnavailable:
             return "There is a network problem. Fix it and try again."
+        case .serverMessage(let message):
+            return message
         }
     }
 }
@@ -179,11 +182,6 @@ private struct AIChatTranscriptionResponse: Decodable {
     let text: String
 }
 
-private struct AIChatTranscriptionErrorResponse: Decodable {
-    let error: String
-    let code: String?
-}
-
 final class AIChatTranscriptionService: @unchecked Sendable {
     private let session: URLSession
     private let decoder: JSONDecoder
@@ -205,7 +203,11 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
             }
 
             guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-                throw self.mapTranscriptionFailure(statusCode: httpResponse.statusCode, data: data)
+                throw self.mapTranscriptionFailure(
+                    statusCode: httpResponse.statusCode,
+                    data: data,
+                    configurationMode: session.configurationMode
+                )
             }
 
             let transcriptionResponse = try self.decoder.decode(AIChatTranscriptionResponse.self, from: data)
@@ -232,16 +234,29 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         return request
     }
 
-    private func mapTranscriptionFailure(statusCode: Int, data: Data) -> AIChatTranscriptionError {
-        guard let failureResponse = try? self.decoder.decode(AIChatTranscriptionErrorResponse.self, from: data) else {
-            return statusCode == 422 ? .invalidAudio : .serviceUnavailable
-        }
-
-        if failureResponse.code == "CHAT_TRANSCRIPTION_INVALID_AUDIO" || statusCode == 422 {
+    /**
+     Normalize backend dictation failures through the shared AI availability
+     mapper so official and custom servers present consistent user-facing copy.
+     */
+    private func mapTranscriptionFailure(
+        statusCode: Int,
+        data: Data,
+        configurationMode: CloudServiceConfigurationMode
+    ) -> AIChatTranscriptionError {
+        let errorDetails = parseCloudApiErrorDetails(data: data, requestId: nil)
+        if errorDetails.code == "CHAT_TRANSCRIPTION_INVALID_AUDIO" || statusCode == 422 {
             return .invalidAudio
         }
 
-        return .serviceUnavailable
+        return .serverMessage(
+            makeAIChatUserFacingErrorMessage(
+                rawMessage: errorDetails.message,
+                code: errorDetails.code,
+                requestId: errorDetails.requestId,
+                configurationMode: configurationMode,
+                surface: .dictation
+            )
+        )
     }
 
     private func makeMultipartBody(boundary: String, recordedAudio: AIChatRecordedAudio) throws -> Data {

@@ -344,7 +344,8 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 let message = makeRequestFailureMessage(
                     statusCode: httpResponse.statusCode,
                     body: body,
-                    requestId: backendRequestId
+                    requestId: backendRequestId,
+                    configurationMode: session.configurationMode
                 )
                 await emitLatencyIfNeeded(result: .responseNotOk)
                 logAIChatFailure(diagnostics: diagnostics, summary: message)
@@ -393,6 +394,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     return try await processStreamEvent(
                         event: event,
                         clientRequestId: clientRequestId,
+                        configurationMode: session.configurationMode,
                         requestedToolCalls: &requestedToolCalls,
                         awaitsToolResults: &awaitsToolResults,
                         onDelta: onDelta,
@@ -435,6 +437,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 let trailingCompleted = try await processStreamEvent(
                     event: event,
                     clientRequestId: clientRequestId,
+                    configurationMode: session.configurationMode,
                     requestedToolCalls: &requestedToolCalls,
                     awaitsToolResults: &awaitsToolResults,
                     onDelta: onDelta,
@@ -639,6 +642,7 @@ private func consumeSSEBytes(
 private func processStreamEvent(
     event: AIChatBackendStreamEvent,
     clientRequestId: String,
+    configurationMode: CloudServiceConfigurationMode,
     requestedToolCalls: inout [AIToolCallRequest],
     awaitsToolResults: inout Bool,
     onDelta: @escaping @Sendable (String) async -> Void,
@@ -666,6 +670,19 @@ private func processStreamEvent(
     case .done:
         return true
     case .error(let backendError):
+        let mappedMessage = makeAIChatUserFacingErrorMessage(
+            rawMessage: backendError.message,
+            code: backendError.code,
+            requestId: backendError.requestId,
+            configurationMode: configurationMode,
+            surface: .chat
+        )
+        let mappedBackendError = AIChatBackendError(
+            message: mappedMessage,
+            code: backendError.code,
+            stage: backendError.stage,
+            requestId: backendError.requestId
+        )
         let diagnostics = AIChatFailureDiagnostics(
             clientRequestId: clientRequestId,
             backendRequestId: backendError.requestId,
@@ -679,8 +696,8 @@ private func processStreamEvent(
             rawSnippet: nil,
             decoderSummary: "backend_code=\(backendError.code)"
         )
-        logAIChatFailure(diagnostics: diagnostics, summary: backendError.message)
-        throw AIChatServiceError.backendError(backendError, diagnostics)
+        logAIChatFailure(diagnostics: diagnostics, summary: mappedBackendError.message)
+        throw AIChatServiceError.backendError(mappedBackendError, diagnostics)
     }
 }
 
@@ -881,8 +898,19 @@ private func logAIChatLatency(body: AIChatLatencyReportBody) {
     )
 }
 
-private func makeRequestFailureMessage(statusCode: Int, body: String, requestId: String?) -> String {
+private func makeRequestFailureMessage(
+    statusCode: Int,
+    body: String,
+    requestId: String?,
+    configurationMode: CloudServiceConfigurationMode
+) -> String {
     let errorDetails = parseCloudApiErrorDetails(data: Data(body.utf8), requestId: requestId)
-    let baseMessage = appendCloudRequestReference(message: errorDetails.message, requestId: errorDetails.requestId)
+    let baseMessage = makeAIChatUserFacingErrorMessage(
+        rawMessage: errorDetails.message,
+        code: errorDetails.code,
+        requestId: errorDetails.requestId,
+        configurationMode: configurationMode,
+        surface: .chat
+    )
     return "AI chat request failed with status \(statusCode): \(baseMessage)"
 }

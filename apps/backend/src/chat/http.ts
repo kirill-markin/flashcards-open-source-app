@@ -1,4 +1,9 @@
 import { HttpError } from "../errors";
+import {
+  classifyAIEndpointFailure,
+  makeAIEndpointNotConfiguredError,
+  type AIEndpointFailureClassification,
+} from "./aiAvailabilityErrors";
 import type {
   LocalChatUserContext,
   LocalContentPart,
@@ -303,6 +308,7 @@ function logLocalChatTerminalError(
   code: string,
   stage: string,
   message: string,
+  details?: AIEndpointFailureClassification,
 ): void {
   console.error(JSON.stringify({
     domain: "chat",
@@ -313,6 +319,11 @@ function logLocalChatTerminalError(
     code,
     stage,
     message,
+    provider: details?.provider ?? "-",
+    upstreamStatus: details?.upstreamStatus,
+    upstreamRequestId: details?.upstreamRequestId ?? "-",
+    upstreamMessage: details?.upstreamMessage ?? "-",
+    originalMessage: details?.originalMessage ?? message,
   }));
 }
 
@@ -334,8 +345,8 @@ export function createLocalChatErrorEvent(
 function createLocalChatErrorEventFromError(
   error: unknown,
   requestId: string,
-  fallbackCode: string,
   fallbackStage: string,
+  provider: string | null,
 ): Extract<LocalChatStreamEvent, { type: "error" }> {
   if (
     typeof error === "object" &&
@@ -353,10 +364,11 @@ function createLocalChatErrorEventFromError(
     );
   }
 
+  const normalizedFailure = classifyAIEndpointFailure("chat", error, provider);
   return createLocalChatErrorEvent(
-    getInternalErrorMessage(error),
+    normalizedFailure.message,
     requestId,
-    fallbackCode,
+    normalizedFailure.code,
     fallbackStage,
   );
 }
@@ -401,7 +413,7 @@ export async function streamLocalChatResponse(
     ? process.env.ANTHROPIC_API_KEY
     : process.env.OPENAI_API_KEY;
   if (apiKey === undefined || apiKey === "") {
-    throw new HttpError(500, `${validModel.vendor === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY"} environment variable is not set`);
+    throw makeAIEndpointNotConfiguredError("chat");
   }
 
   const agentModule = validModel.vendor === "anthropic"
@@ -425,13 +437,27 @@ export async function streamLocalChatResponse(
           }
         }
       } catch (error) {
+        const normalizedFailure = classifyAIEndpointFailure("chat", error, validModel.vendor);
         const errorEvent = createLocalChatErrorEventFromError(
           error,
           requestId,
-          "LOCAL_CHAT_STREAM_FAILED",
           "stream_local_turn",
+          validModel.vendor,
         );
-        logLocalChatTerminalError(requestId, errorEvent.code, errorEvent.stage, errorEvent.message);
+        logLocalChatTerminalError(
+          requestId,
+          errorEvent.code,
+          errorEvent.stage,
+          errorEvent.message,
+          typeof error === "object"
+            && error !== null
+            && "code" in error
+            && "stage" in error
+            && typeof error.code === "string"
+            && typeof error.stage === "string"
+            ? undefined
+            : normalizedFailure,
+        );
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent satisfies LocalChatStreamEvent)}\n\n`));
       } finally {
         controller.close();

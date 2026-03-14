@@ -832,6 +832,38 @@ test("streamLocalChatResponse rejects only unknown local models", async () => {
   );
 });
 
+test("streamLocalChatResponse returns a stable not-configured error when the provider key is missing", async () => {
+  const originalOpenAiApiKey = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+
+  try {
+    await assert.rejects(
+      async () => {
+        await streamLocalChatResponse(
+          {
+            messages: [{ role: "user", content: userTextContent("hi") }],
+            model: "gpt-5.4",
+            timezone: "Europe/Madrid",
+            devicePlatform: "ios",
+            userContext: testUserContext,
+          },
+          "request-id",
+        );
+      },
+      (error: unknown) => error instanceof HttpError
+        && error.statusCode === 503
+        && error.code === "LOCAL_CHAT_NOT_CONFIGURED"
+        && error.message === "AI chat is not configured on this server.",
+    );
+  } finally {
+    if (originalOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = originalOpenAiApiKey;
+    }
+  }
+});
+
 test("parseLocalChatRequestBody requires a non-negative user card count", () => {
   const parsedBody = parseLocalChatRequestBody({
     messages: [{ role: "user", content: userTextContent("hi") }],

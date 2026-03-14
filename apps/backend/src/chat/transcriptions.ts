@@ -1,8 +1,12 @@
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import OpenAI, { toFile } from "openai";
-import { APIError } from "openai/error";
 import { HttpError } from "../errors";
+import {
+  classifyAIEndpointFailure,
+  getAIProviderFailureMetadata,
+  makeAIEndpointNotConfiguredError,
+} from "./aiAvailabilityErrors";
 
 export type ChatTranscriptionSource = "ios" | "web";
 
@@ -25,7 +29,6 @@ export type ChatTranscriptionUpload = Readonly<{
 }>;
 
 const CHAT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
-const CHAT_TRANSCRIPTION_NETWORK_ERROR_MESSAGE = "There is a network problem. Fix it and try again.";
 const CHAT_TRANSCRIPTION_INVALID_AUDIO_ERROR_MESSAGE = "We couldn’t process that recording. Please try again.";
 const SUPPORTED_AUDIO_FILE_EXTENSIONS = new Set(["m4a", "wav", "webm"]);
 const SUPPORTED_AUDIO_MEDIA_TYPES = new Set([
@@ -44,6 +47,7 @@ type ChatTranscriptionFailureDetails = Readonly<{
   fileName: string;
   fileSize: number;
   fileExtension: string | null;
+  provider: string;
   mediaType: string;
   upstreamStatus: number | null;
   upstreamMessage: string | null;
@@ -109,28 +113,8 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
   };
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function getUpstreamStatus(error: unknown): number | null {
-  if (error instanceof APIError) {
-    return error.status ?? null;
-  }
-
-  return null;
-}
-
-function getUpstreamRequestId(error: unknown): string | null {
-  if (error instanceof APIError && typeof error.requestID === "string" && error.requestID !== "") {
-    return error.requestID;
-  }
-
-  return null;
-}
-
 function getUpstreamMessage(error: unknown): string | null {
-  const message = getErrorMessage(error).trim();
+  const message = getAIProviderFailureMetadata(error).upstreamMessage;
   return message === "" ? null : message;
 }
 
@@ -143,7 +127,7 @@ function isInvalidAudioMessage(message: string | null): boolean {
 }
 
 function isInvalidAudioFailure(error: unknown): boolean {
-  const upstreamStatus = getUpstreamStatus(error);
+  const upstreamStatus = getAIProviderFailureMetadata(error).upstreamStatus;
   if (upstreamStatus === null) {
     return false;
   }
@@ -157,6 +141,7 @@ function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): 
     action: "chat_transcription_failed",
     requestId: details.requestId,
     source: details.source,
+    provider: details.provider,
     fileName: details.fileName,
     fileSize: details.fileSize,
     fileExtension: details.fileExtension,
@@ -174,7 +159,7 @@ export async function transcribeChatAudioUpload(
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (apiKey === undefined || apiKey.trim() === "") {
-    throw new HttpError(500, "OPENAI_API_KEY environment variable is not set");
+    throw makeAIEndpointNotConfiguredError("transcription");
   }
 
   try {
@@ -192,18 +177,20 @@ export async function transcribeChatAudioUpload(
 
     return trimmedText;
   } catch (error) {
+    const metadata = getAIProviderFailureMetadata(error);
     const requestId = randomUUID();
     logChatTranscriptionFailure({
       requestId,
       source: upload.source,
+      provider: "openai",
       fileName: upload.file.name,
       fileSize: upload.file.size,
       fileExtension: normalizeFileExtension(upload.file.name),
       mediaType: upload.file.type.trim().toLowerCase(),
-      upstreamStatus: getUpstreamStatus(error),
-      upstreamMessage: getUpstreamMessage(error),
-      upstreamRequestId: getUpstreamRequestId(error),
-      error: getErrorMessage(error),
+      upstreamStatus: metadata.upstreamStatus,
+      upstreamMessage: metadata.upstreamMessage,
+      upstreamRequestId: metadata.upstreamRequestId,
+      error: metadata.originalMessage,
     });
 
     if (isInvalidAudioFailure(error)) {
@@ -214,6 +201,11 @@ export async function transcribeChatAudioUpload(
       );
     }
 
-    throw new HttpError(503, CHAT_TRANSCRIPTION_NETWORK_ERROR_MESSAGE, "CHAT_TRANSCRIPTION_UNAVAILABLE");
+    const normalizedFailure = classifyAIEndpointFailure("transcription", error, "openai");
+    throw new HttpError(
+      normalizedFailure.statusCode,
+      normalizedFailure.message,
+      normalizedFailure.code,
+    );
   }
 }

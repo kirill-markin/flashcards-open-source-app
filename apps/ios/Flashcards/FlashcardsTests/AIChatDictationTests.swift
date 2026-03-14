@@ -204,6 +204,38 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         chatStore.cancelStreaming()
     }
 
+    func testAIChatAvailabilityMessageUsesOfficialAndCustomServerCopy() {
+        XCTAssertEqual(
+            aiChatAvailabilityMessage(
+                code: "LOCAL_CHAT_NOT_CONFIGURED",
+                configurationMode: .official,
+                surface: .chat
+            ),
+            "AI is temporarily unavailable on the official server. Try again later."
+        )
+        XCTAssertEqual(
+            aiChatAvailabilityMessage(
+                code: "CHAT_TRANSCRIPTION_NOT_CONFIGURED",
+                configurationMode: .custom,
+                surface: .dictation
+            ),
+            "AI dictation is unavailable on this server. Contact the server operator."
+        )
+    }
+
+    func testMakeAIChatUserFacingErrorMessagePreservesRequestReferences() {
+        XCTAssertEqual(
+            makeAIChatUserFacingErrorMessage(
+                rawMessage: "AI chat is not configured on this server.",
+                code: "LOCAL_CHAT_NOT_CONFIGURED",
+                requestId: "request-123",
+                configurationMode: .custom,
+                surface: .chat
+            ),
+            "AI is unavailable on this server. Contact the server operator. Reference: request-123"
+        )
+    }
+
     private func waitForDictationState(
         chatStore: AIChatStore,
         state: AIChatDictationState

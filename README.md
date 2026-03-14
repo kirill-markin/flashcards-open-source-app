@@ -65,7 +65,7 @@ bash scripts/first-deploy.sh \
   --alert-email you@example.com
 ```
 
-Both AI provider variables are optional. If they are exported, the deploy flow stores them in AWS Secrets Manager, records the secret ARNs in `infra/aws/cdk.context.local.json`, and configures the backend Lambda from AWS secrets. If they are omitted, the app still deploys successfully and `/chat/local-turn` will keep returning the existing "environment variable is not set" error until keys are configured later.
+Both AI provider variables are optional. If they are exported, the deploy flow stores them in AWS Secrets Manager, records the secret ARNs in `infra/aws/cdk.context.local.json`, and configures the backend Lambda from AWS secrets. If they are omitted, the app still deploys successfully and the AI chat and transcription endpoints return stable "not configured" or temporary-unavailable errors until keys are configured later.
 
 This script:
 

@@ -8,6 +8,7 @@ import {
   parseLocalChatRequestBody,
   streamLocalChatResponse,
 } from "../chat/http";
+import { classifyAIEndpointFailure } from "../chat/aiAvailabilityErrors";
 import {
   parseChatTranscriptionUpload,
   transcribeChatAudioUpload,
@@ -23,10 +24,6 @@ type ChatRoutesOptions = Readonly<{
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   transcribeAudioFn?: (upload: ChatTranscriptionUpload) => Promise<string>;
 }>;
-
-function getInternalErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -45,10 +42,11 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         throw error;
       }
 
+      const normalizedFailure = classifyAIEndpointFailure("chat", error, null);
       return createLocalChatErrorResponse(
-        getInternalErrorMessage(error),
+        normalizedFailure.message,
         requestId,
-        "LOCAL_CHAT_REQUEST_FAILED",
+        normalizedFailure.code,
         "local_turn_request",
       );
     }

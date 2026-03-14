@@ -303,6 +303,7 @@ struct CloudLinkedSession: Hashable, Sendable {
     let userId: String
     let workspaceId: String
     let email: String?
+    let configurationMode: CloudServiceConfigurationMode
     let apiBaseUrl: String
     let bearerToken: String
 }
