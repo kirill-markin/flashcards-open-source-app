@@ -504,6 +504,48 @@ describe("syncStorage cursor queries", () => {
     );
   });
 
+  it("keeps cards pagination gap-free for non-default local sorts without materializing a full page list", async () => {
+    const firstPage = await queryLocalCardsPage({
+      searchText: null,
+      cursor: null,
+      limit: 3,
+      sorts: [{
+        key: "reps",
+        direction: "desc",
+      }],
+      filter: null,
+    });
+    const secondPage = await queryLocalCardsPage({
+      searchText: null,
+      cursor: firstPage.nextCursor,
+      limit: 3,
+      sorts: [{
+        key: "reps",
+        direction: "desc",
+      }],
+      filter: null,
+    });
+    const legacy = legacyQueryCards(sampleCards, {
+      searchText: null,
+      cursor: null,
+      limit: 20,
+      sorts: [{
+        key: "reps",
+        direction: "desc",
+      }],
+      filter: null,
+    });
+
+    expect(firstPage.cards.map((card) => card.cardId)).toEqual(
+      legacy.cards.slice(0, 3).map((card) => card.cardId),
+    );
+    expect(secondPage.cards.map((card) => card.cardId)).toEqual(
+      legacy.cards.slice(3, 6).map((card) => card.cardId),
+    );
+    expect(firstPage.totalCount).toBe(legacy.totalCount);
+    expect(secondPage.totalCount).toBe(legacy.totalCount);
+  });
+
   it("reflects local DB changes immediately after a local mutation", async () => {
     const initialCardsPage = await queryLocalCardsPage({
       searchText: null,
