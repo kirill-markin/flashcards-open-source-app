@@ -22,7 +22,7 @@ describe("OpenSourceSettingsScreen", () => {
     container.remove();
   });
 
-  it("renders repository, license, and self-hosting copy", async () => {
+  it("renders repository and self-hosting copy", async () => {
     await act(async () => {
       root.render(
         <MemoryRouter>
@@ -33,8 +33,8 @@ describe("OpenSourceSettingsScreen", () => {
 
     expect(container.textContent).toContain("Open Source");
     expect(container.textContent).toContain("The iOS app and the backend are fully open source.");
+    expect(container.textContent).toContain("GitHub Repository (MIT License)");
     expect(container.querySelector('a[href="https://github.com/kirill-markin/flashcards-open-source-app"]')?.textContent).toBe("Open repository");
-    expect(container.querySelector('a[href="https://github.com/kirill-markin/flashcards-open-source-app/blob/main/LICENSE"]')?.textContent).toBe("Open license");
     expect(container.textContent).toContain("deploy the same open-source stack on your infrastructure");
   });
 });
