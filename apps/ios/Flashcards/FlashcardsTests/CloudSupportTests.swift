@@ -196,6 +196,44 @@ final class CloudSupportTests: XCTestCase {
         XCTAssertTrue(isValidCloudEmail(" User@Example.com "))
     }
 
+    func testMakeSyncStatusPresentationReturnsSuccessForLinkedIdleState() {
+        XCTAssertEqual(
+            makeSyncStatusPresentation(status: .idle, cloudState: .linked),
+            SyncStatusPresentation(title: "Successfully synced", tone: .success)
+        )
+    }
+
+    func testMakeSyncStatusPresentationReturnsInProgressForSyncingState() {
+        XCTAssertEqual(
+            makeSyncStatusPresentation(status: .syncing, cloudState: .linked),
+            SyncStatusPresentation(title: "Syncing", tone: .inProgress)
+        )
+    }
+
+    func testMakeSyncStatusPresentationReturnsFailureForFailedState() {
+        XCTAssertEqual(
+            makeSyncStatusPresentation(
+                status: .failed(message: "Network timeout"),
+                cloudState: .linked
+            ),
+            SyncStatusPresentation(title: "Sync failed: Network timeout", tone: .failure)
+        )
+    }
+
+    func testMakeSyncStatusPresentationReturnsNeutralForDisconnectedIdleState() {
+        XCTAssertEqual(
+            makeSyncStatusPresentation(status: .idle, cloudState: .disconnected),
+            SyncStatusPresentation(title: "Not syncing", tone: .neutral)
+        )
+    }
+
+    func testMakeSyncStatusPresentationReturnsNeutralForLinkingReadyIdleState() {
+        XCTAssertEqual(
+            makeSyncStatusPresentation(status: .idle, cloudState: .linkingReady),
+            SyncStatusPresentation(title: "Not syncing", tone: .neutral)
+        )
+    }
+
     func testMakeCloudWorkspacePostAuthRouteAutoLinksByCreatingWorkspaceWhenListIsEmpty() {
         XCTAssertEqual(
             makeCloudWorkspacePostAuthRoute(workspaces: []),

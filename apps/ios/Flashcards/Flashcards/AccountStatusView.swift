@@ -1,5 +1,35 @@
 import SwiftUI
 
+struct SyncStatusIndicatorView: View {
+    let presentation: SyncStatusPresentation
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let toneColor = self.toneColor {
+                Circle()
+                    .fill(toneColor)
+                    .frame(width: 8, height: 8)
+            }
+
+            Text(presentation.title)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private var toneColor: Color? {
+        switch presentation.tone {
+        case .success:
+            return .green
+        case .inProgress:
+            return .yellow
+        case .failure:
+            return .red
+        case .neutral:
+            return nil
+        }
+    }
+}
+
 struct AccountStatusView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
@@ -17,6 +47,11 @@ struct AccountStatusView: View {
 
             Section("Account Status") {
                 if let cloudSettings = store.cloudSettings {
+                    let syncStatusPresentation = makeSyncStatusPresentation(
+                        status: store.syncStatus,
+                        cloudState: cloudSettings.cloudState
+                    )
+
                     LabeledContent("State") {
                         Text(displayCloudAccountStateTitle(cloudState: cloudSettings.cloudState))
                     }
@@ -34,7 +69,7 @@ struct AccountStatusView: View {
                     }
 
                     LabeledContent("Sync status") {
-                        Text(syncStatusTitle(status: store.syncStatus))
+                        SyncStatusIndicatorView(presentation: syncStatusPresentation)
                     }
 
                     if let lastSuccessfulCloudSyncAt = store.lastSuccessfulCloudSyncAt {

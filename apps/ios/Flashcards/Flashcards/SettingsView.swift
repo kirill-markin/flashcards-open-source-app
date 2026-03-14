@@ -1,5 +1,17 @@
 import SwiftUI
 
+enum SyncStatusTone: Equatable {
+    case success
+    case inProgress
+    case failure
+    case neutral
+}
+
+struct SyncStatusPresentation: Equatable {
+    let title: String
+    let tone: SyncStatusTone
+}
+
 struct SettingsView: View {
     @EnvironmentObject private var store: FlashcardsStore
 
@@ -60,14 +72,19 @@ struct SettingsNavigationRow: View {
     }
 }
 
-func syncStatusTitle(status: SyncStatus) -> String {
+func makeSyncStatusPresentation(status: SyncStatus, cloudState: CloudAccountState) -> SyncStatusPresentation {
     switch status {
     case .idle:
-        return "Idle"
+        switch cloudState {
+        case .linked:
+            return SyncStatusPresentation(title: "Successfully synced", tone: .success)
+        case .disconnected, .linkingReady:
+            return SyncStatusPresentation(title: "Not syncing", tone: .neutral)
+        }
     case .syncing:
-        return "Syncing"
+        return SyncStatusPresentation(title: "Syncing", tone: .inProgress)
     case .failed(let message):
-        return "Failed: \(message)"
+        return SyncStatusPresentation(title: "Sync failed: \(message)", tone: .failure)
     }
 }
 
