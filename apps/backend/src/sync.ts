@@ -61,6 +61,7 @@ const cardSnapshotSchema = z.object({
   tags: z.array(z.string()),
   effortLevel: effortLevelSchema,
   dueAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
   reps: z.number().int().nonnegative(),
   lapses: z.number().int().nonnegative(),
   fsrsCardState: fsrsCardStateSchema,

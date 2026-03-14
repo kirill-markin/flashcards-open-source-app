@@ -14,7 +14,7 @@ import type {
 } from "./types";
 
 export const CARD_COLUMNS = [
-  "card_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
+  "card_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
   "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
   "client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
 ].join(" ");
@@ -68,6 +68,7 @@ export function mapCard(row: CardRow): Card {
     tags: row.tags,
     effortLevel: row.effort_level,
     dueAt: row.due_at === null ? null : toIsoString(row.due_at),
+    createdAt: toIsoString(row.created_at),
     reps: row.reps,
     lapses: row.lapses,
     fsrsCardState: row.fsrs_card_state,

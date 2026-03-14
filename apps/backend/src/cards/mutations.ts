@@ -120,6 +120,7 @@ function normalizeCardSnapshotInput(input: CardSnapshotInput): CardSnapshotInput
     tags: input.tags,
     effortLevel: input.effortLevel,
     dueAt: input.dueAt === null ? null : normalizeIsoTimestamp(input.dueAt, "dueAt"),
+    createdAt: normalizeIsoTimestamp(input.createdAt, "createdAt"),
     reps: input.reps,
     lapses: input.lapses,
     fsrsCardState: input.fsrsCardState,
@@ -181,11 +182,11 @@ export async function upsertCardSnapshotInExecutor(
       [
         "INSERT INTO content.cards",
         "(",
-        "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
+        "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
         "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
         "client_updated_at, last_modified_by_device_id, last_operation_id, deleted_at",
         ")",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)",
         "RETURNING",
         CARD_COLUMNS,
       ].join(" "),
@@ -197,6 +198,7 @@ export async function upsertCardSnapshotInExecutor(
         normalizedInput.tags,
         normalizedInput.effortLevel,
         normalizedInput.dueAt,
+        normalizedInput.createdAt,
         normalizedInput.reps,
         normalizedInput.lapses,
         normalizedInput.fsrsCardState,
@@ -304,16 +306,17 @@ async function createCardInExecutor(
 ): Promise<Card> {
   const normalizedInput = normalizeCreateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
+  const createdAt = normalizeIsoTimestamp(normalizedMetadata.clientUpdatedAt, "clientUpdatedAt");
 
   const result = await executor.query<CardRow>(
     [
       "INSERT INTO content.cards",
       "(",
-      "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at,",
+      "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, created_at,",
       "reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
       "client_updated_at, last_modified_by_device_id, last_operation_id",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $7, $8, $9)",
+      "VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $8, $9, $10)",
       "RETURNING",
       CARD_COLUMNS,
     ].join(" "),
@@ -324,6 +327,7 @@ async function createCardInExecutor(
       normalizedInput.backText,
       normalizedInput.tags,
       normalizedInput.effortLevel,
+      createdAt,
       normalizedMetadata.clientUpdatedAt,
       normalizedMetadata.lastModifiedByDeviceId,
       normalizedMetadata.lastOperationId,

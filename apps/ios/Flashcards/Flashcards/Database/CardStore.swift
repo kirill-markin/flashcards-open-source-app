@@ -27,6 +27,7 @@ struct CardStore {
                 tags_json,
                 effort_level,
                 due_at,
+                created_at,
                 reps,
                 lapses,
                 fsrs_card_state,
@@ -68,6 +69,7 @@ struct CardStore {
                 tags_json,
                 effort_level,
                 due_at,
+                created_at,
                 reps,
                 lapses,
                 fsrs_card_state,
@@ -102,6 +104,7 @@ struct CardStore {
                 tags_json,
                 effort_level,
                 due_at,
+                created_at,
                 reps,
                 lapses,
                 fsrs_card_state,
@@ -145,6 +148,7 @@ struct CardStore {
                 tags_json,
                 effort_level,
                 due_at,
+                created_at,
                 reps,
                 lapses,
                 fsrs_card_state,
@@ -188,6 +192,7 @@ struct CardStore {
                 tags_json,
                 effort_level,
                 due_at,
+                created_at,
                 reps,
                 lapses,
                 fsrs_card_state,
@@ -303,6 +308,7 @@ struct CardStore {
                 tags_json,
                 effort_level,
                 due_at,
+                created_at,
                 reps,
                 lapses,
                 fsrs_card_state,
@@ -325,7 +331,8 @@ struct CardStore {
                     ELSE 2
                 END ASC,
                 due_at ASC,
-                updated_at DESC
+                created_at ASC,
+                card_id ASC
             LIMIT ? OFFSET ?
             """,
             values: [.text(workspaceId)] + querySQL.values + [
@@ -398,6 +405,7 @@ struct CardStore {
                 tags_json,
                 effort_level,
                 due_at,
+                created_at,
                 reps,
                 lapses,
                 fsrs_card_state,
@@ -412,7 +420,7 @@ struct CardStore {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, NULL, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
             """,
             values: [
                 .text(newCardId),
@@ -421,6 +429,7 @@ struct CardStore {
                 .text(normalizedInput.backText),
                 .text(tagsJson),
                 .text(normalizedInput.effortLevel.rawValue),
+                .text(now),
                 .text(now),
                 .text(deviceId),
                 .text(operationId),
@@ -561,7 +570,7 @@ struct CardStore {
         guard let effortLevel = EffortLevel(rawValue: rawEffortLevel) else {
             throw LocalStoreError.database("Stored card effort level is invalid: \(rawEffortLevel)")
         }
-        let rawFsrsCardState = DatabaseCore.columnText(statement: statement, index: 9)
+        let rawFsrsCardState = DatabaseCore.columnText(statement: statement, index: 10)
         guard let fsrsCardState = FsrsCardState(rawValue: rawFsrsCardState) else {
             throw LocalStoreError.database("Stored FSRS card state is invalid: \(rawFsrsCardState)")
         }
@@ -574,19 +583,20 @@ struct CardStore {
             tags: tags,
             effortLevel: effortLevel,
             dueAt: DatabaseCore.columnOptionalText(statement: statement, index: 6),
-            reps: Int(DatabaseCore.columnInt64(statement: statement, index: 7)),
-            lapses: Int(DatabaseCore.columnInt64(statement: statement, index: 8)),
+            createdAt: DatabaseCore.columnText(statement: statement, index: 7),
+            reps: Int(DatabaseCore.columnInt64(statement: statement, index: 8)),
+            lapses: Int(DatabaseCore.columnInt64(statement: statement, index: 9)),
             fsrsCardState: fsrsCardState,
-            fsrsStepIndex: DatabaseCore.columnOptionalInt(statement: statement, index: 10),
-            fsrsStability: DatabaseCore.columnOptionalDouble(statement: statement, index: 11),
-            fsrsDifficulty: DatabaseCore.columnOptionalDouble(statement: statement, index: 12),
-            fsrsLastReviewedAt: DatabaseCore.columnOptionalText(statement: statement, index: 13),
-            fsrsScheduledDays: DatabaseCore.columnOptionalInt(statement: statement, index: 14),
-            clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 15),
-            lastModifiedByDeviceId: DatabaseCore.columnText(statement: statement, index: 16),
-            lastOperationId: DatabaseCore.columnText(statement: statement, index: 17),
-            updatedAt: DatabaseCore.columnText(statement: statement, index: 18),
-            deletedAt: DatabaseCore.columnOptionalText(statement: statement, index: 19)
+            fsrsStepIndex: DatabaseCore.columnOptionalInt(statement: statement, index: 11),
+            fsrsStability: DatabaseCore.columnOptionalDouble(statement: statement, index: 12),
+            fsrsDifficulty: DatabaseCore.columnOptionalDouble(statement: statement, index: 13),
+            fsrsLastReviewedAt: DatabaseCore.columnOptionalText(statement: statement, index: 14),
+            fsrsScheduledDays: DatabaseCore.columnOptionalInt(statement: statement, index: 15),
+            clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 16),
+            lastModifiedByDeviceId: DatabaseCore.columnText(statement: statement, index: 17),
+            lastOperationId: DatabaseCore.columnText(statement: statement, index: 18),
+            updatedAt: DatabaseCore.columnText(statement: statement, index: 19),
+            deletedAt: DatabaseCore.columnOptionalText(statement: statement, index: 20)
         )
     }
 
@@ -749,6 +759,7 @@ func resetFsrsState(card: Card, updatedAt: String) -> Card {
         tags: card.tags,
         effortLevel: card.effortLevel,
         dueAt: nil,
+        createdAt: card.createdAt,
         reps: 0,
         lapses: 0,
         fsrsCardState: .new,

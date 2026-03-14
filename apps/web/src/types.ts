@@ -114,6 +114,7 @@ export type Card = Readonly<{
   tags: ReadonlyArray<string>;
   effortLevel: EffortLevel;
   dueAt: string | null;
+  createdAt: string;
   reps: number;
   lapses: number;
   fsrsCardState: FsrsCardState;
@@ -273,6 +274,7 @@ export type SyncPushOperation =
       tags: ReadonlyArray<string>;
       effortLevel: EffortLevel;
       dueAt: string | null;
+      createdAt: string;
       reps: number;
       lapses: number;
       fsrsCardState: FsrsCardState;

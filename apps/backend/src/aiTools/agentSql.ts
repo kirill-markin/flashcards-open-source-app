@@ -72,6 +72,7 @@ function toCardRow(card: Card): SqlRow {
     tags: card.tags,
     effort_level: card.effortLevel,
     due_at: card.dueAt,
+    created_at: card.createdAt,
     reps: card.reps,
     lapses: card.lapses,
     updated_at: card.updatedAt,

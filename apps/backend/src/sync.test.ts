@@ -21,6 +21,7 @@ test("parseSyncPushInput accepts card operations with empty backText", () => {
           tags: [],
           effortLevel: "fast",
           dueAt: null,
+          createdAt: "2026-03-09T10:00:00.000Z",
           reps: 0,
           lapses: 0,
           fsrsCardState: "new",

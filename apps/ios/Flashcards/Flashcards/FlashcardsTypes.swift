@@ -187,6 +187,7 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let tags: [String]
     let effortLevel: EffortLevel
     let dueAt: String?
+    let createdAt: String
     let reps: Int
     let lapses: Int
     let fsrsCardState: FsrsCardState
@@ -400,6 +401,7 @@ struct CardSyncPayload: Codable, Hashable {
     let tags: [String]
     let effortLevel: String
     let dueAt: String?
+    let createdAt: String
     let reps: Int
     let lapses: Int
     let fsrsCardState: String
@@ -417,6 +419,7 @@ struct CardSyncPayload: Codable, Hashable {
         case tags
         case effortLevel
         case dueAt
+        case createdAt
         case reps
         case lapses
         case fsrsCardState

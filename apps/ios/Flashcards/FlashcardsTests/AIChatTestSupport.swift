@@ -35,6 +35,7 @@ func makeStubAIChatSnapshot(totalCards: Int) -> AppStateSnapshot {
             tags: ["tag"],
             effortLevel: .medium,
             dueAt: nil,
+            createdAt: "2026-03-09T00:00:00.000Z",
             reps: 0,
             lapses: 0,
             fsrsCardState: .learning,

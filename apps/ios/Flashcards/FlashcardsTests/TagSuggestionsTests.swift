@@ -69,6 +69,7 @@ final class TagSuggestionsTests: XCTestCase {
             tags: tags,
             effortLevel: .fast,
             dueAt: nil,
+            createdAt: "2026-03-10T00:00:00.000Z",
             reps: 0,
             lapses: 0,
             fsrsCardState: .new,

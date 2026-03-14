@@ -66,6 +66,7 @@ test("validateOrResetCardRowForRead resets an invalid card to canonical new stat
     tags: ["tag"],
     effort_level: "fast" as const,
     due_at: "2026-03-16T09:00:00.000Z",
+    created_at: "2026-03-08T09:00:00.000Z",
     reps: 1,
     lapses: 0,
     fsrs_card_state: "new" as const,
