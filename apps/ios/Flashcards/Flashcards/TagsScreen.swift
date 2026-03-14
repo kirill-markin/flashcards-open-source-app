@@ -6,20 +6,29 @@ private func formatCardsCount(_ cardsCount: Int) -> String {
 
 struct TagsScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
-
-    private var tagsSummary: WorkspaceTagsSummary {
-        workspaceTagsSummary(cards: store.cards)
-    }
+    @State private var tagsSummary: WorkspaceTagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
+    @State private var errorMessage: String = ""
+    @State private var isLoading: Bool = true
 
     var body: some View {
         List {
+            if self.errorMessage.isEmpty == false {
+                Section {
+                    Text(self.errorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+
             Section {
                 Text("Tags group cards across the workspace. Per-tag counts can overlap when one card has multiple tags.")
                     .foregroundStyle(.secondary)
             }
 
             Section("Tags") {
-                if tagsSummary.tags.isEmpty {
+                if self.isLoading {
+                    Text("Loading tags…")
+                        .foregroundStyle(.secondary)
+                } else if tagsSummary.tags.isEmpty {
                     Text("No tags have been used yet.")
                         .foregroundStyle(.secondary)
                 } else {
@@ -60,6 +69,30 @@ struct TagsScreen: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Tags")
+        .task(id: store.localReadVersion) {
+            await self.reloadTagsSummary()
+        }
+    }
+
+    @MainActor
+    private func reloadTagsSummary() async {
+        guard let database = store.database, let workspaceId = store.workspace?.workspaceId else {
+            self.tagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
+            self.errorMessage = ""
+            self.isLoading = false
+            return
+        }
+
+        self.isLoading = true
+        self.errorMessage = ""
+
+        do {
+            self.tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+        } catch {
+            self.errorMessage = localizedMessage(error: error)
+        }
+
+        self.isLoading = false
     }
 }
 

@@ -2,16 +2,14 @@ import SwiftUI
 
 struct WorkspaceSettingsView: View {
     @EnvironmentObject private var store: FlashcardsStore
-
-    private var tagsCount: Int {
-        workspaceTagsSummary(cards: store.cards).tags.count
-    }
+    @State private var overviewSnapshot: WorkspaceOverviewSnapshot? = nil
+    @State private var errorMessage: String = ""
 
     var body: some View {
         List {
-            if store.globalErrorMessage.isEmpty == false {
+            if self.errorMessage.isEmpty == false || store.globalErrorMessage.isEmpty == false {
                 Section {
-                    CopyableErrorMessageView(message: store.globalErrorMessage)
+                    CopyableErrorMessageView(message: self.errorMessage.isEmpty ? store.globalErrorMessage : self.errorMessage)
                 }
             }
 
@@ -19,7 +17,7 @@ struct WorkspaceSettingsView: View {
                 NavigationLink(value: SettingsNavigationDestination.workspaceDecks) {
                     SettingsNavigationRow(
                         title: "Decks",
-                        value: "\(store.homeSnapshot.deckCount)",
+                        value: "\(self.overviewSnapshot?.deckCount ?? 0)",
                         systemImage: "line.3.horizontal.decrease.circle"
                     )
                 }
@@ -27,7 +25,7 @@ struct WorkspaceSettingsView: View {
                 NavigationLink(value: SettingsNavigationDestination.workspaceTags) {
                     SettingsNavigationRow(
                         title: "Tags",
-                        value: "\(self.tagsCount)",
+                        value: "\(self.overviewSnapshot?.tagsCount ?? 0)",
                         systemImage: "tag"
                     )
                 }
@@ -63,6 +61,30 @@ struct WorkspaceSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Workspace Settings")
+        .task(id: store.localReadVersion) {
+            await self.reloadWorkspaceOverview()
+        }
+    }
+
+    @MainActor
+    private func reloadWorkspaceOverview() async {
+        guard let database = store.database, let workspace = store.workspace else {
+            self.overviewSnapshot = nil
+            self.errorMessage = ""
+            return
+        }
+
+        self.errorMessage = ""
+
+        do {
+            self.overviewSnapshot = try database.loadWorkspaceOverviewSnapshot(
+                workspaceId: workspace.workspaceId,
+                workspaceName: workspace.name,
+                now: Date()
+            )
+        } catch {
+            self.errorMessage = localizedMessage(error: error)
+        }
     }
 }
 

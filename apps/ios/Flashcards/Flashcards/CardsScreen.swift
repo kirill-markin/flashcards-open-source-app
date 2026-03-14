@@ -56,18 +56,9 @@ struct CardsScreen: View {
         effortLevel: .fast
     )
     @State private var screenErrorMessage: String = ""
-
-    private var availableTagSuggestions: [TagSuggestion] {
-        tagSuggestions(cards: store.cards)
-    }
-
-    private var filteredCards: [Card] {
-        cardsMatchingSearchTextAndFilter(
-            cards: store.cards,
-            searchText: searchText,
-            filter: committedFilter
-        )
-    }
+    @State private var cardsSnapshot: CardsListSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
+    @State private var availableTagSuggestions: [TagSuggestion] = []
+    @State private var isLoading: Bool = true
 
     private var activeFilterDimensionCount: Int {
         cardFilterActiveDimensionCount(filter: committedFilter)
@@ -88,10 +79,13 @@ struct CardsScreen: View {
             }
 
             Section("Cards") {
-                if store.cards.isEmpty {
+                if self.isLoading {
+                    Text("Loading cards…")
+                        .foregroundStyle(.secondary)
+                } else if self.cardsSnapshot.totalCount == 0 {
                     Text("You haven't created any cards yet.")
                         .foregroundStyle(.secondary)
-                } else if filteredCards.isEmpty {
+                } else if self.cardsSnapshot.cards.isEmpty {
                     ContentUnavailableView(
                         "No Matching Cards",
                         systemImage: activeFilterDimensionCount == 0 ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
@@ -102,7 +96,7 @@ struct CardsScreen: View {
                         )
                     )
                 } else {
-                    ForEach(filteredCards) { card in
+                    ForEach(self.cardsSnapshot.cards) { card in
                         Button {
                             self.beginEditing(card: card)
                         } label: {
@@ -183,6 +177,13 @@ struct CardsScreen: View {
         .onChange(of: store.cardsPresentationRequest) { _, request in
             self.handleCardsPresentationRequest(request: request)
         }
+        .task(id: self.queryReloadKey) {
+            await self.reloadCardsSnapshot()
+        }
+    }
+
+    private var queryReloadKey: String {
+        "\(self.searchText)|\(self.committedFilter?.tags.joined(separator: ",") ?? "")|\(self.committedFilter?.effort.map(\.rawValue).joined(separator: ",") ?? "")|\(store.localReadVersion)"
     }
 
     private func beginCreating() {
@@ -274,6 +275,40 @@ struct CardsScreen: View {
             self.beginCreating()
             store.clearCardsPresentationRequest()
         }
+    }
+
+    @MainActor
+    private func reloadCardsSnapshot() async {
+        guard let database = store.database, let workspaceId = store.workspace?.workspaceId else {
+            self.cardsSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
+            self.availableTagSuggestions = []
+            self.isLoading = false
+            return
+        }
+
+        self.isLoading = true
+        if self.screenErrorMessage == "Loading cards…" {
+            self.screenErrorMessage = ""
+        }
+
+        do {
+            self.cardsSnapshot = try database.loadCardsListSnapshot(
+                workspaceId: workspaceId,
+                searchText: self.searchText,
+                filter: self.committedFilter
+            )
+            let tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+            self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
+                TagSuggestion(
+                    tag: tagSummary.tag,
+                    countState: .ready(cardsCount: tagSummary.cardsCount)
+                )
+            }
+        } catch {
+            self.screenErrorMessage = localizedMessage(error: error)
+        }
+
+        self.isLoading = false
     }
 }
 
