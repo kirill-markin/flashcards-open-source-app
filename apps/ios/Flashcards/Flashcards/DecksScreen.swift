@@ -492,7 +492,6 @@ private struct DeckEditorView: View {
                     .foregroundStyle(.secondary)
                 }
             }
-            .scrollDismissesKeyboard(.immediately)
         }
         .navigationTitle(title)
         .toolbar {

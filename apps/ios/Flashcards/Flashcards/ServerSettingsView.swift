@@ -148,7 +148,6 @@ struct ServerSettingsView: View {
                 .disabled(self.isResetDisabled)
             }
         }
-        .scrollDismissesKeyboard(.immediately)
         .navigationTitle("Server")
         .alert(self.confirmationTitle, isPresented: self.$isConfirmationPresented) {
             Button("Cancel", role: .cancel) {
