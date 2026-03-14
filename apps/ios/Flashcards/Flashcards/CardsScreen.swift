@@ -1,11 +1,51 @@
 import SwiftUI
 
+enum CardEditorPresentation: Hashable, Identifiable {
+    case create
+    case edit(cardId: String)
+
+    var title: String {
+        switch self {
+        case .create:
+            return "New card"
+        case .edit:
+            return "Edit card"
+        }
+    }
+
+    var isEditing: Bool {
+        switch self {
+        case .create:
+            return false
+        case .edit:
+            return true
+        }
+    }
+
+    var editingCardId: String? {
+        switch self {
+        case .create:
+            return nil
+        case .edit(let cardId):
+            return cardId
+        }
+    }
+
+    var id: String {
+        switch self {
+        case .create:
+            return "create"
+        case .edit(let cardId):
+            return "edit-\(cardId)"
+        }
+    }
+}
+
 struct CardsScreen: View {
     @EnvironmentObject private var store: FlashcardsStore
 
-    @State private var isEditorPresented: Bool = false
+    @State private var editorPresentation: CardEditorPresentation? = nil
     @State private var isFilterSheetPresented: Bool = false
-    @State private var editingCardId: String? = nil
     @State private var searchText: String = ""
     @State private var committedFilter: CardFilter? = nil
     @State private var draftFilter: CardFilter? = nil
@@ -104,15 +144,15 @@ struct CardsScreen: View {
                 }
             }
         }
-        .sheet(isPresented: $isEditorPresented) {
+        .sheet(item: self.$editorPresentation) { presentation in
             NavigationStack {
                 CardEditorScreen(
-                    title: editingCardId == nil ? "New card" : "Edit card",
-                    isEditing: editingCardId != nil,
-                    errorMessage: screenErrorMessage,
-                    formState: $cardFormState,
+                    title: presentation.title,
+                    isEditing: presentation.isEditing,
+                    errorMessage: self.screenErrorMessage,
+                    formState: self.$cardFormState,
                     onCancel: {
-                        isEditorPresented = false
+                        self.editorPresentation = nil
                     },
                     onSave: {
                         self.saveCard()
@@ -146,7 +186,6 @@ struct CardsScreen: View {
     }
 
     private func beginCreating() {
-        self.editingCardId = nil
         self.cardFormState = CardFormState(
             frontText: "",
             backText: "",
@@ -154,11 +193,10 @@ struct CardsScreen: View {
             effortLevel: .fast
         )
         self.screenErrorMessage = ""
-        self.isEditorPresented = true
+        self.editorPresentation = .create
     }
 
     private func beginEditing(card: Card) {
-        self.editingCardId = card.cardId
         self.cardFormState = CardFormState(
             frontText: card.frontText,
             backText: card.backText,
@@ -166,7 +204,7 @@ struct CardsScreen: View {
             effortLevel: card.effortLevel
         )
         self.screenErrorMessage = ""
-        self.isEditorPresented = true
+        self.editorPresentation = .edit(cardId: card.cardId)
     }
 
     private func beginFiltering() {
@@ -183,10 +221,10 @@ struct CardsScreen: View {
                     tags: cardFormState.tags,
                     effortLevel: cardFormState.effortLevel
                 ),
-                editingCardId: editingCardId
+                editingCardId: self.editorPresentation?.editingCardId
             )
             self.screenErrorMessage = ""
-            self.isEditorPresented = false
+            self.editorPresentation = nil
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)
         }
@@ -202,7 +240,7 @@ struct CardsScreen: View {
     }
 
     private func deleteEditingCard() {
-        guard let editingCardId else {
+        guard let editingCardId = self.editorPresentation?.editingCardId else {
             self.screenErrorMessage = "Card not found."
             return
         }
@@ -210,8 +248,7 @@ struct CardsScreen: View {
         do {
             try store.deleteCard(cardId: editingCardId)
             self.screenErrorMessage = ""
-            self.isEditorPresented = false
-            self.editingCardId = nil
+            self.editorPresentation = nil
         } catch {
             self.screenErrorMessage = localizedMessage(error: error)
         }
