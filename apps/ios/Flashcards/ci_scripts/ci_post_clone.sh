@@ -10,6 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOCAL_XCCONFIG_PATH="${PROJECT_DIR}/Config/Local.xcconfig"
 
+# Xcode Cloud is the canonical signed archive path. It writes release-only
+# signing and production host overrides into the gitignored Local.xcconfig.
 if [ -z "${XCODE_CLOUD_DEVELOPMENT_TEAM:-}" ] \
   && [ -z "${XCODE_CLOUD_APP_BUNDLE_IDENTIFIER:-}" ] \
   && [ -z "${XCODE_CLOUD_API_BASE_URL:-}" ] \
