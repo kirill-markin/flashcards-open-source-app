@@ -37,6 +37,18 @@ export function buildCardSideContractSection(): string {
   ]);
 }
 
+export function buildPlainTextChatFormattingSection(): string {
+  return joinLines([
+    "Chat response formatting:",
+    "- Respond to the user as plain text for a chat surface that does not render markdown.",
+    "- Do not rely on markdown styling or markdown-only presentation.",
+    "- Simple lists and numbering are allowed when they remain readable as raw plain text.",
+    "- If you need a more complex structure, use short labels, indentation, and blank lines between blocks.",
+    "- Do not use markdown headings, fenced code blocks, tables, blockquotes, or similar markdown formatting in user-facing chat replies.",
+    "- If you need to mention literal card field content, present it as raw field content while keeping the surrounding chat reply in plain text.",
+  ]);
+}
+
 export function buildWritePolicySection(lines: ReadonlyArray<string>): string {
   return joinLines([
     "Write policy:",

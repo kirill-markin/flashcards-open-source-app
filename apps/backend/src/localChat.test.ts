@@ -216,7 +216,12 @@ test("isSupportedAnthropicLocalChatModel accepts only Anthropic local-chat model
 test("buildLocalSystemInstructions includes strict tool-call rules, examples, and user context", () => {
   const instructions = buildLocalSystemInstructions("Europe/Madrid", "ios", testUserContext);
 
-  assert.match(instructions, /use this assistant on iphone\./i);
+  assert.match(instructions, /the user is chatting with you in the ios app chat on iphone\./i);
+  assert.match(instructions, /respond to the user as plain text for a chat surface that does not render markdown\./i);
+  assert.match(instructions, /simple lists and numbering are allowed when they remain readable as raw plain text\./i);
+  assert.match(instructions, /use short labels, indentation, and blank lines between blocks\./i);
+  assert.match(instructions, /do not use markdown headings, fenced code blocks, tables, blockquotes, or similar markdown formatting in user-facing chat replies\./i);
+  assert.match(instructions, /present it as raw field content while keeping the surrounding chat reply in plain text\./i);
   assert.match(instructions, /User context:/);
   assert.match(instructions, /The current workspace has 42 cards\./);
   assert.match(instructions, /the local device database is the source of truth for reads\./i);
@@ -248,6 +253,13 @@ test("buildLocalSystemInstructions includes strict tool-call rules, examples, an
   assert.match(instructions, /mounted files are typically exposed under \/mnt\/data/i);
   assert.match(instructions, /mounted filename may differ from the uploaded filename/i);
   assert.match(instructions, /inspect mounted files before claiming that an attached file is missing/i);
+});
+
+test("buildLocalSystemInstructions uses explicit web browser chat context", () => {
+  const instructions = buildLocalSystemInstructions("Europe/Madrid", "web", testUserContext);
+
+  assert.match(instructions, /the user is chatting with you in the web browser chat\./i);
+  assert.match(instructions, /respond to the user as plain text for a chat surface that does not render markdown\./i);
 });
 
 test("isInlineTextAttachmentCandidate accepts supported text-like files and excludes csv", () => {
@@ -328,6 +340,8 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
   ]);
   assert.equal(capturedBodies[0]?.model, "gpt-5.2");
   assert.equal(capturedBodies[0]?.parallel_tool_calls, false);
+  assert.match(String(capturedBodies[0]?.instructions), /ios app chat on iphone/i);
+  assert.match(String(capturedBodies[0]?.instructions), /plain text for a chat surface that does not render markdown/i);
   assert.match(String(capturedBodies[0]?.instructions), /The current workspace has 42 cards\./);
 });
 
@@ -727,7 +741,8 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
     { type: "await_tool_results" },
   ]);
   assert.equal(capturedBodies[0]?.model, "claude-sonnet-4-6");
-  assert.match(String(capturedBodies[0]?.system), /browser/i);
+  assert.match(String(capturedBodies[0]?.system), /web browser chat/i);
+  assert.match(String(capturedBodies[0]?.system), /plain text for a chat surface that does not render markdown/i);
   assert.match(String(capturedBodies[0]?.system), /The current workspace has 42 cards\./);
 });
 
