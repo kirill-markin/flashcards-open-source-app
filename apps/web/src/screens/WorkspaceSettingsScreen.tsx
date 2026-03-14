@@ -1,5 +1,4 @@
-import { useEffect, type ReactElement } from "react";
-import { makeWorkspaceTagsSummary } from "../appData/domain";
+import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import {
   settingsDecksRoute,
@@ -8,25 +7,64 @@ import {
   settingsSchedulerRoute,
   settingsTagsRoute,
 } from "../routes";
+import { loadDecksListSnapshot, loadWorkspaceTagsSummary } from "../syncStorage";
 import { SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 export function WorkspaceSettingsScreen(): ReactElement {
-  const {
-    cards,
-    decks,
-    ensureCardsLoaded,
-    ensureDecksLoaded,
-    workspaceSettings,
-  } = useAppData();
+  const { localReadVersion, refreshLocalData, workspaceSettings } = useAppData();
+  const [activeCardCount, setActiveCardCount] = useState<number>(0);
+  const [activeDeckCount, setActiveDeckCount] = useState<number>(0);
+  const [tagsCount, setTagsCount] = useState<number>(0);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
-    void ensureCardsLoaded();
-    void ensureDecksLoaded();
-  }, [ensureCardsLoaded, ensureDecksLoaded]);
+    let isCancelled = false;
 
-  const activeCardCount = cards.filter((card) => card.deletedAt === null).length;
-  const activeDeckCount = decks.filter((deck) => deck.deletedAt === null).length;
-  const tagsCount = makeWorkspaceTagsSummary(cards).tags.length;
+    async function loadScreenData(): Promise<void> {
+      setErrorMessage("");
+
+      try {
+        const [tagsSummary, decksSnapshot] = await Promise.all([
+          loadWorkspaceTagsSummary(),
+          loadDecksListSnapshot(),
+        ]);
+        if (isCancelled) {
+          return;
+        }
+
+        setActiveCardCount(tagsSummary.totalCards);
+        setActiveDeckCount(decksSnapshot.deckSummaries.length);
+        setTagsCount(tagsSummary.tags.length);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    void loadScreenData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [localReadVersion]);
+
+  if (errorMessage !== "") {
+    return (
+      <SettingsShell
+        title="Workspace Settings"
+        subtitle="Manage workspace data, study settings, and device details."
+        activeSection="workspace"
+      >
+        <p className="error-banner">{errorMessage}</p>
+        <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
+          Retry
+        </button>
+      </SettingsShell>
+    );
+  }
 
   return (
     <SettingsShell

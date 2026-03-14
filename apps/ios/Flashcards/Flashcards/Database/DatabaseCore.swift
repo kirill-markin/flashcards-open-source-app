@@ -252,13 +252,39 @@ final class DatabaseCore {
             schemaVersion = try self.loadSchemaVersion()
         }
 
-        if schemaVersion == 4 {
-            try self.migrateCardsCreatedAtFromSchemaVersion4()
-        }
-        if schemaVersion < 6 {
-            try self.migrateCreatedAtOrderingIndexes()
+        if schemaVersion == 0 {
+            try self.runBaseSchemaMigrationSQL()
+            try self.setSchemaVersion(version: localDatabaseSchemaVersion)
+            return
         }
 
+        let startingSchemaVersion = schemaVersion
+        while schemaVersion < localDatabaseSchemaVersion {
+            switch schemaVersion {
+            case 4:
+                try self.migrateSchemaVersion4To5()
+                schemaVersion = 5
+            case 5:
+                try self.migrateSchemaVersion5To6()
+                schemaVersion = 6
+            case 6:
+                try self.migrateSchemaVersion6To7()
+                schemaVersion = 7
+            default:
+                throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
+            }
+
+            try self.setSchemaVersion(version: schemaVersion)
+        }
+
+        try self.runBaseSchemaMigrationSQL()
+
+        if startingSchemaVersion < 7 {
+            try self.rebuildCardTagsReadModel()
+        }
+    }
+
+    private func runBaseSchemaMigrationSQL() throws {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
         let migrationSQL = """
         CREATE TABLE IF NOT EXISTS workspaces (
@@ -411,15 +437,9 @@ final class DatabaseCore {
         guard resultCode == SQLITE_OK else {
             throw LocalStoreError.database("Failed to run local migrations: \(self.lastErrorMessage())")
         }
-
-        if schemaVersion < 7 {
-            try self.rebuildCardTagsReadModel()
-        }
-
-        try self.setSchemaVersion(version: localDatabaseSchemaVersion)
     }
 
-    private func migrateCardsCreatedAtFromSchemaVersion4() throws {
+    private func migrateSchemaVersion4To5() throws {
         if try self.columnExists(tableName: "cards", columnName: "created_at") {
             return
         }
@@ -441,7 +461,7 @@ final class DatabaseCore {
         )
     }
 
-    private func migrateCreatedAtOrderingIndexes() throws {
+    private func migrateSchemaVersion5To6() throws {
         try self.execute(
             sql: "DROP INDEX IF EXISTS idx_cards_workspace_updated_at",
             values: []
@@ -451,6 +471,8 @@ final class DatabaseCore {
             values: []
         )
     }
+
+    private func migrateSchemaVersion6To7() throws {}
 
     /**
      Rebuilds the normalized tag read model from canonical card rows so future

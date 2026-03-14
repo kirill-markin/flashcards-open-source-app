@@ -2,15 +2,25 @@ import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
-import type { Card, CreateCardInput, UpdateCardInput } from "../types";
+import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../types";
+import { loadWorkspaceTagsSummary } from "../syncStorage";
 import { cardsRoute } from "../routes";
+
+function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSummary>>["tags"]): ReadonlyArray<TagSuggestion> {
+  return tags.map((tagSummary) => ({
+    tag: tagSummary.tag,
+    countState: "ready",
+    cardsCount: tagSummary.cardsCount,
+  }));
+}
 
 export function CardFormScreen(): ReactElement {
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const { cards, ensureCardsLoaded, getCardById, createCardItem, updateCardItem, deleteCardItem, setErrorMessage } = useAppData();
+  const { getCardById, createCardItem, updateCardItem, deleteCardItem, setErrorMessage, localReadVersion } = useAppData();
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [formState, setFormState] = useState<CardFormState>(toCardFormState(null));
+  const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -21,41 +31,26 @@ export function CardFormScreen(): ReactElement {
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setLoadErrorMessage("");
     setActionErrorMessage("");
-
-    if (isCreateMode) {
-      setCurrentCard(null);
-      setFormState(toCardFormState(null));
-      setIsLoading(true);
-      try {
-        await ensureCardsLoaded();
-      } catch (error) {
-        setLoadErrorMessage(error instanceof Error ? error.message : String(error));
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    if (cardId === undefined) {
-      throw new Error("Card ID is required");
-    }
-
     setIsLoading(true);
+
     try {
-      await ensureCardsLoaded();
-      const card = await getCardById(cardId);
-      setCurrentCard(card);
-      setFormState(toCardFormState(card));
+      const [tagsSummary, loadedCard] = await Promise.all([
+        loadWorkspaceTagsSummary(),
+        isCreateMode || cardId === undefined ? Promise.resolve(null) : getCardById(cardId),
+      ]);
+      setTagSuggestions(toTagSuggestions(tagsSummary.tags));
+      setCurrentCard(loadedCard);
+      setFormState(toCardFormState(loadedCard));
     } catch (error) {
       setLoadErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
     }
-  }, [cardId, ensureCardsLoaded, getCardById, isCreateMode]);
+  }, [cardId, getCardById, isCreateMode]);
 
   useEffect(() => {
     void loadScreenData();
-  }, [loadScreenData]);
+  }, [loadScreenData, localReadVersion]);
 
   async function handleSubmit(): Promise<void> {
     setIsSaving(true);
@@ -83,7 +78,7 @@ export function CardFormScreen(): ReactElement {
 
       navigate(cardsRoute);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      setActionErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsSaving(false);
     }
@@ -171,7 +166,7 @@ export function CardFormScreen(): ReactElement {
         </div>
 
         <CardFormFields
-          cards={cards}
+          tagSuggestions={tagSuggestions}
           currentCard={currentCard}
           formState={formState}
           formIdPrefix="card-form-screen"

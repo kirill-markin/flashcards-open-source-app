@@ -8,20 +8,16 @@ struct CardFormState {
 }
 
 struct CardEditorScreen: View {
-    @EnvironmentObject private var store: FlashcardsStore
     @State private var isDeleteConfirmationPresented: Bool = false
 
     let title: String
     let isEditing: Bool
     let errorMessage: String
+    let availableTagSuggestions: [TagSuggestion]
     @Binding var formState: CardFormState
     let onCancel: () -> Void
     let onSave: () -> Void
     let onDelete: () -> Void
-
-    private var availableTagSuggestions: [TagSuggestion] {
-        tagSuggestions(cards: store.cards)
-    }
 
     var body: some View {
         ReadableContentLayout(

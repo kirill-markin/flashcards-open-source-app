@@ -678,6 +678,13 @@ struct DeckCardStats: Hashable, Sendable {
     let reviewedCards: Int
 }
 
+struct AppBootstrapSnapshot: Hashable, Sendable {
+    let workspace: Workspace
+    let userSettings: UserSettings
+    let schedulerSettings: WorkspaceSchedulerSettings
+    let cloudSettings: CloudSettings
+}
+
 struct AppStateSnapshot: Hashable, Sendable {
     let workspace: Workspace
     let userSettings: UserSettings

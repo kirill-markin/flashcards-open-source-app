@@ -164,7 +164,7 @@ function makeDependencies(snapshot: MutableSnapshot): Pick<
   AppDataContextValue,
   | "session"
   | "activeWorkspace"
-  | "getLocalSnapshot"
+  | "loadLocalSnapshot"
   | "createCardItem"
   | "createDeckItem"
   | "updateCardItem"
@@ -175,7 +175,7 @@ function makeDependencies(snapshot: MutableSnapshot): Pick<
   return {
     session: makeSession(),
     activeWorkspace: makeWorkspace(),
-    getLocalSnapshot: () => snapshot,
+    loadLocalSnapshot: async () => snapshot,
     createCardItem: vi.fn(async (input) => makeCard({ cardId: "created-card", ...input })),
     createDeckItem: vi.fn(async (input) => makeDeck({
       deckId: "created-deck",

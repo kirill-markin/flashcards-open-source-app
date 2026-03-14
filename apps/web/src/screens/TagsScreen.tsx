@@ -1,27 +1,58 @@
-import { useEffect, type ReactElement } from "react";
-import { makeWorkspaceTagsSummary } from "../appData/domain";
+import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
+import { loadWorkspaceTagsSummary } from "../syncStorage";
+import type { WorkspaceTagsSummary } from "../types";
 
 function formatCardsCount(cardsCount: number): string {
   return `${cardsCount} ${cardsCount === 1 ? "card" : "cards"}`;
 }
 
+const emptyTagsSummary: WorkspaceTagsSummary = {
+  tags: [],
+  totalCards: 0,
+};
+
 export function TagsScreen(): ReactElement {
-  const {
-    cards,
-    cardsState,
-    ensureCardsLoaded,
-    refreshCards,
-  } = useAppData();
+  const { localReadVersion, refreshLocalData } = useAppData();
+  const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
-    void ensureCardsLoaded();
-  }, [ensureCardsLoaded]);
+    let isCancelled = false;
 
-  const tagsSummary = makeWorkspaceTagsSummary(cards);
-  const resourceErrorMessage = cardsState.status === "error" ? cardsState.errorMessage : "";
+    async function loadScreenData(): Promise<void> {
+      setIsLoading(true);
+      setErrorMessage("");
 
-  if (cardsState.status === "loading" && cardsState.hasLoaded === false) {
+      try {
+        const nextTagsSummary = await loadWorkspaceTagsSummary();
+        if (isCancelled) {
+          return;
+        }
+
+        setTagsSummary(nextTagsSummary);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadScreenData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [localReadVersion]);
+
+  if (isLoading) {
     return (
       <main className="container">
         <section className="panel tags-screen-panel">
@@ -32,13 +63,13 @@ export function TagsScreen(): ReactElement {
     );
   }
 
-  if (cardsState.status === "error" && cardsState.hasLoaded === false) {
+  if (errorMessage !== "") {
     return (
       <main className="container">
         <section className="panel tags-screen-panel">
           <h1 className="title">Tags</h1>
-          <p className="error-banner">{resourceErrorMessage}</p>
-          <button className="primary-btn" type="button" onClick={() => void refreshCards()}>
+          <p className="error-banner">{errorMessage}</p>
+          <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
             Retry
           </button>
         </section>
@@ -49,7 +80,6 @@ export function TagsScreen(): ReactElement {
   return (
     <main className="container tags-page">
       <section className="panel tags-screen-panel">
-        {resourceErrorMessage !== "" ? <p className="error-banner">{resourceErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
             <h1 className="title">Tags</h1>

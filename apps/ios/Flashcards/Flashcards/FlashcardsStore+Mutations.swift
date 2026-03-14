@@ -4,12 +4,12 @@ import Foundation
 extension FlashcardsStore {
     func saveCard(input: CardEditorInput, editingCardId: String?) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
-        let persistedCard = try context.database.saveCard(
+        _ = try context.database.saveCard(
             workspaceId: context.workspaceId,
             input: input,
             cardId: editingCardId
         )
-        self.applyCardMutation(card: persistedCard, now: Date())
+        self.refreshLocalReadModels(now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -23,8 +23,8 @@ extension FlashcardsStore {
 
     func deleteCard(cardId: String) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
-        let deletedCard = try context.database.deleteCard(workspaceId: context.workspaceId, cardId: cardId)
-        self.applyCardMutation(card: deletedCard, now: Date())
+        _ = try context.database.deleteCard(workspaceId: context.workspaceId, cardId: cardId)
+        self.refreshLocalReadModels(now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -46,32 +46,32 @@ extension FlashcardsStore {
 
     func createDeck(input: DeckEditorInput) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
-        let createdDeck = try context.database.createDeck(workspaceId: context.workspaceId, input: input)
-        self.applyDeckMutation(deck: createdDeck, now: Date())
+        _ = try context.database.createDeck(workspaceId: context.workspaceId, input: input)
+        self.refreshLocalReadModels(now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
     func updateDeck(deckId: String, input: DeckEditorInput) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
-        let updatedDeck = try context.database.updateDeck(
+        _ = try context.database.updateDeck(
             workspaceId: context.workspaceId,
             deckId: deckId,
             input: input
         )
-        self.applyDeckMutation(deck: updatedDeck, now: Date())
+        self.refreshLocalReadModels(now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
     func deleteDeck(deckId: String) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
-        let deletedDeck = try context.database.deleteDeck(workspaceId: context.workspaceId, deckId: deckId)
-        self.applyDeckMutation(deck: deletedDeck, now: Date())
+        _ = try context.database.deleteDeck(workspaceId: context.workspaceId, deckId: deckId)
+        self.refreshLocalReadModels(now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
     func submitReview(cardId: String, rating: ReviewRating) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
-        let updatedCard = try context.database.submitReview(
+        _ = try context.database.submitReview(
             workspaceId: context.workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
@@ -79,7 +79,7 @@ extension FlashcardsStore {
                 reviewedAtClient: currentIsoTimestamp()
             )
         )
-        self.applyCardMutation(card: updatedCard, now: Date())
+        self.refreshLocalReadModels(now: Date())
         self.triggerCloudSyncIfLinked()
     }
 
@@ -93,8 +93,7 @@ extension FlashcardsStore {
             publishedState: self.currentReviewPublishedState(),
             workspaceId: workspaceId,
             cardId: cardId,
-            rating: rating,
-            cards: self.cards
+            rating: rating
         )
         self.applyReviewPublishedState(reviewState: nextReviewState)
         self.startReviewQueueChunkLoadIfNeeded(now: Date())
@@ -145,11 +144,6 @@ extension FlashcardsStore {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
         return try context.database.loadOutboxEntries(workspaceId: context.workspaceId, limit: limit)
     }
-
-    func cardsMatchingDeck(deck: Deck) -> [Card] {
-        matchingCardsForDeck(deck: deck, cards: self.cards)
-    }
-
     func loadReviewTimelinePage(limit: Int, offset: Int) async throws -> ReviewTimelinePage {
         guard let workspaceId = self.workspace?.workspaceId else {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
@@ -157,11 +151,9 @@ extension FlashcardsStore {
         guard let databaseURL = self.localDatabaseURL else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
         }
-
-        let resolvedReviewQuery = resolveReviewQuery(
-            reviewFilter: self.selectedReviewFilter,
-            decks: self.decks,
-            cards: self.cards
+        let resolvedReviewQuery = try requireLocalDatabase(database: self.database).loadResolvedReviewQuery(
+            workspaceId: workspaceId,
+            reviewFilter: self.selectedReviewFilter
         )
         return try await self.dependencies.reviewTimelinePageLoader(
             databaseURL,

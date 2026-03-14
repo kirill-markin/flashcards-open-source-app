@@ -79,7 +79,7 @@ type WebLocalToolExecutorDependencies = Pick<
   AppDataContextValue,
   | "session"
   | "activeWorkspace"
-  | "getLocalSnapshot"
+  | "loadLocalSnapshot"
   | "createCardItem"
   | "createDeckItem"
   | "updateCardItem"
@@ -482,12 +482,12 @@ function rowFromInsert(
   return Object.fromEntries(columnNames.map((columnName, index) => [columnName, values[index]] as const));
 }
 
-function ensureLocalWorkspace(
+async function ensureLocalWorkspace(
   dependencies: WebLocalToolExecutorDependencies,
-): Readonly<{
+): Promise<Readonly<{
   activeWorkspace: WorkspaceSummary;
   snapshot: MutableSnapshot;
-}> {
+}>> {
   if (dependencies.session === null) {
     throw new Error("Session is unavailable");
   }
@@ -498,7 +498,7 @@ function ensureLocalWorkspace(
 
   return {
     activeWorkspace: dependencies.activeWorkspace,
-    snapshot: dependencies.getLocalSnapshot(),
+    snapshot: await dependencies.loadLocalSnapshot(),
   };
 }
 
@@ -780,7 +780,7 @@ export function createLocalToolExecutor(
 }> {
   return {
     async execute(toolCallRequest: LocalToolCallRequest): Promise<LocalToolExecutionResult> {
-      const { activeWorkspace, snapshot } = ensureLocalWorkspace(dependencies);
+  const { activeWorkspace, snapshot } = await ensureLocalWorkspace(dependencies);
 
       switch (toolCallRequest.name) {
       case "sql": {

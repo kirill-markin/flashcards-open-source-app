@@ -16,8 +16,7 @@ function formatCloudStateTitle(cloudState: string | null): string {
 }
 
 export function AccountStatusScreen(): ReactElement {
-  const { getLocalSnapshot, session } = useAppData();
-  const cloudSettings = getLocalSnapshot().cloudSettings;
+  const { cloudSettings, session } = useAppData();
 
   return (
     <SettingsShell
