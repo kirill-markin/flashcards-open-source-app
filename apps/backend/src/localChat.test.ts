@@ -257,6 +257,7 @@ test("buildLocalSystemInstructions includes strict tool-call rules, examples, an
   assert.match(instructions, /make the front side specific enough that it stays unambiguous among many cards\./i);
   assert.match(instructions, /back side must contain the answer\./i);
   assert.match(instructions, /prefer a fenced markdown code block for structured examples\./i);
+  assert.match(instructions, /keep chat replies plain text, but card content may freely use markdown\./i);
   assert.match(instructions, /Tool arguments must be exactly one JSON object\./);
   assert.equal(
     instructions.match(/Before calling any tool, send one short user-facing sentence explaining what you are about to check\./g)?.length ?? 0,
