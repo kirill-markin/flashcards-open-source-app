@@ -494,7 +494,6 @@ private struct DeckEditorView: View {
                     .foregroundStyle(.secondary)
                 }
             }
-            .scrollDismissesKeyboard(.immediately)
             .contentShape(Rectangle())
             .simultaneousGesture(
                 TapGesture().onEnded {

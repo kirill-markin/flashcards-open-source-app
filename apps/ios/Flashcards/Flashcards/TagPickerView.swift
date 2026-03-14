@@ -226,7 +226,6 @@ struct TagPickerView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .scrollDismissesKeyboard(.immediately)
         .contentShape(Rectangle())
         .simultaneousGesture(
             TapGesture().onEnded {

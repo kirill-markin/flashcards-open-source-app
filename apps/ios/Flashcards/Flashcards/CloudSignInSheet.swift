@@ -173,7 +173,6 @@ struct CloudSignInSheet: View {
                     }
                 }
             }
-            .scrollDismissesKeyboard(.immediately)
             .contentShape(Rectangle())
             .simultaneousGesture(
                 TapGesture().onEnded {
@@ -530,7 +529,6 @@ private struct CloudOtpVerificationSheet: View {
                     }
                 }
             }
-            .scrollDismissesKeyboard(.immediately)
             .contentShape(Rectangle())
             .simultaneousGesture(
                 TapGesture().onEnded {

@@ -151,7 +151,6 @@ struct ServerSettingsView: View {
                 .disabled(self.isResetDisabled)
             }
         }
-        .scrollDismissesKeyboard(.immediately)
         .contentShape(Rectangle())
         .simultaneousGesture(
             TapGesture().onEnded {
