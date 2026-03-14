@@ -146,20 +146,18 @@ private struct CardTextEditorScreen: View {
     @FocusState private var isTextEditorFocused: Bool
 
     var body: some View {
-        ZStack {
-            Color(uiColor: .systemGroupedBackground)
-                .ignoresSafeArea()
-
-            ReadableContentLayout(
-                maxWidth: flashcardsReadableFormMaxWidth,
-                horizontalPadding: 16
-            ) {
-                TextEditor(text: $text, selection: self.$textSelection)
-                    .focused(self.$isTextEditorFocused)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-            .padding(.vertical, 16)
+        ReadableContentLayout(
+            maxWidth: flashcardsReadableFormMaxWidth,
+            horizontalPadding: 16
+        ) {
+            TextEditor(text: $text, selection: self.$textSelection)
+                .scrollContentBackground(.hidden)
+                .focused(self.$isTextEditorFocused)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
+        .padding(.vertical, 16)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

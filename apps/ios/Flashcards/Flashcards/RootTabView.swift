@@ -81,6 +81,7 @@ struct RootTabView: View {
             }
             .tag(AppTab.settings)
         }
+        .tabBarMinimizeBehavior(.onScrollDown)
         .onAppear {
             self.selectedTab = store.selectedTab
             self.handleSettingsPresentationRequest(request: store.settingsPresentationRequest)
