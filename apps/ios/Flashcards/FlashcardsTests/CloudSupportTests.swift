@@ -319,6 +319,73 @@ final class CloudSupportTests: XCTestCase {
         )
     }
 
+    func testMakeCloudPostAuthSyncPresentationReturnsExpectedCopy() {
+        XCTAssertEqual(
+            makeCloudPostAuthSyncPresentation(),
+            CloudPostAuthSyncPresentation(
+                title: "Your account is syncing with the cloud.",
+                message: "Please do not turn off your phone. This usually takes a few minutes."
+            )
+        )
+    }
+
+    func testMakeCloudPostAuthFailurePresentationKeepsCompleteLinkRetryWhenAccountIsNotLinked() {
+        let linkContext = self.makeCloudWorkspaceLinkContext(workspaces: [
+            self.makeCloudWorkspaceSummary(workspaceId: "workspace-1")
+        ])
+        let operation = CloudPostAuthSyncOperation.completeLink(
+            linkContext: linkContext,
+            selection: .existing(workspaceId: "workspace-1")
+        )
+
+        XCTAssertEqual(
+            makeCloudPostAuthFailurePresentation(
+                operation: operation,
+                cloudState: .disconnected
+            ),
+            CloudPostAuthFailurePresentation(
+                title: "Signed in, but cloud setup failed.",
+                retryAction: .completeLink(
+                    linkContext: linkContext,
+                    selection: .existing(workspaceId: "workspace-1")
+                )
+            )
+        )
+    }
+
+    func testMakeCloudPostAuthFailurePresentationUsesSyncRetryWhenAccountIsAlreadyLinked() {
+        let linkContext = self.makeCloudWorkspaceLinkContext(workspaces: [
+            self.makeCloudWorkspaceSummary(workspaceId: "workspace-1")
+        ])
+
+        XCTAssertEqual(
+            makeCloudPostAuthFailurePresentation(
+                operation: .completeLink(
+                    linkContext: linkContext,
+                    selection: .existing(workspaceId: "workspace-1")
+                ),
+                cloudState: .linked
+            ),
+            CloudPostAuthFailurePresentation(
+                title: "Signed in, but initial sync failed.",
+                retryAction: .syncOnly
+            )
+        )
+    }
+
+    func testMakeCloudPostAuthFailurePresentationKeepsSyncRetryForSyncOnlyOperation() {
+        XCTAssertEqual(
+            makeCloudPostAuthFailurePresentation(
+                operation: .syncOnly,
+                cloudState: .linked
+            ),
+            CloudPostAuthFailurePresentation(
+                title: "Signed in, but initial sync failed.",
+                retryAction: .syncOnly
+            )
+        )
+    }
+
     func testMakeCloudWorkspaceSelectionItemsPreservesWorkspaceOrderAndAppendsCreateAction() {
         let workspaces = [
             CloudWorkspaceSummary(
@@ -726,6 +793,20 @@ final class CloudSupportTests: XCTestCase {
             name: "Personal",
             createdAt: "2026-03-12T10:00:00.000Z",
             isSelected: false
+        )
+    }
+
+    private func makeCloudWorkspaceLinkContext(workspaces: [CloudWorkspaceSummary]) -> CloudWorkspaceLinkContext {
+        CloudWorkspaceLinkContext(
+            userId: "user-id",
+            email: "user@example.com",
+            apiBaseUrl: "https://api.example.com/v1",
+            credentials: StoredCloudCredentials(
+                refreshToken: "refresh-token",
+                idToken: "id-token",
+                idTokenExpiresAt: "2026-03-12T12:00:00.000Z"
+            ),
+            workspaces: workspaces
         )
     }
 
