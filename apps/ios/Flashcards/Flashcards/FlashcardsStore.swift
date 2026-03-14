@@ -80,6 +80,7 @@ final class FlashcardsStore: ObservableObject {
     @Published var reviewSubmissionFailure: ReviewSubmissionFailure?
     @Published var accountDeletionState: AccountDeletionState
     @Published var accountDeletionSuccessMessage: String?
+    @Published var localReadVersion: Int
 
     let database: LocalDatabase?
     let dependencies: FlashcardsStoreDependencies
@@ -215,6 +216,7 @@ final class FlashcardsStore: ObservableObject {
         self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
+        self.localReadVersion = 0
         self.database = database
         self.dependencies = dependencies
         self.userDefaults = userDefaults

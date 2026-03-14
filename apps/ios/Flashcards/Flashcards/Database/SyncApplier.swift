@@ -97,6 +97,11 @@ struct SyncApplier {
                     card.deletedAt.map(SQLiteValue.text) ?? .null
                 ]
             )
+            try cardStore.replaceCardTagsReadModel(
+                workspaceId: workspaceId,
+                cardId: card.cardId,
+                tags: card.deletedAt == nil ? card.tags : []
+            )
             return
         }
 
@@ -129,6 +134,11 @@ struct SyncApplier {
                 .text(workspaceId),
                 .text(card.cardId)
             ]
+        )
+        try cardStore.replaceCardTagsReadModel(
+            workspaceId: workspaceId,
+            cardId: card.cardId,
+            tags: card.deletedAt == nil ? card.tags : []
         )
     }
 

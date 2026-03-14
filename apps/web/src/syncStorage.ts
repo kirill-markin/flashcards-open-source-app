@@ -33,10 +33,16 @@ type CloudSettingsRecord = Readonly<{
   settings: CloudSettings;
 }>;
 
-type DatabaseStores = "cards" | "decks" | "reviewEvents" | "workspaceSettings" | "outbox" | "meta";
+type CardTagRecord = Readonly<{
+  cardId: string;
+  tag: string;
+}>;
+
+type DatabaseStores = "cards" | "cardTags" | "decks" | "reviewEvents" | "workspaceSettings" | "outbox" | "meta";
 
 type StoredRecord =
   | Card
+  | CardTagRecord
   | Deck
   | ReviewEvent
   | WorkspaceSettingsRecord
@@ -64,7 +70,7 @@ export type PersistentStorageState = Readonly<{
 }>;
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 1;
+const databaseVersion = 2;
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
@@ -82,6 +88,68 @@ function describeIndexedDbError(prefix: string, error: unknown): Error {
   return new Error(`${prefix}: unknown error`);
 }
 
+function ensureCardsStoreIndexes(store: IDBObjectStore): void {
+  if (store.indexNames.contains("createdAt_cardId") === false) {
+    store.createIndex("createdAt_cardId", ["createdAt", "cardId"], { unique: false });
+  }
+
+  if (store.indexNames.contains("dueAt_cardId") === false) {
+    store.createIndex("dueAt_cardId", ["dueAt", "cardId"], { unique: false });
+  }
+
+  if (store.indexNames.contains("effort_createdAt_cardId") === false) {
+    store.createIndex("effort_createdAt_cardId", ["effortLevel", "createdAt", "cardId"], { unique: false });
+  }
+}
+
+function ensureDecksStoreIndexes(store: IDBObjectStore): void {
+  if (store.indexNames.contains("createdAt_deckId") === false) {
+    store.createIndex("createdAt_deckId", ["createdAt", "deckId"], { unique: false });
+  }
+}
+
+function ensureCardTagsStoreIndexes(store: IDBObjectStore): void {
+  if (store.indexNames.contains("tag_cardId") === false) {
+    store.createIndex("tag_cardId", ["tag", "cardId"], { unique: false });
+  }
+
+  if (store.indexNames.contains("cardId_tag") === false) {
+    store.createIndex("cardId_tag", ["cardId", "tag"], { unique: false });
+  }
+}
+
+function writeCardTagRecords(transaction: IDBTransaction, card: Card): void {
+  const cardTagsStore = transaction.objectStore("cardTags");
+  const existingIndex = cardTagsStore.index("cardId_tag");
+  const range = IDBKeyRange.bound(
+    [card.cardId, ""],
+    [card.cardId, "\uffff"],
+  );
+  existingIndex.openKeyCursor(range).onsuccess = (event) => {
+    const cursor = (event.target as IDBRequest<IDBCursor | null>).result;
+    if (cursor === null) {
+      if (card.deletedAt !== null) {
+        return;
+      }
+
+      for (const tag of card.tags) {
+        if (tag === "") {
+          continue;
+        }
+
+        cardTagsStore.put({
+          cardId: card.cardId,
+          tag,
+        } satisfies CardTagRecord);
+      }
+      return;
+    }
+
+    cardTagsStore.delete(cursor.primaryKey);
+    cursor.continue();
+  };
+}
+
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
@@ -90,16 +158,28 @@ function openDatabase(): Promise<IDBDatabase> {
       reject(describeIndexedDbError("Failed to open IndexedDB", request.error));
     };
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const database = request.result;
+      const transaction = request.transaction;
+      if (transaction === null) {
+        reject(new Error("IndexedDB upgrade transaction is unavailable"));
+        return;
+      }
 
       if (database.objectStoreNames.contains("cards") === false) {
         database.createObjectStore("cards", { keyPath: "cardId" });
       }
+      ensureCardsStoreIndexes(transaction.objectStore("cards"));
+
+      if (database.objectStoreNames.contains("cardTags") === false) {
+        database.createObjectStore("cardTags", { keyPath: ["cardId", "tag"] });
+      }
+      ensureCardTagsStoreIndexes(transaction.objectStore("cardTags"));
 
       if (database.objectStoreNames.contains("decks") === false) {
         database.createObjectStore("decks", { keyPath: "deckId" });
       }
+      ensureDecksStoreIndexes(transaction.objectStore("decks"));
 
       if (database.objectStoreNames.contains("reviewEvents") === false) {
         database.createObjectStore("reviewEvents", { keyPath: "reviewEventId" });
@@ -116,6 +196,33 @@ function openDatabase(): Promise<IDBDatabase> {
 
       if (database.objectStoreNames.contains("meta") === false) {
         database.createObjectStore("meta", { keyPath: "key" });
+      }
+
+      if (event.oldVersion < 2) {
+        const cardsStore = transaction.objectStore("cards");
+        const cardTagsStore = transaction.objectStore("cardTags");
+        cardsStore.openCursor().onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+          if (cursor === null) {
+            return;
+          }
+
+          const card = cursor.value as Card;
+          if (card.deletedAt === null) {
+            for (const tag of card.tags) {
+              if (tag === "") {
+                continue;
+              }
+
+              cardTagsStore.put({
+                cardId: card.cardId,
+                tag,
+              } satisfies CardTagRecord);
+            }
+          }
+
+          cursor.continue();
+        };
       }
     };
 
@@ -221,9 +328,10 @@ export async function relinkWorkspaceCache(workspaceId: string): Promise<void> {
   const database = await openDatabase();
   await runReadwrite(
     database,
-    ["cards", "decks", "reviewEvents", "workspaceSettings", "outbox", "meta"],
+    ["cards", "cardTags", "decks", "reviewEvents", "workspaceSettings", "outbox", "meta"],
     (transaction) => {
       const cardsStore = transaction.objectStore("cards");
+      const cardTagsStore = transaction.objectStore("cardTags");
       const decksStore = transaction.objectStore("decks");
       const reviewEventsStore = transaction.objectStore("reviewEvents");
       const workspaceSettingsStore = transaction.objectStore("workspaceSettings");
@@ -231,13 +339,27 @@ export async function relinkWorkspaceCache(workspaceId: string): Promise<void> {
       const metaStore = transaction.objectStore("meta");
 
       cardsStore.clear();
+      cardTagsStore.clear();
       decksStore.clear();
       reviewEventsStore.clear();
       workspaceSettingsStore.clear();
       outboxStore.clear();
 
       for (const card of cache.cards) {
-        cardsStore.put(card);
+        const linkedCard = card;
+        cardsStore.put(linkedCard);
+        if (linkedCard.deletedAt === null) {
+          for (const tag of linkedCard.tags) {
+            if (tag === "") {
+              continue;
+            }
+
+            cardTagsStore.put({
+              cardId: linkedCard.cardId,
+              tag,
+            } satisfies CardTagRecord);
+          }
+        }
       }
 
       for (const deck of cache.decks) {
@@ -293,9 +415,10 @@ export async function clearWebSyncCache(): Promise<void> {
   const database = await openDatabase();
   await runReadwrite(
     database,
-    ["cards", "decks", "reviewEvents", "workspaceSettings", "outbox", "meta"],
+    ["cards", "cardTags", "decks", "reviewEvents", "workspaceSettings", "outbox", "meta"],
     (transaction) => {
       transaction.objectStore("cards").clear();
+      transaction.objectStore("cardTags").clear();
       transaction.objectStore("decks").clear();
       transaction.objectStore("reviewEvents").clear();
       transaction.objectStore("workspaceSettings").clear();
@@ -309,11 +432,25 @@ export async function clearWebSyncCache(): Promise<void> {
 
 export async function replaceCards(cards: ReadonlyArray<Card>): Promise<void> {
   const database = await openDatabase();
-  await runReadwrite(database, ["cards"], (transaction) => {
+  await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
     const store = transaction.objectStore("cards");
+    const cardTagsStore = transaction.objectStore("cardTags");
     store.clear();
+    cardTagsStore.clear();
     for (const card of cards) {
       store.put(card);
+      if (card.deletedAt === null) {
+        for (const tag of card.tags) {
+          if (tag === "") {
+            continue;
+          }
+
+          cardTagsStore.put({
+            cardId: card.cardId,
+            tag,
+          } satisfies CardTagRecord);
+        }
+      }
     }
     return null;
   });
@@ -348,7 +485,11 @@ export async function replaceReviewEvents(reviewEvents: ReadonlyArray<ReviewEven
 
 export async function putCard(card: Card): Promise<void> {
   const database = await openDatabase();
-  await runReadwrite(database, ["cards"], (transaction) => transaction.objectStore("cards").put(card));
+  await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
+    transaction.objectStore("cards").put(card);
+    writeCardTagRecords(transaction, card);
+    return null;
+  });
   database.close();
 }
 

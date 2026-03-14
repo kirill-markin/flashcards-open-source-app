@@ -9,7 +9,7 @@ enum SQLiteValue {
 }
 
 let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-let localDatabaseSchemaVersion: Int = 6
+let localDatabaseSchemaVersion: Int = 7
 let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 final class DatabaseCore {
@@ -334,6 +334,13 @@ final class DatabaseCore {
             UNIQUE (workspace_id, device_id, client_event_id)
         );
 
+        CREATE TABLE IF NOT EXISTS card_tags (
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for local tag queries and deck filters
+            card_id TEXT NOT NULL REFERENCES cards(card_id) ON DELETE CASCADE, -- card that currently exposes the tag in its local winning row
+            tag TEXT NOT NULL, -- normalized tag value extracted from cards.tags_json for indexed local reads
+            PRIMARY KEY (workspace_id, card_id, tag)
+        );
+
         CREATE TABLE IF NOT EXISTS outbox (
             operation_id TEXT PRIMARY KEY, -- unique local operation id used for idempotent sync push
             workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace that owns the pending sync operation
@@ -372,12 +379,26 @@ final class DatabaseCore {
             ON cards(workspace_id, due_at)
             WHERE deleted_at IS NULL;
 
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_created_active
+            ON cards(workspace_id, due_at, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_effort_created_active
+            ON cards(workspace_id, effort_level, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL;
+
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_at
             ON cards(workspace_id, fsrs_last_reviewed_at DESC)
             WHERE deleted_at IS NULL;
 
         CREATE INDEX IF NOT EXISTS idx_decks_workspace_created_at
             ON decks(workspace_id, created_at DESC, deck_id DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_card_tags_workspace_tag_card
+            ON card_tags(workspace_id, tag, card_id);
+
+        CREATE INDEX IF NOT EXISTS idx_card_tags_workspace_card_tag
+            ON card_tags(workspace_id, card_id, tag);
 
         CREATE INDEX IF NOT EXISTS idx_review_events_workspace_card_time
             ON review_events(workspace_id, card_id, reviewed_at_server DESC);
@@ -389,6 +410,10 @@ final class DatabaseCore {
         let resultCode = sqlite3_exec(connection, migrationSQL, nil, nil, nil)
         guard resultCode == SQLITE_OK else {
             throw LocalStoreError.database("Failed to run local migrations: \(self.lastErrorMessage())")
+        }
+
+        if schemaVersion < 7 {
+            try self.rebuildCardTagsReadModel()
         }
 
         try self.setSchemaVersion(version: localDatabaseSchemaVersion)
@@ -423,6 +448,30 @@ final class DatabaseCore {
         )
         try self.execute(
             sql: "DROP INDEX IF EXISTS idx_decks_workspace_updated_active",
+            values: []
+        )
+    }
+
+    /**
+     Rebuilds the normalized tag read model from canonical card rows so future
+     local queries can use indexed tag filtering without hydrating all cards.
+     */
+    private func rebuildCardTagsReadModel() throws {
+        try self.execute(
+            sql: "DELETE FROM card_tags",
+            values: []
+        )
+        try self.execute(
+            sql: """
+            INSERT INTO card_tags (workspace_id, card_id, tag)
+            SELECT
+                cards.workspace_id,
+                cards.card_id,
+                tag_value.value
+            FROM cards
+            JOIN json_each(cards.tags_json) AS tag_value
+            WHERE cards.deleted_at IS NULL AND tag_value.value IS NOT NULL AND tag_value.value <> ''
+            """,
             values: []
         )
     }

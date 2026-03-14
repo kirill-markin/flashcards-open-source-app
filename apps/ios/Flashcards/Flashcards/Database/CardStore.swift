@@ -350,6 +350,256 @@ struct CardStore {
         )
     }
 
+    /**
+     Loads the current cards screen snapshot directly from SQLite so the UI can
+     search and filter without hydrating the full workspace into memory first.
+     */
+    func loadCardsListSnapshot(
+        workspaceId: String,
+        searchText: String,
+        filter: CardFilter?
+    ) throws -> CardsListSnapshot {
+        let querySQL = try self.makeCardsListQuerySQL(searchText: searchText, filter: filter)
+        let cards = try self.core.query(
+            sql: """
+            SELECT
+                card_id,
+                workspace_id,
+                front_text,
+                back_text,
+                tags_json,
+                effort_level,
+                due_at,
+                created_at,
+                reps,
+                lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
+                client_updated_at,
+                last_modified_by_device_id,
+                last_operation_id,
+                updated_at,
+                deleted_at
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
+            ORDER BY created_at DESC, card_id ASC
+            """,
+            values: [.text(workspaceId)] + querySQL.values
+        ) { statement in
+            try self.mapCard(statement: statement)
+        }
+
+        return CardsListSnapshot(
+            cards: cards,
+            totalCount: cards.count
+        )
+    }
+
+    /**
+     Returns the normalized tag counters used by settings and tag browsing
+     screens without scanning all card rows in SwiftUI.
+     */
+    func loadWorkspaceTagsSummary(workspaceId: String) throws -> WorkspaceTagsSummary {
+        let tags = try self.core.query(
+            sql: """
+            SELECT tag, COUNT(*) AS cards_count
+            FROM card_tags
+            WHERE workspace_id = ?
+            GROUP BY tag
+            ORDER BY tag COLLATE NOCASE ASC, tag ASC
+            """,
+            values: [.text(workspaceId)]
+        ) { statement in
+            WorkspaceTagSummary(
+                tag: DatabaseCore.columnText(statement: statement, index: 0),
+                cardsCount: Int(DatabaseCore.columnInt64(statement: statement, index: 1))
+            )
+        }
+        let totalCards = try self.core.scalarInt(
+            sql: """
+            SELECT COUNT(*)
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL
+            """,
+            values: [.text(workspaceId)]
+        )
+
+        return WorkspaceTagsSummary(tags: tags, totalCards: totalCards)
+    }
+
+    /**
+     Computes deck counters inside SQLite so deck lists no longer depend on the
+     eager in-memory cards snapshot.
+     */
+    func loadDeckCardStats(
+        workspaceId: String,
+        filterDefinition: DeckFilterDefinition,
+        now: Date
+    ) throws -> DeckCardStats {
+        let querySQL = try self.makeDeckStatsQuerySQL(filterDefinition: filterDefinition)
+        let rows = try self.core.query(
+            sql: """
+            SELECT
+                COUNT(*) AS total_count,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN due_at IS NULL OR due_at <= ? THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS due_count,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN reps = 0 AND lapses = 0 THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS new_count,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN reps > 0 OR lapses > 0 THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS reviewed_count
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
+            """,
+            values: [.text(isoTimestamp(date: now)), .text(workspaceId)] + querySQL.values
+        ) { statement in
+            DeckCardStats(
+                totalCards: Int(DatabaseCore.columnInt64(statement: statement, index: 0)),
+                dueCards: Int(DatabaseCore.columnInt64(statement: statement, index: 1)),
+                newCards: Int(DatabaseCore.columnInt64(statement: statement, index: 2)),
+                reviewedCards: Int(DatabaseCore.columnInt64(statement: statement, index: 3))
+            )
+        }
+
+        guard let deckCardStats = rows.first else {
+            throw LocalStoreError.database("Expected deck stats query to return one row")
+        }
+
+        return deckCardStats
+    }
+
+    func loadWorkspaceOverviewSnapshot(
+        workspaceId: String,
+        workspaceName: String,
+        deckCount: Int,
+        now: Date
+    ) throws -> WorkspaceOverviewSnapshot {
+        let rows = try self.core.query(
+            sql: """
+            SELECT
+                COUNT(*) AS total_count,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN due_at IS NULL OR due_at <= ? THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS due_count,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN reps = 0 AND lapses = 0 THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS new_count,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN reps > 0 OR lapses > 0 THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS reviewed_count
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL
+            """,
+            values: [.text(isoTimestamp(date: now)), .text(workspaceId)]
+        ) { statement in
+            WorkspaceOverviewSnapshot(
+                workspaceName: workspaceName,
+                deckCount: deckCount,
+                tagsCount: 0,
+                totalCards: Int(DatabaseCore.columnInt64(statement: statement, index: 0)),
+                dueCount: Int(DatabaseCore.columnInt64(statement: statement, index: 1)),
+                newCount: Int(DatabaseCore.columnInt64(statement: statement, index: 2)),
+                reviewedCount: Int(DatabaseCore.columnInt64(statement: statement, index: 3))
+            )
+        }
+
+        guard var overview = rows.first else {
+            throw LocalStoreError.database("Expected workspace overview query to return one row")
+        }
+        let tagsSummary = try self.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+        overview = WorkspaceOverviewSnapshot(
+            workspaceName: overview.workspaceName,
+            deckCount: overview.deckCount,
+            tagsCount: tagsSummary.tags.count,
+            totalCards: overview.totalCards,
+            dueCount: overview.dueCount,
+            newCount: overview.newCount,
+            reviewedCount: overview.reviewedCount
+        )
+        return overview
+    }
+
+    func loadCardsMatchingDeck(
+        workspaceId: String,
+        filterDefinition: DeckFilterDefinition
+    ) throws -> [Card] {
+        let querySQL = try self.makeDeckStatsQuerySQL(filterDefinition: filterDefinition)
+        return try self.core.query(
+            sql: """
+            SELECT
+                card_id,
+                workspace_id,
+                front_text,
+                back_text,
+                tags_json,
+                effort_level,
+                due_at,
+                created_at,
+                reps,
+                lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
+                client_updated_at,
+                last_modified_by_device_id,
+                last_operation_id,
+                updated_at,
+                deleted_at
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
+            ORDER BY created_at DESC, card_id ASC
+            """,
+            values: [.text(workspaceId)] + querySQL.values
+        ) { statement in
+            try self.mapCard(statement: statement)
+        }
+    }
+
     func saveCard(
         workspaceId: String,
         input: CardEditorInput,
@@ -390,6 +640,12 @@ struct CardStore {
             if updatedRows == 0 {
                 throw LocalStoreError.notFound("Card not found")
             }
+
+            try self.replaceCardTagsReadModel(
+                workspaceId: workspaceId,
+                cardId: cardId,
+                tags: normalizedInput.tags
+            )
 
             return try self.loadCard(workspaceId: workspaceId, cardId: cardId)
         }
@@ -436,6 +692,11 @@ struct CardStore {
                 .text(now)
             ]
         )
+        try self.replaceCardTagsReadModel(
+            workspaceId: workspaceId,
+            cardId: newCardId,
+            tags: normalizedInput.tags
+        )
 
         return try self.loadCard(workspaceId: workspaceId, cardId: newCardId)
     }
@@ -467,6 +728,12 @@ struct CardStore {
         if updatedRows == 0 {
             throw LocalStoreError.notFound("Card not found")
         }
+
+        try self.replaceCardTagsReadModel(
+            workspaceId: workspaceId,
+            cardId: cardId,
+            tags: []
+        )
 
         return try self.loadCardIncludingDeleted(workspaceId: workspaceId, cardId: cardId)
     }
@@ -708,6 +975,118 @@ struct CardStore {
             return ReviewQuerySQL(
                 clause: " AND " + predicates.joined(separator: " AND "),
                 values: values
+            )
+        }
+    }
+
+    private func makeCardsListQuerySQL(searchText: String, filter: CardFilter?) throws -> ReviewQuerySQL {
+        var predicates: [String] = []
+        var values: [SQLiteValue] = []
+        let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if normalizedSearchText.isEmpty == false {
+            predicates.append("(LOWER(front_text) LIKE ? OR LOWER(back_text) LIKE ?)")
+            let pattern = "%\(normalizedSearchText.lowercased())%"
+            values.append(.text(pattern))
+            values.append(.text(pattern))
+        }
+
+        if let filter, filter.effort.isEmpty == false {
+            let effortPlaceholders = Array(repeating: "?", count: filter.effort.count).joined(separator: ", ")
+            predicates.append("effort_level IN (\(effortPlaceholders))")
+            values.append(contentsOf: filter.effort.map { effortLevel in
+                .text(effortLevel.rawValue)
+            })
+        }
+
+        if let filter, filter.tags.isEmpty == false {
+            let tagPlaceholders = Array(repeating: "?", count: filter.tags.count).joined(separator: ", ")
+            predicates.append(
+                """
+                EXISTS (
+                    SELECT 1
+                    FROM card_tags
+                    WHERE card_tags.workspace_id = cards.workspace_id
+                        AND card_tags.card_id = cards.card_id
+                        AND card_tags.tag IN (\(tagPlaceholders))
+                )
+                """
+            )
+            values.append(contentsOf: filter.tags.map { tag in
+                .text(tag)
+            })
+        }
+
+        guard predicates.isEmpty == false else {
+            return ReviewQuerySQL(clause: "", values: [])
+        }
+
+        return ReviewQuerySQL(
+            clause: " AND " + predicates.joined(separator: " AND "),
+            values: values
+        )
+    }
+
+    private func makeDeckStatsQuerySQL(filterDefinition: DeckFilterDefinition) throws -> ReviewQuerySQL {
+        var predicates: [String] = []
+        var values: [SQLiteValue] = []
+
+        if filterDefinition.effortLevels.isEmpty == false {
+            let effortPlaceholders = Array(repeating: "?", count: filterDefinition.effortLevels.count).joined(separator: ", ")
+            predicates.append("effort_level IN (\(effortPlaceholders))")
+            values.append(contentsOf: filterDefinition.effortLevels.map { effortLevel in
+                .text(effortLevel.rawValue)
+            })
+        }
+
+        if filterDefinition.tags.isEmpty == false {
+            let tagPlaceholders = Array(repeating: "?", count: filterDefinition.tags.count).joined(separator: ", ")
+            predicates.append(
+                """
+                EXISTS (
+                    SELECT 1
+                    FROM card_tags
+                    WHERE card_tags.workspace_id = cards.workspace_id
+                        AND card_tags.card_id = cards.card_id
+                        AND card_tags.tag IN (\(tagPlaceholders))
+                )
+                """
+            )
+            values.append(contentsOf: filterDefinition.tags.map { tag in
+                .text(tag)
+            })
+        }
+
+        guard predicates.isEmpty == false else {
+            return ReviewQuerySQL(clause: "", values: [])
+        }
+
+        return ReviewQuerySQL(
+            clause: " AND " + predicates.joined(separator: " AND "),
+            values: values
+        )
+    }
+
+    func replaceCardTagsReadModel(
+        workspaceId: String,
+        cardId: String,
+        tags: [String]
+    ) throws {
+        try self.core.execute(
+            sql: """
+            DELETE FROM card_tags
+            WHERE workspace_id = ? AND card_id = ?
+            """,
+            values: [.text(workspaceId), .text(cardId)]
+        )
+
+        for tag in tags where tag.isEmpty == false {
+            try self.core.execute(
+                sql: """
+                INSERT INTO card_tags (workspace_id, card_id, tag)
+                VALUES (?, ?, ?)
+                """,
+                values: [.text(workspaceId), .text(cardId), .text(tag)]
             )
         }
     }

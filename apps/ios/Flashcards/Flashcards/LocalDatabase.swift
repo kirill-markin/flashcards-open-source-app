@@ -90,6 +90,80 @@ final class LocalDatabase {
         )
     }
 
+    func loadCardsListSnapshot(
+        workspaceId: String,
+        searchText: String,
+        filter: CardFilter?
+    ) throws -> CardsListSnapshot {
+        try self.cardStore.loadCardsListSnapshot(
+            workspaceId: workspaceId,
+            searchText: searchText,
+            filter: filter
+        )
+    }
+
+    func loadDecksListSnapshot(
+        workspaceId: String,
+        now: Date
+    ) throws -> DecksListSnapshot {
+        let decks = try self.deckStore.loadDecks(workspaceId: workspaceId)
+        let allCardsStats = try self.cardStore.loadDeckCardStats(
+            workspaceId: workspaceId,
+            filterDefinition: DeckFilterDefinition(version: 2, effortLevels: [], tags: []),
+            now: now
+        )
+        let deckSummaries = try decks.map { deck in
+            let stats = try self.cardStore.loadDeckCardStats(
+                workspaceId: workspaceId,
+                filterDefinition: deck.filterDefinition,
+                now: now
+            )
+            return DeckSummary(
+                deckId: deck.deckId,
+                name: deck.name,
+                filterDefinition: deck.filterDefinition,
+                createdAt: deck.createdAt,
+                totalCards: stats.totalCards,
+                dueCards: stats.dueCards,
+                newCards: stats.newCards,
+                reviewedCards: stats.reviewedCards
+            )
+        }
+
+        return DecksListSnapshot(
+            deckSummaries: deckSummaries,
+            allCardsStats: allCardsStats
+        )
+    }
+
+    func loadWorkspaceTagsSummary(workspaceId: String) throws -> WorkspaceTagsSummary {
+        try self.cardStore.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+    }
+
+    func loadWorkspaceOverviewSnapshot(
+        workspaceId: String,
+        workspaceName: String,
+        now: Date
+    ) throws -> WorkspaceOverviewSnapshot {
+        let deckCount = try self.deckStore.loadDecks(workspaceId: workspaceId).count
+        return try self.cardStore.loadWorkspaceOverviewSnapshot(
+            workspaceId: workspaceId,
+            workspaceName: workspaceName,
+            deckCount: deckCount,
+            now: now
+        )
+    }
+
+    func loadCardsMatchingDeck(
+        workspaceId: String,
+        filterDefinition: DeckFilterDefinition
+    ) throws -> [Card] {
+        try self.cardStore.loadCardsMatchingDeck(
+            workspaceId: workspaceId,
+            filterDefinition: filterDefinition
+        )
+    }
+
     func saveCard(workspaceId: String, input: CardEditorInput, cardId: String?) throws -> Card {
         try self.cardStore.validateCardInput(input: input)
 

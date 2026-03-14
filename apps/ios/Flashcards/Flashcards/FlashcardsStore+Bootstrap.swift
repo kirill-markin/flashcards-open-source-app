@@ -75,6 +75,7 @@ extension FlashcardsStore {
         self.refreshReviewState(now: now)
         self.homeSnapshot = makeHomeSnapshot(cards: cards, deckCount: decks.count, now: now)
         self.globalErrorMessage = ""
+        self.localReadVersion += 1
     }
 
     func makeAIChatStore() -> AIChatStore {
