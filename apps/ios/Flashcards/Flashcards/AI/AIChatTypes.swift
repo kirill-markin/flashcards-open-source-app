@@ -5,6 +5,7 @@ let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 let aiChatOptimisticAssistantStatusText: String = "Looking through your cards..."
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
 let aiChatExternalProviderConsentRequiredMessage: String = "Review AI data use and accept it on this device before using AI features."
+let aiChatAccuracyWarningText: String = "AI responses can be inaccurate or incomplete. Review important results before relying on them."
 let aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
 let aiChatSupportedFileExtensions: Set<String> = [
     "pdf",
@@ -41,6 +42,7 @@ let aiChatExternalProviderDisclosureItems: [String] = [
     "Typed prompts and card-derived context needed for your request can be sent to external AI providers.",
     "Uploaded files and images can be uploaded for AI processing.",
     "Dictated audio and transcription requests can be sent for speech processing.",
+    "Technical diagnostics about failed or slow AI requests can be sent to help debug the hosted AI service.",
 ]
 
 enum AIChatAccessState: Equatable {

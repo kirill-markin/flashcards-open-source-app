@@ -81,6 +81,9 @@ struct AccountLegalSupportView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Text(aiChatAccuracyWarningText)
+                    .foregroundStyle(.secondary)
+
                 Text("Review and accept AI data use from the AI tab before using hosted AI.")
                     .foregroundStyle(.secondary)
             }

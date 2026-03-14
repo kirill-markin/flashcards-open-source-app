@@ -243,7 +243,7 @@ struct AIChatView: View {
                 Text("Before you use AI")
                     .font(.title3.weight(.semibold))
 
-                Text("Hosted AI is optional. Before you use it on this device, please confirm that you understand which requests can be sent to external AI providers configured on the server.")
+                Text("Hosted AI is optional. Before you use it on this device, please confirm that you understand which request data can be sent to third-party AI providers configured on the current server.")
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 12) {
@@ -253,6 +253,9 @@ struct AIChatView: View {
                     Label("The exact AI provider depends on the current hosted server configuration.", systemImage: "server.rack")
                 }
                 .font(.subheadline)
+
+                Text(aiChatAccuracyWarningText)
+                    .foregroundStyle(.secondary)
 
                 Text("Cards, decks, and review continue to work without AI.")
                     .foregroundStyle(.secondary)
