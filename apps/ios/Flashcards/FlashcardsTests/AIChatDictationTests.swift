@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import XCTest
 @testable import Flashcards
 
@@ -60,6 +61,19 @@ final class AIChatDictationTests: AIChatTestCaseBase {
                     startUtf16Offset: "hello".utf16.count,
                     endUtf16Offset: "hello".utf16.count
                 )
+            )
+        )
+    }
+
+    func testAIChatDictationInsertionSelectionReturnsNilForStaleSelectionRange() {
+        let previousText = "hello"
+        let startIndex = previousText.index(previousText.startIndex, offsetBy: 1)
+        let endIndex = previousText.index(previousText.startIndex, offsetBy: 4)
+
+        XCTAssertNil(
+            aiChatDictationInsertionSelection(
+                text: "",
+                selection: TextSelection(range: startIndex..<endIndex)
             )
         )
     }
