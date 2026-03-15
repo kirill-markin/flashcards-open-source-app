@@ -32,8 +32,11 @@ export function buildCardSideContractSection(): string {
     "Card side contract:",
     "- Front side must contain only a question or recall prompt. Never include the answer on the front side.",
     "- Make the front side specific enough that it stays unambiguous among many cards.",
-    "- Back side must contain the answer.",
-    "- When helpful, include a concrete example on the back side. Prefer a fenced markdown code block for structured examples.",
+    "- Back side must start with the direct answer.",
+    "- After the answer, include one or more concrete examples by default when creating a card.",
+    "- Skip examples only when the user explicitly asks you not to include them.",
+    "- For code cards, prefer concrete code snippets in fenced markdown code blocks.",
+    "- For business, conceptual, or practical cards, prefer concrete real-world usage examples.",
     "- Keep chat replies plain text, but card content may freely use markdown.",
   ]);
 }

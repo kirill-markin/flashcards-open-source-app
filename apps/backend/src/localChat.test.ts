@@ -255,8 +255,11 @@ test("buildLocalSystemInstructions includes strict tool-call rules, examples, an
   assert.match(instructions, /front side must contain only a question or recall prompt\./i);
   assert.match(instructions, /never include the answer on the front side\./i);
   assert.match(instructions, /make the front side specific enough that it stays unambiguous among many cards\./i);
-  assert.match(instructions, /back side must contain the answer\./i);
-  assert.match(instructions, /prefer a fenced markdown code block for structured examples\./i);
+  assert.match(instructions, /back side must start with the direct answer\./i);
+  assert.match(instructions, /after the answer, include one or more concrete examples by default when creating a card\./i);
+  assert.match(instructions, /skip examples only when the user explicitly asks you not to include them\./i);
+  assert.match(instructions, /for code cards, prefer concrete code snippets in fenced markdown code blocks\./i);
+  assert.match(instructions, /for business, conceptual, or practical cards, prefer concrete real-world usage examples\./i);
   assert.match(instructions, /keep chat replies plain text, but card content may freely use markdown\./i);
   assert.match(instructions, /Tool arguments must be exactly one JSON object\./);
   assert.equal(
@@ -288,6 +291,11 @@ test("buildLocalSystemInstructions uses explicit web browser chat context", () =
   assert.match(instructions, /the user is chatting with you in the web browser chat\./i);
   assert.match(instructions, /respond to the user as plain text for a chat surface that does not render markdown\./i);
   assert.match(instructions, /keep replies compact and comfortable to read in a small chat window on mobile devices and in the browser\./i);
+  assert.match(instructions, /back side must start with the direct answer\./i);
+  assert.match(instructions, /after the answer, include one or more concrete examples by default when creating a card\./i);
+  assert.match(instructions, /skip examples only when the user explicitly asks you not to include them\./i);
+  assert.match(instructions, /for code cards, prefer concrete code snippets in fenced markdown code blocks\./i);
+  assert.match(instructions, /for business, conceptual, or practical cards, prefer concrete real-world usage examples\./i);
 });
 
 test("isInlineTextAttachmentCandidate accepts supported text-like files and excludes csv", () => {
