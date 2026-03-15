@@ -1,7 +1,7 @@
 .review-screen-panel {
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
-  max-height: calc(100dvh - 172px);
+  max-height: calc(100dvh - 156px);
   overflow: hidden;
 }
 
@@ -501,10 +501,6 @@
   z-index: 1;
   padding-bottom: 4px;
   background: var(--surface-elevated);
-}
-
-.review-queue-subtitle {
-  margin-top: 4px;
 }
 
 .review-queue-caption {
