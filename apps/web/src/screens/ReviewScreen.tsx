@@ -166,7 +166,7 @@ function buildReviewFilterMenuItems(
   ];
 }
 
-function normalizeReviewDeckSearchText(searchText: string): string {
+function normalizeReviewFilterSearchText(searchText: string): string {
   return searchText.trim().toLowerCase();
 }
 
@@ -453,11 +453,16 @@ export function ReviewScreen(): ReactElement {
   const reviewDeckFilterMenuItems = buildReviewDeckFilterMenuItems(deckSummaries, resolvedReviewFilter);
   const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(reviewTagSummaries, resolvedReviewFilter);
   const reviewFilterMenuItems = buildReviewFilterMenuItems(reviewTagSummaries);
-  const shouldShowReviewDeckSearch = reviewDeckFilterMenuItems.length > 7;
-  const normalizedReviewDeckSearchText = normalizeReviewDeckSearchText(reviewDeckSearchText);
+  const totalReviewFilterChoicesCount = reviewDeckFilterMenuItems.length + reviewTagFilterMenuItems.length;
+  const shouldShowReviewDeckSearch = totalReviewFilterChoicesCount > 7;
+  const normalizedReviewDeckSearchText = normalizeReviewFilterSearchText(reviewDeckSearchText);
   const visibleReviewDeckFilterMenuItems = shouldShowReviewDeckSearch
     ? reviewDeckFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
     : reviewDeckFilterMenuItems;
+  const visibleReviewTagFilterMenuItems = shouldShowReviewDeckSearch
+    ? reviewTagFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
+    : reviewTagFilterMenuItems;
+  const hasVisibleReviewFilterChoices = visibleReviewDeckFilterMenuItems.length > 0 || visibleReviewTagFilterMenuItems.length > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
   const hasCards = localCardCount > 0;
   const reviewButtonsNow = new Date();
@@ -757,21 +762,22 @@ export function ReviewScreen(): ReactElement {
                 <div className="review-filter-menu" role="menu" aria-label="Review filter">
                   {shouldShowReviewDeckSearch ? (
                     <label className="review-filter-search-field">
-                      <span className="review-filter-search-label">Search decks</span>
+                      <span className="review-filter-search-label">Search</span>
                       <input
                         ref={reviewDeckSearchInputRef}
                         type="search"
-                        name="review-deck-search"
+                        name="review-filter-search"
                         className="review-filter-search-input"
-                        placeholder="Search decks"
+                        placeholder="Search decks or tags"
                         value={reviewDeckSearchText}
                         onChange={(event) => setReviewDeckSearchText(event.target.value)}
                       />
                     </label>
                   ) : null}
-                  {visibleReviewDeckFilterMenuItems.length === 0 ? (
-                    <div className="review-filter-menu-empty" aria-live="polite">No decks found</div>
-                  ) : visibleReviewDeckFilterMenuItems.map((item) => (
+                  {hasVisibleReviewFilterChoices === false ? (
+                    <div className="review-filter-menu-empty" aria-live="polite">No decks or tags found</div>
+                  ) : null}
+                  {visibleReviewDeckFilterMenuItems.map((item) => (
                     <button
                       key={item.key}
                       className={`review-filter-menu-entry${item.isSelected ? " review-filter-menu-entry-active" : ""}`}
@@ -791,6 +797,10 @@ export function ReviewScreen(): ReactElement {
                   ))}
                   {reviewFilterMenuItems.map((item) => {
                     if (item.kind === "separator") {
+                      if (visibleReviewTagFilterMenuItems.length === 0) {
+                        return null;
+                      }
+
                       return <div key={item.key} className="review-filter-menu-divider" role="separator" />;
                     }
 
@@ -812,7 +822,7 @@ export function ReviewScreen(): ReactElement {
                       </Link>
                     );
                   })}
-                  {reviewTagFilterMenuItems.map((tagItem) => (
+                  {visibleReviewTagFilterMenuItems.map((tagItem) => (
                     <button
                       key={tagItem.key}
                       className={`review-filter-menu-entry${tagItem.isSelected ? " review-filter-menu-entry-active" : ""}`}

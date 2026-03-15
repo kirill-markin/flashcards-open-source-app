@@ -495,7 +495,7 @@ describe("ReviewScreen", () => {
     expect(container.querySelector(".review-filter-menu")).toBeNull();
   });
 
-  it("does not show deck search when there are 7 or fewer deck choices", async () => {
+  it("does not show filter search when there are 7 or fewer deck and tag choices total", async () => {
     mockAppData.decks = createDecks([
       "Alpha",
       "Beta",
@@ -517,19 +517,19 @@ describe("ReviewScreen", () => {
       clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
     });
 
-    expect(container.querySelector('input[name="review-deck-search"]')).toBeNull();
+    expect(container.querySelector('input[name="review-filter-search"]')).toBeNull();
   });
 
-  it("shows deck search and autofocuses it when there are more than 7 deck choices", async () => {
+  it("shows filter search and autofocuses it when deck and tag choices total more than 7", async () => {
     mockAppData.decks = createDecks([
       "Alpha",
       "Beta",
       "Gamma",
-      "Delta",
-      "Epsilon",
-      "Zeta",
-      "Eta",
     ]);
+    mockAppData.cards = [
+      createCard({ cardId: "card-1", tags: ["grammar", "verbs"] }),
+      createCard({ cardId: "card-2", tags: ["travel", "database"] }),
+    ];
 
     await act(async () => {
       root.render(
@@ -543,13 +543,13 @@ describe("ReviewScreen", () => {
       clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
     });
 
-    const searchInput = container.querySelector('input[name="review-deck-search"]');
+    const searchInput = container.querySelector('input[name="review-filter-search"]');
 
     expect(searchInput).not.toBeNull();
     expect(document.activeElement).toBe(searchInput);
   });
 
-  it("filters deck entries case-insensitively and still matches All cards", async () => {
+  it("filters review filter entries case-insensitively and still matches All cards", async () => {
     mockAppData.decks = createDecks([
       "Python",
       "Database",
@@ -572,7 +572,7 @@ describe("ReviewScreen", () => {
       clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
     });
 
-    const searchInput = container.querySelector('input[name="review-deck-search"]');
+    const searchInput = container.querySelector('input[name="review-filter-search"]');
 
     expect(searchInput).not.toBeNull();
 
@@ -592,7 +592,7 @@ describe("ReviewScreen", () => {
     expect(container.querySelector('[data-review-filter-key="deck:deck-2"]')).toBeNull();
   });
 
-  it("keeps tags visible and selectable while deck search is active", async () => {
+  it("filters tags too when search is active", async () => {
     mockAppData.decks = createDecks([
       "Python",
       "Database",
@@ -626,26 +626,29 @@ describe("ReviewScreen", () => {
       clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
     });
 
-    const searchInput = container.querySelector('input[name="review-deck-search"]');
+    const searchInput = container.querySelector('input[name="review-filter-search"]');
 
     await act(async () => {
-      setInputValue(searchInput as HTMLInputElement, "python");
+      setInputValue(searchInput as HTMLInputElement, "travel");
     });
 
-    const tagButton = container.querySelector('[data-review-filter-key="tag:grammar"]');
+    const travelDeckButton = container.querySelector('[data-review-filter-key="deck:deck-7"]');
+    const travelTagButton = container.querySelector('[data-review-filter-key="tag:travel"]');
 
-    expect(tagButton).not.toBeNull();
+    expect(travelDeckButton).not.toBeNull();
+    expect(travelTagButton).not.toBeNull();
+    expect(container.querySelector('[data-review-filter-key="tag:grammar"]')).toBeNull();
     expect(container.textContent).toContain("Edit decks");
 
     await act(async () => {
-      clickElement(tagButton as HTMLButtonElement);
+      clickElement(travelTagButton as HTMLButtonElement);
     });
 
-    expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tag", tag: "grammar" });
+    expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tag", tag: "travel" });
     expect(container.querySelector(".review-filter-menu")).toBeNull();
   });
 
-  it("shows a no-match deck state while keeping tags and Edit decks visible", async () => {
+  it("shows a no-match filter state while keeping Edit decks visible", async () => {
     mockAppData.decks = createDecks([
       "Python",
       "Database",
@@ -674,19 +677,19 @@ describe("ReviewScreen", () => {
       clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
     });
 
-    const searchInput = container.querySelector('input[name="review-deck-search"]');
+    const searchInput = container.querySelector('input[name="review-filter-search"]');
 
     await act(async () => {
       setInputValue(searchInput as HTMLInputElement, "zzz");
     });
 
-    expect(container.querySelector(".review-filter-menu-empty")?.textContent).toContain("No decks found");
+    expect(container.querySelector(".review-filter-menu-empty")?.textContent).toContain("No decks or tags found");
     expect(container.textContent).toContain("Edit decks");
-    expect(container.textContent).toContain("grammar (1)");
     expect(container.querySelector('[data-review-filter-key="allCards"]')).toBeNull();
+    expect(container.querySelector('[data-review-filter-key="tag:grammar"]')).toBeNull();
   });
 
-  it("starts deck search empty each time the menu is reopened", async () => {
+  it("starts filter search empty each time the menu is reopened", async () => {
     mockAppData.decks = createDecks([
       "Python",
       "Database",
@@ -711,7 +714,7 @@ describe("ReviewScreen", () => {
       clickElement(trigger as HTMLButtonElement);
     });
 
-    const firstSearchInput = container.querySelector('input[name="review-deck-search"]');
+    const firstSearchInput = container.querySelector('input[name="review-filter-search"]');
 
     await act(async () => {
       setInputValue(firstSearchInput as HTMLInputElement, "python");
@@ -725,7 +728,7 @@ describe("ReviewScreen", () => {
       clickElement(trigger as HTMLButtonElement);
     });
 
-    const secondSearchInput = container.querySelector('input[name="review-deck-search"]') as HTMLInputElement;
+    const secondSearchInput = container.querySelector('input[name="review-filter-search"]') as HTMLInputElement;
 
     expect(secondSearchInput.value).toBe("");
   });
@@ -753,7 +756,7 @@ describe("ReviewScreen", () => {
       clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
     });
 
-    const searchInput = container.querySelector('input[name="review-deck-search"]');
+    const searchInput = container.querySelector('input[name="review-filter-search"]');
 
     await act(async () => {
       setInputValue(searchInput as HTMLInputElement, "python");

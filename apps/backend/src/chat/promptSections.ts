@@ -41,6 +41,16 @@ export function buildCardSideContractSection(): string {
   ]);
 }
 
+export function buildCardEffortSection(): string {
+  return joinLines([
+    "Card effort rules:",
+    "- Default to fast unless the user clearly wants a slower card.",
+    "- Fast is the normal default and should be used for almost all cards.",
+    "- Medium is for cards where the person needs to sit and write or work through a solution for around five minutes.",
+    "- Long is for unusually long cards with half-day activities and should be very rare.",
+  ]);
+}
+
 export function buildPlainTextChatFormattingSection(): string {
   return joinLines([
     "Chat response formatting:",
