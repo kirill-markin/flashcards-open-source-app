@@ -663,7 +663,7 @@ export function ReviewScreen(): ReactElement {
   if (isReviewLoading && hasLoadedReviewData === false) {
     return (
       <main className="container">
-        <section className="panel">
+        <section className="panel review-screen-panel">
           <h1 className="title">Review</h1>
           <p className="subtitle">Loading review queue…</p>
         </section>
@@ -674,7 +674,7 @@ export function ReviewScreen(): ReactElement {
   if (reviewLoadErrorMessage !== "" && hasLoadedReviewData === false) {
     return (
       <main className="container">
-        <section className="panel">
+        <section className="panel review-screen-panel">
           <h1 className="title">Review</h1>
           <p className="error-banner">{reviewLoadErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
@@ -687,7 +687,7 @@ export function ReviewScreen(): ReactElement {
 
   return (
     <main className="container">
-      <section className="panel">
+      <section className="panel review-screen-panel">
         <div className="screen-head">
           <div>
             <h1 className="title">Review</h1>
