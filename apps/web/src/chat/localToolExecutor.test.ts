@@ -309,6 +309,40 @@ describe("createLocalToolExecutor", () => {
     });
   });
 
+  it("supports case-insensitive exact matches on unnested tags", async () => {
+    await seedLocalDatabase([
+      makeCard({
+        cardId: "card-1",
+        frontText: "TypeScript note",
+        tags: ["TypeScript", "frontend"],
+        updatedAt: "2026-03-10T09:00:00.000Z",
+      }),
+      makeCard({
+        cardId: "card-2",
+        frontText: "Other note",
+        tags: ["backend"],
+        updatedAt: "2026-03-10T08:00:00.000Z",
+      }),
+    ]);
+    const executor = createLocalToolExecutor(makeDependencies());
+
+    const result = await executor.execute({
+      toolCallId: "call-unnest-exact-tag",
+      name: "sql",
+      input: JSON.stringify({
+        sql: "SELECT card_id, front_text, back_text, tags FROM cards UNNEST tags AS tag WHERE LOWER(tag) = 'typescript' ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+      }),
+    });
+    const payload = JSON.parse(result.output) as Readonly<{
+      rowCount: number;
+      rows: ReadonlyArray<Readonly<Record<string, unknown>>>;
+    }>;
+
+    expect(payload.rowCount).toBe(1);
+    expect(payload.rows[0]?.front_text).toBe("TypeScript note");
+    expect(payload.rows[0]?.tags).toEqual(["TypeScript", "frontend"]);
+  });
+
   it("supports standalone ORDER BY RANDOM() for SQL reads", async () => {
     const seedData = makeSeedData();
     const cards = [...seedData.cards, 

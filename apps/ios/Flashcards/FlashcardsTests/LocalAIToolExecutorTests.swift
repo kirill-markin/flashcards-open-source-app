@@ -239,6 +239,35 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
         })
     }
 
+    func testLocalToolExecutorFiltersUnnestedTagsWithCaseInsensitiveExactMatch() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        _ = try await self.executeSql(
+            executor: executor,
+            sql: """
+            INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES
+            ('TypeScript note', 'Answer', ('TypeScript', 'frontend'), 'medium'),
+            ('Other note', 'Answer', ('backend'), 'medium')
+            """,
+            toolCallId: "call-insert-tagged-cards"
+        )
+
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: """
+            SELECT card_id, front_text, back_text, tags FROM cards UNNEST tags AS tag
+            WHERE LOWER(tag) = 'typescript'
+            ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0
+            """,
+            toolCallId: "call-select-typescript-tag"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.rowCount, 1)
+        XCTAssertEqual(selectPayload.rows.first?["front_text"]?.stringValue, "TypeScript note")
+        XCTAssertEqual(selectPayload.rows.first?["tags"]?.stringArrayValue, ["TypeScript", "frontend"])
+    }
+
     func testLocalToolExecutorCreatesReadsAndUpdatesCardsThroughSql() async throws {
         let flashcardsStore = try self.makeStore()
         let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
