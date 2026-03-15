@@ -250,6 +250,15 @@
     linear-gradient(180deg, rgba(30, 30, 36, 0.98), rgba(18, 18, 24, 0.98));
 }
 
+.review-card-surface-front {
+  min-height: auto;
+  grid-template-rows: auto auto;
+}
+
+.review-card-surface-front .review-card-body {
+  min-height: 0;
+}
+
 .review-label {
   font-size: 12px;
   text-transform: uppercase;
@@ -500,7 +509,7 @@
   top: 0;
   z-index: 1;
   padding-bottom: 4px;
-  background: var(--surface-elevated);
+  background: transparent;
 }
 
 .review-queue-caption {

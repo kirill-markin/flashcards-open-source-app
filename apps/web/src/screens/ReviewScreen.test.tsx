@@ -334,7 +334,7 @@ describe("ReviewScreen", () => {
       ".review-queue-head {",
       "position: sticky;",
       "top: 0;",
-      "background: var(--surface-elevated);",
+      "background: transparent;",
     )).toBe(true);
     expect(reviewStylesContain(
       ".review-queue-list {",
@@ -346,6 +346,15 @@ describe("ReviewScreen", () => {
       ".review-card-surface {",
       "min-height: 132px;",
       "grid-template-rows: auto minmax(76px, 1fr);",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      ".review-card-surface-front {",
+      "min-height: auto;",
+      "grid-template-rows: auto auto;",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      ".review-card-surface-front .review-card-body {",
+      "min-height: 0;",
     )).toBe(true);
     expect(reviewStylesContain(
       ".review-card-body {",
