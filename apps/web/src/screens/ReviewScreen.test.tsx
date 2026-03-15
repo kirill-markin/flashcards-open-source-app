@@ -143,6 +143,20 @@ function clickElement(element: Element): void {
   element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
 
+function setInputValue(input: HTMLInputElement, value: string): void {
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  descriptor?.set?.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function createDecks(names: ReadonlyArray<string>): Array<Deck> {
+  return names.map((name, index) => createDeck({
+    deckId: `deck-${index + 1}`,
+    name,
+    updatedAt: `2026-03-10T${String(index).padStart(2, "0")}:00:00.000Z`,
+  }));
+}
+
 const reviewStylesheet = readFileSync(resolve(process.cwd(), "src/styles/features/review.css"), "utf8");
 
 function reviewStylesContain(...fragments: ReadonlyArray<string>): boolean {
@@ -475,6 +489,282 @@ describe("ReviewScreen", () => {
 
     await act(async () => {
       clickElement(grammarButton as HTMLButtonElement);
+    });
+
+    expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });
+    expect(container.querySelector(".review-filter-menu")).toBeNull();
+  });
+
+  it("does not show deck search when there are 7 or fewer deck choices", async () => {
+    mockAppData.decks = createDecks([
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta",
+      "Epsilon",
+      "Zeta",
+    ]);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
+    });
+
+    expect(container.querySelector('input[name="review-deck-search"]')).toBeNull();
+  });
+
+  it("shows deck search and autofocuses it when there are more than 7 deck choices", async () => {
+    mockAppData.decks = createDecks([
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta",
+      "Epsilon",
+      "Zeta",
+      "Eta",
+    ]);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
+    });
+
+    const searchInput = container.querySelector('input[name="review-deck-search"]');
+
+    expect(searchInput).not.toBeNull();
+    expect(document.activeElement).toBe(searchInput);
+  });
+
+  it("filters deck entries case-insensitively and still matches All cards", async () => {
+    mockAppData.decks = createDecks([
+      "Python",
+      "Database",
+      "System Design",
+      "Cloud",
+      "Math",
+      "Grammar",
+      "Travel",
+    ]);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
+    });
+
+    const searchInput = container.querySelector('input[name="review-deck-search"]');
+
+    expect(searchInput).not.toBeNull();
+
+    await act(async () => {
+      setInputValue(searchInput as HTMLInputElement, "ALL");
+    });
+
+    expect(container.querySelector('[data-review-filter-key="allCards"]')).not.toBeNull();
+    expect(container.querySelector('[data-review-filter-key="deck:deck-1"]')).toBeNull();
+
+    await act(async () => {
+      setInputValue(searchInput as HTMLInputElement, "py");
+    });
+
+    expect(container.querySelector('[data-review-filter-key="allCards"]')).toBeNull();
+    expect(container.querySelector('[data-review-filter-key="deck:deck-1"]')).not.toBeNull();
+    expect(container.querySelector('[data-review-filter-key="deck:deck-2"]')).toBeNull();
+  });
+
+  it("keeps tags visible and selectable while deck search is active", async () => {
+    mockAppData.decks = createDecks([
+      "Python",
+      "Database",
+      "System Design",
+      "Cloud",
+      "Math",
+      "Grammar",
+      "Travel",
+    ]);
+    mockAppData.cards = [
+      createCard({
+        cardId: "grammar-card",
+        tags: ["grammar", "verbs"],
+      }),
+      createCard({
+        cardId: "travel-card",
+        tags: ["travel"],
+        updatedAt: "2026-03-10T11:00:00.000Z",
+      }),
+    ];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
+    });
+
+    const searchInput = container.querySelector('input[name="review-deck-search"]');
+
+    await act(async () => {
+      setInputValue(searchInput as HTMLInputElement, "python");
+    });
+
+    const tagButton = container.querySelector('[data-review-filter-key="tag:grammar"]');
+
+    expect(tagButton).not.toBeNull();
+    expect(container.textContent).toContain("Edit decks");
+
+    await act(async () => {
+      clickElement(tagButton as HTMLButtonElement);
+    });
+
+    expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "tag", tag: "grammar" });
+    expect(container.querySelector(".review-filter-menu")).toBeNull();
+  });
+
+  it("shows a no-match deck state while keeping tags and Edit decks visible", async () => {
+    mockAppData.decks = createDecks([
+      "Python",
+      "Database",
+      "System Design",
+      "Cloud",
+      "Math",
+      "Grammar",
+      "Travel",
+    ]);
+    mockAppData.cards = [
+      createCard({
+        cardId: "grammar-card",
+        tags: ["grammar"],
+      }),
+    ];
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
+    });
+
+    const searchInput = container.querySelector('input[name="review-deck-search"]');
+
+    await act(async () => {
+      setInputValue(searchInput as HTMLInputElement, "zzz");
+    });
+
+    expect(container.querySelector(".review-filter-menu-empty")?.textContent).toContain("No decks found");
+    expect(container.textContent).toContain("Edit decks");
+    expect(container.textContent).toContain("grammar (1)");
+    expect(container.querySelector('[data-review-filter-key="allCards"]')).toBeNull();
+  });
+
+  it("starts deck search empty each time the menu is reopened", async () => {
+    mockAppData.decks = createDecks([
+      "Python",
+      "Database",
+      "System Design",
+      "Cloud",
+      "Math",
+      "Grammar",
+      "Travel",
+    ]);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const trigger = container.querySelector(".review-filter-trigger");
+
+    await act(async () => {
+      clickElement(trigger as HTMLButtonElement);
+    });
+
+    const firstSearchInput = container.querySelector('input[name="review-deck-search"]');
+
+    await act(async () => {
+      setInputValue(firstSearchInput as HTMLInputElement, "python");
+    });
+
+    await act(async () => {
+      clickElement(trigger as HTMLButtonElement);
+    });
+
+    await act(async () => {
+      clickElement(trigger as HTMLButtonElement);
+    });
+
+    const secondSearchInput = container.querySelector('input[name="review-deck-search"]') as HTMLInputElement;
+
+    expect(secondSearchInput.value).toBe("");
+  });
+
+  it("dispatches the selected filtered deck and closes the menu", async () => {
+    mockAppData.decks = createDecks([
+      "Python",
+      "Database",
+      "System Design",
+      "Cloud",
+      "Math",
+      "Grammar",
+      "Travel",
+    ]);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      clickElement(container.querySelector(".review-filter-trigger") as HTMLButtonElement);
+    });
+
+    const searchInput = container.querySelector('input[name="review-deck-search"]');
+
+    await act(async () => {
+      setInputValue(searchInput as HTMLInputElement, "python");
+    });
+
+    const pythonButton = container.querySelector('[data-review-filter-key="deck:deck-1"]');
+
+    expect(pythonButton).not.toBeNull();
+
+    await act(async () => {
+      clickElement(pythonButton as HTMLButtonElement);
     });
 
     expect(mockAppData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });

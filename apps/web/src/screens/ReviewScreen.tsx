@@ -44,13 +44,6 @@ type MarkdownFenceMarker = "`" | "~";
 
 type ReviewFilterMenuItem =
   | Readonly<{
-    kind: "filter";
-    key: string;
-    label: string;
-    reviewFilter: ReviewFilter;
-    isSelected: boolean;
-  }>
-  | Readonly<{
     kind: "action";
     key: "edit-decks";
     label: string;
@@ -60,6 +53,13 @@ type ReviewFilterMenuItem =
     kind: "separator";
     key: "tags-separator";
   }>;
+
+type ReviewFilterChoiceMenuItem = Readonly<{
+  key: string;
+  label: string;
+  reviewFilter: ReviewFilter;
+  isSelected: boolean;
+}>;
 
 const reviewAnswerOptions: ReadonlyArray<Readonly<{
   title: string;
@@ -95,14 +95,12 @@ function toReviewFilterMenuItemKey(reviewFilter: ReviewFilter): string {
   return `${REVIEW_FILTER_TAG_PREFIX}${reviewFilter.tag}`;
 }
 
-function buildReviewFilterMenuItems(
+function buildReviewDeckFilterMenuItems(
   decks: ReadonlyArray<DeckSummary>,
-  reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>,
   selectedReviewFilter: ReviewFilter,
-): Array<ReviewFilterMenuItem> {
-  const items: Array<ReviewFilterMenuItem> = [
+): Array<ReviewFilterChoiceMenuItem> {
+  return [
     {
-      kind: "filter",
       key: toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
       label: "All cards",
       reviewFilter: ALL_CARDS_REVIEW_FILTER,
@@ -115,13 +113,38 @@ function buildReviewFilterMenuItems(
       };
 
       return {
-        kind: "filter" as const,
         key: toReviewFilterMenuItemKey(reviewFilter),
         label: deck.name,
         reviewFilter,
         isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
       };
     }),
+  ];
+}
+
+function buildReviewTagFilterMenuItems(
+  reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>,
+  selectedReviewFilter: ReviewFilter,
+): Array<ReviewFilterChoiceMenuItem> {
+  return reviewTagSummaries.map((tagSummary) => {
+    const reviewFilter: ReviewFilter = {
+      kind: "tag",
+      tag: tagSummary.tag,
+    };
+
+    return {
+      key: toReviewFilterMenuItemKey(reviewFilter),
+      label: `${tagSummary.tag} (${tagSummary.cardsCount})`,
+      reviewFilter,
+      isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
+    };
+  });
+}
+
+function buildReviewFilterMenuItems(
+  reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>,
+): Array<ReviewFilterMenuItem> {
+  const items: Array<ReviewFilterMenuItem> = [
     {
       kind: "action",
       key: "edit-decks",
@@ -140,21 +163,11 @@ function buildReviewFilterMenuItems(
       kind: "separator",
       key: "tags-separator",
     },
-    ...reviewTagSummaries.map((tagSummary) => {
-      const reviewFilter: ReviewFilter = {
-        kind: "tag",
-        tag: tagSummary.tag,
-      };
-
-      return {
-        kind: "filter" as const,
-        key: toReviewFilterMenuItemKey(reviewFilter),
-        label: `${tagSummary.tag} (${tagSummary.cardsCount})`,
-        reviewFilter,
-        isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
-      };
-    }),
   ];
+}
+
+function normalizeReviewDeckSearchText(searchText: string): string {
+  return searchText.trim().toLowerCase();
 }
 
 function formatQueueBadge(dueCount: number, totalCount: number): string {
@@ -414,6 +427,7 @@ export function ReviewScreen(): ReactElement {
   const [editorErrorMessage, setEditorErrorMessage] = useState<string>("");
   const [isEditorSaving, setIsEditorSaving] = useState<boolean>(false);
   const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
+  const [reviewDeckSearchText, setReviewDeckSearchText] = useState<string>("");
   const [selectedReviewFilterTitle, setSelectedReviewFilterTitle] = useState<string>("All cards");
   const [activeReviewQueue, setActiveReviewQueue] = useState<ReadonlyArray<Card>>([]);
   const [queueCards, setQueueCards] = useState<ReadonlyArray<Card>>([]);
@@ -431,11 +445,19 @@ export function ReviewScreen(): ReactElement {
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
   const reviewFilterMenuWrapRef = useRef<HTMLDivElement | null>(null);
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const reviewDeckSearchInputRef = useRef<HTMLInputElement | null>(null);
   const previousReviewFilterRef = useRef<ReviewFilter | null>(null);
   const nowTimestamp = Date.now();
   const selectedCard = currentReviewCard(activeReviewQueue);
   const editingCard = queueCards.find((card) => card.cardId === editingCardId) ?? selectedCard ?? null;
-  const reviewFilterMenuItems = buildReviewFilterMenuItems(deckSummaries, reviewTagSummaries, resolvedReviewFilter);
+  const reviewDeckFilterMenuItems = buildReviewDeckFilterMenuItems(deckSummaries, resolvedReviewFilter);
+  const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(reviewTagSummaries, resolvedReviewFilter);
+  const reviewFilterMenuItems = buildReviewFilterMenuItems(reviewTagSummaries);
+  const shouldShowReviewDeckSearch = reviewDeckFilterMenuItems.length > 7;
+  const normalizedReviewDeckSearchText = normalizeReviewDeckSearchText(reviewDeckSearchText);
+  const visibleReviewDeckFilterMenuItems = shouldShowReviewDeckSearch
+    ? reviewDeckFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
+    : reviewDeckFilterMenuItems;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
   const hasCards = localCardCount > 0;
   const reviewButtonsNow = new Date();
@@ -550,6 +572,22 @@ export function ReviewScreen(): ReactElement {
   }, [isReviewFilterMenuOpen]);
 
   useEffect(() => {
+    if (isReviewFilterMenuOpen || reviewDeckSearchText === "") {
+      return;
+    }
+
+    setReviewDeckSearchText("");
+  }, [isReviewFilterMenuOpen, reviewDeckSearchText]);
+
+  useEffect(() => {
+    if (!isReviewFilterMenuOpen || !shouldShowReviewDeckSearch) {
+      return;
+    }
+
+    reviewDeckSearchInputRef.current?.focus();
+  }, [isReviewFilterMenuOpen, shouldShowReviewDeckSearch]);
+
+  useEffect(() => {
     if (!isReviewFilterMenuOpen) {
       return;
     }
@@ -652,11 +690,13 @@ export function ReviewScreen(): ReactElement {
   }
 
   function handleReviewFilterMenuToggle(): void {
+    setReviewDeckSearchText("");
     setIsReviewFilterMenuOpen((currentValue) => !currentValue);
   }
 
   function handleReviewFilterSelect(reviewFilter: ReviewFilter): void {
     selectReviewFilter(reviewFilter);
+    setReviewDeckSearchText("");
     setIsReviewFilterMenuOpen(false);
   }
 
@@ -715,47 +755,81 @@ export function ReviewScreen(): ReactElement {
               </button>
               {isReviewFilterMenuOpen ? (
                 <div className="review-filter-menu" role="menu" aria-label="Review filter">
+                  {shouldShowReviewDeckSearch ? (
+                    <label className="review-filter-search-field">
+                      <span className="review-filter-search-label">Search decks</span>
+                      <input
+                        ref={reviewDeckSearchInputRef}
+                        type="search"
+                        name="review-deck-search"
+                        className="review-filter-search-input"
+                        placeholder="Search decks"
+                        value={reviewDeckSearchText}
+                        onChange={(event) => setReviewDeckSearchText(event.target.value)}
+                      />
+                    </label>
+                  ) : null}
+                  {visibleReviewDeckFilterMenuItems.length === 0 ? (
+                    <div className="review-filter-menu-empty" aria-live="polite">No decks found</div>
+                  ) : visibleReviewDeckFilterMenuItems.map((item) => (
+                    <button
+                      key={item.key}
+                      className={`review-filter-menu-entry${item.isSelected ? " review-filter-menu-entry-active" : ""}`}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={item.isSelected}
+                      data-review-filter-key={item.key}
+                      onClick={() => handleReviewFilterSelect(item.reviewFilter)}
+                    >
+                      <span className="review-filter-menu-item-slot" aria-hidden="true">
+                        <span className={`review-filter-menu-item-check${item.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
+                          <ReviewFilterCheckIcon />
+                        </span>
+                      </span>
+                      <span className="review-filter-menu-item-label">{item.label}</span>
+                    </button>
+                  ))}
                   {reviewFilterMenuItems.map((item) => {
                     if (item.kind === "separator") {
                       return <div key={item.key} className="review-filter-menu-divider" role="separator" />;
                     }
 
-                    if (item.kind === "action") {
-                      return (
-                        <Link
-                          key={item.key}
-                          className="review-filter-menu-entry review-filter-menu-entry-action"
-                          to={item.href}
-                          role="menuitem"
-                          onClick={() => setIsReviewFilterMenuOpen(false)}
-                        >
-                          <span className="review-filter-menu-item-slot" aria-hidden="true">
-                            <ReviewFilterDecksIcon />
-                          </span>
-                          <span className="review-filter-menu-item-label">{item.label}</span>
-                        </Link>
-                      );
-                    }
-
                     return (
-                      <button
+                      <Link
                         key={item.key}
-                        className={`review-filter-menu-entry${item.isSelected ? " review-filter-menu-entry-active" : ""}`}
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={item.isSelected}
-                        data-review-filter-key={item.key}
-                        onClick={() => handleReviewFilterSelect(item.reviewFilter)}
+                        className="review-filter-menu-entry review-filter-menu-entry-action"
+                        to={item.href}
+                        role="menuitem"
+                        onClick={() => {
+                          setReviewDeckSearchText("");
+                          setIsReviewFilterMenuOpen(false);
+                        }}
                       >
                         <span className="review-filter-menu-item-slot" aria-hidden="true">
-                          <span className={`review-filter-menu-item-check${item.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
-                            <ReviewFilterCheckIcon />
-                          </span>
+                          <ReviewFilterDecksIcon />
                         </span>
                         <span className="review-filter-menu-item-label">{item.label}</span>
-                      </button>
+                      </Link>
                     );
                   })}
+                  {reviewTagFilterMenuItems.map((tagItem) => (
+                    <button
+                      key={tagItem.key}
+                      className={`review-filter-menu-entry${tagItem.isSelected ? " review-filter-menu-entry-active" : ""}`}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={tagItem.isSelected}
+                      data-review-filter-key={tagItem.key}
+                      onClick={() => handleReviewFilterSelect(tagItem.reviewFilter)}
+                    >
+                      <span className="review-filter-menu-item-slot" aria-hidden="true">
+                        <span className={`review-filter-menu-item-check${tagItem.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
+                          <ReviewFilterCheckIcon />
+                        </span>
+                      </span>
+                      <span className="review-filter-menu-item-label">{tagItem.label}</span>
+                    </button>
+                  ))}
                 </div>
               ) : null}
             </div>
