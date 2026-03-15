@@ -654,7 +654,7 @@ final class CloudSyncService: @unchecked Sendable {
 
     private func appVersion() -> String {
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        return shortVersion ?? "0.1.0"
+        return shortVersion ?? "1.0.0"
     }
 
     private func makeUrl(apiBaseUrl: String, path: String) throws -> URL {
