@@ -197,6 +197,143 @@ function splitTopLevelByKeyword(value: string, keyword: "AND" | "OR"): ReadonlyA
   return parts;
 }
 
+type TopLevelClauseDefinition<TName extends string> = Readonly<{
+  name: TName;
+  keyword: string;
+}>;
+
+type TopLevelClauseMatch<TName extends string> = Readonly<{
+  name: TName;
+  keyword: string;
+  index: number;
+}>;
+
+function isSqlBoundaryCharacter(value: string | undefined): boolean {
+  return value === undefined || /\s/u.test(value);
+}
+
+function findTopLevelClauseMatches<TName extends string>(
+  value: string,
+  definitions: ReadonlyArray<TopLevelClauseDefinition<TName>>,
+): ReadonlyArray<TopLevelClauseMatch<TName>> {
+  const matches: Array<TopLevelClauseMatch<TName>> = [];
+  const normalizedDefinitions = [...definitions].sort((left, right) => right.keyword.length - left.keyword.length);
+  let inString = false;
+  let depth = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    const nextCharacter = value[index + 1];
+    if (character === "'") {
+      if (inString && nextCharacter === "'") {
+        index += 1;
+        continue;
+      }
+
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (character === "(") {
+      depth += 1;
+      continue;
+    }
+
+    if (character === ")") {
+      depth -= 1;
+      continue;
+    }
+
+    if (depth !== 0) {
+      continue;
+    }
+
+    const matchedDefinition = normalizedDefinitions.find((definition) => {
+      if (value.slice(index, index + definition.keyword.length).toUpperCase() !== definition.keyword) {
+        return false;
+      }
+
+      return isSqlBoundaryCharacter(value[index - 1]) && isSqlBoundaryCharacter(value[index + definition.keyword.length]);
+    });
+    if (matchedDefinition === undefined) {
+      continue;
+    }
+
+    matches.push({
+      name: matchedDefinition.name,
+      keyword: matchedDefinition.keyword,
+      index,
+    });
+    index += matchedDefinition.keyword.length - 1;
+  }
+
+  return matches;
+}
+
+function extractTopLevelClauses<TName extends string>(
+  value: string,
+  definitions: ReadonlyArray<TopLevelClauseDefinition<TName>>,
+  context: string,
+): Readonly<{
+  leadingSegment: string;
+  clauseValues: ReadonlyMap<TName, string>;
+}> {
+  const matches = findTopLevelClauseMatches(value, definitions);
+  if (matches.length === 0) {
+    return {
+      leadingSegment: value.trim(),
+      clauseValues: new Map(),
+    };
+  }
+
+  const definitionOrder = new Map(definitions.map((definition, index) => [definition.name, index] as const));
+  const clauseValues = new Map<TName, string>();
+  let lastOrder = -1;
+
+  for (const [index, match] of matches.entries()) {
+    if (clauseValues.has(match.name)) {
+      throw new Error(`Duplicate ${context} clause: ${match.keyword}`);
+    }
+
+    const order = definitionOrder.get(match.name);
+    if (order === undefined) {
+      throw new Error(`Unknown ${context} clause: ${match.keyword}`);
+    }
+    if (order < lastOrder) {
+      throw new Error(`Invalid ${context} clause order near ${match.keyword}`);
+    }
+
+    const nextMatch = matches[index + 1];
+    const clauseValue = value.slice(match.index + match.keyword.length, nextMatch?.index).trim();
+    clauseValues.set(match.name, clauseValue);
+    lastOrder = order;
+  }
+
+  const firstMatch = matches[0];
+  assert(firstMatch !== undefined, `Expected at least one ${context} clause`);
+  return {
+    leadingSegment: value.slice(0, firstMatch.index).trim(),
+    clauseValues,
+  };
+}
+
+function parseSimpleNumberClauseValue(value: string | undefined, keyword: string): number | null {
+  if (value === undefined) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  if (/^\d+$/u.test(trimmedValue) === false) {
+    throw new Error(`${keyword} must be a non-negative integer`);
+  }
+
+  return Number.parseInt(trimmedValue, 10);
+}
+
 function parseStringLiteral(value: string): string {
   assert(value.startsWith("'") && value.endsWith("'"), "Expected a quoted string literal");
   return value.slice(1, -1).replaceAll("''", "'");
@@ -389,15 +526,6 @@ function parseOrderBy(value: string): ReadonlyArray<SqlSelectOrderBy> {
   });
 }
 
-function extractSimpleNumberClause(statementTail: string, keyword: string): number | null {
-  const match = statementTail.match(new RegExp(`\\b${keyword}\\s+(\\d+)\\b`, "i"));
-  if (match === null) {
-    return null;
-  }
-
-  return Number.parseInt(match[1] ?? "0", 10);
-}
-
 function parseFromSource(
   resourceName: string,
   unnestColumnName: string | undefined,
@@ -491,28 +619,49 @@ function parseSelectItem(source: SqlFromSource, value: string): SqlSelectItem {
 }
 
 function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
-  const selectMatch = normalizedSql.match(
-    /^SELECT\s+([\s\S]+?)\s+FROM\s+([a-z_][a-z0-9_]*)(?:\s+UNNEST\s+([a-z_][a-z0-9_]*)\s+AS\s+([a-z_][a-z0-9_]*))?([\s\S]*)$/i,
-  );
-  if (selectMatch === null) {
+  const selectPrefixMatch = normalizedSql.match(/^SELECT\s+/i);
+  if (selectPrefixMatch === null) {
     throw new Error("Unsupported SELECT statement");
   }
 
-  const source = parseFromSource(selectMatch[2] ?? "", selectMatch[3], selectMatch[4]);
-  const statementTail = selectMatch[5] ?? "";
-  const whereMatch = statementTail.match(/\bWHERE\b([\s\S]+?)(?=\bGROUP BY\b|\bORDER BY\b|\bLIMIT\b|\bOFFSET\b|$)/i);
-  const groupByMatch = statementTail.match(/\bGROUP BY\b([\s\S]+?)(?=\bORDER BY\b|\bLIMIT\b|\bOFFSET\b|$)/i);
-  const orderByMatch = statementTail.match(/\bORDER BY\b([\s\S]+?)(?=\bLIMIT\b|\bOFFSET\b|$)/i);
-  const limit = extractSimpleNumberClause(statementTail, "LIMIT");
-  const offset = extractSimpleNumberClause(statementTail, "OFFSET");
-  const selectItems = splitTopLevel(selectMatch[1] ?? "", ",").map((item) => parseSelectItem(source, item));
-  const groupBy = groupByMatch === null
+  const selectBody = normalizedSql.slice(selectPrefixMatch[0].length);
+  const fromMatch = findTopLevelClauseMatches(selectBody, [{ name: "from", keyword: "FROM" }] as const)[0];
+  if (fromMatch === undefined) {
+    throw new Error("Unsupported SELECT statement");
+  }
+
+  const selectItemsSegment = selectBody.slice(0, fromMatch.index).trim();
+  const fromAndTailSegment = selectBody.slice(fromMatch.index + fromMatch.keyword.length).trim();
+  const extractedClauses = extractTopLevelClauses(
+    fromAndTailSegment,
+    [
+      { name: "where", keyword: "WHERE" },
+      { name: "groupBy", keyword: "GROUP BY" },
+      { name: "orderBy", keyword: "ORDER BY" },
+      { name: "limit", keyword: "LIMIT" },
+      { name: "offset", keyword: "OFFSET" },
+    ] as const,
+    "SELECT",
+  );
+  const sourceMatch = extractedClauses.leadingSegment.match(
+    /^([a-z_][a-z0-9_]*)(?:\s+UNNEST\s+([a-z_][a-z0-9_]*)\s+AS\s+([a-z_][a-z0-9_]*))?$/i,
+  );
+  if (sourceMatch === null) {
+    throw new Error("Unsupported SELECT statement");
+  }
+
+  const source = parseFromSource(sourceMatch[1] ?? "", sourceMatch[2], sourceMatch[3]);
+  const selectItems = splitTopLevel(selectItemsSegment, ",").map((item) => parseSelectItem(source, item));
+  const groupByValue = extractedClauses.clauseValues.get("groupBy");
+  const groupBy = groupByValue === undefined
     ? []
-    : splitTopLevel(groupByMatch[1] ?? "", ",").map((item) => {
+    : splitTopLevel(groupByValue, ",").map((item) => {
       const normalizedItem = item.trim().toLowerCase();
       ensureSqlSourceColumnExists(source, normalizedItem);
       return normalizedItem;
     });
+  const limit = parseSimpleNumberClauseValue(extractedClauses.clauseValues.get("limit"), "LIMIT");
+  const offset = parseSimpleNumberClauseValue(extractedClauses.clauseValues.get("offset"), "OFFSET");
 
   const wildcardSelect = selectItems.length === 1 && selectItems[0]?.type === "wildcard";
   const hasAggregateSelectItem = selectItems.some((item) => item.type === "aggregate");
@@ -538,9 +687,13 @@ function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
     type: "select",
     source,
     selectItems,
-    predicateClauses: whereMatch === null ? [] : parsePredicateClauses(source, whereMatch[1] ?? ""),
+    predicateClauses: extractedClauses.clauseValues.has("where")
+      ? parsePredicateClauses(source, extractedClauses.clauseValues.get("where") ?? "")
+      : [],
     groupBy,
-    orderBy: orderByMatch === null ? [] : parseOrderBy(orderByMatch[1] ?? ""),
+    orderBy: extractedClauses.clauseValues.has("orderBy")
+      ? parseOrderBy(extractedClauses.clauseValues.get("orderBy") ?? "")
+      : [],
     limit,
     offset,
     normalizedSql,
@@ -657,7 +810,7 @@ function parseAssignments(resourceName: "cards" | "decks", value: string): SqlUp
 }
 
 function parseUpdateStatement(normalizedSql: string): SqlUpdateStatement {
-  const match = normalizedSql.match(/^UPDATE\s+([a-z_][a-z0-9_]*)\s+SET\s+([\s\S]+?)\s+WHERE\s+([\s\S]+)$/i);
+  const match = normalizedSql.match(/^UPDATE\s+([a-z_][a-z0-9_]*)([\s\S]*)$/i);
   if (match === null) {
     throw new Error("Unsupported UPDATE statement");
   }
@@ -672,18 +825,31 @@ function parseUpdateStatement(normalizedSql: string): SqlUpdateStatement {
     unnestColumnName: null,
     unnestAlias: null,
   };
+  const extractedClauses = extractTopLevelClauses(
+    (match[2] ?? "").trim(),
+    [
+      { name: "set", keyword: "SET" },
+      { name: "where", keyword: "WHERE" },
+    ] as const,
+    "UPDATE",
+  );
+  const assignmentsValue = extractedClauses.clauseValues.get("set");
+  const predicateValue = extractedClauses.clauseValues.get("where");
+  if (extractedClauses.leadingSegment !== "" || assignmentsValue === undefined || predicateValue === undefined) {
+    throw new Error("Unsupported UPDATE statement");
+  }
 
   return {
     type: "update",
     resourceName,
-    assignments: parseAssignments(resourceName, match[2] ?? ""),
-    predicateClauses: parsePredicateClauses(source, match[3] ?? ""),
+    assignments: parseAssignments(resourceName, assignmentsValue),
+    predicateClauses: parsePredicateClauses(source, predicateValue),
     normalizedSql,
   };
 }
 
 function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement {
-  const match = normalizedSql.match(/^DELETE\s+FROM\s+([a-z_][a-z0-9_]*)\s+WHERE\s+([\s\S]+)$/i);
+  const match = normalizedSql.match(/^DELETE\s+FROM\s+([a-z_][a-z0-9_]*)([\s\S]*)$/i);
   if (match === null) {
     throw new Error("Unsupported DELETE statement");
   }
@@ -698,11 +864,20 @@ function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement {
     unnestColumnName: null,
     unnestAlias: null,
   };
+  const extractedClauses = extractTopLevelClauses(
+    (match[2] ?? "").trim(),
+    [{ name: "where", keyword: "WHERE" }] as const,
+    "DELETE",
+  );
+  const predicateValue = extractedClauses.clauseValues.get("where");
+  if (extractedClauses.leadingSegment !== "" || predicateValue === undefined) {
+    throw new Error("Unsupported DELETE statement");
+  }
 
   return {
     type: "delete",
     resourceName,
-    predicateClauses: parsePredicateClauses(source, match[2] ?? ""),
+    predicateClauses: parsePredicateClauses(source, predicateValue),
     normalizedSql,
   };
 }

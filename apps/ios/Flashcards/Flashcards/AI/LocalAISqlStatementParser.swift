@@ -247,36 +247,51 @@ func localAISqlIsWildcardSelect(_ statement: LocalAISqlSelectStatement) -> Bool 
 }
 
 func localAISqlParseSelectStatement(normalizedSql: String) throws -> LocalAISqlSelectStatement {
-    guard let groups = localAISqlMatch(
-        pattern: #"^SELECT\s+([\s\S]+?)\s+FROM\s+([a-z_][a-z0-9_]*)(?:\s+UNNEST\s+([a-z_][a-z0-9_]*)\s+AS\s+([a-z_][a-z0-9_]*))?([\s\S]*)$"#,
+    guard let selectPrefix = localAISqlMatch(
+        pattern: #"^(SELECT)\s+"#,
         value: normalizedSql
+    )?[0] else {
+        throw LocalStoreError.validation("Unsupported SELECT statement")
+    }
+
+    let selectBody = String(normalizedSql.dropFirst(selectPrefix.count))
+    guard let fromMatch = localAISqlFindTopLevelClauseMatches(
+        value: selectBody,
+        definitions: [LocalAISqlTopLevelClauseDefinition(name: "from", keyword: "FROM")]
+    ).first else {
+        throw LocalStoreError.validation("Unsupported SELECT statement")
+    }
+
+    let selectItemsValue = String(selectBody.prefix(fromMatch.index)).trimmingCharacters(in: .whitespacesAndNewlines)
+    let fromAndTailValue = String(selectBody.dropFirst(fromMatch.index + fromMatch.keyword.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+    let extractedClauses = try localAISqlExtractTopLevelClauses(
+        value: fromAndTailValue,
+        definitions: [
+            LocalAISqlTopLevelClauseDefinition(name: "where", keyword: "WHERE"),
+            LocalAISqlTopLevelClauseDefinition(name: "groupBy", keyword: "GROUP BY"),
+            LocalAISqlTopLevelClauseDefinition(name: "orderBy", keyword: "ORDER BY"),
+            LocalAISqlTopLevelClauseDefinition(name: "limit", keyword: "LIMIT"),
+            LocalAISqlTopLevelClauseDefinition(name: "offset", keyword: "OFFSET"),
+        ],
+        context: "SELECT"
+    )
+    guard let sourceGroups = localAISqlMatch(
+        pattern: #"^([a-z_][a-z0-9_]*)(?:\s+UNNEST\s+([a-z_][a-z0-9_]*)\s+AS\s+([a-z_][a-z0-9_]*))?$"#,
+        value: extractedClauses.leadingSegment
     ) else {
         throw LocalStoreError.validation("Unsupported SELECT statement")
     }
 
     let source = try localAISqlParseFromSource(
-        resourceName: groups[2],
-        unnestColumnName: groups.count > 3 && groups[3].isEmpty == false ? groups[3] : nil,
-        unnestAlias: groups.count > 4 && groups[4].isEmpty == false ? groups[4] : nil
+        resourceName: sourceGroups[1],
+        unnestColumnName: sourceGroups.count > 2 && sourceGroups[2].isEmpty == false ? sourceGroups[2] : nil,
+        unnestAlias: sourceGroups.count > 3 && sourceGroups[3].isEmpty == false ? sourceGroups[3] : nil
     )
-    let statementTail = groups[5]
-    let whereGroups = localAISqlMatch(
-        pattern: #"[\s\S]*\bWHERE\b([\s\S]+?)(?=\bGROUP BY\b|\bORDER BY\b|\bLIMIT\b|\bOFFSET\b|$)"#,
-        value: statementTail
-    )
-    let groupByGroups = localAISqlMatch(
-        pattern: #"[\s\S]*\bGROUP BY\b([\s\S]+?)(?=\bORDER BY\b|\bLIMIT\b|\bOFFSET\b|$)"#,
-        value: statementTail
-    )
-    let orderByGroups = localAISqlMatch(
-        pattern: #"[\s\S]*\bORDER BY\b([\s\S]+?)(?=\bLIMIT\b|\bOFFSET\b|$)"#,
-        value: statementTail
-    )
-    let selectItems = try localAISqlSplitTopLevel(value: groups[1], separator: ",").map { item in
+    let selectItems = try localAISqlSplitTopLevel(value: selectItemsValue, separator: ",").map { item in
         try localAISqlParseSelectItem(source: source, value: item)
     }
     let groupBy: [String]
-    if let groupByValue = groupByGroups?[1] {
+    if let groupByValue = extractedClauses.clauseValues["groupBy"] {
         groupBy = try localAISqlSplitTopLevel(value: groupByValue, separator: ",").map { item in
             let normalizedItem = item.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             try localAISqlEnsureSourceColumnExists(source: source, columnName: normalizedItem)
@@ -330,11 +345,15 @@ func localAISqlParseSelectStatement(normalizedSql: String) throws -> LocalAISqlS
     return LocalAISqlSelectStatement(
         source: source,
         selectItems: selectItems,
-        predicateClauses: try whereGroups == nil ? [] : localAISqlParsePredicateClauses(source: source, value: whereGroups?[1] ?? ""),
+        predicateClauses: try extractedClauses.clauseValues["where"].map { value in
+            try localAISqlParsePredicateClauses(source: source, value: value)
+        } ?? [],
         groupBy: groupBy,
-        orderBy: try orderByGroups == nil ? [] : localAISqlParseOrderBy(value: orderByGroups?[1] ?? ""),
-        limit: localAISqlExtractSimpleNumberClause(statementTail: statementTail, keyword: "LIMIT"),
-        offset: localAISqlExtractSimpleNumberClause(statementTail: statementTail, keyword: "OFFSET"),
+        orderBy: try extractedClauses.clauseValues["orderBy"].map { value in
+            try localAISqlParseOrderBy(value: value)
+        } ?? [],
+        limit: try localAISqlParseSimpleNumberClauseValue(extractedClauses.clauseValues["limit"], keyword: "LIMIT"),
+        offset: try localAISqlParseSimpleNumberClauseValue(extractedClauses.clauseValues["offset"], keyword: "OFFSET"),
         normalizedSql: normalizedSql
     )
 }
@@ -460,7 +479,7 @@ func localAISqlParseAssignments(
 
 func localAISqlParseUpdateStatement(normalizedSql: String) throws -> LocalAISqlUpdateStatement {
     guard let groups = localAISqlMatch(
-        pattern: #"^UPDATE\s+([a-z_][a-z0-9_]*)\s+SET\s+([\s\S]+?)\s+WHERE\s+([\s\S]+)$"#,
+        pattern: #"^UPDATE\s+([a-z_][a-z0-9_]*)([\s\S]*)$"#,
         value: normalizedSql
     ) else {
         throw LocalStoreError.validation("Unsupported UPDATE statement")
@@ -472,17 +491,31 @@ func localAISqlParseUpdateStatement(normalizedSql: String) throws -> LocalAISqlU
     }
 
     let source = LocalAISqlFromSource(resourceName: resourceName, unnestColumnName: nil, unnestAlias: nil)
+    let extractedClauses = try localAISqlExtractTopLevelClauses(
+        value: groups[2].trimmingCharacters(in: .whitespacesAndNewlines),
+        definitions: [
+            LocalAISqlTopLevelClauseDefinition(name: "set", keyword: "SET"),
+            LocalAISqlTopLevelClauseDefinition(name: "where", keyword: "WHERE"),
+        ],
+        context: "UPDATE"
+    )
+    guard extractedClauses.leadingSegment.isEmpty,
+          let assignmentsValue = extractedClauses.clauseValues["set"],
+          let predicateValue = extractedClauses.clauseValues["where"] else {
+        throw LocalStoreError.validation("Unsupported UPDATE statement")
+    }
+
     return LocalAISqlUpdateStatement(
         resourceName: resourceName,
-        assignments: try localAISqlParseAssignments(resourceName: resourceName, value: groups[2]),
-        predicateClauses: try localAISqlParsePredicateClauses(source: source, value: groups[3]),
+        assignments: try localAISqlParseAssignments(resourceName: resourceName, value: assignmentsValue),
+        predicateClauses: try localAISqlParsePredicateClauses(source: source, value: predicateValue),
         normalizedSql: normalizedSql
     )
 }
 
 func localAISqlParseDeleteStatement(normalizedSql: String) throws -> LocalAISqlDeleteStatement {
     guard let groups = localAISqlMatch(
-        pattern: #"^DELETE\s+FROM\s+([a-z_][a-z0-9_]*)\s+WHERE\s+([\s\S]+)$"#,
+        pattern: #"^DELETE\s+FROM\s+([a-z_][a-z0-9_]*)([\s\S]*)$"#,
         value: normalizedSql
     ) else {
         throw LocalStoreError.validation("Unsupported DELETE statement")
@@ -494,9 +527,21 @@ func localAISqlParseDeleteStatement(normalizedSql: String) throws -> LocalAISqlD
     }
 
     let source = LocalAISqlFromSource(resourceName: resourceName, unnestColumnName: nil, unnestAlias: nil)
+    let extractedClauses = try localAISqlExtractTopLevelClauses(
+        value: groups[2].trimmingCharacters(in: .whitespacesAndNewlines),
+        definitions: [
+            LocalAISqlTopLevelClauseDefinition(name: "where", keyword: "WHERE"),
+        ],
+        context: "DELETE"
+    )
+    guard extractedClauses.leadingSegment.isEmpty,
+          let predicateValue = extractedClauses.clauseValues["where"] else {
+        throw LocalStoreError.validation("Unsupported DELETE statement")
+    }
+
     return LocalAISqlDeleteStatement(
         resourceName: resourceName,
-        predicateClauses: try localAISqlParsePredicateClauses(source: source, value: groups[2]),
+        predicateClauses: try localAISqlParsePredicateClauses(source: source, value: predicateValue),
         normalizedSql: normalizedSql
     )
 }

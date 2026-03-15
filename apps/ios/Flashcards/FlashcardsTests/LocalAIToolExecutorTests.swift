@@ -109,6 +109,20 @@ private func sqlStringLiteral(_ value: String) -> String {
     "'\(value.replacingOccurrences(of: "'", with: "''"))'"
 }
 
+private func buildKeywordHeavyBackText() -> String {
+    [
+        "This text mentions where, order by, group by, limit, offset, and, or.",
+        "It also keeps commas, equals = signs, and parentheses like fn(where_value).",
+        "",
+        "```python",
+        "query = 'where order by limit'",
+        "print('group by and or')",
+        "```",
+        "",
+        "It's important that doubled quotes stay exact.",
+    ].joined(separator: "\n")
+}
+
 @MainActor
 final class LocalAIToolExecutorTests: AIChatTestCaseBase {
     private func makeExecutor(
@@ -327,6 +341,39 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
             toolCallId: "call-multiline-select-card"
         )
         let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.rows.first?["back_text"]?.stringValue, backText)
+    }
+
+    func testLocalToolExecutorSupportsKeywordHeavySqlStringLiterals() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+        let backText = buildKeywordHeavyBackText()
+
+        let insertResult = try await self.executeSql(
+            executor: executor,
+            sql: "INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('Front', 'Back', ('backend'), 'medium')",
+            toolCallId: "call-keyword-heavy-insert-card"
+        )
+        let insertPayload = try JSONDecoder().decode(SqlMutationPayload.self, from: Data(insertResult.output.utf8))
+        let cardId = try XCTUnwrap(insertPayload.rows.first?["card_id"]?.stringValue)
+
+        let updateResult = try await self.executeSql(
+            executor: executor,
+            sql: "UPDATE cards SET back_text = \(sqlStringLiteral(backText)) WHERE card_id = '\(cardId)'",
+            toolCallId: "call-keyword-heavy-update-card"
+        )
+        let updatePayload = try JSONDecoder().decode(SqlMutationPayload.self, from: Data(updateResult.output.utf8))
+        XCTAssertEqual(updatePayload.affectedCount, 1)
+        XCTAssertEqual(updatePayload.rows.first?["back_text"]?.stringValue, backText)
+
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT card_id, back_text FROM cards WHERE LOWER(back_text) LIKE '%order by%' ORDER BY updated_at DESC LIMIT 20 OFFSET 0",
+            toolCallId: "call-keyword-heavy-select-card"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.rowCount, 1)
+        XCTAssertEqual(selectPayload.rows.first?["card_id"]?.stringValue, cardId)
         XCTAssertEqual(selectPayload.rows.first?["back_text"]?.stringValue, backText)
     }
 

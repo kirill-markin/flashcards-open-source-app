@@ -11,6 +11,20 @@ function toSqlStringLiteral(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
+function buildKeywordHeavyBackText(): string {
+  return [
+    "This text mentions where, order by, group by, limit, offset, and, or.",
+    "It also keeps commas, equals = signs, and parentheses like fn(where_value).",
+    "",
+    "```python",
+    "query = 'where order by limit'",
+    "print('group by and or')",
+    "```",
+    "",
+    "It's important that doubled quotes stay exact.",
+  ].join("\n");
+}
+
 function parseSelectStatement(sql: string): SqlSelectStatement {
   const statement = parseSqlStatement(sql);
   assert.equal(statement.type, "select");
@@ -161,6 +175,55 @@ test("parseSqlStatement preserves multiline string literals in INSERT rows", () 
   assert.equal(statement.type, "insert");
   assert.equal(statement.rows[0]?.[1], backText);
   assert.match(statement.normalizedSql, /dist = \{start: 0\}/);
+});
+
+test("parseSqlStatement preserves keyword-heavy multiline string literals in UPDATE assignments", () => {
+  const backText = buildKeywordHeavyBackText();
+  const statement = parseSqlStatement(
+    `UPDATE cards
+     SET back_text = ${toSqlStringLiteral(backText)}
+     WHERE card_id = 'card-1'`,
+  );
+
+  assert.equal(statement.type, "update");
+  assert.equal(statement.assignments[0]?.columnName, "back_text");
+  assert.equal(statement.assignments[0]?.value, backText);
+});
+
+test("parseSqlStatement preserves keyword-heavy multiline string literals in INSERT rows", () => {
+  const backText = buildKeywordHeavyBackText();
+  const statement = parseSqlStatement(
+    `INSERT INTO cards (front_text, back_text, tags, effort_level)
+     VALUES ('What is RPC?', ${toSqlStringLiteral(backText)}, ('backend'), 'medium')`,
+  );
+
+  assert.equal(statement.type, "insert");
+  assert.equal(statement.rows[0]?.[1], backText);
+});
+
+test("parseSqlStatement preserves keywords inside quoted LIKE patterns", () => {
+  const statement = parseSelectStatement(
+    "SELECT card_id FROM cards WHERE LOWER(back_text) LIKE '%order by%' ORDER BY updated_at DESC LIMIT 20 OFFSET 0",
+  );
+
+  assert.equal(statement.predicateClauses.length, 1);
+  assert.equal(statement.orderBy.length, 1);
+  assert.equal(statement.limit, 20);
+  assert.equal(statement.offset, 0);
+});
+
+test("parseSqlStatement rejects duplicate top-level SELECT clauses", () => {
+  assert.throws(
+    () => parseSqlStatement("SELECT card_id FROM cards WHERE card_id = 'card-1' WHERE back_text = 'card-2' LIMIT 1 OFFSET 0"),
+    /Duplicate SELECT clause: WHERE/,
+  );
+});
+
+test("parseSqlStatement rejects invalid top-level SELECT clause order", () => {
+  assert.throws(
+    () => parseSqlStatement("SELECT card_id FROM cards ORDER BY updated_at DESC WHERE card_id = 'card-1' LIMIT 1 OFFSET 0"),
+    /Invalid SELECT clause order near WHERE/,
+  );
 });
 
 test("executeSqlSelect applies ORDER BY RANDOM() before pagination", () => {
