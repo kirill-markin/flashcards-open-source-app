@@ -7,6 +7,7 @@ post:
     workspace. This is not full PostgreSQL. Supported statements include SHOW
     TABLES, DESCRIBE, SELECT, INSERT, UPDATE, and DELETE across published
     logical resources only. SELECT supports projected column lists, LIKE,
+    case-insensitive exact string matches via LOWER(column) = 'value',
     aggregates, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards
     UNNEST tags AS tag.
   security:
@@ -143,6 +144,39 @@ post:
                       tags:
                         - english
                         - examples
+                  rowCount: 1
+                  limit: 20
+                  offset: 0
+                  hasMore: false
+                instructions: >-
+                  Read rows from data.rows. No further rows are available for
+                  this query. LIMIT defaults to 100 and is capped at 100.
+                  Prefer a stable ORDER BY clause when paginating. This
+                  endpoint supports the published SQL dialect, not full
+                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            exactTagMatch:
+              value:
+                ok: true
+                data:
+                  statementType: select
+                  resource: cards
+                  sql: >-
+                    SELECT card_id, front_text, back_text, tags FROM cards
+                    UNNEST tags AS tag WHERE LOWER(tag) = 'typescript' ORDER BY
+                    created_at DESC, card_id ASC LIMIT 20 OFFSET 0
+                  normalizedSql: >-
+                    SELECT card_id, front_text, back_text, tags FROM cards
+                    UNNEST tags AS tag WHERE LOWER(tag) = 'typescript' ORDER BY
+                    created_at DESC, card_id ASC LIMIT 20 OFFSET 0
+                  rows:
+                    - card_id: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                      front_text: Explain TypeScript types
+                      back_text: TypeScript adds static typing to JavaScript.
+                      tags:
+                        - TypeScript
+                        - frontend
                   rowCount: 1
                   limit: 20
                   offset: 0

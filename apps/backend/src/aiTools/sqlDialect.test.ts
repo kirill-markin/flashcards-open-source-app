@@ -212,6 +212,24 @@ test("parseSqlStatement preserves keywords inside quoted LIKE patterns", () => {
   assert.equal(statement.offset, 0);
 });
 
+test("executeSqlSelect supports exact case-insensitive matches on UNNEST aliases", () => {
+  const statement = parseSelectStatement(
+    "SELECT card_id, tag FROM cards UNNEST tags AS tag WHERE LOWER(tag) = 'grammar' ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+  );
+
+  const result = executeSqlSelect(statement, [
+    {
+      ...sampleRows[0],
+      tags: ["Grammar", "verbs"],
+    },
+    sampleRows[1],
+    sampleRows[2],
+  ], 100);
+
+  assert.equal(result.rowCount, 1);
+  assert.deepEqual(result.rows, [{ card_id: "card-1", tag: "Grammar" }]);
+});
+
 test("parseSqlStatement rejects duplicate top-level SELECT clauses", () => {
   assert.throws(
     () => parseSqlStatement("SELECT card_id FROM cards WHERE card_id = 'card-1' WHERE back_text = 'card-2' LIMIT 1 OFFSET 0"),

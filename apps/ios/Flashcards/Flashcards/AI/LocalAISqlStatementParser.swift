@@ -54,6 +54,19 @@ func localAISqlParsePredicate(
     }
 
     if let groups = localAISqlMatch(
+        pattern: #"^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s*=\s*('(?:''|[^'])*')$"#,
+        value: trimmedValue
+    ) {
+        let columnName = groups[1].lowercased()
+        try localAISqlEnsureSourceColumnExists(source: source, columnName: columnName)
+        return .like(
+            columnName: columnName,
+            pattern: try localAISqlParseStringLiteral(groups[2]),
+            caseInsensitive: true
+        )
+    }
+
+    if let groups = localAISqlMatch(
         pattern: #"^([a-z_][a-z0-9_]*)\s+LIKE\s+('(?:''|[^'])*')$"#,
         value: trimmedValue
     ) {

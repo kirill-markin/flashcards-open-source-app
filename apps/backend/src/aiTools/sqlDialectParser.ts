@@ -417,6 +417,18 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
+  const loweredEqualsPredicate = trimmedValue.match(/^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s*=\s*('(?:''|[^'])*')$/i);
+  if (loweredEqualsPredicate !== null) {
+    const columnName = (loweredEqualsPredicate[1] ?? "").toLowerCase();
+    ensureSqlSourceColumnExists(source, columnName);
+    return {
+      type: "like",
+      columnName,
+      pattern: parseStringLiteral(loweredEqualsPredicate[2] ?? ""),
+      caseInsensitive: true,
+    };
+  }
+
   const likePredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+LIKE\s+('(?:''|[^'])*')$/i);
   if (likePredicate !== null) {
     const columnName = (likePredicate[1] ?? "").toLowerCase();
