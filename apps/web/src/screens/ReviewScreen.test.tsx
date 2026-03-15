@@ -305,6 +305,35 @@ describe("ReviewScreen", () => {
     expect(container.textContent).not.toContain("No cards to review right now.");
   });
 
+  it("keeps the queue panel independently scrollable on desktop and resets it on mobile", () => {
+    expect(reviewStylesContain(
+      ".review-queue-panel {",
+      "grid-template-rows: auto minmax(0, 1fr);",
+      "max-height: calc(100dvh - 188px);",
+      "overflow: hidden;",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      ".review-queue-head {",
+      "position: sticky;",
+      "top: 0;",
+      "background: var(--surface-elevated);",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      ".review-queue-list {",
+      "overflow-y: auto;",
+      "overscroll-behavior: contain;",
+      "scrollbar-gutter: stable;",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      "@media (max-width: 1024px) {",
+      "grid-template-columns: 1fr;",
+      "max-height: none;",
+      "overflow: visible;",
+      "position: static;",
+      "scrollbar-gutter: auto;",
+    )).toBe(true);
+  });
+
   it("shows all empty-state review actions for non-All-cards filters", async () => {
     mockAppData.decks = [createDeck()];
     mockAppData.selectedReviewFilter = { kind: "deck", deckId: "deck-1" } as ReviewFilter;

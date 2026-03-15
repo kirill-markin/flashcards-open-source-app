@@ -152,6 +152,7 @@
   display: grid;
   gap: 12px;
   min-width: 0;
+  min-height: 0;
   padding: 14px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
@@ -161,6 +162,12 @@
 
 .review-pane {
   position: relative;
+}
+
+.review-queue-panel {
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: calc(100dvh - 188px);
+  overflow: hidden;
 }
 
 .review-pane-head {
@@ -476,6 +483,11 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 4px;
+  background: var(--surface-elevated);
 }
 
 .review-queue-subtitle {
@@ -492,6 +504,11 @@
 .review-queue-list {
   display: grid;
   gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 4px;
 }
 
 .review-queue-card {
@@ -568,6 +585,22 @@
 @media (max-width: 1024px) {
   .review-layout {
     grid-template-columns: 1fr;
+  }
+
+  .review-queue-panel {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .review-queue-head {
+    position: static;
+    padding-bottom: 0;
+  }
+
+  .review-queue-list {
+    overflow: visible;
+    scrollbar-gutter: auto;
+    padding-right: 0;
   }
 
   .review-editor-overlay {
