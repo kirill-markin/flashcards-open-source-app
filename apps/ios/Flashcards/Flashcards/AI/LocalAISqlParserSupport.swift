@@ -273,6 +273,166 @@ func localAISqlSplitTopLevelByKeyword(
     return parts
 }
 
+struct LocalAISqlTopLevelClauseDefinition {
+    let name: String
+    let keyword: String
+}
+
+struct LocalAISqlTopLevelClauseMatch {
+    let name: String
+    let keyword: String
+    let index: Int
+}
+
+private func localAISqlIsBoundaryCharacter(_ character: Character?) -> Bool {
+    guard let character else {
+        return true
+    }
+
+    return character.isWhitespace
+}
+
+func localAISqlFindTopLevelClauseMatches(
+    value: String,
+    definitions: [LocalAISqlTopLevelClauseDefinition]
+) -> [LocalAISqlTopLevelClauseMatch] {
+    let characters = Array(value)
+    let sortedDefinitions = definitions.sorted { left, right in
+        left.keyword.count > right.keyword.count
+    }
+    var matches: [LocalAISqlTopLevelClauseMatch] = []
+    var inString = false
+    var depth = 0
+    var index = 0
+
+    while index < characters.count {
+        let character = characters[index]
+        let nextCharacter = index + 1 < characters.count ? characters[index + 1] : nil
+
+        if character == "'" {
+            if inString, nextCharacter == "'" {
+                index += 2
+                continue
+            }
+
+            inString.toggle()
+            index += 1
+            continue
+        }
+
+        if inString {
+            index += 1
+            continue
+        }
+
+        if character == "(" {
+            depth += 1
+            index += 1
+            continue
+        }
+
+        if character == ")" {
+            depth -= 1
+            index += 1
+            continue
+        }
+
+        if depth != 0 {
+            index += 1
+            continue
+        }
+
+        let matchedDefinition = sortedDefinitions.first { definition in
+            let keywordCharacters = Array(definition.keyword.uppercased())
+            guard index + keywordCharacters.count <= characters.count else {
+                return false
+            }
+
+            let matchesKeyword = zip(keywordCharacters, characters[index..<(index + keywordCharacters.count)]).allSatisfy { left, right in
+                String(left) == String(right).uppercased()
+            }
+            guard matchesKeyword else {
+                return false
+            }
+
+            let previousCharacter = index > 0 ? characters[index - 1] : nil
+            let nextBoundaryCharacter = index + keywordCharacters.count < characters.count ? characters[index + keywordCharacters.count] : nil
+            return localAISqlIsBoundaryCharacter(previousCharacter) && localAISqlIsBoundaryCharacter(nextBoundaryCharacter)
+        }
+
+        guard let matchedDefinition else {
+            index += 1
+            continue
+        }
+
+        matches.append(
+            LocalAISqlTopLevelClauseMatch(
+                name: matchedDefinition.name,
+                keyword: matchedDefinition.keyword,
+                index: index
+            )
+        )
+        index += matchedDefinition.keyword.count
+    }
+
+    return matches
+}
+
+func localAISqlExtractTopLevelClauses(
+    value: String,
+    definitions: [LocalAISqlTopLevelClauseDefinition],
+    context: String
+) throws -> (leadingSegment: String, clauseValues: [String: String]) {
+    let matches = localAISqlFindTopLevelClauseMatches(value: value, definitions: definitions)
+    if matches.isEmpty {
+        return (value.trimmingCharacters(in: .whitespacesAndNewlines), [:])
+    }
+
+    let definitionOrder = Dictionary(uniqueKeysWithValues: definitions.enumerated().map { index, definition in
+        (definition.name, index)
+    })
+    var clauseValues: [String: String] = [:]
+    var lastOrder = -1
+
+    for (index, match) in matches.enumerated() {
+        if clauseValues[match.name] != nil {
+            throw LocalStoreError.validation("Duplicate \(context) clause: \(match.keyword)")
+        }
+
+        guard let order = definitionOrder[match.name] else {
+            throw LocalStoreError.validation("Unknown \(context) clause: \(match.keyword)")
+        }
+        if order < lastOrder {
+            throw LocalStoreError.validation("Invalid \(context) clause order near \(match.keyword)")
+        }
+
+        let nextIndex = index + 1 < matches.count ? matches[index + 1].index : value.count
+        let clauseStart = value.index(value.startIndex, offsetBy: match.index + match.keyword.count)
+        let clauseEnd = value.index(value.startIndex, offsetBy: nextIndex)
+        clauseValues[match.name] = String(value[clauseStart..<clauseEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
+        lastOrder = order
+    }
+
+    let leadingEnd = value.index(value.startIndex, offsetBy: matches[0].index)
+    return (String(value[..<leadingEnd]).trimmingCharacters(in: .whitespacesAndNewlines), clauseValues)
+}
+
+func localAISqlParseSimpleNumberClauseValue(
+    _ value: String?,
+    keyword: String
+) throws -> Int? {
+    guard let value else {
+        return nil
+    }
+
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.range(of: #"^\d+$"#, options: .regularExpression) != nil else {
+        throw LocalStoreError.validation("\(keyword) must be a non-negative integer")
+    }
+
+    return Int(trimmedValue)
+}
+
 func localAISqlParseStringLiteral(_ value: String) throws -> String {
     guard value.hasPrefix("'"), value.hasSuffix("'") else {
         throw LocalStoreError.validation("Expected a quoted string literal")

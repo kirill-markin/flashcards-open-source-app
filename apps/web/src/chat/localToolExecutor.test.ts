@@ -150,6 +150,20 @@ function makeSeedData(): Readonly<{
   };
 }
 
+function buildKeywordHeavyBackText(): string {
+  return [
+    "This text mentions where, order by, group by, limit, offset, and, or.",
+    "It also keeps commas, equals = signs, and parentheses like fn(where_value).",
+    "",
+    "```python",
+    "query = 'where order by limit'",
+    "print('group by and or')",
+    "```",
+    "",
+    "It's important that doubled quotes stay exact.",
+  ].join("\n");
+}
+
 async function seedLocalDatabase(cards: ReadonlyArray<Card>): Promise<void> {
   const seedData = makeSeedData();
   await clearWebSyncCache();
@@ -414,6 +428,45 @@ describe("createLocalToolExecutor", () => {
 
     expect(updatePayload.affectedCount).toBe(1);
     expect(updatePayload.rows[0]?.back_text).toBe(backText);
+    expect(dependencies.updateCardItem).toHaveBeenCalledWith("card-1", expect.objectContaining({
+      backText,
+    }));
+  });
+
+  it("supports keyword-heavy string literals in SQL updates and LIKE filters", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const dependencies = makeDependencies();
+    const executor = createLocalToolExecutor(dependencies);
+    const backText = buildKeywordHeavyBackText();
+
+    const updateResult = await executor.execute({
+      toolCallId: "call-keyword-heavy-update",
+      name: "sql",
+      input: JSON.stringify({
+        sql: `UPDATE cards SET back_text = ${toSqlStringLiteral(backText)} WHERE card_id = 'card-1'`,
+      }),
+    });
+    const updatePayload = JSON.parse(updateResult.output) as Readonly<{
+      affectedCount: number;
+      rows: ReadonlyArray<Readonly<Record<string, unknown>>>;
+    }>;
+    expect(updatePayload.affectedCount).toBe(1);
+    expect(updatePayload.rows[0]?.back_text).toBe(backText);
+
+    const selectResult = await executor.execute({
+      toolCallId: "call-keyword-heavy-select",
+      name: "sql",
+      input: JSON.stringify({
+        sql: "SELECT card_id, back_text FROM cards WHERE LOWER(back_text) LIKE '%order by%' ORDER BY updated_at DESC LIMIT 20 OFFSET 0",
+      }),
+    });
+    const selectPayload = JSON.parse(selectResult.output) as Readonly<{
+      rowCount: number;
+      rows: ReadonlyArray<Readonly<Record<string, unknown>>>;
+    }>;
+    expect(selectPayload.rowCount).toBe(0);
+    expect(selectPayload.rows).toEqual([]);
     expect(dependencies.updateCardItem).toHaveBeenCalledWith("card-1", expect.objectContaining({
       backText,
     }));
