@@ -814,6 +814,7 @@ export function ReviewScreen(): ReactElement {
                     label="Front"
                     text={selectedCard.frontText}
                     contentClassName="review-front"
+                    surfaceClassName="review-card-surface review-card-surface-front"
                   />
 
                   {isAnswerVisible ? (
