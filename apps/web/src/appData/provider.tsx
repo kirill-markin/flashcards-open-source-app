@@ -6,7 +6,7 @@ import {
   useState,
   type ReactElement,
 } from "react";
-import { loadActiveCardCount } from "../syncStorage";
+import { loadActiveCardCount } from "../localDb/cards";
 import type { CloudSettings, ReviewFilter, SessionInfo, WorkspaceSchedulerSettings, WorkspaceSummary } from "../types";
 import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "./domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";

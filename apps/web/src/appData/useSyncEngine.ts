@@ -8,22 +8,30 @@ import {
 import { isAuthRedirectError, pullSyncChanges, pushSyncOperations } from "../api";
 import { getStableDeviceId, webAppVersion } from "../clientIdentity";
 import {
+  loadCardById,
+  putCard,
+} from "../localDb/cards";
+import {
+  loadCloudSettings,
+  putCloudSettings,
+} from "../localDb/cloudSettings";
+import {
+  loadDeckById,
+  putDeck,
+} from "../localDb/decks";
+import {
   deleteOutboxRecord,
   listOutboxRecords,
-  loadCardById,
-  loadCloudSettings,
-  loadDeckById,
+  putOutboxRecord,
+  type PersistedOutboxRecord,
+} from "../localDb/outbox";
+import { putReviewEvent } from "../localDb/reviews";
+import {
   loadLastAppliedChangeId,
   loadWorkspaceSettings,
-  putCard,
-  putCloudSettings,
-  putDeck,
-  putOutboxRecord,
-  putReviewEvent,
   putWorkspaceSettings,
   setLastAppliedChangeId,
-  type PersistedOutboxRecord,
-} from "../syncStorage";
+} from "../localDb/workspace";
 import type {
   Card,
   CloudSettings,

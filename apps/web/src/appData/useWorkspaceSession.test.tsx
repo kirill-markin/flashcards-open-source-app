@@ -51,10 +51,13 @@ vi.mock("../clientIdentity", () => ({
   getStableDeviceId: getStableDeviceIdMock,
 }));
 
-vi.mock("../syncStorage", () => ({
+vi.mock("../localDb/cache", () => ({
   clearWebSyncCache: clearWebSyncCacheMock,
-  putCloudSettings: putCloudSettingsMock,
   relinkWorkspaceCache: relinkWorkspaceCacheMock,
+}));
+
+vi.mock("../localDb/cloudSettings", () => ({
+  putCloudSettings: putCloudSettingsMock,
 }));
 
 const sessionFixture: SessionInfo = {

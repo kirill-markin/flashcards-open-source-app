@@ -3,15 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 import { createLocalToolExecutor } from "./localToolExecutor";
 import type { AppDataContextValue } from "../appData/types";
 import {
-  clearWebSyncCache,
-  putCloudSettings,
-  putOutboxRecord,
-  putWorkspaceSettings,
   replaceCards,
-  replaceDecks,
-  replaceReviewEvents,
-  setLastAppliedChangeId,
-} from "../syncStorage";
+} from "../localDb/cards";
+import { clearWebSyncCache } from "../localDb/cache";
+import { putCloudSettings } from "../localDb/cloudSettings";
+import { replaceDecks } from "../localDb/decks";
+import { putOutboxRecord } from "../localDb/outbox";
+import { replaceReviewEvents } from "../localDb/reviews";
+import { putWorkspaceSettings, setLastAppliedChangeId } from "../localDb/workspace";
 import type { Card, CloudSettings, Deck, SessionInfo, WorkspaceSchedulerSettings, WorkspaceSummary } from "../types";
 
 function makeCard(overrides: Partial<Card>): Card {

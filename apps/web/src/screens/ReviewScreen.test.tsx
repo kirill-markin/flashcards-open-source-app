@@ -10,7 +10,19 @@ import { normalizeReviewMarkdownForWeb, ReviewScreen } from "./ReviewScreen";
 import type { Card, Deck, ReviewFilter } from "../types";
 import { cardsRoute, chatRoute } from "../routes";
 
-const { mockAppData } = vi.hoisted(() => ({
+const {
+  loadDecksListSnapshotMock,
+  loadReviewQueueChunkMock,
+  loadReviewQueueSnapshotMock,
+  loadReviewTimelinePageMock,
+  loadWorkspaceTagsSummaryMock,
+  mockAppData,
+} = vi.hoisted(() => ({
+  loadDecksListSnapshotMock: vi.fn(),
+  loadReviewQueueChunkMock: vi.fn(),
+  loadReviewQueueSnapshotMock: vi.fn(),
+  loadReviewTimelinePageMock: vi.fn(),
+  loadWorkspaceTagsSummaryMock: vi.fn(),
   mockAppData: {
     cards: [] as Array<Card>,
     cardsState: {
@@ -32,6 +44,7 @@ const { mockAppData } = vi.hoisted(() => ({
       kind: "allCards",
     } as ReviewFilter,
     selectedReviewFilterTitle: "All cards",
+    localReadVersion: 0,
     workspaceSettings: {
       algorithm: "fsrs-6",
       desiredRetention: 0.9,
@@ -64,6 +77,20 @@ const { mockAppData } = vi.hoisted(() => ({
 
 vi.mock("../appData", () => ({
   useAppData: () => mockAppData,
+}));
+
+vi.mock("../localDb/decks", () => ({
+  loadDecksListSnapshot: loadDecksListSnapshotMock,
+}));
+
+vi.mock("../localDb/reviews", () => ({
+  loadReviewQueueChunk: loadReviewQueueChunkMock,
+  loadReviewQueueSnapshot: loadReviewQueueSnapshotMock,
+  loadReviewTimelinePage: loadReviewTimelinePageMock,
+}));
+
+vi.mock("../localDb/workspace", () => ({
+  loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
 function createCard(overrides?: Partial<Card>): Card {
@@ -175,18 +202,72 @@ describe("ReviewScreen", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-10T12:00:00.000Z"));
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    loadDecksListSnapshotMock.mockReset();
+    loadReviewQueueChunkMock.mockReset();
+    loadReviewQueueSnapshotMock.mockReset();
+    loadReviewTimelinePageMock.mockReset();
+    loadWorkspaceTagsSummaryMock.mockReset();
     mockAppData.cards = [];
     mockAppData.decks = [];
     mockAppData.reviewQueue = [];
     mockAppData.reviewTimeline = [];
     mockAppData.selectedReviewFilter = { kind: "allCards" } as ReviewFilter;
     mockAppData.selectedReviewFilterTitle = "All cards";
+    mockAppData.localReadVersion = 0;
     mockAppData.ensureCardsLoaded.mockClear();
     mockAppData.ensureDecksLoaded.mockClear();
     mockAppData.ensureReviewQueueLoaded.mockClear();
     mockAppData.refreshReviewQueue.mockClear();
     mockAppData.selectReviewFilter.mockClear();
     mockAppData.setErrorMessage.mockClear();
+    loadDecksListSnapshotMock.mockImplementation(async () => ({
+      deckSummaries: mockAppData.decks.map((deck) => ({
+        deckId: deck.deckId,
+        name: deck.name,
+        filterDefinition: deck.filterDefinition,
+        createdAt: deck.createdAt,
+        totalCards: 0,
+        dueCards: 0,
+        newCards: 0,
+        reviewedCards: 0,
+      })),
+      allCardsStats: {
+        totalCards: mockAppData.cards.length,
+        dueCards: mockAppData.reviewQueue.length,
+        newCards: mockAppData.cards.filter((card) => card.reps === 0 && card.lapses === 0).length,
+        reviewedCards: mockAppData.cards.filter((card) => card.reps > 0 || card.lapses > 0).length,
+      },
+    }));
+    loadReviewQueueSnapshotMock.mockImplementation(async () => ({
+      resolvedReviewFilter: mockAppData.selectedReviewFilter,
+      cards: mockAppData.reviewQueue,
+      nextCursor: null,
+      reviewCounts: {
+        dueCount: mockAppData.reviewQueue.length,
+        totalCount: mockAppData.reviewQueue.length,
+      },
+    }));
+    loadReviewQueueChunkMock.mockResolvedValue({
+      cards: [],
+      nextCursor: null,
+    });
+    loadReviewTimelinePageMock.mockImplementation(async () => ({
+      cards: mockAppData.reviewTimeline,
+      hasMoreCards: false,
+    }));
+    loadWorkspaceTagsSummaryMock.mockImplementation(async () => {
+      const counts = new Map<string, number>();
+      for (const card of mockAppData.cards) {
+        for (const tag of card.tags) {
+          counts.set(tag, (counts.get(tag) ?? 0) + 1);
+        }
+      }
+
+      return {
+        tags: [...counts.entries()].map(([tag, cardsCount]) => ({ tag, cardsCount })),
+        totalCards: mockAppData.cards.length,
+      };
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -313,7 +394,7 @@ describe("ReviewScreen", () => {
       return element.textContent?.trim();
     });
 
-    expect(menuChildren).toEqual(["All cards", "Grammar", "Edit decks", "divider", "grammar (2)", "travel (1)", "verbs (1)"]);
+    expect(menuChildren).toEqual(["All cards", "Grammar", "Edit decks", "divider", "grammar (2)", "verbs (1)", "travel (1)"]);
 
     const grammarButton = container.querySelector('[data-review-filter-key="deck:deck-1"]');
 
@@ -444,6 +525,7 @@ describe("ReviewScreen", () => {
 
     mockAppData.reviewQueue = [secondQueueHead, firstQueueHead];
     mockAppData.reviewTimeline = [secondQueueHead, firstQueueHead];
+    mockAppData.localReadVersion = 1;
 
     await act(async () => {
       root.render(

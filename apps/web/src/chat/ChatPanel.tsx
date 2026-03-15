@@ -11,7 +11,7 @@ import { createLocalChatRequestBody, streamLocalChat, transcribeChatAudio } from
 import { webAppVersion } from "../clientIdentity";
 import { DEFAULT_MODEL_ID } from "../chatModels";
 import { useAppData } from "../appData";
-import { ensurePersistentStorage } from "../syncStorage";
+import { ensurePersistentStorage } from "../localDb/cloudSettings";
 import {
   explainBrowserMediaPermissionError,
   queryBrowserPermissionState,

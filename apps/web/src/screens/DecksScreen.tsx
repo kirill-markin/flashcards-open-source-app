@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAppData } from "../appData";
 import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../routes";
-import { loadDecksListSnapshot } from "../syncStorage";
+import { loadDecksListSnapshot } from "../localDb/decks";
 import type { DeckCardStats, DecksListSnapshot } from "../types";
 
 type DeckListEntry = Readonly<{

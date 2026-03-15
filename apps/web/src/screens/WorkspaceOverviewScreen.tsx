@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
-import { loadWorkspaceOverviewSnapshot } from "../syncStorage";
+import { loadWorkspaceOverviewSnapshot } from "../localDb/workspace";
 import type { WorkspaceOverviewSnapshot } from "../types";
 import { SettingsShell } from "./SettingsShared";
 

@@ -7,7 +7,8 @@ import {
   settingsSchedulerRoute,
   settingsTagsRoute,
 } from "../routes";
-import { loadDecksListSnapshot, loadWorkspaceTagsSummary } from "../syncStorage";
+import { loadDecksListSnapshot } from "../localDb/decks";
+import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import { SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 export function WorkspaceSettingsScreen(): ReactElement {

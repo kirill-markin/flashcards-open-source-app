@@ -10,12 +10,12 @@ import {
 } from "../appData/domain";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
 import {
-  loadDecksListSnapshot,
   loadReviewQueueChunk,
   loadReviewQueueSnapshot,
   loadReviewTimelinePage,
-  loadWorkspaceTagsSummary,
-} from "../syncStorage";
+} from "../localDb/reviews";
+import { loadDecksListSnapshot } from "../localDb/decks";
+import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import type { Card, DeckSummary, ReviewCounts, ReviewFilter, WorkspaceSchedulerSettings, WorkspaceTagSummary, TagSuggestion } from "../types";
 import {
   computeReviewSchedule,

@@ -15,7 +15,8 @@ import {
 } from "../api";
 import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
 import { getStableDeviceId } from "../clientIdentity";
-import { clearWebSyncCache, putCloudSettings, relinkWorkspaceCache } from "../syncStorage";
+import { clearWebSyncCache, relinkWorkspaceCache } from "../localDb/cache";
+import { putCloudSettings } from "../localDb/cloudSettings";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
 import {
   findWorkspaceById,

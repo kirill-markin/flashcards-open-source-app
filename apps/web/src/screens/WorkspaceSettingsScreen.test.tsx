@@ -28,8 +28,24 @@ const { mockAppData } = vi.hoisted(() => ({
   },
 }));
 
+const {
+  loadDecksListSnapshotMock,
+  loadWorkspaceTagsSummaryMock,
+} = vi.hoisted(() => ({
+  loadDecksListSnapshotMock: vi.fn(),
+  loadWorkspaceTagsSummaryMock: vi.fn(),
+}));
+
 vi.mock("../appData", () => ({
   useAppData: () => mockAppData,
+}));
+
+vi.mock("../localDb/decks", () => ({
+  loadDecksListSnapshot: loadDecksListSnapshotMock,
+}));
+
+vi.mock("../localDb/workspace", () => ({
+  loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
 describe("WorkspaceSettingsScreen", () => {
@@ -78,8 +94,37 @@ describe("WorkspaceSettingsScreen", () => {
       updatedAt: "2026-03-10T09:00:00.000Z",
       deletedAt: null,
     }];
-    mockAppData.ensureCardsLoaded.mockClear();
-    mockAppData.ensureDecksLoaded.mockClear();
+    loadDecksListSnapshotMock.mockReset();
+    loadWorkspaceTagsSummaryMock.mockReset();
+    loadDecksListSnapshotMock.mockResolvedValue({
+      deckSummaries: [{
+        deckId: "deck-1",
+        name: "Grammar",
+        filterDefinition: {
+          version: 2,
+          effortLevels: ["fast"],
+          tags: ["grammar"],
+        },
+        createdAt: "2026-03-10T09:00:00.000Z",
+        totalCards: 1,
+        dueCards: 1,
+        newCards: 1,
+        reviewedCards: 0,
+      }],
+      allCardsStats: {
+        totalCards: 1,
+        dueCards: 1,
+        newCards: 1,
+        reviewedCards: 0,
+      },
+    });
+    loadWorkspaceTagsSummaryMock.mockResolvedValue({
+      tags: [
+        { tag: "grammar", cardsCount: 1 },
+        { tag: "verbs", cardsCount: 1 },
+      ],
+      totalCards: 1,
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -99,8 +144,6 @@ describe("WorkspaceSettingsScreen", () => {
       );
     });
 
-    expect(mockAppData.ensureCardsLoaded).toHaveBeenCalledTimes(1);
-    expect(mockAppData.ensureDecksLoaded).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Workspace Settings");
     expect(container.textContent).toContain("Workspace Data");
     expect(container.textContent).toContain("Decks");
