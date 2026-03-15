@@ -31,4 +31,12 @@ Open-source offline-first flashcards app for iOS and web.
 
 - [iOS local setup](docs/ios-local-setup.md)
 - [Backend and web deployment](docs/backend-web-deployment.md)
-- More architecture details: [`docs/architecture.md`](docs/architecture.md)
+- [More architecture details](docs/architecture.md)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+- [Kirill Markin](https://github.com/kirill-markin)
