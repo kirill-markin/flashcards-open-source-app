@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
 import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../types";
-import { loadWorkspaceTagsSummary } from "../syncStorage";
+import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import { cardsRoute } from "../routes";
 
 function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSummary>>["tags"]): ReadonlyArray<TagSuggestion> {

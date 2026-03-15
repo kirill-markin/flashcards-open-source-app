@@ -63,8 +63,16 @@ const { mockAppData } = vi.hoisted(() => ({
   },
 }));
 
+const { loadWorkspaceTagsSummaryMock } = vi.hoisted(() => ({
+  loadWorkspaceTagsSummaryMock: vi.fn(),
+}));
+
 vi.mock("../appData", () => ({
   useAppData: () => mockAppData,
+}));
+
+vi.mock("../localDb/workspace", () => ({
+  loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
 describe("TagsScreen", () => {
@@ -73,7 +81,14 @@ describe("TagsScreen", () => {
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    mockAppData.ensureCardsLoaded.mockClear();
+    loadWorkspaceTagsSummaryMock.mockReset();
+    loadWorkspaceTagsSummaryMock.mockResolvedValue({
+      tags: [
+        { tag: "grammar", cardsCount: 2 },
+        { tag: "verbs", cardsCount: 1 },
+      ],
+      totalCards: 2,
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -93,7 +108,6 @@ describe("TagsScreen", () => {
       );
     });
 
-    expect(mockAppData.ensureCardsLoaded).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Tags");
     expect(container.textContent).toContain("2 total");
     expect(container.textContent).toContain("grammar");

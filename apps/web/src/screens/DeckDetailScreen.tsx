@@ -4,7 +4,8 @@ import { useAppData } from "../appData";
 import { ALL_CARDS_REVIEW_FILTER } from "../appData/domain";
 import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
 import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../routes";
-import { loadCardsMatchingDeck, loadDeckById, loadDecksListSnapshot } from "../syncStorage";
+import { loadCardsMatchingDeck } from "../localDb/cards";
+import { loadDeckById, loadDecksListSnapshot } from "../localDb/decks";
 import type { Card, Deck, ReviewFilter } from "../types";
 
 type DeckDetailState = Readonly<{

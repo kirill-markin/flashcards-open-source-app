@@ -15,7 +15,7 @@ const { mockAppData } = vi.hoisted(() => ({
     ensureDecksLoaded: vi.fn(async () => undefined),
     refreshCards: vi.fn(async () => undefined),
     refreshDecks: vi.fn(async () => undefined),
-    getDeckById: vi.fn(async (): Promise<Deck> => {
+    getDeckById: vi.fn(async (_deckId: string): Promise<Deck> => {
       throw new Error("Deck not found: missing");
     }),
     deleteDeckItem: vi.fn(async (): Promise<Deck> => {
@@ -28,6 +28,36 @@ const { mockAppData } = vi.hoisted(() => ({
 
 vi.mock("../appData", () => ({
   useAppData: () => mockAppData,
+}));
+
+vi.mock("../localDb/cards", () => ({
+  loadCardsMatchingDeck: vi.fn(async (filterDefinition: Deck["filterDefinition"]) => mockAppData.cards.filter((card) => {
+    const matchesEffort = filterDefinition.effortLevels.length === 0 || filterDefinition.effortLevels.includes(card.effortLevel);
+    const matchesTag = filterDefinition.tags.length === 0 || filterDefinition.tags.some((tag) => card.tags.includes(tag));
+    return matchesEffort && matchesTag;
+  })),
+}));
+
+vi.mock("../localDb/decks", () => ({
+  loadDeckById: vi.fn(async (deckId: string) => mockAppData.getDeckById(deckId)),
+  loadDecksListSnapshot: vi.fn(async () => ({
+    deckSummaries: mockAppData.decks.map((deck) => ({
+      deckId: deck.deckId,
+      name: deck.name,
+      filterDefinition: deck.filterDefinition,
+      createdAt: deck.createdAt,
+      totalCards: 0,
+      dueCards: 0,
+      newCards: 0,
+      reviewedCards: 0,
+    })),
+    allCardsStats: {
+      totalCards: mockAppData.cards.length,
+      dueCards: 0,
+      newCards: 0,
+      reviewedCards: 0,
+    },
+  })),
 }));
 
 function createCard(overrides?: Partial<Card>): Card {
@@ -95,8 +125,6 @@ describe("DeckDetailScreen", () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     mockAppData.cards = [];
     mockAppData.decks = [];
-    mockAppData.ensureCardsLoaded.mockClear();
-    mockAppData.ensureDecksLoaded.mockClear();
     mockAppData.refreshCards.mockClear();
     mockAppData.refreshDecks.mockClear();
     mockAppData.getDeckById.mockReset();
@@ -122,6 +150,7 @@ describe("DeckDetailScreen", () => {
         tags: ["grammar"],
       }),
     ];
+    mockAppData.decks = [createDeck()];
 
     await act(async () => {
       root.render(

@@ -27,11 +27,17 @@ vi.mock("../appData", () => ({
   useAppData: useAppDataMock,
 }));
 
-vi.mock("../syncStorage", () => ({
+vi.mock("../localDb/decks", () => ({
   loadDecksListSnapshot: loadDecksListSnapshotMock,
+}));
+
+vi.mock("../localDb/reviews", () => ({
   loadReviewQueueChunk: loadReviewQueueChunkMock,
   loadReviewQueueSnapshot: loadReviewQueueSnapshotMock,
   loadReviewTimelinePage: loadReviewTimelinePageMock,
+}));
+
+vi.mock("../localDb/workspace", () => ({
   loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 

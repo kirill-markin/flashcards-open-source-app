@@ -8,9 +8,11 @@ import { buildNextCardsTableSorts, CardsScreen } from "./CardsScreen";
 import type { Card, QueryCardsPage } from "../types";
 
 const {
+  loadWorkspaceTagsSummaryMock,
   queryCardsMock,
   mockAppData,
 } = vi.hoisted(() => ({
+  loadWorkspaceTagsSummaryMock: vi.fn(),
   queryCardsMock: vi.fn(),
   mockAppData: {
     activeWorkspace: {
@@ -29,9 +31,12 @@ const {
   },
 }));
 
-vi.mock("../api", () => ({
-  isAuthRedirectError: () => false,
-  queryCards: queryCardsMock,
+vi.mock("../localDb/cards", () => ({
+  queryLocalCardsPage: queryCardsMock,
+}));
+
+vi.mock("../localDb/workspace", () => ({
+  loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
 vi.mock("../appData", () => ({
@@ -145,6 +150,11 @@ describe("CardsScreen", () => {
     vi.useFakeTimers();
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     queryCardsMock.mockReset();
+    loadWorkspaceTagsSummaryMock.mockReset();
+    loadWorkspaceTagsSummaryMock.mockResolvedValue({
+      tags: [],
+      totalCards: 0,
+    });
     mockAppData.cards = [];
     mockAppData.ensureCardsLoaded.mockClear();
     mockAppData.refreshCards.mockClear();
@@ -193,7 +203,7 @@ describe("CardsScreen", () => {
     });
 
     expect(queryCardsMock).toHaveBeenCalledTimes(2);
-    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+    expect(queryCardsMock).toHaveBeenLastCalledWith({
       searchText: "hola",
       cursor: null,
       limit: 50,
@@ -232,7 +242,7 @@ describe("CardsScreen", () => {
     });
 
     expect(queryCardsMock).toHaveBeenCalledTimes(2);
-    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+    expect(queryCardsMock).toHaveBeenLastCalledWith({
       searchText: null,
       cursor: "cursor-1",
       limit: 50,
@@ -308,7 +318,7 @@ describe("CardsScreen", () => {
       clickElement(applyButton as Element);
     });
 
-    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+    expect(queryCardsMock).toHaveBeenLastCalledWith({
       searchText: null,
       cursor: null,
       limit: 50,
@@ -359,7 +369,7 @@ describe("CardsScreen", () => {
       clickElement(applyButton as Element);
     });
 
-    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+    expect(queryCardsMock).toHaveBeenLastCalledWith({
       searchText: null,
       cursor: null,
       limit: 50,
@@ -379,7 +389,7 @@ describe("CardsScreen", () => {
       vi.advanceTimersByTime(300);
     });
 
-    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+    expect(queryCardsMock).toHaveBeenLastCalledWith({
       searchText: "hola",
       cursor: null,
       limit: 50,
@@ -410,7 +420,7 @@ describe("CardsScreen", () => {
       clickElement(applyAfterClearButton as Element);
     });
 
-    expect(queryCardsMock).toHaveBeenLastCalledWith("workspace-1", {
+    expect(queryCardsMock).toHaveBeenLastCalledWith({
       searchText: "hola",
       cursor: null,
       limit: 50,

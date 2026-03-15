@@ -5,7 +5,8 @@ import { formatCardFilterSummary, getCardFilterActiveDimensionCount, normalizeCa
 import { EFFORT_LEVELS } from "../deckFilters";
 import { CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
-import { loadWorkspaceTagsSummary, queryLocalCardsPage } from "../syncStorage";
+import { queryLocalCardsPage } from "../localDb/cards";
+import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion, UpdateCardInput } from "../types";
 
 type CardsQueryState = Readonly<{

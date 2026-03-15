@@ -43,7 +43,7 @@ vi.mock("../api", () => ({
   transcribeChatAudio: transcribeChatAudioMock,
 }));
 
-vi.mock("../syncStorage", () => ({
+vi.mock("../localDb/cloudSettings", () => ({
   ensurePersistentStorage: ensurePersistentStorageMock,
 }));
 

@@ -4,7 +4,7 @@ import { useAppData } from "../appData";
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition } from "../deckFilters";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../routes";
 import { CardFormTagsField } from "./CardFormTagsField";
-import { loadWorkspaceTagsSummary } from "../syncStorage";
+import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import type { EffortLevel, TagSuggestion, UpdateDeckInput } from "../types";
 
 type FormState = Readonly<{

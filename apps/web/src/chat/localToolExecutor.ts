@@ -10,16 +10,17 @@
  */
 import type { AppDataContextValue } from "../appData/types";
 import {
-  listOutboxRecords,
   loadAllActiveCardsForSql,
-  loadAllActiveDecksForSql,
   loadCardById,
-  loadCloudSettings,
-  loadDeckById,
-  loadReviewEventsForSql,
-  loadWorkspaceSettings,
+} from "../localDb/cards";
+import { loadCloudSettings } from "../localDb/cloudSettings";
+import { loadAllActiveDecksForSql, loadDeckById } from "../localDb/decks";
+import {
+  listOutboxRecords,
   type PersistedOutboxRecord,
-} from "../syncStorage";
+} from "../localDb/outbox";
+import { loadReviewEventsForSql } from "../localDb/reviews";
+import { loadWorkspaceSettings } from "../localDb/workspace";
 import type {
   Card,
   CreateCardInput,

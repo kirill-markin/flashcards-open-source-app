@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
-import { loadWorkspaceTagsSummary } from "../syncStorage";
+import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import type { WorkspaceTagsSummary } from "../types";
 
 function formatCardsCount(cardsCount: number): string {

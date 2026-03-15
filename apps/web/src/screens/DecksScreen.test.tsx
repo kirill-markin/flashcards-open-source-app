@@ -30,8 +30,16 @@ const { mockAppData } = vi.hoisted(() => ({
   },
 }));
 
+const { loadDecksListSnapshotMock } = vi.hoisted(() => ({
+  loadDecksListSnapshotMock: vi.fn(),
+}));
+
 vi.mock("../appData", () => ({
   useAppData: () => mockAppData,
+}));
+
+vi.mock("../localDb/decks", () => ({
+  loadDecksListSnapshot: loadDecksListSnapshotMock,
 }));
 
 function collapseText(value: string | null): string {
@@ -46,8 +54,7 @@ describe("DecksScreen", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-10T12:00:00.000Z"));
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    mockAppData.ensureCardsLoaded.mockClear();
-    mockAppData.ensureDecksLoaded.mockClear();
+    loadDecksListSnapshotMock.mockReset();
     mockAppData.refreshCards.mockClear();
     mockAppData.refreshDecks.mockClear();
     mockAppData.cards = [];
@@ -64,6 +71,24 @@ describe("DecksScreen", () => {
       errorMessage: "",
       hasLoaded: true,
     };
+    loadDecksListSnapshotMock.mockImplementation(async () => ({
+      deckSummaries: mockAppData.decks.map((deck) => ({
+        deckId: deck.deckId,
+        name: deck.name,
+        filterDefinition: deck.filterDefinition,
+        createdAt: deck.createdAt,
+        totalCards: 2,
+        dueCards: 2,
+        newCards: 1,
+        reviewedCards: 1,
+      })),
+      allCardsStats: {
+        totalCards: mockAppData.cards.length,
+        dueCards: 2,
+        newCards: 1,
+        reviewedCards: 2,
+      },
+    }));
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -170,9 +195,6 @@ describe("DecksScreen", () => {
         </MemoryRouter>,
       );
     });
-
-    expect(mockAppData.ensureCardsLoaded).toHaveBeenCalledTimes(1);
-    expect(mockAppData.ensureDecksLoaded).toHaveBeenCalledTimes(1);
 
     const deckTitles = Array.from(container.querySelectorAll(".deck-card-title")).map((element) => element.textContent);
     expect(deckTitles).toEqual(["All cards", "Grammar"]);

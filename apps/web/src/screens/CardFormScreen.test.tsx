@@ -27,8 +27,16 @@ const { mockAppData } = vi.hoisted(() => ({
   },
 }));
 
+const { loadWorkspaceTagsSummaryMock } = vi.hoisted(() => ({
+  loadWorkspaceTagsSummaryMock: vi.fn(),
+}));
+
 vi.mock("../appData", () => ({
   useAppData: () => mockAppData,
+}));
+
+vi.mock("../localDb/workspace", () => ({
+  loadWorkspaceTagsSummary: loadWorkspaceTagsSummaryMock,
 }));
 
 function createCard(overrides?: Partial<Card>): Card {
@@ -101,6 +109,11 @@ describe("CardFormScreen", () => {
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    loadWorkspaceTagsSummaryMock.mockReset();
+    loadWorkspaceTagsSummaryMock.mockResolvedValue({
+      tags: [],
+      totalCards: 0,
+    });
     mockAppData.cards = [];
     mockAppData.ensureCardsLoaded.mockClear();
     mockAppData.getCardById.mockReset();

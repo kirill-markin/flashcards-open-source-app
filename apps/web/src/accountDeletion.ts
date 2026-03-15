@@ -1,4 +1,4 @@
-import { clearWebSyncCache } from "./syncStorage";
+import { clearWebSyncCache } from "./localDb/cache";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
