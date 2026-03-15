@@ -27,6 +27,7 @@ Create `infra/aws/cdk.context.local.json` from the example and fill values:
 - `authCertificateArn` (optional, only for `auth.<domain>`)
 - `webCertificateArnUsEast1` (optional, only for `app.<domain>` on CloudFront)
 - `apexRedirectCertificateArnUsEast1` (optional, only for apex -> app redirect on CloudFront)
+- `sesSenderEmail` (optional, enables SES-backed Cognito email delivery when set)
 
 ## Deploy
 
@@ -57,7 +58,7 @@ bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-sour
 1. **Confirm SNS email** — check `alertEmail` inbox and confirm the subscription.
 2. **Session encryption key** — CDK auto-generates a random 64-char hex key in Secrets Manager (`flashcards-open-source-app/session-encryption-key`). It signs OTP session cookies during login. No manual action needed.
 3. **Runtime DB role secrets** — CDK now creates separate Secrets Manager entries for `backend_app` and `auth_app` so the API and auth Lambdas do not share one database role.
-4. **SES for OTP emails** — Cognito uses its built-in email sender by default (~50 emails/day). To remove the limit, verify your domain in SES and update `infra/aws/lib/auth.ts` with `UserPoolEmail.withSES(...)`. See [docs/aws-ses-setup.md](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/docs/aws-ses-setup.md).
+4. **SES for OTP emails** — Cognito uses its built-in email sender by default when `sesSenderEmail` is not set in CDK context. To switch Cognito OTP delivery to SES, verify your domain in SES, set `sesSenderEmail`, and deploy. The stack will then create an SES configuration set plus CloudWatch event publishing for `send`, `delivery`, `bounce`, `complaint`, and `reject`. See [docs/aws-ses-setup.md](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/docs/aws-ses-setup.md).
 5. **Deploy web assets manually if needed** — `bash scripts/deploy-web.sh`.
    Do not use a web-only deploy when the browser API contract changed. Run `bash scripts/check-public-endpoints.sh` after the API/CDK deploy and before publishing web assets.
 6. **Run migrations manually if needed** — `bash scripts/migrate-aws.sh`.
