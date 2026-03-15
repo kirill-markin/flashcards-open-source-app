@@ -301,6 +301,7 @@ describe("ReviewScreen", () => {
     });
 
     expect(container.querySelector(".review-screen-panel")).not.toBeNull();
+    expect(container.querySelector(".review-queue-subtitle")).toBeNull();
     expect(container.textContent).toContain("Grammar");
     expect(container.textContent).toContain("Grammar front");
     expect(container.textContent).not.toContain("No cards to review right now.");
@@ -310,7 +311,7 @@ describe("ReviewScreen", () => {
     expect(reviewStylesContain(
       ".review-screen-panel {",
       "grid-template-rows: auto minmax(0, 1fr);",
-      "max-height: calc(100dvh - 172px);",
+      "max-height: calc(100dvh - 156px);",
       "overflow: hidden;",
     )).toBe(true);
     expect(reviewStylesContain(

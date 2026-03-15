@@ -884,10 +884,7 @@ export function ReviewScreen(): ReactElement {
 
           <aside className="review-queue-panel">
             <div className="review-queue-head">
-              <div>
-                <h2 className="panel-subtitle">Queue</h2>
-                <p className="subtitle review-queue-subtitle">{selectedReviewFilterTitle}</p>
-              </div>
+              <h2 className="panel-subtitle">Queue</h2>
               <span className="review-queue-caption">{queueCards.length} cards</span>
             </div>
             {queueCards.length === 0 ? (
