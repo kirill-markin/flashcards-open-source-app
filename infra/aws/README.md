@@ -57,7 +57,7 @@ bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-sour
 1. **Confirm SNS email** — check `alertEmail` inbox and confirm the subscription.
 2. **Session encryption key** — CDK auto-generates a random 64-char hex key in Secrets Manager (`flashcards-open-source-app/session-encryption-key`). It signs OTP session cookies during login. No manual action needed.
 3. **Runtime DB role secrets** — CDK now creates separate Secrets Manager entries for `backend_app` and `auth_app` so the API and auth Lambdas do not share one database role.
-4. **SES for OTP emails** — Cognito uses its built-in email sender by default (~50 emails/day). To remove the limit, verify your domain in SES and update `infra/aws/lib/auth.ts` with `UserPoolEmail.withSES(...)`.
+4. **SES for OTP emails** — Cognito uses its built-in email sender by default (~50 emails/day). To remove the limit, verify your domain in SES and update `infra/aws/lib/auth.ts` with `UserPoolEmail.withSES(...)`. See [docs/aws-ses-setup.md](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/docs/aws-ses-setup.md).
 5. **Deploy web assets manually if needed** — `bash scripts/deploy-web.sh`.
    Do not use a web-only deploy when the browser API contract changed. Run `bash scripts/check-public-endpoints.sh` after the API/CDK deploy and before publishing web assets.
 6. **Run migrations manually if needed** — `bash scripts/migrate-aws.sh`.
