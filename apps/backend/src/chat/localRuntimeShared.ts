@@ -10,6 +10,7 @@ import type {
 } from "./localTypes";
 import {
   buildAssistantRoleSection,
+  buildCardEffortSection,
   buildCardSideContractSection,
   buildConciseStyleSection,
   buildDatetimeSection,
@@ -162,6 +163,7 @@ export function buildLocalSystemInstructions(
     buildUserContextSection(userContext.totalCards),
     buildLocalWorkspaceSection(),
     buildCardSideContractSection(),
+    buildCardEffortSection(),
     buildConciseStyleSection(),
     buildLocalToolCallRulesSection(),
     buildWritePolicySection(buildLocalWritePolicyLines()),

@@ -261,6 +261,11 @@ test("buildLocalSystemInstructions includes strict tool-call rules, examples, an
   assert.match(instructions, /for code cards, prefer concrete code snippets in fenced markdown code blocks\./i);
   assert.match(instructions, /for business, conceptual, or practical cards, prefer concrete real-world usage examples\./i);
   assert.match(instructions, /keep chat replies plain text, but card content may freely use markdown\./i);
+  assert.match(instructions, /card effort rules:/i);
+  assert.match(instructions, /default to fast unless the user clearly wants a slower card\./i);
+  assert.match(instructions, /fast is the normal default and should be used for almost all cards\./i);
+  assert.match(instructions, /medium is for cards where the person needs to sit and write or work through a solution for around five minutes\./i);
+  assert.match(instructions, /long is for unusually long cards with half-day activities and should be very rare\./i);
   assert.match(instructions, /Tool arguments must be exactly one JSON object\./);
   assert.equal(
     instructions.match(/Before calling any tool, send one short user-facing sentence explaining what you are about to check\./g)?.length ?? 0,
@@ -296,6 +301,8 @@ test("buildLocalSystemInstructions uses explicit web browser chat context", () =
   assert.match(instructions, /skip examples only when the user explicitly asks you not to include them\./i);
   assert.match(instructions, /for code cards, prefer concrete code snippets in fenced markdown code blocks\./i);
   assert.match(instructions, /for business, conceptual, or practical cards, prefer concrete real-world usage examples\./i);
+  assert.match(instructions, /default to fast unless the user clearly wants a slower card\./i);
+  assert.match(instructions, /medium is for cards where the person needs to sit and write or work through a solution for around five minutes\./i);
 });
 
 test("isInlineTextAttachmentCandidate accepts supported text-like files and excludes csv", () => {
