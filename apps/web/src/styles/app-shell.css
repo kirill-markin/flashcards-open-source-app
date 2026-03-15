@@ -111,9 +111,11 @@
 .account-menu-button {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 0 16px;
+  justify-content: center;
+  width: 54px;
+  min-width: 54px;
+  min-height: 54px;
+  padding: 0;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.04);
@@ -130,18 +132,6 @@
 .account-menu-button:disabled {
   cursor: default;
   opacity: 0.55;
-}
-
-.account-menu-button-label {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.account-menu-button-chevron {
-  color: var(--text-tertiary);
-  font-size: 11px;
 }
 
 .account-menu-dropdown {
@@ -320,11 +310,6 @@
   }
 
   .account-menu-button {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .account-menu-button-label {
-    max-width: none;
+    width: 54px;
   }
 }

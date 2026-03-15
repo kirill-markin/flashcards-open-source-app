@@ -4,7 +4,6 @@ import type { WorkspaceSummary } from "./types";
 type Props = Readonly<{
   workspaces: ReadonlyArray<WorkspaceSummary>;
   currentWorkspaceId: string;
-  currentWorkspaceName: string;
   isBusy: boolean;
   accountSettingsUrl: string;
   logoutUrl: string;
@@ -16,7 +15,6 @@ export function AccountMenu(props: Props): ReactElement {
   const {
     workspaces,
     currentWorkspaceId,
-    currentWorkspaceName,
     isBusy,
     accountSettingsUrl,
     logoutUrl,
@@ -117,14 +115,10 @@ export function AccountMenu(props: Props): ReactElement {
         aria-label="Open account menu"
         disabled={isBusy}
       >
-        <span className="account-menu-button-label">{currentWorkspaceName}</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="4" />
           <path d="M20 21a8 8 0 0 0-16 0" />
         </svg>
-        <span className="account-menu-button-chevron" aria-hidden="true">
-          ▾
-        </span>
       </button>
       {isOpen ? (
         <div ref={menuRef} className="account-menu-dropdown">

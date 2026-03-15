@@ -244,7 +244,6 @@ export function AppShell(): ReactElement {
               <AccountMenu
                 workspaces={availableWorkspaces}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
-                currentWorkspaceName={activeWorkspace?.name ?? "Workspace"}
                 isBusy={isChoosingWorkspace}
                 accountSettingsUrl={accountSettingsRoute}
                 logoutUrl={buildLogoutUrl()}
