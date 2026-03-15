@@ -2,18 +2,21 @@
 
 ![iOS app screenshots](docs/images/ios-app-screenshots.jpeg)
 
-Open-source offline-first flashcards app.
+Flashcards are a simple study format: the front side shows a question or prompt, and the back side shows the answer. People use them to study languages, facts, definitions, code, and other material they want to remember. This project is an open-source Anki-like flashcards app focused on iOS, web, and offline-first sync.
 
-## v1 Architecture
+Open-source offline-first flashcards app for iOS and web.
 
-- Cloudflare -> API Gateway -> Lambda backend -> Postgres
-- app.<domain> -> CloudFront -> S3 web app
-- auth.<domain> -> API Gateway -> Lambda auth service -> Cognito
-- <domain> -> redirect to app.<domain> when the apex is free during bootstrap
-- Email OTP auth via Cognito (passwordless) — auth is a separate public service, backend verifies JWT
-- No background worker for scheduling in v1
-- Card scheduling is compute-on-write in API (on review submit)
-- Card queue is filter-on-read (`due_at <= now()`)
+## Clients
+
+- iOS app in `apps/ios`
+- Web client in `apps/web`
+- AI agents support through the external agent API: [https://api.flashcards-open-source-app.com/v1/](https://api.flashcards-open-source-app.com/v1/)
+- Android app planned later
+
+## Features
+
+- Offline-first: browser local database on web, SQLite on iOS
+- Auto-sync: clients write locally first and sync with the backend when online
 
 ## Card scheduling
 
@@ -23,15 +26,9 @@ Open-source offline-first flashcards app.
 - Cards appear in review when they are due: `due_at <= now()`
 - Detailed scheduling rules live in [`docs/fsrs-scheduling-logic.md`](docs/fsrs-scheduling-logic.md)
 
-## Clients
-
-- Web app in `apps/web` for cards, decks, review, and AI chat
-- iOS app in `apps/ios` with local SQLite, offline-first review flow, and FSRS parity with backend
-- Android app later
-
-The discovery response tells agents to ask for the user's email first, and the same email OTP flow covers both signup and login.
 
 ## Setup Docs
 
 - [iOS local setup](docs/ios-local-setup.md)
 - [Backend and web deployment](docs/backend-web-deployment.md)
+- More architecture details: [`docs/architecture.md`](docs/architecture.md)
