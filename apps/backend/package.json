@@ -13,7 +13,7 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.1009.0",
     "@aws-sdk/client-secrets-manager": "^3.1009.0",
-    "@hono/node-server": "^1.19.6",
+    "@hono/node-server": "^1.19.11",
     "aws-jwt-verify": "^5.1.1",
     "hono": "^4.12.8",
     "openai": "^6.29.0",
@@ -21,10 +21,10 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.149",
+    "@types/aws-lambda": "^8.10.161",
     "@types/node": "^25.5.0",
-    "@types/pg": "^8.16.0",
-    "tsx": "^4.20.5",
+    "@types/pg": "^8.18.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "engines": {

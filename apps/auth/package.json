@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.1009.0",
-    "@hono/node-server": "^1.14.0",
+    "@hono/node-server": "^1.19.11",
     "aws-jwt-verify": "^5.1.1",
     "hono": "^4.12.8",
     "pg": "^8.20.0"
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@types/pg": "^8.18.0",
-    "tsx": "^4.19.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "engines": {
