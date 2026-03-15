@@ -228,6 +228,114 @@ private func executeSqlLocally(
     }
 }
 
+private func executeSqlBatchLocally(
+    database: LocalDatabase,
+    bootstrapSnapshot: AppBootstrapSnapshot,
+    sql: String,
+    encoder: JSONEncoder
+) throws -> LocalAISqlExecutionResult {
+    let statementSqls = try localAISqlSplitStatements(sql)
+    if statementSqls.isEmpty {
+        throw LocalStoreError.validation("sql must not be empty")
+    }
+
+    if statementSqls.count == 1 {
+        return try executeSqlLocally(
+            database: database,
+            bootstrapSnapshot: bootstrapSnapshot,
+            sql: sql,
+            encoder: encoder
+        )
+    }
+
+    if statementSqls.count > 50 {
+        throw LocalStoreError.validation("SQL batch must contain at most 50 statements")
+    }
+
+    let statements = try statementSqls.map(localAISqlParseStatement)
+    let allReadStatements = statements.allSatisfy { statement in
+        switch statement {
+        case .showTables, .describe, .select:
+            return true
+        case .insert, .update, .delete:
+            return false
+        }
+    }
+    let allMutationStatements = statements.allSatisfy { statement in
+        switch statement {
+        case .insert, .update, .delete:
+            return true
+        case .showTables, .describe, .select:
+            return false
+        }
+    }
+
+    if allReadStatements == false, allMutationStatements == false {
+        throw LocalStoreError.validation("SQL batch must contain only read statements or only mutation statements")
+    }
+
+    if allReadStatements {
+        let statementPayloads = try zip(statementSqls, statements).map { statementSql, statement in
+            switch statement {
+            case .showTables, .describe, .select:
+                let result = try executeLocalAISqlReadStatement(
+                    database: database,
+                    bootstrapSnapshot: bootstrapSnapshot,
+                    sql: statementSql,
+                    statement: statement,
+                    encoder: encoder
+                )
+                guard let data = result.output.data(using: .utf8) else {
+                    throw LocalStoreError.validation("Encoded JSON payload is not UTF-8")
+                }
+                return try JSONDecoder().decode(LocalAISqlSinglePayload.self, from: data)
+            case .insert, .update, .delete:
+                throw LocalStoreError.validation("SQL batch must contain only read statements or only mutation statements")
+            }
+        }
+
+        return LocalAISqlExecutionResult(
+            output: try encodeJSON(
+                value: LocalAISqlBatchPayload(
+                    statementType: "batch",
+                    resource: nil,
+                    sql: sql,
+                    normalizedSql: statements.compactMap { statement in
+                        switch statement {
+                        case .showTables(let payload):
+                            return payload.normalizedSql
+                        case .describe(let payload):
+                            return payload.normalizedSql
+                        case .select(let payload):
+                            return payload.normalizedSql
+                        case .insert(let payload):
+                            return payload.normalizedSql
+                        case .update(let payload):
+                            return payload.normalizedSql
+                        case .delete(let payload):
+                            return payload.normalizedSql
+                        }
+                    }.joined(separator: "; "),
+                    statements: statementPayloads,
+                    statementCount: statementPayloads.count,
+                    affectedCountTotal: nil
+                ),
+                encoder: encoder
+            ),
+            didMutateAppState: false
+        )
+    }
+
+    return try executeLocalAISqlMutationBatch(
+        database: database,
+        bootstrapSnapshot: bootstrapSnapshot,
+        sql: sql,
+        statements: statements,
+        statementSqls: statementSqls,
+        encoder: encoder
+    )
+}
+
 func encodeJSON<Value: Encodable>(
     value: Value,
     encoder: JSONEncoder
@@ -266,7 +374,7 @@ actor LocalAIToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
         switch toolCallRequest.name {
         case "sql":
             let input = try self.decodeInput(SqlToolInput.self, toolCallRequest: toolCallRequest, requestId: requestId)
-            let result = try executeSqlLocally(
+            let result = try executeSqlBatchLocally(
                 database: database,
                 bootstrapSnapshot: bootstrapSnapshot,
                 sql: input.sql,

@@ -504,19 +504,26 @@ export function getCardsQueryDefaultPageSize(): number {
   return defaultCardsQueryPageSize;
 }
 
+export async function listCardsInExecutor(
+  executor: Parameters<typeof validateOrResetCardRowForRead>[0],
+  workspaceId: string,
+): Promise<ReadonlyArray<Card>> {
+  const result = await executor.query<CardRow>(
+    [
+      CARD_SELECT,
+      "WHERE workspace_id = $1 AND deleted_at IS NULL",
+      "ORDER BY created_at DESC, card_id ASC",
+    ].join(" "),
+    [workspaceId],
+  );
+
+  const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);
+  return repairedRows.map(mapCard);
+}
+
 export async function listCards(userId: string, workspaceId: string): Promise<ReadonlyArray<Card>> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const result = await executor.query<CardRow>(
-      [
-        CARD_SELECT,
-        "WHERE workspace_id = $1 AND deleted_at IS NULL",
-        "ORDER BY created_at DESC, card_id ASC",
-      ].join(" "),
-      [workspaceId],
-    );
-
-    const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);
-    return repairedRows.map(mapCard);
+    return listCardsInExecutor(executor, workspaceId);
   });
 }
 

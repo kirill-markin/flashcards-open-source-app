@@ -94,6 +94,29 @@ private struct SqlMutationPayload: Decodable {
     let affectedCount: Int
 }
 
+private struct SqlSinglePayload: Decodable {
+    let statementType: String
+    let resource: String?
+    let sql: String
+    let normalizedSql: String
+    let rows: [[String: SqlJsonValue]]
+    let rowCount: Int?
+    let limit: Int?
+    let offset: Int?
+    let hasMore: Bool?
+    let affectedCount: Int?
+}
+
+private struct SqlBatchPayload: Decodable {
+    let statementType: String
+    let resource: String?
+    let sql: String
+    let normalizedSql: String
+    let statements: [SqlSinglePayload]
+    let statementCount: Int
+    let affectedCountTotal: Int?
+}
+
 private struct OutboxPayload: Decodable {
     let outbox: [OutboxRow]
     let nextCursor: String?
@@ -237,6 +260,119 @@ final class LocalAIToolExecutorTests: AIChatTestCaseBase {
         XCTAssertTrue(aggregatePayload.rows.contains { row in
             row["tag"]?.stringValue == "verbs" && row["cards_count"]?.integerValue == 1
         })
+    }
+
+    func testLocalToolExecutorSupportsReadOnlySqlBatches() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        let result = try await self.executeSql(
+            executor: executor,
+            sql: "SHOW TABLES; SELECT * FROM workspace LIMIT 1 OFFSET 0",
+            toolCallId: "call-read-batch"
+        )
+        let payload = try JSONDecoder().decode(SqlBatchPayload.self, from: Data(result.output.utf8))
+
+        XCTAssertEqual(payload.statementType, "batch")
+        XCTAssertNil(payload.resource)
+        XCTAssertEqual(payload.statementCount, 2)
+        XCTAssertNil(payload.affectedCountTotal)
+        XCTAssertEqual(payload.statements.map(\.statementType), ["show_tables", "select"])
+        XCTAssertFalse(result.didMutateAppState)
+    }
+
+    func testLocalToolExecutorSupportsMutationSqlBatches() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        let insertResult = try await self.executeSql(
+            executor: executor,
+            sql: """
+            INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES
+            ('Batch Front 1', 'Batch Back 1', ('batch'), 'medium'),
+            ('Batch Front 2', 'Batch Back 2', ('batch'), 'medium')
+            """,
+            toolCallId: "call-insert-batch-seed"
+        )
+        let insertPayload = try JSONDecoder().decode(SqlMutationPayload.self, from: Data(insertResult.output.utf8))
+        let firstCardId = try XCTUnwrap(insertPayload.rows.first?["card_id"]?.stringValue)
+        let secondCardId = try XCTUnwrap(insertPayload.rows.last?["card_id"]?.stringValue)
+
+        let updateResult = try await self.executeSql(
+            executor: executor,
+            sql: """
+            UPDATE cards SET back_text = 'Updated Batch Back 1' WHERE card_id = '\(firstCardId)';
+            UPDATE cards SET back_text = 'Updated Batch Back 2' WHERE card_id = '\(secondCardId)'
+            """,
+            toolCallId: "call-update-batch"
+        )
+        let updatePayload = try JSONDecoder().decode(SqlBatchPayload.self, from: Data(updateResult.output.utf8))
+
+        XCTAssertEqual(updatePayload.statementType, "batch")
+        XCTAssertEqual(updatePayload.statementCount, 2)
+        XCTAssertEqual(updatePayload.affectedCountTotal, 2)
+        XCTAssertEqual(updatePayload.statements.map(\.statementType), ["update", "update"])
+        XCTAssertEqual(updatePayload.statements.compactMap(\.affectedCount), [1, 1])
+        XCTAssertTrue(updateResult.didMutateAppState)
+
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT card_id, back_text FROM cards WHERE card_id = '\(firstCardId)' LIMIT 1 OFFSET 0",
+            toolCallId: "call-select-updated-batch-card"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.rows.first?["back_text"]?.stringValue, "Updated Batch Back 1")
+    }
+
+    func testLocalToolExecutorRejectsMixedSqlReadWriteBatches() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        do {
+            _ = try await self.executeSql(
+                executor: executor,
+                sql: "SHOW TABLES; UPDATE cards SET back_text = 'Updated answer' WHERE card_id = 'card-1'",
+                toolCallId: "call-mixed-batch"
+            )
+            XCTFail("Expected mixed read/write batch to fail")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("read statements or only mutation statements"))
+        }
+    }
+
+    func testLocalToolExecutorKeepsMutationBatchesAtomic() async throws {
+        let flashcardsStore = try self.makeStore()
+        let executor = try self.makeExecutor(flashcardsStore: flashcardsStore)
+
+        let insertResult = try await self.executeSql(
+            executor: executor,
+            sql: "INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('Atomic Front', 'Atomic Back', ('atomic'), 'medium')",
+            toolCallId: "call-insert-atomic-card"
+        )
+        let insertPayload = try JSONDecoder().decode(SqlMutationPayload.self, from: Data(insertResult.output.utf8))
+        let cardId = try XCTUnwrap(insertPayload.rows.first?["card_id"]?.stringValue)
+
+        do {
+            _ = try await self.executeSql(
+                executor: executor,
+                sql: """
+                UPDATE cards SET back_text = 'First change' WHERE card_id = '\(cardId)';
+                UPDATE cards SET back_text = 'Second change' WHERE missing_column = 'x'
+                """,
+                toolCallId: "call-atomic-failure"
+            )
+            XCTFail("Expected failing mutation batch")
+        } catch {
+            XCTAssertFalse(error.localizedDescription.isEmpty)
+        }
+
+        let selectResult = try await self.executeSql(
+            executor: executor,
+            sql: "SELECT card_id, back_text FROM cards WHERE card_id = '\(cardId)' LIMIT 1 OFFSET 0",
+            toolCallId: "call-select-atomic-card"
+        )
+        let selectPayload = try JSONDecoder().decode(SqlReadPayload.self, from: Data(selectResult.output.utf8))
+        XCTAssertEqual(selectPayload.rows.first?["back_text"]?.stringValue, "Atomic Back")
     }
 
     func testLocalToolExecutorFiltersUnnestedTagsWithCaseInsensitiveExactMatch() async throws {

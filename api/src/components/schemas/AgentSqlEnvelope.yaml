@@ -28,6 +28,7 @@ properties:
           - insert
           - update
           - delete
+          - batch
       resource:
         anyOf:
           - type: string
@@ -54,6 +55,16 @@ properties:
         type: boolean
       affectedCount:
         type: integer
+      statements:
+        type: array
+        items:
+          type: object
+      statementCount:
+        type: integer
+      affectedCountTotal:
+        anyOf:
+          - type: integer
+          - type: 'null'
   instructions:
     type: string
   docs:

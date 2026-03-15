@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   executeSqlSelect,
   parseSqlStatement,
+  parseSqlStatements,
+  splitSqlStatements,
   type SqlRow,
   type SqlSelectStatement,
 } from "./sqlDialect";
@@ -210,6 +212,51 @@ test("parseSqlStatement preserves keywords inside quoted LIKE patterns", () => {
   assert.equal(statement.orderBy.length, 1);
   assert.equal(statement.limit, 20);
   assert.equal(statement.offset, 0);
+});
+
+test("splitSqlStatements supports semicolon-separated batches", () => {
+  const statements = splitSqlStatements(
+    "SHOW TABLES; SELECT * FROM workspace LIMIT 1 OFFSET 0;",
+  );
+
+  assert.deepEqual(statements, [
+    "SHOW TABLES",
+    "SELECT * FROM workspace LIMIT 1 OFFSET 0",
+  ]);
+});
+
+test("splitSqlStatements preserves semicolons inside quoted strings", () => {
+  const statements = splitSqlStatements(
+    `UPDATE cards SET back_text = ${toSqlStringLiteral("first; second")} WHERE card_id = 'card-1'; SHOW TABLES`,
+  );
+
+  assert.deepEqual(statements, [
+    "UPDATE cards SET back_text = 'first; second' WHERE card_id = 'card-1'",
+    "SHOW TABLES",
+  ]);
+});
+
+test("parseSqlStatements preserves keyword-heavy multiline strings across batches", () => {
+  const backText = buildKeywordHeavyBackText();
+  const statements = parseSqlStatements(
+    `UPDATE cards SET back_text = ${toSqlStringLiteral(backText)} WHERE card_id = 'card-1'; SELECT card_id FROM cards LIMIT 1 OFFSET 0`,
+  );
+
+  assert.equal(statements.length, 2);
+  assert.equal(statements[0]?.type, "update");
+  if (statements[0]?.type !== "update") {
+    throw new Error("Expected an update statement");
+  }
+
+  assert.equal(statements[0].assignments[0]?.value, backText);
+  assert.equal(statements[1]?.type, "select");
+});
+
+test("splitSqlStatements rejects empty statements inside a batch", () => {
+  assert.throws(
+    () => splitSqlStatements("SHOW TABLES;; SELECT * FROM workspace LIMIT 1 OFFSET 0"),
+    /SQL batch contains an empty statement/,
+  );
 });
 
 test("executeSqlSelect supports exact case-insensitive matches on UNNEST aliases", () => {
