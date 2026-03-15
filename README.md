@@ -4,10 +4,6 @@
 
 Open-source offline-first flashcards app.
 
-## Status
-
-This repository is under active development and not production-ready yet.
-
 ## v1 Architecture
 
 - Cloudflare -> API Gateway -> Lambda backend -> Postgres
