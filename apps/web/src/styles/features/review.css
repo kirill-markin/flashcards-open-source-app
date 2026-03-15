@@ -1,8 +1,16 @@
+.review-screen-panel {
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  max-height: calc(100dvh - 172px);
+  overflow: hidden;
+}
+
 .review-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .review-screen-actions {
@@ -162,11 +170,15 @@
 
 .review-pane {
   position: relative;
+  align-content: start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-padding-bottom: 152px;
 }
 
 .review-queue-panel {
   grid-template-rows: auto minmax(0, 1fr);
-  max-height: calc(100dvh - 188px);
   overflow: hidden;
 }
 
@@ -188,7 +200,7 @@
 }
 
 .review-empty {
-  min-height: 280px;
+  min-height: 220px;
   align-content: center;
 }
 
@@ -219,16 +231,16 @@
 }
 
 .review-card-surface {
-  min-height: 210px;
+  min-height: 132px;
   min-width: 0;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 44%),
     linear-gradient(180deg, rgba(33, 33, 39, 0.96), rgba(23, 23, 28, 0.98));
   display: grid;
-  grid-template-rows: auto minmax(152px, 1fr);
+  grid-template-rows: auto minmax(76px, 1fr);
   gap: 8px;
 }
 
@@ -246,7 +258,7 @@
 }
 
 .review-card-body {
-  min-height: 152px;
+  min-height: 76px;
   display: flex;
   min-width: 0;
 }
@@ -416,13 +428,14 @@
 .review-actions-dock {
   position: sticky;
   bottom: 0;
-  margin-top: 4px;
-  padding: 10px;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
-  background: rgba(28, 28, 32, 0.8);
-  backdrop-filter: var(--blur);
-  box-shadow: var(--shadow-soft);
+  z-index: 1;
+  margin-top: auto;
+  padding-top: 10px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
 }
 
 .review-reveal-btn {
@@ -583,12 +596,22 @@
 }
 
 @media (max-width: 1024px) {
+  .review-screen-panel {
+    max-height: none;
+    overflow: visible;
+  }
+
   .review-layout {
     grid-template-columns: 1fr;
   }
 
+  .review-pane {
+    overflow: visible;
+    scrollbar-gutter: auto;
+    scroll-padding-bottom: 0;
+  }
+
   .review-queue-panel {
-    max-height: none;
     overflow: visible;
   }
 

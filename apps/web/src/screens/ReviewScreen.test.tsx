@@ -300,16 +300,33 @@ describe("ReviewScreen", () => {
       );
     });
 
+    expect(container.querySelector(".review-screen-panel")).not.toBeNull();
     expect(container.textContent).toContain("Grammar");
     expect(container.textContent).toContain("Grammar front");
     expect(container.textContent).not.toContain("No cards to review right now.");
   });
 
-  it("keeps the queue panel independently scrollable on desktop and resets it on mobile", () => {
+  it("fits review into the desktop viewport with internal pane and queue scrolling", () => {
+    expect(reviewStylesContain(
+      ".review-screen-panel {",
+      "grid-template-rows: auto minmax(0, 1fr);",
+      "max-height: calc(100dvh - 172px);",
+      "overflow: hidden;",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      ".review-layout {",
+      "align-items: stretch;",
+      "min-height: 0;",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      ".review-pane {",
+      "overflow-y: auto;",
+      "scrollbar-gutter: stable;",
+      "scroll-padding-bottom: 152px;",
+    )).toBe(true);
     expect(reviewStylesContain(
       ".review-queue-panel {",
       "grid-template-rows: auto minmax(0, 1fr);",
-      "max-height: calc(100dvh - 188px);",
       "overflow: hidden;",
     )).toBe(true);
     expect(reviewStylesContain(
@@ -325,10 +342,27 @@ describe("ReviewScreen", () => {
       "scrollbar-gutter: stable;",
     )).toBe(true);
     expect(reviewStylesContain(
+      ".review-card-surface {",
+      "min-height: 132px;",
+      "grid-template-rows: auto minmax(76px, 1fr);",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      ".review-card-body {",
+      "min-height: 76px;",
+    )).toBe(true);
+    expect(reviewStylesContain(
+      ".review-actions-dock {",
+      "position: sticky;",
+      "background: transparent;",
+      "border: none;",
+      "box-shadow: none;",
+    )).toBe(true);
+    expect(reviewStylesContain(
       "@media (max-width: 1024px) {",
-      "grid-template-columns: 1fr;",
       "max-height: none;",
       "overflow: visible;",
+      "grid-template-columns: 1fr;",
+      "scroll-padding-bottom: 0;",
       "position: static;",
       "scrollbar-gutter: auto;",
     )).toBe(true);
