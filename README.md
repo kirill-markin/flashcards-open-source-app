@@ -1,4 +1,6 @@
-# flashcards-open-source-app
+# Flashcards Open Source App
+
+![iOS app screenshots](docs/images/ios-app-screenshots.jpeg)
 
 Open-source offline-first flashcards app.
 
