@@ -10,7 +10,11 @@ export {
   getSqlResourceDescriptor,
   getSqlResourceDescriptors,
 } from "./sqlDialectSchema";
-export { parseSqlStatement } from "./sqlDialectParser";
+export {
+  parseSqlStatement,
+  parseSqlStatements,
+  splitSqlStatements,
+} from "./sqlDialectParser";
 export {
   executeSqlSelect,
   likePatternToRegExp,

@@ -298,7 +298,7 @@ export async function upsertCardSnapshot(
   ));
 }
 
-async function createCardInExecutor(
+export async function createCardInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   input: CreateCardInput,
@@ -373,7 +373,7 @@ export async function createCards(
   });
 }
 
-async function updateCardInExecutor(
+export async function updateCardInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   cardId: string,
@@ -452,7 +452,7 @@ export async function updateCards(
   });
 }
 
-async function deleteCardInExecutor(
+export async function deleteCardInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   cardId: string,

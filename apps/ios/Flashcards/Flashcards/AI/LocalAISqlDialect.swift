@@ -198,3 +198,12 @@ func localAISqlParseStatement(_ value: String) throws -> LocalAISqlStatement {
         throw LocalStoreError.validation("Unsupported SQL statement")
     }
 }
+
+func localAISqlParseStatements(_ value: String) throws -> [LocalAISqlStatement] {
+    let statementValues = try localAISqlSplitStatements(value)
+    if statementValues.isEmpty {
+        throw LocalStoreError.validation("sql must not be empty")
+    }
+
+    return try statementValues.map(localAISqlParseStatement)
+}

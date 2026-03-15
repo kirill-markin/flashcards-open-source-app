@@ -9,16 +9,34 @@
  * `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`.
  */
 import type { AppDataContextValue } from "../appData/types";
+import { getStableDeviceId } from "../clientIdentity";
+import {
+  buildCardUpsertOperation,
+  buildDeck,
+  buildDeckUpsertOperation,
+  buildDeletedCard,
+  buildDeletedDeck,
+  buildInitialCard,
+  buildUpdatedCard,
+  buildUpdatedDeck,
+  normalizeCreateCardInput,
+  normalizeCreateDeckInput,
+  normalizeUpdateCardInput,
+  normalizeUpdateDeckInput,
+  nowIso,
+} from "../appData/domain";
 import {
   loadAllActiveCardsForSql,
   loadCardById,
 } from "../localDb/cards";
 import { loadCloudSettings } from "../localDb/cloudSettings";
+import { openDatabase, runReadwrite } from "../localDb/core";
 import { loadAllActiveDecksForSql, loadDeckById } from "../localDb/decks";
 import {
   listOutboxRecords,
   type PersistedOutboxRecord,
 } from "../localDb/outbox";
+import { writeCardTagRecords } from "../localDb/cardTags";
 import { loadReviewEventsForSql } from "../localDb/reviews";
 import { loadWorkspaceSettings } from "../localDb/workspace";
 import type {
@@ -37,8 +55,10 @@ import {
   getSqlResourceDescriptors,
   likePatternToRegExp,
   parseSqlStatement,
+  splitSqlStatements,
   type SqlRow,
   type SqlResourceName,
+  type ParsedSqlStatement,
 } from "../../../backend/src/aiTools/sqlDialect";
 
 type Nullable<T> = T | null;
@@ -86,6 +106,7 @@ type WebLocalToolExecutorDependencies = Pick<
   AppDataContextValue,
   | "session"
   | "activeWorkspace"
+  | "refreshLocalData"
   | "createCardItem"
   | "createDeckItem"
   | "updateCardItem"
@@ -94,7 +115,7 @@ type WebLocalToolExecutorDependencies = Pick<
   | "deleteDeckItem"
 >;
 
-type SqlExecutionPayload =
+type SqlSingleExecutionPayload =
   | Readonly<{
     statementType: "show_tables" | "describe" | "select";
     resource: SqlResourceName | null;
@@ -115,7 +136,25 @@ type SqlExecutionPayload =
     affectedCount: number;
   }>;
 
+type SqlExecutionPayload =
+  | SqlSingleExecutionPayload
+  | Readonly<{
+    statementType: "batch";
+    resource: null;
+    sql: string;
+    normalizedSql: string;
+    statements: ReadonlyArray<SqlSingleExecutionPayload>;
+    statementCount: number;
+    affectedCountTotal: number | null;
+  }>;
+
 const MAX_SQL_LIMIT = 100;
+const MAX_SQL_BATCH_STATEMENT_COUNT = 50;
+
+type WebMutationBatchState = Readonly<{
+  cards: ReadonlyArray<Card>;
+  decks: ReadonlyArray<Deck>;
+}>;
 
 function expectRecord(value: unknown, context: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -465,6 +504,411 @@ function rowFromInsert(
   return Object.fromEntries(columnNames.map((columnName, index) => [columnName, values[index]] as const));
 }
 
+function isReadStatement(
+  statement: ParsedSqlStatement,
+): statement is Extract<ParsedSqlStatement, Readonly<{ type: "show_tables" | "describe" | "select" }>> {
+  return statement.type === "show_tables" || statement.type === "describe" || statement.type === "select";
+}
+
+function isMutationStatement(
+  statement: ParsedSqlStatement,
+): statement is Extract<ParsedSqlStatement, Readonly<{ type: "insert" | "update" | "delete" }>> {
+  return statement.type === "insert" || statement.type === "update" || statement.type === "delete";
+}
+
+function makeBatchNormalizedSql(statements: ReadonlyArray<ParsedSqlStatement>): string {
+  return statements.map((statement) => statement.normalizedSql).join("; ");
+}
+
+function selectMutationRows(
+  statement: Extract<ParsedSqlStatement, Readonly<{ type: "update" | "delete" }>>,
+  state: WebMutationBatchState,
+): ReadonlyArray<SqlRow> {
+  const currentRows = statement.resourceName === "cards"
+    ? state.cards.map(toCardRow)
+    : state.decks.map(toDeckRow);
+
+  return executeSqlSelect({
+    type: "select",
+    source: {
+      resourceName: statement.resourceName,
+      unnestAlias: null,
+      unnestColumnName: null,
+    },
+    selectItems: [{ type: "wildcard" }],
+    predicateClauses: statement.predicateClauses,
+    groupBy: [],
+    orderBy: [],
+    limit: MAX_SQL_LIMIT,
+    offset: 0,
+    normalizedSql: statement.normalizedSql,
+  }, currentRows, Number.MAX_SAFE_INTEGER).rows;
+}
+
+async function commitMutationBatch(
+  cardsById: ReadonlyMap<string, Card>,
+  decksById: ReadonlyMap<string, Deck>,
+  outboxRecords: ReadonlyArray<PersistedOutboxRecord>,
+): Promise<void> {
+  const database = await openDatabase();
+
+  try {
+    await runReadwrite(database, ["cards", "cardTags", "decks", "outbox"], (transaction) => {
+      const cardsStore = transaction.objectStore("cards");
+      const decksStore = transaction.objectStore("decks");
+      const outboxStore = transaction.objectStore("outbox");
+
+      for (const card of cardsById.values()) {
+        cardsStore.put(card);
+        writeCardTagRecords(transaction, card);
+      }
+
+      for (const deck of decksById.values()) {
+        decksStore.put(deck);
+      }
+
+      for (const outboxRecord of outboxRecords) {
+        outboxStore.put(outboxRecord);
+      }
+
+      return null;
+    });
+  } finally {
+    database.close();
+  }
+}
+
+async function executeSqlMutationBatchLocally(
+  dependencies: WebLocalToolExecutorDependencies,
+  activeWorkspace: WorkspaceSummary,
+  sql: string,
+  statements: ReadonlyArray<Extract<ParsedSqlStatement, Readonly<{ type: "insert" | "update" | "delete" }>>>,
+  statementSqls: ReadonlyArray<string>,
+): Promise<Readonly<{
+  payload: SqlExecutionPayload;
+  didMutateAppState: boolean;
+}>> {
+  let state: WebMutationBatchState = {
+    cards: await loadAllActiveCardsForSql(),
+    decks: await loadAllActiveDecksForSql(),
+  };
+  const deviceId = getStableDeviceId();
+  const payloads: Array<SqlSingleExecutionPayload> = [];
+  const pendingCardsById = new Map<string, Card>();
+  const pendingDecksById = new Map<string, Deck>();
+  const outboxRecords: Array<PersistedOutboxRecord> = [];
+  let affectedCountTotal = 0;
+
+  for (const [index, statement] of statements.entries()) {
+    const statementSql = statementSqls[index] ?? statement.normalizedSql;
+
+    if (statement.type === "insert" && statement.resourceName === "cards") {
+      const createdCards: Array<Card> = [];
+
+      for (const values of statement.rows) {
+        const normalizedInput = normalizeCreateCardInput(toCreateCardInput(rowFromInsert(statement.columnNames, values)));
+        const clientUpdatedAt = nowIso();
+        const operationId = crypto.randomUUID().toLowerCase();
+        const nextCard = buildInitialCard(normalizedInput, clientUpdatedAt, deviceId, operationId);
+        const outboxRecord: PersistedOutboxRecord = {
+          operationId,
+          workspaceId: activeWorkspace.workspaceId,
+          createdAt: clientUpdatedAt,
+          attemptCount: 0,
+          lastError: "",
+          operation: buildCardUpsertOperation(nextCard),
+        };
+
+        createdCards.push(nextCard);
+        pendingCardsById.set(nextCard.cardId, nextCard);
+        outboxRecords.push(outboxRecord);
+      }
+
+      state = {
+        ...state,
+        cards: [...createdCards, ...state.cards],
+      };
+      affectedCountTotal += createdCards.length;
+      payloads.push({
+        statementType: "insert",
+        resource: "cards",
+        sql: statementSql,
+        normalizedSql: statement.normalizedSql,
+        rows: createdCards.map(toCardRow),
+        affectedCount: createdCards.length,
+      });
+      continue;
+    }
+
+    if (statement.type === "insert" && statement.resourceName === "decks") {
+      const createdDecks: Array<Deck> = [];
+
+      for (const values of statement.rows) {
+        const normalizedInput = normalizeCreateDeckInput(toCreateDeckInput(rowFromInsert(statement.columnNames, values)));
+        const clientUpdatedAt = nowIso();
+        const operationId = crypto.randomUUID().toLowerCase();
+        const nextDeck = {
+          ...buildDeck(normalizedInput, clientUpdatedAt, deviceId, operationId),
+          workspaceId: activeWorkspace.workspaceId,
+        };
+        const outboxRecord: PersistedOutboxRecord = {
+          operationId,
+          workspaceId: nextDeck.workspaceId,
+          createdAt: clientUpdatedAt,
+          attemptCount: 0,
+          lastError: "",
+          operation: buildDeckUpsertOperation(nextDeck),
+        };
+
+        createdDecks.push(nextDeck);
+        pendingDecksById.set(nextDeck.deckId, nextDeck);
+        outboxRecords.push(outboxRecord);
+      }
+
+      state = {
+        ...state,
+        decks: [...createdDecks, ...state.decks],
+      };
+      affectedCountTotal += createdDecks.length;
+      payloads.push({
+        statementType: "insert",
+        resource: "decks",
+        sql: statementSql,
+        normalizedSql: statement.normalizedSql,
+        rows: createdDecks.map(toDeckRow),
+        affectedCount: createdDecks.length,
+      });
+      continue;
+    }
+
+    if (statement.type !== "update" && statement.type !== "delete") {
+      throw new Error("Unsupported SQL statement");
+    }
+
+    const matchedRows = selectMutationRows(statement, state);
+
+    if (statement.type === "update" && statement.resourceName === "cards") {
+      const assignmentRow = Object.fromEntries(statement.assignments.map((assignment) => [assignment.columnName, assignment.value] as const));
+      const updatedCards: Array<Card> = [];
+
+      for (const row of matchedRows) {
+        const cardId = row.card_id;
+        if (typeof cardId !== "string") {
+          throw new Error("Expected card_id in selected row");
+        }
+
+        const existingCard = state.cards.find((card) => card.cardId === cardId);
+        if (existingCard === undefined) {
+          throw new Error(`Card not found: ${cardId}`);
+        }
+
+        const clientUpdatedAt = nowIso();
+        const operationId = crypto.randomUUID().toLowerCase();
+        const nextCard = buildUpdatedCard(
+          existingCard,
+          normalizeUpdateCardInput(toResolvedCardUpdateInput(existingCard, assignmentRow)),
+          clientUpdatedAt,
+          deviceId,
+          operationId,
+        );
+        const outboxRecord: PersistedOutboxRecord = {
+          operationId,
+          workspaceId: activeWorkspace.workspaceId,
+          createdAt: clientUpdatedAt,
+          attemptCount: 0,
+          lastError: "",
+          operation: buildCardUpsertOperation(nextCard),
+        };
+
+        updatedCards.push(nextCard);
+        pendingCardsById.set(nextCard.cardId, nextCard);
+        outboxRecords.push(outboxRecord);
+        state = {
+          ...state,
+          cards: state.cards.map((card) => card.cardId === nextCard.cardId ? nextCard : card),
+        };
+      }
+
+      affectedCountTotal += updatedCards.length;
+      payloads.push({
+        statementType: "update",
+        resource: "cards",
+        sql: statementSql,
+        normalizedSql: statement.normalizedSql,
+        rows: updatedCards.map(toCardRow),
+        affectedCount: updatedCards.length,
+      });
+      continue;
+    }
+
+    if (statement.type === "update" && statement.resourceName === "decks") {
+      const assignmentRow = Object.fromEntries(statement.assignments.map((assignment) => [assignment.columnName, assignment.value] as const));
+      const updatedDecks: Array<Deck> = [];
+
+      for (const row of matchedRows) {
+        const deckId = row.deck_id;
+        if (typeof deckId !== "string") {
+          throw new Error("Expected deck_id in selected row");
+        }
+
+        const existingDeck = state.decks.find((deck) => deck.deckId === deckId);
+        if (existingDeck === undefined) {
+          throw new Error(`Deck not found: ${deckId}`);
+        }
+
+        const clientUpdatedAt = nowIso();
+        const operationId = crypto.randomUUID().toLowerCase();
+        const nextDeck = buildUpdatedDeck(
+          existingDeck,
+          normalizeUpdateDeckInput(toResolvedDeckUpdateInput(existingDeck, assignmentRow)),
+          clientUpdatedAt,
+          deviceId,
+          operationId,
+        );
+        const outboxRecord: PersistedOutboxRecord = {
+          operationId,
+          workspaceId: nextDeck.workspaceId,
+          createdAt: clientUpdatedAt,
+          attemptCount: 0,
+          lastError: "",
+          operation: buildDeckUpsertOperation(nextDeck),
+        };
+
+        updatedDecks.push(nextDeck);
+        pendingDecksById.set(nextDeck.deckId, nextDeck);
+        outboxRecords.push(outboxRecord);
+        state = {
+          ...state,
+          decks: state.decks.map((deck) => deck.deckId === nextDeck.deckId ? nextDeck : deck),
+        };
+      }
+
+      affectedCountTotal += updatedDecks.length;
+      payloads.push({
+        statementType: "update",
+        resource: "decks",
+        sql: statementSql,
+        normalizedSql: statement.normalizedSql,
+        rows: updatedDecks.map(toDeckRow),
+        affectedCount: updatedDecks.length,
+      });
+      continue;
+    }
+
+    if (statement.type === "delete" && statement.resourceName === "cards") {
+      const deletedCards: Array<Card> = [];
+
+      for (const row of matchedRows) {
+        const cardId = row.card_id;
+        if (typeof cardId !== "string") {
+          throw new Error("Expected card_id in selected row");
+        }
+
+        const existingCard = state.cards.find((card) => card.cardId === cardId);
+        if (existingCard === undefined) {
+          throw new Error(`Card not found: ${cardId}`);
+        }
+
+        const clientUpdatedAt = nowIso();
+        const operationId = crypto.randomUUID().toLowerCase();
+        const nextCard = buildDeletedCard(existingCard, clientUpdatedAt, deviceId, operationId);
+        const outboxRecord: PersistedOutboxRecord = {
+          operationId,
+          workspaceId: activeWorkspace.workspaceId,
+          createdAt: clientUpdatedAt,
+          attemptCount: 0,
+          lastError: "",
+          operation: buildCardUpsertOperation(nextCard),
+        };
+
+        deletedCards.push(nextCard);
+        pendingCardsById.set(nextCard.cardId, nextCard);
+        outboxRecords.push(outboxRecord);
+        state = {
+          ...state,
+          cards: state.cards.filter((card) => card.cardId !== nextCard.cardId),
+        };
+      }
+
+      affectedCountTotal += deletedCards.length;
+      payloads.push({
+        statementType: "delete",
+        resource: "cards",
+        sql: statementSql,
+        normalizedSql: statement.normalizedSql,
+        rows: [],
+        affectedCount: deletedCards.length,
+      });
+      continue;
+    }
+
+    if (statement.type === "delete" && statement.resourceName === "decks") {
+      const deletedDecks: Array<Deck> = [];
+
+      for (const row of matchedRows) {
+        const deckId = row.deck_id;
+        if (typeof deckId !== "string") {
+          throw new Error("Expected deck_id in selected row");
+        }
+
+        const existingDeck = state.decks.find((deck) => deck.deckId === deckId);
+        if (existingDeck === undefined) {
+          throw new Error(`Deck not found: ${deckId}`);
+        }
+
+        const clientUpdatedAt = nowIso();
+        const operationId = crypto.randomUUID().toLowerCase();
+        const nextDeck = buildDeletedDeck(existingDeck, clientUpdatedAt, deviceId, operationId);
+        const outboxRecord: PersistedOutboxRecord = {
+          operationId,
+          workspaceId: nextDeck.workspaceId,
+          createdAt: clientUpdatedAt,
+          attemptCount: 0,
+          lastError: "",
+          operation: buildDeckUpsertOperation(nextDeck),
+        };
+
+        deletedDecks.push(nextDeck);
+        pendingDecksById.set(nextDeck.deckId, nextDeck);
+        outboxRecords.push(outboxRecord);
+        state = {
+          ...state,
+          decks: state.decks.filter((deck) => deck.deckId !== nextDeck.deckId),
+        };
+      }
+
+      affectedCountTotal += deletedDecks.length;
+      payloads.push({
+        statementType: "delete",
+        resource: "decks",
+        sql: statementSql,
+        normalizedSql: statement.normalizedSql,
+        rows: [],
+        affectedCount: deletedDecks.length,
+      });
+      continue;
+    }
+
+    throw new Error("Unsupported SQL statement");
+  }
+
+  await commitMutationBatch(pendingCardsById, pendingDecksById, outboxRecords);
+  await dependencies.refreshLocalData();
+
+  return {
+    payload: {
+      statementType: "batch",
+      resource: null,
+      sql,
+      normalizedSql: makeBatchNormalizedSql(statements),
+      statements: payloads,
+      statementCount: payloads.length,
+      affectedCountTotal,
+    },
+    didMutateAppState: true,
+  };
+}
+
 async function ensureLocalWorkspace(
   dependencies: WebLocalToolExecutorDependencies,
 ): Promise<WorkspaceSummary> {
@@ -757,6 +1201,66 @@ async function executeSqlLocally(
   throw new Error("Unsupported SQL statement");
 }
 
+async function executeSqlBatchLocally(
+  dependencies: WebLocalToolExecutorDependencies,
+  activeWorkspace: WorkspaceSummary,
+  sql: string,
+): Promise<Readonly<{
+  payload: SqlExecutionPayload;
+  didMutateAppState: boolean;
+}>> {
+  const statementSqls = splitSqlStatements(sql);
+  if (statementSqls.length === 0) {
+    throw new Error("sql must not be empty");
+  }
+
+  if (statementSqls.length === 1) {
+    return executeSqlLocally(dependencies, activeWorkspace, sql);
+  }
+
+  if (statementSqls.length > MAX_SQL_BATCH_STATEMENT_COUNT) {
+    throw new Error(`SQL batch must contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements`);
+  }
+
+  const statements = statementSqls.map((statementSql) => parseSqlStatement(statementSql));
+  const allReadStatements = statements.every((statement) => isReadStatement(statement));
+  const allMutationStatements = statements.every((statement) => isMutationStatement(statement));
+
+  if (allReadStatements === false && allMutationStatements === false) {
+    throw new Error("SQL batch must contain only read statements or only mutation statements");
+  }
+
+  if (allReadStatements) {
+    const payloads: Array<SqlSingleExecutionPayload> = [];
+
+    for (const statementSql of statementSqls) {
+      const result = await executeSqlLocally(dependencies, activeWorkspace, statementSql);
+      payloads.push(result.payload as SqlSingleExecutionPayload);
+    }
+
+    return {
+      payload: {
+        statementType: "batch",
+        resource: null,
+        sql,
+        normalizedSql: makeBatchNormalizedSql(statements),
+        statements: payloads,
+        statementCount: payloads.length,
+        affectedCountTotal: null,
+      },
+      didMutateAppState: false,
+    };
+  }
+
+  return executeSqlMutationBatchLocally(
+    dependencies,
+    activeWorkspace,
+    sql,
+    statements,
+    statementSqls,
+  );
+}
+
 /**
  * Builds a browser-local AI tool executor that mirrors the backend SQL
  * surface while reading directly from IndexedDB query helpers.
@@ -773,7 +1277,7 @@ export function createLocalToolExecutor(
       switch (toolCallRequest.name) {
       case "sql": {
         const input = parseSqlInput(toolCallRequest);
-        const result = await executeSqlLocally(dependencies, activeWorkspace, input.sql);
+        const result = await executeSqlBatchLocally(dependencies, activeWorkspace, input.sql);
         return {
           output: JSON.stringify(result.payload),
           didMutateAppState: result.didMutateAppState,

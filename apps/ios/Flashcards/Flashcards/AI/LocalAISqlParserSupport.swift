@@ -61,6 +61,87 @@ func localAISqlNormalizeWhitespace(_ value: String) -> String {
     return normalizedValue
 }
 
+func localAISqlSplitStatements(_ value: String) throws -> [String] {
+    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmedValue.isEmpty {
+        return []
+    }
+
+    let characters = Array(trimmedValue)
+    var statements: [String] = []
+    var current: [Character] = []
+    var inString = false
+    var depth = 0
+    var index = 0
+
+    while index < characters.count {
+        let character = characters[index]
+        let nextCharacter = index + 1 < characters.count ? characters[index + 1] : nil
+
+        if character == "'" {
+            current.append(character)
+            if inString, nextCharacter == "'" {
+                current.append("'")
+                index += 2
+                continue
+            }
+
+            inString.toggle()
+            index += 1
+            continue
+        }
+
+        if inString {
+            current.append(character)
+            index += 1
+            continue
+        }
+
+        if character == "(" {
+            depth += 1
+            current.append(character)
+            index += 1
+            continue
+        }
+
+        if character == ")" {
+            depth -= 1
+            current.append(character)
+            index += 1
+            continue
+        }
+
+        if depth == 0, character == ";" {
+            let statement = String(current).trimmingCharacters(in: .whitespacesAndNewlines)
+            let remainingCharacters = characters[(index + 1)...]
+            let remainingValue = String(remainingCharacters).trimmingCharacters(in: .whitespacesAndNewlines)
+            if statement.isEmpty {
+                throw LocalStoreError.validation("SQL batch contains an empty statement")
+            }
+
+            statements.append(statement)
+            current = []
+
+            if remainingValue.isEmpty {
+                break
+            }
+
+            index += 1
+            continue
+        }
+
+        current.append(character)
+        index += 1
+    }
+
+    let statement = String(current).trimmingCharacters(in: .whitespacesAndNewlines)
+    if statement.isEmpty == false {
+        statements.append(statement)
+    }
+
+    return statements
+}
+
 func localAISqlUppercaseKeyword(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
         .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)

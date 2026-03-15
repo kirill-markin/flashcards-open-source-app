@@ -6,10 +6,12 @@ post:
     Executes the published Flashcards SQL dialect for the currently selected
     workspace. This is not full PostgreSQL. Supported statements include SHOW
     TABLES, DESCRIBE, SELECT, INSERT, UPDATE, and DELETE across published
-    logical resources only. SELECT supports projected column lists, LIKE,
-    case-insensitive exact string matches via LOWER(column) = 'value',
-    aggregates, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards
-    UNNEST tags AS tag.
+    logical resources only. Multiple supported statements may be separated
+    with semicolons in one sql string. A batch must contain only read
+    statements or only mutation statements. Mutation batches are executed
+    atomically. SELECT supports projected column lists, LIKE, case-insensitive
+    exact string matches via LOWER(column) = 'value', aggregates, GROUP BY,
+    NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.
   security:
     - ApiKeyHeader: []
   requestBody:
@@ -240,6 +242,53 @@ post:
                   run a follow-up SELECT query. This endpoint supports the
                   published SQL dialect, not full PostgreSQL. Use
                   docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            mutationBatch:
+              value:
+                ok: true
+                data:
+                  statementType: batch
+                  resource: null
+                  sql: >-
+                    UPDATE cards SET back_text = 'First update' WHERE card_id =
+                    '50b5b928-7f04-4cc8-878d-6cd0e8b98474'; UPDATE cards SET
+                    back_text = 'Second update' WHERE card_id =
+                    '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+                  normalizedSql: >-
+                    UPDATE cards SET back_text = 'First update' WHERE card_id =
+                    '50b5b928-7f04-4cc8-878d-6cd0e8b98474'; UPDATE cards SET
+                    back_text = 'Second update' WHERE card_id =
+                    '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+                  statements:
+                    - statementType: update
+                      resource: cards
+                      sql: >-
+                        UPDATE cards SET back_text = 'First update' WHERE
+                        card_id = '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+                      normalizedSql: >-
+                        UPDATE cards SET back_text = 'First update' WHERE
+                        card_id = '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+                      rows: []
+                      affectedCount: 1
+                    - statementType: update
+                      resource: cards
+                      sql: >-
+                        UPDATE cards SET back_text = 'Second update' WHERE
+                        card_id = '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+                      normalizedSql: >-
+                        UPDATE cards SET back_text = 'Second update' WHERE
+                        card_id = '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+                      rows: []
+                      affectedCount: 1
+                  statementCount: 2
+                  affectedCountTotal: 2
+                instructions: >-
+                  The batch mutation succeeded. Read data.statements for
+                  per-statement results and data.affectedCountTotal for the
+                  summary. This endpoint supports the published SQL dialect,
+                  not full PostgreSQL. Use docs.openapiUrl for the full
+                  contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
     default:

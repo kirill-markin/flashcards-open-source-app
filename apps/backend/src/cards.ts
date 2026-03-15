@@ -51,10 +51,13 @@ export {
 export {
   createCard,
   createCards,
+  createCardInExecutor,
   deleteCard,
   deleteCards,
+  deleteCardInExecutor,
   updateCard,
   updateCards,
+  updateCardInExecutor,
   upsertCardSnapshot,
   upsertCardSnapshotInExecutor,
 } from "./cards/mutations";
@@ -63,6 +66,7 @@ export {
   getCard,
   getCards,
   listCards,
+  listCardsInExecutor,
   listReviewHistoryPage,
   listReviewQueuePage,
   listWorkspaceTagsSummary,

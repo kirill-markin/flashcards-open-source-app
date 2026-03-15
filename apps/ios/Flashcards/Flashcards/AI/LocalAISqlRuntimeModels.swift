@@ -1,6 +1,6 @@
 import Foundation
 
-enum LocalAISqlRowValue: Encodable {
+enum LocalAISqlRowValue: Codable {
     case string(String)
     case integer(Int)
     case number(Double)
@@ -29,11 +29,47 @@ enum LocalAISqlRowValue: Encodable {
             try singleValueContainer.encode(value)
         }
     }
+
+    init(from decoder: Decoder) throws {
+        let singleValueContainer = try decoder.singleValueContainer()
+
+        if singleValueContainer.decodeNil() {
+            self = .null
+            return
+        }
+
+        if let stringArrayValue = try? singleValueContainer.decode([String].self) {
+            self = .stringArray(stringArrayValue)
+            return
+        }
+
+        if let integerArrayValue = try? singleValueContainer.decode([Int].self) {
+            self = .integerArray(integerArrayValue)
+            return
+        }
+
+        if let boolValue = try? singleValueContainer.decode(Bool.self) {
+            self = .boolean(boolValue)
+            return
+        }
+
+        if let integerValue = try? singleValueContainer.decode(Int.self) {
+            self = .integer(integerValue)
+            return
+        }
+
+        if let numberValue = try? singleValueContainer.decode(Double.self) {
+            self = .number(numberValue)
+            return
+        }
+
+        self = .string(try singleValueContainer.decode(String.self))
+    }
 }
 
 typealias LocalAISqlRow = [String: LocalAISqlRowValue]
 
-struct LocalAISqlReadPayload: Encodable {
+struct LocalAISqlReadPayload: Codable {
     let statementType: String
     let resource: String?
     let sql: String
@@ -45,13 +81,46 @@ struct LocalAISqlReadPayload: Encodable {
     let hasMore: Bool
 }
 
-struct LocalAISqlMutationPayload: Encodable {
+struct LocalAISqlMutationPayload: Codable {
     let statementType: String
     let resource: String
     let sql: String
     let normalizedSql: String
     let rows: [LocalAISqlRow]
     let affectedCount: Int
+}
+
+enum LocalAISqlSinglePayload: Codable {
+    case read(LocalAISqlReadPayload)
+    case mutation(LocalAISqlMutationPayload)
+
+    func encode(to encoder: Encoder) throws {
+        switch self {
+        case .read(let payload):
+            try payload.encode(to: encoder)
+        case .mutation(let payload):
+            try payload.encode(to: encoder)
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        if let readPayload = try? LocalAISqlReadPayload(from: decoder) {
+            self = .read(readPayload)
+            return
+        }
+
+        self = .mutation(try LocalAISqlMutationPayload(from: decoder))
+    }
+}
+
+struct LocalAISqlBatchPayload: Codable {
+    let statementType: String
+    let resource: String?
+    let sql: String
+    let normalizedSql: String
+    let statements: [LocalAISqlSinglePayload]
+    let statementCount: Int
+    let affectedCountTotal: Int?
 }
 
 struct LocalAISqlExecutionResult {

@@ -78,6 +78,77 @@ function normalizeSqlWhitespace(value: string): string {
   return normalizedValue;
 }
 
+export function splitSqlStatements(value: string): ReadonlyArray<string> {
+  const trimmedValue = value.trim();
+  if (trimmedValue === "") {
+    return [];
+  }
+
+  const statements: Array<string> = [];
+  let current = "";
+  let inString = false;
+  let depth = 0;
+
+  for (let index = 0; index < trimmedValue.length; index += 1) {
+    const character = trimmedValue[index];
+    const nextCharacter = trimmedValue[index + 1];
+
+    if (character === "'") {
+      current += character;
+      if (inString && nextCharacter === "'") {
+        current += nextCharacter;
+        index += 1;
+      } else {
+        inString = !inString;
+      }
+      continue;
+    }
+
+    if (inString) {
+      current += character;
+      continue;
+    }
+
+    if (character === "(") {
+      depth += 1;
+      current += character;
+      continue;
+    }
+
+    if (character === ")") {
+      depth -= 1;
+      current += character;
+      continue;
+    }
+
+    if (depth === 0 && character === ";") {
+      const statement = current.trim();
+      const remainingValue = trimmedValue.slice(index + 1).trim();
+      if (statement === "") {
+        throw new Error("SQL batch contains an empty statement");
+      }
+
+      statements.push(statement);
+      current = "";
+
+      if (remainingValue === "") {
+        break;
+      }
+
+      continue;
+    }
+
+    current += character;
+  }
+
+  const statement = current.trim();
+  if (statement !== "") {
+    statements.push(statement);
+  }
+
+  return statements;
+}
+
 function assert(condition: boolean, message: string): void {
   if (condition === false) {
     throw new Error(message);
@@ -934,4 +1005,13 @@ export function parseSqlStatement(value: string): ParsedSqlStatement {
   }
 
   throw new Error("Unsupported SQL statement");
+}
+
+export function parseSqlStatements(value: string): ReadonlyArray<ParsedSqlStatement> {
+  const statementValues = splitSqlStatements(value);
+  if (statementValues.length === 0) {
+    throw new Error("sql must not be empty");
+  }
+
+  return statementValues.map((statementValue) => parseSqlStatement(statementValue));
 }

@@ -21,6 +21,7 @@ export const SQL_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql => {\"sql\": \"SELECT * FROM cards WHERE due_at IS NULL OR due_at <= NOW() ORDER BY due_at ASC, created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
   "- sql => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('Question?', 'Answer', ('tag'), 'medium')\"}",
   "- sql => {\"sql\": \"UPDATE cards SET back_text = 'Updated answer' WHERE card_id = '00000000-0000-4000-8000-000000000000'\"}",
+  "- sql => {\"sql\": \"UPDATE cards SET back_text = 'First update' WHERE card_id = '00000000-0000-4000-8000-000000000000'; UPDATE cards SET back_text = 'Second update' WHERE card_id = '00000000-0000-4000-8000-000000000001'\"}",
   "- sql => {\"sql\": \"DELETE FROM decks WHERE deck_id IN ('00000000-0000-4000-8000-000000000000')\"}",
 ]);
 
@@ -34,6 +35,9 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     "Use one JSON object: {\"sql\": \"...\"}.",
     "Published resources: workspace, cards, decks, review_events.",
     "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
+    "Multiple supported statements may be separated with semicolons in one sql string.",
+    "A batch must contain only read statements or only mutation statements.",
+    "Mutation batches are applied atomically: all statements succeed or the whole batch fails.",
     "SELECT supports projected column lists, LIKE, LOWER(column) = 'value' for case-insensitive exact string matches, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.",
   ].join(" "),
   strict: false,

@@ -26,7 +26,7 @@ import type { EffortLevel } from "./cards";
 type TimestampValue = Date | string;
 type ErrorFactory = (message: string) => Error;
 
-type DeckRow = Readonly<{
+export type DeckRow = Readonly<{
   deck_id: string;
   workspace_id: string;
   name: string;
@@ -242,7 +242,7 @@ function parseDeckFilterDefinitionWithFactory(
   };
 }
 
-function mapDeck(row: DeckRow): Deck {
+export function mapDeck(row: DeckRow): Deck {
   return {
     deckId: row.deck_id,
     workspaceId: row.workspace_id,
@@ -435,6 +435,24 @@ export async function listDecksPage(
   };
 }
 
+export async function listDecksInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+): Promise<ReadonlyArray<Deck>> {
+  const result = await executor.query<DeckRow>(
+    [
+      "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
+      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "FROM content.decks",
+      "WHERE workspace_id = $1 AND deleted_at IS NULL",
+      "ORDER BY created_at DESC, deck_id DESC",
+    ].join(" "),
+    [workspaceId],
+  );
+
+  return result.rows.map(mapDeck);
+}
+
 export async function getDeck(userId: string, workspaceId: string, deckId: string): Promise<Deck> {
   const result = await queryWithWorkspaceScope<DeckRow>(
     { userId, workspaceId },
@@ -559,22 +577,10 @@ export async function createDeck(
   input: CreateDeckInput,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  const normalizedInput = normalizeCreateDeckInput(input);
-  const now = normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt");
-  const result = await upsertDeckSnapshot(
-    userId,
-    workspaceId,
-    {
-      deckId: randomUUID(),
-      name: normalizedInput.name,
-      filterDefinition: normalizedInput.filterDefinition,
-      createdAt: now,
-      deletedAt: null,
-    },
-    metadata,
+  return transactionWithWorkspaceScope(
+    { userId, workspaceId },
+    async (executor) => createDeckInExecutor(executor, workspaceId, input, metadata),
   );
-
-  return result.deck;
 }
 
 export async function upsertDeckSnapshotInExecutor(
@@ -696,7 +702,31 @@ export async function upsertDeckSnapshot(
   );
 }
 
-async function updateDeckInExecutor(
+export async function createDeckInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  input: CreateDeckInput,
+  metadata: DeckMutationMetadata,
+): Promise<Deck> {
+  const normalizedInput = normalizeCreateDeckInput(input);
+  const now = normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt");
+  const result = await upsertDeckSnapshotInExecutor(
+    executor,
+    workspaceId,
+    {
+      deckId: randomUUID(),
+      name: normalizedInput.name,
+      filterDefinition: normalizedInput.filterDefinition,
+      createdAt: now,
+      deletedAt: null,
+    },
+    metadata,
+  );
+
+  return result.deck;
+}
+
+export async function updateDeckInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   deckId: string,
@@ -749,7 +779,7 @@ export async function updateDeck(
   );
 }
 
-async function deleteDeckInExecutor(
+export async function deleteDeckInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   deckId: string,
@@ -811,21 +841,7 @@ export async function createDecks(
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const createdDecks: Array<Deck> = [];
     for (const item of items) {
-      const now = normalizeIsoTimestamp(item.metadata.clientUpdatedAt, "clientUpdatedAt");
-      const normalizedInput = normalizeCreateDeckInput(item.input);
-      const result = await upsertDeckSnapshotInExecutor(
-        executor,
-        workspaceId,
-        {
-          deckId: randomUUID(),
-          name: normalizedInput.name,
-          filterDefinition: normalizedInput.filterDefinition,
-          createdAt: now,
-          deletedAt: null,
-        },
-        item.metadata,
-      );
-      createdDecks.push(result.deck);
+      createdDecks.push(await createDeckInExecutor(executor, workspaceId, item.input, item.metadata));
     }
 
     return createdDecks;

@@ -1,8 +1,9 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createLocalToolExecutor } from "./localToolExecutor";
 import type { AppDataContextValue } from "../appData/types";
 import {
+  loadCardById,
   replaceCards,
 } from "../localDb/cards";
 import { clearWebSyncCache } from "../localDb/cache";
@@ -12,6 +13,29 @@ import { putOutboxRecord } from "../localDb/outbox";
 import { replaceReviewEvents } from "../localDb/reviews";
 import { putWorkspaceSettings, setLastAppliedChangeId } from "../localDb/workspace";
 import type { Card, CloudSettings, Deck, SessionInfo, WorkspaceSchedulerSettings, WorkspaceSummary } from "../types";
+
+const localStorageState = new Map<string, string>();
+
+beforeEach(() => {
+  localStorageState.clear();
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      getItem(key: string): string | null {
+        return localStorageState.get(key) ?? null;
+      },
+      setItem(key: string, value: string): void {
+        localStorageState.set(key, value);
+      },
+      removeItem(key: string): void {
+        localStorageState.delete(key);
+      },
+      clear(): void {
+        localStorageState.clear();
+      },
+    } satisfies Pick<Storage, "getItem" | "setItem" | "removeItem" | "clear">,
+  });
+});
 
 function makeCard(overrides: Partial<Card>): Card {
   return {
@@ -211,6 +235,7 @@ function makeDependencies(): Pick<
   AppDataContextValue,
   | "session"
   | "activeWorkspace"
+  | "refreshLocalData"
   | "createCardItem"
   | "createDeckItem"
   | "updateCardItem"
@@ -221,6 +246,7 @@ function makeDependencies(): Pick<
   return {
     session: makeSession(),
     activeWorkspace: makeWorkspace(),
+    refreshLocalData: vi.fn(async () => undefined),
     createCardItem: vi.fn(async (input) => makeCard({ cardId: "created-card", ...input })),
     createDeckItem: vi.fn(async (input) => makeDeck({
       deckId: "created-deck",
@@ -433,6 +459,103 @@ describe("createLocalToolExecutor", () => {
     expect(insertResult.didMutateAppState).toBe(true);
     expect(updateResult.didMutateAppState).toBe(true);
     expect(deleteResult.didMutateAppState).toBe(true);
+  });
+
+  it("supports read-only multi-statement SQL batches", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const executor = createLocalToolExecutor(makeDependencies());
+
+    const result = await executor.execute({
+      toolCallId: "call-read-batch",
+      name: "sql",
+      input: JSON.stringify({
+        sql: "SHOW TABLES; SELECT * FROM workspace LIMIT 1 OFFSET 0",
+      }),
+    });
+    const payload = JSON.parse(result.output) as Readonly<{
+      statementType: string;
+      statementCount: number;
+      affectedCountTotal: number | null;
+      statements: ReadonlyArray<Readonly<{ statementType: string }>>;
+    }>;
+
+    expect(payload.statementType).toBe("batch");
+    expect(payload.statementCount).toBe(2);
+    expect(payload.affectedCountTotal).toBe(null);
+    expect(payload.statements.map((statement) => statement.statementType)).toEqual(["show_tables", "select"]);
+    expect(result.didMutateAppState).toBe(false);
+  });
+
+  it("supports mutation multi-statement SQL batches and refreshes once", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const dependencies = makeDependencies();
+    const executor = createLocalToolExecutor(dependencies);
+
+    const result = await executor.execute({
+      toolCallId: "call-mutation-batch",
+      name: "sql",
+      input: JSON.stringify({
+        sql: "UPDATE cards SET back_text = 'Batch Back 1' WHERE card_id = 'card-1'; UPDATE cards SET back_text = 'Batch Back 2' WHERE card_id = 'card-2'",
+      }),
+    });
+    const payload = JSON.parse(result.output) as Readonly<{
+      statementType: string;
+      statementCount: number;
+      affectedCountTotal: number | null;
+      statements: ReadonlyArray<Readonly<{ statementType: string; affectedCount: number }>>;
+    }>;
+    const updatedCardOne = await loadCardById("card-1");
+    const updatedCardTwo = await loadCardById("card-2");
+
+    expect(payload.statementType).toBe("batch");
+    expect(payload.statementCount).toBe(2);
+    expect(payload.affectedCountTotal).toBe(2);
+    expect(payload.statements.map((statement) => ({
+      statementType: statement.statementType,
+      affectedCount: statement.affectedCount,
+    }))).toEqual([
+      { statementType: "update", affectedCount: 1 },
+      { statementType: "update", affectedCount: 1 },
+    ]);
+    expect(updatedCardOne?.backText).toBe("Batch Back 1");
+    expect(updatedCardTwo?.backText).toBe("Batch Back 2");
+    expect(dependencies.refreshLocalData).toHaveBeenCalledTimes(1);
+    expect(result.didMutateAppState).toBe(true);
+  });
+
+  it("rejects mixed read and mutation SQL batches", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const executor = createLocalToolExecutor(makeDependencies());
+
+    await expect(executor.execute({
+      toolCallId: "call-mixed-batch",
+      name: "sql",
+      input: JSON.stringify({
+        sql: "SHOW TABLES; UPDATE cards SET back_text = 'Updated Back' WHERE card_id = 'card-1'",
+      }),
+    })).rejects.toThrow("SQL batch must contain only read statements or only mutation statements");
+  });
+
+  it("keeps mutation batches all-or-nothing when a later statement fails", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const dependencies = makeDependencies();
+    const executor = createLocalToolExecutor(dependencies);
+
+    await expect(executor.execute({
+      toolCallId: "call-failing-batch",
+      name: "sql",
+      input: JSON.stringify({
+        sql: "UPDATE cards SET back_text = 'First change' WHERE card_id = 'card-1'; UPDATE cards SET back_text = 'Second change' WHERE missing_column = 'x'",
+      }),
+    })).rejects.toThrow();
+
+    const unchangedCard = await loadCardById("card-1");
+    expect(unchangedCard?.backText).toBe("Back");
+    expect(dependencies.refreshLocalData).not.toHaveBeenCalled();
   });
 
   it("preserves multiline back_text in SQL updates", async () => {

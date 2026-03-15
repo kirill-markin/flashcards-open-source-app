@@ -15,12 +15,12 @@ import Foundation
  */
 final class LocalDatabase {
     let databaseURL: URL
-    private let core: DatabaseCore
-    private let cardStore: CardStore
-    private let deckStore: DeckStore
-    private let outboxStore: OutboxStore
+    let core: DatabaseCore
+    let cardStore: CardStore
+    let deckStore: DeckStore
+    let outboxStore: OutboxStore
     private let syncApplier: SyncApplier
-    private let workspaceSettingsStore: WorkspaceSettingsStore
+    let workspaceSettingsStore: WorkspaceSettingsStore
 
     init() throws {
         let core = try DatabaseCore()
@@ -945,7 +945,7 @@ final class LocalDatabase {
         try self.core.resetForAccountDeletion()
     }
 
-    private func validateCardBatchCount(count: Int) throws {
+    func validateCardBatchCount(count: Int) throws {
         if count < 1 {
             throw LocalStoreError.validation("Card batch must contain at least one item")
         }
@@ -955,14 +955,14 @@ final class LocalDatabase {
         }
     }
 
-    private func validateUniqueCardIds(cardIds: [String]) throws {
+    func validateUniqueCardIds(cardIds: [String]) throws {
         let uniqueCardIds = Set(cardIds)
         if uniqueCardIds.count != cardIds.count {
             throw LocalStoreError.validation("Card batch must not contain duplicate cardId values")
         }
     }
 
-    private func validateDeckBatchCount(count: Int) throws {
+    func validateDeckBatchCount(count: Int) throws {
         if count < 1 {
             throw LocalStoreError.validation("Deck batch must contain at least one item")
         }
@@ -972,7 +972,7 @@ final class LocalDatabase {
         }
     }
 
-    private func validateUniqueDeckIds(deckIds: [String]) throws {
+    func validateUniqueDeckIds(deckIds: [String]) throws {
         let uniqueDeckIds = Set(deckIds)
         if uniqueDeckIds.count != deckIds.count {
             throw LocalStoreError.validation("Deck batch must not contain duplicate deckId values")
