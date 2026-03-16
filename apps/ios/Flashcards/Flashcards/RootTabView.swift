@@ -44,6 +44,8 @@ struct RootTabView: View {
                             WorkspaceOverviewView()
                         case .workspaceScheduler:
                             SchedulerSettingsDetailView()
+                        case .workspaceExport:
+                            WorkspaceExportView()
                         case .workspaceDecks:
                             DecksScreen()
                         case .workspaceTags:

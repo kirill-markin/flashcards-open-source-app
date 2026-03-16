@@ -47,6 +47,14 @@ struct WorkspaceSettingsView: View {
                         systemImage: "calendar.badge.clock"
                     )
                 }
+
+                NavigationLink(value: SettingsNavigationDestination.workspaceExport) {
+                    SettingsNavigationRow(
+                        title: "Export",
+                        value: "CSV",
+                        systemImage: "square.and.arrow.up"
+                    )
+                }
             }
 
             Section("Device") {

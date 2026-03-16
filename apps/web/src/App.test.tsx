@@ -78,6 +78,10 @@ vi.mock("./screens/WorkspaceSchedulerScreen", () => ({
   WorkspaceSchedulerScreen: () => <div>workspace-scheduler-screen</div>,
 }));
 
+vi.mock("./screens/WorkspaceExportScreen", () => ({
+  WorkspaceExportScreen: () => <div>workspace-export-screen</div>,
+}));
+
 vi.mock("./screens/ThisDeviceSettingsScreen", () => ({
   ThisDeviceSettingsScreen: () => <div>this-device-settings-screen</div>,
 }));

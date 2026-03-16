@@ -29,6 +29,7 @@ import {
   settingsDeckNewRoute,
   settingsDecksRoute,
   settingsDeviceRoute,
+  settingsExportRoute,
   settingsHubRoute,
   settingsOverviewRoute,
   settingsSchedulerRoute,
@@ -53,6 +54,7 @@ import { ThisDeviceSettingsScreen } from "./screens/ThisDeviceSettingsScreen";
 import { TagsScreen } from "./screens/TagsScreen";
 import { WorkspaceOverviewScreen } from "./screens/WorkspaceOverviewScreen";
 import { WorkspaceSchedulerScreen } from "./screens/WorkspaceSchedulerScreen";
+import { WorkspaceExportScreen } from "./screens/WorkspaceExportScreen";
 import { WorkspaceSettingsScreen } from "./screens/WorkspaceSettingsScreen";
 
 function LegacyDeckDetailRedirect(): ReactElement {
@@ -336,6 +338,7 @@ export function RoutedShell(): ReactElement {
           <Route path={workspaceSettingsRoute} element={<WorkspaceSettingsScreen />} />
           <Route path={settingsOverviewRoute} element={<WorkspaceOverviewScreen />} />
           <Route path={settingsSchedulerRoute} element={<WorkspaceSchedulerScreen />} />
+          <Route path={settingsExportRoute} element={<WorkspaceExportScreen />} />
           <Route path={settingsDecksRoute} element={<DecksScreen />} />
           <Route path={settingsDeckNewRoute} element={<DeckFormScreen />} />
           <Route path={`${settingsDecksRoute}/:deckId/edit`} element={<DeckFormScreen />} />

@@ -55,4 +55,13 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertEqual(navigation.selectedTab, .settings)
         XCTAssertEqual(navigation.settingsPath, [.account, .accountAdvanced, .accountServer])
     }
+
+    func testOpenWorkspaceExportBuildsSettingsPath() {
+        let navigation = AppNavigationModel()
+
+        navigation.openSettings(destination: .workspaceExport)
+
+        XCTAssertEqual(navigation.selectedTab, .settings)
+        XCTAssertEqual(navigation.settingsPath, [.workspace, .workspaceExport])
+    }
 }
