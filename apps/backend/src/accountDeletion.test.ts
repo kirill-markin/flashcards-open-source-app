@@ -67,52 +67,73 @@ test("deleteAccountForAuthenticatedUser skips database work for already deleted 
   assert.equal(cognitoDeleteCalled, true);
 });
 
-test("deleteAccountForAuthenticatedUser blocks shared workspaces before deleting any data", async () => {
+test("deleteAccountForAuthenticatedUser keeps shared workspaces, deletes sole-member workspaces, and cleans auth artifacts", async () => {
   const queries: Array<string> = [];
+  let cognitoDeleteCalled = false;
 
-  await assert.rejects(
-    () => deleteAccountForAuthenticatedUser({
-      userId: "user-1",
-      cognitoUsername: "cognito-user-1",
-      confirmationText: deleteAccountConfirmationText,
-    }, {
-      transactionWithUserScope: async (_scope, callback) => callback({
-        query: async <Row extends pg.QueryResultRow>(text: string): Promise<pg.QueryResult<Row>> => {
-          queries.push(text);
+  await deleteAccountForAuthenticatedUser({
+    userId: "user-1",
+    cognitoUsername: "cognito-user-1",
+    confirmationText: deleteAccountConfirmationText,
+  }, {
+    transactionWithUserScope: async (_scope, callback) => callback({
+      query: async <Row extends pg.QueryResultRow>(text: string): Promise<pg.QueryResult<Row>> => {
+        queries.push(text);
 
-          if (text.includes("SELECT workspace_id FROM org.workspace_memberships")) {
-            return makeQueryResult<Row>([{
+        if (text.includes("SELECT email FROM org.user_settings")) {
+          return makeQueryResult<Row>([{
+            email: "user@example.com",
+          }]);
+        }
+
+        if (text.includes("SELECT workspace_id FROM org.workspace_memberships")) {
+          return makeQueryResult<Row>([
+            {
               workspace_id: "00000000-0000-4000-8000-000000000001",
-            }]);
-          }
+            },
+            {
+              workspace_id: "00000000-0000-4000-8000-000000000002",
+            },
+          ]);
+        }
 
-          if (text.includes("SELECT workspace_id, user_id")) {
-            return makeQueryResult<Row>([
-              {
-                workspace_id: "00000000-0000-4000-8000-000000000001",
-                user_id: "user-1",
-              },
-              {
-                workspace_id: "00000000-0000-4000-8000-000000000001",
-                user_id: "user-2",
-              },
-            ]);
-          }
+        if (text.includes("SELECT workspace_id, user_id")) {
+          return makeQueryResult<Row>([
+            {
+              workspace_id: "00000000-0000-4000-8000-000000000001",
+              user_id: "user-1",
+            },
+            {
+              workspace_id: "00000000-0000-4000-8000-000000000002",
+              user_id: "user-1",
+            },
+            {
+              workspace_id: "00000000-0000-4000-8000-000000000002",
+              user_id: "user-2",
+            },
+          ]);
+        }
 
-          return makeQueryResult<Row>([]);
-        },
-      }),
-      deleteCognitoUser: async () => {
-        throw new Error("Cognito delete should not run when the workspace is shared");
+        return makeQueryResult<Row>([]);
       },
-      isDeletedSubject: async () => false,
     }),
-    (error: unknown) => error instanceof HttpError
-      && error.statusCode == 409
-      && error.code === "ACCOUNT_DELETE_SHARED_WORKSPACE",
-  );
+    deleteCognitoUser: async (cognitoUsername: string) => {
+      cognitoDeleteCalled = cognitoUsername === "cognito-user-1";
+    },
+    isDeletedSubject: async () => false,
+  });
 
-  assert.equal(queries.some((queryText) => queryText.includes("DELETE FROM org.workspaces")), false);
+  assert.equal(
+    queries.some((queryText) => queryText.includes("DELETE FROM org.workspaces WHERE workspace_id = ANY")),
+    true,
+  );
+  assert.equal(
+    queries.some((queryText) => queryText.includes("SELECT auth.delete_user_auth_artifacts($1, $2)")),
+    true,
+  );
+  assert.equal(queries.some((queryText) => queryText.includes("DELETE FROM org.user_settings")), true);
+  assert.equal(queries.some((queryText) => queryText.includes("INSERT INTO auth.deleted_subjects")), true);
+  assert.equal(cognitoDeleteCalled, true);
 });
 
 test("deleteAccountForAuthenticatedUser deletes sole-member workspace data and then deletes the Cognito user", async () => {
@@ -127,6 +148,12 @@ test("deleteAccountForAuthenticatedUser deletes sole-member workspace data and t
     transactionWithUserScope: async (_scope, callback) => callback({
       query: async <Row extends pg.QueryResultRow>(text: string): Promise<pg.QueryResult<Row>> => {
         queries.push(text);
+
+        if (text.includes("SELECT email FROM org.user_settings")) {
+          return makeQueryResult<Row>([{
+            email: "user@example.com",
+          }]);
+        }
 
         if (text.includes("SELECT workspace_id FROM org.workspace_memberships")) {
           return makeQueryResult<Row>([{
@@ -151,6 +178,10 @@ test("deleteAccountForAuthenticatedUser deletes sole-member workspace data and t
   });
 
   assert.equal(queries.some((queryText) => queryText.includes("DELETE FROM org.workspaces")), true);
+  assert.equal(
+    queries.some((queryText) => queryText.includes("SELECT auth.delete_user_auth_artifacts($1, $2)")),
+    true,
+  );
   assert.equal(queries.some((queryText) => queryText.includes("DELETE FROM org.user_settings")), true);
   assert.equal(queries.some((queryText) => queryText.includes("INSERT INTO auth.deleted_subjects")), true);
   assert.equal(cognitoDeleteCalled, true);

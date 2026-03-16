@@ -5,12 +5,14 @@ import test from "node:test";
 
 const runtimeRolesMigrationPath = path.resolve(process.cwd(), "../../db/migrations/0024_auth_runtime_roles.sql");
 const cleanupMigrationPath = path.resolve(process.cwd(), "../../db/migrations/0025_remove_legacy_app_role.sql");
+const accountDeleteCleanupMigrationPath = path.resolve(process.cwd(), "../../db/migrations/0029_account_delete_auth_cleanup.sql");
 const migrateScriptPath = path.resolve(process.cwd(), "../../scripts/migrate.sh");
 const backendAgentApiKeysPath = path.resolve(process.cwd(), "src/agentApiKeys.ts");
 const backendWorkspacesPath = path.resolve(process.cwd(), "src/workspaces.ts");
 
 const runtimeRolesMigrationSql = readFileSync(runtimeRolesMigrationPath, "utf8");
 const cleanupMigrationSql = readFileSync(cleanupMigrationPath, "utf8");
+const accountDeleteCleanupMigrationSql = readFileSync(accountDeleteCleanupMigrationPath, "utf8");
 const migrateScript = readFileSync(migrateScriptPath, "utf8");
 const backendAgentApiKeysSource = readFileSync(backendAgentApiKeysPath, "utf8");
 const backendWorkspacesSource = readFileSync(backendWorkspacesPath, "utf8");
@@ -53,6 +55,21 @@ test("0025_remove_legacy_app_role removes the shared app role", () => {
   assert.match(cleanupMigrationSql, /DROP ROLE IF EXISTS app;/);
   assert.match(cleanupMigrationSql, /REVOKE USAGE ON SCHEMA auth FROM app;/);
   assert.doesNotMatch(cleanupMigrationSql, /DROP OWNED BY app;/);
+});
+
+test("0029_account_delete_auth_cleanup grants backend_app execute on auth artifact cleanup without broad auth deletes", () => {
+  assert.match(
+    accountDeleteCleanupMigrationSql,
+    /CREATE OR REPLACE FUNCTION auth\.delete_user_auth_artifacts\(\s*target_user_id TEXT,\s*target_email TEXT\s*\)/,
+  );
+  assert.match(
+    accountDeleteCleanupMigrationSql,
+    /GRANT EXECUTE ON FUNCTION auth\.delete_user_auth_artifacts\(TEXT, TEXT\) TO backend_app;/,
+  );
+  assert.doesNotMatch(
+    accountDeleteCleanupMigrationSql,
+    /GRANT DELETE ON auth\.(agent_api_keys|agent_otp_challenges|otp_send_events|otp_verify_attempts) TO backend_app;/,
+  );
 });
 
 test("backend auth agent key flows use scoped queries and the bootstrap function", () => {

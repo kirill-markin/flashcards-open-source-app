@@ -26,6 +26,10 @@ type WorkspaceMembershipRow = Readonly<{
   user_id: string;
 }>;
 
+type UserSettingsEmailRow = Readonly<{
+  email: string | null;
+}>;
+
 const defaultAccountDeletionDependencies: AccountDeletionDependencies = {
   transactionWithUserScope,
   deleteCognitoUser,
@@ -58,11 +62,17 @@ async function deleteAccountDataInExecutor(
   executor: DatabaseExecutor,
   userId: string,
 ): Promise<void> {
+  const userSettingsResult = await executor.query<UserSettingsEmailRow>(
+    "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
+    [userId],
+  );
   const workspaceRows = await executor.query<WorkspaceIdRow>(
     "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1 FOR UPDATE",
     [userId],
   );
   const workspaceIds = workspaceRows.rows.map((row) => row.workspace_id);
+  const email = userSettingsResult.rows[0]?.email ?? null;
+  const soleMemberWorkspaceIds: Array<string> = [];
 
   if (workspaceIds.length > 0) {
     const workspaceMembershipRows = await executor.query<WorkspaceMembershipRow>(
@@ -83,21 +93,23 @@ async function deleteAccountDataInExecutor(
 
     for (const workspaceId of workspaceIds) {
       const memberCount = membershipCounts.get(workspaceId) ?? 0;
-      if (memberCount > 1) {
-        throw new HttpError(
-          409,
-          "This account still belongs to a shared workspace. Remove other members or transfer ownership before deleting the account.",
-          "ACCOUNT_DELETE_SHARED_WORKSPACE",
-        );
+      if (memberCount === 1) {
+        soleMemberWorkspaceIds.push(workspaceId);
       }
     }
 
-    await executor.query(
-      "DELETE FROM org.workspaces WHERE workspace_id = ANY($1::uuid[])",
-      [workspaceIds],
-    );
+    if (soleMemberWorkspaceIds.length > 0) {
+      await executor.query(
+        "DELETE FROM org.workspaces WHERE workspace_id = ANY($1::uuid[])",
+        [soleMemberWorkspaceIds],
+      );
+    }
   }
 
+  await executor.query(
+    "SELECT auth.delete_user_auth_artifacts($1, $2)",
+    [userId, email],
+  );
   await executor.query("DELETE FROM org.user_settings WHERE user_id = $1", [userId]);
   await markDeletedSubjectInExecutor(executor, userId);
 }
