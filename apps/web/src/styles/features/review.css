@@ -505,7 +505,7 @@
   width: 100%;
   min-height: 82px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   background: var(--accent);
   cursor: pointer;
   display: flex;
