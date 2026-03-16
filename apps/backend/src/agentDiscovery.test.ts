@@ -20,6 +20,7 @@ test("createAgentDiscoveryEnvelope points agents to auth, bootstrap, and SQL dis
   assert.match(envelope.instructions, /send-code/);
   assert.match(envelope.instructions, /verify-code/);
   assert.match(envelope.instructions, /\/agent\/sql/);
+  assert.match(envelope.instructions, /split the work into multiple batches of at most 100 records/i);
   assert.match(envelope.instructions, /intentionally limited/i);
 });
 

@@ -1,5 +1,11 @@
 import Foundation
 
+/**
+ SELECT returns at most `maxLocalAISqlLimit` rows per statement.
+ Keep this aligned with:
+ - `apps/backend/src/aiTools/sqlToolLimits.ts`
+ - `apps/web/src/chat/localToolExecutorTypes.ts`
+ */
 func normalizeSqlLimit(_ limit: Int?) throws -> Int {
     guard let limit else {
         return maxLocalAISqlLimit

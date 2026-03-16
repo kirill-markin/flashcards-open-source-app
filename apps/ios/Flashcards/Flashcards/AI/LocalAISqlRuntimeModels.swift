@@ -141,4 +141,10 @@ struct LocalAISqlGroupedRows {
     let groupedRows: [LocalAISqlRow]
 }
 
+/**
+ Keep this limit aligned with:
+ - `apps/backend/src/aiTools/sqlToolLimits.ts`
+ - `apps/web/src/chat/localToolExecutorTypes.ts`
+ - `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`
+ */
 let maxLocalAISqlLimit: Int = 100

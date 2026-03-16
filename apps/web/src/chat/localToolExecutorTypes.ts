@@ -3,6 +3,10 @@ import type {
   SqlResourceName,
   SqlRow,
 } from "../../../backend/src/aiTools/sqlDialect";
+import {
+  MAX_SQL_BATCH_STATEMENT_COUNT as BACKEND_MAX_SQL_BATCH_STATEMENT_COUNT,
+  MAX_SQL_RECORD_LIMIT as BACKEND_MAX_SQL_RECORD_LIMIT,
+} from "../../../backend/src/aiTools/sqlToolLimits";
 
 export type LocalToolExecutionResult = Readonly<{
   output: string;
@@ -84,5 +88,11 @@ export type LocalSqlExecutionResult = Readonly<{
   didMutateAppState: boolean;
 }>;
 
-export const MAX_SQL_LIMIT = 100;
-export const MAX_SQL_BATCH_STATEMENT_COUNT = 50;
+/**
+ * Keep these aliases aligned with:
+ * - `apps/backend/src/aiTools/sqlToolLimits.ts`
+ * - `apps/ios/Flashcards/Flashcards/AI/LocalAISqlRuntimeModels.swift`
+ * - `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`
+ */
+export const MAX_SQL_LIMIT = BACKEND_MAX_SQL_RECORD_LIMIT;
+export const MAX_SQL_BATCH_STATEMENT_COUNT = BACKEND_MAX_SQL_BATCH_STATEMENT_COUNT;

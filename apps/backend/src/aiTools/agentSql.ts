@@ -45,6 +45,10 @@ import {
   type SqlRow,
   type SqlRowValue,
 } from "./sqlDialect";
+import {
+  MAX_SQL_BATCH_STATEMENT_COUNT,
+  MAX_SQL_RECORD_LIMIT,
+} from "./sqlToolLimits";
 
 type AgentSqlContext = Readonly<{
   userId: string;
@@ -93,8 +97,14 @@ export type AgentSqlExecutionResult = Readonly<{
   instructions: string;
 }>;
 
-const MAX_SQL_LIMIT = 100;
-const MAX_SQL_BATCH_STATEMENT_COUNT = 50;
+/**
+ * Keep this alias aligned with:
+ * - `apps/backend/src/aiTools/sqlToolLimits.ts`
+ * - `apps/web/src/chat/localToolExecutorTypes.ts`
+ * - `apps/ios/Flashcards/Flashcards/AI/LocalAISqlRuntimeModels.swift`
+ * - `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`
+ */
+const MAX_SQL_LIMIT = MAX_SQL_RECORD_LIMIT;
 
 type MutationBatchState = Readonly<{
   cards: ReadonlyArray<Card>;
@@ -449,11 +459,11 @@ function buildReadInstructions(statementType: "show_tables" | "describe" | "sele
     ? "Repeat the same query with a larger OFFSET to continue pagination."
     : "No further rows are available for this query.";
 
-  return `${paginationHint} LIMIT defaults to 100 and is capped at 100. Prefer a stable ORDER BY clause when paginating. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.`;
+  return `${paginationHint} LIMIT defaults to 100 and is capped at 100. SELECT returns at most 100 rows per statement. Prefer a stable ORDER BY clause when paginating. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.`;
 }
 
 function buildMutationInstructions(): string {
-  return "The mutation succeeded. Read data.affectedCount for the summary. If you need the resulting rows, inspect data.rows or run a follow-up SELECT query. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.";
+  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need the resulting rows, inspect data.rows or run a follow-up SELECT query. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.";
 }
 
 function buildBatchReadInstructions(): string {
@@ -461,7 +471,20 @@ function buildBatchReadInstructions(): string {
 }
 
 function buildBatchMutationInstructions(): string {
-  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.";
+  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.";
+}
+
+function assertSqlMutationRecordLimit(
+  statementType: "insert" | "update" | "delete",
+  count: number,
+): void {
+  if (count > MAX_SQL_LIMIT) {
+    throw new HttpError(
+      400,
+      `${statementType.toUpperCase()} may affect at most ${MAX_SQL_LIMIT} records per statement`,
+      "QUERY_INVALID_SQL",
+    );
+  }
 }
 
 function isSqlReadStatement(
@@ -718,6 +741,7 @@ async function executeSqlMutationStatement(
   statement: Extract<ParsedSqlStatement, Readonly<{ type: "insert" | "update" | "delete" }>>,
 ): Promise<AgentSqlExecutionResult> {
   if (statement.type === "insert" && statement.resourceName === "cards") {
+    assertSqlMutationRecordLimit("insert", statement.rows.length);
     const payload = await createAgentCardsOperation(dependencies, {
       workspaceId: context.workspaceId,
       userId: context.userId,
@@ -740,6 +764,7 @@ async function executeSqlMutationStatement(
   }
 
   if (statement.type === "insert" && statement.resourceName === "decks") {
+    assertSqlMutationRecordLimit("insert", statement.rows.length);
     const payload = await createAgentDecksOperation(dependencies, {
       workspaceId: context.workspaceId,
       userId: context.userId,
@@ -782,6 +807,7 @@ async function executeSqlMutationStatement(
     normalizedSql: statement.normalizedSql,
   }, currentRows, Number.MAX_SAFE_INTEGER).rows;
   const targetIds = requireSqlMutationTargetIds(statement.resourceName, matchedRows);
+  assertSqlMutationRecordLimit(statement.type, targetIds.length);
 
   if (statement.type === "update" && statement.resourceName === "cards") {
     const payload = await updateAgentCardsOperation(dependencies, {
@@ -900,6 +926,7 @@ async function executeSqlMutationBatch(
 
       try {
         if (statement.type === "insert" && statement.resourceName === "cards") {
+          assertSqlMutationRecordLimit("insert", statement.rows.length);
           const createdCards: Array<Card> = [];
           for (const row of statement.rows) {
             const createdCard = await createCardInExecutor(
@@ -928,6 +955,7 @@ async function executeSqlMutationBatch(
         }
 
         if (statement.type === "insert" && statement.resourceName === "decks") {
+          assertSqlMutationRecordLimit("insert", statement.rows.length);
           const createdDecks: Array<Deck> = [];
           for (const row of statement.rows) {
             const createDeckInput = buildCreateDeckInput(statement.columnNames, row);
@@ -969,6 +997,7 @@ async function executeSqlMutationBatch(
 
         const matchedRows = selectMutationRows(statement, state);
         const targetIds = requireSqlMutationTargetIds(statement.resourceName, matchedRows);
+        assertSqlMutationRecordLimit(statement.type, targetIds.length);
 
         if (statement.type === "update" && statement.resourceName === "cards") {
           const updatedCards: Array<Card> = [];
