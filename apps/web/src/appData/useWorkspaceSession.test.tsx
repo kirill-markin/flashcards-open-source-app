@@ -9,24 +9,24 @@ import { useWorkspaceSession } from "./useWorkspaceSession";
 
 const {
   clearAllLocalBrowserDataMock,
-  clearWebSyncCacheMock,
   consumeAccountDeletedMarkerMock,
   createWorkspaceMock,
   getSessionMock,
-  getStableDeviceIdMock,
+  getStableDeviceIdForUserMock,
   listWorkspacesMock,
+  loadCloudSettingsMock,
   putCloudSettingsMock,
   relinkWorkspaceCacheMock,
   revalidateSessionMock,
   selectWorkspaceMock,
 } = vi.hoisted(() => ({
   clearAllLocalBrowserDataMock: vi.fn(),
-  clearWebSyncCacheMock: vi.fn(),
   consumeAccountDeletedMarkerMock: vi.fn(),
   createWorkspaceMock: vi.fn(),
   getSessionMock: vi.fn(),
-  getStableDeviceIdMock: vi.fn(),
+  getStableDeviceIdForUserMock: vi.fn(),
   listWorkspacesMock: vi.fn(),
+  loadCloudSettingsMock: vi.fn(),
   putCloudSettingsMock: vi.fn(),
   relinkWorkspaceCacheMock: vi.fn(),
   revalidateSessionMock: vi.fn(),
@@ -48,16 +48,16 @@ vi.mock("../accountDeletion", () => ({
 }));
 
 vi.mock("../clientIdentity", () => ({
-  getStableDeviceId: getStableDeviceIdMock,
-}));
-
-vi.mock("../localDb/cache", () => ({
-  clearWebSyncCache: clearWebSyncCacheMock,
-  relinkWorkspaceCache: relinkWorkspaceCacheMock,
+  getStableDeviceIdForUser: getStableDeviceIdForUserMock,
 }));
 
 vi.mock("../localDb/cloudSettings", () => ({
+  loadCloudSettings: loadCloudSettingsMock,
   putCloudSettings: putCloudSettingsMock,
+}));
+
+vi.mock("../localDb/cache", () => ({
+  relinkWorkspaceCache: relinkWorkspaceCacheMock,
 }));
 
 const sessionFixture: SessionInfo = {
@@ -132,21 +132,22 @@ describe("useWorkspaceSession", () => {
     root = ReactDOM.createRoot(container);
 
     clearAllLocalBrowserDataMock.mockReset();
-    clearWebSyncCacheMock.mockReset();
     consumeAccountDeletedMarkerMock.mockReset();
     createWorkspaceMock.mockReset();
     getSessionMock.mockReset();
-    getStableDeviceIdMock.mockReset();
+    getStableDeviceIdForUserMock.mockReset();
     listWorkspacesMock.mockReset();
+    loadCloudSettingsMock.mockReset();
     putCloudSettingsMock.mockReset();
     relinkWorkspaceCacheMock.mockReset();
     revalidateSessionMock.mockReset();
     selectWorkspaceMock.mockReset();
 
     consumeAccountDeletedMarkerMock.mockReturnValue(false);
-    getStableDeviceIdMock.mockReturnValue("device-1");
+    getStableDeviceIdForUserMock.mockReturnValue("device-1");
     getSessionMock.mockResolvedValue(sessionFixture);
     listWorkspacesMock.mockResolvedValue([workspaceFixture]);
+    loadCloudSettingsMock.mockResolvedValue(null);
     putCloudSettingsMock.mockResolvedValue(undefined);
     relinkWorkspaceCacheMock.mockResolvedValue(undefined);
     revalidateSessionMock.mockResolvedValue(sessionFixture);
@@ -169,5 +170,53 @@ describe("useWorkspaceSession", () => {
     expect(getSessionMock).toHaveBeenCalledTimes(1);
     expect(container.firstElementChild?.getAttribute("data-state")).toBe("ready");
     expect(container.firstElementChild?.getAttribute("data-workspace-id")).toBe("workspace-1");
+  });
+
+  it("clears local browser data before bootstrap when the persisted user differs", async () => {
+    loadCloudSettingsMock.mockResolvedValue({
+      deviceId: "device-old",
+      cloudState: "linked",
+      linkedUserId: "user-2",
+      linkedWorkspaceId: "workspace-2",
+      linkedEmail: "other@example.com",
+      onboardingCompleted: true,
+      updatedAt: "2026-03-10T09:00:00.000Z",
+    });
+
+    await act(async () => {
+      root.render(<WorkspaceSessionHarness />);
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+
+    expect(clearAllLocalBrowserDataMock).toHaveBeenCalledTimes(1);
+    expect(putCloudSettingsMock).toHaveBeenCalled();
+    expect(clearAllLocalBrowserDataMock.mock.invocationCallOrder[0]).toBeLessThan(
+      putCloudSettingsMock.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    );
+  });
+
+  it("keeps local browser data when the persisted user matches the new session", async () => {
+    loadCloudSettingsMock.mockResolvedValue({
+      deviceId: "device-1",
+      cloudState: "linked",
+      linkedUserId: "user-1",
+      linkedWorkspaceId: "workspace-1",
+      linkedEmail: "test@example.com",
+      onboardingCompleted: true,
+      updatedAt: "2026-03-10T09:00:00.000Z",
+    });
+
+    await act(async () => {
+      root.render(<WorkspaceSessionHarness />);
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+
+    expect(clearAllLocalBrowserDataMock).not.toHaveBeenCalled();
   });
 });

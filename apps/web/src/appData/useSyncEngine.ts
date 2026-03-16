@@ -6,7 +6,7 @@ import {
   type SetStateAction,
 } from "react";
 import { isAuthRedirectError, pullSyncChanges, pushSyncOperations } from "../api";
-import { getStableDeviceId, webAppVersion } from "../clientIdentity";
+import { webAppVersion } from "../clientIdentity";
 import {
   loadCardById,
   putCard,
@@ -113,6 +113,22 @@ async function requireDeck(deckId: string): Promise<Deck> {
   return deck;
 }
 
+/**
+ * Treats cloud settings as the only valid source of sync device identity for
+ * browser writes so local mutations cannot silently mint cross-user device ids.
+ */
+function requireCloudDeviceId(cloudSettings: CloudSettings | null): string {
+  if (cloudSettings === null) {
+    throw new Error("Cloud settings are not loaded");
+  }
+
+  if (cloudSettings.deviceId.trim() === "") {
+    throw new Error("Cloud settings deviceId is not loaded");
+  }
+
+  return cloudSettings.deviceId;
+}
+
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const {
     sessionLoadState,
@@ -175,10 +191,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       return activeSync;
     }
 
-    const deviceId = getStableDeviceId();
     const syncTask = (async (): Promise<void> => {
       setIsSyncing(true);
       try {
+        const cloudSettings = await loadCloudSettings();
+        const deviceId = requireCloudDeviceId(cloudSettings);
         let currentOutbox = await listOutboxRecords(workspaceId);
         while (currentOutbox.length > 0) {
           const batch = currentOutbox.slice(0, 100);
@@ -297,7 +314,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const normalizedInput = normalizeCreateCardInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = getStableDeviceId();
+    const deviceId = requireCloudDeviceId(await loadCloudSettings());
     const nextCard = buildInitialCard(normalizedInput, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
@@ -323,7 +340,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const normalizedInput = normalizeCreateDeckInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = getStableDeviceId();
+    const deviceId = requireCloudDeviceId(await loadCloudSettings());
     const nextDeck = {
       ...buildDeck(normalizedInput, clientUpdatedAt, deviceId, operationId),
       workspaceId: activeWorkspaceId,
@@ -353,7 +370,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const normalizedInput = normalizeUpdateCardInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = getStableDeviceId();
+    const deviceId = requireCloudDeviceId(await loadCloudSettings());
     const nextCard = buildUpdatedCard(existingCard, normalizedInput, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
@@ -380,7 +397,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const normalizedInput = normalizeUpdateDeckInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = getStableDeviceId();
+    const deviceId = requireCloudDeviceId(await loadCloudSettings());
     const nextDeck = buildUpdatedDeck(existingDeck, normalizedInput, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
@@ -406,7 +423,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const existingCard = await requireCard(cardId);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = getStableDeviceId();
+    const deviceId = requireCloudDeviceId(await loadCloudSettings());
     const nextCard = buildDeletedCard(existingCard, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
@@ -432,7 +449,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const existingDeck = await requireDeck(deckId);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = getStableDeviceId();
+    const deviceId = requireCloudDeviceId(await loadCloudSettings());
     const nextDeck = buildDeletedDeck(existingDeck, clientUpdatedAt, deviceId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
@@ -470,7 +487,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const reviewEventId = crypto.randomUUID().toLowerCase();
     const clientEventId = crypto.randomUUID().toLowerCase();
     const cardOperationId = crypto.randomUUID().toLowerCase();
-    const deviceId = getStableDeviceId();
+    const deviceId = requireCloudDeviceId(await loadCloudSettings());
     const schedule = computeReviewSchedule(
       toReviewableCardState(existingCard),
       {

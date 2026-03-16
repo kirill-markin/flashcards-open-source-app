@@ -13,6 +13,15 @@ const { mockAppData } = vi.hoisted(() => ({
       name: "Workspace One",
       createdAt: "2026-03-10T09:00:00.000Z",
     },
+    cloudSettings: {
+      deviceId: "device-123",
+      cloudState: "linked",
+      linkedUserId: "user-1",
+      linkedWorkspaceId: "workspace-1",
+      linkedEmail: "test@example.com",
+      onboardingCompleted: true,
+      updatedAt: "2026-03-10T09:00:00.000Z",
+    },
   },
 }));
 
@@ -21,7 +30,6 @@ vi.mock("../appData", () => ({
 }));
 
 vi.mock("../clientIdentity", () => ({
-  getStableDeviceId: () => "device-123",
   webAppBuild: "20260313.1",
   webAppVersion: "1.2.3",
 }));

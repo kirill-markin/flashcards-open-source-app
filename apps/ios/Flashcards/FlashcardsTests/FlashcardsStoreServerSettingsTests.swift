@@ -4,6 +4,47 @@ import XCTest
 
 @MainActor
 final class FlashcardsStoreServerSettingsTests: XCTestCase {
+    func testDisconnectCloudAccountResetsLocalStateAndRegeneratesDeviceId() throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+        let originalCloudSettings = try testCloudSettings(database: context.database)
+
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: ["grammar"]),
+            cardId: nil
+        )
+        try context.database.setLastAppliedChangeId(workspaceId: workspaceId, changeId: 42)
+        context.store.selectedReviewFilter = .tag(tag: "grammar")
+        context.store.userDefaults.set(Data("history".utf8), forKey: "ai-chat-history")
+        try context.store.reload()
+
+        try context.store.disconnectCloudAccount()
+
+        await FlashcardsStoreTestSupport.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            context.store.userDefaults.object(forKey: "ai-chat-history") == nil
+        }
+
+        let resetCloudSettings = try testCloudSettings(database: context.database)
+        XCTAssertEqual(resetCloudSettings.cloudState, .disconnected)
+        XCTAssertNil(resetCloudSettings.linkedUserId)
+        XCTAssertNotEqual(resetCloudSettings.deviceId, originalCloudSettings.deviceId)
+        XCTAssertTrue(try context.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).isEmpty)
+        XCTAssertEqual(try context.database.loadLastAppliedChangeId(workspaceId: workspaceId), 0)
+        XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
+        XCTAssertEqual(context.store.selectedReviewFilter, .allCards)
+        XCTAssertNil(context.store.userDefaults.object(forKey: "ai-chat-history"))
+    }
+
     func testValidateCustomCloudServerDoesNotPersistOverrideWhenValidationFails() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -199,6 +240,41 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertTrue(originalOutbox.isEmpty)
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
         XCTAssertTrue(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
+    }
+
+    func testCompleteCloudLinkAfterDisconnectUsesFreshDeviceIdForTheSameUser() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.reload()
+        let originalDeviceId = try testCloudSettings(database: context.database).deviceId
+
+        try context.store.disconnectCloudAccount()
+
+        let existingWorkspace = CloudWorkspaceSummary(
+            workspaceId: workspaceId,
+            name: "Personal",
+            createdAt: "2026-03-14T11:00:00.000Z",
+            isSelected: true
+        )
+        context.cloudSyncService.selectedWorkspacesById[existingWorkspace.workspaceId] = existingWorkspace
+
+        try await context.store.completeCloudLink(
+            linkContext: self.makeLinkContext(workspaces: [existingWorkspace]),
+            selection: .existing(workspaceId: existingWorkspace.workspaceId)
+        )
+
+        let relinkedCloudSettings = try testCloudSettings(database: context.database)
+        XCTAssertEqual(relinkedCloudSettings.cloudState, .linked)
+        XCTAssertEqual(relinkedCloudSettings.linkedUserId, "user-1")
+        XCTAssertEqual(relinkedCloudSettings.linkedWorkspaceId, workspaceId)
+        XCTAssertNotEqual(relinkedCloudSettings.deviceId, originalDeviceId)
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
     }
 
     private func makeLinkContext(workspaces: [CloudWorkspaceSummary]) -> CloudWorkspaceLinkContext {

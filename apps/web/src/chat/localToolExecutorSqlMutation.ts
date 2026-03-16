@@ -1,4 +1,3 @@
-import { getStableDeviceId } from "../clientIdentity";
 import {
   buildCardUpsertOperation,
   buildDeck,
@@ -18,6 +17,7 @@ import {
   loadAllActiveCardsForSql,
   loadCardById,
 } from "../localDb/cards";
+import { loadCloudSettings } from "../localDb/cloudSettings";
 import { openDatabase, runReadwrite } from "../localDb/core";
 import { loadAllActiveDecksForSql, loadDeckById } from "../localDb/decks";
 import type { PersistedOutboxRecord } from "../localDb/outbox";
@@ -216,6 +216,23 @@ function toAssignmentRow(
   return Object.fromEntries(statement.assignments.map((assignment) => [assignment.columnName, assignment.value] as const));
 }
 
+/**
+ * Reuses the active linked device id so local SQL mutations produce the same
+ * sync metadata as the rest of the web client.
+ */
+async function loadRequiredCloudDeviceId(): Promise<string> {
+  const cloudSettings = await loadCloudSettings();
+  if (cloudSettings === null) {
+    throw new Error("Cloud settings are not loaded");
+  }
+
+  if (cloudSettings.deviceId.trim() === "") {
+    throw new Error("Cloud settings deviceId is not loaded");
+  }
+
+  return cloudSettings.deviceId;
+}
+
 export async function executeLocalSqlMutationStatement(
   dependencies: WebLocalToolExecutorDependencies,
   activeWorkspace: WorkspaceSummary,
@@ -374,7 +391,7 @@ export async function executeLocalSqlMutationBatch(
   normalizedSql: string,
 ): Promise<LocalSqlExecutionResult> {
   let state = await loadCurrentMutationState();
-  const deviceId = getStableDeviceId();
+  const deviceId = await loadRequiredCloudDeviceId();
   const payloads: Array<SqlSingleExecutionPayload> = [];
   const pendingCardsById = new Map<string, Card>();
   const pendingDecksById = new Map<string, Deck>();

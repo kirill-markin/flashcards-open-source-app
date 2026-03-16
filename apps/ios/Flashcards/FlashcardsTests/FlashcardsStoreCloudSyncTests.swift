@@ -4,6 +4,78 @@ import XCTest
 
 @MainActor
 final class FlashcardsStoreCloudSyncTests: XCTestCase {
+    func testPrepareCloudLinkResetsLocalStateWhenAuthenticatedUserDiffersFromStoredLinkedUser() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+        let originalDeviceId = try testCloudSettings(database: context.database).deviceId
+
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
+            cardId: nil
+        )
+        try context.store.reload()
+        context.cloudSyncService.fetchCloudAccountSnapshot = CloudAccountSnapshot(
+            userId: "user-2",
+            email: "user-2@example.com",
+            workspaces: []
+        )
+
+        let linkContext = try await context.store.prepareCloudLink(
+            verifiedContext: CloudVerifiedAuthContext(
+                apiBaseUrl: "https://api.example.com/v1",
+                credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials()
+            )
+        )
+
+        let resetCloudSettings = try testCloudSettings(database: context.database)
+        XCTAssertEqual(linkContext.userId, "user-2")
+        XCTAssertEqual(resetCloudSettings.cloudState, .disconnected)
+        XCTAssertNil(resetCloudSettings.linkedUserId)
+        XCTAssertNotEqual(resetCloudSettings.deviceId, originalDeviceId)
+        XCTAssertTrue(try context.database.loadActiveCards(workspaceId: workspaceId).isEmpty)
+        XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
+    }
+
+    func testSyncCloudIfLinkedResetsLocalStateWhenStoredCredentialsBelongToAnotherUser() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+        let originalDeviceId = try testCloudSettings(database: context.database).deviceId
+
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
+            cardId: nil
+        )
+        try context.store.reload()
+        context.cloudSyncService.fetchCloudAccountSnapshot = CloudAccountSnapshot(
+            userId: "user-2",
+            email: "user-2@example.com",
+            workspaces: []
+        )
+
+        await context.store.syncCloudIfLinked()
+
+        let resetCloudSettings = try testCloudSettings(database: context.database)
+        XCTAssertEqual(resetCloudSettings.cloudState, .disconnected)
+        XCTAssertNil(resetCloudSettings.linkedUserId)
+        XCTAssertNotEqual(resetCloudSettings.deviceId, originalDeviceId)
+        XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
+        XCTAssertEqual(context.store.syncStatus, .idle)
+    }
+
     func testRestoreCloudLinkForSameWorkspaceNoOpKeepsPublishedReviewStateStable() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,

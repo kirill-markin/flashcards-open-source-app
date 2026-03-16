@@ -403,6 +403,17 @@ enum FlashcardsStoreTestSupport {
         )
     }
 
+    static func makeLinkedSession(userId: String, workspaceId: String, email: String) -> CloudLinkedSession {
+        CloudLinkedSession(
+            userId: userId,
+            workspaceId: workspaceId,
+            email: email,
+            configurationMode: .official,
+            apiBaseUrl: "https://api.example.com/v1",
+            bearerToken: "id-token"
+        )
+    }
+
     static func linkDatabaseWorkspace(database: LocalDatabase, workspaceId: String) throws {
         try database.updateCloudSettings(
             cloudState: .linked,

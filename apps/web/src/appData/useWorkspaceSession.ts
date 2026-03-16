@@ -14,9 +14,9 @@ import {
   selectWorkspace,
 } from "../api";
 import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
-import { getStableDeviceId } from "../clientIdentity";
-import { clearWebSyncCache, relinkWorkspaceCache } from "../localDb/cache";
-import { putCloudSettings } from "../localDb/cloudSettings";
+import { getStableDeviceIdForUser } from "../clientIdentity";
+import { relinkWorkspaceCache } from "../localDb/cache";
+import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
 import {
   findWorkspaceById,
@@ -52,7 +52,7 @@ type WorkspaceSession = Readonly<{
 
 function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
   return {
-    deviceId: getStableDeviceId(),
+    deviceId: getStableDeviceIdForUser(session.userId),
     cloudState: "linking-ready",
     linkedUserId: session.userId,
     linkedWorkspaceId: null,
@@ -64,7 +64,7 @@ function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
 
 function buildLinkedCloudSettings(session: SessionInfo, workspaceId: string): CloudSettings {
   return {
-    deviceId: getStableDeviceId(),
+    deviceId: getStableDeviceIdForUser(session.userId),
     cloudState: "linked",
     linkedUserId: session.userId,
     linkedWorkspaceId: workspaceId,
@@ -86,6 +86,10 @@ function consumeLoggedOutMarker(): boolean {
   return true;
 }
 
+/**
+ * Bootstraps the authenticated workspace session and hard-resets browser-local
+ * state when the persisted cloud settings belong to a different user.
+ */
 export function useWorkspaceSession(params: UseWorkspaceSessionParams): WorkspaceSession {
   const {
     sessionLoadState,
@@ -179,7 +183,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
 
     try {
       if (consumeLoggedOutMarker()) {
-        await clearWebSyncCache();
+        await clearAllLocalBrowserData();
       }
 
       if (consumeAccountDeletedMarker()) {
@@ -191,6 +195,15 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       }
 
       const currentSession = await getSession();
+      const persistedCloudSettings = await loadCloudSettings();
+      if (
+        persistedCloudSettings !== null
+        && persistedCloudSettings.linkedUserId !== null
+        && persistedCloudSettings.linkedUserId !== currentSession.userId
+      ) {
+        await clearAllLocalBrowserData();
+      }
+
       const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
       await putCloudSettings(linkingReadyCloudSettings);
       setCloudSettings(linkingReadyCloudSettings);
