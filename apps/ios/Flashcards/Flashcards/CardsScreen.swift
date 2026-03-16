@@ -68,14 +68,6 @@ struct CardsScreen: View {
         cardFilterActiveDimensionCount(filter: committedFilter)
     }
 
-    private var preferredSearchToolbarBehavior: SearchToolbarBehavior {
-        if self.horizontalSizeClass == .compact {
-            return .minimize
-        }
-
-        return .automatic
-    }
-
     var body: some View {
         List {
             if screenErrorMessage.isEmpty == false {
@@ -135,7 +127,7 @@ struct CardsScreen: View {
             placement: .automatic,
             prompt: "Search cards"
         )
-        .searchToolbarBehavior(self.preferredSearchToolbarBehavior)
+        .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
