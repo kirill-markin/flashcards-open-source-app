@@ -13,7 +13,7 @@ import {
 } from "./chatHelpers";
 import { buildChatResponseMetadata } from "./localChatDiagnostics";
 import { parseLocalSSELine } from "./localRuntime";
-import type { LocalToolCallRequest } from "./localToolExecutor";
+import { LOCAL_TOOL_NAMES, type LocalToolCallRequest } from "./localToolExecutor";
 import type {
   ContentPart,
   LocalChatDiagnosticsPayload,
@@ -39,6 +39,8 @@ export type LocalChatRuntimeDiagnosticDetails = Readonly<{
   lineNumber: number | null;
   rawSnippet: string | null;
   decoderSummary: string | null;
+  continuationAttempt: number | null;
+  continuationToolCallIds: ReadonlyArray<string>;
 }>;
 
 export type LocalChatRuntimeToolCallRequestEvent = Extract<LocalChatStreamEvent, { type: "tool_call_request" }>;
@@ -87,6 +89,27 @@ export type LocalChatRuntimeState = Readonly<{
   receivedContent: boolean;
   shouldAwaitToolResults: boolean;
   lastEventType: string | null;
+}>;
+
+type LocalChatTurnPhase =
+  | "streaming"
+  | "awaiting_tool_results"
+  | "completed"
+  | "failed"
+  | "aborted";
+
+type LocalChatTurnContext = Readonly<{
+  assistantTurnId: string;
+  continuationAttempt: number;
+  pendingToolCallIds: ReadonlyArray<string>;
+  completedToolCallIds: ReadonlyArray<string>;
+  phase: LocalChatTurnPhase;
+  terminalStatus: "none" | "completed" | "failed" | "aborted";
+}>;
+
+type LocalChatRequestPreflight = Readonly<{
+  continuationAttempt: number;
+  toolCallIds: ReadonlyArray<string>;
 }>;
 
 export type LocalChatRuntimeEffect =
@@ -148,6 +171,8 @@ function buildLocalChatFailureDiagnosticsPayload(
     lineNumber: details.lineNumber,
     rawSnippet: details.rawSnippet,
     decoderSummary: details.decoderSummary,
+    continuationAttempt: details.continuationAttempt,
+    continuationToolCallIds: details.continuationToolCallIds,
     selectedModel: context.selectedModel,
     messageCount: context.messageCount,
     appVersion: context.appVersion,
@@ -166,6 +191,74 @@ function createLocalChatLatencyTracker(tapStartedAt: number): LocalChatLatencyTr
     didReceiveFirstSseLine: false,
     didReceiveFirstDelta: false,
     emitted: false,
+  };
+}
+
+function createInitialLocalChatTurnContext(assistantTurnId: string): LocalChatTurnContext {
+  return {
+    assistantTurnId,
+    continuationAttempt: 0,
+    pendingToolCallIds: [],
+    completedToolCallIds: [],
+    phase: "streaming",
+    terminalStatus: "none",
+  };
+}
+
+function markTurnAwaitingToolResults(
+  turnContext: LocalChatTurnContext,
+  pendingToolCallIds: ReadonlyArray<string>,
+): LocalChatTurnContext {
+  return {
+    ...turnContext,
+    pendingToolCallIds,
+    completedToolCallIds: [],
+    phase: "awaiting_tool_results",
+  };
+}
+
+function recordCompletedToolCall(
+  turnContext: LocalChatTurnContext,
+  toolCallId: string,
+): LocalChatTurnContext {
+  if (turnContext.completedToolCallIds.includes(toolCallId)) {
+    return turnContext;
+  }
+
+  return {
+    ...turnContext,
+    completedToolCallIds: [...turnContext.completedToolCallIds, toolCallId],
+  };
+}
+
+function beginNextContinuationAttempt(
+  turnContext: LocalChatTurnContext,
+): LocalChatTurnContext {
+  return {
+    ...turnContext,
+    continuationAttempt: turnContext.continuationAttempt + 1,
+    pendingToolCallIds: [],
+    completedToolCallIds: [],
+    phase: "streaming",
+  };
+}
+
+function activeTurnToolCallIds(
+  turnContext: LocalChatTurnContext,
+): ReadonlyArray<string> {
+  return turnContext.pendingToolCallIds.length === 0
+    ? turnContext.completedToolCallIds
+    : turnContext.pendingToolCallIds;
+}
+
+function markTerminalTurn(
+  turnContext: LocalChatTurnContext,
+  terminalStatus: "completed" | "failed" | "aborted",
+): LocalChatTurnContext {
+  return {
+    ...turnContext,
+    phase: terminalStatus,
+    terminalStatus,
   };
 }
 
@@ -221,6 +314,84 @@ function isAbortLikeError(error: unknown, signal: AbortSignal): boolean {
     || (error instanceof Error && error.name === "AbortError");
 }
 
+function validateLocalChatWireMessages(
+  messages: ReadonlyArray<LocalChatMessage>,
+): LocalChatRequestPreflight {
+  let continuationAttempt = 0;
+  const toolCallIds = new Set<string>();
+  const seenToolOutputIds = new Set<string>();
+  let expectedToolOutputIds: Set<string> | null = null;
+
+  for (const message of messages) {
+    if (message.role === "assistant") {
+      if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
+        throw new Error("Assistant continuation history is missing a tool output before the next message.");
+      }
+
+      const assistantToolCallIds = new Set<string>();
+      const completedLocalToolCallIds: Array<string> = [];
+      for (const part of message.content) {
+        if (part.type !== "tool_call" || !LOCAL_TOOL_NAMES.includes(part.name)) {
+          continue;
+        }
+
+        if (assistantToolCallIds.has(part.toolCallId)) {
+          throw new Error("Assistant continuation history contains a duplicate tool call id.");
+        }
+
+        assistantToolCallIds.add(part.toolCallId);
+        toolCallIds.add(part.toolCallId);
+
+        if (part.status !== "completed" || part.output === null) {
+          throw new Error("Assistant continuation history contains a local tool call without a completed output.");
+        }
+
+        completedLocalToolCallIds.push(part.toolCallId);
+      }
+
+      if (completedLocalToolCallIds.length > 0) {
+        continuationAttempt += 1;
+        expectedToolOutputIds = new Set(completedLocalToolCallIds);
+      }
+
+      continue;
+    }
+
+    if (message.role === "tool") {
+      toolCallIds.add(message.toolCallId);
+
+      if (seenToolOutputIds.has(message.toolCallId)) {
+        throw new Error("Assistant continuation history contains a duplicate tool output.");
+      }
+
+      if (expectedToolOutputIds === null || !expectedToolOutputIds.has(message.toolCallId)) {
+        throw new Error("Assistant continuation history contains an unexpected tool output.");
+      }
+
+      seenToolOutputIds.add(message.toolCallId);
+      expectedToolOutputIds.delete(message.toolCallId);
+      if (expectedToolOutputIds.size === 0) {
+        expectedToolOutputIds = null;
+      }
+
+      continue;
+    }
+
+    if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
+      throw new Error("Assistant continuation history is missing a tool output before the next user message.");
+    }
+  }
+
+  if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
+    throw new Error("Assistant continuation history ended before all tool outputs were added.");
+  }
+
+  return {
+    continuationAttempt,
+    toolCallIds: [...toolCallIds],
+  };
+}
+
 /**
  * Returns the runtime state used for a single streamed assistant turn.
  */
@@ -260,6 +431,8 @@ export function reduceLocalChatRuntimeEvent(
           lineNumber: null,
           rawSnippet: null,
           decoderSummary: "The local SSE event JSON could not be decoded",
+          continuationAttempt: null,
+          continuationToolCallIds: [],
         },
       }],
     };
@@ -394,6 +567,8 @@ export function reduceLocalChatRuntimeEvent(
         lineNumber: null,
         rawSnippet: null,
         decoderSummary: event.message,
+        continuationAttempt: null,
+        continuationToolCallIds: [],
       },
     }],
   };
@@ -412,6 +587,7 @@ export async function runLocalChatRuntime(
 
   const clientRequestId = dependencies.generateRequestId();
   const wireMessages = [...initialMessages];
+  let turnContext = createInitialLocalChatTurnContext(clientRequestId);
   let backendRequestId: string | null = null;
   let bufferLength = 0;
   let lastEventType: string | null = null;
@@ -419,6 +595,31 @@ export async function runLocalChatRuntime(
   let shouldTrackLatency = true;
 
   while (true) {
+    try {
+      if (turnContext.terminalStatus !== "none") {
+        throw new Error(`Assistant turn is already terminal: ${turnContext.terminalStatus}`);
+      }
+
+      validateLocalChatWireMessages(wireMessages);
+      if (turnContext.phase === "awaiting_tool_results") {
+        throw new Error("Assistant continuation requested a new stream before local tool results were appended.");
+      }
+    } catch (error) {
+      callbacks.onAssistantError("The local chat session became inconsistent. Please try again.");
+      emitLocalPreflightDiagnostics({
+        callbacks,
+        dependencies,
+        clientRequestId,
+        backendRequestId,
+        selectedModel,
+        messageCount: wireMessages.length,
+        error,
+        continuationAttempt: turnContext.continuationAttempt,
+        continuationToolCallIds: activeTurnToolCallIds(turnContext),
+      });
+      return;
+    }
+
     const requestBody = dependencies.createRequestBody(wireMessages, selectedModel, timezone);
     if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       callbacks.onAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
@@ -447,17 +648,17 @@ export async function runLocalChatRuntime(
       bufferLength = buffer.length;
       lastEventType = details.eventType;
 
-      const payload = {
-        ...buildLocalChatFailureDiagnosticsPayload(details, {
-          clientRequestId,
-          backendRequestId: responseMetadata.responseRequestId,
-          selectedModel,
+        const payload = {
+          ...buildLocalChatFailureDiagnosticsPayload(details, {
+            clientRequestId,
+            backendRequestId: responseMetadata.responseRequestId,
+            selectedModel,
           messageCount: requestBody.messages.length,
           appVersion: dependencies.appVersion,
           devicePlatform: dependencies.devicePlatform,
         }),
-        statusCode: responseMetadata.statusCode,
-      } satisfies LocalChatFailureDiagnosticsPayload;
+          statusCode: responseMetadata.statusCode,
+        } satisfies LocalChatFailureDiagnosticsPayload;
 
       emitPayload(payload);
     };
@@ -505,6 +706,8 @@ export async function runLocalChatRuntime(
           lineNumber: null,
           rawSnippet: null,
           decoderSummary: message,
+          continuationAttempt: turnContext.continuationAttempt,
+          continuationToolCallIds: activeTurnToolCallIds(turnContext),
         });
         emitLatency("response_not_ok");
         return;
@@ -522,6 +725,8 @@ export async function runLocalChatRuntime(
           lineNumber: null,
           rawSnippet: null,
           decoderSummary: "ReadableStream reader is unavailable",
+          continuationAttempt: turnContext.continuationAttempt,
+          continuationToolCallIds: activeTurnToolCallIds(turnContext),
         });
         emitLatency("missing_reader");
         return;
@@ -620,6 +825,7 @@ export async function runLocalChatRuntime(
 
       if (state.shouldAwaitToolResults) {
         if (state.pendingToolCalls.length === 0) {
+          turnContext = markTerminalTurn(turnContext, "failed");
           callbacks.onAssistantError("The local chat runtime requested tool results without any tool call.");
           emitDiagnostics({
             stage: "await_tool_results",
@@ -630,10 +836,17 @@ export async function runLocalChatRuntime(
             lineNumber: null,
             rawSnippet: null,
             decoderSummary: "await_tool_results without tool_call_request",
+            continuationAttempt: turnContext.continuationAttempt,
+            continuationToolCallIds: [],
           });
           emitLatency(latencyTracker?.didReceiveFirstDelta === true ? "success" : "stream_error_before_first_delta");
           return;
         }
+
+        turnContext = markTurnAwaitingToolResults(
+          turnContext,
+          state.pendingToolCalls.map((toolCall) => toolCall.toolCallId),
+        );
 
         wireMessages.push({
           role: "assistant",
@@ -650,23 +863,37 @@ export async function runLocalChatRuntime(
             });
             consecutiveToolExecutionFailures = 0;
             callbacks.onToolCallCompleted(toolCall.toolCallId, toolCall.input, result.output);
+            const updatedWireMessages = completeAssistantToolCallInWireMessages(
+              wireMessages,
+              toolCall.toolCallId,
+              result.output,
+            );
+            wireMessages.splice(0, wireMessages.length, ...updatedWireMessages);
             wireMessages.push({
               role: "tool",
               toolCallId: toolCall.toolCallId,
               name: toolCall.name,
               output: result.output,
             });
+            turnContext = recordCompletedToolCall(turnContext, toolCall.toolCallId);
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             const errorOutput = buildLocalToolExecutionErrorOutput(message);
             consecutiveToolExecutionFailures += 1;
             callbacks.onToolCallCompleted(toolCall.toolCallId, toolCall.input, errorOutput);
+            const updatedWireMessages = completeAssistantToolCallInWireMessages(
+              wireMessages,
+              toolCall.toolCallId,
+              errorOutput,
+            );
+            wireMessages.splice(0, wireMessages.length, ...updatedWireMessages);
             wireMessages.push({
               role: "tool",
               toolCallId: toolCall.toolCallId,
               name: toolCall.name,
               output: errorOutput,
             });
+            turnContext = recordCompletedToolCall(turnContext, toolCall.toolCallId);
             emitDiagnostics({
               stage: "tool_execution",
               errorKind: "tool_execution_failed",
@@ -676,6 +903,8 @@ export async function runLocalChatRuntime(
               lineNumber: null,
               rawSnippet: toolCall.input,
               decoderSummary: message,
+              continuationAttempt: turnContext.continuationAttempt,
+              continuationToolCallIds: turnContext.pendingToolCallIds,
             });
 
             if (consecutiveToolExecutionFailures >= MAX_CONSECUTIVE_TOOL_EXECUTION_FAILURES) {
@@ -686,16 +915,19 @@ export async function runLocalChatRuntime(
         }
 
         if (terminalToolExecutionMessage !== null) {
+          turnContext = markTerminalTurn(turnContext, "failed");
           callbacks.onAssistantError(terminalToolExecutionMessage);
           emitLatency(latencyTracker?.didReceiveFirstDelta === true ? "success" : "stream_error_before_first_delta");
           return;
         }
 
+        turnContext = beginNextContinuationAttempt(turnContext);
         emitLatency("success");
         continue;
       }
 
       if (state.receivedContent) {
+        turnContext = markTerminalTurn(turnContext, "completed");
         callbacks.onAssistantCompleted();
         emitPayload({
           kind: "failure",
@@ -710,6 +942,8 @@ export async function runLocalChatRuntime(
           lineNumber: null,
           rawSnippet: null,
           decoderSummary: null,
+          continuationAttempt: turnContext.continuationAttempt,
+          continuationToolCallIds: activeTurnToolCallIds(turnContext),
           selectedModel,
           messageCount: requestBody.messages.length,
           appVersion: dependencies.appVersion,
@@ -719,6 +953,7 @@ export async function runLocalChatRuntime(
         return;
       }
 
+      turnContext = markTerminalTurn(turnContext, "failed");
       callbacks.onAssistantError("The assistant returned an empty response.");
       emitPayload({
         kind: "failure",
@@ -733,6 +968,8 @@ export async function runLocalChatRuntime(
         lineNumber: null,
         rawSnippet: null,
         decoderSummary: `Empty local response after ${bufferLength} buffered chars`,
+        continuationAttempt: turnContext.continuationAttempt,
+        continuationToolCallIds: activeTurnToolCallIds(turnContext),
         selectedModel,
         messageCount: requestBody.messages.length,
         appVersion: dependencies.appVersion,
@@ -754,9 +991,53 @@ export async function runLocalChatRuntime(
         emitLatency(latencyResult);
       }
 
+      if (isAbortLikeError(error, signal)) {
+        turnContext = markTerminalTurn(turnContext, "aborted");
+      } else {
+        turnContext = markTerminalTurn(turnContext, "failed");
+      }
+
       throw error;
     }
   }
+}
+
+function emitLocalPreflightDiagnostics(
+  params: Readonly<{
+    callbacks: LocalChatRuntimeCallbacks;
+    dependencies: LocalChatRuntimeDependencies;
+    clientRequestId: string;
+    backendRequestId: string | null;
+    selectedModel: string;
+    messageCount: number;
+    error: unknown;
+    continuationAttempt: number;
+    continuationToolCallIds: ReadonlyArray<string>;
+  }>,
+): void {
+  const message = params.error instanceof Error ? params.error.message : String(params.error);
+  const payload: LocalChatFailureDiagnosticsPayload = {
+    kind: "failure",
+    clientRequestId: params.clientRequestId,
+    backendRequestId: params.backendRequestId,
+    stage: "request_preflight",
+    errorKind: "invalid_stream_contract",
+    statusCode: null,
+    eventType: null,
+    toolName: null,
+    toolCallId: null,
+    lineNumber: null,
+    rawSnippet: null,
+    decoderSummary: message,
+    continuationAttempt: params.continuationAttempt,
+    continuationToolCallIds: params.continuationToolCallIds,
+    selectedModel: params.selectedModel,
+    messageCount: params.messageCount,
+    appVersion: params.dependencies.appVersion,
+    devicePlatform: params.dependencies.devicePlatform,
+  };
+  params.callbacks.onDiagnostics(payload);
+  void params.dependencies.reportDiagnostics(payload);
 }
 
 /**
@@ -791,6 +1072,41 @@ function upsertAssistantToolCallPart(
   }
 
   return [...content, part];
+}
+
+function completeAssistantToolCallInWireMessages(
+  messages: ReadonlyArray<LocalChatMessage>,
+  toolCallId: string,
+  output: string,
+): ReadonlyArray<LocalChatMessage> {
+  if (messages.length === 0) {
+    return messages;
+  }
+
+  const lastMessage = messages[messages.length - 1];
+  if (lastMessage === undefined || lastMessage.role !== "assistant") {
+    return messages;
+  }
+
+  const updatedContent = lastMessage.content.map((part) => {
+    if (part.type !== "tool_call" || part.toolCallId !== toolCallId) {
+      return part;
+    }
+
+    return {
+      ...part,
+      status: "completed" as const,
+      output,
+    };
+  });
+
+  return [
+    ...messages.slice(0, -1),
+    {
+      role: "assistant",
+      content: updatedContent,
+    },
+  ];
 }
 
 type ApplyStreamLineParams = Readonly<{

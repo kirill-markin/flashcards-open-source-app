@@ -6,6 +6,7 @@ import {
   parseLocalChatDiagnosticsBody,
   parseLocalChatRequestBody,
   streamLocalChatResponse,
+  validateLocalChatMessages,
 } from "./chat/http";
 import {
   buildLocalSystemInstructions,
@@ -988,6 +989,98 @@ test("parseLocalChatRequestBody requires a non-negative user card count", () => 
       });
     },
     (error: unknown) => error instanceof HttpError && error.message === "userContext.totalCards must be a non-negative integer",
+  );
+});
+
+test("validateLocalChatMessages accepts completed local tool calls with matching tool outputs", () => {
+  const result = validateLocalChatMessages([
+    { role: "user", content: userTextContent("hi") },
+    {
+      role: "assistant",
+      content: [{
+        type: "tool_call",
+        toolCallId: "call-1",
+        name: "sql",
+        status: "completed",
+        input: "{\"sql\":\"SHOW TABLES\"}",
+        output: "{\"rows\":[]}",
+      }],
+    },
+    {
+      role: "tool",
+      toolCallId: "call-1",
+      name: "sql",
+      output: "{\"rows\":[]}",
+    },
+  ]);
+
+  assert.equal(result.continuationAttempt, 1);
+  assert.deepEqual(result.toolCallIds, ["call-1"]);
+});
+
+test("validateLocalChatMessages rejects completed local tool calls without matching tool outputs", () => {
+  assert.throws(
+    () => {
+      validateLocalChatMessages([
+        { role: "user", content: userTextContent("hi") },
+        {
+          role: "assistant",
+          content: [{
+            type: "tool_call",
+            toolCallId: "call-1",
+            name: "sql",
+            status: "completed",
+            input: "{\"sql\":\"SHOW TABLES\"}",
+            output: "{\"rows\":[]}",
+          }],
+        },
+      ]);
+    },
+    (error: unknown) => typeof error === "object"
+      && error !== null
+      && "code" in error
+      && error.code === "LOCAL_CHAT_CONTINUATION_FAILED"
+      && "stage" in error
+      && error.stage === "request_validation",
+  );
+});
+
+test("validateLocalChatMessages rejects duplicate tool output messages", () => {
+  assert.throws(
+    () => {
+      validateLocalChatMessages([
+        { role: "user", content: userTextContent("hi") },
+        {
+          role: "assistant",
+          content: [{
+            type: "tool_call",
+            toolCallId: "call-1",
+            name: "sql",
+            status: "completed",
+            input: "{\"sql\":\"SHOW TABLES\"}",
+            output: "{\"rows\":[]}",
+          }],
+        },
+        {
+          role: "tool",
+          toolCallId: "call-1",
+          name: "sql",
+          output: "{\"rows\":[]}",
+        },
+        {
+          role: "tool",
+          toolCallId: "call-1",
+          name: "sql",
+          output: "{\"rows\":[]}",
+        },
+      ]);
+    },
+    (error: unknown) => typeof error === "object"
+      && error !== null
+      && "code" in error
+      && error.code === "LOCAL_CHAT_CONTINUATION_FAILED"
+      && "stage" in error
+      && error.stage === "request_validation",
   );
 });
 

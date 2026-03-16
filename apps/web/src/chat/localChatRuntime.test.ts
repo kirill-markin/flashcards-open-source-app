@@ -263,9 +263,9 @@ describe("runLocalChatRuntime", () => {
           type: "tool_call",
           toolCallId: "tool-1",
           name: "sql",
-          status: "started",
+          status: "completed",
           input: "{\"sql\":\"SHOW TABLES\"}",
-          output: null,
+          output: "{\"ok\":true}",
         }],
       },
       {
@@ -332,9 +332,9 @@ describe("runLocalChatRuntime", () => {
           type: "tool_call",
           toolCallId: "tool-1",
           name: "sql",
-          status: "started",
+          status: "completed",
           input: "{\"sql\":\"SELECT tags FROM cards\"}",
-          output: null,
+          output: "{\"ok\":false,\"error\":{\"code\":\"LOCAL_TOOL_EXECUTION_FAILED\",\"message\":\"Unsupported SELECT statement\"}}",
         }],
       },
       {
@@ -407,6 +407,50 @@ describe("runLocalChatRuntime", () => {
         firstEventType: "tool_call_request",
         didReceiveFirstSseLine: true,
         didReceiveFirstDelta: false,
+      }),
+    ]);
+  });
+
+  it("fails locally before streaming when the continuation history is malformed", async () => {
+    const harness = createRuntimeHarness();
+
+    await runLocalChatRuntime(
+      harness.dependencies,
+      {
+        initialMessages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "hello" }],
+          },
+          {
+            role: "assistant",
+            content: [{
+              type: "tool_call",
+              toolCallId: "tool-1",
+              name: "sql",
+              status: "completed",
+              input: "{\"sql\":\"SHOW TABLES\"}",
+              output: "{\"ok\":true}",
+            }],
+          },
+        ],
+        selectedModel: "test-model",
+        timezone: "Europe/Madrid",
+        tapStartedAt: 900,
+        signal: new AbortController().signal,
+        callbacks: harness.callbacks,
+      },
+    );
+
+    expect(harness.streamChatMock).not.toHaveBeenCalled();
+    expect(harness.onAssistantErrorMock).toHaveBeenCalledWith(
+      "The local chat session became inconsistent. Please try again.",
+    );
+    expect(readFailureDiagnosticsPayloads(harness.onDiagnosticsMock)).toEqual([
+      expect.objectContaining({
+        stage: "request_preflight",
+        errorKind: "invalid_stream_contract",
+        continuationAttempt: 0,
       }),
     ]);
   });

@@ -8,6 +8,7 @@ enum AIChatErrorSurface {
 private let aiChatAvailabilityErrorCodes: Set<String> = [
     "LOCAL_CHAT_NOT_CONFIGURED",
     "LOCAL_CHAT_UNAVAILABLE",
+    "LOCAL_CHAT_CONTINUATION_FAILED",
     "LOCAL_CHAT_RATE_LIMITED",
     "LOCAL_CHAT_PROVIDER_AUTH_FAILED",
 ]

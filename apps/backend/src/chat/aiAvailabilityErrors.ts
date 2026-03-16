@@ -104,6 +104,14 @@ function messageIncludesUnavailableFailure(message: string | null): boolean {
   return /timeout|timed out|network|socket hang up|connection reset|connection refused|service unavailable|overloaded|temporarily unavailable|unavailable/i.test(message);
 }
 
+function messageIncludesContinuationFailure(message: string | null): boolean {
+  if (message === null) {
+    return false;
+  }
+
+  return /no tool output found for function call|function_call_output|tool output/i.test(message);
+}
+
 function messageIncludesMissingConfiguration(message: string | null): boolean {
   if (message === null) {
     return false;
@@ -134,6 +142,10 @@ function notConfiguredCode(kind: AIEndpointKind): string {
 
 function unavailableCode(kind: AIEndpointKind): string {
   return kind === "chat" ? "LOCAL_CHAT_UNAVAILABLE" : "CHAT_TRANSCRIPTION_UNAVAILABLE";
+}
+
+function continuationCode(kind: AIEndpointKind): string {
+  return kind === "chat" ? "LOCAL_CHAT_CONTINUATION_FAILED" : unavailableCode(kind);
 }
 
 function rateLimitedCode(kind: AIEndpointKind): string {
@@ -190,6 +202,20 @@ export function classifyAIEndpointFailure(
       statusCode: 503,
       code: notConfiguredCode(kind),
       message: configuredMessage(kind),
+      provider,
+    };
+  }
+
+  if (
+    kind === "chat"
+    && metadata.upstreamStatus === 400
+    && messageIncludesContinuationFailure(normalizedMessage)
+  ) {
+    return {
+      ...metadata,
+      statusCode: 503,
+      code: continuationCode(kind),
+      message: unavailableMessage(kind),
       provider,
     };
   }
