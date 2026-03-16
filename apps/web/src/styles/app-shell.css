@@ -6,19 +6,21 @@
 }
 
 .header-sticky {
+  --header-inline-padding: var(--desktop-shell-gutter);
   position: sticky;
   top: 0;
   z-index: 50;
   flex-shrink: 0;
-  padding: 18px var(--desktop-shell-gutter) 0;
+  padding: 18px var(--header-inline-padding) 0;
   background:
     linear-gradient(180deg, rgba(5, 5, 5, 0.96), rgba(5, 5, 5, 0.72) 80%, transparent);
   backdrop-filter: var(--blur);
 }
 
 .topbar-shell {
+  --topbar-shell-inline-padding: 12px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px var(--topbar-shell-inline-padding);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
@@ -138,7 +140,9 @@
   position: absolute;
   top: calc(100% + 10px);
   inset-inline-end: 0;
-  min-width: 280px;
+  width: min(280px, calc(100vw - (2 * (var(--header-inline-padding) + var(--topbar-shell-inline-padding))) - 8px));
+  min-width: 0;
+  max-width: calc(100vw - (2 * (var(--header-inline-padding) + var(--topbar-shell-inline-padding))) - 8px);
   max-height: min(420px, calc(100dvh - 32px));
   padding: 10px;
   border: 1px solid var(--panel-border);
@@ -264,21 +268,31 @@
 
 @media (max-width: 1100px) {
   .topbar {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
   }
 
-  .nav {
-    justify-self: start;
-    flex-wrap: wrap;
+  .topbar-brand-block {
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .topbar-actions {
-    justify-content: flex-start;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    flex-wrap: wrap;
   }
 }
 
 @media (max-width: 768px) {
   .header-sticky {
+    --header-inline-padding: 18px;
     padding: 14px 18px 0;
   }
 
