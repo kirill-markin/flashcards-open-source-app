@@ -155,7 +155,7 @@ private func decodePageCursor(cursor: String) throws -> Int {
     } catch let error as LocalStoreError {
         throw error
     } catch {
-        throw LocalStoreError.validation("cursor is invalid: \(localizedMessage(error: error))")
+        throw LocalStoreError.validation("cursor is invalid: \(Flashcards.errorMessage(error: error))")
     }
 }
 

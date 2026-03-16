@@ -72,7 +72,7 @@ struct WorkspaceOverviewView: View {
                 now: Date()
             )
         } catch {
-            self.errorMessage = localizedMessage(error: error)
+            self.errorMessage = Flashcards.errorMessage(error: error)
         }
 
         self.isLoading = false

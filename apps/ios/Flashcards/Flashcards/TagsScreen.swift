@@ -89,7 +89,7 @@ struct TagsScreen: View {
         do {
             self.tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
         } catch {
-            self.errorMessage = localizedMessage(error: error)
+            self.errorMessage = Flashcards.errorMessage(error: error)
         }
 
         self.isLoading = false

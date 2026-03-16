@@ -176,14 +176,14 @@ extension FlashcardsStore {
                 )
                 self.localReadVersion += 1
             }
-            self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
+            self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
             self.syncStatus = .idle
             self.globalErrorMessage = ""
         } catch {
             self.syncStatus = self.cloudSettings?.cloudState == .linked
-                ? .failed(message: localizedMessage(error: error))
+                ? .failed(message: Flashcards.errorMessage(error: error))
             : .idle
-            self.globalErrorMessage = localizedMessage(error: error)
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
     }
@@ -211,7 +211,7 @@ extension FlashcardsStore {
                 return
             }
 
-            self.globalErrorMessage = localizedMessage(error: error)
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -231,7 +231,7 @@ extension FlashcardsStore {
                 domain: "chat",
                 action: "ai_chat_session_warmup_failed",
                 metadata: [
-                    "message": localizedMessage(error: error),
+                    "message": Flashcards.errorMessage(error: error),
                     "selectedTab": String(describing: self.selectedTab),
                 ]
             )
@@ -278,7 +278,7 @@ extension FlashcardsStore {
             let needsBootstrap = self.cloudSettings?.cloudState != .linked
                 || self.cloudSettings?.linkedWorkspaceId != linkedSession.workspaceId
 
-            logCloudPhase(
+            logCloudFlowPhase(
                 phase: .linkLocalWorkspace,
                 outcome: "start",
                 workspaceId: linkedSession.workspaceId,
@@ -295,18 +295,18 @@ extension FlashcardsStore {
             self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
             try self.reload()
             didCompleteLocalLink = true
-            logCloudPhase(
+            logCloudFlowPhase(
                 phase: .linkLocalWorkspace,
                 outcome: "success",
                 workspaceId: linkedSession.workspaceId,
                 deviceId: self.cloudSettings?.deviceId
             )
             _ = try await self.runLinkedSync(linkedSession: linkedSession)
-            self.lastSuccessfulCloudSyncAt = currentIsoTimestamp()
+            self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
             self.syncStatus = .idle
             self.globalErrorMessage = ""
             self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
-            logCloudPhase(
+            logCloudFlowPhase(
                 phase: .linkedSync,
                 outcome: "success",
                 workspaceId: linkedSession.workspaceId,
@@ -315,23 +315,23 @@ extension FlashcardsStore {
             try self.reload()
         } catch {
             if didCompleteLocalLink == false {
-                logCloudPhase(
+                logCloudFlowPhase(
                     phase: .linkLocalWorkspace,
                     outcome: "failure",
                     workspaceId: linkedSession.workspaceId,
                     deviceId: self.cloudSettings?.deviceId,
-                    errorMessage: localizedMessage(error: error)
+                    errorMessage: Flashcards.errorMessage(error: error)
                 )
             }
-            logCloudPhase(
+            logCloudFlowPhase(
                 phase: .linkedSync,
                 outcome: "failure",
                 workspaceId: linkedSession.workspaceId,
                 deviceId: self.cloudSettings?.deviceId,
-                errorMessage: localizedMessage(error: error)
+                errorMessage: Flashcards.errorMessage(error: error)
             )
-            self.syncStatus = .failed(message: localizedMessage(error: error))
-            self.globalErrorMessage = localizedMessage(error: error)
+            self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
     }
@@ -487,7 +487,7 @@ extension FlashcardsStore {
                 return
             }
 
-            self.accountDeletionState = .failed(message: localizedMessage(error: error))
+            self.accountDeletionState = .failed(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -526,7 +526,7 @@ extension FlashcardsStore {
             self.accountDeletionState = .hidden
             self.accountDeletionSuccessMessage = "Your account has been deleted."
         } catch {
-            self.accountDeletionState = .failed(message: localizedMessage(error: error))
+            self.accountDeletionState = .failed(message: Flashcards.errorMessage(error: error))
         }
     }
 

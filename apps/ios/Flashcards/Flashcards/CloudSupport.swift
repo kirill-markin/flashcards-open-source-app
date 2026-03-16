@@ -93,7 +93,7 @@ func loadCloudServerOverride(
         return try decoder.decode(CloudServerOverride.self, from: storedData)
     } catch {
         throw LocalStoreError.validation(
-            "Stored custom server override is invalid: \(localizedMessage(error: error))"
+            "Stored custom server override is invalid: \(Flashcards.errorMessage(error: error))"
         )
     }
 }
@@ -108,7 +108,7 @@ func saveCloudServerOverride(
         userDefaults.set(storedData, forKey: customCloudServerOverrideUserDefaultsKey)
     } catch {
         throw LocalStoreError.validation(
-            "Custom server override could not be saved: \(localizedMessage(error: error))"
+            "Custom server override could not be saved: \(Flashcards.errorMessage(error: error))"
         )
     }
 }
@@ -154,7 +154,7 @@ func makeCustomCloudServiceConfiguration(customOrigin: String) throws -> CloudSe
 
 func makeIdTokenExpiryTimestamp(now: Date, expiresInSeconds: Int) -> String {
     let expirationDate = now.addingTimeInterval(TimeInterval(expiresInSeconds))
-    return isoTimestamp(date: expirationDate)
+    return formatIsoTimestamp(date: expirationDate)
 }
 
 func shouldRefreshCloudIdToken(idTokenExpiresAt: String, now: Date) -> Bool {
@@ -175,7 +175,7 @@ private func loadRequiredFlashcardsLegalSupportConfiguration(
     do {
         return try loadFlashcardsLegalSupportConfiguration(bundle: bundle)
     } catch {
-        fatalError("Flashcards legal/support configuration is invalid: \(localizedMessage(error: error))")
+        fatalError("Flashcards legal/support configuration is invalid: \(Flashcards.errorMessage(error: error))")
     }
 }
 

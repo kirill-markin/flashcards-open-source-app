@@ -557,7 +557,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     metadata: [
                         "clientRequestId": clientRequestId,
                         "backendRequestId": backendRequestId ?? "-",
-                        "error": localizedMessage(error: error),
+                        "error": Flashcards.errorMessage(error: error),
                     ]
                 )
         }
@@ -794,7 +794,7 @@ private func decoderSummary(error: Error) -> String {
         }
     }
 
-    return localizedMessage(error: error)
+    return Flashcards.errorMessage(error: error)
 }
 
 private func makeInvalidSSEFramingError(
@@ -904,7 +904,7 @@ private func makeRequestFailureMessage(
     requestId: String?,
     configurationMode: CloudServiceConfigurationMode
 ) -> String {
-    let errorDetails = parseCloudApiErrorDetails(data: Data(body.utf8), requestId: requestId)
+    let errorDetails = decodeCloudApiErrorDetails(data: Data(body.utf8), requestId: requestId)
     let baseMessage = makeAIChatUserFacingErrorMessage(
         rawMessage: errorDetails.message,
         code: errorDetails.code,

@@ -152,7 +152,7 @@ enum FsrsSchedulerTestSupport {
             backText: card.backText,
             tags: card.tags,
             effortLevel: card.effortLevel,
-            dueAt: isoTimestamp(date: schedule.dueAt),
+            dueAt: formatIsoTimestamp(date: schedule.dueAt),
             createdAt: card.createdAt,
             reps: schedule.reps,
             lapses: schedule.lapses,
@@ -160,7 +160,7 @@ enum FsrsSchedulerTestSupport {
             fsrsStepIndex: schedule.fsrsStepIndex,
             fsrsStability: schedule.fsrsStability,
             fsrsDifficulty: schedule.fsrsDifficulty,
-            fsrsLastReviewedAt: isoTimestamp(date: schedule.fsrsLastReviewedAt),
+            fsrsLastReviewedAt: formatIsoTimestamp(date: schedule.fsrsLastReviewedAt),
             fsrsScheduledDays: schedule.fsrsScheduledDays,
             clientUpdatedAt: card.clientUpdatedAt,
             lastModifiedByDeviceId: card.lastModifiedByDeviceId,
@@ -172,28 +172,28 @@ enum FsrsSchedulerTestSupport {
 
     static func makeExpected(from schedule: ReviewSchedule) -> FsrsFixture.Expected {
         FsrsFixture.Expected(
-            dueAt: isoTimestamp(date: schedule.dueAt),
+            dueAt: formatIsoTimestamp(date: schedule.dueAt),
             reps: schedule.reps,
             lapses: schedule.lapses,
             fsrsCardState: schedule.fsrsCardState,
             fsrsStepIndex: schedule.fsrsStepIndex,
             fsrsStability: schedule.fsrsStability,
             fsrsDifficulty: schedule.fsrsDifficulty,
-            fsrsLastReviewedAt: isoTimestamp(date: schedule.fsrsLastReviewedAt),
+            fsrsLastReviewedAt: formatIsoTimestamp(date: schedule.fsrsLastReviewedAt),
             fsrsScheduledDays: schedule.fsrsScheduledDays
         )
     }
 
     static func makeExpected(from rebuiltState: RebuiltCardScheduleState) -> FsrsFixture.Expected {
         FsrsFixture.Expected(
-            dueAt: rebuiltState.dueAt.map(isoTimestamp(date:)),
+            dueAt: rebuiltState.dueAt.map(formatIsoTimestamp(date:)),
             reps: rebuiltState.reps,
             lapses: rebuiltState.lapses,
             fsrsCardState: rebuiltState.fsrsCardState,
             fsrsStepIndex: rebuiltState.fsrsStepIndex,
             fsrsStability: rebuiltState.fsrsStability,
             fsrsDifficulty: rebuiltState.fsrsDifficulty,
-            fsrsLastReviewedAt: rebuiltState.fsrsLastReviewedAt.map(isoTimestamp(date:)),
+            fsrsLastReviewedAt: rebuiltState.fsrsLastReviewedAt.map(formatIsoTimestamp(date:)),
             fsrsScheduledDays: rebuiltState.fsrsScheduledDays
         )
     }

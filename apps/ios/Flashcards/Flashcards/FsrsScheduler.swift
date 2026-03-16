@@ -198,7 +198,7 @@ private func clamp(value: Double, min minimum: Double, max maximum: Double) -> D
 private func dateDiffInDays(lastReviewedAt: Date, now: Date) throws -> Int {
     if now < lastReviewedAt {
         throw LocalStoreError.database(
-            "Review timestamp moved backwards: lastReviewedAt=\(isoTimestamp(date: lastReviewedAt)), now=\(isoTimestamp(date: now))"
+            "Review timestamp moved backwards: lastReviewedAt=\(formatIsoTimestamp(date: lastReviewedAt)), now=\(formatIsoTimestamp(date: now))"
         )
     }
 
@@ -645,7 +645,7 @@ private func buildGraduatedReviewSchedule(
     )
 
     return ReviewSchedule(
-        dueAt: addDays(date: now, days: scheduledDays),
+        dueAt: dateByAddingDays(date: now, days: scheduledDays),
         reps: reps,
         lapses: lapses,
         fsrsCardState: .review,
@@ -690,7 +690,7 @@ private func buildShortTermSchedule(
     }
 
     return ReviewSchedule(
-        dueAt: addMinutes(date: now, minutes: learningStep.scheduledMinutes ?? 0),
+        dueAt: dateByAddingMinutes(date: now, minutes: learningStep.scheduledMinutes ?? 0),
         reps: reps,
         lapses: lapses,
         fsrsCardState: nextState,
@@ -742,7 +742,7 @@ private func buildReviewSuccessSchedule(
 
     if rating == .hard {
         return ReviewSchedule(
-            dueAt: addDays(date: now, days: hardInterval),
+            dueAt: dateByAddingDays(date: now, days: hardInterval),
             reps: reps,
             lapses: lapses,
             fsrsCardState: .review,
@@ -756,7 +756,7 @@ private func buildReviewSuccessSchedule(
 
     if rating == .good {
         return ReviewSchedule(
-            dueAt: addDays(date: now, days: goodInterval),
+            dueAt: dateByAddingDays(date: now, days: goodInterval),
             reps: reps,
             lapses: lapses,
             fsrsCardState: .review,
@@ -769,7 +769,7 @@ private func buildReviewSuccessSchedule(
     }
 
     return ReviewSchedule(
-        dueAt: addDays(date: now, days: easyInterval),
+        dueAt: dateByAddingDays(date: now, days: easyInterval),
         reps: reps,
         lapses: lapses,
         fsrsCardState: .review,

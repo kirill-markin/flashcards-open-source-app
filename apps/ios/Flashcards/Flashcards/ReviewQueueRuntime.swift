@@ -451,7 +451,7 @@ struct ReviewQueueRuntime {
             workspaceId: workspaceId,
             cardId: cardId,
             rating: rating,
-            reviewedAtClient: currentIsoTimestamp()
+            reviewedAtClient: nowIsoTimestamp()
         )
         self.state.pendingReviewRequests.append(request)
 

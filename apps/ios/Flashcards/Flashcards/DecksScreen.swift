@@ -104,7 +104,7 @@ struct DecksScreen: View {
             self.screenErrorMessage = ""
             self.isEditorPresented = false
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -113,7 +113,7 @@ struct DecksScreen: View {
             try store.deleteDeck(deckId: deckId)
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -133,7 +133,7 @@ struct DecksScreen: View {
             self.screenErrorMessage = ""
         } catch {
             self.isLoading = false
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 }
@@ -410,7 +410,7 @@ private struct DeckDetailScreen: View {
                 self.screenErrorMessage = ""
                 self.isEditorPresented = true
             } catch {
-                self.screenErrorMessage = localizedMessage(error: error)
+                self.screenErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
     }
@@ -426,7 +426,7 @@ private struct DeckDetailScreen: View {
             self.screenErrorMessage = ""
             self.isEditorPresented = false
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -441,7 +441,7 @@ private struct DeckDetailScreen: View {
             self.screenErrorMessage = ""
             dismiss()
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -479,7 +479,7 @@ private struct DeckDetailScreen: View {
             self.screenErrorMessage = ""
         } catch {
             self.detailState = nil
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 }

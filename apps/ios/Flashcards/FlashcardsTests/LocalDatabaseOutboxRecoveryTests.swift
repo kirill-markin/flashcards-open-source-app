@@ -340,7 +340,7 @@ final class LocalDatabaseOutboxRecoveryTests: XCTestCase {
                 .text("upsert"),
                 .text(legacyPayloadJson),
                 .text(card.updatedAt),
-                .text(currentIsoTimestamp())
+                .text(nowIsoTimestamp())
             ]
         )
 

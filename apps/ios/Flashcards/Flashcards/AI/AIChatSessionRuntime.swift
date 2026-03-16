@@ -161,7 +161,7 @@ actor AIChatSessionRuntime {
                                 requestId: outcome.requestId
                             )
                         } catch {
-                            let errorText = localizedMessage(error: error)
+                            let errorText = Flashcards.errorMessage(error: error)
                             let errorOutput = try makeLocalToolExecutionErrorOutput(message: errorText)
                             try await self.handleToolCompletion(
                                 toolCallId: toolCallRequest.toolCallId,
@@ -325,7 +325,7 @@ actor AIChatSessionRuntime {
     ) async -> AIChatRuntimeResult {
         await self.flushPendingAssistantText(eventHandler: eventHandler)
         let failureReportBody = self.makeFailureReportBody(error: error)
-        let message = localizedMessage(error: error)
+        let message = Flashcards.errorMessage(error: error)
         self.persistedState = markAssistantError(state: self.persistedState, message: message)
         await self.historyStore.saveState(state: self.persistedState)
         await eventHandler(.setRepairStatus(nil))
@@ -671,7 +671,7 @@ private func markAssistantError(state: AIChatPersistedState, message: String) ->
                 id: UUID().uuidString.lowercased(),
                 role: .assistant,
                 content: [.text(message)],
-                timestamp: currentIsoTimestamp(),
+                timestamp: nowIsoTimestamp(),
                 isError: true
             )
         )

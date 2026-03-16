@@ -826,7 +826,7 @@ class AIChatTestCaseBase: XCTestCase {
     func makeLinkedStore() throws -> FlashcardsStore {
         try self.makeLinkedStore(
             cloudAuthService: CloudAuthService(),
-            idTokenExpiresAt: isoTimestamp(date: Date().addingTimeInterval(3600))
+            idTokenExpiresAt: formatIsoTimestamp(date: Date().addingTimeInterval(3600))
         )
     }
 

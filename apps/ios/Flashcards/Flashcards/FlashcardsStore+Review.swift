@@ -29,7 +29,7 @@ extension FlashcardsStore {
                 reviewFilter: reviewFilter
             )
         } catch {
-            self.globalErrorMessage = localizedMessage(error: error)
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
             return
         }
 
@@ -80,7 +80,7 @@ extension FlashcardsStore {
                 }
 
                 self.applyReviewPublishedState(reviewState: nextReviewState)
-                self.globalErrorMessage = localizedMessage(error: error)
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
         self.reviewRuntime.setActiveReviewLoadTask(
@@ -138,7 +138,7 @@ extension FlashcardsStore {
                 }
 
                 self.applyReviewPublishedState(reviewState: nextReviewState)
-                self.globalErrorMessage = localizedMessage(error: error)
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
         self.reviewRuntime.setActiveReviewCountsTask(task: countsTask, requestId: request.requestId)
@@ -159,7 +159,7 @@ extension FlashcardsStore {
                 reviewFilter: self.selectedReviewFilter
             )
         } catch {
-            self.globalErrorMessage = localizedMessage(error: error)
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
             return
         }
 
@@ -211,7 +211,7 @@ extension FlashcardsStore {
                 }
 
                 self.applyReviewPublishedState(reviewState: nextReviewState)
-                self.globalErrorMessage = localizedMessage(error: error)
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
         self.reviewRuntime.setActiveReviewQueueChunkTask(
@@ -293,7 +293,7 @@ extension FlashcardsStore {
     }
 
     func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) {
-        let submissionErrorMessage = localizedMessage(error: submissionError)
+        let submissionErrorMessage = Flashcards.errorMessage(error: submissionError)
         do {
             try self.reload()
             self.applyReviewPublishedState(
@@ -304,7 +304,7 @@ extension FlashcardsStore {
                 )
             )
         } catch {
-            let reloadErrorMessage = localizedMessage(error: error)
+            let reloadErrorMessage = Flashcards.errorMessage(error: error)
             self.applyReviewPublishedState(
                 reviewState: self.reviewRuntime.failReviewSubmission(
                     publishedState: self.currentReviewPublishedState(),

@@ -200,7 +200,7 @@ func executeLocalAISqlMutationBatch(
                     var createdCards: [Card] = []
                     for input in inputs {
                         let operationId = UUID().uuidString.lowercased()
-                        let now = currentIsoTimestamp()
+                        let now = nowIsoTimestamp()
                         let createdCard = try database.cardStore.saveCard(
                             workspaceId: workspaceId,
                             input: input,
@@ -243,7 +243,7 @@ func executeLocalAISqlMutationBatch(
                 var createdDecks: [Deck] = []
                 for input in inputs {
                     let operationId = UUID().uuidString.lowercased()
-                    let now = currentIsoTimestamp()
+                    let now = nowIsoTimestamp()
                     let createdDeck = try database.deckStore.createDeck(
                         workspaceId: workspaceId,
                         input: input,
@@ -305,7 +305,7 @@ func executeLocalAISqlMutationBatch(
                     for update in updates {
                         try database.cardStore.validateCardInput(input: update.input)
                         let operationId = UUID().uuidString.lowercased()
-                        let now = currentIsoTimestamp()
+                        let now = nowIsoTimestamp()
                         let updatedCard = try database.cardStore.saveCard(
                             workspaceId: workspaceId,
                             input: update.input,
@@ -362,7 +362,7 @@ func executeLocalAISqlMutationBatch(
                 for update in updates {
                     try database.deckStore.validateDeckInput(input: update.input)
                     let operationId = UUID().uuidString.lowercased()
-                    let now = currentIsoTimestamp()
+                    let now = nowIsoTimestamp()
                     let updatedDeck = try database.deckStore.updateDeck(
                         workspaceId: workspaceId,
                         deckId: update.deckId,
@@ -412,7 +412,7 @@ func executeLocalAISqlMutationBatch(
 
                     for cardId in cardIds {
                         let operationId = UUID().uuidString.lowercased()
-                        let now = currentIsoTimestamp()
+                        let now = nowIsoTimestamp()
                         let deletedCard = try database.cardStore.deleteCard(
                             workspaceId: workspaceId,
                             cardId: cardId,
@@ -455,7 +455,7 @@ func executeLocalAISqlMutationBatch(
 
                 for deckId in deckIds {
                     let operationId = UUID().uuidString.lowercased()
-                    let now = currentIsoTimestamp()
+                    let now = nowIsoTimestamp()
                     let deletedDeck = try database.deckStore.deleteDeck(
                         workspaceId: workspaceId,
                         deckId: deckId,

@@ -162,8 +162,8 @@ final class FsrsSchedulerParityTests: XCTestCase {
             ]
         )
 
-        XCTAssertEqual(isoTimestamp(date: thirdFutureSchedule.fsrsLastReviewedAt), isoTimestamp(date: thirdReviewAt))
-        XCTAssertNotEqual(rebuiltState.dueAt.map(isoTimestamp(date:)), isoTimestamp(date: thirdFutureSchedule.dueAt))
+        XCTAssertEqual(formatIsoTimestamp(date: thirdFutureSchedule.fsrsLastReviewedAt), formatIsoTimestamp(date: thirdReviewAt))
+        XCTAssertNotEqual(rebuiltState.dueAt.map(formatIsoTimestamp(date:)), formatIsoTimestamp(date: thirdFutureSchedule.dueAt))
         XCTAssertNotEqual(rebuiltState.fsrsCardState, thirdFutureSchedule.fsrsCardState)
         XCTAssertNotEqual(rebuiltState.lapses, thirdFutureSchedule.lapses)
     }
@@ -193,7 +193,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
             now: try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T00:10:00.000Z"))
         )
 
-        XCTAssertEqual(isoTimestamp(date: schedule.dueAt), "2026-03-22T00:10:00.000Z")
+        XCTAssertEqual(formatIsoTimestamp(date: schedule.dueAt), "2026-03-22T00:10:00.000Z")
         XCTAssertEqual(schedule.reps, 2)
         XCTAssertEqual(schedule.lapses, 0)
         XCTAssertEqual(schedule.fsrsStability, 13.48506225, accuracy: 0.00000001)
@@ -274,7 +274,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
                 fsrsStepIndex: firstAgain.fsrsStepIndex,
                 fsrsStability: firstAgain.fsrsStability,
                 fsrsDifficulty: firstAgain.fsrsDifficulty,
-                fsrsLastReviewedAt: isoTimestamp(date: firstAgain.fsrsLastReviewedAt),
+                fsrsLastReviewedAt: formatIsoTimestamp(date: firstAgain.fsrsLastReviewedAt),
                 fsrsScheduledDays: firstAgain.fsrsScheduledDays
             ),
             settings: settings,
@@ -290,7 +290,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
                 fsrsStepIndex: secondAgain.fsrsStepIndex,
                 fsrsStability: secondAgain.fsrsStability,
                 fsrsDifficulty: secondAgain.fsrsDifficulty,
-                fsrsLastReviewedAt: isoTimestamp(date: secondAgain.fsrsLastReviewedAt),
+                fsrsLastReviewedAt: formatIsoTimestamp(date: secondAgain.fsrsLastReviewedAt),
                 fsrsScheduledDays: secondAgain.fsrsScheduledDays
             ),
             settings: settings,
@@ -306,7 +306,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
                 fsrsStepIndex: hardRelearning.fsrsStepIndex,
                 fsrsStability: hardRelearning.fsrsStability,
                 fsrsDifficulty: hardRelearning.fsrsDifficulty,
-                fsrsLastReviewedAt: isoTimestamp(date: hardRelearning.fsrsLastReviewedAt),
+                fsrsLastReviewedAt: formatIsoTimestamp(date: hardRelearning.fsrsLastReviewedAt),
                 fsrsScheduledDays: hardRelearning.fsrsScheduledDays
             ),
             settings: settings,
@@ -322,7 +322,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
                 fsrsStepIndex: easyGraduation.fsrsStepIndex,
                 fsrsStability: easyGraduation.fsrsStability,
                 fsrsDifficulty: easyGraduation.fsrsDifficulty,
-                fsrsLastReviewedAt: isoTimestamp(date: easyGraduation.fsrsLastReviewedAt),
+                fsrsLastReviewedAt: formatIsoTimestamp(date: easyGraduation.fsrsLastReviewedAt),
                 fsrsScheduledDays: easyGraduation.fsrsScheduledDays
             ),
             settings: settings,
@@ -330,7 +330,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
             now: try XCTUnwrap(parseIsoTimestamp(value: "2036-09-03T07:47:00.000Z"))
         )
 
-        XCTAssertEqual(isoTimestamp(date: finalReview.dueAt), "2036-09-12T07:47:00.000Z")
+        XCTAssertEqual(formatIsoTimestamp(date: finalReview.dueAt), "2036-09-12T07:47:00.000Z")
         XCTAssertEqual(finalReview.fsrsStability, 6.82018621, accuracy: 0.00000001)
         XCTAssertEqual(finalReview.fsrsScheduledDays, 9)
     }
@@ -358,7 +358,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
                 fsrsStepIndex: againSchedule.fsrsStepIndex,
                 fsrsStability: againSchedule.fsrsStability,
                 fsrsDifficulty: againSchedule.fsrsDifficulty,
-                fsrsLastReviewedAt: isoTimestamp(date: againSchedule.fsrsLastReviewedAt),
+                fsrsLastReviewedAt: formatIsoTimestamp(date: againSchedule.fsrsLastReviewedAt),
                 fsrsScheduledDays: againSchedule.fsrsScheduledDays
             ),
             settings: FsrsSchedulerTestSupport.makeSchedulerSettings(
@@ -372,7 +372,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
             rating: .good,
             now: try XCTUnwrap(parseIsoTimestamp(value: "2026-03-08T09:01:00.000Z"))
         )
-        XCTAssertEqual(isoTimestamp(date: afterAgain.dueAt), "2026-03-09T09:01:00.000Z")
+        XCTAssertEqual(formatIsoTimestamp(date: afterAgain.dueAt), "2026-03-09T09:01:00.000Z")
         XCTAssertEqual(afterAgain.fsrsCardState, .review)
         XCTAssertNil(afterAgain.fsrsStepIndex)
         XCTAssertEqual(afterAgain.fsrsScheduledDays, 1)
@@ -399,7 +399,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
                 fsrsStepIndex: hardSchedule.fsrsStepIndex,
                 fsrsStability: hardSchedule.fsrsStability,
                 fsrsDifficulty: hardSchedule.fsrsDifficulty,
-                fsrsLastReviewedAt: isoTimestamp(date: hardSchedule.fsrsLastReviewedAt),
+                fsrsLastReviewedAt: formatIsoTimestamp(date: hardSchedule.fsrsLastReviewedAt),
                 fsrsScheduledDays: hardSchedule.fsrsScheduledDays
             ),
             settings: FsrsSchedulerTestSupport.makeSchedulerSettings(
@@ -413,7 +413,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
             rating: .good,
             now: try XCTUnwrap(parseIsoTimestamp(value: "2026-03-08T09:06:00.000Z"))
         )
-        XCTAssertEqual(isoTimestamp(date: afterHard.dueAt), "2026-03-09T09:06:00.000Z")
+        XCTAssertEqual(formatIsoTimestamp(date: afterHard.dueAt), "2026-03-09T09:06:00.000Z")
         XCTAssertEqual(afterHard.fsrsCardState, .review)
         XCTAssertNil(afterHard.fsrsStepIndex)
         XCTAssertEqual(afterHard.fsrsScheduledDays, 1)
@@ -575,7 +575,7 @@ final class FsrsSchedulerParityTests: XCTestCase {
                 fsrsStepIndex: newAgain.fsrsStepIndex,
                 fsrsStability: newAgain.fsrsStability,
                 fsrsDifficulty: newAgain.fsrsDifficulty,
-                fsrsLastReviewedAt: isoTimestamp(date: newAgain.fsrsLastReviewedAt),
+                fsrsLastReviewedAt: formatIsoTimestamp(date: newAgain.fsrsLastReviewedAt),
                 fsrsScheduledDays: newAgain.fsrsScheduledDays
             ),
             settings: settings,

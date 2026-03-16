@@ -206,7 +206,7 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
                 ]
             )
         ) { error in
-            XCTAssertEqual(localizedMessage(error: error), "Card front text must not be empty")
+            XCTAssertEqual(Flashcards.errorMessage(error: error), "Card front text must not be empty")
         }
 
         XCTAssertEqual(try testActiveCards(database: database).count, 0)
@@ -243,7 +243,7 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
                 ]
             )
         ) { error in
-            XCTAssertEqual(localizedMessage(error: error), "Card not found")
+            XCTAssertEqual(Flashcards.errorMessage(error: error), "Card not found")
         }
 
         let cards = try testActiveCards(database: database)
@@ -293,7 +293,7 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
                 cardIds: [existingCard.cardId, "missing-card-id"]
             )
         ) { error in
-            XCTAssertEqual(localizedMessage(error: error), "Card not found")
+            XCTAssertEqual(Flashcards.errorMessage(error: error), "Card not found")
         }
 
         let cards = try testActiveCards(database: database)
@@ -327,7 +327,7 @@ final class LocalDatabaseBootstrapAndCrudTests: XCTestCase {
                 ]
             )
         ) { error in
-            XCTAssertEqual(localizedMessage(error: error), "Card batch must not contain duplicate cardId values")
+            XCTAssertEqual(Flashcards.errorMessage(error: error), "Card batch must not contain duplicate cardId values")
         }
 
         let cards = try testActiveCards(database: database)

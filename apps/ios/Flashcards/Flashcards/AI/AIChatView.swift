@@ -160,7 +160,7 @@ struct AIChatView: View {
                 },
                 onFailure: { error in
                     self.isCameraPresented = false
-                    self.chatStore.showGeneralError(message: localizedMessage(error: error))
+                    self.chatStore.showGeneralError(message: Flashcards.errorMessage(error: error))
                 },
                 onCancel: {
                     self.isCameraPresented = false
@@ -818,7 +818,7 @@ struct AIChatView: View {
             )
             self.chatStore.appendAttachment(attachment)
         } catch {
-            self.chatStore.showGeneralError(message: localizedMessage(error: error))
+            self.chatStore.showGeneralError(message: Flashcards.errorMessage(error: error))
         }
 
         self.selectedPhotoItem = nil
@@ -836,7 +836,7 @@ struct AIChatView: View {
             )
             self.chatStore.appendAttachment(attachment)
         } catch {
-            self.chatStore.showGeneralError(message: localizedMessage(error: error))
+            self.chatStore.showGeneralError(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -1298,7 +1298,7 @@ func aiChatFileImportAlert(error: Error) -> AIChatAlert {
         return .attachmentSettings(source: .files)
     }
 
-    return .generalError(message: localizedMessage(error: error))
+    return .generalError(message: Flashcards.errorMessage(error: error))
 }
 
 func aiChatIsFilePermissionError(error: Error) -> Bool {

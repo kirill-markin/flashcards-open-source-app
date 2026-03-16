@@ -176,7 +176,7 @@ struct OutboxStore {
             """,
             values: [
                 .integer(changeId),
-                .text(currentIsoTimestamp()),
+                .text(nowIsoTimestamp()),
                 .text(workspaceId)
             ]
         )
@@ -346,7 +346,7 @@ struct OutboxStore {
                 .text(operationType),
                 .text(payloadJson),
                 .text(clientUpdatedAt),
-                .text(currentIsoTimestamp())
+                .text(nowIsoTimestamp())
             ]
         )
     }

@@ -72,7 +72,7 @@ final class CloudServiceConfigurationValidator {
             throw CloudServiceConfigurationValidationError.requestFailed(
                 serviceName,
                 url.absoluteString,
-                localizedMessage(error: error)
+                Flashcards.errorMessage(error: error)
             )
         }
     }

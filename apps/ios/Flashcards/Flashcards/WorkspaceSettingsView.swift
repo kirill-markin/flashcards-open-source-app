@@ -83,7 +83,7 @@ struct WorkspaceSettingsView: View {
                 now: Date()
             )
         } catch {
-            self.errorMessage = localizedMessage(error: error)
+            self.errorMessage = Flashcards.errorMessage(error: error)
         }
     }
 }

@@ -168,7 +168,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         let flashcardsStore = try self.makeLinkedStore(
             cloudAuthService: CloudAuthService(session: self.makeSession(), cookieStorage: HTTPCookieStorage()),
-            idTokenExpiresAt: isoTimestamp(date: Date().addingTimeInterval(-300))
+            idTokenExpiresAt: formatIsoTimestamp(date: Date().addingTimeInterval(-300))
         )
         let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(
@@ -214,7 +214,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         let flashcardsStore = try self.makeLinkedStore(
             cloudAuthService: CloudAuthService(session: self.makeSession(), cookieStorage: HTTPCookieStorage()),
-            idTokenExpiresAt: isoTimestamp(date: Date().addingTimeInterval(-300))
+            idTokenExpiresAt: formatIsoTimestamp(date: Date().addingTimeInterval(-300))
         )
 
         await withTaskGroup(of: Void.self) { group in
@@ -342,7 +342,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         let flashcardsStore = try self.makeLinkedStore(
             cloudAuthService: CloudAuthService(session: self.makeSession(), cookieStorage: HTTPCookieStorage()),
-            idTokenExpiresAt: isoTimestamp(date: Date().addingTimeInterval(-300))
+            idTokenExpiresAt: formatIsoTimestamp(date: Date().addingTimeInterval(-300))
         )
         let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(

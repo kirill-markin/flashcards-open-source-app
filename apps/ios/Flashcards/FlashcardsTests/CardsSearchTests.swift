@@ -5,7 +5,7 @@ final class CardsSearchTests: XCTestCase {
     func testCardsMatchingSearchTextReturnsAllCardsForBlankSearch() {
         let cards = [self.makeCard(frontText: "Hola", backText: "Hello", tags: ["spanish"])]
 
-        XCTAssertEqual(cardsMatchingSearchText(cards: cards, searchText: "  "), cards)
+        XCTAssertEqual(searchCards(cards: cards, searchText: "  "), cards)
     }
 
     func testCardsMatchingSearchTextMatchesFrontBackAndTagsCaseInsensitively() {
@@ -15,11 +15,11 @@ final class CardsSearchTests: XCTestCase {
             self.makeCard(frontText: "Ciao", backText: "Hi", tags: ["italian"])
         ]
 
-        XCTAssertEqual(cardsMatchingSearchText(cards: cards, searchText: "hola").map(\.cardId), ["card-Hola"])
-        XCTAssertEqual(cardsMatchingSearchText(cards: cards, searchText: "HELLO").map(\.cardId), ["card-Hola", "card-Bonjour"])
-        XCTAssertEqual(cardsMatchingSearchText(cards: cards, searchText: "FREN").map(\.cardId), ["card-Bonjour"])
+        XCTAssertEqual(searchCards(cards: cards, searchText: "hola").map(\.cardId), ["card-Hola"])
+        XCTAssertEqual(searchCards(cards: cards, searchText: "HELLO").map(\.cardId), ["card-Hola", "card-Bonjour"])
+        XCTAssertEqual(searchCards(cards: cards, searchText: "FREN").map(\.cardId), ["card-Bonjour"])
         XCTAssertEqual(
-            cardsMatchingSearchText(cards: cards, searchText: "FAST").map(\.cardId),
+            searchCards(cards: cards, searchText: "FAST").map(\.cardId),
             ["card-Hola", "card-Bonjour", "card-Ciao"]
         )
     }
@@ -32,7 +32,7 @@ final class CardsSearchTests: XCTestCase {
         ]
 
         XCTAssertEqual(
-            cardsMatchingSearchText(cards: cards, searchText: "hola spanish").map(\.cardId),
+            searchCards(cards: cards, searchText: "hola spanish").map(\.cardId),
             ["card-Hola"]
         )
     }
@@ -44,7 +44,7 @@ final class CardsSearchTests: XCTestCase {
         ]
 
         XCTAssertEqual(
-            cardsMatchingSearchText(
+            searchCards(
                 cards: cards,
                 searchText: "alpha beta gamma delta epsilon zeta eta"
             ).map(\.cardId),
@@ -60,7 +60,7 @@ final class CardsSearchTests: XCTestCase {
         ]
 
         XCTAssertEqual(
-            cardsMatchingSearchTextAndFilter(
+            queryCards(
                 cards: cards,
                 searchText: "hello",
                 filter: CardFilter(tags: ["grammar", "verbs"], effort: [.fast])

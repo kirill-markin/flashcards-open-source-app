@@ -35,7 +35,7 @@ final class AIChatAttachmentHelperTests: XCTestCase {
                 mediaType: "image/jpeg"
             )
         ) { error in
-            XCTAssertEqual(localizedMessage(error: error), "File is too large. Maximum allowed size is 20 MB.")
+            XCTAssertEqual(Flashcards.errorMessage(error: error), "File is too large. Maximum allowed size is 20 MB.")
         }
     }
 
