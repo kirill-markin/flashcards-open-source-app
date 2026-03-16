@@ -224,7 +224,7 @@ final class CloudSupportTests: XCTestCase {
             XCTFail("Expected health-check validation to fail")
         } catch {
             XCTAssertEqual(
-                localizedMessage(error: error),
+                Flashcards.errorMessage(error: error),
                 "Auth service health check returned status 503 for https://auth.example.com/health"
             )
         }
@@ -823,7 +823,7 @@ final class CloudSupportTests: XCTestCase {
             """,
             values: [
                 .text(deviceId),
-                .text(currentIsoTimestamp())
+                .text(nowIsoTimestamp())
             ]
         )
     }

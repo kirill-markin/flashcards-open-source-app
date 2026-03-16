@@ -270,28 +270,28 @@ final class FsrsReviewPresentationTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 1_710_000_000)
         let dueAt = now.addingTimeInterval(30)
 
-        XCTAssertEqual(formatReviewIntervalDescription(now: now, dueAt: dueAt), "in less than a minute")
+        XCTAssertEqual(formatReviewIntervalText(now: now, dueAt: dueAt), "in less than a minute")
     }
 
     func testFormatReviewIntervalDescriptionHandlesMinutes() {
         let now = Date(timeIntervalSince1970: 1_710_000_000)
         let dueAt = now.addingTimeInterval(5 * 60)
 
-        XCTAssertEqual(formatReviewIntervalDescription(now: now, dueAt: dueAt), "in 5 minutes")
+        XCTAssertEqual(formatReviewIntervalText(now: now, dueAt: dueAt), "in 5 minutes")
     }
 
     func testFormatReviewIntervalDescriptionHandlesHours() {
         let now = Date(timeIntervalSince1970: 1_710_000_000)
         let dueAt = now.addingTimeInterval(3 * 60 * 60)
 
-        XCTAssertEqual(formatReviewIntervalDescription(now: now, dueAt: dueAt), "in 3 hours")
+        XCTAssertEqual(formatReviewIntervalText(now: now, dueAt: dueAt), "in 3 hours")
     }
 
     func testFormatReviewIntervalDescriptionHandlesDays() {
         let now = Date(timeIntervalSince1970: 1_710_000_000)
         let dueAt = now.addingTimeInterval(4 * 86_400)
 
-        XCTAssertEqual(formatReviewIntervalDescription(now: now, dueAt: dueAt), "in 4 days")
+        XCTAssertEqual(formatReviewIntervalText(now: now, dueAt: dueAt), "in 4 days")
     }
 
     func testMakeReviewAnswerOptionsUsesDisplayOrderAndSchedulePreviewText() throws {
@@ -314,7 +314,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 rating: rating,
                 now: now
             )
-            return formatReviewIntervalDescription(now: now, dueAt: schedule.dueAt)
+            return formatReviewIntervalText(now: now, dueAt: schedule.dueAt)
         }
 
         XCTAssertEqual(options.map(\.rating), reviewAnswerPresentationOrder)

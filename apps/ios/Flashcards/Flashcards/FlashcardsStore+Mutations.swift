@@ -76,7 +76,7 @@ extension FlashcardsStore {
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
                 rating: rating,
-                reviewedAtClient: currentIsoTimestamp()
+                reviewedAtClient: nowIsoTimestamp()
             )
         )
         self.refreshLocalReadModels(now: Date())

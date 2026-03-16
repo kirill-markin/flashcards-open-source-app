@@ -228,7 +228,7 @@ struct CardsScreen: View {
             self.screenErrorMessage = ""
             self.editorPresentation = nil
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -237,7 +237,7 @@ struct CardsScreen: View {
             try store.deleteCard(cardId: cardId)
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -252,7 +252,7 @@ struct CardsScreen: View {
             self.screenErrorMessage = ""
             self.editorPresentation = nil
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -306,7 +306,7 @@ struct CardsScreen: View {
                 )
             }
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
 
         self.isLoading = false
@@ -425,7 +425,7 @@ struct CardRow: View {
             HStack(spacing: 12) {
                 Label(card.effortLevel.title, systemImage: "timer")
                 Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
-                Label(displayTimestamp(value: card.dueAt), systemImage: "clock")
+                Label(formatOptionalIsoTimestampForDisplay(value: card.dueAt), systemImage: "clock")
             }
             .font(.caption)
             .foregroundStyle(.secondary)

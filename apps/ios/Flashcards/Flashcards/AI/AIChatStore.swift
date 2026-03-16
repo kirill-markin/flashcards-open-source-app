@@ -334,7 +334,7 @@ final class AIChatStore: ObservableObject {
                 id: UUID().uuidString.lowercased(),
                 role: .user,
                 content: content,
-                timestamp: currentIsoTimestamp(),
+                timestamp: nowIsoTimestamp(),
                 isError: false
             )
         )
@@ -343,7 +343,7 @@ final class AIChatStore: ObservableObject {
                 id: UUID().uuidString.lowercased(),
                 role: .assistant,
                 content: [.text(aiChatOptimisticAssistantStatusText)],
-                timestamp: currentIsoTimestamp(),
+                timestamp: nowIsoTimestamp(),
                 isError: false
             )
         )
@@ -380,7 +380,7 @@ final class AIChatStore: ObservableObject {
                 }
             } catch is CancellationError {
             } catch {
-                self.markAssistantError(message: localizedMessage(error: error))
+                self.markAssistantError(message: Flashcards.errorMessage(error: error))
                 self.repairStatus = nil
                 self.isStreaming = false
                 let state = self.currentPersistedState()
@@ -426,7 +426,7 @@ final class AIChatStore: ObservableObject {
                 self.handleStartDictationError(recorderError)
             } catch {
                 self.dictationState = .idle
-                self.showGeneralError(message: localizedMessage(error: error))
+                self.showGeneralError(message: Flashcards.errorMessage(error: error))
             }
         }
     }
@@ -472,9 +472,9 @@ final class AIChatStore: ObservableObject {
             } catch let recorderError as AIChatVoiceRecorderError {
                 self.handleFinishDictationError(recorderError)
             } catch let transcriptionError as AIChatTranscriptionError {
-                self.showGeneralError(message: localizedMessage(error: transcriptionError))
+                self.showGeneralError(message: Flashcards.errorMessage(error: transcriptionError))
             } catch {
-                self.showGeneralError(message: localizedMessage(error: error))
+                self.showGeneralError(message: Flashcards.errorMessage(error: error))
             }
 
             self.dictationState = .idle
@@ -488,7 +488,7 @@ final class AIChatStore: ObservableObject {
         case .microphoneBlocked:
             self.showMicrophoneSettingsAlert()
         default:
-            self.showGeneralError(message: localizedMessage(error: error))
+            self.showGeneralError(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -499,7 +499,7 @@ final class AIChatStore: ObservableObject {
         case .microphoneBlocked:
             self.showMicrophoneSettingsAlert()
         default:
-            self.showGeneralError(message: localizedMessage(error: error))
+            self.showGeneralError(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -623,7 +623,7 @@ final class AIChatStore: ObservableObject {
                     id: UUID().uuidString.lowercased(),
                     role: .assistant,
                     content: [.text(message)],
-                    timestamp: currentIsoTimestamp(),
+                    timestamp: nowIsoTimestamp(),
                     isError: true
                 )
             )

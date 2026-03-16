@@ -108,7 +108,7 @@ final class FlashcardsStore: ObservableObject {
             initialGlobalErrorMessage = ""
         } catch {
             database = nil
-            initialGlobalErrorMessage = localizedMessage(error: error)
+            initialGlobalErrorMessage = Flashcards.errorMessage(error: error)
         }
 
         self.init(
@@ -241,7 +241,7 @@ final class FlashcardsStore: ObservableObject {
             do {
                 try self.reload()
             } catch {
-                self.globalErrorMessage = localizedMessage(error: error)
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
 

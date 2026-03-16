@@ -522,7 +522,7 @@ final class DatabaseCore {
                 """,
                 values: [
                     .text(deviceId),
-                    .text(currentIsoTimestamp())
+                    .text(nowIsoTimestamp())
                 ]
             )
         } else {
@@ -539,7 +539,7 @@ final class DatabaseCore {
         let workspaceId: String
 
         if workspaceCount == 0 {
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let operationId = UUID().uuidString.lowercased()
             workspaceId = UUID().uuidString.lowercased()
             try self.execute(
@@ -588,7 +588,7 @@ final class DatabaseCore {
                 """,
                 values: [
                     .text(workspaceId),
-                    .text(currentIsoTimestamp())
+                    .text(nowIsoTimestamp())
                 ]
             )
         }
@@ -608,7 +608,7 @@ final class DatabaseCore {
                     .text("local-user"),
                     .text(workspaceId),
                     .text(locale),
-                    .text(currentIsoTimestamp())
+                    .text(nowIsoTimestamp())
                 ]
             )
         }

@@ -129,7 +129,7 @@ struct AccountStatusView: View {
             try store.disconnectCloudAccount()
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -139,7 +139,7 @@ struct AccountStatusView: View {
                 try await store.syncCloudNow()
                 self.screenErrorMessage = ""
             } catch {
-                self.screenErrorMessage = localizedMessage(error: error)
+                self.screenErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
     }

@@ -73,8 +73,8 @@ func makeAIChatUserFacingErrorMessage(
         configurationMode: configurationMode,
         surface: surface
     ) {
-        return appendCloudRequestReference(message: mappedMessage, requestId: requestId)
+        return appendCloudRequestIdReference(message: mappedMessage, requestId: requestId)
     }
 
-    return appendCloudRequestReference(message: rawMessage, requestId: requestId)
+    return appendCloudRequestIdReference(message: rawMessage, requestId: requestId)
 }

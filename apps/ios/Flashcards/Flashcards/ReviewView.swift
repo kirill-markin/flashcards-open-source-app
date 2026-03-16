@@ -348,7 +348,7 @@ struct ReviewView: View {
             }
 
             HStack(spacing: 12) {
-                Label("Due \(displayTimestamp(value: card.dueAt))", systemImage: "clock")
+                Label("Due \(formatOptionalIsoTimestampForDisplay(value: card.dueAt))", systemImage: "clock")
                 Label("Reps \(card.reps)", systemImage: "arrow.clockwise")
                 Label("Lapses \(card.lapses)", systemImage: "exclamationmark.circle")
             }
@@ -488,7 +488,7 @@ struct ReviewView: View {
             self.screenErrorMessage = ""
             self.isEditorPresented = false
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -504,7 +504,7 @@ struct ReviewView: View {
             self.isEditorPresented = false
             self.editingCardId = nil
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -564,7 +564,7 @@ struct ReviewView: View {
             try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -578,7 +578,7 @@ struct ReviewView: View {
             self.totalCardsCount = tagsSummary.totalCards
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -720,7 +720,7 @@ private func makePreparedReviewRevealState(
             frontContent: frontContent,
             backContent: backContent,
             reviewAnswerGridOptions: nil,
-            reviewAnswerOptionsErrorMessage: localizedMessage(error: error)
+            reviewAnswerOptionsErrorMessage: Flashcards.errorMessage(error: error)
         )
     }
 }
@@ -1281,7 +1281,7 @@ private struct ReviewQueuePreviewScreen: View {
             self.isNextPageLoading = false
             return
         } catch {
-            self.errorMessage = localizedMessage(error: error)
+            self.errorMessage = Flashcards.errorMessage(error: error)
         }
 
         self.isInitialLoading = false
@@ -1409,7 +1409,7 @@ private struct ReviewQueuePreviewCardRow: View {
                 .lineLimit(2)
 
             HStack(spacing: 12) {
-                Label(displayTimestamp(value: card.dueAt), systemImage: "clock")
+                Label(formatOptionalIsoTimestampForDisplay(value: card.dueAt), systemImage: "clock")
                 Label(card.effortLevel.title, systemImage: "timer")
                 Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
             }

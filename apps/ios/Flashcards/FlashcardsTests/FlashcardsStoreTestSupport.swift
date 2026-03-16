@@ -432,7 +432,7 @@ enum FlashcardsStoreTestSupport {
     }
 
     static func makeRemoteDueCard(workspaceId: String, cardId: String) -> Card {
-        let now = currentIsoTimestamp()
+        let now = nowIsoTimestamp()
 
         return Card(
             cardId: cardId,

@@ -3,7 +3,7 @@ import XCTest
 
 final class TagSuggestionsTests: XCTestCase {
     func testTagSuggestionsIgnoreDeletedCardsAndSortByPopularity() {
-        let suggestions = tagSuggestions(cards: [
+        let suggestions = makeTagSuggestions(cards: [
             self.makeCard(cardId: "card-1", tags: ["verbs", "grammar"], deletedAt: nil),
             self.makeCard(cardId: "card-2", tags: ["grammar"], deletedAt: nil),
             self.makeCard(cardId: "card-3", tags: ["animals"], deletedAt: nil),

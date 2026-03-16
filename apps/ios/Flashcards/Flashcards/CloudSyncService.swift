@@ -9,7 +9,7 @@ enum CloudSyncError: LocalizedError {
         case .invalidBaseUrl:
             return "Cloud sync is unavailable. Check the app configuration."
         case .invalidResponse(let details, _):
-            return appendCloudRequestReference(
+            return appendCloudRequestIdReference(
                 message: "Cloud sync failed. Try again.",
                 requestId: details.requestId
             )
@@ -353,7 +353,7 @@ final class CloudSyncService: @unchecked Sendable {
     }
 
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
-        logCloudPhase(phase: .workspaceList, outcome: "start")
+        logCloudFlowPhase(phase: .workspaceList, outcome: "start")
         async let meResponseTask: MeResponse = self.request(
             apiBaseUrl: apiBaseUrl,
             bearerToken: bearerToken,
@@ -380,7 +380,7 @@ final class CloudSyncService: @unchecked Sendable {
             email: meResponse.profile.email,
             workspaces: workspaces
         )
-        logCloudPhase(
+        logCloudFlowPhase(
             phase: .workspaceList,
             outcome: "success",
             changesCount: workspaces.count
@@ -389,7 +389,7 @@ final class CloudSyncService: @unchecked Sendable {
     }
 
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
-        logCloudPhase(phase: .workspaceCreate, outcome: "start", selection: "create_new")
+        logCloudFlowPhase(phase: .workspaceCreate, outcome: "start", selection: "create_new")
         let response: WorkspaceEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
             bearerToken: bearerToken,
@@ -398,7 +398,7 @@ final class CloudSyncService: @unchecked Sendable {
             body: CreateWorkspaceRequest(name: name)
         )
 
-        logCloudPhase(
+        logCloudFlowPhase(
             phase: .workspaceCreate,
             outcome: "success",
             workspaceId: response.workspace.workspaceId,
@@ -408,7 +408,7 @@ final class CloudSyncService: @unchecked Sendable {
     }
 
     func selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String) async throws -> CloudWorkspaceSummary {
-        logCloudPhase(
+        logCloudFlowPhase(
             phase: .workspaceSelect,
             outcome: "start",
             workspaceId: workspaceId,
@@ -422,7 +422,7 @@ final class CloudSyncService: @unchecked Sendable {
             body: Optional<String>.none
         )
 
-        logCloudPhase(
+        logCloudFlowPhase(
             phase: .workspaceSelect,
             outcome: "success",
             workspaceId: response.workspace.workspaceId,
@@ -521,7 +521,7 @@ final class CloudSyncService: @unchecked Sendable {
                         cleanedUpOperationCount: removedReviewEventCount
                     )
                 )
-                logCloudPhase(
+                logCloudFlowPhase(
                     phase: .initialPush,
                     outcome: "self_heal",
                     workspaceId: workspaceId,
@@ -536,7 +536,7 @@ final class CloudSyncService: @unchecked Sendable {
             }
 
             do {
-                logCloudPhase(
+                logCloudFlowPhase(
                     phase: .initialPush,
                     outcome: "start",
                     workspaceId: workspaceId,
@@ -571,7 +571,7 @@ final class CloudSyncService: @unchecked Sendable {
                         cleanedUpOperationCount: 0
                     )
                 )
-                logCloudPhase(
+                logCloudFlowPhase(
                     phase: .initialPush,
                     outcome: "success",
                     workspaceId: workspaceId,
@@ -585,13 +585,13 @@ final class CloudSyncService: @unchecked Sendable {
                     },
                     message: error.localizedDescription
                 )
-                logCloudPhase(
+                logCloudFlowPhase(
                     phase: .initialPush,
                     outcome: "failure",
                     workspaceId: workspaceId,
                     deviceId: cloudSettings.deviceId,
                     operationsCount: outboxEntries.count,
-                    errorMessage: localizedMessage(error: error)
+                    errorMessage: Flashcards.errorMessage(error: error)
                 )
                 throw error
             }
@@ -599,7 +599,7 @@ final class CloudSyncService: @unchecked Sendable {
 
         var afterChangeId = try self.database.loadLastAppliedChangeId(workspaceId: workspaceId)
         while true {
-            logCloudPhase(
+            logCloudFlowPhase(
                 phase: .initialPull,
                 outcome: "start",
                 workspaceId: workspaceId,
@@ -636,7 +636,7 @@ final class CloudSyncService: @unchecked Sendable {
 
             afterChangeId = pullEnvelope.nextChangeId
             try self.database.setLastAppliedChangeId(workspaceId: workspaceId, changeId: afterChangeId)
-            logCloudPhase(
+            logCloudFlowPhase(
                 phase: .initialPull,
                 outcome: "success",
                 workspaceId: workspaceId,
@@ -723,8 +723,8 @@ final class CloudSyncService: @unchecked Sendable {
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
             let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
-            let errorDetails = parseCloudApiErrorDetails(data: data, requestId: requestId)
-            logCloudPhase(
+            let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: requestId)
+            logCloudFlowPhase(
                 phase: self.phase(for: path),
                 outcome: "failure",
                 requestId: errorDetails.requestId,
@@ -734,7 +734,7 @@ final class CloudSyncService: @unchecked Sendable {
             throw CloudSyncError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
 
-        logCloudPhase(phase: self.phase(for: path), outcome: "success")
+        logCloudFlowPhase(phase: self.phase(for: path), outcome: "success")
 
         return try JSONDecoder().decode(Response.self, from: data)
     }

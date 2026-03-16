@@ -295,7 +295,7 @@ struct CloudSignInSheet: View {
                 if self.otpSheetState?.id == nextOtpSheetState.id {
                     self.otpSheetState = nil
                 }
-                self.errorMessage = localizedMessage(error: error)
+                self.errorMessage = Flashcards.errorMessage(error: error)
             }
         }
     }
@@ -331,7 +331,7 @@ struct CloudSignInSheet: View {
                 self.postAuthSyncState = nil
                 self.presentPostAuthFailure(
                     title: "Signed in, but cloud setup failed.",
-                    message: localizedMessage(error: error),
+                    message: Flashcards.errorMessage(error: error),
                     retryAction: .prepareLink(verifiedContext: verifiedContext)
                 )
             }
@@ -404,7 +404,7 @@ struct CloudSignInSheet: View {
                 self.postAuthSyncState = nil
                 self.presentPostAuthFailure(
                     title: failurePresentation.title,
-                    message: localizedMessage(error: error),
+                    message: Flashcards.errorMessage(error: error),
                     retryAction: failurePresentation.retryAction
                 )
             }
@@ -430,7 +430,7 @@ struct CloudSignInSheet: View {
         do {
             try self.store.disconnectCloudAccount()
         } catch {
-            self.errorMessage = localizedMessage(error: error)
+            self.errorMessage = Flashcards.errorMessage(error: error)
         }
 
         self.postAuthLoadingState = nil
@@ -597,7 +597,7 @@ private struct CloudOtpVerificationSheet: View {
                 self.errorMessage = ""
                 self.onVerified(verifiedContext)
             } catch {
-                let message = localizedMessage(error: error)
+                let message = Flashcards.errorMessage(error: error)
                 self.applyOtpErrorState(error: error)
                 self.errorMessage = message
             }
@@ -619,7 +619,7 @@ private struct CloudOtpVerificationSheet: View {
                 self.errorMessage = ""
                 self.challengeState = .active
             } catch {
-                self.errorMessage = localizedMessage(error: error)
+                self.errorMessage = Flashcards.errorMessage(error: error)
             }
         }
     }

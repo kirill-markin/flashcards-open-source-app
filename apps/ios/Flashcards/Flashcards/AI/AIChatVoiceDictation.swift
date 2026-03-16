@@ -243,7 +243,7 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         data: Data,
         configurationMode: CloudServiceConfigurationMode
     ) -> AIChatTranscriptionError {
-        let errorDetails = parseCloudApiErrorDetails(data: data, requestId: nil)
+        let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: nil)
         if errorDetails.code == "CHAT_TRANSCRIPTION_INVALID_AUDIO" || statusCode == 422 {
             return .invalidAudio
         }

@@ -287,7 +287,7 @@ struct CardStore {
             FROM cards
             WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
             """,
-            values: [.text(isoTimestamp(date: now)), .text(workspaceId)] + querySQL.values
+            values: [.text(formatIsoTimestamp(date: now)), .text(workspaceId)] + querySQL.values
         ) { statement in
             ReviewCounts(
                 dueCount: Int(DatabaseCore.columnInt64(statement: statement, index: 1)),
@@ -406,7 +406,7 @@ struct CardStore {
             LIMIT ? OFFSET ?
             """,
             values: [.text(workspaceId)] + querySQL.values + [
-                .text(isoTimestamp(date: now)),
+                .text(formatIsoTimestamp(date: now)),
                 .integer(Int64(limit + 1)),
                 .integer(Int64(offset))
             ]
@@ -545,7 +545,7 @@ struct CardStore {
             FROM cards
             WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
             """,
-            values: [.text(isoTimestamp(date: now)), .text(workspaceId)] + querySQL.values
+            values: [.text(formatIsoTimestamp(date: now)), .text(workspaceId)] + querySQL.values
         ) { statement in
             DeckCardStats(
                 totalCards: Int(DatabaseCore.columnInt64(statement: statement, index: 0)),
@@ -602,7 +602,7 @@ struct CardStore {
             FROM cards
             WHERE workspace_id = ? AND deleted_at IS NULL
             """,
-            values: [.text(isoTimestamp(date: now)), .text(workspaceId)]
+            values: [.text(formatIsoTimestamp(date: now)), .text(workspaceId)]
         ) { statement in
             WorkspaceOverviewSnapshot(
                 workspaceName: workspaceName,
@@ -872,7 +872,7 @@ struct CardStore {
             WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
             """,
             values: [
-                .text(isoTimestamp(date: schedule.dueAt)),
+                .text(formatIsoTimestamp(date: schedule.dueAt)),
                 .integer(Int64(schedule.reps)),
                 .integer(Int64(schedule.lapses)),
                 .text(schedule.fsrsCardState.rawValue),
@@ -881,7 +881,7 @@ struct CardStore {
                 } ?? .null,
                 .real(schedule.fsrsStability),
                 .real(schedule.fsrsDifficulty),
-                .text(isoTimestamp(date: schedule.fsrsLastReviewedAt)),
+                .text(formatIsoTimestamp(date: schedule.fsrsLastReviewedAt)),
                 .integer(Int64(schedule.fsrsScheduledDays)),
                 .text(reviewSubmission.reviewedAtClient),
                 .text(deviceId),
@@ -955,7 +955,7 @@ struct CardStore {
 
         let repairedCard = resetFsrsState(
             card: card,
-            updatedAt: currentIsoTimestamp()
+            updatedAt: nowIsoTimestamp()
         )
         let updatedRows = try self.core.execute(
             sql: """
@@ -1225,9 +1225,9 @@ struct CardStore {
             """,
             values: [
                 .text(workspaceId),
-                .text(isoTimestamp(date: now))
+                .text(formatIsoTimestamp(date: now))
             ] + querySQL.values + excludedCardValues + [
-                .text(isoTimestamp(date: now)),
+                .text(formatIsoTimestamp(date: now)),
                 .integer(Int64(limit + 1))
             ]
         ) { statement in

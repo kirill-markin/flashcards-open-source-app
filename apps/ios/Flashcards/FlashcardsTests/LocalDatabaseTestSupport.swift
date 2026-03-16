@@ -28,7 +28,7 @@ enum LocalDatabaseTestSupport {
             """,
             values: [
                 .text(deviceId),
-                .text(currentIsoTimestamp())
+                .text(nowIsoTimestamp())
             ]
         )
     }

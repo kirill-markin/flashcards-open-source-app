@@ -192,7 +192,7 @@ struct SchedulerSettingsDetailView: View {
             self.isSaveConfirmationPresented = true
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -209,7 +209,7 @@ struct SchedulerSettingsDetailView: View {
             self.screenErrorMessage = ""
         } catch {
             self.pendingSchedulerSettingsUpdate = nil
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 

@@ -45,7 +45,7 @@ extension FlashcardsStore {
                     reviewedCount: overviewSnapshot.reviewedCount
                 )
             } catch {
-                self.globalErrorMessage = localizedMessage(error: error)
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
         self.globalErrorMessage = ""
@@ -114,7 +114,7 @@ extension FlashcardsStore {
         do {
             try self.reload()
         } catch {
-            self.globalErrorMessage = localizedMessage(error: error)
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 

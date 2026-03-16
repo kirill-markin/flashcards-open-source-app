@@ -113,7 +113,7 @@ final class ReviewFilterTests: XCTestCase {
     }
 
     func testWorkspaceTagsSummarySortsByCountThenName() {
-        let summary = workspaceTagsSummary(cards: [
+        let summary = makeWorkspaceTagsSummary(cards: [
             self.makeCard(cardId: "card-1", tags: ["verbs", "grammar"], deletedAt: nil),
             self.makeCard(cardId: "card-2", tags: ["grammar"], deletedAt: nil),
             self.makeCard(cardId: "card-3", tags: ["travel"], deletedAt: nil),

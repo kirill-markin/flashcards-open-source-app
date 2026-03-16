@@ -106,7 +106,7 @@ func aiChatDecoderSummary(error: Error) -> String {
         }
     }
 
-    return localizedMessage(error: error)
+    return Flashcards.errorMessage(error: error)
 }
 
 struct AIChatModelDef: Hashable, Identifiable, Sendable {

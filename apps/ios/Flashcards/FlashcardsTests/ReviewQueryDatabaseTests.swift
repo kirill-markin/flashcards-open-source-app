@@ -43,7 +43,7 @@ final class ReviewQueryDatabaseTests: XCTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: futureGrammarLong.cardId,
                 rating: .good,
-                reviewedAtClient: currentIsoTimestamp()
+                reviewedAtClient: nowIsoTimestamp()
             )
         )
 
@@ -115,7 +115,7 @@ final class ReviewQueryDatabaseTests: XCTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: firstCard.cardId,
                 rating: .good,
-                reviewedAtClient: currentIsoTimestamp()
+                reviewedAtClient: nowIsoTimestamp()
             )
         )
 

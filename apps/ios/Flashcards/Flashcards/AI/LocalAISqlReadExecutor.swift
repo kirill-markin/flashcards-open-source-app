@@ -278,7 +278,7 @@ private func resolvePredicateValue(_ value: LocalAISqlPredicateValue) -> LocalAI
     case .literal(let literal):
         return literal
     case .now:
-        return .string(currentIsoTimestamp())
+        return .string(nowIsoTimestamp())
     }
 }
 

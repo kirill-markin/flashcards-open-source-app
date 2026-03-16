@@ -260,7 +260,7 @@ final class LocalDatabase {
         try self.cardStore.validateCardInput(input: input)
 
         return try self.core.inTransaction {
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
             let persistedCard = try self.cardStore.saveCard(
@@ -289,7 +289,7 @@ final class LocalDatabase {
         }
 
         return try self.core.inTransaction {
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             var createdCards: [Card] = []
             createdCards.reserveCapacity(inputs.count)
@@ -320,7 +320,7 @@ final class LocalDatabase {
 
     func deleteCard(workspaceId: String, cardId: String) throws -> Card {
         return try self.core.inTransaction {
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
             let deletedCard = try self.cardStore.deleteCard(
@@ -351,7 +351,7 @@ final class LocalDatabase {
         }
 
         return try self.core.inTransaction {
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             var updatedCards: [Card] = []
             updatedCards.reserveCapacity(updates.count)
@@ -385,7 +385,7 @@ final class LocalDatabase {
         try self.validateUniqueCardIds(cardIds: cardIds)
 
         return try self.core.inTransaction {
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
 
             for cardId in cardIds {
@@ -419,7 +419,7 @@ final class LocalDatabase {
         return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let newDeck = try self.deckStore.createDeck(
                 workspaceId: workspaceId,
                 input: input,
@@ -446,7 +446,7 @@ final class LocalDatabase {
 
         return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             var createdDecks: [Deck] = []
             createdDecks.reserveCapacity(inputs.count)
 
@@ -479,7 +479,7 @@ final class LocalDatabase {
         return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let updatedDeck = try self.deckStore.updateDeck(
                 workspaceId: workspaceId,
                 deckId: deckId,
@@ -510,7 +510,7 @@ final class LocalDatabase {
 
         return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             var updatedDecks: [Deck] = []
             updatedDecks.reserveCapacity(updates.count)
 
@@ -542,7 +542,7 @@ final class LocalDatabase {
         return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let deletedDeck = try self.deckStore.deleteDeck(
                 workspaceId: workspaceId,
                 deckId: deckId,
@@ -567,7 +567,7 @@ final class LocalDatabase {
 
         return try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
 
             for deckId in deckIds {
                 let operationId = UUID().uuidString.lowercased()
@@ -613,7 +613,7 @@ final class LocalDatabase {
             let cardOperationId = UUID().uuidString.lowercased()
             let reviewEventId = UUID().uuidString.lowercased()
             let clientEventId = UUID().uuidString.lowercased()
-            let reviewedAtServer = currentIsoTimestamp()
+            let reviewedAtServer = nowIsoTimestamp()
 
             let reviewEvent = try self.cardStore.appendReviewEvent(
                 workspaceId: workspaceId,
@@ -667,7 +667,7 @@ final class LocalDatabase {
         try self.core.inTransaction {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             let operationId = UUID().uuidString.lowercased()
-            let now = currentIsoTimestamp()
+            let now = nowIsoTimestamp()
             let updatedSettings = try self.workspaceSettingsStore.updateWorkspaceSchedulerSettings(
                 workspaceId: workspaceId,
                 desiredRetention: desiredRetention,
@@ -725,7 +725,7 @@ final class LocalDatabase {
                 WHERE workspace_id = ?
                 """,
                 values: [
-                    .text(currentIsoTimestamp()),
+                    .text(nowIsoTimestamp()),
                     .text(workspaceId)
                 ]
             )
@@ -738,7 +738,7 @@ final class LocalDatabase {
                     """,
                     values: [
                         .text(workspaceId),
-                        .text(currentIsoTimestamp())
+                        .text(nowIsoTimestamp())
                     ]
                 )
             }
@@ -921,7 +921,7 @@ final class LocalDatabase {
                     sql: "INSERT INTO sync_state (workspace_id, last_applied_change_id, updated_at) VALUES (?, 0, ?)",
                     values: [
                         .text(linkedSession.workspaceId),
-                        .text(currentIsoTimestamp())
+                        .text(nowIsoTimestamp())
                     ]
                 )
             }

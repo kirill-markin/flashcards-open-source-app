@@ -23,7 +23,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             XCTFail("Expected validation to fail")
         } catch {
             XCTAssertEqual(
-                localizedMessage(error: error),
+                Flashcards.errorMessage(error: error),
                 "Auth service health check returned status 503 for https://auth.self-hosted.example.com/health"
             )
         }
@@ -187,7 +187,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             XCTFail("Expected bootstrap protection to block the link")
         } catch {
             XCTAssertEqual(
-                localizedMessage(error: error),
+                Flashcards.errorMessage(error: error),
                 "Choose a new or empty workspace on this server before uploading the current local data."
             )
         }

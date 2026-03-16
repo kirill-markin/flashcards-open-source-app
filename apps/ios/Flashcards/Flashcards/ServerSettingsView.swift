@@ -172,7 +172,7 @@ struct ServerSettingsView: View {
             self.updatePreviewConfiguration()
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -203,7 +203,7 @@ struct ServerSettingsView: View {
                 self.screenErrorMessage = ""
                 self.isConfirmationPresented = true
             } catch {
-                self.screenErrorMessage = localizedMessage(error: error)
+                self.screenErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
     }
@@ -229,7 +229,7 @@ struct ServerSettingsView: View {
             self.screenErrorMessage = ""
             self.confirmationAction = nil
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 

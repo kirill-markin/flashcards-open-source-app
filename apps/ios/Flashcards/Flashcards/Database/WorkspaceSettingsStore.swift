@@ -166,7 +166,7 @@ struct WorkspaceSettingsStore {
                 linkedUserId.map(SQLiteValue.text) ?? .null,
                 linkedWorkspaceId.map(SQLiteValue.text) ?? .null,
                 linkedEmail.map(SQLiteValue.text) ?? .null,
-                .text(currentIsoTimestamp())
+                .text(nowIsoTimestamp())
             ]
         )
 

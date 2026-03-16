@@ -87,7 +87,7 @@ struct AgentConnectionsView: View {
             self.agentConnectionsInstructions = result.instructions
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = localizedMessage(error: error)
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -106,7 +106,7 @@ struct AgentConnectionsView: View {
                 self.agentConnectionsInstructions = result.instructions
                 self.screenErrorMessage = ""
             } catch {
-                self.screenErrorMessage = localizedMessage(error: error)
+                self.screenErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
     }

@@ -18,17 +18,17 @@ enum CloudAuthError: LocalizedError {
             case "OTP_CODE_INVALID":
                 return "Code is invalid. Try again."
             case "OTP_SEND_FAILED":
-                return appendCloudRequestReference(
+                return appendCloudRequestIdReference(
                     message: "Could not send a code. Try again.",
                     requestId: details.requestId
                 )
             case "OTP_VERIFY_FAILED":
-                return appendCloudRequestReference(
+                return appendCloudRequestIdReference(
                     message: "Could not verify the code. Try again.",
                     requestId: details.requestId
                 )
             default:
-                return appendCloudRequestReference(
+                return appendCloudRequestIdReference(
                     message: "Cloud sign-in failed. Try again.",
                     requestId: details.requestId
                 )
@@ -117,7 +117,7 @@ final class CloudAuthService {
         self.resetChallengeSession()
 
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        logCloudPhase(phase: .authSendCode, outcome: "start")
+        logCloudFlowPhase(phase: .authSendCode, outcome: "start")
         let response: SendCodeResponse = try await self.request(
             authBaseUrl: authBaseUrl,
             path: "/api/send-code",
@@ -144,7 +144,7 @@ final class CloudAuthService {
 
     func verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
         let normalizedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        logCloudPhase(phase: .authVerifyCode, outcome: "start")
+        logCloudFlowPhase(phase: .authVerifyCode, outcome: "start")
         let response: VerifyCodeResponse = try await self.request(
             authBaseUrl: authBaseUrl,
             path: "/api/verify-code",
@@ -220,9 +220,9 @@ final class CloudAuthService {
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
             let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
-            let errorDetails = parseCloudApiErrorDetails(data: data, requestId: requestId)
+            let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: requestId)
             let phase: CloudFlowPhase = path == "/api/send-code" ? .authSendCode : .authVerifyCode
-            logCloudPhase(
+            logCloudFlowPhase(
                 phase: phase,
                 outcome: "failure",
                 requestId: errorDetails.requestId,
@@ -233,7 +233,7 @@ final class CloudAuthService {
         }
 
         let phase: CloudFlowPhase = path == "/api/send-code" ? .authSendCode : .authVerifyCode
-        logCloudPhase(phase: phase, outcome: "success")
+        logCloudFlowPhase(phase: phase, outcome: "success")
 
         return try self.decoder.decode(Response.self, from: data)
     }
