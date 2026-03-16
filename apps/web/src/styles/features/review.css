@@ -503,7 +503,7 @@
 
 .rating-btn {
   width: 100%;
-  min-height: 82px;
+  min-height: 68px;
   border: none;
   border-radius: var(--radius-pill);
   background: var(--accent);
@@ -512,8 +512,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 12px 14px;
+  gap: 2px;
+  padding: 10px 12px;
   text-align: center;
   color: #fff6f3;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
@@ -524,13 +524,13 @@
 }
 
 .rating-btn-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.03em;
 }
 
 .rating-btn-subtitle {
-  font-size: 15px;
+  font-size: 14px;
   color: rgba(255, 246, 243, 0.82);
 }
 
