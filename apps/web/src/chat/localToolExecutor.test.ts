@@ -651,4 +651,58 @@ describe("createLocalToolExecutor", () => {
     expect(outboxPayload.outbox[0]?.operationId).toBe("outbox-1");
     expect(outboxPayload.nextCursor).toBe(null);
   });
+
+  it("wraps invalid sql tool input JSON errors", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const executor = createLocalToolExecutor(makeDependencies());
+
+    await expect(executor.execute({
+      toolCallId: "call-invalid-json",
+      name: "sql",
+      input: "{\"sql\":\"SHOW TABLES\"}\n{\"sql\":\"DESCRIBE cards\"}",
+    })).rejects.toThrow("Tool sql input is invalid JSON:");
+  });
+
+  it("rejects invalid outbox cursors", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const executor = createLocalToolExecutor(makeDependencies());
+
+    await expect(executor.execute({
+      toolCallId: "call-invalid-cursor",
+      name: "list_outbox",
+      input: JSON.stringify({
+        cursor: "not-base64",
+        limit: 20,
+      }),
+    })).rejects.toThrow("cursor is invalid:");
+  });
+
+  it("rejects outbox limits outside the supported range", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const executor = createLocalToolExecutor(makeDependencies());
+
+    await expect(executor.execute({
+      toolCallId: "call-invalid-limit",
+      name: "list_outbox",
+      input: JSON.stringify({
+        cursor: null,
+        limit: 101,
+      }),
+    })).rejects.toThrow("limit must be an integer between 1 and 100");
+  });
+
+  it("rejects unsupported local tool names", async () => {
+    const seedData = makeSeedData();
+    await seedLocalDatabase(seedData.cards);
+    const executor = createLocalToolExecutor(makeDependencies());
+
+    await expect(executor.execute({
+      toolCallId: "call-unsupported-tool",
+      name: "legacy_shared_tool",
+      input: "{}",
+    })).rejects.toThrow("Unsupported AI tool: legacy_shared_tool");
+  });
 });
