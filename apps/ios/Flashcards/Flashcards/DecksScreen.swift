@@ -2,6 +2,8 @@ import SwiftUI
 
 struct DecksScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(\.dismissSearch) private var dismissSearch
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
@@ -12,9 +14,18 @@ struct DecksScreen: View {
     )
     @State private var availableTagSuggestions: [TagSuggestion] = []
     @State private var isLoading: Bool = true
+    @State private var isSearchPresented: Bool = false
+    @State private var searchText: String = ""
 
     private var deckListEntries: [DeckScreenListItem] {
         makeDeckScreenListItems(decksSnapshot: self.decksSnapshot)
+    }
+
+    private var filteredDeckListEntries: [DeckScreenListItem] {
+        deckScreenListItemsMatchingSearchText(
+            deckListEntries: self.deckListEntries,
+            searchText: self.searchText
+        )
     }
 
     var body: some View {
@@ -35,8 +46,14 @@ struct DecksScreen: View {
                 if self.isLoading {
                     Text("Loading decks…")
                         .foregroundStyle(.secondary)
+                } else if self.filteredDeckListEntries.isEmpty {
+                    ContentUnavailableView(
+                        "No Matching Decks",
+                        systemImage: "magnifyingglass",
+                        description: Text("Try a different search.")
+                    )
                 } else {
-                    ForEach(deckListEntries) { deckListEntry in
+                    ForEach(self.filteredDeckListEntries) { deckListEntry in
                         if let persistedDeckId = deckListEntry.persistedDeckId {
                             NavigationLink {
                                 DeckDetailScreen(destination: deckListEntry.destination)
@@ -63,6 +80,13 @@ struct DecksScreen: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Decks")
+        .searchable(
+            text: self.$searchText,
+            isPresented: self.$isSearchPresented,
+            placement: .automatic,
+            prompt: "Search decks"
+        )
+        .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
         .task(id: store.localReadVersion) {
             await self.reloadDecksSnapshot()
         }
@@ -93,9 +117,15 @@ struct DecksScreen: View {
     }
 
     private func beginCreating() {
+        self.dismissDecksSearch()
         self.deckFormState = emptyDeckFormState()
         self.screenErrorMessage = ""
         self.isEditorPresented = true
+    }
+
+    private func dismissDecksSearch() {
+        self.dismissSearch()
+        self.isSearchPresented = false
     }
 
     private func saveDeck() {
@@ -135,6 +165,21 @@ struct DecksScreen: View {
             self.isLoading = false
             self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
+    }
+}
+
+private func deckScreenListItemsMatchingSearchText(
+    deckListEntries: [DeckScreenListItem],
+    searchText: String
+) -> [DeckScreenListItem] {
+    let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if normalizedSearchText.isEmpty {
+        return deckListEntries
+    }
+
+    return deckListEntries.filter { deckListEntry in
+        deckListEntry.title.lowercased().contains(normalizedSearchText)
+            || deckListEntry.filterSummary.lowercased().contains(normalizedSearchText)
     }
 }
 

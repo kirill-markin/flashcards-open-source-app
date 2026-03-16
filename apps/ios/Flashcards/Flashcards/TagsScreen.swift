@@ -6,9 +6,20 @@ private func formatCardsCount(_ cardsCount: Int) -> String {
 
 struct TagsScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     @State private var tagsSummary: WorkspaceTagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
     @State private var errorMessage: String = ""
     @State private var isLoading: Bool = true
+    @State private var isSearchPresented: Bool = false
+    @State private var searchText: String = ""
+
+    private var filteredTags: [WorkspaceTagSummary] {
+        workspaceTagSummariesMatchingSearchText(
+            tagSummaries: self.tagsSummary.tags,
+            searchText: self.searchText
+        )
+    }
 
     var body: some View {
         List {
@@ -28,11 +39,17 @@ struct TagsScreen: View {
                 if self.isLoading {
                     Text("Loading tags…")
                         .foregroundStyle(.secondary)
-                } else if tagsSummary.tags.isEmpty {
+                } else if self.tagsSummary.tags.isEmpty {
                     Text("No tags have been used yet.")
                         .foregroundStyle(.secondary)
+                } else if self.filteredTags.isEmpty {
+                    ContentUnavailableView(
+                        "No Matching Tags",
+                        systemImage: "magnifyingglass",
+                        description: Text("Try a different search.")
+                    )
                 } else {
-                    ForEach(tagsSummary.tags, id: \.tag) { tagSummary in
+                    ForEach(self.filteredTags, id: \.tag) { tagSummary in
                         HStack(spacing: 12) {
                             Label(tagSummary.tag, systemImage: "tag")
                                 .foregroundStyle(.primary)
@@ -69,6 +86,13 @@ struct TagsScreen: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Tags")
+        .searchable(
+            text: self.$searchText,
+            isPresented: self.$isSearchPresented,
+            placement: .automatic,
+            prompt: "Search tags"
+        )
+        .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
         .task(id: store.localReadVersion) {
             await self.reloadTagsSummary()
         }
@@ -93,6 +117,20 @@ struct TagsScreen: View {
         }
 
         self.isLoading = false
+    }
+}
+
+private func workspaceTagSummariesMatchingSearchText(
+    tagSummaries: [WorkspaceTagSummary],
+    searchText: String
+) -> [WorkspaceTagSummary] {
+    let normalizedSearchText = normalizeTag(rawValue: searchText).lowercased()
+    if normalizedSearchText.isEmpty {
+        return tagSummaries
+    }
+
+    return tagSummaries.filter { tagSummary in
+        tagSummary.tag.lowercased().contains(normalizedSearchText)
     }
 }
 
