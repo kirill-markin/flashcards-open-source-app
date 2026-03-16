@@ -152,6 +152,8 @@ describe("AppShell", () => {
       initialize: vi.fn(async () => undefined),
       chooseWorkspace: vi.fn(async () => undefined),
       createWorkspace: vi.fn(async () => undefined),
+      renameWorkspace: vi.fn(async () => undefined),
+      deleteWorkspace: vi.fn(async () => undefined),
     });
   });
 

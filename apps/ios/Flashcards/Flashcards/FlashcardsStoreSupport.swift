@@ -16,6 +16,23 @@ protocol CloudAuthServing {
 protocol CloudSyncServing {
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary
+    func renameWorkspace(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        name: String
+    ) async throws -> CloudWorkspaceSummary
+    func loadWorkspaceDeletePreview(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ) async throws -> CloudWorkspaceDeletePreview
+    func deleteWorkspace(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ) async throws -> CloudWorkspaceDeleteResult
     func selectWorkspace(
         apiBaseUrl: String,
         bearerToken: String,

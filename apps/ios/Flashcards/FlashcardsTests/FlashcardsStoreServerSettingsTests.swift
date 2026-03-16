@@ -4,6 +4,74 @@ import XCTest
 
 @MainActor
 final class FlashcardsStoreServerSettingsTests: XCTestCase {
+    func testRenameCurrentWorkspacePersistsReturnedCloudNameLocally() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        context.store.cloudRuntime.setActiveCloudSession(linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId))
+        context.cloudSyncService.renamedWorkspacesById[workspaceId] = CloudWorkspaceSummary(
+            workspaceId: workspaceId,
+            name: "Renamed workspace",
+            createdAt: "2026-03-10T09:00:00.000Z",
+            isSelected: true
+        )
+
+        try await context.store.renameCurrentWorkspace(name: "Renamed workspace")
+
+        XCTAssertEqual(context.store.workspace?.name, "Renamed workspace")
+        XCTAssertEqual(try context.database.loadBootstrapSnapshot().workspace.name, "Renamed workspace")
+    }
+
+    func testDeleteCurrentWorkspaceSwitchesToReplacementWorkspaceAndClearsLocalData() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        context.store.cloudRuntime.setActiveCloudSession(linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId))
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
+            cardId: nil
+        )
+        let oldOutboxEntries = try context.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        XCTAssertFalse(oldOutboxEntries.isEmpty)
+
+        let replacementWorkspace = CloudWorkspaceSummary(
+            workspaceId: "workspace-replacement",
+            name: "Replacement workspace",
+            createdAt: "2026-03-16T10:00:00.000Z",
+            isSelected: true
+        )
+        context.cloudSyncService.deletedWorkspaceResultsById[workspaceId] = CloudWorkspaceDeleteResult(
+            ok: true,
+            deletedWorkspaceId: workspaceId,
+            deletedCardsCount: 1,
+            workspace: replacementWorkspace
+        )
+
+        try await context.store.deleteCurrentWorkspace(confirmationText: "delete workspace")
+
+        XCTAssertEqual(context.store.workspace?.workspaceId, replacementWorkspace.workspaceId)
+        XCTAssertEqual(context.store.workspace?.name, replacementWorkspace.name)
+        XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, replacementWorkspace.workspaceId)
+        XCTAssertEqual(try context.database.loadActiveCards(workspaceId: replacementWorkspace.workspaceId).count, 0)
+        XCTAssertEqual(try context.database.loadOutboxEntries(workspaceId: replacementWorkspace.workspaceId, limit: 100).count, 0)
+        XCTAssertEqual(try context.database.loadLastAppliedChangeId(workspaceId: replacementWorkspace.workspaceId), 0)
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncSessions.last?.workspaceId, replacementWorkspace.workspaceId)
+    }
+
     func testDisconnectCloudAccountResetsLocalStateAndRegeneratesDeviceId() throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,

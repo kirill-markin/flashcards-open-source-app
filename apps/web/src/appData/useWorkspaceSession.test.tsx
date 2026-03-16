@@ -11,11 +11,13 @@ const {
   clearAllLocalBrowserDataMock,
   consumeAccountDeletedMarkerMock,
   createWorkspaceMock,
+  deleteWorkspaceMock,
   getSessionMock,
   getStableDeviceIdForUserMock,
   listWorkspacesMock,
   loadCloudSettingsMock,
   putCloudSettingsMock,
+  renameWorkspaceMock,
   relinkWorkspaceCacheMock,
   revalidateSessionMock,
   selectWorkspaceMock,
@@ -23,11 +25,13 @@ const {
   clearAllLocalBrowserDataMock: vi.fn(),
   consumeAccountDeletedMarkerMock: vi.fn(),
   createWorkspaceMock: vi.fn(),
+  deleteWorkspaceMock: vi.fn(),
   getSessionMock: vi.fn(),
   getStableDeviceIdForUserMock: vi.fn(),
   listWorkspacesMock: vi.fn(),
   loadCloudSettingsMock: vi.fn(),
   putCloudSettingsMock: vi.fn(),
+  renameWorkspaceMock: vi.fn(),
   relinkWorkspaceCacheMock: vi.fn(),
   revalidateSessionMock: vi.fn(),
   selectWorkspaceMock: vi.fn(),
@@ -35,9 +39,11 @@ const {
 
 vi.mock("../api", () => ({
   createWorkspace: createWorkspaceMock,
+  deleteWorkspace: deleteWorkspaceMock,
   getSession: getSessionMock,
   isAuthRedirectError: () => false,
   listWorkspaces: listWorkspacesMock,
+  renameWorkspace: renameWorkspaceMock,
   revalidateSession: revalidateSessionMock,
   selectWorkspace: selectWorkspaceMock,
 }));
@@ -101,6 +107,7 @@ function WorkspaceSessionHarness(): ReactElement {
   useWorkspaceSession({
     sessionLoadState,
     session,
+    activeWorkspace,
     availableWorkspaces,
     setSessionLoadState,
     setSessionErrorMessage,
@@ -134,11 +141,13 @@ describe("useWorkspaceSession", () => {
     clearAllLocalBrowserDataMock.mockReset();
     consumeAccountDeletedMarkerMock.mockReset();
     createWorkspaceMock.mockReset();
+    deleteWorkspaceMock.mockReset();
     getSessionMock.mockReset();
     getStableDeviceIdForUserMock.mockReset();
     listWorkspacesMock.mockReset();
     loadCloudSettingsMock.mockReset();
     putCloudSettingsMock.mockReset();
+    renameWorkspaceMock.mockReset();
     relinkWorkspaceCacheMock.mockReset();
     revalidateSessionMock.mockReset();
     selectWorkspaceMock.mockReset();

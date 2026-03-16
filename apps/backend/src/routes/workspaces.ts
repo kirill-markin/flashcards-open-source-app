@@ -15,9 +15,14 @@ import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../pagination"
 import {
   createWorkspaceForApiKeyConnection,
   createWorkspaceForUser,
+  deleteWorkspaceForUser,
   listUserWorkspacesPageForSelectedWorkspace,
+  loadWorkspaceDeletePreviewForUser,
+  renameWorkspaceForUser,
   selectWorkspaceForApiKeyConnection,
   selectWorkspaceForUser,
+  type DeleteWorkspaceResult,
+  type WorkspaceDeletePreview,
   type WorkspaceSummary,
 } from "../workspaces";
 import { HttpError } from "../errors";
@@ -50,6 +55,8 @@ type WorkspacesPageResponse = Readonly<{
   workspaces: ReadonlyArray<WorkspaceSummary>;
   nextCursor: string | null;
 }>;
+
+type WorkspaceDeleteResponse = DeleteWorkspaceResult;
 
 type AgentApiKeyConnectionsPageResponse = Readonly<{
   connections: ReadonlyArray<AgentApiKeyConnection>;
@@ -184,6 +191,119 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       return context.json({ workspace });
     } catch (error) {
       logCloudRouteEvent("workspace_select_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
+  });
+
+  app.post("/workspaces/:workspaceId/rename", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    requireHumanManagedConnectionAccess(requestContext.transport);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const requestId = context.get("requestId");
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+
+    try {
+      const workspaceName = expectNonEmptyString(body.name, "name");
+      const workspace = await renameWorkspaceForUser(
+        requestContext.userId,
+        workspaceId,
+        workspaceName,
+        requestContext.selectedWorkspaceId,
+      );
+      logCloudRouteEvent("workspace_rename", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+      }, false);
+      return context.json({ workspace });
+    } catch (error) {
+      logCloudRouteEvent("workspace_rename_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
+  });
+
+  app.get("/workspaces/:workspaceId/delete-preview", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    requireHumanManagedConnectionAccess(requestContext.transport);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const requestId = context.get("requestId");
+
+    try {
+      const preview = await loadWorkspaceDeletePreviewForUser(requestContext.userId, workspaceId);
+      logCloudRouteEvent("workspace_delete_preview", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+        cardsCount: preview.activeCardCount,
+      }, false);
+      return context.json(preview satisfies WorkspaceDeletePreview);
+    } catch (error) {
+      logCloudRouteEvent("workspace_delete_preview_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
+  });
+
+  app.post("/workspaces/:workspaceId/delete", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    requireHumanManagedConnectionAccess(requestContext.transport);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const requestId = context.get("requestId");
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+
+    if (typeof body.confirmationText !== "string") {
+      throw new HttpError(
+        400,
+        "confirmationText must be a string",
+        "WORKSPACE_DELETE_CONFIRMATION_INVALID",
+      );
+    }
+
+    try {
+      const response = await deleteWorkspaceForUser(
+        requestContext.userId,
+        workspaceId,
+        body.confirmationText,
+      );
+      logCloudRouteEvent("workspace_delete", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+        deletedCardsCount: response.deletedCardsCount,
+        nextWorkspaceId: response.workspace.workspaceId,
+      }, false);
+      return context.json(response satisfies WorkspaceDeleteResponse);
+    } catch (error) {
+      logCloudRouteEvent("workspace_delete_error", {
         requestId,
         route: context.req.path,
         statusCode: error instanceof HttpError ? error.statusCode : 500,

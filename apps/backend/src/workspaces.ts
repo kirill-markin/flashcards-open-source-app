@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   queryWithUserScope,
-  transaction,
   transactionWithUserScope,
   type DatabaseExecutor,
 } from "./db";
@@ -15,6 +14,7 @@ import {
 import { insertSyncChange } from "./syncChanges";
 
 export const AUTO_CREATED_WORKSPACE_NAME = "Personal";
+export const deleteWorkspaceConfirmationText = "delete workspace";
 
 export type WorkspaceSummary = Readonly<{
   workspaceId: string;
@@ -28,6 +28,21 @@ export type WorkspaceSummaryPage = Readonly<{
   nextCursor: string | null;
 }>;
 
+export type WorkspaceDeletePreview = Readonly<{
+  workspaceId: string;
+  workspaceName: string;
+  activeCardCount: number;
+  confirmationText: string;
+  isLastAccessibleWorkspace: boolean;
+}>;
+
+export type DeleteWorkspaceResult = Readonly<{
+  ok: true;
+  deletedWorkspaceId: string;
+  deletedCardsCount: number;
+  workspace: WorkspaceSummary;
+}>;
+
 type WorkspaceSummaryRow = Readonly<{
   workspace_id: string;
   name: string;
@@ -36,6 +51,18 @@ type WorkspaceSummaryRow = Readonly<{
 
 type WorkspaceMembershipRow = Readonly<{
   workspace_id: string;
+}>;
+
+type WorkspaceManagementRow = Readonly<{
+  workspace_id: string;
+  name: string;
+  created_at: Date | string;
+  role: string;
+  member_count: number;
+}>;
+
+type ActiveCardCountRow = Readonly<{
+  active_card_count: string | number;
 }>;
 
 type WorkspacePageCursor = Readonly<{
@@ -81,6 +108,32 @@ function mapWorkspaceSummary(row: WorkspaceSummaryRow, selectedWorkspaceId: stri
     createdAt: toIsoString(row.created_at),
     isSelected: selectedWorkspaceId === row.workspace_id,
   };
+}
+
+function assertWorkspaceOwner(role: string): void {
+  if (role !== "owner") {
+    throw new HttpError(403, "Only workspace owners can manage this workspace", "WORKSPACE_OWNER_REQUIRED");
+  }
+}
+
+function assertWorkspaceIsSoleMember(memberCount: number): void {
+  if (memberCount !== 1) {
+    throw new HttpError(
+      409,
+      "This workspace cannot be deleted while it still has multiple members.",
+      "WORKSPACE_DELETE_SHARED",
+    );
+  }
+}
+
+function assertDeleteWorkspaceConfirmationText(confirmationText: string): void {
+  if (confirmationText !== deleteWorkspaceConfirmationText) {
+    throw new HttpError(
+      400,
+      `Type "${deleteWorkspaceConfirmationText}" exactly to confirm workspace deletion.`,
+      "WORKSPACE_DELETE_CONFIRMATION_INVALID",
+    );
+  }
 }
 
 function decodeWorkspacePageCursor(cursor: string): WorkspacePageCursor {
@@ -148,6 +201,62 @@ async function loadWorkspaceSummaryInExecutor(
   }
 
   return mapWorkspaceSummary(row, selectedWorkspaceId);
+}
+
+async function loadWorkspaceManagementRowInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+): Promise<WorkspaceManagementRow> {
+  const result = await executor.query<WorkspaceManagementRow>(
+    [
+      "SELECT",
+      "workspaces.workspace_id,",
+      "workspaces.name,",
+      "workspaces.created_at,",
+      "memberships.role,",
+      "(",
+      "SELECT COUNT(*)::int",
+      "FROM org.workspace_memberships all_memberships",
+      "WHERE all_memberships.workspace_id = memberships.workspace_id",
+      ") AS member_count",
+      "FROM org.workspace_memberships memberships",
+      "INNER JOIN org.workspaces workspaces ON workspaces.workspace_id = memberships.workspace_id",
+      "WHERE memberships.user_id = $1 AND memberships.workspace_id = $2",
+      "FOR UPDATE OF memberships, workspaces",
+    ].join(" "),
+    [userId, workspaceId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
+  }
+
+  return row;
+}
+
+async function loadActiveCardCountInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+): Promise<number> {
+  const result = await executor.query<ActiveCardCountRow>(
+    [
+      "SELECT COUNT(*)::int AS active_card_count",
+      "FROM content.cards",
+      "WHERE workspace_id = $1 AND deleted_at IS NULL",
+    ].join(" "),
+    [workspaceId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error("Active card count query did not return a row");
+  }
+
+  return typeof row.active_card_count === "number"
+    ? row.active_card_count
+    : Number.parseInt(row.active_card_count, 10);
 }
 
 async function createWorkspaceInExecutor(
@@ -411,6 +520,108 @@ export async function createWorkspaceForApiKeyConnection(
 
     return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
   });
+}
+
+export async function renameWorkspaceInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+  name: string,
+  selectedWorkspaceId: string | null,
+): Promise<WorkspaceSummary> {
+  const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
+  assertWorkspaceOwner(managedWorkspace.role);
+  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+  await executor.query(
+    "UPDATE org.workspaces SET name = $1 WHERE workspace_id = $2",
+    [name, workspaceId],
+  );
+
+  return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, selectedWorkspaceId);
+}
+
+export async function renameWorkspaceForUser(
+  userId: string,
+  workspaceId: string,
+  name: string,
+  selectedWorkspaceId: string | null,
+): Promise<WorkspaceSummary> {
+  return transactionWithUserScope({ userId }, async (executor) => renameWorkspaceInExecutor(
+    executor,
+    userId,
+    workspaceId,
+    name,
+    selectedWorkspaceId,
+  ));
+}
+
+export async function loadWorkspaceDeletePreviewInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+): Promise<WorkspaceDeletePreview> {
+  const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
+  assertWorkspaceOwner(managedWorkspace.role);
+  assertWorkspaceIsSoleMember(managedWorkspace.member_count);
+  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+  const activeCardCount = await loadActiveCardCountInExecutor(executor, workspaceId);
+  const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
+
+  return {
+    workspaceId,
+    workspaceName: managedWorkspace.name,
+    activeCardCount,
+    confirmationText: deleteWorkspaceConfirmationText,
+    isLastAccessibleWorkspace: workspaceIds.length === 1,
+  };
+}
+
+export async function loadWorkspaceDeletePreviewForUser(
+  userId: string,
+  workspaceId: string,
+): Promise<WorkspaceDeletePreview> {
+  return transactionWithUserScope({ userId }, async (executor) => loadWorkspaceDeletePreviewInExecutor(
+    executor,
+    userId,
+    workspaceId,
+  ));
+}
+
+export async function deleteWorkspaceInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+  confirmationText: string,
+): Promise<DeleteWorkspaceResult> {
+  assertDeleteWorkspaceConfirmationText(confirmationText);
+  const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
+  assertWorkspaceOwner(managedWorkspace.role);
+  assertWorkspaceIsSoleMember(managedWorkspace.member_count);
+  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+  const deletedCardsCount = await loadActiveCardCountInExecutor(executor, workspaceId);
+  await executor.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
+  const selectedWorkspaceId = await ensureUserSelectedWorkspaceInExecutor(executor, userId, workspaceId);
+  const workspace = await loadWorkspaceSummaryInExecutor(executor, userId, selectedWorkspaceId, selectedWorkspaceId);
+
+  return {
+    ok: true,
+    deletedWorkspaceId: workspaceId,
+    deletedCardsCount,
+    workspace,
+  };
+}
+
+export async function deleteWorkspaceForUser(
+  userId: string,
+  workspaceId: string,
+  confirmationText: string,
+): Promise<DeleteWorkspaceResult> {
+  return transactionWithUserScope({ userId }, async (executor) => deleteWorkspaceInExecutor(
+    executor,
+    userId,
+    workspaceId,
+    confirmationText,
+  ));
 }
 
 export async function selectWorkspaceForUser(userId: string, workspaceId: string): Promise<WorkspaceSummary> {

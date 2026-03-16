@@ -1,5 +1,6 @@
 import { getAppConfig } from "./config";
 import type {
+  DeleteWorkspaceResponse,
   LocalChatDiagnosticsPayload,
   LocalChatMessage,
   LocalChatRequestBody,
@@ -15,6 +16,7 @@ import type {
   AgentApiKeyRevokeResponse,
   ChatTranscriptionResponse,
   ChatTranscriptionSource,
+  WorkspaceDeletePreview,
   WorkspaceSummary,
 } from "./types";
 
@@ -412,6 +414,27 @@ export async function selectWorkspace(workspaceId: string): Promise<WorkspaceSum
     method: "POST",
   }, allowAuthRecovery)) as unknown as WorkspaceEnvelope;
   return payload.workspace;
+}
+
+export async function renameWorkspace(workspaceId: string, name: string): Promise<WorkspaceSummary> {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/rename`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  }, allowAuthRecovery)) as unknown as WorkspaceEnvelope;
+  return payload.workspace;
+}
+
+export async function loadWorkspaceDeletePreview(workspaceId: string): Promise<WorkspaceDeletePreview> {
+  return expectObject(await requestJson(`/workspaces/${workspaceId}/delete-preview`, {
+    method: "GET",
+  }, allowAuthRecovery)) as unknown as WorkspaceDeletePreview;
+}
+
+export async function deleteWorkspace(workspaceId: string, confirmationText: string): Promise<DeleteWorkspaceResponse> {
+  return expectObject(await requestJson(`/workspaces/${workspaceId}/delete`, {
+    method: "POST",
+    body: JSON.stringify({ confirmationText }),
+  }, allowAuthRecovery)) as unknown as DeleteWorkspaceResponse;
 }
 
 export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse> {

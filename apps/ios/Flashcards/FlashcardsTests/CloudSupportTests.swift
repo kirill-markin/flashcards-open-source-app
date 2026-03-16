@@ -230,6 +230,109 @@ final class CloudSupportTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testRenameWorkspaceCallsRenameEndpointAndDecodesWorkspaceSummary() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            XCTAssertEqual(url.path, "/v1/workspaces/workspace-1/rename")
+            XCTAssertEqual(request.httpMethod, "POST")
+
+            let bodyData = try XCTUnwrap(request.httpBody)
+            let bodyObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: String])
+            XCTAssertEqual(bodyObject["name"], "Renamed workspace")
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let data = """
+            {"workspace":{"workspaceId":"workspace-1","name":"Renamed workspace","createdAt":"2026-03-16T10:00:00.000Z","isSelected":true}}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+        let workspace = try await service.renameWorkspace(
+            apiBaseUrl: "https://api.example.com/v1",
+            bearerToken: "id-token",
+            workspaceId: "workspace-1",
+            name: "Renamed workspace"
+        )
+
+        XCTAssertEqual(workspace.name, "Renamed workspace")
+        XCTAssertTrue(workspace.isSelected)
+    }
+
+    @MainActor
+    func testLoadWorkspaceDeletePreviewCallsPreviewEndpoint() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            XCTAssertEqual(url.path, "/v1/workspaces/workspace-1/delete-preview")
+            XCTAssertEqual(request.httpMethod, "GET")
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let data = """
+            {"workspaceId":"workspace-1","workspaceName":"Primary","activeCardCount":8,"confirmationText":"delete workspace","isLastAccessibleWorkspace":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+        let preview = try await service.loadWorkspaceDeletePreview(
+            apiBaseUrl: "https://api.example.com/v1",
+            bearerToken: "id-token",
+            workspaceId: "workspace-1"
+        )
+
+        XCTAssertEqual(preview.activeCardCount, 8)
+        XCTAssertEqual(preview.confirmationText, "delete workspace")
+    }
+
+    @MainActor
+    func testDeleteWorkspaceCallsDeleteEndpointAndDecodesReplacementWorkspace() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            XCTAssertEqual(url.path, "/v1/workspaces/workspace-1/delete")
+            XCTAssertEqual(request.httpMethod, "POST")
+
+            let bodyData = try XCTUnwrap(request.httpBody)
+            let bodyObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: String])
+            XCTAssertEqual(bodyObject["confirmationText"], "delete workspace")
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let data = """
+            {"ok":true,"deletedWorkspaceId":"workspace-1","deletedCardsCount":3,"workspace":{"workspaceId":"workspace-2","name":"Replacement","createdAt":"2026-03-16T10:00:00.000Z","isSelected":true}}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+        let response = try await service.deleteWorkspace(
+            apiBaseUrl: "https://api.example.com/v1",
+            bearerToken: "id-token",
+            workspaceId: "workspace-1",
+            confirmationText: "delete workspace"
+        )
+
+        XCTAssertEqual(response.deletedWorkspaceId, "workspace-1")
+        XCTAssertEqual(response.workspace.workspaceId, "workspace-2")
+    }
+
     func testIsValidCloudEmailReturnsTrueForExpectedEmail() {
         XCTAssertTrue(isValidCloudEmail("user@example.com"))
     }

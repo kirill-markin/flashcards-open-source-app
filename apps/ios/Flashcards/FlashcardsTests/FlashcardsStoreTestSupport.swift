@@ -82,6 +82,9 @@ enum FlashcardsStoreTestSupport {
         private(set) var runLinkedSyncSessions: [CloudLinkedSession]
         var fetchCloudAccountSnapshot: CloudAccountSnapshot?
         var createWorkspaceResult: CloudWorkspaceSummary?
+        var renamedWorkspacesById: [String: CloudWorkspaceSummary]
+        var workspaceDeletePreviewById: [String: CloudWorkspaceDeletePreview]
+        var deletedWorkspaceResultsById: [String: CloudWorkspaceDeleteResult]
         var selectedWorkspacesById: [String: CloudWorkspaceSummary]
         var workspaceBootstrapEmptinessById: [String: Bool]
         private var runLinkedSyncOutcomes: [MockCloudSyncRunOutcome]
@@ -93,6 +96,9 @@ enum FlashcardsStoreTestSupport {
             self.runLinkedSyncSessions = []
             self.fetchCloudAccountSnapshot = nil
             self.createWorkspaceResult = nil
+            self.renamedWorkspacesById = [:]
+            self.workspaceDeletePreviewById = [:]
+            self.deletedWorkspaceResultsById = [:]
             self.selectedWorkspacesById = [:]
             self.workspaceBootstrapEmptinessById = [:]
             self.runLinkedSyncOutcomes = runLinkedSyncOutcomes
@@ -113,6 +119,44 @@ enum FlashcardsStoreTestSupport {
             }
 
             return createWorkspaceResult
+        }
+
+        func renameWorkspace(
+            apiBaseUrl: String,
+            bearerToken: String,
+            workspaceId: String,
+            name: String
+        ) async throws -> CloudWorkspaceSummary {
+            guard let renamedWorkspace = self.renamedWorkspacesById[workspaceId] else {
+                throw LocalStoreError.validation("Unexpected renameWorkspace call in FlashcardsStoreTests")
+            }
+
+            return renamedWorkspace
+        }
+
+        func loadWorkspaceDeletePreview(
+            apiBaseUrl: String,
+            bearerToken: String,
+            workspaceId: String
+        ) async throws -> CloudWorkspaceDeletePreview {
+            guard let preview = self.workspaceDeletePreviewById[workspaceId] else {
+                throw LocalStoreError.validation("Unexpected loadWorkspaceDeletePreview call in FlashcardsStoreTests")
+            }
+
+            return preview
+        }
+
+        func deleteWorkspace(
+            apiBaseUrl: String,
+            bearerToken: String,
+            workspaceId: String,
+            confirmationText: String
+        ) async throws -> CloudWorkspaceDeleteResult {
+            guard let deleteResult = self.deletedWorkspaceResultsById[workspaceId] else {
+                throw LocalStoreError.validation("Unexpected deleteWorkspace call in FlashcardsStoreTests")
+            }
+
+            return deleteResult
         }
 
         func selectWorkspace(

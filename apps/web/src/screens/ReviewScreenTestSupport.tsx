@@ -111,6 +111,8 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
     createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),
+    renameWorkspace: vi.fn(async (_workspaceId: string, _name: string): Promise<void> => undefined),
+    deleteWorkspace: vi.fn(async (_workspaceId: string, _confirmationText: string): Promise<void> => undefined),
     refreshLocalData: vi.fn(async (): Promise<void> => undefined),
     getCardById: vi.fn(async (_cardId: string): Promise<Card> => throwNotUsed("getCardById")),
     getDeckById: vi.fn(async (_deckId: string): Promise<Deck> => throwNotUsed("getDeckById")),
