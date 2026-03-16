@@ -1,4 +1,5 @@
 import { clearWebSyncCache } from "./localDb/cache";
+import { DEVICE_ID_MAP_STORAGE_KEY, LEGACY_DEVICE_ID_STORAGE_KEY } from "./clientIdentity";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
@@ -8,7 +9,8 @@ const ACCOUNT_DELETION_EVENT_NAME = "flashcards-account-deletion-pending-change"
 const APP_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   "flashcards-account-deletion-pending",
   "flashcards-account-deletion-csrf-token",
-  "flashcards-sync-device-id",
+  LEGACY_DEVICE_ID_STORAGE_KEY,
+  DEVICE_ID_MAP_STORAGE_KEY,
   "selected-review-filter",
   "flashcards-chat-messages",
   "flashcards-chat-open",
@@ -103,6 +105,10 @@ export function loadAccountDeletionCsrfToken(): string | null {
   return csrfToken === null || csrfToken === "" ? null : csrfToken;
 }
 
+/**
+ * Clears every browser-local app artifact so the next session always starts
+ * from a full sync bootstrap instead of inheriting another user's state.
+ */
 export async function clearAllLocalBrowserData(): Promise<void> {
   await clearWebSyncCache();
 

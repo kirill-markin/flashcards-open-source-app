@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { getStableDeviceId, webAppBuild, webAppVersion } from "../clientIdentity";
+import { webAppBuild, webAppVersion } from "../clientIdentity";
 import { SettingsShell } from "./SettingsShared";
 import { useAppData } from "../appData";
 
@@ -82,8 +82,8 @@ function buildWebDeviceInfo(deviceId: string): WebDeviceInfo {
 }
 
 export function ThisDeviceSettingsScreen(): ReactElement {
-  const { activeWorkspace } = useAppData();
-  const deviceInfo = buildWebDeviceInfo(getStableDeviceId());
+  const { activeWorkspace, cloudSettings } = useAppData();
+  const deviceInfo = buildWebDeviceInfo(cloudSettings?.deviceId ?? "Unavailable");
 
   return (
     <SettingsShell

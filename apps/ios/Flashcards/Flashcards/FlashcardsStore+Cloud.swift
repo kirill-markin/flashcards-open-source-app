@@ -13,6 +13,82 @@ enum CloudBootstrapEligibilityError: LocalizedError {
 
 @MainActor
 extension FlashcardsStore {
+    /**
+     Clears all account-scoped local state so the next cloud link starts from a
+     fresh local database and a freshly generated sync device id.
+     */
+    private func resetLocalStateForCloudIdentityChange() throws {
+        let database = try requireLocalDatabase(database: self.database)
+
+        self.reviewRuntime.cancelForAccountDeletion()
+        self.cloudRuntime.cancelForAccountDeletion()
+        try self.cloudRuntime.clearCredentials()
+        self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
+        self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
+        self.aiChatStore.clearHistory()
+        self.reviewRuntime = ReviewQueueRuntime(
+            initialSelectedReviewFilter: .allCards,
+            reviewSeedQueueSize: reviewSeedQueueSize,
+            reviewQueueReplenishmentThreshold: reviewQueueReplenishmentThreshold
+        )
+        self.applyReviewPublishedState(
+            reviewState: ReviewQueueRuntime.makeInitialPublishedState(selectedReviewFilter: .allCards)
+        )
+        self.reviewOverlayBanner = nil
+        self.lastSuccessfulCloudSyncAt = nil
+        self.syncStatus = .idle
+        self.globalErrorMessage = ""
+        try database.resetForAccountDeletion()
+        try self.reload()
+    }
+
+    private func resetLocalStateIfLinkedUserDiffers(nextUserId: String) throws {
+        guard let linkedUserId = self.cloudSettings?.linkedUserId, linkedUserId.isEmpty == false else {
+            return
+        }
+
+        if linkedUserId != nextUserId {
+            try self.resetLocalStateForCloudIdentityChange()
+        }
+    }
+
+    private func loadAuthenticatedCloudAccountSnapshot(
+        credentials: StoredCloudCredentials,
+        configuration: CloudServiceConfiguration
+    ) async throws -> CloudAccountSnapshot {
+        try await self.cloudRuntime.fetchCloudAccount(
+            verifiedContext: CloudVerifiedAuthContext(
+                apiBaseUrl: configuration.apiBaseUrl,
+                credentials: credentials
+            )
+        )
+    }
+
+    /**
+     Prevents stored credentials from silently restoring a different cloud
+     account into local state that still belongs to the previous user.
+     */
+    @discardableResult
+    private func resetLocalStateIfStoredCredentialsBelongToDifferentUser(
+        credentials: StoredCloudCredentials,
+        configuration: CloudServiceConfiguration
+    ) async throws -> Bool {
+        let authenticatedAccount = try await self.loadAuthenticatedCloudAccountSnapshot(
+            credentials: credentials,
+            configuration: configuration
+        )
+        guard let linkedUserId = self.cloudSettings?.linkedUserId, linkedUserId.isEmpty == false else {
+            return false
+        }
+
+        if linkedUserId == authenticatedAccount.userId {
+            return false
+        }
+
+        try self.resetLocalStateForCloudIdentityChange()
+        return true
+    }
+
     func currentCloudServiceConfiguration() throws -> CloudServiceConfiguration {
         try loadCloudServiceConfiguration(
             bundle: .main,
@@ -58,6 +134,7 @@ extension FlashcardsStore {
 
     func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) async throws -> CloudWorkspaceLinkContext {
         let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
+        try self.resetLocalStateIfLinkedUserDiffers(nextUserId: account.userId)
 
         self.globalErrorMessage = ""
         return CloudWorkspaceLinkContext(
@@ -113,19 +190,7 @@ extension FlashcardsStore {
     }
 
     func disconnectCloudAccount() throws {
-        let database = try requireLocalDatabase(database: self.database)
-        self.cloudRuntime.cancelForAccountDeletion()
-        try self.cloudRuntime.clearCredentials()
-        try database.updateCloudSettings(
-            cloudState: .disconnected,
-            linkedUserId: nil,
-            linkedWorkspaceId: nil,
-            linkedEmail: nil
-        )
-        self.syncStatus = .idle
-        self.lastSuccessfulCloudSyncAt = nil
-        self.globalErrorMessage = ""
-        try self.reload()
+        try self.resetLocalStateForCloudIdentityChange()
     }
 
     func beginAccountDeletion() {
@@ -434,6 +499,12 @@ extension FlashcardsStore {
 
         do {
             let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
+            if try await self.resetLocalStateIfStoredCredentialsBelongToDifferentUser(
+                credentials: credentials,
+                configuration: configuration
+            ) {
+                return
+            }
             let linkedSession = try self.cloudRuntime.storedLinkedSession(
                 cloudSettings: self.cloudSettings,
                 configuration: configuration,
@@ -458,6 +529,12 @@ extension FlashcardsStore {
 
         do {
             let refreshedCredentials = try await self.refreshCloudCredentials(forceRefresh: true)
+            if try await self.resetLocalStateIfStoredCredentialsBelongToDifferentUser(
+                credentials: refreshedCredentials,
+                configuration: configuration
+            ) {
+                return
+            }
             let linkedSession = try self.cloudRuntime.storedLinkedSession(
                 cloudSettings: self.cloudSettings,
                 configuration: configuration,
@@ -562,20 +639,8 @@ extension FlashcardsStore {
     }
 
     func completeLocalAccountDeletion() throws {
-        let database = try requireLocalDatabase(database: self.database)
-
-        self.reviewRuntime.cancelForAccountDeletion()
-        self.cloudRuntime.cancelForAccountDeletion()
-        try self.cloudRuntime.clearCredentials()
-        self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
-        self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
-        self.aiChatStore.clearHistory()
-        try database.resetForAccountDeletion()
-        self.syncStatus = .idle
-        self.lastSuccessfulCloudSyncAt = nil
-        self.globalErrorMessage = ""
-        try self.reload()
+        try self.resetLocalStateForCloudIdentityChange()
     }
 
     func handleRemoteAccountDeletedCleanup() {
