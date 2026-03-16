@@ -21,6 +21,7 @@ import {
   expectNullableNonNegativeInteger,
   expectRecord,
 } from "../server/requestParsing";
+import { isLocalToolName } from "./localRuntimeShared";
 
 type LocalChatDiagnosticsBody = Readonly<{
   kind: "failure";
@@ -35,6 +36,8 @@ type LocalChatDiagnosticsBody = Readonly<{
   lineNumber: number | null;
   rawSnippet: string | null;
   decoderSummary: string | null;
+  continuationAttempt: number | null;
+  continuationToolCallIds: ReadonlyArray<string>;
   selectedModel: string;
   messageCount: number;
   appVersion: string;
@@ -67,6 +70,21 @@ type LocalChatLatencyDiagnosticsBody = Readonly<{
 type ParsedLocalChatDiagnosticsBody =
   | LocalChatDiagnosticsBody
   | LocalChatLatencyDiagnosticsBody;
+
+type LocalChatContinuationContext = Readonly<{
+  continuationAttempt: number;
+  toolCallIds: ReadonlyArray<string>;
+}>;
+
+type LocalChatStructuredError = Error & Readonly<{
+  code: string;
+  stage: string;
+  continuationAttempt: number | null;
+  toolCallIds: ReadonlyArray<string>;
+  classification: string;
+}>;
+
+type LocalChatToolMessage = Extract<LocalChatMessage, { role: "tool" }>;
 
 function parseLocalContentPart(
   value: unknown,
@@ -211,12 +229,170 @@ export function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody 
   };
 }
 
+function makeLocalChatStructuredError(
+  message: string,
+  code: string,
+  stage: string,
+  continuationAttempt: number | null,
+  toolCallIds: ReadonlyArray<string>,
+  classification: string,
+): LocalChatStructuredError {
+  return Object.assign(new Error(message), {
+    code,
+    stage,
+    continuationAttempt,
+    toolCallIds,
+    classification,
+  });
+}
+
+function toLocalChatContinuationContext(
+  continuationAttempt: number,
+  toolCallIds: ReadonlySet<string>,
+): LocalChatContinuationContext {
+  return {
+    continuationAttempt,
+    toolCallIds: [...toolCallIds],
+  };
+}
+
+function localContinuationValidationError(
+  continuationAttempt: number,
+  toolCallIds: ReadonlySet<string>,
+  classification: string,
+): LocalChatStructuredError {
+  return makeLocalChatStructuredError(
+    "AI chat is temporarily unavailable on this server. Try again later.",
+    "LOCAL_CHAT_CONTINUATION_FAILED",
+    "request_validation",
+    continuationAttempt,
+    [...toolCallIds],
+    classification,
+  );
+}
+
+function localToolMessageId(message: LocalChatToolMessage): string {
+  return message.toolCallId;
+}
+
+export function validateLocalChatMessages(
+  messages: ReadonlyArray<LocalChatMessage>,
+): LocalChatContinuationContext {
+  let continuationAttempt = 0;
+  const localToolCallIds = new Set<string>();
+  const seenToolOutputIds = new Set<string>();
+  let expectedToolOutputIds: Set<string> | null = null;
+
+  for (const message of messages) {
+    if (message.role === "assistant") {
+      if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
+        throw localContinuationValidationError(
+          continuationAttempt,
+          localToolCallIds,
+          "missing_tool_output_before_next_message",
+        );
+      }
+
+      const assistantToolCallIds = new Set<string>();
+      const completedLocalToolCallIds: Array<string> = [];
+      for (const part of message.content) {
+        if (part.type !== "tool_call" || isLocalToolName(part.name) === false) {
+          continue;
+        }
+
+        if (assistantToolCallIds.has(part.toolCallId)) {
+          throw localContinuationValidationError(
+            continuationAttempt,
+            localToolCallIds,
+            "duplicate_assistant_tool_call_id",
+          );
+        }
+
+        assistantToolCallIds.add(part.toolCallId);
+        localToolCallIds.add(part.toolCallId);
+
+        if (part.status !== "completed" || part.output === null) {
+          throw localContinuationValidationError(
+            continuationAttempt,
+            localToolCallIds,
+            "dangling_local_tool_call",
+          );
+        }
+
+        completedLocalToolCallIds.push(part.toolCallId);
+      }
+
+      if (completedLocalToolCallIds.length > 0) {
+        continuationAttempt += 1;
+        expectedToolOutputIds = new Set(completedLocalToolCallIds);
+      }
+
+      continue;
+    }
+
+    if (message.role === "tool") {
+      const toolMessageId = localToolMessageId(message);
+      localToolCallIds.add(toolMessageId);
+
+      if (seenToolOutputIds.has(toolMessageId)) {
+        throw localContinuationValidationError(
+          continuationAttempt,
+          localToolCallIds,
+          "duplicate_tool_output_message",
+        );
+      }
+
+      if (expectedToolOutputIds === null || expectedToolOutputIds.has(toolMessageId) === false) {
+        throw localContinuationValidationError(
+          continuationAttempt,
+          localToolCallIds,
+          "unexpected_tool_output_message",
+        );
+      }
+
+      seenToolOutputIds.add(toolMessageId);
+      expectedToolOutputIds.delete(toolMessageId);
+      if (expectedToolOutputIds.size === 0) {
+        expectedToolOutputIds = null;
+      }
+
+      continue;
+    }
+
+    if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
+      throw localContinuationValidationError(
+        continuationAttempt,
+        localToolCallIds,
+        "missing_tool_output_before_next_message",
+      );
+    }
+  }
+
+  if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
+    throw localContinuationValidationError(
+      continuationAttempt,
+      localToolCallIds,
+      "missing_tool_output_at_end_of_history",
+    );
+  }
+
+  return toLocalChatContinuationContext(continuationAttempt, localToolCallIds);
+}
+
 function expectBoolean(value: unknown, context: string): boolean {
   if (typeof value !== "boolean") {
     throw new HttpError(400, `${context} must be a boolean`);
   }
 
   return value;
+}
+
+function expectStringArray(value: unknown, context: string): ReadonlyArray<string> {
+  if (!Array.isArray(value)) {
+    throw new HttpError(400, `${context} must be an array`);
+  }
+
+  return value.map((item, index) => expectNonEmptyString(item, `${context}[${index}]`));
 }
 
 export function parseLocalChatDiagnosticsBody(value: unknown): ParsedLocalChatDiagnosticsBody {
@@ -265,6 +441,10 @@ export function parseLocalChatDiagnosticsBody(value: unknown): ParsedLocalChatDi
     lineNumber: expectNullableNonNegativeInteger(body.lineNumber, "lineNumber"),
     rawSnippet: expectNullableNonEmptyString(body.rawSnippet, "rawSnippet"),
     decoderSummary: expectNullableNonEmptyString(body.decoderSummary, "decoderSummary"),
+    continuationAttempt: expectNullableNonNegativeInteger(body.continuationAttempt ?? null, "continuationAttempt"),
+    continuationToolCallIds: body.continuationToolCallIds === undefined
+      ? []
+      : expectStringArray(body.continuationToolCallIds, "continuationToolCallIds"),
     selectedModel: expectNonEmptyString(body.selectedModel, "selectedModel"),
     messageCount: expectNonNegativeInteger(body.messageCount, "messageCount"),
     appVersion: expectNonEmptyString(body.appVersion, "appVersion"),
@@ -274,6 +454,36 @@ export function parseLocalChatDiagnosticsBody(value: unknown): ParsedLocalChatDi
 
 function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getLocalChatStructuredError(error: unknown): LocalChatStructuredError | null {
+  if (
+    typeof error !== "object"
+    || error === null
+    || !("code" in error)
+    || !("stage" in error)
+    || !("classification" in error)
+    || typeof error.code !== "string"
+    || typeof error.stage !== "string"
+    || typeof error.classification !== "string"
+  ) {
+    return null;
+  }
+
+  const continuationAttempt = "continuationAttempt" in error && typeof error.continuationAttempt === "number"
+    ? error.continuationAttempt
+    : null;
+  const toolCallIds = "toolCallIds" in error && Array.isArray(error.toolCallIds)
+    ? error.toolCallIds.filter((value): value is string => typeof value === "string")
+    : [];
+
+  return Object.assign(new Error(getInternalErrorMessage(error)), {
+    code: error.code,
+    stage: error.stage,
+    continuationAttempt,
+    toolCallIds,
+    classification: error.classification,
+  });
 }
 
 export function logLocalChatDiagnostics(
@@ -310,6 +520,8 @@ function logLocalChatTerminalError(
   stage: string,
   message: string,
   details?: AIEndpointFailureClassification,
+  continuationContext?: LocalChatContinuationContext,
+  classification?: string,
 ): void {
   console.error(JSON.stringify({
     domain: "chat",
@@ -325,6 +537,9 @@ function logLocalChatTerminalError(
     upstreamRequestId: details?.upstreamRequestId ?? "-",
     upstreamMessage: details?.upstreamMessage ?? "-",
     originalMessage: details?.originalMessage ?? message,
+    continuationAttempt: continuationContext?.continuationAttempt ?? null,
+    toolCallIds: continuationContext?.toolCallIds ?? [],
+    classification: classification ?? null,
   }));
 }
 
@@ -432,7 +647,11 @@ export async function streamLocalChatResponse(
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      let continuationContext: LocalChatContinuationContext | null = null;
+
       try {
+        continuationContext = validateLocalChatMessages(body.messages);
+
         for await (const event of agentModule.streamLocalTurn({
           messages: body.messages,
           model: body.model,
@@ -448,6 +667,13 @@ export async function streamLocalChatResponse(
           }
         }
       } catch (error) {
+        const structuredError = getLocalChatStructuredError(error);
+        const effectiveContinuationContext = structuredError === null
+          ? continuationContext
+          : {
+            continuationAttempt: structuredError.continuationAttempt ?? continuationContext?.continuationAttempt ?? 0,
+            toolCallIds: structuredError.toolCallIds,
+          };
         const normalizedFailure = classifyAIEndpointFailure("chat", error, validModel.vendor);
         const errorEvent = createLocalChatErrorEventFromError(
           error,
@@ -468,6 +694,10 @@ export async function streamLocalChatResponse(
             && typeof error.stage === "string"
             ? undefined
             : normalizedFailure,
+          effectiveContinuationContext ?? undefined,
+          structuredError?.classification
+            ?? (normalizedFailure.code === "LOCAL_CHAT_CONTINUATION_FAILED" ? "provider_continuation_failure" : null)
+            ?? undefined,
         );
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent satisfies LocalChatStreamEvent)}\n\n`));
       } finally {

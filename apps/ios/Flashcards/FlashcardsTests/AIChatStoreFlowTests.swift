@@ -149,6 +149,59 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testAIChatStoreFailsLocallyWhenPersistedContinuationHistoryIsMalformed() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let historyStore = InMemoryHistoryStore(
+            savedState: AIChatPersistedState(
+                messages: [
+                    AIChatMessage(
+                        id: "message-user-1",
+                        role: .user,
+                        content: [.text("hello")],
+                        timestamp: "2026-03-16T18:40:00.000Z",
+                        isError: false
+                    ),
+                    AIChatMessage(
+                        id: "message-assistant-1",
+                        role: .assistant,
+                        content: [
+                            .toolCall(
+                                AIChatToolCall(
+                                    id: "tool-broken-1",
+                                    name: "sql",
+                                    status: .started,
+                                    input: "{\"sql\":\"SHOW TABLES\"}",
+                                    output: nil
+                                )
+                            )
+                        ],
+                        timestamp: "2026-03-16T18:40:01.000Z",
+                        isError: false
+                    ),
+                ],
+                selectedModelId: aiChatDefaultModelId
+            )
+        )
+        let failingToolExecutor = FailingToolExecutor()
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: historyStore,
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            localContextLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "continue"
+        chatStore.sendMessage()
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        XCTAssertEqual(chatStore.messages.last?.role, .assistant)
+        XCTAssertEqual(chatStore.messages.last?.text, "The local chat session became inconsistent. Please try again.")
+        XCTAssertEqual(chatStore.messages.last?.isError, true)
+    }
+
+    @MainActor
     func testAIChatStoreWarmUpPreparesSessionWithoutMutatingMessages() async throws {
         let requestRecorder = RequestRecorder()
         AIChatMockUrlProtocol.requestHandler = { request in

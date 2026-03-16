@@ -22,6 +22,173 @@ private struct AIChatRuntimeFailure: LocalizedError, AIChatFailureDiagnosticProv
     }
 }
 
+private struct AIChatTurnContext {
+    let assistantTurnId: String
+    let continuationAttempt: Int
+    let pendingToolCallIds: [String]
+    let completedToolCallIds: [String]
+    let phase: String
+    let terminalStatus: String
+}
+
+private struct AIChatRequestPreflight {
+    let continuationAttempt: Int
+    let toolCallIds: [String]
+}
+
+private func makeInitialAIChatTurnContext(assistantTurnId: String) -> AIChatTurnContext {
+    AIChatTurnContext(
+        assistantTurnId: assistantTurnId,
+        continuationAttempt: 0,
+        pendingToolCallIds: [],
+        completedToolCallIds: [],
+        phase: "streaming",
+        terminalStatus: "none"
+    )
+}
+
+private func markAIChatTurnAwaitingToolResults(
+    turnContext: AIChatTurnContext,
+    pendingToolCallIds: [String]
+) -> AIChatTurnContext {
+    AIChatTurnContext(
+        assistantTurnId: turnContext.assistantTurnId,
+        continuationAttempt: turnContext.continuationAttempt,
+        pendingToolCallIds: pendingToolCallIds,
+        completedToolCallIds: [],
+        phase: "awaiting_tool_results",
+        terminalStatus: turnContext.terminalStatus
+    )
+}
+
+private func recordCompletedAIChatToolCall(
+    turnContext: AIChatTurnContext,
+    toolCallId: String
+) -> AIChatTurnContext {
+    if turnContext.completedToolCallIds.contains(toolCallId) {
+        return turnContext
+    }
+
+    return AIChatTurnContext(
+        assistantTurnId: turnContext.assistantTurnId,
+        continuationAttempt: turnContext.continuationAttempt,
+        pendingToolCallIds: turnContext.pendingToolCallIds,
+        completedToolCallIds: turnContext.completedToolCallIds + [toolCallId],
+        phase: turnContext.phase,
+        terminalStatus: turnContext.terminalStatus
+    )
+}
+
+private func beginNextAIChatContinuationAttempt(
+    turnContext: AIChatTurnContext
+) -> AIChatTurnContext {
+    AIChatTurnContext(
+        assistantTurnId: turnContext.assistantTurnId,
+        continuationAttempt: turnContext.continuationAttempt + 1,
+        pendingToolCallIds: [],
+        completedToolCallIds: [],
+        phase: "streaming",
+        terminalStatus: "none"
+    )
+}
+
+private func markAIChatTurnTerminal(
+    turnContext: AIChatTurnContext,
+    terminalStatus: String
+) -> AIChatTurnContext {
+    AIChatTurnContext(
+        assistantTurnId: turnContext.assistantTurnId,
+        continuationAttempt: turnContext.continuationAttempt,
+        pendingToolCallIds: turnContext.pendingToolCallIds,
+        completedToolCallIds: turnContext.completedToolCallIds,
+        phase: terminalStatus,
+        terminalStatus: terminalStatus
+    )
+}
+
+private func validateAIChatWireMessages(
+    _ messages: [AILocalChatWireMessage]
+) throws -> AIChatRequestPreflight {
+    var continuationAttempt: Int = 0
+    var toolCallIds: Set<String> = []
+    var seenToolOutputIds: Set<String> = []
+    var expectedToolOutputIds: Set<String>?
+
+    for message in messages {
+        if message.role == "assistant" {
+            if let expectedToolOutputIds, expectedToolOutputIds.isEmpty == false {
+                throw LocalStoreError.validation("Assistant continuation history is missing a tool output before the next message.")
+            }
+
+            var assistantToolCallIds: Set<String> = []
+            var completedLocalToolCallIds: [String] = []
+            for part in message.content ?? [] {
+                guard case .toolCall(let toolCall) = part else {
+                    continue
+                }
+                guard aiChatLocalToolNames.contains(toolCall.name) else {
+                    continue
+                }
+
+                if assistantToolCallIds.contains(toolCall.id) {
+                    throw LocalStoreError.validation("Assistant continuation history contains a duplicate tool call id.")
+                }
+
+                assistantToolCallIds.insert(toolCall.id)
+                toolCallIds.insert(toolCall.id)
+
+                guard toolCall.status == .completed, let output = toolCall.output, output.isEmpty == false else {
+                    throw LocalStoreError.validation("Assistant continuation history contains a local tool call without a completed output.")
+                }
+
+                completedLocalToolCallIds.append(toolCall.id)
+            }
+
+            if completedLocalToolCallIds.isEmpty == false {
+                continuationAttempt += 1
+                expectedToolOutputIds = Set(completedLocalToolCallIds)
+            }
+
+            continue
+        }
+
+        if message.role == "tool" {
+            guard let toolCallId = message.toolCallId else {
+                throw LocalStoreError.validation("Assistant continuation history contains a tool output without a tool call id.")
+            }
+
+            toolCallIds.insert(toolCallId)
+
+            if seenToolOutputIds.contains(toolCallId) {
+                throw LocalStoreError.validation("Assistant continuation history contains a duplicate tool output.")
+            }
+
+            guard let currentExpectedToolOutputIds = expectedToolOutputIds, currentExpectedToolOutputIds.contains(toolCallId) else {
+                throw LocalStoreError.validation("Assistant continuation history contains an unexpected tool output.")
+            }
+
+            seenToolOutputIds.insert(toolCallId)
+            var nextExpectedToolOutputIds = currentExpectedToolOutputIds
+            nextExpectedToolOutputIds.remove(toolCallId)
+            expectedToolOutputIds = nextExpectedToolOutputIds.isEmpty ? nil : nextExpectedToolOutputIds
+            continue
+        }
+
+        if let expectedToolOutputIds, expectedToolOutputIds.isEmpty == false {
+            throw LocalStoreError.validation("Assistant continuation history is missing a tool output before the next user message.")
+        }
+    }
+
+    if let expectedToolOutputIds, expectedToolOutputIds.isEmpty == false {
+        throw LocalStoreError.validation("Assistant continuation history ended before all tool outputs were added.")
+    }
+
+    return AIChatRequestPreflight(
+        continuationAttempt: continuationAttempt,
+        toolCallIds: Array(toolCallIds).sorted()
+    )
+}
+
 private actor AIChatLatencyCapture {
     private var body: AIChatLatencyReportBody?
 
@@ -50,6 +217,7 @@ actor AIChatSessionRuntime {
     private var lastStreamFlushAt: Date
     private var lastHistoryCheckpointAt: Date
     private var consecutiveToolExecutionFailures: Int
+    private var turnContext: AIChatTurnContext
 
     init(
         historyStore: any AIChatHistoryStoring,
@@ -71,6 +239,7 @@ actor AIChatSessionRuntime {
         self.lastStreamFlushAt = .distantPast
         self.lastHistoryCheckpointAt = .distantPast
         self.consecutiveToolExecutionFailures = 0
+        self.turnContext = makeInitialAIChatTurnContext(assistantTurnId: UUID().uuidString.lowercased())
     }
 
     func run(
@@ -125,6 +294,10 @@ actor AIChatSessionRuntime {
                 shouldTrackFirstRequestLatency = false
                 await self.flushPendingAssistantText(eventHandler: eventHandler)
                 if outcome.awaitsToolResults == false {
+                    self.turnContext = markAIChatTurnTerminal(
+                        turnContext: self.turnContext,
+                        terminalStatus: "completed"
+                    )
                     await self.finish(eventHandler: eventHandler)
                     return AIChatRuntimeResult(
                         failureReportBody: nil,
@@ -134,6 +307,10 @@ actor AIChatSessionRuntime {
 
                 let requestedToolCalls = outcome.requestedToolCalls
                 if requestedToolCalls.isEmpty {
+                    self.turnContext = markAIChatTurnTerminal(
+                        turnContext: self.turnContext,
+                        terminalStatus: "failed"
+                    )
                     throw AIChatServiceError.invalidStreamContract(
                         "The assistant requested tool results without any tool calls.",
                         AIChatFailureDiagnostics(
@@ -147,10 +324,17 @@ actor AIChatSessionRuntime {
                             toolCallId: nil,
                             lineNumber: nil,
                             rawSnippet: nil,
-                            decoderSummary: "await_tool_results without tool_call_request"
+                            decoderSummary: "await_tool_results without tool_call_request",
+                            continuationAttempt: self.turnContext.continuationAttempt,
+                            continuationToolCallIds: []
                         )
                     )
                 }
+
+                self.turnContext = markAIChatTurnAwaitingToolResults(
+                    turnContext: self.turnContext,
+                    pendingToolCallIds: requestedToolCalls.map(\.toolCallId)
+                )
 
                 for toolCallRequest in requestedToolCalls {
                     do {
@@ -169,8 +353,16 @@ actor AIChatSessionRuntime {
                                 didMutateAppState: false,
                                 eventHandler: eventHandler
                             )
+                            self.turnContext = recordCompletedAIChatToolCall(
+                                turnContext: self.turnContext,
+                                toolCallId: toolCallRequest.toolCallId
+                            )
                             self.consecutiveToolExecutionFailures += 1
                             if self.consecutiveToolExecutionFailures >= aiChatMaximumConsecutiveToolExecutionFailures {
+                                self.turnContext = markAIChatTurnTerminal(
+                                    turnContext: self.turnContext,
+                                    terminalStatus: "failed"
+                                )
                                 throw makeTerminalToolExecutionFailure(
                                     requestId: outcome.requestId,
                                     toolCallRequest: toolCallRequest,
@@ -187,16 +379,32 @@ actor AIChatSessionRuntime {
                             didMutateAppState: result.didMutateAppState,
                             eventHandler: eventHandler
                         )
+                        self.turnContext = recordCompletedAIChatToolCall(
+                            turnContext: self.turnContext,
+                            toolCallId: toolCallRequest.toolCallId
+                        )
                     }
                 }
+
+                self.turnContext = beginNextAIChatContinuationAttempt(
+                    turnContext: self.turnContext
+                )
             }
         } catch is CancellationError {
+            self.turnContext = markAIChatTurnTerminal(
+                turnContext: self.turnContext,
+                terminalStatus: "aborted"
+            )
             await self.cancel(eventHandler: eventHandler)
             return AIChatRuntimeResult(
                 failureReportBody: nil,
                 latencyReportBody: await latencyCapture.snapshot()
             )
         } catch {
+            self.turnContext = markAIChatTurnTerminal(
+                turnContext: self.turnContext,
+                terminalStatus: "failed"
+            )
             return await self.fail(
                 error: error,
                 eventHandler: eventHandler,
@@ -210,6 +418,7 @@ actor AIChatSessionRuntime {
         self.pendingAssistantText = ""
         self.hasFlushedFirstAssistantDelta = false
         self.consecutiveToolExecutionFailures = 0
+        self.turnContext = makeInitialAIChatTurnContext(assistantTurnId: UUID().uuidString.lowercased())
         let now = Date()
         self.lastStreamFlushAt = now
         self.lastHistoryCheckpointAt = now
@@ -361,10 +570,30 @@ actor AIChatSessionRuntime {
 
     private func makeRequestBody() async throws -> AILocalChatRequestBody {
         let localContext = try await self.localContextLoader.loadLocalContext()
-        return makeRuntimeRequestBody(
+        let requestBody = makeRuntimeRequestBody(
             state: self.persistedState,
             userContext: makeAIChatUserContext(totalCards: localContext.totalActiveCards)
         )
+        _ = try validateAIChatWireMessages(requestBody.messages)
+        if self.turnContext.terminalStatus != "none" {
+            throw makeRequestBuildFailure(
+                message: "The local chat session became inconsistent. Please try again.",
+                decoderSummary: "Assistant turn is already terminal: \(self.turnContext.terminalStatus)",
+                continuationAttempt: self.turnContext.continuationAttempt,
+                continuationToolCallIds: self.turnContext.pendingToolCallIds.isEmpty
+                    ? self.turnContext.completedToolCallIds
+                    : self.turnContext.pendingToolCallIds
+            )
+        }
+        if self.turnContext.phase == "awaiting_tool_results" {
+            throw makeRequestBuildFailure(
+                message: "The local chat session became inconsistent. Please try again.",
+                decoderSummary: "Assistant continuation requested a new stream before local tool results were appended.",
+                continuationAttempt: self.turnContext.continuationAttempt,
+                continuationToolCallIds: self.turnContext.pendingToolCallIds
+            )
+        }
+        return requestBody
     }
 
     private func makeFailureReportBody(error: Error) -> AIChatFailureReportBody? {
@@ -391,7 +620,9 @@ actor AIChatSessionRuntime {
                 toolCallId: toolCallId,
                 lineNumber: nil,
                 rawSnippet: rawInputSnippet,
-                decoderSummary: decoderSummary
+                decoderSummary: decoderSummary,
+                continuationAttempt: self.turnContext.continuationAttempt,
+                continuationToolCallIds: self.turnContext.pendingToolCallIds
             )
         } else {
             return nil
@@ -410,6 +641,8 @@ actor AIChatSessionRuntime {
             lineNumber: diagnostics.lineNumber,
             rawSnippet: diagnostics.rawSnippet,
             decoderSummary: diagnostics.decoderSummary,
+            continuationAttempt: diagnostics.continuationAttempt,
+            continuationToolCallIds: diagnostics.continuationToolCallIds,
             selectedModel: self.persistedState.selectedModelId,
             messageCount: runtimeMessageCount(state: self.persistedState),
             appVersion: aiChatAppVersion(),
@@ -452,7 +685,35 @@ private func makeTerminalToolExecutionFailure(
             toolCallId: toolCallRequest.toolCallId,
             lineNumber: nil,
             rawSnippet: aiChatTruncatedSnippet(toolCallRequest.input),
-            decoderSummary: errorMessage
+            decoderSummary: errorMessage,
+            continuationAttempt: nil,
+            continuationToolCallIds: [toolCallRequest.toolCallId]
+        )
+    )
+}
+
+private func makeRequestBuildFailure(
+    message: String,
+    decoderSummary: String,
+    continuationAttempt: Int?,
+    continuationToolCallIds: [String]
+) -> AIChatRuntimeFailure {
+    AIChatRuntimeFailure(
+        message: message,
+        diagnostics: AIChatFailureDiagnostics(
+            clientRequestId: UUID().uuidString.lowercased(),
+            backendRequestId: nil,
+            stage: .requestBuild,
+            errorKind: .invalidStreamContract,
+            statusCode: nil,
+            eventType: nil,
+            toolName: nil,
+            toolCallId: nil,
+            lineNumber: nil,
+            rawSnippet: nil,
+            decoderSummary: decoderSummary,
+            continuationAttempt: continuationAttempt,
+            continuationToolCallIds: continuationToolCallIds
         )
     )
 }

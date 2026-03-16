@@ -336,6 +336,8 @@ struct AIChatFailureDiagnostics: Codable, Hashable, Sendable {
     let lineNumber: Int?
     let rawSnippet: String?
     let decoderSummary: String?
+    let continuationAttempt: Int?
+    let continuationToolCallIds: [String]
 }
 
 struct AIChatFailureReportBody: Codable, Hashable, Sendable {
@@ -351,6 +353,8 @@ struct AIChatFailureReportBody: Codable, Hashable, Sendable {
     let lineNumber: Int?
     let rawSnippet: String?
     let decoderSummary: String?
+    let continuationAttempt: Int?
+    let continuationToolCallIds: [String]
     let selectedModel: String
     let messageCount: Int
     let appVersion: String

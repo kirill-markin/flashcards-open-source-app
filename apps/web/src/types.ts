@@ -598,6 +598,8 @@ export type LocalChatFailureDiagnosticsPayload = Readonly<{
   lineNumber: number | null;
   rawSnippet: string | null;
   decoderSummary: string | null;
+  continuationAttempt: number | null;
+  continuationToolCallIds: ReadonlyArray<string>;
   selectedModel: string;
   messageCount: number;
   appVersion: string;

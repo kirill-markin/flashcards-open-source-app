@@ -47,3 +47,15 @@ test("classifyAIEndpointFailure maps unknown provider failures to unavailable", 
   assert.equal(error.code, "LOCAL_CHAT_UNAVAILABLE");
   assert.equal(error.message, "AI chat is temporarily unavailable on this server. Try again later.");
 });
+
+test("classifyAIEndpointFailure maps chat continuation failures to a stable chat code", () => {
+  const error = classifyAIEndpointFailure(
+    "chat",
+    { status: 400, message: "No tool output found for function call call_123." },
+    "openai",
+  );
+
+  assert.equal(error.statusCode, 503);
+  assert.equal(error.code, "LOCAL_CHAT_CONTINUATION_FAILED");
+  assert.equal(error.message, "AI chat is temporarily unavailable on this server. Try again later.");
+});

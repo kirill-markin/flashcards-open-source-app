@@ -313,7 +313,9 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     toolCallId: nil,
                     lineNumber: nil,
                     rawSnippet: nil,
-                    decoderSummary: nil
+                    decoderSummary: nil,
+                    continuationAttempt: nil,
+                    continuationToolCallIds: []
                 )
                 await emitLatencyIfNeeded(result: .streamErrorBeforeFirstDelta)
                 logAIChatFailure(diagnostics: diagnostics, summary: "Missing HTTPURLResponse")
@@ -339,7 +341,9 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     toolCallId: nil,
                     lineNumber: nil,
                     rawSnippet: truncatedSnippet(body),
-                    decoderSummary: nil
+                    decoderSummary: nil,
+                    continuationAttempt: nil,
+                    continuationToolCallIds: []
                 )
                 let message = makeRequestFailureMessage(
                     statusCode: httpResponse.statusCode,
@@ -577,7 +581,9 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 toolCallId: nil,
                 lineNumber: nil,
                 rawSnippet: truncatedSnippet(apiBaseUrl),
-                decoderSummary: nil
+                decoderSummary: nil,
+                continuationAttempt: nil,
+                continuationToolCallIds: []
             )
             logAIChatFailure(diagnostics: diagnostics, summary: "Invalid base URL")
             throw AIChatServiceError.invalidBaseUrl(apiBaseUrl, diagnostics)
@@ -694,7 +700,9 @@ private func processStreamEvent(
             toolCallId: nil,
             lineNumber: nil,
             rawSnippet: nil,
-            decoderSummary: "backend_code=\(backendError.code)"
+            decoderSummary: "backend_code=\(backendError.code)",
+            continuationAttempt: nil,
+            continuationToolCallIds: []
         )
         logAIChatFailure(diagnostics: diagnostics, summary: mappedBackendError.message)
         throw AIChatServiceError.backendError(mappedBackendError, diagnostics)
@@ -817,7 +825,9 @@ private func makeInvalidSSEFramingError(
         toolCallId: nil,
         lineNumber: lineNumber,
         rawSnippet: truncatedSnippet(payload),
-        decoderSummary: decoderSummary(error: decodingError)
+        decoderSummary: decoderSummary(error: decodingError),
+        continuationAttempt: nil,
+        continuationToolCallIds: []
     )
     logAIChatFailure(diagnostics: diagnostics, summary: "Invalid SSE framing")
     return .invalidSSEFraming(diagnostics)
@@ -843,7 +853,9 @@ private func makeInvalidSSEEventJSONError(
         toolCallId: nil,
         lineNumber: lineNumber,
         rawSnippet: truncatedSnippet(payload),
-        decoderSummary: decoderSummary(error: decodingError)
+        decoderSummary: decoderSummary(error: decodingError),
+        continuationAttempt: nil,
+        continuationToolCallIds: []
     )
     logAIChatFailure(diagnostics: diagnostics, summary: "Invalid SSE event JSON")
     return .invalidSSEEventJSON(diagnostics)
