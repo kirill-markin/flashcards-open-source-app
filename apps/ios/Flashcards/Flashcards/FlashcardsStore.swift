@@ -41,11 +41,6 @@ func extendCloudSyncFastPollingUntil(currentDeadline: Date?, now: Date, duration
     return max(currentDeadline, nextDeadline)
 }
 
-struct TabSelectionRequest: Equatable, Sendable {
-    let id: String
-    let tab: AppTab
-}
-
 enum AccountDeletionState: Equatable {
     case hidden
     case inProgress
@@ -72,12 +67,7 @@ final class FlashcardsStore {
     var globalErrorMessage: String
     var syncStatus: SyncStatus
     var lastSuccessfulCloudSyncAt: String?
-    var selectedTab: AppTab
     var cloudSyncFastPollingUntil: Date?
-    var tabSelectionRequest: TabSelectionRequest?
-    var cardsPresentationRequest: CardsPresentationRequest?
-    var aiChatPresentationRequest: AIChatPresentationRequest?
-    var settingsPresentationRequest: SettingsNavigationDestination?
     var pendingReviewCardIds: Set<String>
     var reviewSubmissionFailure: ReviewSubmissionFailure?
     var reviewOverlayBanner: ReviewOverlayBanner?
@@ -209,12 +199,7 @@ final class FlashcardsStore {
         self.globalErrorMessage = initialGlobalErrorMessage
         self.syncStatus = .idle
         self.lastSuccessfulCloudSyncAt = nil
-        self.selectedTab = .review
         self.cloudSyncFastPollingUntil = nil
-        self.tabSelectionRequest = nil
-        self.cardsPresentationRequest = nil
-        self.aiChatPresentationRequest = nil
-        self.settingsPresentationRequest = nil
         self.pendingReviewCardIds = initialReviewPublishedState.pendingReviewCardIds
         self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
         self.reviewOverlayBanner = nil
@@ -252,9 +237,9 @@ final class FlashcardsStore {
         }
     }
 
-    func currentCloudSyncPollingInterval(now: Date) -> TimeInterval {
+    func currentCloudSyncPollingInterval(selectedTab: AppTab, now: Date) -> TimeInterval {
         Flashcards.currentCloudSyncPollingInterval(
-            selectedTab: self.selectedTab,
+            selectedTab: selectedTab,
             fastPollingUntil: self.cloudSyncFastPollingUntil,
             now: now
         )

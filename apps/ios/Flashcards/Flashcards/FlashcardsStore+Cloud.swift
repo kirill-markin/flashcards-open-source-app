@@ -232,7 +232,6 @@ extension FlashcardsStore {
                 action: "ai_chat_session_warmup_failed",
                 metadata: [
                     "message": Flashcards.errorMessage(error: error),
-                    "selectedTab": String(describing: self.selectedTab),
                 ]
             )
         }

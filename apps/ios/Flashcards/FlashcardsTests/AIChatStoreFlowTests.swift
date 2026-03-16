@@ -537,15 +537,16 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             localContextLoader: failingToolExecutor
         )
 
-        flashcardsStore.openAICardCreation()
-        let request = try XCTUnwrap(flashcardsStore.aiChatPresentationRequest)
+        let navigation = AppNavigationModel()
+        navigation.openAICardCreation()
+        let request = try XCTUnwrap(navigation.aiChatPresentationRequest)
         chatStore.applyPresentationRequest(request: request)
-        flashcardsStore.clearAIChatPresentationRequest()
+        navigation.clearAIChatPresentationRequest()
 
         XCTAssertEqual(chatStore.inputText, aiChatCreateCardDraftPrompt)
         XCTAssertEqual(chatStore.messages, persistedMessages)
         XCTAssertFalse(chatStore.isStreaming)
-        XCTAssertNil(flashcardsStore.aiChatPresentationRequest)
+        XCTAssertNil(navigation.aiChatPresentationRequest)
     }
 
     @MainActor

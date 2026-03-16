@@ -10,15 +10,18 @@ private struct CloudSyncPollingTaskID: Hashable {
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var store: FlashcardsStore
+    @State private var navigation: AppNavigationModel
 
     init() {
         _store = State(initialValue: FlashcardsStore())
+        _navigation = State(initialValue: AppNavigationModel())
     }
 
     var body: some Scene {
         WindowGroup {
             RootTabView()
                 .environment(store)
+                .environment(navigation)
                 .task {
                     await store.resumePendingAccountDeletionIfNeeded()
                     await store.syncCloudIfLinked()
@@ -39,7 +42,7 @@ struct FlashcardsApp: App {
     private var cloudSyncPollingTaskID: CloudSyncPollingTaskID {
         CloudSyncPollingTaskID(
             isSceneActive: self.scenePhase == .active,
-            selectedTab: self.store.selectedTab,
+            selectedTab: self.navigation.selectedTab,
             fastPollingUntil: self.store.cloudSyncFastPollingUntil
         )
     }
@@ -51,7 +54,10 @@ struct FlashcardsApp: App {
         }
 
         while Task.isCancelled == false && self.scenePhase == .active {
-            let intervalSeconds = self.store.currentCloudSyncPollingInterval(now: Date())
+            let intervalSeconds = self.store.currentCloudSyncPollingInterval(
+                selectedTab: self.navigation.selectedTab,
+                now: Date()
+            )
             let intervalNanoseconds = UInt64(intervalSeconds * 1_000_000_000)
 
             do {

@@ -273,6 +273,7 @@ private enum DeckDetailScreenState {
 
 private struct DeckDetailScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.dismiss) private var dismiss
 
     let destination: DeckScreenDestination
@@ -446,7 +447,8 @@ private struct DeckDetailScreen: View {
     }
 
     private func openReview() {
-        store.openReview(reviewFilter: reviewFilter)
+        store.selectReviewFilter(reviewFilter: reviewFilter)
+        navigation.selectTab(.review)
     }
 
     private func reloadDetailState() async {
