@@ -21,6 +21,7 @@ import {
   expectNullableNonNegativeInteger,
   expectRecord,
 } from "../server/requestParsing";
+import { getErrorLogContext } from "../server/logging";
 import { isLocalToolName } from "./localRuntimeShared";
 
 type LocalChatDiagnosticsBody = Readonly<{
@@ -526,6 +527,7 @@ function logLocalChatTerminalError(
   code: string,
   stage: string,
   message: string,
+  error?: unknown,
   details?: AIEndpointFailureClassification,
   continuationContext?: LocalChatContinuationContext,
   classification?: string,
@@ -547,6 +549,7 @@ function logLocalChatTerminalError(
     continuationAttempt: continuationContext?.continuationAttempt ?? null,
     toolCallIds: continuationContext?.toolCallIds ?? [],
     classification: classification ?? null,
+    ...getErrorLogContext(error ?? message),
   }));
 }
 
@@ -601,9 +604,10 @@ export function createLocalChatErrorResponse(
   requestId: string,
   code: string,
   stage: string,
+  error?: unknown,
 ): Response {
   const errorEvent = createLocalChatErrorEvent(message, requestId, code, stage);
-  logLocalChatTerminalError(requestId, code, stage, message);
+  logLocalChatTerminalError(requestId, code, stage, message, error);
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
@@ -714,6 +718,7 @@ export async function streamLocalChatResponse(
           errorEvent.code,
           errorEvent.stage,
           errorEvent.message,
+          error,
           typeof error === "object"
             && error !== null
             && "code" in error

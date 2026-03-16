@@ -3,6 +3,7 @@ import { Buffer } from "node:buffer";
 import test from "node:test";
 import {
   createLocalChatErrorEvent,
+  createLocalChatErrorResponse,
   parseLocalChatDiagnosticsBody,
   parseLocalChatRequestBody,
   streamLocalChatResponse,
@@ -18,11 +19,13 @@ import { HttpError } from "./errors";
 import {
   LocalChatRuntimeError,
   isSupportedLocalChatModel,
+  prepareLocalTurn,
   streamLocalAgentTurn,
 } from "./chat/openai/localAgent";
 import {
   LocalChatRuntimeError as AnthropicLocalChatRuntimeError,
   isSupportedLocalChatModel as isSupportedAnthropicLocalChatModel,
+  prepareLocalTurn as prepareAnthropicLocalTurn,
   streamLocalAgentTurn as streamAnthropicLocalAgentTurn,
 } from "./chat/anthropic/localAgent";
 import type { LocalChatStreamEvent, LocalContentPart } from "./chat/localTypes";
@@ -1201,6 +1204,40 @@ test("streamLocalChatResponse returns a stable not-configured error when the pro
     } else {
       process.env.OPENAI_API_KEY = originalOpenAiApiKey;
     }
+  }
+});
+
+test("openai and anthropic prepareLocalTurn exports share the route-facing arity", () => {
+  assert.equal(prepareLocalTurn.length, 1);
+  assert.equal(prepareAnthropicLocalTurn.length, 1);
+});
+
+test("createLocalChatErrorResponse logs the original error stack when provided", async () => {
+  const originalConsoleError = console.error;
+  const capturedLogs: Array<string> = [];
+  console.error = (message?: unknown) => {
+    capturedLogs.push(String(message));
+  };
+
+  try {
+    const response = createLocalChatErrorResponse(
+      "AI chat is temporarily unavailable on this server. Try again later.",
+      "request-log-1",
+      "LOCAL_CHAT_UNAVAILABLE",
+      "local_turn_request",
+      new Error("Cannot read properties of undefined (reading 'responses')"),
+    );
+
+    assert.equal(response.status, 500);
+    assert.equal(capturedLogs.length, 1);
+
+    const loggedRecord = JSON.parse(capturedLogs[0] ?? "{}") as Record<string, unknown>;
+    assert.equal(loggedRecord.action, "terminal_error_emitted");
+    assert.equal(loggedRecord.errorClass, "Error");
+    assert.equal(loggedRecord.errorMessage, "Cannot read properties of undefined (reading 'responses')");
+    assert.equal(typeof loggedRecord.errorStack, "string");
+  } finally {
+    console.error = originalConsoleError;
   }
 });
 
