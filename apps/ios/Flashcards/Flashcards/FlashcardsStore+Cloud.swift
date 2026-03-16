@@ -168,17 +168,10 @@ extension FlashcardsStore {
                 try await self.runLinkedSync(linkedSession: session)
             }
             let now = Date()
-            _ = try self.refreshBootstrapSnapshotWithoutReset(now: now)
-            if syncResult.reviewDataChanged {
-                _ = try await self.refreshReviewState(
-                    now: now,
-                    mode: .backgroundReconcile
-                )
-                self.localReadVersion += 1
-            }
-            self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
-            self.syncStatus = .idle
-            self.globalErrorMessage = ""
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: syncResult,
+                now: now
+            )
         } catch {
             self.syncStatus = self.cloudSettings?.cloudState == .linked
                 ? .failed(message: Flashcards.errorMessage(error: error))
@@ -335,6 +328,62 @@ extension FlashcardsStore {
         }
     }
 
+    /**
+     Restores a cloud session for the already-linked local workspace without
+     resetting review UI state. This keeps the locally rendered card visible
+     unless the sync result produces an actual review data change.
+     */
+    private func performSameWorkspaceCloudRestore(linkedSession: CloudLinkedSession) async throws {
+        self.syncStatus = .syncing
+
+        do {
+            self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
+            let syncResult = try await self.runLinkedSync(linkedSession: linkedSession)
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: syncResult,
+                now: Date()
+            )
+            self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
+        } catch {
+            logCloudFlowPhase(
+                phase: .linkedSync,
+                outcome: "failure",
+                workspaceId: linkedSession.workspaceId,
+                deviceId: self.cloudSettings?.deviceId,
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            throw error
+        }
+    }
+
+    /**
+     Applies sync side effects through diff-aware bootstrap and review
+     reconciliation so no-op syncs do not trigger a blocking review reload.
+     */
+    private func applySyncResultWithoutBlockingReset(
+        syncResult: CloudSyncResult,
+        now: Date
+    ) async throws {
+        let didRefreshBootstrapSnapshot = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+        let didRefreshReviewState: Bool
+        if syncResult.reviewDataChanged {
+            didRefreshReviewState = try await self.refreshReviewState(
+                now: now,
+                mode: .backgroundReconcile
+            )
+        } else {
+            didRefreshReviewState = false
+        }
+        if didRefreshBootstrapSnapshot || didRefreshReviewState {
+            self.localReadVersion += 1
+        }
+        self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
+        self.syncStatus = .idle
+        self.globalErrorMessage = ""
+    }
+
     func refreshCloudCredentials(forceRefresh: Bool) async throws -> StoredCloudCredentials {
         let configuration = try self.currentCloudServiceConfiguration()
         return try await self.cloudRuntime.refreshCloudCredentials(
@@ -375,18 +424,26 @@ extension FlashcardsStore {
         }
     }
 
+    /**
+     Restores the linked cloud session from persisted credentials. When the
+     stored workspace already matches the local workspace, it reuses the
+     non-blocking restore path; otherwise it falls back to the full relink flow.
+     */
     private func performRestoreCloudLinkFromStoredCredentials() async throws {
         let configuration = try self.currentCloudServiceConfiguration()
 
         do {
             let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
-            try await self.performCloudLink(
-                linkedSession: try self.cloudRuntime.storedLinkedSession(
-                    cloudSettings: self.cloudSettings,
-                    configuration: configuration,
-                    bearerToken: credentials.idToken
-                )
+            let linkedSession = try self.cloudRuntime.storedLinkedSession(
+                cloudSettings: self.cloudSettings,
+                configuration: configuration,
+                bearerToken: credentials.idToken
             )
+            if self.workspace?.workspaceId == linkedSession.workspaceId {
+                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
+            } else {
+                try await self.performCloudLink(linkedSession: linkedSession)
+            }
             return
         } catch {
             if self.isCloudAccountDeletedError(error) {
@@ -401,13 +458,16 @@ extension FlashcardsStore {
 
         do {
             let refreshedCredentials = try await self.refreshCloudCredentials(forceRefresh: true)
-            try await self.performCloudLink(
-                linkedSession: try self.cloudRuntime.storedLinkedSession(
-                    cloudSettings: self.cloudSettings,
-                    configuration: configuration,
-                    bearerToken: refreshedCredentials.idToken
-                )
+            let linkedSession = try self.cloudRuntime.storedLinkedSession(
+                cloudSettings: self.cloudSettings,
+                configuration: configuration,
+                bearerToken: refreshedCredentials.idToken
             )
+            if self.workspace?.workspaceId == linkedSession.workspaceId {
+                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
+            } else {
+                try await self.performCloudLink(linkedSession: linkedSession)
+            }
         } catch {
             if self.isCloudAccountDeletedError(error) {
                 self.handleRemoteAccountDeletedCleanup()
