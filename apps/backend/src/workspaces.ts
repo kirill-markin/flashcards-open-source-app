@@ -164,24 +164,16 @@ async function createWorkspaceInExecutor(
 
   await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
 
-  const workspaceInsertResult = await executor.query<WorkspaceSchedulerSeedRow>(
+  await executor.query(
     [
       "INSERT INTO org.workspaces",
       "(",
       "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_device_id, fsrs_last_operation_id",
       ")",
       "VALUES ($1, $2, $3, $4, $5)",
-      "RETURNING",
-      "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
-      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
     ].join(" "),
     [workspaceId, name, bootstrapTimestamp, bootstrapDeviceId, bootstrapOperationId],
   );
-  const workspaceRow = workspaceInsertResult.rows[0];
-  if (workspaceRow === undefined) {
-    throw new Error("Workspace insert did not return scheduler settings");
-  }
 
   await executor.query(
     [
@@ -191,6 +183,22 @@ async function createWorkspaceInExecutor(
     ].join(" "),
     [workspaceId, userId],
   );
+
+  const workspaceResult = await executor.query<WorkspaceSchedulerSeedRow>(
+    [
+      "SELECT",
+      "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
+      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
+      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
+      "FROM org.workspaces",
+      "WHERE workspace_id = $1",
+    ].join(" "),
+    [workspaceId],
+  );
+  const workspaceRow = workspaceResult.rows[0];
+  if (workspaceRow === undefined) {
+    throw new Error("Workspace bootstrap could not load scheduler settings");
+  }
 
   await executor.query(
     [
