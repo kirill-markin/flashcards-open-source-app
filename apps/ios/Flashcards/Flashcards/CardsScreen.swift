@@ -44,9 +44,12 @@ enum CardEditorPresentation: Hashable, Identifiable {
 struct CardsScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(\.dismissSearch) private var dismissSearch
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var editorPresentation: CardEditorPresentation? = nil
     @State private var isFilterSheetPresented: Bool = false
+    @State private var isSearchPresented: Bool = false
     @State private var searchText: String = ""
     @State private var committedFilter: CardFilter? = nil
     @State private var draftFilter: CardFilter? = nil
@@ -63,6 +66,14 @@ struct CardsScreen: View {
 
     private var activeFilterDimensionCount: Int {
         cardFilterActiveDimensionCount(filter: committedFilter)
+    }
+
+    private var preferredSearchToolbarBehavior: SearchToolbarBehavior {
+        if self.horizontalSizeClass == .compact {
+            return .minimize
+        }
+
+        return .automatic
     }
 
     var body: some View {
@@ -118,7 +129,13 @@ struct CardsScreen: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Cards")
-        .searchable(text: $searchText, prompt: "Search cards")
+        .searchable(
+            text: self.$searchText,
+            isPresented: self.$isSearchPresented,
+            placement: .automatic,
+            prompt: "Search cards"
+        )
+        .searchToolbarBehavior(self.preferredSearchToolbarBehavior)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -189,6 +206,7 @@ struct CardsScreen: View {
     }
 
     private func beginCreating() {
+        self.dismissCardsSearch()
         self.cardFormState = CardFormState(
             frontText: "",
             backText: "",
@@ -200,6 +218,7 @@ struct CardsScreen: View {
     }
 
     private func beginEditing(card: Card) {
+        self.dismissCardsSearch()
         self.cardFormState = CardFormState(
             frontText: card.frontText,
             backText: card.backText,
@@ -211,8 +230,14 @@ struct CardsScreen: View {
     }
 
     private func beginFiltering() {
+        self.dismissCardsSearch()
         self.draftFilter = self.committedFilter
         self.isFilterSheetPresented = true
+    }
+
+    private func dismissCardsSearch() {
+        self.dismissSearch()
+        self.isSearchPresented = false
     }
 
     private func saveCard() {
