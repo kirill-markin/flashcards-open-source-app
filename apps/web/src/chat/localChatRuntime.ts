@@ -133,6 +133,12 @@ type LocalChatLatencyTracker = {
   emitted: boolean;
 };
 
+const LOCAL_TOOL_NAME_SET = new Set<string>(LOCAL_TOOL_NAMES);
+
+function isLocalToolName(name: string): name is (typeof LOCAL_TOOL_NAMES)[number] {
+  return LOCAL_TOOL_NAME_SET.has(name);
+}
+
 function buildLocalToolExecutionErrorOutput(message: string): string {
   return JSON.stringify({
     ok: false,
@@ -331,7 +337,7 @@ function validateLocalChatWireMessages(
       const assistantToolCallIds = new Set<string>();
       const completedLocalToolCallIds: Array<string> = [];
       for (const part of message.content) {
-        if (part.type !== "tool_call" || !LOCAL_TOOL_NAMES.includes(part.name)) {
+        if (part.type !== "tool_call" || isLocalToolName(part.name) === false) {
           continue;
         }
 
