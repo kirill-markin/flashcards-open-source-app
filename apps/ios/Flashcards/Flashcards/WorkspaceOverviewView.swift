@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WorkspaceOverviewView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @State private var overviewSnapshot: WorkspaceOverviewSnapshot? = nil
     @State private var errorMessage: String = ""
     @State private var isLoading: Bool = true
@@ -82,6 +82,6 @@ struct WorkspaceOverviewView: View {
 #Preview {
     NavigationStack {
         WorkspaceOverviewView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

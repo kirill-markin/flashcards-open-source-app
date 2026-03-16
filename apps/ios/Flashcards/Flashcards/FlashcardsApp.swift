@@ -9,16 +9,16 @@ private struct CloudSyncPollingTaskID: Hashable {
 @main
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var store: FlashcardsStore
+    @State private var store: FlashcardsStore
 
     init() {
-        _store = StateObject(wrappedValue: FlashcardsStore())
+        _store = State(initialValue: FlashcardsStore())
     }
 
     var body: some Scene {
         WindowGroup {
             RootTabView()
-                .environmentObject(store)
+                .environment(store)
                 .task {
                     await store.resumePendingAccountDeletionIfNeeded()
                     await store.syncCloudIfLinked()

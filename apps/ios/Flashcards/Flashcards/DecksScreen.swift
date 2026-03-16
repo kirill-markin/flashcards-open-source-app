@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DecksScreen: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @State private var isEditorPresented: Bool = false
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
@@ -272,7 +272,7 @@ private enum DeckDetailScreenState {
 }
 
 private struct DeckDetailScreen: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(\.dismiss) private var dismiss
 
     let destination: DeckScreenDestination

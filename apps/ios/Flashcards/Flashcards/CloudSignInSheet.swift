@@ -126,7 +126,7 @@ func makeCloudWorkspacePostAuthRoute(workspaces: [CloudWorkspaceSummary]) -> Clo
 
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @FocusState private var isEmailFieldFocused: Bool
 
     @State private var email: String = ""
@@ -201,7 +201,7 @@ struct CloudSignInSheet: View {
                         self.scheduleEmailFieldFocus()
                     }
                 )
-                .environmentObject(self.store)
+                .environment(self.store)
             }
             .sheet(item: self.$postAuthLoadingState) { loadingState in
                 CloudPostAuthLoadingSheet()
@@ -225,7 +225,7 @@ struct CloudSignInSheet: View {
                         self.workspaceLinkContext = nil
                     }
                 )
-                .environmentObject(self.store)
+                .environment(self.store)
             }
             .sheet(item: self.$postAuthFailureState) { failureState in
                 CloudPostAuthFailureSheet(
@@ -241,7 +241,7 @@ struct CloudSignInSheet: View {
                         self.isDisconnectConfirmationPresented = true
                     }
                 )
-                .environmentObject(self.store)
+                .environment(self.store)
             }
             .alert("Disconnect this device?", isPresented: self.$isDisconnectConfirmationPresented) {
                 Button("Cancel", role: .cancel) {}
@@ -443,7 +443,7 @@ struct CloudSignInSheet: View {
 }
 
 private struct CloudOtpVerificationSheet: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @Binding var otpSheetState: CloudOtpSheetState?
     let onVerified: (CloudVerifiedAuthContext) -> Void
@@ -647,7 +647,7 @@ private struct CloudOtpVerificationSheet: View {
 }
 
 private struct CloudWorkspaceSelectionSheet: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     let linkContext: CloudWorkspaceLinkContext
     let onSelection: (CloudWorkspaceLinkSelection) -> Void
@@ -780,7 +780,7 @@ private struct CloudWorkspaceSelectionRow: View {
 }
 
 private struct CloudPostAuthFailureSheet: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     let state: CloudPostAuthFailureState
     let onRetry: () -> Void
@@ -913,5 +913,5 @@ private func isCloudSignInSyncInFlight(status: SyncStatus) -> Bool {
 
 #Preview {
     CloudSignInSheet()
-        .environmentObject(FlashcardsStore())
+        .environment(FlashcardsStore())
 }

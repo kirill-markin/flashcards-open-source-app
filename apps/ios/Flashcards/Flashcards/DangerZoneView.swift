@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DangerZoneView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @State private var isDeleteAccountAlertPresented: Bool = false
     @State private var isDeleteAccountConfirmationPresented: Bool = false
@@ -30,7 +30,7 @@ struct DangerZoneView: View {
         }
         .fullScreenCover(isPresented: self.$isDeleteAccountConfirmationPresented) {
             DeleteAccountConfirmationView()
-                .environmentObject(store)
+                .environment(store)
         }
     }
 }
@@ -38,6 +38,6 @@ struct DangerZoneView: View {
 #Preview {
     NavigationStack {
         DangerZoneView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

@@ -31,7 +31,7 @@ struct SyncStatusIndicatorView: View {
 }
 
 struct AccountStatusView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @State private var screenErrorMessage: String = ""
     @State private var isCloudSignInPresented: Bool = false
@@ -112,7 +112,7 @@ struct AccountStatusView: View {
         .navigationTitle("Account Status")
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet()
-                .environmentObject(store)
+                .environment(store)
         }
         .alert("Disconnect this device?", isPresented: self.$isDisconnectConfirmationPresented) {
             Button("Cancel", role: .cancel) {}
@@ -148,6 +148,6 @@ struct AccountStatusView: View {
 #Preview {
     NavigationStack {
         AccountStatusView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

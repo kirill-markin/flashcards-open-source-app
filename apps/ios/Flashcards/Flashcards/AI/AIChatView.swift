@@ -5,9 +5,9 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct AIChatView: View {
+    @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
     @Environment(\.scenePhase) var scenePhase
-    @ObservedObject var flashcardsStore: FlashcardsStore
-    @ObservedObject var chatStore: AIChatStore
+    let chatStore: AIChatStore
     @State var isCloudSignInPresented: Bool
     @State var isCameraPresented: Bool
     @State var isFileImporterPresented: Bool
@@ -24,8 +24,7 @@ struct AIChatView: View {
     @FocusState var isComposerFocused: Bool
 
     @MainActor
-    init(flashcardsStore: FlashcardsStore, chatStore: AIChatStore) {
-        self.flashcardsStore = flashcardsStore
+    init(chatStore: AIChatStore) {
         self.chatStore = chatStore
         self.isCloudSignInPresented = false
         self.isCameraPresented = false
@@ -39,9 +38,7 @@ struct AIChatView: View {
         self.shouldRestoreComposerFocusAfterDictation = false
         self.composerSelection = nil
         self.composerDictationInsertionSelection = nil
-        self.hasAcceptedExternalAIConsent = hasAIChatExternalProviderConsent(
-            userDefaults: flashcardsStore.userDefaults
-        )
+        self.hasAcceptedExternalAIConsent = chatStore.hasExternalProviderConsent
     }
 
     var body: some View {
@@ -169,7 +166,7 @@ struct AIChatView: View {
         }
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet()
-                .environmentObject(self.flashcardsStore)
+                .environment(self.flashcardsStore)
         }
         .alert(
             self.chatStore.activeAlert?.title ?? "",

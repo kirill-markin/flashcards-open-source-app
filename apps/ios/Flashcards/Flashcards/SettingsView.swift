@@ -13,7 +13,7 @@ struct SyncStatusPresentation: Equatable {
 }
 
 struct SettingsView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     var body: some View {
         List {
@@ -109,6 +109,6 @@ func isSyncInFlight(status: SyncStatus) -> Bool {
 #Preview {
     NavigationStack {
         SettingsView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

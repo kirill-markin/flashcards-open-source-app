@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 enum AIChatAttachmentSettingsSource: String, Equatable {
     case camera
@@ -82,26 +83,27 @@ struct AIChatCompletedDictationTranscript: Identifiable, Equatable {
 }
 
 @MainActor
-final class AIChatStore: ObservableObject {
-    @Published var inputText: String
-    @Published private(set) var messages: [AIChatMessage]
-    @Published private(set) var pendingAttachments: [AIChatAttachment]
-    @Published private(set) var selectedModelId: String
-    @Published private(set) var isStreaming: Bool
-    @Published private(set) var dictationState: AIChatDictationState
-    @Published private(set) var activeAlert: AIChatAlert?
-    @Published private(set) var repairStatus: AIChatRepairAttemptStatus?
-    @Published private(set) var completedDictationTranscript: AIChatCompletedDictationTranscript?
+@Observable
+final class AIChatStore {
+    var inputText: String
+    private(set) var messages: [AIChatMessage]
+    private(set) var pendingAttachments: [AIChatAttachment]
+    private(set) var selectedModelId: String
+    private(set) var isStreaming: Bool
+    private(set) var dictationState: AIChatDictationState
+    private(set) var activeAlert: AIChatAlert?
+    private(set) var repairStatus: AIChatRepairAttemptStatus?
+    private(set) var completedDictationTranscript: AIChatCompletedDictationTranscript?
 
-    private let flashcardsStore: FlashcardsStore
-    private let historyStore: any AIChatHistoryStoring
-    private let chatService: any AIChatStreaming
-    private let voiceRecorder: any AIChatVoiceRecording
-    private let audioTranscriber: any AIChatAudioTranscribing
-    private let runtime: AIChatSessionRuntime
-    private var activeSendTask: Task<Void, Never>?
-    private var activeDictationTask: Task<Void, Never>?
-    private var activeConversationId: String?
+    @ObservationIgnored private let flashcardsStore: FlashcardsStore
+    @ObservationIgnored private let historyStore: any AIChatHistoryStoring
+    @ObservationIgnored private let chatService: any AIChatStreaming
+    @ObservationIgnored private let voiceRecorder: any AIChatVoiceRecording
+    @ObservationIgnored private let audioTranscriber: any AIChatAudioTranscribing
+    @ObservationIgnored private let runtime: AIChatSessionRuntime
+    @ObservationIgnored private var activeSendTask: Task<Void, Never>?
+    @ObservationIgnored private var activeDictationTask: Task<Void, Never>?
+    @ObservationIgnored private var activeConversationId: String?
 
     convenience init(
         flashcardsStore: FlashcardsStore,
@@ -170,7 +172,7 @@ final class AIChatStore: ObservableObject {
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
     }
 
-    private var hasExternalProviderConsent: Bool {
+    var hasExternalProviderConsent: Bool {
         hasAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
     }
 

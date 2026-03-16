@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AccountSettingsView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     var body: some View {
         List {
@@ -69,6 +69,6 @@ struct AccountSettingsView: View {
 #Preview {
     NavigationStack {
         AccountSettingsView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

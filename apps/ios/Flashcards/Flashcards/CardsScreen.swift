@@ -42,7 +42,7 @@ enum CardEditorPresentation: Hashable, Identifiable {
 }
 
 struct CardsScreen: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @State private var editorPresentation: CardEditorPresentation? = nil
     @State private var isFilterSheetPresented: Bool = false
@@ -439,6 +439,6 @@ struct CardRow: View {
 #Preview {
     NavigationStack {
         CardsScreen()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

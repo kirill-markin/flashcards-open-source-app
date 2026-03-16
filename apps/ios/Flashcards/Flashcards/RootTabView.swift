@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RootTabView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @State private var selectedTab: AppTab = .review
     @State private var settingsNavigationPath: [SettingsNavigationDestination] = []
 
@@ -32,7 +32,7 @@ struct RootTabView: View {
             .tag(AppTab.cards)
 
             NavigationStack {
-                AIChatView(flashcardsStore: store, chatStore: store.aiChatStore)
+                AIChatView(chatStore: store.aiChatStore)
             }
             .tabItem {
                 Label("AI", systemImage: "sparkles.rectangle.stack")
@@ -105,7 +105,7 @@ struct RootTabView: View {
             )
         ) {
             AccountDeletionProgressView()
-                .environmentObject(store)
+                .environment(store)
         }
         .alert(
             "Account deleted",
@@ -175,5 +175,5 @@ struct RootTabView: View {
 
 #Preview {
     RootTabView()
-        .environmentObject(FlashcardsStore())
+        .environment(FlashcardsStore())
 }

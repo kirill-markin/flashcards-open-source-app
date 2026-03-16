@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AgentConnectionsView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @State private var screenErrorMessage: String = ""
     @State private var agentConnections: [AgentApiKeyConnection] = []
@@ -115,6 +115,6 @@ struct AgentConnectionsView: View {
 #Preview {
     NavigationStack {
         AgentConnectionsView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

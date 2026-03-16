@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 let accountDeletionPendingUserDefaultsKey: String = "account-deletion-pending"
 let accountDeletionConfirmationText: String = "delete my account"
@@ -52,47 +53,48 @@ enum AccountDeletionState: Equatable {
 }
 
 @MainActor
-final class FlashcardsStore: ObservableObject {
-    @Published var workspace: Workspace?
-    @Published var userSettings: UserSettings?
-    @Published var schedulerSettings: WorkspaceSchedulerSettings?
-    @Published var cloudSettings: CloudSettings?
-    @Published var cards: [Card]
-    @Published var decks: [Deck]
-    @Published var deckItems: [DeckListItem]
-    @Published var selectedReviewFilter: ReviewFilter
-    @Published var reviewQueue: [Card]
-    @Published var reviewCounts: ReviewCounts
-    @Published var isReviewHeadLoading: Bool
-    @Published var isReviewCountsLoading: Bool
-    @Published var isReviewQueueChunkLoading: Bool
-    @Published var homeSnapshot: HomeSnapshot
-    @Published var globalErrorMessage: String
-    @Published var syncStatus: SyncStatus
-    @Published var lastSuccessfulCloudSyncAt: String?
-    @Published var selectedTab: AppTab
-    @Published var cloudSyncFastPollingUntil: Date?
-    @Published var tabSelectionRequest: TabSelectionRequest?
-    @Published var cardsPresentationRequest: CardsPresentationRequest?
-    @Published var aiChatPresentationRequest: AIChatPresentationRequest?
-    @Published var settingsPresentationRequest: SettingsNavigationDestination?
-    @Published var pendingReviewCardIds: Set<String>
-    @Published var reviewSubmissionFailure: ReviewSubmissionFailure?
-    @Published var reviewOverlayBanner: ReviewOverlayBanner?
-    @Published var accountDeletionState: AccountDeletionState
-    @Published var accountDeletionSuccessMessage: String?
-    @Published var localReadVersion: Int
+@Observable
+final class FlashcardsStore {
+    var workspace: Workspace?
+    var userSettings: UserSettings?
+    var schedulerSettings: WorkspaceSchedulerSettings?
+    var cloudSettings: CloudSettings?
+    var cards: [Card]
+    var decks: [Deck]
+    var deckItems: [DeckListItem]
+    var selectedReviewFilter: ReviewFilter
+    var reviewQueue: [Card]
+    var reviewCounts: ReviewCounts
+    var isReviewHeadLoading: Bool
+    var isReviewCountsLoading: Bool
+    var isReviewQueueChunkLoading: Bool
+    var homeSnapshot: HomeSnapshot
+    var globalErrorMessage: String
+    var syncStatus: SyncStatus
+    var lastSuccessfulCloudSyncAt: String?
+    var selectedTab: AppTab
+    var cloudSyncFastPollingUntil: Date?
+    var tabSelectionRequest: TabSelectionRequest?
+    var cardsPresentationRequest: CardsPresentationRequest?
+    var aiChatPresentationRequest: AIChatPresentationRequest?
+    var settingsPresentationRequest: SettingsNavigationDestination?
+    var pendingReviewCardIds: Set<String>
+    var reviewSubmissionFailure: ReviewSubmissionFailure?
+    var reviewOverlayBanner: ReviewOverlayBanner?
+    var accountDeletionState: AccountDeletionState
+    var accountDeletionSuccessMessage: String?
+    var localReadVersion: Int
 
-    let database: LocalDatabase?
-    let dependencies: FlashcardsStoreDependencies
-    let userDefaults: UserDefaults
-    let encoder: JSONEncoder
-    let decoder: JSONDecoder
-    var cloudServiceConfigurationValidator: any CloudServiceConfigurationValidating
-    var reviewRuntime: ReviewQueueRuntime
-    var cloudRuntime: CloudSessionRuntime
-    var isAccountDeletionRunning: Bool
-    lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
+    @ObservationIgnored let database: LocalDatabase?
+    @ObservationIgnored let dependencies: FlashcardsStoreDependencies
+    @ObservationIgnored let userDefaults: UserDefaults
+    @ObservationIgnored let encoder: JSONEncoder
+    @ObservationIgnored let decoder: JSONDecoder
+    @ObservationIgnored var cloudServiceConfigurationValidator: any CloudServiceConfigurationValidating
+    @ObservationIgnored var reviewRuntime: ReviewQueueRuntime
+    @ObservationIgnored var cloudRuntime: CloudSessionRuntime
+    @ObservationIgnored var isAccountDeletionRunning: Bool
+    @ObservationIgnored lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
 
     convenience init() {
         let userDefaults = UserDefaults.standard

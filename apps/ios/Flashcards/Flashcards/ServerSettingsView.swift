@@ -15,7 +15,7 @@ private func cloudServiceConfigurationModeTitle(_ mode: CloudServiceConfiguratio
 }
 
 struct ServerSettingsView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @State private var customOriginInput: String = ""
     @State private var currentConfiguration: CloudServiceConfiguration?
@@ -242,6 +242,6 @@ struct ServerSettingsView: View {
 #Preview {
     NavigationStack {
         ServerSettingsView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

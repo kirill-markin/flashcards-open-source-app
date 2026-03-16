@@ -11,7 +11,7 @@ private let reviewQueuePreviewPageSize: Int = 50
 let reviewOverlayBannerDismissDelayNanoseconds: UInt64 = 3_000_000_000
 
 struct ReviewView: View {
-    @EnvironmentObject var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) var store: FlashcardsStore
 
     @State var isAnswerVisible: Bool = false
     @State var preparedRevealState: PreparedReviewRevealState? = nil
@@ -512,6 +512,6 @@ struct ReviewView: View {
 #Preview {
     NavigationStack {
         ReviewView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

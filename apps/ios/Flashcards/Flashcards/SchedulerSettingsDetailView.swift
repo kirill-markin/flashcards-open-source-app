@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SchedulerSettingsDetailView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @State private var screenErrorMessage: String = ""
     @State private var draft: SchedulerSettingsDraft = makeDefaultSchedulerSettingsDraft()
@@ -278,6 +278,6 @@ private struct SchedulerSettingNote: View {
 #Preview {
     NavigationStack {
         SchedulerSettingsDetailView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }
