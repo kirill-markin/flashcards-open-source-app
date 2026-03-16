@@ -32,6 +32,7 @@ test("createAgentAccountEnvelope points the agent to list workspaces and then us
   assert.match(envelope.instructions, /GET https:\/\/api\.example\.com\/v1\/agent\/workspaces\?limit=100/);
   assert.match(envelope.instructions, /POST https:\/\/api\.example\.com\/v1\/agent\/workspaces\/\{workspaceId\}\/select/);
   assert.match(envelope.instructions, /POST https:\/\/api\.example\.com\/v1\/agent\/sql/);
+  assert.match(envelope.instructions, /split the work into multiple batches of at most 100 records/i);
 });
 
 test("createAgentWorkspacesEnvelope guides workspace creation when none exist", () => {
@@ -79,6 +80,7 @@ test("createAgentWorkspaceReadyEnvelope keeps the workspace in data and points t
   assert.equal(envelope.data.workspace.workspaceId, "ws-1");
   assert.match(envelope.instructions, /POST https:\/\/api\.example\.com\/v1\/agent\/sql/);
   assert.match(envelope.instructions, /SHOW TABLES/);
+  assert.match(envelope.instructions, /split the work into multiple batches of at most 100 records/i);
 });
 
 test("createAgentSetupErrorEnvelope keeps actionable retry instructions", () => {

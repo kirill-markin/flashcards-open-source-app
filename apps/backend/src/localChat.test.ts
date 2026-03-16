@@ -278,6 +278,8 @@ test("buildLocalSystemInstructions includes strict tool-call rules, examples, an
   assert.match(instructions, /every newly proposed card must include at least one tag/i);
   assert.match(instructions, /if the user did not provide tags for a new card, you must suggest one or more concrete tags/i);
   assert.match(instructions, /you must reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate/i);
+  assert.match(instructions, /if the requested create, update, or delete work would affect more than 100 records, you must split it into multiple batches of at most 100 records/i);
+  assert.match(instructions, /if you need to create, update, or delete more than 100 records, split the work into multiple batches of at most 100 records/i);
   assert.match(instructions, /sql => \{"sql": "SHOW TABLES"\}/);
   assert.match(instructions, /sql => \{"sql": "DESCRIBE workspace"\}/);
   assert.match(instructions, /sql => \{"sql": "SELECT \* FROM cards ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0"\}/);
@@ -304,6 +306,7 @@ test("buildLocalSystemInstructions uses explicit web browser chat context", () =
   assert.match(instructions, /for business, conceptual, or practical cards, prefer concrete real-world usage examples\./i);
   assert.match(instructions, /default to fast unless the user clearly wants a slower card\./i);
   assert.match(instructions, /medium is for cards where the person needs to sit and write or work through a solution for around five minutes\./i);
+  assert.match(instructions, /if you need to create, update, or delete more than 100 records, split the work into multiple batches of at most 100 records/i);
 });
 
 test("isInlineTextAttachmentCandidate accepts supported text-like files and excludes csv", () => {

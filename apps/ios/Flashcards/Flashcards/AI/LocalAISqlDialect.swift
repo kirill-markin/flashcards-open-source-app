@@ -6,6 +6,7 @@ import Foundation
 
  Keep this file aligned with:
  - `apps/backend/src/aiTools/sqlDialect.ts`
+ - `apps/backend/src/aiTools/sqlToolLimits.ts`
  - `apps/web/src/chat/localToolExecutor.ts`
  */
 

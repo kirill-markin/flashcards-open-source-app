@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { executeAgentSql } from "./agentSql";
 import type { AgentToolOperationDependencies } from "./agentToolOperations";
+import { MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
 import type { Card } from "../cards";
 import type { Deck } from "../decks";
 import type { WorkspaceSchedulerSettings } from "../workspaceSchedulerSettings";
@@ -217,6 +218,25 @@ test("executeAgentSql reports the failing statement index for invalid SQL in a b
     (error: unknown) => {
       assert.ok(error instanceof HttpError);
       assert.match(error.message, /SQL batch statement 2 failed/);
+      return true;
+    },
+  );
+});
+
+test("executeAgentSql rejects INSERT statements above the per-statement record limit", async () => {
+  const values = Array.from({ length: MAX_SQL_RECORD_LIMIT + 1 }, (_value, index) => (
+    `('Front ${index + 1}', 'Back ${index + 1}', ('tag-a'), 'medium')`
+  )).join(", ");
+
+  await assert.rejects(
+    () => executeAgentSql(
+      makeContext(),
+      `INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ${values}`,
+      createDependencies({}),
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.match(error.message, /INSERT may affect at most 100 records per statement/);
       return true;
     },
   );

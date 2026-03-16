@@ -62,6 +62,15 @@ type WebMutationBatchState = Readonly<{
   decks: ReadonlyArray<Deck>;
 }>;
 
+function assertLocalSqlMutationRecordLimit(
+  statementType: "insert" | "update" | "delete",
+  count: number,
+): void {
+  if (count > MAX_SQL_LIMIT) {
+    throw new Error(`${statementType.toUpperCase()} may affect at most ${MAX_SQL_LIMIT} records per statement`);
+  }
+}
+
 function toCreateCardInput(row: Readonly<Record<string, unknown>>): CreateCardInput {
   const frontText = row.front_text;
   const backText = row.back_text;
@@ -240,6 +249,7 @@ export async function executeLocalSqlMutationStatement(
   statement: LocalMutationStatement,
 ): Promise<LocalSqlExecutionResult> {
   if (statement.type === "insert" && statement.resourceName === "cards") {
+    assertLocalSqlMutationRecordLimit("insert", statement.rows.length);
     const createdCards = await Promise.all(
       statement.rows.map((values) => dependencies.createCardItem(toCreateCardInput(rowFromInsert(statement.columnNames, values)))),
     );
@@ -257,6 +267,7 @@ export async function executeLocalSqlMutationStatement(
   }
 
   if (statement.type === "insert" && statement.resourceName === "decks") {
+    assertLocalSqlMutationRecordLimit("insert", statement.rows.length);
     const createdDecks = await Promise.all(
       statement.rows.map((values) => dependencies.createDeckItem(toCreateDeckInput(rowFromInsert(statement.columnNames, values)))),
     );
@@ -275,6 +286,7 @@ export async function executeLocalSqlMutationStatement(
 
   if (statement.type === "update" && statement.resourceName === "cards") {
     const currentRows = selectMutationRows(statement, await loadCurrentMutationState());
+    assertLocalSqlMutationRecordLimit("update", currentRows.length);
     const assignmentRow = toAssignmentRow(statement);
     const updatedCards = await Promise.all(currentRows.map(async (row) => {
       const cardId = row.card_id;
@@ -304,6 +316,7 @@ export async function executeLocalSqlMutationStatement(
 
   if (statement.type === "update" && statement.resourceName === "decks") {
     const currentRows = selectMutationRows(statement, await loadCurrentMutationState());
+    assertLocalSqlMutationRecordLimit("update", currentRows.length);
     const assignmentRow = toAssignmentRow(statement);
     const updatedDecks = await Promise.all(currentRows.map(async (row) => {
       const deckId = row.deck_id;
@@ -333,6 +346,7 @@ export async function executeLocalSqlMutationStatement(
 
   if (statement.type === "delete" && statement.resourceName === "cards") {
     const currentRows = selectMutationRows(statement, await loadCurrentMutationState());
+    assertLocalSqlMutationRecordLimit("delete", currentRows.length);
     const cardIds = currentRows.map((row) => {
       const cardId = row.card_id;
       if (typeof cardId !== "string") {
@@ -357,6 +371,7 @@ export async function executeLocalSqlMutationStatement(
 
   if (statement.type === "delete" && statement.resourceName === "decks") {
     const currentRows = selectMutationRows(statement, await loadCurrentMutationState());
+    assertLocalSqlMutationRecordLimit("delete", currentRows.length);
     const deckIds = currentRows.map((row) => {
       const deckId = row.deck_id;
       if (typeof deckId !== "string") {
@@ -402,6 +417,7 @@ export async function executeLocalSqlMutationBatch(
     const statementSql = statementSqls[index] ?? statement.normalizedSql;
 
     if (statement.type === "insert" && statement.resourceName === "cards") {
+      assertLocalSqlMutationRecordLimit("insert", statement.rows.length);
       const createdCards: Array<Card> = [];
 
       for (const values of statement.rows) {
@@ -440,6 +456,7 @@ export async function executeLocalSqlMutationBatch(
     }
 
     if (statement.type === "insert" && statement.resourceName === "decks") {
+      assertLocalSqlMutationRecordLimit("insert", statement.rows.length);
       const createdDecks: Array<Deck> = [];
 
       for (const values of statement.rows) {
@@ -485,6 +502,7 @@ export async function executeLocalSqlMutationBatch(
     }
 
     const matchedRows = selectMutationRows(statement, state);
+    assertLocalSqlMutationRecordLimit(statement.type, matchedRows.length);
 
     if (statement.type === "update" && statement.resourceName === "cards") {
       const assignmentRow = toAssignmentRow(statement);

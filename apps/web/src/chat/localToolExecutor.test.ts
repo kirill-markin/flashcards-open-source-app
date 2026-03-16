@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createLocalToolExecutor } from "./localToolExecutor";
+import { MAX_SQL_LIMIT } from "./localToolExecutorTypes";
 import type { AppDataContextValue } from "../appData/types";
 import {
   loadCardById,
@@ -537,6 +538,21 @@ describe("createLocalToolExecutor", () => {
         sql: "SHOW TABLES; UPDATE cards SET back_text = 'Updated Back' WHERE card_id = 'card-1'",
       }),
     })).rejects.toThrow("SQL batch must contain only read statements or only mutation statements");
+  });
+
+  it("rejects INSERT statements above the per-statement record limit", async () => {
+    const executor = createLocalToolExecutor(makeDependencies());
+    const values = Array.from({ length: MAX_SQL_LIMIT + 1 }, (_value, index) => (
+      `('Front ${index + 1}', 'Back ${index + 1}', ('tag-a'), 'medium')`
+    )).join(", ");
+
+    await expect(executor.execute({
+      toolCallId: "call-too-many-insert-rows",
+      name: "sql",
+      input: JSON.stringify({
+        sql: `INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ${values}`,
+      }),
+    })).rejects.toThrow("INSERT may affect at most 100 records per statement");
   });
 
   it("keeps mutation batches all-or-nothing when a later statement fails", async () => {

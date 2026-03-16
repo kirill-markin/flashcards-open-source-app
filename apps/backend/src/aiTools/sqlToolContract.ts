@@ -1,5 +1,6 @@
 import type { FunctionTool } from "openai/resources/responses/responses";
 import { z } from "zod";
+import { MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
 
 export const SQL_TOOL_NAME = "sql";
 
@@ -38,6 +39,9 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     "Multiple supported statements may be separated with semicolons in one sql string.",
     "A batch must contain only read statements or only mutation statements.",
     "Mutation batches are applied atomically: all statements succeed or the whole batch fails.",
+    `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
+    `INSERT, UPDATE, and DELETE may affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
+    `If you need to create, update, or delete more than ${MAX_SQL_RECORD_LIMIT} records, split the work into multiple batches of at most ${MAX_SQL_RECORD_LIMIT} records across separate SQL statements or separate tool calls.`,
     "SELECT supports projected column lists, LIKE, LOWER(column) = 'value' for case-insensitive exact string matches, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.",
   ].join(" "),
   strict: false,

@@ -11,6 +11,7 @@ import Foundation
  - `apps/web/src/chat/localToolExecutor.ts`
  - `apps/backend/src/aiTools/agentSql.ts`
  - `apps/backend/src/aiTools/sqlDialect.ts`
+ - `apps/backend/src/aiTools/sqlToolLimits.ts`
  */
 
 enum AIToolExecutionError: LocalizedError {
@@ -198,7 +199,8 @@ private func describeOutboxPayload(_ payload: SyncOperationPayload) -> String {
 /**
  Mirrors `apps/web/src/chat/localToolExecutor.ts::executeSqlLocally`.
  Keep SQL payload shapes, aggregate semantics, and mutation behavior aligned
- across browser-local and iOS-local runtimes.
+ across browser-local and iOS-local runtimes, including the 100-record cap for
+ SELECT, INSERT, UPDATE, and DELETE statements.
  */
 private func executeSqlLocally(
     database: LocalDatabase,

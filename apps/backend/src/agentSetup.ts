@@ -39,6 +39,7 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
     `If no workspace is selected, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select.`,
     `If no workspace exists, create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}.`,
     `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
+    "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
     "Read payload from data.* and use docs.openapiUrl for the full contract.",
   ].join(" ");
 }
@@ -49,6 +50,7 @@ function buildNoWorkspaceInstructions(requestUrl: string): string {
     `No workspace is currently available for this API key.`,
     `Create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}.`,
     `After the workspace is created, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
+    "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
     "Read payload from data.* and use docs.openapiUrl for the full contract.",
   ].join(" ");
 }
@@ -59,6 +61,7 @@ function buildSelectWorkspaceInstructions(requestUrl: string): string {
     `Select a workspace with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select.`,
     `If data.nextCursor is not null, continue listing with GET ${apiBaseUrl}/agent/workspaces?limit=100 and cursor=data.nextCursor until it becomes null.`,
     `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
+    "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
     "Read payload from data.* and use docs.openapiUrl for the full contract.",
   ].join(" ");
 }
@@ -70,6 +73,8 @@ function buildWorkspaceReadyInstructions(requestUrl: string): string {
     `Use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
     `Start discovery with SHOW TABLES or DESCRIBE cards when helpful.`,
     "This endpoint accepts the published SQL dialect, not full PostgreSQL.",
+    "SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement.",
+    "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
     "Read payload from data.* and use docs.openapiUrl for the full contract.",
   ].join(" ");
 }
