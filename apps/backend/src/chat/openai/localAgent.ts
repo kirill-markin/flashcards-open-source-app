@@ -14,6 +14,7 @@ import {
   buildInlineTextAttachmentContext,
   buildLocalSystemInstructions,
   extractLocalAssistantToolCalls,
+  isSpreadsheetFile,
   isLocalToolName,
   isRepairableToolCallError,
   makeLocalRepairStatusEvent,
@@ -72,6 +73,7 @@ type OpenAIOutputItem =
     id: string;
     type: "code_interpreter_call";
     code: string | null;
+    container_id: string;
     outputs: ReadonlyArray<
       | Readonly<{ type: "logs"; logs: string }>
       | Readonly<{ type: "image"; url: string }>
@@ -87,6 +89,18 @@ type ResponseStreamLike = AsyncIterable<OpenAIToolEvent> & Readonly<{
 }>;
 
 type OpenAIResponsesClient = Readonly<{
+  containers?: Readonly<{
+    files: Readonly<{
+      list: (
+        containerID: string,
+      ) => Promise<Readonly<{ data: ReadonlyArray<Readonly<{
+        id: string;
+        path: string;
+        source: string;
+        bytes: number;
+      }>> }>>;
+    }>;
+  }>;
   files: Readonly<{
     create: (
       body: Readonly<{ file: File; purpose: "user_data" }>,
@@ -103,6 +117,11 @@ type LocalChatLogEvent =
     requestId: string;
     model: string;
     messageCount: number;
+    attachmentCount: number;
+    spreadsheetAttachmentCount: number;
+    attachmentFileNames: ReadonlyArray<string>;
+    attachmentMediaTypes: ReadonlyArray<string>;
+    forcedToolChoice: "auto" | "code_interpreter";
   }>
   | Readonly<{
     action: "stream_opened";
@@ -139,6 +158,38 @@ type LocalChatLogEvent =
     attempt: number;
     deltaCount: number;
     toolCallCount: number;
+  }>
+  | Readonly<{
+    action: "spreadsheet_attachment_without_code_interpreter";
+    requestId: string;
+    model: string;
+    attachmentFileNames: ReadonlyArray<string>;
+  }>
+  | Readonly<{
+    action: "spreadsheet_container_verified";
+    requestId: string;
+    model: string;
+    containerId: string;
+    containerFileCount: number;
+    containerFiles: ReadonlyArray<Readonly<{
+      id: string;
+      path: string;
+      source: string;
+      bytes: number;
+    }>>;
+  }>
+  | Readonly<{
+    action: "spreadsheet_container_verification_failed";
+    requestId: string;
+    model: string;
+    containerId: string;
+    errorName: string;
+    errorMessage: string;
+  }>
+  | Readonly<{
+    action: "spreadsheet_container_verification_unavailable";
+    requestId: string;
+    model: string;
   }>;
 
 type RepairPromptState = Readonly<{
@@ -161,6 +212,13 @@ type ValidatedToolCall = Readonly<{
   toolCallId: string;
   name: string;
   input: string;
+}>;
+
+type LatestUserAttachmentSummary = Readonly<{
+  fileName: string;
+  mediaType: string;
+  bytes: number;
+  isSpreadsheet: boolean;
 }>;
 
 export type StreamLocalTurnParams = Readonly<{
@@ -246,6 +304,105 @@ function latestUserMessageIndex(
   }
 
   return -1;
+}
+
+function latestUserAttachments(messages: ReadonlyArray<LocalChatMessage>): ReadonlyArray<LatestUserAttachmentSummary> {
+  const latestUserIndex = latestUserMessageIndex(messages);
+  if (latestUserIndex < 0) {
+    return [];
+  }
+
+  const latestUserMessage = messages[latestUserIndex];
+  if (latestUserMessage === undefined || latestUserMessage.role !== "user") {
+    return [];
+  }
+
+  return latestUserMessage.content.flatMap((part) => {
+    if (part.type !== "file" && part.type !== "image") {
+      return [];
+    }
+
+    return [{
+      fileName: part.type === "file" ? part.fileName : "image",
+      mediaType: part.mediaType,
+      bytes: Buffer.from(part.base64Data, "base64").byteLength,
+      isSpreadsheet: part.type === "file" && isSpreadsheetFile(part.mediaType, part.fileName),
+    }];
+  });
+}
+
+async function verifySpreadsheetContainers(
+  client: OpenAIResponsesClient,
+  params: Readonly<{
+    requestId: string;
+    model: string;
+    spreadsheetAttachmentFileNames: ReadonlyArray<string>;
+  }>,
+  finalResponse: Readonly<{
+    output: ReadonlyArray<OpenAIOutputItem>;
+  }>,
+): Promise<void> {
+  if (params.spreadsheetAttachmentFileNames.length === 0) {
+    return;
+  }
+
+  const codeInterpreterCalls = finalResponse.output.filter(isCodeInterpreterCallOutputItem);
+  if (codeInterpreterCalls.length === 0) {
+    logLocalChatEvent({
+      action: "spreadsheet_attachment_without_code_interpreter",
+      requestId: params.requestId,
+      model: params.model,
+      attachmentFileNames: params.spreadsheetAttachmentFileNames,
+    });
+    return;
+  }
+
+  if (client.containers?.files.list === undefined) {
+    logLocalChatEvent({
+      action: "spreadsheet_container_verification_unavailable",
+      requestId: params.requestId,
+      model: params.model,
+    });
+    return;
+  }
+
+  const seenContainerIds = new Set<string>();
+
+  for (const toolCall of codeInterpreterCalls) {
+    if (seenContainerIds.has(toolCall.container_id)) {
+      continue;
+    }
+
+    seenContainerIds.add(toolCall.container_id);
+
+    try {
+      const page = await client.containers.files.list(toolCall.container_id);
+      const containerFiles = page.data.map((file) => ({
+        id: file.id,
+        path: file.path,
+        source: file.source,
+        bytes: file.bytes,
+      }));
+
+      logLocalChatEvent({
+        action: "spreadsheet_container_verified",
+        requestId: params.requestId,
+        model: params.model,
+        containerId: toolCall.container_id,
+        containerFileCount: containerFiles.length,
+        containerFiles,
+      });
+    } catch (error) {
+      logLocalChatEvent({
+        action: "spreadsheet_container_verification_failed",
+        requestId: params.requestId,
+        model: params.model,
+        containerId: toolCall.container_id,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 }
 
 async function uploadLatestUserFiles(
@@ -511,11 +668,20 @@ export async function* streamLocalAgentTurn(
   params: StreamLocalTurnParams,
   client: OpenAIResponsesClient,
 ): AsyncGenerator<LocalChatStreamEvent> {
+  const attachmentSummaries = latestUserAttachments(params.messages);
+  const spreadsheetAttachments = attachmentSummaries.filter((attachment) => attachment.isSpreadsheet);
+  const forcedToolChoice = spreadsheetAttachments.length > 0 ? "code_interpreter" : "auto";
+
   logLocalChatEvent({
     action: "request",
     requestId: params.requestId,
     model: params.model,
     messageCount: params.messages.length,
+    attachmentCount: attachmentSummaries.length,
+    spreadsheetAttachmentCount: spreadsheetAttachments.length,
+    attachmentFileNames: attachmentSummaries.map((attachment) => attachment.fileName),
+    attachmentMediaTypes: attachmentSummaries.map((attachment) => attachment.mediaType),
+    forcedToolChoice,
   });
 
   let repairState: RepairPromptState | null = null;
@@ -536,6 +702,9 @@ export async function* streamLocalAgentTurn(
       model: params.model,
       instructions: buildLocalSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
       input: buildInput(params.messages, uploadPlan, repairState),
+      ...(forcedToolChoice === "code_interpreter"
+        ? { tool_choice: { type: "code_interpreter" as const } }
+        : {}),
       ...(params.providerSafetyUserId === undefined || params.providerSafetyUserId === null
         ? {}
         : { safety_identifier: params.providerSafetyUserId }),
@@ -621,6 +790,11 @@ export async function* streamLocalAgentTurn(
     }
 
     const finalResponse = await stream.finalResponse();
+    await verifySpreadsheetContainers(client, {
+      requestId: params.requestId,
+      model: params.model,
+      spreadsheetAttachmentFileNames: spreadsheetAttachments.map((attachment) => attachment.fileName),
+    }, finalResponse);
     const toolCalls = finalResponse.output.filter(isFunctionToolCall);
 
     if (toolCalls.length === 0) {

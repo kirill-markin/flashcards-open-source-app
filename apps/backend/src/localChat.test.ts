@@ -42,6 +42,10 @@ type FakeOutputItem = Readonly<{
   call_id?: string;
   name?: string;
   arguments?: string;
+  container_id?: string;
+  code?: string | null;
+  outputs?: ReadonlyArray<Readonly<{ type: string; logs?: string; url?: string }>> | null;
+  status?: string;
 }>;
 
 type FakeFinalResponse = Readonly<{
@@ -58,6 +62,7 @@ type CapturedStreamBody = Readonly<{
   instructions: string;
   input: ReadonlyArray<unknown>;
   safety_identifier?: string;
+  tool_choice?: Readonly<{ type: string }>;
   tools: ReadonlyArray<unknown>;
   parallel_tool_calls: boolean;
   user?: string;
@@ -66,7 +71,28 @@ type CapturedStreamBody = Readonly<{
 function makeFakeClient(
   attempts: ReadonlyArray<FakeAttempt>,
   capturedBodies: Array<CapturedStreamBody>,
+  options?: Readonly<{
+    listedContainerIds?: Array<string>;
+    containerFilesById?: Readonly<Record<string, ReadonlyArray<Readonly<{
+      id: string;
+      path: string;
+      source: string;
+      bytes: number;
+    }>>>>;
+  }>,
 ): Readonly<{
+  containers: Readonly<{
+    files: Readonly<{
+      list: (
+        containerID: string,
+      ) => Promise<Readonly<{ data: ReadonlyArray<Readonly<{
+        id: string;
+        path: string;
+        source: string;
+        bytes: number;
+      }>> }>>;
+    }>;
+  }>;
   files: Readonly<{
     create: () => Promise<Readonly<{ id: string; filename: string }>>;
   }>;
@@ -79,6 +105,16 @@ function makeFakeClient(
   let attemptIndex = 0;
 
   return {
+    containers: {
+      files: {
+        async list(containerID: string) {
+          options?.listedContainerIds?.push(containerID);
+          return {
+            data: options?.containerFilesById?.[containerID] ?? [],
+          };
+        },
+      },
+    },
     files: {
       async create() {
         return {
@@ -537,6 +573,62 @@ test("streamLocalAgentTurn keeps csv attachments tool-only", async () => {
   }> | undefined;
   assert.equal(firstInputItem?.content.length, 1);
   assert.equal(firstInputItem?.content[0]?.type, "input_file");
+  assert.deepEqual(capturedBodies[0]?.tool_choice, { type: "code_interpreter" });
+});
+
+test("streamLocalAgentTurn verifies spreadsheet containers after code interpreter runs", async () => {
+  const capturedBodies: Array<CapturedStreamBody> = [];
+  const listedContainerIds: Array<string> = [];
+  const client = makeFakeClient(
+    [{
+      events: [],
+      finalResponse: {
+        output: [
+          {
+            type: "code_interpreter_call",
+            container_id: "container_test_1",
+            code: "print('ok')",
+            outputs: null,
+            status: "completed",
+          },
+        ],
+      },
+    }],
+    capturedBodies,
+    {
+      listedContainerIds,
+      containerFilesById: {
+        container_test_1: [{
+          id: "cfile_1",
+          path: "/mnt/data/example-table.csv",
+          source: "user",
+          bytes: 8,
+        }],
+      },
+    },
+  );
+
+  const events = await collectEvents(streamLocalAgentTurn({
+    messages: [{
+      role: "user",
+      content: [{
+        type: "file",
+        mediaType: "text/csv",
+        base64Data: Buffer.from("a,b\n1,2", "utf-8").toString("base64"),
+        fileName: "table.csv",
+      }],
+    }],
+    model: "gpt-5.4",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    userContext: testUserContext,
+    requestId: "request-file-csv-container-1",
+  }, client));
+
+  assert.deepEqual(events, [
+    { type: "done" },
+  ]);
+  assert.deepEqual(listedContainerIds, ["container_test_1"]);
 });
 
 test("streamAnthropicLocalAgentTurn duplicates small text attachments inline next to container uploads", async () => {
