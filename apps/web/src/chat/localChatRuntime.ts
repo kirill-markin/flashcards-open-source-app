@@ -54,6 +54,8 @@ export type LocalChatRuntimeDependencies = Readonly<{
     messages: ReadonlyArray<LocalChatMessage>,
     model: string,
     timezone: string,
+    chatSessionId: string,
+    codeInterpreterContainerId: string | null,
   ) => LocalChatRequestBody;
   streamChat: (body: LocalChatRequestBody, signal: AbortSignal) => Promise<Response>;
   executeTool: (toolCallRequest: LocalToolCallRequest) => Promise<LocalToolExecutionResult>;
@@ -71,6 +73,7 @@ export type LocalChatRuntimeCallbacks = Readonly<{
   onToolCallCompleted: (toolCallId: string, input: string | null, output: string | null) => void;
   onAssistantCompleted: () => void;
   onAssistantError: (message: string) => void;
+  onCodeInterpreterContainerIdChanged: (containerId: string) => void;
   onDiagnostics: (payload: LocalChatDiagnosticsPayload) => void;
 }>;
 
@@ -78,6 +81,8 @@ export type LocalChatRuntimeRequest = Readonly<{
   initialMessages: ReadonlyArray<LocalChatMessage>;
   selectedModel: string;
   timezone: string;
+  chatSessionId: string;
+  initialCodeInterpreterContainerId: string | null;
   tapStartedAt: number;
   signal: AbortSignal;
   callbacks: LocalChatRuntimeCallbacks;
@@ -588,11 +593,21 @@ export async function runLocalChatRuntime(
   dependencies: LocalChatRuntimeDependencies,
   request: LocalChatRuntimeRequest,
 ): Promise<void> {
-  const { callbacks, initialMessages, selectedModel, signal, tapStartedAt, timezone } = request;
+  const {
+    callbacks,
+    chatSessionId,
+    initialCodeInterpreterContainerId,
+    initialMessages,
+    selectedModel,
+    signal,
+    tapStartedAt,
+    timezone,
+  } = request;
   callbacks.onAssistantStarted();
 
   const clientRequestId = dependencies.generateRequestId();
   const wireMessages = [...initialMessages];
+  let codeInterpreterContainerId = initialCodeInterpreterContainerId;
   let turnContext = createInitialLocalChatTurnContext(clientRequestId);
   let backendRequestId: string | null = null;
   let bufferLength = 0;
@@ -626,7 +641,13 @@ export async function runLocalChatRuntime(
       return;
     }
 
-    const requestBody = dependencies.createRequestBody(wireMessages, selectedModel, timezone);
+    const requestBody = dependencies.createRequestBody(
+      wireMessages,
+      selectedModel,
+      timezone,
+      chatSessionId,
+      codeInterpreterContainerId,
+    );
     if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       callbacks.onAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
       return;
@@ -695,7 +716,12 @@ export async function runLocalChatRuntime(
 
       response = await dependencies.streamChat(requestBody, signal);
       responseStatusCode = response.status;
-      backendRequestId = buildChatResponseMetadata(response).responseRequestId;
+      const responseMetadata = buildChatResponseMetadata(response);
+      backendRequestId = responseMetadata.responseRequestId;
+      if (responseMetadata.responseCodeInterpreterContainerId !== null) {
+        codeInterpreterContainerId = responseMetadata.responseCodeInterpreterContainerId;
+        callbacks.onCodeInterpreterContainerIdChanged(responseMetadata.responseCodeInterpreterContainerId);
+      }
       if (latencyTracker !== null) {
         latencyTracker.headersReceivedAt = dependencies.now();
       }

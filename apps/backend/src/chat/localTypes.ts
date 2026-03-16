@@ -68,6 +68,8 @@ export type LocalChatRequestBody = Readonly<{
   model: string;
   timezone: string;
   devicePlatform: LocalChatDevicePlatform;
+  chatSessionId: string;
+  codeInterpreterContainerId: string | null;
   userContext: LocalChatUserContext;
 }>;
 

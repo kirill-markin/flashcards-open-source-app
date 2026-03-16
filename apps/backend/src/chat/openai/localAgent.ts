@@ -66,6 +66,33 @@ type OpenAIOutputItem =
   | ResponseFunctionToolCall
   | Readonly<{
     id: string;
+    type: "message";
+    role: "assistant";
+    content: ReadonlyArray<
+      | Readonly<{
+        type: "output_text";
+        text: string;
+        annotations: ReadonlyArray<
+          | Readonly<{
+            type: "container_file_citation";
+            container_id: string;
+            file_id: string;
+            filename: string;
+            start_index: number;
+            end_index: number;
+          }>
+          | Readonly<{ type: string }>
+        >;
+      }>
+      | Readonly<{
+        type: "refusal";
+        refusal: string;
+      }>
+      | Readonly<{ type: string }>
+    >;
+  }>
+  | Readonly<{
+    id: string;
     type: "web_search_call";
     action?: Readonly<Record<string, unknown>>;
   }>
@@ -90,7 +117,36 @@ type ResponseStreamLike = AsyncIterable<OpenAIToolEvent> & Readonly<{
 
 type OpenAIResponsesClient = Readonly<{
   containers?: Readonly<{
+    create?: (
+      body: Readonly<{
+        name: string;
+        expires_after: Readonly<{
+          anchor: "last_active_at";
+          minutes: number;
+        }>;
+      }>,
+    ) => Promise<Readonly<{
+      id: string;
+      name: string;
+      status: string;
+    }>>;
+    retrieve?: (
+      containerID: string,
+    ) => Promise<Readonly<{
+      id: string;
+      name: string;
+      status: string;
+    }>>;
     files: Readonly<{
+      create?: (
+        containerID: string,
+        body: Readonly<{ file_id: string }>,
+      ) => Promise<Readonly<{
+        id: string;
+        path: string;
+        source: string;
+        bytes: number;
+      }>>;
       list: (
         containerID: string,
       ) => Promise<Readonly<{ data: ReadonlyArray<Readonly<{
@@ -116,6 +172,8 @@ type LocalChatLogEvent =
     action: "request";
     requestId: string;
     model: string;
+    chatSessionId: string;
+    incomingCodeInterpreterContainerId: string | null;
     messageCount: number;
     attachmentCount: number;
     spreadsheetAttachmentCount: number;
@@ -190,6 +248,84 @@ type LocalChatLogEvent =
     action: "spreadsheet_container_verification_unavailable";
     requestId: string;
     model: string;
+  }>
+  | Readonly<{
+    action: "code_interpreter_container_created";
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    containerId: string;
+    containerName: string;
+  }>
+  | Readonly<{
+    action: "code_interpreter_container_reused";
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    containerId: string;
+    containerName: string;
+  }>
+  | Readonly<{
+    action: "code_interpreter_container_recreated";
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    previousContainerId: string | null;
+    previousReason: string;
+    containerId: string;
+    containerName: string;
+  }>
+  | Readonly<{
+    action: "code_interpreter_container_session_mismatch";
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    containerId: string;
+    expectedContainerName: string;
+    actualContainerName: string;
+  }>
+  | Readonly<{
+    action: "code_interpreter_container_file_added";
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    containerId: string;
+    fileId: string;
+    containerFileId: string;
+    containerFilePath: string;
+    bytes: number;
+  }>
+  | Readonly<{
+    action: "code_interpreter_container_inventory";
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    containerId: string;
+    containerFileCount: number;
+    containerFiles: ReadonlyArray<Readonly<{
+      id: string;
+      path: string;
+      source: string;
+      bytes: number;
+    }>>;
+  }>
+  | Readonly<{
+    action: "response_summary";
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    effectiveCodeInterpreterContainerId: string | null;
+    finalOutputItemTypes: ReadonlyArray<string>;
+    hasCodeInterpreterCall: boolean;
+    codeInterpreterCallCount: number;
+    codeSnippet: string | null;
+    outputSummary: string | null;
+    assistantTextSnippet: string | null;
+    containerFileCitations: ReadonlyArray<Readonly<{
+      containerId: string;
+      fileId: string;
+      filename: string;
+    }>>;
   }>;
 
 type RepairPromptState = Readonly<{
@@ -208,6 +344,11 @@ type UploadPlan = Readonly<{
   uploadedFileIds: ReadonlyArray<string>;
 }>;
 
+type CodeInterpreterContainerPlan = Readonly<{
+  effectiveContainerId: string | null;
+  shouldUseExplicitContainer: boolean;
+}>;
+
 type ValidatedToolCall = Readonly<{
   toolCallId: string;
   name: string;
@@ -221,14 +362,24 @@ type LatestUserAttachmentSummary = Readonly<{
   isSpreadsheet: boolean;
 }>;
 
+const CODE_INTERPRETER_CONTAINER_EXPIRY_MINUTES = 20;
+const LOG_SNIPPET_MAX_CHARS = 400;
+
 export type StreamLocalTurnParams = Readonly<{
   messages: ReadonlyArray<LocalChatMessage>;
   model: string;
   timezone: string;
   devicePlatform: "ios" | "web";
+  chatSessionId: string;
+  codeInterpreterContainerId: string | null;
   userContext: LocalChatUserContext;
   providerSafetyUserId?: string | null;
   requestId: string;
+}>;
+
+export type PreparedLocalTurn = Readonly<{
+  codeInterpreterContainerId: string | null;
+  stream: AsyncGenerator<LocalChatStreamEvent>;
 }>;
 
 export class LocalChatRuntimeError extends Error {
@@ -253,6 +404,27 @@ function logLocalChatEvent(event: LocalChatLogEvent): void {
 
 function createClient(): OpenAIResponsesClient {
   return new OpenAI();
+}
+
+function codeInterpreterContainerName(chatSessionId: string): string {
+  return `flashcards-local-chat-${chatSessionId}`;
+}
+
+function truncateForLog(value: string | null, maxChars: number): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  if (trimmedValue === "") {
+    return null;
+  }
+
+  if (trimmedValue.length <= maxChars) {
+    return trimmedValue;
+  }
+
+  return `${trimmedValue.slice(0, maxChars)}...`;
 }
 
 function isOpenAITextDeltaEvent(event: OpenAIToolEvent): event is OpenAITextDeltaEvent {
@@ -292,6 +464,80 @@ function isCodeInterpreterCallOutputItem(
   item: OpenAIOutputItem,
 ): item is Extract<OpenAIOutputItem, { type: "code_interpreter_call" }> {
   return item.type === "code_interpreter_call";
+}
+
+function isMessageOutputItem(
+  item: OpenAIOutputItem,
+): item is Extract<OpenAIOutputItem, { type: "message" }> {
+  return item.type === "message";
+}
+
+function summarizeFinalResponse(
+  finalResponse: Readonly<{
+    output: ReadonlyArray<OpenAIOutputItem>;
+  }>,
+): Readonly<{
+  finalOutputItemTypes: ReadonlyArray<string>;
+  hasCodeInterpreterCall: boolean;
+  codeInterpreterCallCount: number;
+  codeSnippet: string | null;
+  outputSummary: string | null;
+  assistantTextSnippet: string | null;
+  containerFileCitations: ReadonlyArray<Readonly<{
+    containerId: string;
+    fileId: string;
+    filename: string;
+  }>>;
+}> {
+  const codeInterpreterCalls = finalResponse.output.filter(isCodeInterpreterCallOutputItem);
+  const assistantTextParts: Array<string> = [];
+  const containerFileCitations: Array<Readonly<{
+    containerId: string;
+    fileId: string;
+    filename: string;
+  }>> = [];
+
+  for (const item of finalResponse.output) {
+    if (isMessageOutputItem(item) === false) {
+      continue;
+    }
+
+    if (Array.isArray(item.content) === false) {
+      continue;
+    }
+
+    for (const contentItem of item.content) {
+      if (contentItem.type !== "output_text") {
+        continue;
+      }
+
+      assistantTextParts.push(contentItem.text);
+      for (const annotation of contentItem.annotations) {
+        if (annotation.type !== "container_file_citation") {
+          continue;
+        }
+
+        containerFileCitations.push({
+          containerId: annotation.container_id,
+          fileId: annotation.file_id,
+          filename: annotation.filename,
+        });
+      }
+    }
+  }
+
+  return {
+    finalOutputItemTypes: finalResponse.output.map((item) => item.type),
+    hasCodeInterpreterCall: codeInterpreterCalls.length > 0,
+    codeInterpreterCallCount: codeInterpreterCalls.length,
+    codeSnippet: truncateForLog(codeInterpreterCalls[0]?.code ?? null, LOG_SNIPPET_MAX_CHARS),
+    outputSummary: truncateForLog(
+      summarizeCodeInterpreterOutputs(codeInterpreterCalls[0]?.outputs ?? null),
+      LOG_SNIPPET_MAX_CHARS,
+    ),
+    assistantTextSnippet: truncateForLog(assistantTextParts.join("\n"), LOG_SNIPPET_MAX_CHARS),
+    containerFileCitations,
+  };
 }
 
 function latestUserMessageIndex(
@@ -459,6 +705,158 @@ async function uploadLatestUserFiles(
     latestUserIndex,
     uploadedParts: new Map<string, UploadedFileRef>(uploadedEntries),
     uploadedFileIds,
+  };
+}
+
+async function logCodeInterpreterContainerInventory(
+  client: OpenAIResponsesClient,
+  params: Readonly<{
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    containerId: string;
+  }>,
+): Promise<void> {
+  const containerFiles = (await client.containers?.files.list(params.containerId))?.data.map((file) => ({
+    id: file.id,
+    path: file.path,
+    source: file.source,
+    bytes: file.bytes,
+  })) ?? [];
+
+  logLocalChatEvent({
+    action: "code_interpreter_container_inventory",
+    requestId: params.requestId,
+    model: params.model,
+    chatSessionId: params.chatSessionId,
+    containerId: params.containerId,
+    containerFileCount: containerFiles.length,
+    containerFiles,
+  });
+}
+
+async function resolveCodeInterpreterContainer(
+  client: OpenAIResponsesClient,
+  params: StreamLocalTurnParams,
+  uploadPlan: UploadPlan,
+): Promise<CodeInterpreterContainerPlan> {
+  const shouldUseExplicitContainer = uploadPlan.uploadedFileIds.length > 0
+    || params.codeInterpreterContainerId !== null;
+
+  if (shouldUseExplicitContainer === false) {
+    return {
+      effectiveContainerId: null,
+      shouldUseExplicitContainer,
+    };
+  }
+
+  if (
+    client.containers?.create === undefined
+    || client.containers.retrieve === undefined
+    || client.containers.files.create === undefined
+    || client.containers.files.list === undefined
+  ) {
+    throw new LocalChatRuntimeError(
+      "AI chat code execution is unavailable on this server.",
+      "LOCAL_CHAT_CONTAINER_UNAVAILABLE",
+      "container_setup",
+    );
+  }
+
+  const expectedContainerName = codeInterpreterContainerName(params.chatSessionId);
+  let effectiveContainerId: string | null = null;
+  let recreationReason: string | null = null;
+
+  if (params.codeInterpreterContainerId !== null) {
+    try {
+      const existingContainer = await client.containers.retrieve(params.codeInterpreterContainerId);
+      if (existingContainer.name !== expectedContainerName) {
+        logLocalChatEvent({
+          action: "code_interpreter_container_session_mismatch",
+          requestId: params.requestId,
+          model: params.model,
+          chatSessionId: params.chatSessionId,
+          containerId: params.codeInterpreterContainerId,
+          expectedContainerName,
+          actualContainerName: existingContainer.name,
+        });
+        recreationReason = "session_mismatch";
+      } else if (existingContainer.status !== "active") {
+        recreationReason = `status_${existingContainer.status}`;
+      } else {
+        effectiveContainerId = existingContainer.id;
+        logLocalChatEvent({
+          action: "code_interpreter_container_reused",
+          requestId: params.requestId,
+          model: params.model,
+          chatSessionId: params.chatSessionId,
+          containerId: existingContainer.id,
+          containerName: existingContainer.name,
+        });
+      }
+    } catch (error) {
+      recreationReason = error instanceof Error ? error.name : "retrieve_failed";
+    }
+  }
+
+  if (effectiveContainerId === null) {
+    const createdContainer = await client.containers.create({
+      name: expectedContainerName,
+      expires_after: {
+        anchor: "last_active_at",
+        minutes: CODE_INTERPRETER_CONTAINER_EXPIRY_MINUTES,
+      },
+    });
+    effectiveContainerId = createdContainer.id;
+
+    if (recreationReason === null) {
+      logLocalChatEvent({
+        action: "code_interpreter_container_created",
+        requestId: params.requestId,
+        model: params.model,
+        chatSessionId: params.chatSessionId,
+        containerId: createdContainer.id,
+        containerName: createdContainer.name,
+      });
+    } else {
+      logLocalChatEvent({
+        action: "code_interpreter_container_recreated",
+        requestId: params.requestId,
+        model: params.model,
+        chatSessionId: params.chatSessionId,
+        previousContainerId: params.codeInterpreterContainerId,
+        previousReason: recreationReason,
+        containerId: createdContainer.id,
+        containerName: createdContainer.name,
+      });
+    }
+  }
+
+  for (const fileId of uploadPlan.uploadedFileIds) {
+    const containerFile = await client.containers.files.create(effectiveContainerId, { file_id: fileId });
+    logLocalChatEvent({
+      action: "code_interpreter_container_file_added",
+      requestId: params.requestId,
+      model: params.model,
+      chatSessionId: params.chatSessionId,
+      containerId: effectiveContainerId,
+      fileId,
+      containerFileId: containerFile.id,
+      containerFilePath: containerFile.path,
+      bytes: containerFile.bytes,
+    });
+  }
+
+  await logCodeInterpreterContainerInventory(client, {
+    requestId: params.requestId,
+    model: params.model,
+    chatSessionId: params.chatSessionId,
+    containerId: effectiveContainerId,
+  });
+
+  return {
+    effectiveContainerId,
+    shouldUseExplicitContainer,
   };
 }
 
@@ -664,30 +1062,22 @@ export function isSupportedLocalChatModel(model: string): boolean {
   return LOCAL_CHAT_MODEL_IDS.has(model);
 }
 
-export async function* streamLocalAgentTurn(
+async function* streamPreparedLocalAgentTurn(
   params: StreamLocalTurnParams,
   client: OpenAIResponsesClient,
+  uploadPlan: UploadPlan,
+  attachmentSummaries: ReadonlyArray<LatestUserAttachmentSummary>,
+  containerPlan: CodeInterpreterContainerPlan,
 ): AsyncGenerator<LocalChatStreamEvent> {
-  const attachmentSummaries = latestUserAttachments(params.messages);
   const spreadsheetAttachments = attachmentSummaries.filter((attachment) => attachment.isSpreadsheet);
   const forcedToolChoice = spreadsheetAttachments.length > 0 ? "code_interpreter" : "auto";
-
-  logLocalChatEvent({
-    action: "request",
-    requestId: params.requestId,
-    model: params.model,
-    messageCount: params.messages.length,
-    attachmentCount: attachmentSummaries.length,
-    spreadsheetAttachmentCount: spreadsheetAttachments.length,
-    attachmentFileNames: attachmentSummaries.map((attachment) => attachment.fileName),
-    attachmentMediaTypes: attachmentSummaries.map((attachment) => attachment.mediaType),
-    forcedToolChoice,
-  });
+  const shouldLogResponseSummary = attachmentSummaries.length > 0
+    || params.codeInterpreterContainerId !== null
+    || containerPlan.effectiveContainerId !== null;
 
   let repairState: RepairPromptState | null = null;
   let streamedAssistantText = "";
   let deltaCount = 0;
-  const uploadPlan = await uploadLatestUserFiles(client, params.messages);
 
   for (let repairAttempt = 0; repairAttempt <= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS; repairAttempt += 1) {
     logLocalChatEvent({
@@ -720,10 +1110,12 @@ export async function* streamLocalAgentTurn(
         },
         {
           type: "code_interpreter",
-          container: {
-            type: "auto",
-            file_ids: uploadPlan.uploadedFileIds,
-          },
+          container: containerPlan.shouldUseExplicitContainer && containerPlan.effectiveContainerId !== null
+            ? containerPlan.effectiveContainerId
+            : {
+              type: "auto",
+              file_ids: uploadPlan.uploadedFileIds,
+            },
         },
       ],
       parallel_tool_calls: false,
@@ -790,6 +1182,23 @@ export async function* streamLocalAgentTurn(
     }
 
     const finalResponse = await stream.finalResponse();
+    if (shouldLogResponseSummary) {
+      const responseSummary = summarizeFinalResponse(finalResponse);
+      logLocalChatEvent({
+        action: "response_summary",
+        requestId: params.requestId,
+        model: params.model,
+        chatSessionId: params.chatSessionId,
+        effectiveCodeInterpreterContainerId: containerPlan.effectiveContainerId,
+        finalOutputItemTypes: responseSummary.finalOutputItemTypes,
+        hasCodeInterpreterCall: responseSummary.hasCodeInterpreterCall,
+        codeInterpreterCallCount: responseSummary.codeInterpreterCallCount,
+        codeSnippet: responseSummary.codeSnippet,
+        outputSummary: responseSummary.outputSummary,
+        assistantTextSnippet: responseSummary.assistantTextSnippet,
+        containerFileCitations: responseSummary.containerFileCitations,
+      });
+    }
     await verifySpreadsheetContainers(client, {
       requestId: params.requestId,
       model: params.model,
@@ -885,8 +1294,51 @@ export async function* streamLocalAgentTurn(
   );
 }
 
+export async function prepareLocalTurn(
+  params: StreamLocalTurnParams,
+  client: OpenAIResponsesClient,
+): Promise<PreparedLocalTurn> {
+  const attachmentSummaries = latestUserAttachments(params.messages);
+  logLocalChatEvent({
+    action: "request",
+    requestId: params.requestId,
+    model: params.model,
+    chatSessionId: params.chatSessionId,
+    incomingCodeInterpreterContainerId: params.codeInterpreterContainerId,
+    messageCount: params.messages.length,
+    attachmentCount: attachmentSummaries.length,
+    spreadsheetAttachmentCount: attachmentSummaries.filter((attachment) => attachment.isSpreadsheet).length,
+    attachmentFileNames: attachmentSummaries.map((attachment) => attachment.fileName),
+    attachmentMediaTypes: attachmentSummaries.map((attachment) => attachment.mediaType),
+    forcedToolChoice: attachmentSummaries.some((attachment) => attachment.isSpreadsheet) ? "code_interpreter" : "auto",
+  });
+
+  const uploadPlan = await uploadLatestUserFiles(client, params.messages);
+  const containerPlan = await resolveCodeInterpreterContainer(client, params, uploadPlan);
+
+  return {
+    codeInterpreterContainerId: containerPlan.effectiveContainerId,
+    stream: streamPreparedLocalAgentTurn(
+      params,
+      client,
+      uploadPlan,
+      attachmentSummaries,
+      containerPlan,
+    ),
+  };
+}
+
+export async function* streamLocalAgentTurn(
+  params: StreamLocalTurnParams,
+  client: OpenAIResponsesClient,
+): AsyncGenerator<LocalChatStreamEvent> {
+  const preparedTurn = await prepareLocalTurn(params, client);
+  yield* preparedTurn.stream;
+}
+
 export async function* streamLocalTurn(
   params: StreamLocalTurnParams,
 ): AsyncGenerator<LocalChatStreamEvent> {
-  yield* streamLocalAgentTurn(params, createClient());
+  const preparedTurn = await prepareLocalTurn(params, createClient());
+  yield* preparedTurn.stream;
 }

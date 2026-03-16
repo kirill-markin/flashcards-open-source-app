@@ -150,6 +150,7 @@ function buildLocalAttachmentHandlingSection(): string {
     "Attachment handling:",
     "If a small text attachment is duplicated inline inside <attached_text_file>, read that inline text before using code execution.",
     "For CSV, XLS, and XLSX attachments, inspect the file with code execution before saying it is missing or inaccessible.",
+    "Files uploaded earlier in the same chat may remain available to code execution even when the current user message has no attachment.",
     "When a file is available to code execution, the mounted filename may differ from the uploaded filename.",
     "Mounted files are typically exposed under /mnt/data with generated names or prefixes.",
     "Inspect mounted files before claiming that an attached file is missing.",

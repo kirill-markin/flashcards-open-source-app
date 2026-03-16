@@ -21,6 +21,7 @@ type RuntimeHarness = Readonly<{
   onToolCallCompletedMock: ReturnType<typeof vi.fn>;
   onAssistantCompletedMock: ReturnType<typeof vi.fn>;
   onAssistantErrorMock: ReturnType<typeof vi.fn>;
+  onCodeInterpreterContainerIdChangedMock: ReturnType<typeof vi.fn>;
   onDiagnosticsMock: ReturnType<typeof vi.fn>;
 }>;
 
@@ -78,11 +79,15 @@ function createRuntimeHarness(): RuntimeHarness {
     messages: ReadonlyArray<LocalChatMessage>,
     model: string,
     timezone: string,
+    chatSessionId: string,
+    codeInterpreterContainerId: string | null,
   ): LocalChatRequestBody => ({
     messages,
     model,
     timezone,
     devicePlatform: "web",
+    chatSessionId,
+    codeInterpreterContainerId,
     userContext: {
       totalCards: 3,
     },
@@ -99,6 +104,7 @@ function createRuntimeHarness(): RuntimeHarness {
   const onToolCallCompletedMock = vi.fn();
   const onAssistantCompletedMock = vi.fn();
   const onAssistantErrorMock = vi.fn();
+  const onCodeInterpreterContainerIdChangedMock = vi.fn();
   const onDiagnosticsMock = vi.fn();
 
   return {
@@ -119,6 +125,7 @@ function createRuntimeHarness(): RuntimeHarness {
       onToolCallCompleted: onToolCallCompletedMock,
       onAssistantCompleted: onAssistantCompletedMock,
       onAssistantError: onAssistantErrorMock,
+      onCodeInterpreterContainerIdChanged: onCodeInterpreterContainerIdChangedMock,
       onDiagnostics: onDiagnosticsMock,
     },
     createRequestBodyMock,
@@ -131,6 +138,7 @@ function createRuntimeHarness(): RuntimeHarness {
     onToolCallCompletedMock,
     onAssistantCompletedMock,
     onAssistantErrorMock,
+    onCodeInterpreterContainerIdChangedMock,
     onDiagnosticsMock,
   };
 }
@@ -145,6 +153,8 @@ async function runHarness(harness: RuntimeHarness): Promise<void> {
       }],
       selectedModel: "test-model",
       timezone: "Europe/Madrid",
+      chatSessionId: "chat-session-1",
+      initialCodeInterpreterContainerId: null,
       tapStartedAt: 900,
       signal: new AbortController().signal,
       callbacks: harness.callbacks,
@@ -436,6 +446,8 @@ describe("runLocalChatRuntime", () => {
         ],
         selectedModel: "test-model",
         timezone: "Europe/Madrid",
+        chatSessionId: "chat-session-1",
+        initialCodeInterpreterContainerId: null,
         tapStartedAt: 900,
         signal: new AbortController().signal,
         callbacks: harness.callbacks,

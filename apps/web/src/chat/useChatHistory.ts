@@ -10,6 +10,8 @@ export type StoredMessage = Readonly<{
 
 type ChatHistoryState = Readonly<{
   messages: ReadonlyArray<StoredMessage>;
+  chatSessionId: string;
+  codeInterpreterContainerId: string | null;
   isHydrated: boolean;
   appendUserMessage: (content: ReadonlyArray<ContentPart>) => void;
   startAssistantMessage: (initialText: string | null) => void;
@@ -18,13 +20,28 @@ type ChatHistoryState = Readonly<{
   completeToolCall: (toolCallId: string, input: string | null, output: string | null) => void;
   finalizeAssistant: () => void;
   markAssistantError: (errorText: string) => void;
+  setCodeInterpreterContainerId: (containerId: string) => void;
   clearOptimisticAssistantStatus: () => void;
   clearHistory: () => void;
+}>;
+
+type StoredChatHistory = Readonly<{
+  messages: ReadonlyArray<StoredMessage>;
+  chatSessionId: string;
+  codeInterpreterContainerId: string | null;
 }>;
 
 const STORAGE_KEY = "flashcards-chat-messages";
 const MAX_MESSAGES = 200;
 export const OPTIMISTIC_ASSISTANT_STATUS_TEXT = "Looking through your cards...";
+
+function createChatSessionId(): string {
+  if (typeof globalThis.crypto?.randomUUID !== "function") {
+    throw new Error("crypto.randomUUID is unavailable for chat session ids");
+  }
+
+  return globalThis.crypto.randomUUID();
+}
 
 function normalizeAssistantText(text: string): string {
   return text.replace(/\r\n?/g, "\n");
@@ -196,31 +213,69 @@ export function appendAssistantErrorContent(
   return [...content, { type: "text", text: `${errorPrefix}${errorText}` }];
 }
 
-function loadFromStorage(): ReadonlyArray<StoredMessage> {
+function loadFromStorage(): StoredChatHistory {
+  const emptyHistory = {
+    messages: [],
+    chatSessionId: createChatSessionId(),
+    codeInterpreterContainerId: null,
+  } satisfies StoredChatHistory;
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw === null) {
-      return [];
+      return emptyHistory;
     }
 
     const parsed = JSON.parse(raw) as unknown;
-    if (Array.isArray(parsed) === false) {
-      return [];
+
+    if (Array.isArray(parsed)) {
+      return {
+        messages: parsed
+          .map(normalizeStoredMessage)
+          .filter((message): message is StoredMessage => message !== null)
+          .slice(-MAX_MESSAGES),
+        chatSessionId: createChatSessionId(),
+        codeInterpreterContainerId: null,
+      };
     }
 
-    return parsed
-      .map(normalizeStoredMessage)
-      .filter((message): message is StoredMessage => message !== null)
-      .slice(-MAX_MESSAGES);
+    if (typeof parsed !== "object" || parsed === null) {
+      return emptyHistory;
+    }
+
+    const record = parsed as Record<string, unknown>;
+    const messages = Array.isArray(record.messages)
+      ? record.messages
+        .map(normalizeStoredMessage)
+        .filter((message): message is StoredMessage => message !== null)
+        .slice(-MAX_MESSAGES)
+      : [];
+    const chatSessionId = typeof record.chatSessionId === "string" && record.chatSessionId.trim() !== ""
+      ? record.chatSessionId
+      : createChatSessionId();
+    const codeInterpreterContainerId = typeof record.codeInterpreterContainerId === "string"
+      && record.codeInterpreterContainerId.trim() !== ""
+      ? record.codeInterpreterContainerId
+      : null;
+
+    return {
+      messages,
+      chatSessionId,
+      codeInterpreterContainerId,
+    };
   } catch (error) {
     console.error("Failed to load chat history", error);
-    return [];
+    return emptyHistory;
   }
 }
 
-function saveToStorage(messages: ReadonlyArray<StoredMessage>): void {
+function saveToStorage(history: StoredChatHistory): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      messages: history.messages.slice(-MAX_MESSAGES),
+      chatSessionId: history.chatSessionId,
+      codeInterpreterContainerId: history.codeInterpreterContainerId,
+    } satisfies StoredChatHistory));
   } catch (error) {
     console.error("Failed to persist chat history", error);
   }
@@ -228,10 +283,15 @@ function saveToStorage(messages: ReadonlyArray<StoredMessage>): void {
 
 export function useChatHistory(): ChatHistoryState {
   const [messages, setMessages] = useState<ReadonlyArray<StoredMessage>>([]);
+  const [chatSessionId, setChatSessionId] = useState<string>(() => createChatSessionId());
+  const [codeInterpreterContainerId, setCodeInterpreterContainerIdState] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
 
   useEffect(() => {
-    setMessages(loadFromStorage());
+    const history = loadFromStorage();
+    setMessages(history.messages);
+    setChatSessionId(history.chatSessionId);
+    setCodeInterpreterContainerIdState(history.codeInterpreterContainerId);
     setIsHydrated(true);
   }, []);
 
@@ -240,8 +300,12 @@ export function useChatHistory(): ChatHistoryState {
       return;
     }
 
-    saveToStorage(messages);
-  }, [isHydrated, messages]);
+    saveToStorage({
+      messages,
+      chatSessionId,
+      codeInterpreterContainerId,
+    });
+  }, [chatSessionId, codeInterpreterContainerId, isHydrated, messages]);
 
   function appendUserMessage(content: ReadonlyArray<ContentPart>): void {
     setMessages((currentMessages) => [
@@ -392,13 +456,21 @@ export function useChatHistory(): ChatHistoryState {
     });
   }
 
+  function setCodeInterpreterContainerId(containerId: string): void {
+    setCodeInterpreterContainerIdState(containerId);
+  }
+
   function clearHistory(): void {
     setMessages([]);
+    setChatSessionId(createChatSessionId());
+    setCodeInterpreterContainerIdState(null);
     localStorage.removeItem(STORAGE_KEY);
   }
 
   return {
     messages,
+    chatSessionId,
+    codeInterpreterContainerId,
     isHydrated,
     appendUserMessage,
     startAssistantMessage,
@@ -407,6 +479,7 @@ export function useChatHistory(): ChatHistoryState {
     completeToolCall,
     finalizeAssistant,
     markAssistantError,
+    setCodeInterpreterContainerId,
     clearOptimisticAssistantStatus,
     clearHistory,
   };

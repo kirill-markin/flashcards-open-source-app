@@ -219,12 +219,19 @@ export function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody 
   const model = expectNonEmptyString(body.model, "model");
   const timezone = expectNonEmptyString(body.timezone, "timezone");
   const devicePlatform = body.devicePlatform;
+  const chatSessionId = expectNonEmptyString(body.chatSessionId, "chatSessionId");
+  const codeInterpreterContainerId = expectNullableNonEmptyString(
+    body.codeInterpreterContainerId ?? null,
+    "codeInterpreterContainerId",
+  );
 
   return {
     messages: parseLocalChatMessages(body.messages),
     model,
     timezone,
     devicePlatform: devicePlatform === "web" ? "web" : "ios",
+    chatSessionId,
+    codeInterpreterContainerId,
     userContext: parseLocalChatUserContext(body.userContext),
   };
 }
@@ -624,6 +631,25 @@ function getProviderSafetyUserId(requestContext: RequestContext): string | null 
   return hashAIProviderUserId(requestContext.userId);
 }
 
+type PreparedLocalTurnModule = Readonly<{
+  prepareLocalTurn: (
+    params: Readonly<{
+      messages: ReadonlyArray<LocalChatMessage>;
+      model: string;
+      timezone: string;
+      devicePlatform: "ios" | "web";
+      chatSessionId: string;
+      codeInterpreterContainerId: string | null;
+      userContext: LocalChatUserContext;
+      providerSafetyUserId?: string | null;
+      requestId: string;
+    }>,
+  ) => Promise<Readonly<{
+    codeInterpreterContainerId: string | null;
+    stream: AsyncGenerator<LocalChatStreamEvent>;
+  }>>;
+}>;
+
 export async function streamLocalChatResponse(
   body: LocalChatRequestBody,
   requestId: string,
@@ -641,26 +667,28 @@ export async function streamLocalChatResponse(
     throw makeAIEndpointNotConfiguredError("chat");
   }
 
-  const agentModule = validModel.vendor === "anthropic"
+  const initialContinuationContext = validateLocalChatMessages(body.messages);
+  const agentModule = (validModel.vendor === "anthropic"
     ? await import("./anthropic/localAgent")
-    : await import("./openai/localAgent");
+    : await import("./openai/localAgent")) as PreparedLocalTurnModule;
+  const preparedTurn = await agentModule.prepareLocalTurn({
+    messages: body.messages,
+    model: body.model,
+    timezone: body.timezone,
+    devicePlatform: body.devicePlatform,
+    chatSessionId: body.chatSessionId,
+    codeInterpreterContainerId: body.codeInterpreterContainerId,
+    userContext: body.userContext,
+    providerSafetyUserId: getProviderSafetyUserId(requestContext),
+    requestId,
+  });
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      let continuationContext: LocalChatContinuationContext | null = null;
+      let continuationContext: LocalChatContinuationContext | null = initialContinuationContext;
 
       try {
-        continuationContext = validateLocalChatMessages(body.messages);
-
-        for await (const event of agentModule.streamLocalTurn({
-          messages: body.messages,
-          model: body.model,
-          timezone: body.timezone,
-          devicePlatform: body.devicePlatform,
-          userContext: body.userContext,
-          providerSafetyUserId: getProviderSafetyUserId(requestContext),
-          requestId,
-        })) {
+        for await (const event of preparedTurn.stream) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
           if (event.type === "done" || event.type === "await_tool_results") {
             break;
@@ -712,6 +740,9 @@ export async function streamLocalChatResponse(
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
       "X-Chat-Request-Id": requestId,
+      ...(preparedTurn.codeInterpreterContainerId === null
+        ? {}
+        : { "X-Code-Interpreter-Container-Id": preparedTurn.codeInterpreterContainerId }),
     },
   });
 }

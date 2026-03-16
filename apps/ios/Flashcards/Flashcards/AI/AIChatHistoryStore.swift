@@ -16,7 +16,12 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
 
     func loadState() -> AIChatPersistedState {
         guard let data = self.userDefaults.data(forKey: aiChatHistoryStorageKey) else {
-            return AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            return AIChatPersistedState(
+                messages: [],
+                selectedModelId: aiChatDefaultModelId,
+                chatSessionId: makeAIChatSessionId(),
+                codeInterpreterContainerId: nil
+            )
         }
 
         do {
@@ -25,17 +30,29 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
             let selectedModelId = AIChatModelDef.all.contains { model in
                 model.id == state.selectedModelId
             } ? state.selectedModelId : aiChatDefaultModelId
-            return AIChatPersistedState(messages: trimmedMessages, selectedModelId: selectedModelId)
+            return AIChatPersistedState(
+                messages: trimmedMessages,
+                selectedModelId: selectedModelId,
+                chatSessionId: state.chatSessionId,
+                codeInterpreterContainerId: state.codeInterpreterContainerId
+            )
         } catch {
             self.userDefaults.removeObject(forKey: aiChatHistoryStorageKey)
-            return AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            return AIChatPersistedState(
+                messages: [],
+                selectedModelId: aiChatDefaultModelId,
+                chatSessionId: makeAIChatSessionId(),
+                codeInterpreterContainerId: nil
+            )
         }
     }
 
     func saveState(state: AIChatPersistedState) async {
         let trimmedState = AIChatPersistedState(
             messages: Array(state.messages.suffix(aiChatMaxMessages)),
-            selectedModelId: state.selectedModelId
+            selectedModelId: state.selectedModelId,
+            chatSessionId: state.chatSessionId,
+            codeInterpreterContainerId: state.codeInterpreterContainerId
         )
 
         do {

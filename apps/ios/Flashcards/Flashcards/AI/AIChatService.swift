@@ -261,6 +261,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         let clientRequestId = UUID().uuidString.lowercased()
         var latencyTracker = tapStartedAt.map(createAIChatLatencyTracker)
         var backendRequestId: String?
+        var codeInterpreterContainerId: String?
         var responseStatusCode: Int?
         var didReceiveContent = false
 
@@ -323,6 +324,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
             }
 
             backendRequestId = extractChatRequestId(httpResponse: httpResponse)
+            codeInterpreterContainerId = extractCodeInterpreterContainerId(httpResponse: httpResponse)
             responseStatusCode = httpResponse.statusCode
             if latencyTracker != nil {
                 latencyTracker?.headersReceivedAt = Date()
@@ -415,7 +417,8 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 return AITurnStreamOutcome(
                     awaitsToolResults: false,
                     requestedToolCalls: requestedToolCalls,
-                    requestId: backendRequestId
+                    requestId: backendRequestId,
+                    codeInterpreterContainerId: codeInterpreterContainerId
                 )
             }
 
@@ -455,7 +458,8 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     return AITurnStreamOutcome(
                         awaitsToolResults: false,
                         requestedToolCalls: requestedToolCalls,
-                        requestId: backendRequestId
+                        requestId: backendRequestId,
+                        codeInterpreterContainerId: codeInterpreterContainerId
                     )
                 }
             }
@@ -465,7 +469,8 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
             return AITurnStreamOutcome(
                 awaitsToolResults: awaitsToolResults,
                 requestedToolCalls: requestedToolCalls,
-                requestId: backendRequestId
+                requestId: backendRequestId,
+                codeInterpreterContainerId: codeInterpreterContainerId
             )
         } catch {
             if latencyTracker != nil {
@@ -737,6 +742,15 @@ private func extractChatRequestId(httpResponse: HTTPURLResponse) -> String? {
     let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
     if let requestId, requestId.isEmpty == false {
         return requestId
+    }
+
+    return nil
+}
+
+private func extractCodeInterpreterContainerId(httpResponse: HTTPURLResponse) -> String? {
+    let containerId = httpResponse.value(forHTTPHeaderField: "X-Code-Interpreter-Container-Id")
+    if let containerId, containerId.isEmpty == false {
+        return containerId
     }
 
     return nil

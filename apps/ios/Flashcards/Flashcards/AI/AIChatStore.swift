@@ -101,6 +101,8 @@ final class AIChatStore {
     @ObservationIgnored private let voiceRecorder: any AIChatVoiceRecording
     @ObservationIgnored private let audioTranscriber: any AIChatAudioTranscribing
     @ObservationIgnored private let runtime: AIChatSessionRuntime
+    @ObservationIgnored private var chatSessionId: String
+    @ObservationIgnored private var codeInterpreterContainerId: String?
     @ObservationIgnored private var activeSendTask: Task<Void, Never>?
     @ObservationIgnored private var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored private var activeConversationId: String?
@@ -151,6 +153,8 @@ final class AIChatStore {
         self.messages = persistedState.messages
         self.pendingAttachments = []
         self.selectedModelId = persistedState.selectedModelId
+        self.chatSessionId = persistedState.chatSessionId
+        self.codeInterpreterContainerId = persistedState.codeInterpreterContainerId
         self.isStreaming = false
         self.dictationState = .idle
         self.activeAlert = nil
@@ -228,8 +232,16 @@ final class AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
+        let clearedState = AIChatPersistedState(
+            messages: [],
+            selectedModelId: self.selectedModelId,
+            chatSessionId: makeAIChatSessionId(),
+            codeInterpreterContainerId: nil
+        )
+        self.chatSessionId = clearedState.chatSessionId
+        self.codeInterpreterContainerId = clearedState.codeInterpreterContainerId
         Task {
-            await self.historyStore.clearState()
+            await self.historyStore.saveState(state: clearedState)
         }
     }
 
@@ -380,8 +392,14 @@ final class AIChatStore {
                         await self.chatService.reportLatencyDiagnostics(session: diagnosticsSession, body: latencyReportBody)
                     }
                 }
+                let latestPersistedState = self.historyStore.loadState()
+                self.chatSessionId = latestPersistedState.chatSessionId
+                self.codeInterpreterContainerId = latestPersistedState.codeInterpreterContainerId
             } catch is CancellationError {
             } catch {
+                let latestPersistedState = self.historyStore.loadState()
+                self.chatSessionId = latestPersistedState.chatSessionId
+                self.codeInterpreterContainerId = latestPersistedState.codeInterpreterContainerId
                 self.markAssistantError(message: Flashcards.errorMessage(error: error))
                 self.repairStatus = nil
                 self.isStreaming = false
@@ -527,7 +545,12 @@ final class AIChatStore {
     }
 
     private func currentPersistedState() -> AIChatPersistedState {
-        AIChatPersistedState(messages: self.messages, selectedModelId: self.selectedModelId)
+        return AIChatPersistedState(
+            messages: self.messages,
+            selectedModelId: self.selectedModelId,
+            chatSessionId: self.chatSessionId,
+            codeInterpreterContainerId: self.codeInterpreterContainerId
+        )
     }
 
     private func handleRuntimeEvent(_ event: AIChatRuntimeEvent, conversationId: String) async {

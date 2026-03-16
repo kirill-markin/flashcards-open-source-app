@@ -11,6 +11,7 @@ import type { LocalChatDiagnosticsPayload } from "../types";
 export type ChatResponseMetadata = Readonly<{
   statusCode: number | null;
   responseRequestId: string | null;
+  responseCodeInterpreterContainerId: string | null;
   responseContentType: string | null;
   responseContentLength: string | null;
   responseContentEncoding: string | null;
@@ -43,6 +44,7 @@ export function buildChatResponseMetadata(response: Response | null): ChatRespon
     return {
       statusCode: null,
       responseRequestId: null,
+      responseCodeInterpreterContainerId: null,
       responseContentType: null,
       responseContentLength: null,
       responseContentEncoding: null,
@@ -56,6 +58,7 @@ export function buildChatResponseMetadata(response: Response | null): ChatRespon
   return {
     statusCode: response.status,
     responseRequestId: readResponseHeader(response, "x-chat-request-id"),
+    responseCodeInterpreterContainerId: readResponseHeader(response, "x-code-interpreter-container-id"),
     responseContentType: readResponseHeader(response, "content-type"),
     responseContentLength: readResponseHeader(response, "content-length"),
     responseContentEncoding: readResponseHeader(response, "content-encoding"),

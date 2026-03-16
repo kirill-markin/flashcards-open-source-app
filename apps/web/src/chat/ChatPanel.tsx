@@ -134,6 +134,8 @@ export function ChatPanel(props: Props): ReactElement {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const {
     messages,
+    chatSessionId,
+    codeInterpreterContainerId,
     isHydrated,
     appendUserMessage,
     startAssistantMessage,
@@ -142,6 +144,7 @@ export function ChatPanel(props: Props): ReactElement {
     completeToolCall,
     finalizeAssistant,
     markAssistantError,
+    setCodeInterpreterContainerId,
     clearOptimisticAssistantStatus,
     clearHistory,
   } = useChatHistory();
@@ -204,6 +207,8 @@ export function ChatPanel(props: Props): ReactElement {
       draftWireMessages,
       selectedModel,
       timezone,
+      chatSessionId,
+      codeInterpreterContainerId,
       { totalCards: appData.localCardCount },
     );
   }
@@ -547,6 +552,8 @@ export function ChatPanel(props: Props): ReactElement {
       initialWireMessages,
       selectedModel,
       timezone,
+      chatSessionId,
+      codeInterpreterContainerId,
       { totalCards: appData.localCardCount },
     );
     if (toRequestBodySizeBytes(initialRequestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
@@ -582,10 +589,14 @@ export function ChatPanel(props: Props): ReactElement {
             runtimeMessages: ReadonlyArray<ReturnType<typeof toLocalChatMessages>[number]>,
             runtimeModel: string,
             runtimeTimezone: string,
+            runtimeChatSessionId: string,
+            runtimeCodeInterpreterContainerId: string | null,
           ) => createLocalChatRequestBody(
             runtimeMessages,
             runtimeModel,
             runtimeTimezone,
+            runtimeChatSessionId,
+            runtimeCodeInterpreterContainerId,
             { totalCards: appData.localCardCount },
           ),
           streamChat: streamLocalChat,
@@ -597,6 +608,8 @@ export function ChatPanel(props: Props): ReactElement {
           devicePlatform: "web",
         },
         {
+          chatSessionId,
+          initialCodeInterpreterContainerId: codeInterpreterContainerId,
           initialMessages: initialWireMessages,
           selectedModel,
           timezone,
@@ -616,6 +629,7 @@ export function ChatPanel(props: Props): ReactElement {
             onToolCallCompleted: completeToolCall,
             onAssistantCompleted: finalizeAssistant,
             onAssistantError: markAssistantError,
+            onCodeInterpreterContainerIdChanged: setCodeInterpreterContainerId,
             onDiagnostics: () => undefined,
           },
         },
