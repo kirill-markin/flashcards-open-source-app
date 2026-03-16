@@ -85,7 +85,7 @@ async function loadSelectRows(
   resourceName: SqlResourceName,
 ): Promise<ReadonlyArray<SqlRow>> {
   if (resourceName === "workspace") {
-    const workspaceSettings = await loadWorkspaceSettings();
+    const workspaceSettings = await loadWorkspaceSettings(activeWorkspace.workspaceId);
     if (workspaceSettings === null) {
       throw new Error("Workspace scheduler settings are not loaded");
     }
@@ -104,12 +104,12 @@ async function loadSelectRows(
   }
 
   if (resourceName === "cards") {
-    const cards = await loadAllActiveCardsForSql();
+    const cards = await loadAllActiveCardsForSql(activeWorkspace.workspaceId);
     return [...cards].sort(compareCardsByCreatedAt).map(toCardRow);
   }
 
   if (resourceName === "decks") {
-    const decks = await loadAllActiveDecksForSql();
+    const decks = await loadAllActiveDecksForSql(activeWorkspace.workspaceId);
     return [...decks].sort(compareDecksByCreatedAt).map(toDeckRow);
   }
 

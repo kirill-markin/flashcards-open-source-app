@@ -8,6 +8,12 @@ import { TagsScreen } from "./TagsScreen";
 
 const { mockAppData } = vi.hoisted(() => ({
   mockAppData: {
+    activeWorkspace: {
+      workspaceId: "workspace-1",
+      name: "Primary",
+      createdAt: "2026-03-10T00:00:00.000Z",
+      isSelected: true,
+    },
     cards: [
       {
         cardId: "card-1",

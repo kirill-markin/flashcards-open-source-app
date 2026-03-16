@@ -50,7 +50,7 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 };
 
 export function DecksScreen(): ReactElement {
-  const { localReadVersion, refreshLocalData } = useAppData();
+  const { activeWorkspace, localReadVersion, refreshLocalData } = useAppData();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -63,7 +63,11 @@ export function DecksScreen(): ReactElement {
       setErrorMessage("");
 
       try {
-        const nextDecksSnapshot = await loadDecksListSnapshot();
+        if (activeWorkspace === null) {
+          throw new Error("Workspace is unavailable");
+        }
+
+        const nextDecksSnapshot = await loadDecksListSnapshot(activeWorkspace.workspaceId);
         if (isCancelled) {
           return;
         }
@@ -87,7 +91,7 @@ export function DecksScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [localReadVersion]);
+  }, [activeWorkspace, localReadVersion]);
 
   const deckListEntries = makeDeckListEntries(decksSnapshot);
 

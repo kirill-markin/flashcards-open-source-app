@@ -2,14 +2,22 @@
 
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearWebSyncCache, relinkWorkspaceCache } from "./cache";
+import { clearWebSyncCache } from "./cache";
 import { putCloudSettings, loadCloudSettings } from "./cloudSettings";
+import { replaceCards, loadCardById } from "./cards";
 import { loadDeckById, replaceDecks } from "./decks";
 import { putOutboxRecord, listOutboxRecords } from "./outbox";
 import { loadReviewEventsForSql, replaceReviewEvents } from "./reviews";
-import { loadLastAppliedChangeId, putWorkspaceSettings } from "./workspace";
-import { makeCard, makeDeck, seedCursorFixtures, workspaceId } from "./testSupport";
-import { replaceCards } from "./cards";
+import {
+  loadLastAppliedChangeId,
+  loadWorkspaceSettings,
+  setLastAppliedChangeId,
+  setWorkspaceHydrated,
+  putWorkspaceSettings,
+} from "./workspace";
+import { makeCard, makeDeck, workspaceId } from "./testSupport";
+
+const workspaceTwoId = "workspace-2";
 
 describe("localDb cache", () => {
   beforeEach(async () => {
@@ -17,17 +25,7 @@ describe("localDb cache", () => {
   });
 
   it("clears all persisted IndexedDB state", async () => {
-    await seedCursorFixtures();
-
-    await clearWebSyncCache();
-
-    expect(await listOutboxRecords(workspaceId)).toEqual([]);
-    expect(await loadCloudSettings()).toBeNull();
-    expect(await loadReviewEventsForSql(workspaceId)).toEqual([]);
-  });
-
-  it("relinks cached workspace-owned records and resets the sync cursor", async () => {
-    await replaceCards([
+    await replaceCards(workspaceId, [
       makeCard({
         cardId: "card-1",
         frontText: "Front",
@@ -38,7 +36,7 @@ describe("localDb cache", () => {
         createdAt: "2025-01-01T00:00:00.000Z",
       }),
     ]);
-    await replaceDecks([
+    await replaceDecks(workspaceId, [
       makeDeck({
         deckId: "deck-1",
         name: "Grammar",
@@ -47,7 +45,7 @@ describe("localDb cache", () => {
         createdAt: "2025-01-01T00:00:00.000Z",
       }),
     ]);
-    await replaceReviewEvents([{
+    await replaceReviewEvents(workspaceId, [{
       reviewEventId: "review-1",
       workspaceId,
       cardId: "card-1",
@@ -57,7 +55,7 @@ describe("localDb cache", () => {
       reviewedAtClient: "2025-01-02T00:00:00.000Z",
       reviewedAtServer: "2025-01-02T00:00:00.000Z",
     }]);
-    await putWorkspaceSettings({
+    await putWorkspaceSettings(workspaceId, {
       algorithm: "fsrs-6",
       desiredRetention: 0.9,
       learningStepsMinutes: [1, 10],
@@ -69,6 +67,8 @@ describe("localDb cache", () => {
       lastOperationId: "settings-1",
       updatedAt: "2025-01-01T00:00:00.000Z",
     });
+    await setLastAppliedChangeId(workspaceId, 12);
+    await setWorkspaceHydrated(workspaceId, true);
     await putOutboxRecord({
       operationId: "op-1",
       workspaceId,
@@ -111,12 +111,90 @@ describe("localDb cache", () => {
       updatedAt: "2025-01-02T00:00:00.000Z",
     });
 
-    await relinkWorkspaceCache("workspace-2");
+    await clearWebSyncCache();
 
-    expect((await loadDeckById("deck-1"))?.workspaceId).toBe("workspace-2");
-    expect((await listOutboxRecords("workspace-2")).length).toBe(1);
-    expect((await loadReviewEventsForSql("workspace-2")).length).toBe(1);
-    expect(await loadLastAppliedChangeId()).toBe(0);
-    expect((await loadCloudSettings())?.linkedWorkspaceId).toBe("workspace-2");
+    expect(await listOutboxRecords(workspaceId)).toEqual([]);
+    expect(await loadCloudSettings()).toBeNull();
+    expect(await loadReviewEventsForSql(workspaceId)).toEqual([]);
+    expect(await loadWorkspaceSettings(workspaceId)).toBeNull();
+    expect(await loadLastAppliedChangeId(workspaceId)).toBe(0);
+  });
+
+  it("keeps data isolated across workspaces until the full cache is cleared", async () => {
+    await replaceCards(workspaceId, [
+      makeCard({
+        cardId: "card-1",
+        frontText: "Workspace one",
+        backText: "Back",
+        tags: ["grammar"],
+        effortLevel: "fast",
+        dueAt: null,
+        createdAt: "2025-01-01T00:00:00.000Z",
+      }),
+    ]);
+    await replaceCards(workspaceTwoId, [
+      makeCard({
+        cardId: "card-1",
+        frontText: "Workspace two",
+        backText: "Other back",
+        tags: ["code"],
+        effortLevel: "long",
+        dueAt: null,
+        createdAt: "2025-01-03T00:00:00.000Z",
+      }),
+    ]);
+    await replaceDecks(workspaceId, [
+      makeDeck({
+        deckId: "deck-1",
+        name: "Grammar",
+        effortLevels: ["fast"],
+        tags: ["grammar"],
+        createdAt: "2025-01-01T00:00:00.000Z",
+      }),
+    ]);
+    await replaceDecks(workspaceTwoId, [
+      {
+        ...makeDeck({
+          deckId: "deck-1",
+          name: "Code",
+          effortLevels: ["long"],
+          tags: ["code"],
+          createdAt: "2025-01-02T00:00:00.000Z",
+        }),
+        workspaceId: workspaceTwoId,
+      },
+    ]);
+    await replaceReviewEvents(workspaceTwoId, [{
+      reviewEventId: "review-2",
+      workspaceId: workspaceTwoId,
+      cardId: "card-1",
+      deviceId: "device-1",
+      clientEventId: "event-2",
+      rating: 3,
+      reviewedAtClient: "2025-01-04T00:00:00.000Z",
+      reviewedAtServer: "2025-01-04T00:00:00.000Z",
+    }]);
+    await putWorkspaceSettings(workspaceTwoId, {
+      algorithm: "fsrs-6",
+      desiredRetention: 0.92,
+      learningStepsMinutes: [1, 10],
+      relearningStepsMinutes: [10],
+      maximumIntervalDays: 36500,
+      enableFuzz: true,
+      clientUpdatedAt: "2025-01-03T00:00:00.000Z",
+      lastModifiedByDeviceId: "device-1",
+      lastOperationId: "settings-2",
+      updatedAt: "2025-01-03T00:00:00.000Z",
+    });
+    await setLastAppliedChangeId(workspaceId, 7);
+    await setLastAppliedChangeId(workspaceTwoId, 19);
+
+    expect((await loadCardById(workspaceId, "card-1"))?.frontText).toBe("Workspace one");
+    expect((await loadCardById(workspaceTwoId, "card-1"))?.frontText).toBe("Workspace two");
+    expect((await loadDeckById(workspaceId, "deck-1"))?.workspaceId).toBe(workspaceId);
+    expect((await loadDeckById(workspaceTwoId, "deck-1"))?.workspaceId).toBe(workspaceTwoId);
+    expect((await loadReviewEventsForSql(workspaceTwoId)).length).toBe(1);
+    expect(await loadLastAppliedChangeId(workspaceId)).toBe(7);
+    expect(await loadLastAppliedChangeId(workspaceTwoId)).toBe(19);
   });
 });

@@ -2,11 +2,12 @@ import type { Card } from "../types";
 import { describeIndexedDbError } from "./core";
 
 export type CardTagRecord = Readonly<{
+  workspaceId: string;
   cardId: string;
   tag: string;
 }>;
 
-function putCardTags(cardTagsStore: IDBObjectStore, card: Card): void {
+function putCardTags(cardTagsStore: IDBObjectStore, workspaceId: string, card: Card): void {
   if (card.deletedAt !== null) {
     return;
   }
@@ -17,23 +18,24 @@ function putCardTags(cardTagsStore: IDBObjectStore, card: Card): void {
     }
 
     cardTagsStore.put({
+      workspaceId,
       cardId: card.cardId,
       tag,
     } satisfies CardTagRecord);
   }
 }
 
-export function writeCardTagRecords(transaction: IDBTransaction, card: Card): void {
+export function writeCardTagRecords(transaction: IDBTransaction, workspaceId: string, card: Card): void {
   const cardTagsStore = transaction.objectStore("cardTags");
-  const existingIndex = cardTagsStore.index("cardId_tag");
+  const existingIndex = cardTagsStore.index("workspaceId_cardId_tag");
   const range = IDBKeyRange.bound(
-    [card.cardId, ""],
-    [card.cardId, "\uffff"],
+    [workspaceId, card.cardId, ""],
+    [workspaceId, card.cardId, "\uffff"],
   );
   existingIndex.openKeyCursor(range).onsuccess = (event) => {
     const cursor = (event.target as IDBRequest<IDBCursor | null>).result;
     if (cursor === null) {
-      putCardTags(cardTagsStore, card);
+      putCardTags(cardTagsStore, workspaceId, card);
       return;
     }
 
@@ -42,25 +44,20 @@ export function writeCardTagRecords(transaction: IDBTransaction, card: Card): vo
   };
 }
 
-export function putCardTagRecords(cardTagsStore: IDBObjectStore, card: Card): void {
-  putCardTags(cardTagsStore, card);
+export function putCardTagRecords(cardTagsStore: IDBObjectStore, workspaceId: string, card: Card): void {
+  putCardTags(cardTagsStore, workspaceId, card);
 }
 
 export async function iterateCardTagsByTag(
   database: IDBDatabase,
+  workspaceId: string,
   tag: string,
   onRecord: (record: CardTagRecord) => boolean | void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(["cardTags"], "readonly");
     const cardTagsStore = transaction.objectStore("cardTags");
-    const request = cardTagsStore.index("tag_cardId").openCursor(
-      IDBKeyRange.bound(
-        [tag, ""],
-        [tag, "\uffff"],
-      ),
-      "next",
-    );
+    const request = cardTagsStore.index("workspaceId_tag_cardId").openCursor(null, "next");
     let isResolved = false;
 
     const finish = (): void => {
@@ -87,7 +84,13 @@ export async function iterateCardTagsByTag(
         return;
       }
 
-      const shouldContinue = onRecord(cursor.value as CardTagRecord);
+      const record = cursor.value as CardTagRecord;
+      if (record.workspaceId !== workspaceId || record.tag !== tag) {
+        cursor.continue();
+        return;
+      }
+
+      const shouldContinue = onRecord(record);
       if (shouldContinue === false) {
         finish();
         return;
@@ -100,12 +103,13 @@ export async function iterateCardTagsByTag(
 
 export async function iterateAllCardTags(
   database: IDBDatabase,
+  workspaceId: string,
   onRecord: (record: CardTagRecord) => boolean | void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(["cardTags"], "readonly");
     const cardTagsStore = transaction.objectStore("cardTags");
-    const request = cardTagsStore.index("tag_cardId").openCursor(null, "next");
+    const request = cardTagsStore.index("workspaceId_tag_cardId").openCursor(null, "next");
     let isResolved = false;
 
     const finish = (): void => {
@@ -132,7 +136,13 @@ export async function iterateAllCardTags(
         return;
       }
 
-      const shouldContinue = onRecord(cursor.value as CardTagRecord);
+      const record = cursor.value as CardTagRecord;
+      if (record.workspaceId !== workspaceId) {
+        cursor.continue();
+        return;
+      }
+
+      const shouldContinue = onRecord(record);
       if (shouldContinue === false) {
         finish();
         return;
@@ -145,12 +155,13 @@ export async function iterateAllCardTags(
 
 export async function loadAllowedCardIdsForTags(
   database: IDBDatabase,
+  workspaceId: string,
   tags: ReadonlyArray<string>,
 ): Promise<ReadonlySet<string>> {
   const allowedCardIds = new Set<string>();
 
   for (const tag of tags) {
-    await iterateCardTagsByTag(database, tag, (record) => {
+    await iterateCardTagsByTag(database, workspaceId, tag, (record) => {
       allowedCardIds.add(record.cardId);
       return true;
     });

@@ -6,15 +6,40 @@ import type {
   WorkspaceSchedulerSettings,
 } from "../types";
 
+export type StoredCard = Readonly<{
+  workspaceId: string;
+  cardId: string;
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  effortLevel: Card["effortLevel"];
+  dueAt: string | null;
+  createdAt: string;
+  reps: number;
+  lapses: number;
+  fsrsCardState: Card["fsrsCardState"];
+  fsrsStepIndex: number | null;
+  fsrsStability: number | null;
+  fsrsDifficulty: number | null;
+  fsrsLastReviewedAt: string | null;
+  fsrsScheduledDays: number | null;
+  clientUpdatedAt: string;
+  lastModifiedByDeviceId: string;
+  lastOperationId: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}>;
+
 export type WorkspaceSettingsRecord = Readonly<{
-  id: "workspace";
+  workspaceId: string;
   settings: WorkspaceSchedulerSettings;
 }>;
 
-export type SyncStateRecord = Readonly<{
-  key: "sync_state";
+export type WorkspaceSyncStateRecord = Readonly<{
   workspaceId: string;
   lastAppliedChangeId: number;
+  hasHydrated: boolean;
+  hydratedAt: string | null;
   updatedAt: string;
 }>;
 
@@ -29,11 +54,12 @@ export type DatabaseStores =
   | "decks"
   | "reviewEvents"
   | "workspaceSettings"
+  | "workspaceSyncState"
   | "outbox"
   | "meta";
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 3;
+const databaseVersion = 4;
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
@@ -51,106 +77,73 @@ export function describeIndexedDbError(prefix: string, error: unknown): Error {
   return new Error(`${prefix}: unknown error`);
 }
 
-function ensureCardsStoreIndexes(store: IDBObjectStore): void {
-  if (store.indexNames.contains("createdAt_cardId") === false) {
-    store.createIndex("createdAt_cardId", ["createdAt", "cardId"], { unique: false });
-  }
-
-  if (store.indexNames.contains("dueAt_cardId") === false) {
-    store.createIndex("dueAt_cardId", ["dueAt", "cardId"], { unique: false });
-  }
-
-  if (store.indexNames.contains("effort_createdAt_cardId") === false) {
-    store.createIndex("effort_createdAt_cardId", ["effortLevel", "createdAt", "cardId"], { unique: false });
+function deleteExistingStore(database: IDBDatabase, storeName: string): void {
+  if (database.objectStoreNames.contains(storeName)) {
+    database.deleteObjectStore(storeName);
   }
 }
 
-function ensureDecksStoreIndexes(store: IDBObjectStore): void {
-  if (store.indexNames.contains("createdAt_deckId") === false) {
-    store.createIndex("createdAt_deckId", ["createdAt", "deckId"], { unique: false });
-  }
+function createCardsStore(database: IDBDatabase): void {
+  const cardsStore = database.createObjectStore("cards", { keyPath: ["workspaceId", "cardId"] });
+  cardsStore.createIndex("workspaceId_createdAt_cardId", ["workspaceId", "createdAt", "cardId"], { unique: false });
+  cardsStore.createIndex("workspaceId_dueAt_cardId", ["workspaceId", "dueAt", "cardId"], { unique: false });
+  cardsStore.createIndex("workspaceId_effort_createdAt_cardId", ["workspaceId", "effortLevel", "createdAt", "cardId"], { unique: false });
 }
 
-function ensureCardTagsStoreIndexes(store: IDBObjectStore): void {
-  if (store.indexNames.contains("tag_cardId") === false) {
-    store.createIndex("tag_cardId", ["tag", "cardId"], { unique: false });
-  }
-
-  if (store.indexNames.contains("cardId_tag") === false) {
-    store.createIndex("cardId_tag", ["cardId", "tag"], { unique: false });
-  }
+function createCardTagsStore(database: IDBDatabase): void {
+  const cardTagsStore = database.createObjectStore("cardTags", { keyPath: ["workspaceId", "cardId", "tag"] });
+  cardTagsStore.createIndex("workspaceId_tag_cardId", ["workspaceId", "tag", "cardId"], { unique: false });
+  cardTagsStore.createIndex("workspaceId_cardId_tag", ["workspaceId", "cardId", "tag"], { unique: false });
 }
 
-function upgradeToVersion1(database: IDBDatabase): void {
-  if (database.objectStoreNames.contains("cards") === false) {
-    database.createObjectStore("cards", { keyPath: "cardId" });
-  }
-
-  if (database.objectStoreNames.contains("decks") === false) {
-    database.createObjectStore("decks", { keyPath: "deckId" });
-  }
-
-  if (database.objectStoreNames.contains("reviewEvents") === false) {
-    database.createObjectStore("reviewEvents", { keyPath: "reviewEventId" });
-  }
-
-  if (database.objectStoreNames.contains("workspaceSettings") === false) {
-    database.createObjectStore("workspaceSettings", { keyPath: "id" });
-  }
-
-  if (database.objectStoreNames.contains("outbox") === false) {
-    const outboxStore = database.createObjectStore("outbox", { keyPath: "operationId" });
-    outboxStore.createIndex("workspaceId_createdAt", ["workspaceId", "createdAt"], { unique: false });
-  }
-
-  if (database.objectStoreNames.contains("meta") === false) {
-    database.createObjectStore("meta", { keyPath: "key" });
-  }
+function createDecksStore(database: IDBDatabase): void {
+  const decksStore = database.createObjectStore("decks", { keyPath: ["workspaceId", "deckId"] });
+  decksStore.createIndex("workspaceId_createdAt_deckId", ["workspaceId", "createdAt", "deckId"], { unique: false });
 }
 
-function backfillCardTagsStore(transaction: IDBTransaction): void {
-  const cardsStore = transaction.objectStore("cards");
-  const cardTagsStore = transaction.objectStore("cardTags");
-  cardsStore.openCursor().onsuccess = (event) => {
-    const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
-    if (cursor === null) {
-      return;
-    }
-
-    const card = cursor.value as Card;
-    if (card.deletedAt === null) {
-      for (const tag of card.tags) {
-        if (tag === "") {
-          continue;
-        }
-
-        cardTagsStore.put({
-          cardId: card.cardId,
-          tag,
-        });
-      }
-    }
-
-    cursor.continue();
-  };
+function createReviewEventsStore(database: IDBDatabase): void {
+  database.createObjectStore("reviewEvents", { keyPath: ["workspaceId", "reviewEventId"] });
 }
 
-function upgradeToVersion2(database: IDBDatabase, transaction: IDBTransaction): void {
-  ensureCardsStoreIndexes(transaction.objectStore("cards"));
+function createWorkspaceSettingsStore(database: IDBDatabase): void {
+  database.createObjectStore("workspaceSettings", { keyPath: "workspaceId" });
+}
 
-  if (database.objectStoreNames.contains("cardTags") === false) {
-    database.createObjectStore("cardTags", { keyPath: ["cardId", "tag"] });
+function createWorkspaceSyncStateStore(database: IDBDatabase): void {
+  database.createObjectStore("workspaceSyncState", { keyPath: "workspaceId" });
+}
+
+function createOutboxStore(database: IDBDatabase): void {
+  const outboxStore = database.createObjectStore("outbox", { keyPath: ["workspaceId", "operationId"] });
+  outboxStore.createIndex("workspaceId_createdAt", ["workspaceId", "createdAt"], { unique: false });
+}
+
+function createMetaStore(database: IDBDatabase): void {
+  database.createObjectStore("meta", { keyPath: "key" });
+}
+
+function upgradeToVersion4(database: IDBDatabase): void {
+  for (const storeName of [
+    "cards",
+    "cardTags",
+    "decks",
+    "reviewEvents",
+    "workspaceSettings",
+    "workspaceSyncState",
+    "outbox",
+    "meta",
+  ]) {
+    deleteExistingStore(database, storeName);
   }
-  ensureCardTagsStoreIndexes(transaction.objectStore("cardTags"));
-  ensureDecksStoreIndexes(transaction.objectStore("decks"));
 
-  backfillCardTagsStore(transaction);
-}
-
-function upgradeToVersion3(transaction: IDBTransaction): void {
-  ensureCardsStoreIndexes(transaction.objectStore("cards"));
-  ensureDecksStoreIndexes(transaction.objectStore("decks"));
-  ensureCardTagsStoreIndexes(transaction.objectStore("cardTags"));
+  createCardsStore(database);
+  createCardTagsStore(database);
+  createDecksStore(database);
+  createReviewEventsStore(database);
+  createWorkspaceSettingsStore(database);
+  createWorkspaceSyncStateStore(database);
+  createOutboxStore(database);
+  createMetaStore(database);
 }
 
 export function openDatabase(): Promise<IDBDatabase> {
@@ -161,23 +154,8 @@ export function openDatabase(): Promise<IDBDatabase> {
       reject(describeIndexedDbError("Failed to open IndexedDB", request.error));
     };
 
-    request.onupgradeneeded = (event) => {
-      const database = request.result;
-      const transaction = request.transaction;
-      if (transaction === null) {
-        reject(new Error("IndexedDB upgrade transaction is unavailable"));
-        return;
-      }
-
-      if (event.oldVersion < 1) {
-        upgradeToVersion1(database);
-      }
-      if (event.oldVersion < 2) {
-        upgradeToVersion2(database, transaction);
-      }
-      if (event.oldVersion < 3) {
-        upgradeToVersion3(transaction);
-      }
+    request.onupgradeneeded = () => {
+      upgradeToVersion4(request.result);
     };
 
     request.onsuccess = () => {
@@ -269,4 +247,4 @@ export async function closeDatabaseAfterWrite(
   }
 }
 
-export type StoredEntity = Card | Deck | ReviewEvent;
+export type StoredEntity = StoredCard | Deck | ReviewEvent;

@@ -2,7 +2,7 @@ import type { SyncPushOperation } from "../types";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
-  getAllFromStore,
+  runReadonly,
   runReadwrite,
 } from "./core";
 
@@ -21,15 +21,20 @@ export async function putOutboxRecord(record: PersistedOutboxRecord): Promise<vo
   });
 }
 
-export async function deleteOutboxRecord(operationId: string): Promise<void> {
+export async function deleteOutboxRecord(workspaceId: string, operationId: string): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
-    await runReadwrite(database, ["outbox"], (transaction) => transaction.objectStore("outbox").delete(operationId));
+    await runReadwrite(database, ["outbox"], (transaction) => transaction.objectStore("outbox").delete([workspaceId, operationId]));
   });
 }
 
 export async function listOutboxRecords(workspaceId: string): Promise<ReadonlyArray<PersistedOutboxRecord>> {
-  const rows = await closeDatabaseAfter((database) => getAllFromStore<PersistedOutboxRecord>(database, "outbox"));
-  return rows
-    .filter((row) => row.workspaceId === workspaceId)
-    .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  return closeDatabaseAfter(async (database) => {
+    const rows = await runReadonly(
+      database,
+      "outbox",
+      (store) => store.index("workspaceId_createdAt").getAll(),
+    ) as ReadonlyArray<PersistedOutboxRecord>;
+
+    return rows.filter((row) => row.workspaceId === workspaceId);
+  });
 }

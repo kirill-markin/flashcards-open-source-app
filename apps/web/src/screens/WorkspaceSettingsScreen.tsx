@@ -12,7 +12,7 @@ import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import { SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 export function WorkspaceSettingsScreen(): ReactElement {
-  const { localReadVersion, refreshLocalData, workspaceSettings } = useAppData();
+  const { activeWorkspace, localReadVersion, refreshLocalData, workspaceSettings } = useAppData();
   const [activeCardCount, setActiveCardCount] = useState<number>(0);
   const [activeDeckCount, setActiveDeckCount] = useState<number>(0);
   const [tagsCount, setTagsCount] = useState<number>(0);
@@ -25,9 +25,13 @@ export function WorkspaceSettingsScreen(): ReactElement {
       setErrorMessage("");
 
       try {
+        if (activeWorkspace === null) {
+          throw new Error("Workspace is unavailable");
+        }
+
         const [tagsSummary, decksSnapshot] = await Promise.all([
-          loadWorkspaceTagsSummary(),
-          loadDecksListSnapshot(),
+          loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+          loadDecksListSnapshot(activeWorkspace.workspaceId),
         ]);
         if (isCancelled) {
           return;
@@ -50,7 +54,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [localReadVersion]);
+  }, [activeWorkspace, localReadVersion]);
 
   if (errorMessage !== "") {
     return (

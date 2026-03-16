@@ -9,6 +9,12 @@ import type { Card, Deck } from "../types";
 
 const { mockAppData } = vi.hoisted(() => ({
   mockAppData: {
+    activeWorkspace: {
+      workspaceId: "workspace-1",
+      name: "Primary",
+      createdAt: "2026-03-10T00:00:00.000Z",
+      isSelected: true,
+    },
     cards: [] as Array<Card>,
     cardsState: {
       status: "ready",
@@ -71,7 +77,7 @@ describe("DecksScreen", () => {
       errorMessage: "",
       hasLoaded: true,
     };
-    loadDecksListSnapshotMock.mockImplementation(async () => ({
+    loadDecksListSnapshotMock.mockImplementation(async (_workspaceId: string) => ({
       deckSummaries: mockAppData.decks.map((deck) => ({
         deckId: deck.deckId,
         name: deck.name,

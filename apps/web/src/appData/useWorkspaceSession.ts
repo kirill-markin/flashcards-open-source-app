@@ -17,8 +17,8 @@ import {
 } from "../api";
 import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
 import { getStableDeviceIdForUser } from "../clientIdentity";
-import { relinkWorkspaceCache } from "../localDb/cache";
 import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
+import { hasHydratedWorkspace } from "../localDb/workspace";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
 import {
   findWorkspaceById,
@@ -42,8 +42,9 @@ type UseWorkspaceSessionParams = Readonly<{
   setIsChoosingWorkspace: Dispatch<SetStateAction<boolean>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
   setCloudSettings: Dispatch<SetStateAction<CloudSettings | null>>;
-  refreshLocalData: () => Promise<void>;
+  refreshWorkspaceView: (workspaceId: string) => Promise<void>;
   runSync: () => Promise<void>;
+  runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
 }>;
 
 type WorkspaceSession = Readonly<{
@@ -107,10 +108,6 @@ function consumeLoggedOutMarker(): boolean {
   return true;
 }
 
-/**
- * Bootstraps the authenticated workspace session and hard-resets browser-local
- * state when the persisted cloud settings belong to a different user.
- */
 export function useWorkspaceSession(params: UseWorkspaceSessionParams): WorkspaceSession {
   const {
     sessionLoadState,
@@ -125,21 +122,17 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setIsChoosingWorkspace,
     setErrorMessage,
     setCloudSettings,
-    refreshLocalData,
+    refreshWorkspaceView,
     runSync,
+    runSyncForWorkspace,
   } = params;
 
-  const activateWorkspace = useCallback(async function activateWorkspace(
+  const publishSelectedWorkspace = useCallback(function publishSelectedWorkspace(
     currentSession: SessionInfo,
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
-  ): Promise<void> {
-    const linkedCloudSettings = buildLinkedCloudSettings(currentSession, workspace.workspaceId);
-    await putCloudSettings(linkedCloudSettings);
-    await relinkWorkspaceCache(workspace.workspaceId);
-    setCloudSettings(linkedCloudSettings);
-    await refreshLocalData();
-
+    nextSessionLoadState: SessionLoadState,
+  ): void {
     const nextWorkspaces = markSelectedWorkspaces(currentWorkspaces, workspace.workspaceId);
     setAvailableWorkspaces(nextWorkspaces);
     setActiveWorkspace({
@@ -150,16 +143,56 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       ...currentSession,
       selectedWorkspaceId: workspace.workspaceId,
     });
-    setSessionLoadState("ready");
-    setSessionErrorMessage("");
-    setErrorMessage("");
+    setSessionLoadState(nextSessionLoadState);
   }, [
-    refreshLocalData,
     setActiveWorkspace,
     setAvailableWorkspaces,
+    setSession,
+    setSessionLoadState,
+  ]);
+
+  const activateWorkspace = useCallback(async function activateWorkspace(
+    currentSession: SessionInfo,
+    currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
+    workspace: WorkspaceSummary,
+  ): Promise<void> {
+    const linkedCloudSettings = buildLinkedCloudSettings(currentSession, workspace.workspaceId);
+    await putCloudSettings(linkedCloudSettings);
+    setCloudSettings(linkedCloudSettings);
+    setSessionErrorMessage("");
+    setErrorMessage("");
+
+    const isHydrated = await hasHydratedWorkspace(workspace.workspaceId);
+    publishSelectedWorkspace(currentSession, currentWorkspaces, workspace, isHydrated ? "ready" : "loading_workspace");
+
+    try {
+      if (isHydrated) {
+        await refreshWorkspaceView(workspace.workspaceId);
+        void runSyncForWorkspace(workspace);
+        return;
+      }
+
+      await runSyncForWorkspace(workspace);
+      await refreshWorkspaceView(workspace.workspaceId);
+      setSessionLoadState("ready");
+      setSessionErrorMessage("");
+      setErrorMessage("");
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        throw error;
+      }
+
+      const nextErrorMessage = getErrorMessage(error);
+      setSessionLoadState("loading_workspace");
+      setSessionErrorMessage(nextErrorMessage);
+      setErrorMessage(nextErrorMessage);
+    }
+  }, [
+    publishSelectedWorkspace,
+    refreshWorkspaceView,
+    runSyncForWorkspace,
     setCloudSettings,
     setErrorMessage,
-    setSession,
     setSessionErrorMessage,
     setSessionLoadState,
   ]);
@@ -170,8 +203,6 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     const workspaces = await listWorkspaces();
 
     if (workspaces.length === 0) {
-      // The web app does not persist a local workspace name, so use the same
-      // predictable default label for the first explicit remote workspace.
       const createdWorkspace = await createWorkspaceRequest(defaultWorkspaceName);
       await activateWorkspace(currentSession, [createdWorkspace], createdWorkspace);
       return;
@@ -246,6 +277,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setAvailableWorkspaces,
     setCloudSettings,
     setErrorMessage,
+    setSession,
     setSessionErrorMessage,
     setSessionLoadState,
   ]);
@@ -259,7 +291,6 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     try {
       const selectedWorkspace = await selectWorkspace(workspaceId);
       await activateWorkspace(session, availableWorkspaces, selectedWorkspace);
-      setErrorMessage("");
     } catch (error) {
       if (isAuthRedirectError(error)) {
         return;
@@ -286,7 +317,6 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       const createdWorkspace = await createWorkspaceRequest(trimmedName);
       const nextWorkspaces = replaceWorkspaceSummary(availableWorkspaces, createdWorkspace);
       await activateWorkspace(session, nextWorkspaces, createdWorkspace);
-      setErrorMessage("");
     } catch (error) {
       if (isAuthRedirectError(error)) {
         return;
@@ -383,15 +413,9 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   }, [initialize]);
 
   useEffect(() => {
-    // Bootstrap only on mount. Re-running initialize after session/workspace
-    // state updates resets the whole app back to the top-level loading screen.
     void initializeRef.current();
   }, []);
 
-  /**
-   * Revalidates the browser session when the tab resumes so background sync
-   * never keeps using an expired cookie/CSRF pair after a long idle period.
-   */
   const revalidateActiveSession = useCallback(async function revalidateActiveSession(): Promise<boolean> {
     if (sessionLoadState !== "ready") {
       return false;

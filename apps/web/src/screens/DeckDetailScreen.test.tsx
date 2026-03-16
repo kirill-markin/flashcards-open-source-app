@@ -9,6 +9,12 @@ import type { Card, Deck } from "../types";
 
 const { mockAppData } = vi.hoisted(() => ({
   mockAppData: {
+    activeWorkspace: {
+      workspaceId: "workspace-1",
+      name: "Primary",
+      createdAt: "2026-03-10T00:00:00.000Z",
+      isSelected: true,
+    },
     cards: [] as Array<Card>,
     decks: [] as Array<Deck>,
     ensureCardsLoaded: vi.fn(async () => undefined),
@@ -31,7 +37,7 @@ vi.mock("../appData", () => ({
 }));
 
 vi.mock("../localDb/cards", () => ({
-  loadCardsMatchingDeck: vi.fn(async (filterDefinition: Deck["filterDefinition"]) => mockAppData.cards.filter((card) => {
+  loadCardsMatchingDeck: vi.fn(async (_workspaceId: string, filterDefinition: Deck["filterDefinition"]) => mockAppData.cards.filter((card) => {
     const matchesEffort = filterDefinition.effortLevels.length === 0 || filterDefinition.effortLevels.includes(card.effortLevel);
     const matchesTag = filterDefinition.tags.length === 0 || filterDefinition.tags.some((tag) => card.tags.includes(tag));
     return matchesEffort && matchesTag;
@@ -39,8 +45,8 @@ vi.mock("../localDb/cards", () => ({
 }));
 
 vi.mock("../localDb/decks", () => ({
-  loadDeckById: vi.fn(async (deckId: string) => mockAppData.getDeckById(deckId)),
-  loadDecksListSnapshot: vi.fn(async () => ({
+  loadDeckById: vi.fn(async (_workspaceId: string, deckId: string) => mockAppData.getDeckById(deckId)),
+  loadDecksListSnapshot: vi.fn(async (_workspaceId: string) => ({
     deckSummaries: mockAppData.decks.map((deck) => ({
       deckId: deck.deckId,
       name: deck.name,

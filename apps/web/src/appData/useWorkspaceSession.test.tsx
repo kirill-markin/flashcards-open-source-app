@@ -14,12 +14,14 @@ const {
   deleteWorkspaceMock,
   getSessionMock,
   getStableDeviceIdForUserMock,
+  hasHydratedWorkspaceMock,
   listWorkspacesMock,
   loadCloudSettingsMock,
   putCloudSettingsMock,
   renameWorkspaceMock,
-  relinkWorkspaceCacheMock,
+  refreshWorkspaceViewMock,
   revalidateSessionMock,
+  runSyncForWorkspaceMock,
   selectWorkspaceMock,
 } = vi.hoisted(() => ({
   clearAllLocalBrowserDataMock: vi.fn(),
@@ -28,12 +30,14 @@ const {
   deleteWorkspaceMock: vi.fn(),
   getSessionMock: vi.fn(),
   getStableDeviceIdForUserMock: vi.fn(),
+  hasHydratedWorkspaceMock: vi.fn(),
   listWorkspacesMock: vi.fn(),
   loadCloudSettingsMock: vi.fn(),
   putCloudSettingsMock: vi.fn(),
   renameWorkspaceMock: vi.fn(),
-  relinkWorkspaceCacheMock: vi.fn(),
+  refreshWorkspaceViewMock: vi.fn(),
   revalidateSessionMock: vi.fn(),
+  runSyncForWorkspaceMock: vi.fn(),
   selectWorkspaceMock: vi.fn(),
 }));
 
@@ -62,8 +66,8 @@ vi.mock("../localDb/cloudSettings", () => ({
   putCloudSettings: putCloudSettingsMock,
 }));
 
-vi.mock("../localDb/cache", () => ({
-  relinkWorkspaceCache: relinkWorkspaceCacheMock,
+vi.mock("../localDb/workspace", () => ({
+  hasHydratedWorkspace: hasHydratedWorkspaceMock,
 }));
 
 const sessionFixture: SessionInfo = {
@@ -100,9 +104,13 @@ function WorkspaceSessionHarness(): ReactElement {
     void activeWorkspace;
   }, [activeWorkspace, session]);
 
-  const refreshLocalData = useCallback(async function refreshLocalData(): Promise<void> {
-    await runSync();
-  }, [runSync]);
+  const refreshWorkspaceView = useCallback(async function refreshWorkspaceView(workspaceId: string): Promise<void> {
+    await refreshWorkspaceViewMock(workspaceId);
+  }, []);
+
+  const runSyncForWorkspace = useCallback(async function runSyncForWorkspace(workspace: WorkspaceSummary): Promise<void> {
+    await runSyncForWorkspaceMock(workspace);
+  }, []);
 
   useWorkspaceSession({
     sessionLoadState,
@@ -117,8 +125,9 @@ function WorkspaceSessionHarness(): ReactElement {
     setIsChoosingWorkspace,
     setErrorMessage,
     setCloudSettings,
-    refreshLocalData,
+    refreshWorkspaceView,
     runSync,
+    runSyncForWorkspace,
   });
 
   return (
@@ -144,22 +153,26 @@ describe("useWorkspaceSession", () => {
     deleteWorkspaceMock.mockReset();
     getSessionMock.mockReset();
     getStableDeviceIdForUserMock.mockReset();
+    hasHydratedWorkspaceMock.mockReset();
     listWorkspacesMock.mockReset();
     loadCloudSettingsMock.mockReset();
     putCloudSettingsMock.mockReset();
     renameWorkspaceMock.mockReset();
-    relinkWorkspaceCacheMock.mockReset();
+    refreshWorkspaceViewMock.mockReset();
     revalidateSessionMock.mockReset();
+    runSyncForWorkspaceMock.mockReset();
     selectWorkspaceMock.mockReset();
 
     consumeAccountDeletedMarkerMock.mockReturnValue(false);
     getStableDeviceIdForUserMock.mockReturnValue("device-1");
     getSessionMock.mockResolvedValue(sessionFixture);
+    hasHydratedWorkspaceMock.mockResolvedValue(true);
     listWorkspacesMock.mockResolvedValue([workspaceFixture]);
     loadCloudSettingsMock.mockResolvedValue(null);
     putCloudSettingsMock.mockResolvedValue(undefined);
-    relinkWorkspaceCacheMock.mockResolvedValue(undefined);
+    refreshWorkspaceViewMock.mockResolvedValue(undefined);
     revalidateSessionMock.mockResolvedValue(sessionFixture);
+    runSyncForWorkspaceMock.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -179,6 +192,36 @@ describe("useWorkspaceSession", () => {
     expect(getSessionMock).toHaveBeenCalledTimes(1);
     expect(container.firstElementChild?.getAttribute("data-state")).toBe("ready");
     expect(container.firstElementChild?.getAttribute("data-workspace-id")).toBe("workspace-1");
+  });
+
+  it("keeps the workspace loading state until the first sync hydrates an unseen workspace", async () => {
+    let resolveInitialSync: (() => void) | null = null;
+    hasHydratedWorkspaceMock.mockResolvedValue(false);
+    runSyncForWorkspaceMock.mockImplementation(() => new Promise<void>((resolve) => {
+      resolveInitialSync = resolve;
+    }));
+
+    await act(async () => {
+      root.render(<WorkspaceSessionHarness />);
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+
+    expect(container.firstElementChild?.getAttribute("data-state")).toBe("loading_workspace");
+    expect(container.firstElementChild?.getAttribute("data-workspace-id")).toBe("workspace-1");
+
+    await act(async () => {
+      resolveInitialSync?.();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+
+    expect(container.firstElementChild?.getAttribute("data-state")).toBe("ready");
+    expect(refreshWorkspaceViewMock).toHaveBeenCalledWith("workspace-1");
+    expect(runSyncForWorkspaceMock).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId: "workspace-1",
+    }));
   });
 
   it("clears local browser data before bootstrap when the persisted user differs", async () => {

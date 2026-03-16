@@ -192,10 +192,10 @@ function buildKeywordHeavyBackText(): string {
 async function seedLocalDatabase(cards: ReadonlyArray<Card>): Promise<void> {
   const seedData = makeSeedData();
   await clearWebSyncCache();
-  await replaceCards(cards);
-  await replaceDecks(seedData.decks);
-  await replaceReviewEvents(seedData.reviewEvents);
-  await putWorkspaceSettings(makeSchedulerSettings());
+  await replaceCards("workspace-1", cards);
+  await replaceDecks("workspace-1", seedData.decks);
+  await replaceReviewEvents("workspace-1", seedData.reviewEvents);
+  await putWorkspaceSettings("workspace-1", makeSchedulerSettings());
   await putCloudSettings(seedData.cloudSettings);
   await putOutboxRecord({
     operationId: "outbox-1",
@@ -507,8 +507,8 @@ describe("createLocalToolExecutor", () => {
       affectedCountTotal: number | null;
       statements: ReadonlyArray<Readonly<{ statementType: string; affectedCount: number }>>;
     }>;
-    const updatedCardOne = await loadCardById("card-1");
-    const updatedCardTwo = await loadCardById("card-2");
+    const updatedCardOne = await loadCardById("workspace-1", "card-1");
+    const updatedCardTwo = await loadCardById("workspace-1", "card-2");
 
     expect(payload.statementType).toBe("batch");
     expect(payload.statementCount).toBe(2);
@@ -569,7 +569,7 @@ describe("createLocalToolExecutor", () => {
       }),
     })).rejects.toThrow();
 
-    const unchangedCard = await loadCardById("card-1");
+    const unchangedCard = await loadCardById("workspace-1", "card-1");
     expect(unchangedCard?.backText).toBe("Back");
     expect(dependencies.refreshLocalData).not.toHaveBeenCalled();
   });

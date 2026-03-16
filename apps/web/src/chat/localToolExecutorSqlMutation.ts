@@ -180,6 +180,7 @@ function selectMutationRows(
 }
 
 async function commitMutationBatch(
+  workspaceId: string,
   cardsById: ReadonlyMap<string, Card>,
   decksById: ReadonlyMap<string, Deck>,
   outboxRecords: ReadonlyArray<PersistedOutboxRecord>,
@@ -193,8 +194,11 @@ async function commitMutationBatch(
       const outboxStore = transaction.objectStore("outbox");
 
       for (const card of cardsById.values()) {
-        cardsStore.put(card);
-        writeCardTagRecords(transaction, card);
+        cardsStore.put({
+          workspaceId,
+          ...card,
+        });
+        writeCardTagRecords(transaction, workspaceId, card);
       }
 
       for (const deck of decksById.values()) {
@@ -212,10 +216,10 @@ async function commitMutationBatch(
   }
 }
 
-async function loadCurrentMutationState(): Promise<WebMutationBatchState> {
+async function loadCurrentMutationState(activeWorkspace: WorkspaceSummary): Promise<WebMutationBatchState> {
   return {
-    cards: await loadAllActiveCardsForSql(),
-    decks: await loadAllActiveDecksForSql(),
+    cards: await loadAllActiveCardsForSql(activeWorkspace.workspaceId),
+    decks: await loadAllActiveDecksForSql(activeWorkspace.workspaceId),
   };
 }
 
@@ -285,7 +289,7 @@ export async function executeLocalSqlMutationStatement(
   }
 
   if (statement.type === "update" && statement.resourceName === "cards") {
-    const currentRows = selectMutationRows(statement, await loadCurrentMutationState());
+    const currentRows = selectMutationRows(statement, await loadCurrentMutationState(activeWorkspace));
     assertLocalSqlMutationRecordLimit("update", currentRows.length);
     const assignmentRow = toAssignmentRow(statement);
     const updatedCards = await Promise.all(currentRows.map(async (row) => {
@@ -294,7 +298,7 @@ export async function executeLocalSqlMutationStatement(
         throw new Error("Expected card_id in selected row");
       }
 
-      const existingCard = await loadCardById(cardId);
+      const existingCard = await loadCardById(activeWorkspace.workspaceId, cardId);
       if (existingCard === null) {
         throw new Error(`Card not found: ${cardId}`);
       }
@@ -315,7 +319,7 @@ export async function executeLocalSqlMutationStatement(
   }
 
   if (statement.type === "update" && statement.resourceName === "decks") {
-    const currentRows = selectMutationRows(statement, await loadCurrentMutationState());
+    const currentRows = selectMutationRows(statement, await loadCurrentMutationState(activeWorkspace));
     assertLocalSqlMutationRecordLimit("update", currentRows.length);
     const assignmentRow = toAssignmentRow(statement);
     const updatedDecks = await Promise.all(currentRows.map(async (row) => {
@@ -324,7 +328,7 @@ export async function executeLocalSqlMutationStatement(
         throw new Error("Expected deck_id in selected row");
       }
 
-      const existingDeck = await loadDeckById(deckId);
+      const existingDeck = await loadDeckById(activeWorkspace.workspaceId, deckId);
       if (existingDeck === null) {
         throw new Error(`Deck not found: ${deckId}`);
       }
@@ -345,7 +349,7 @@ export async function executeLocalSqlMutationStatement(
   }
 
   if (statement.type === "delete" && statement.resourceName === "cards") {
-    const currentRows = selectMutationRows(statement, await loadCurrentMutationState());
+    const currentRows = selectMutationRows(statement, await loadCurrentMutationState(activeWorkspace));
     assertLocalSqlMutationRecordLimit("delete", currentRows.length);
     const cardIds = currentRows.map((row) => {
       const cardId = row.card_id;
@@ -370,7 +374,7 @@ export async function executeLocalSqlMutationStatement(
   }
 
   if (statement.type === "delete" && statement.resourceName === "decks") {
-    const currentRows = selectMutationRows(statement, await loadCurrentMutationState());
+    const currentRows = selectMutationRows(statement, await loadCurrentMutationState(activeWorkspace));
     assertLocalSqlMutationRecordLimit("delete", currentRows.length);
     const deckIds = currentRows.map((row) => {
       const deckId = row.deck_id;
@@ -405,7 +409,7 @@ export async function executeLocalSqlMutationBatch(
   statementSqls: ReadonlyArray<string>,
   normalizedSql: string,
 ): Promise<LocalSqlExecutionResult> {
-  let state = await loadCurrentMutationState();
+  let state = await loadCurrentMutationState(activeWorkspace);
   const deviceId = await loadRequiredCloudDeviceId();
   const payloads: Array<SqlSingleExecutionPayload> = [];
   const pendingCardsById = new Map<string, Card>();
@@ -709,7 +713,7 @@ export async function executeLocalSqlMutationBatch(
     throw new Error("Unsupported SQL statement");
   }
 
-  await commitMutationBatch(pendingCardsById, pendingDecksById, outboxRecords);
+  await commitMutationBatch(activeWorkspace.workspaceId, pendingCardsById, pendingDecksById, outboxRecords);
   await dependencies.refreshLocalData();
 
   return {

@@ -7,33 +7,88 @@ import {
   matchesCardFilter,
   matchesDeckFilterDefinition,
 } from "../appData/domain";
-import { loadAllowedCardIdsForTags, writeCardTagRecords } from "./cardTags";
+import { loadAllowedCardIdsForTags, putCardTagRecords, writeCardTagRecords } from "./cardTags";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
   describeIndexedDbError,
   getFromStore,
   runReadwrite,
+  type StoredCard,
 } from "./core";
 import { encodeCursor, decodeCursor } from "./queryShared";
 
-type CardCursorIndexName = "createdAt_cardId" | "dueAt_cardId" | "effort_createdAt_cardId";
+type CardCursorIndexName =
+  | "workspaceId_createdAt_cardId"
+  | "workspaceId_dueAt_cardId"
+  | "workspaceId_effort_createdAt_cardId";
 
 type IndexedCardCursorOptions = Readonly<{
   indexName: CardCursorIndexName;
-  range: IDBKeyRange | null;
   direction: IDBCursorDirection;
 }>;
+
+function toStoredCard(workspaceId: string, card: Card): StoredCard {
+  return {
+    workspaceId,
+    cardId: card.cardId,
+    frontText: card.frontText,
+    backText: card.backText,
+    tags: card.tags,
+    effortLevel: card.effortLevel,
+    dueAt: card.dueAt,
+    createdAt: card.createdAt,
+    reps: card.reps,
+    lapses: card.lapses,
+    fsrsCardState: card.fsrsCardState,
+    fsrsStepIndex: card.fsrsStepIndex,
+    fsrsStability: card.fsrsStability,
+    fsrsDifficulty: card.fsrsDifficulty,
+    fsrsLastReviewedAt: card.fsrsLastReviewedAt,
+    fsrsScheduledDays: card.fsrsScheduledDays,
+    clientUpdatedAt: card.clientUpdatedAt,
+    lastModifiedByDeviceId: card.lastModifiedByDeviceId,
+    lastOperationId: card.lastOperationId,
+    updatedAt: card.updatedAt,
+    deletedAt: card.deletedAt,
+  };
+}
+
+function toCard(record: StoredCard): Card {
+  return {
+    cardId: record.cardId,
+    frontText: record.frontText,
+    backText: record.backText,
+    tags: record.tags,
+    effortLevel: record.effortLevel,
+    dueAt: record.dueAt,
+    createdAt: record.createdAt,
+    reps: record.reps,
+    lapses: record.lapses,
+    fsrsCardState: record.fsrsCardState,
+    fsrsStepIndex: record.fsrsStepIndex,
+    fsrsStability: record.fsrsStability,
+    fsrsDifficulty: record.fsrsDifficulty,
+    fsrsLastReviewedAt: record.fsrsLastReviewedAt,
+    fsrsScheduledDays: record.fsrsScheduledDays,
+    clientUpdatedAt: record.clientUpdatedAt,
+    lastModifiedByDeviceId: record.lastModifiedByDeviceId,
+    lastOperationId: record.lastOperationId,
+    updatedAt: record.updatedAt,
+    deletedAt: record.deletedAt,
+  };
+}
 
 function openIndexedCursor(
   store: IDBObjectStore,
   options: IndexedCardCursorOptions,
 ): IDBRequest<IDBCursorWithValue | null> {
-  return store.index(options.indexName).openCursor(options.range, options.direction);
+  return store.index(options.indexName).openCursor(null, options.direction);
 }
 
 async function iterateCardsByIndex(
   database: IDBDatabase,
+  workspaceId: string,
   options: IndexedCardCursorOptions,
   onCard: (card: Card) => boolean | void,
 ): Promise<void> {
@@ -67,7 +122,13 @@ async function iterateCardsByIndex(
         return;
       }
 
-      const shouldContinue = onCard(cursor.value as Card);
+      const record = cursor.value as StoredCard;
+      if (record.workspaceId !== workspaceId) {
+        cursor.continue();
+        return;
+      }
+
+      const shouldContinue = onCard(toCard(record));
       if (shouldContinue === false) {
         finish();
         return;
@@ -80,6 +141,7 @@ async function iterateCardsByIndex(
 
 export async function iterateCardsByCreatedAtDesc(
   database: IDBDatabase,
+  workspaceId: string,
   onCard: (card: Card) => boolean | void,
 ): Promise<void> {
   let currentCreatedAt: string | null | undefined;
@@ -102,9 +164,9 @@ export async function iterateCardsByCreatedAtDesc(
 
   await iterateCardsByIndex(
     database,
+    workspaceId,
     {
-      indexName: "createdAt_cardId",
-      range: null,
+      indexName: "workspaceId_createdAt_cardId",
       direction: "prev",
     },
     (card) => {
@@ -140,13 +202,14 @@ export async function iterateCardsByCreatedAtDesc(
 
 export async function iterateCardsByDueAtAsc(
   database: IDBDatabase,
+  workspaceId: string,
   onCard: (card: Card) => boolean | void,
 ): Promise<void> {
   await iterateCardsByIndex(
     database,
+    workspaceId,
     {
-      indexName: "dueAt_cardId",
-      range: null,
+      indexName: "workspaceId_dueAt_cardId",
       direction: "next",
     },
     onCard,
@@ -155,6 +218,7 @@ export async function iterateCardsByDueAtAsc(
 
 async function iterateCardsByEffortAndCreatedAtDesc(
   database: IDBDatabase,
+  workspaceId: string,
   effortLevel: Card["effortLevel"],
   onCard: (card: Card) => boolean | void,
 ): Promise<void> {
@@ -178,15 +242,16 @@ async function iterateCardsByEffortAndCreatedAtDesc(
 
   await iterateCardsByIndex(
     database,
+    workspaceId,
     {
-      indexName: "effort_createdAt_cardId",
-      range: IDBKeyRange.bound(
-        [effortLevel, "", ""],
-        [effortLevel, "\uffff", "\uffff"],
-      ),
+      indexName: "workspaceId_effort_createdAt_cardId",
       direction: "prev",
     },
     (card) => {
+      if (card.effortLevel !== effortLevel) {
+        return true;
+      }
+
       if (shouldStop) {
         return false;
       }
@@ -345,6 +410,7 @@ function decodeCardsCursorCardId(cursor: string): string {
 
 async function loadCardsCursorCard(
   database: IDBDatabase,
+  workspaceId: string,
   cursor: string | null,
 ): Promise<Card | null> {
   if (cursor === null) {
@@ -352,8 +418,8 @@ async function loadCardsCursorCard(
   }
 
   const cardId = decodeCardsCursorCardId(cursor);
-  const cursorCard = await getFromStore<Card>(database, "cards", cardId);
-  return cursorCard ?? null;
+  const cursorCard = await getFromStore<StoredCard>(database, "cards", [workspaceId, cardId]);
+  return cursorCard === undefined ? null : toCard(cursorCard);
 }
 
 function buildCardsPageCursorFromPage(
@@ -398,9 +464,26 @@ function insertCardIntoSortedWindow(
   return nextWindow;
 }
 
-export async function loadActiveCardCountWithDatabase(database: IDBDatabase): Promise<number> {
+function deleteWorkspaceScopedRecords(
+  store: IDBObjectStore,
+  workspaceId: string,
+): IDBRequest<IDBValidKey[]> {
+  const request = store.getAllKeys();
+  request.onsuccess = () => {
+    for (const key of request.result) {
+      if (!Array.isArray(key) || key[0] !== workspaceId) {
+        continue;
+      }
+
+      store.delete(key);
+    }
+  };
+  return request;
+}
+
+export async function loadActiveCardCountWithDatabase(database: IDBDatabase, workspaceId: string): Promise<number> {
   let count = 0;
-  await iterateCardsByCreatedAtDesc(database, (card) => {
+  await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
     if (card.deletedAt === null) {
       count += 1;
     }
@@ -409,9 +492,9 @@ export async function loadActiveCardCountWithDatabase(database: IDBDatabase): Pr
   return count;
 }
 
-export async function loadActiveCardsForSqlWithDatabase(database: IDBDatabase): Promise<ReadonlyArray<Card>> {
+export async function loadActiveCardsForSqlWithDatabase(database: IDBDatabase, workspaceId: string): Promise<ReadonlyArray<Card>> {
   const cards: Array<Card> = [];
-  await iterateCardsByCreatedAtDesc(database, (card) => {
+  await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
     if (card.deletedAt === null) {
       cards.push(card);
     }
@@ -420,20 +503,20 @@ export async function loadActiveCardsForSqlWithDatabase(database: IDBDatabase): 
   return cards;
 }
 
-export async function loadActiveCardCount(): Promise<number> {
-  return closeDatabaseAfter((database) => loadActiveCardCountWithDatabase(database));
+export async function loadActiveCardCount(workspaceId: string): Promise<number> {
+  return closeDatabaseAfter((database) => loadActiveCardCountWithDatabase(database, workspaceId));
 }
 
-export async function loadAllActiveCardsForSql(): Promise<ReadonlyArray<Card>> {
-  return closeDatabaseAfter((database) => loadActiveCardsForSqlWithDatabase(database));
+export async function loadAllActiveCardsForSql(workspaceId: string): Promise<ReadonlyArray<Card>> {
+  return closeDatabaseAfter((database) => loadActiveCardsForSqlWithDatabase(database, workspaceId));
 }
 
-export async function queryLocalCardsPage(input: QueryCardsInput): Promise<QueryCardsPage> {
+export async function queryLocalCardsPage(workspaceId: string, input: QueryCardsInput): Promise<QueryCardsPage> {
   return closeDatabaseAfter(async (database) => {
     const normalizedSearchText = normalizeSearchText(input.searchText);
     const allowedTagCardIds = input.filter === null || input.filter.tags.length === 0
       ? null
-      : await loadAllowedCardIdsForTags(database, input.filter.tags);
+      : await loadAllowedCardIdsForTags(database, workspaceId, input.filter.tags);
     const canUseStreamingPage = isDefaultCreatedAtDescendingSort(input.sorts);
 
     if (canUseStreamingPage) {
@@ -444,7 +527,7 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
       let hasMoreCards = false;
 
       const iterateCards = input.filter !== null && input.filter.effort.length === 1
-        ? iterateCardsByEffortAndCreatedAtDesc(database, input.filter.effort[0], (card) => {
+        ? iterateCardsByEffortAndCreatedAtDesc(database, workspaceId, input.filter.effort[0], (card) => {
           if (card.deletedAt !== null) {
             return true;
           }
@@ -475,7 +558,7 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
           hasMoreCards = true;
           return true;
         })
-        : iterateCardsByCreatedAtDesc(database, (card) => {
+        : iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
           if (card.deletedAt !== null) {
             return true;
           }
@@ -518,7 +601,7 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
       };
     }
 
-    const cursorCard = await loadCardsCursorCard(database, input.cursor);
+    const cursorCard = await loadCardsCursorCard(database, workspaceId, input.cursor);
     const shouldUseCursorCard = cursorCard !== null
       && cursorCard.deletedAt === null
       && (allowedTagCardIds === null || allowedTagCardIds.has(cursorCard.cardId))
@@ -528,7 +611,7 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
     let pageWindow: Array<Card> = [];
     const pageWindowLimit = input.limit + 1;
     const baseIterator = input.sorts[0]?.key === "dueAt"
-      ? iterateCardsByDueAtAsc(database, (card) => {
+      ? iterateCardsByDueAtAsc(database, workspaceId, (card) => {
         if (card.deletedAt !== null) {
           return true;
         }
@@ -550,7 +633,7 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
         pageWindow = insertCardIntoSortedWindow(pageWindow, card, input.sorts, pageWindowLimit) as Array<Card>;
         return true;
       })
-      : iterateCardsByCreatedAtDesc(database, (card) => {
+      : iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
         if (card.deletedAt !== null) {
           return true;
         }
@@ -587,24 +670,27 @@ export async function queryLocalCardsPage(input: QueryCardsInput): Promise<Query
   });
 }
 
-export async function loadCardById(cardId: string): Promise<Card | null> {
-  const card = await closeDatabaseAfter((database) => getFromStore<Card>(database, "cards", cardId));
+export async function loadCardById(workspaceId: string, cardId: string): Promise<Card | null> {
+  const card = await closeDatabaseAfter((database) => getFromStore<StoredCard>(database, "cards", [workspaceId, cardId]));
 
   if (card === undefined || card.deletedAt !== null) {
     return null;
   }
 
-  return card;
+  return toCard(card);
 }
 
-export async function loadCardsMatchingDeck(filterDefinition: Readonly<{
-  version: 2;
-  effortLevels: ReadonlyArray<Card["effortLevel"]>;
-  tags: ReadonlyArray<string>;
-}>): Promise<ReadonlyArray<Card>> {
+export async function loadCardsMatchingDeck(
+  workspaceId: string,
+  filterDefinition: Readonly<{
+    version: 2;
+    effortLevels: ReadonlyArray<Card["effortLevel"]>;
+    tags: ReadonlyArray<string>;
+  }>,
+): Promise<ReadonlyArray<Card>> {
   return closeDatabaseAfter(async (database) => {
     const cards: Array<Card> = [];
-    await iterateCardsByCreatedAtDesc(database, (card) => {
+    await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
       if (card.deletedAt !== null) {
         return true;
       }
@@ -617,27 +703,43 @@ export async function loadCardsMatchingDeck(filterDefinition: Readonly<{
   });
 }
 
-export async function replaceCards(cards: ReadonlyArray<Card>): Promise<void> {
+export async function replaceCards(workspaceId: string, cards: ReadonlyArray<Card>): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
+    await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
+      const cardsStore = transaction.objectStore("cards");
+      const cardTagsStore = transaction.objectStore("cardTags");
+      const deleteCardsRequest = cardsStore.getAllKeys();
+      deleteCardsRequest.onsuccess = () => {
+        for (const key of deleteCardsRequest.result) {
+          if (!Array.isArray(key) || key[0] !== workspaceId) {
+            continue;
+          }
+
+          cardsStore.delete(key);
+        }
+
+        deleteWorkspaceScopedRecords(cardTagsStore, workspaceId);
+      };
+      return deleteCardsRequest;
+    });
+
     await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
       const store = transaction.objectStore("cards");
       const cardTagsStore = transaction.objectStore("cardTags");
-      store.clear();
-      cardTagsStore.clear();
       for (const card of cards) {
-        store.put(card);
-        writeCardTagRecords(transaction, card);
+        store.put(toStoredCard(workspaceId, card));
+        putCardTagRecords(cardTagsStore, workspaceId, card);
       }
       return null;
     });
   });
 }
 
-export async function putCard(card: Card): Promise<void> {
+export async function putCard(workspaceId: string, card: Card): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
-      transaction.objectStore("cards").put(card);
-      writeCardTagRecords(transaction, card);
+      transaction.objectStore("cards").put(toStoredCard(workspaceId, card));
+      writeCardTagRecords(transaction, workspaceId, card);
       return null;
     });
   });

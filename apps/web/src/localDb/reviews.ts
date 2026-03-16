@@ -37,6 +37,7 @@ type ReviewFilterResolution = Readonly<{
 
 async function resolveReviewFilterFromIndexedDb(
   database: IDBDatabase,
+  workspaceId: string,
   reviewFilter: ReviewFilter,
 ): Promise<ReviewFilterResolution> {
   if (reviewFilter.kind === "allCards") {
@@ -48,7 +49,7 @@ async function resolveReviewFilterFromIndexedDb(
   }
 
   if (reviewFilter.kind === "deck") {
-    const deck = await loadDeckRecord(database, reviewFilter.deckId);
+    const deck = await loadDeckRecord(database, workspaceId, reviewFilter.deckId);
     if (deck === null) {
       return {
         resolvedReviewFilter: ALL_CARDS_REVIEW_FILTER,
@@ -64,7 +65,7 @@ async function resolveReviewFilterFromIndexedDb(
     };
   }
 
-  const allowedTagCardIds = await loadAllowedCardIdsForTags(database, [reviewFilter.tag]);
+  const allowedTagCardIds = await loadAllowedCardIdsForTags(database, workspaceId, [reviewFilter.tag]);
   if (allowedTagCardIds.size === 0) {
     return {
       resolvedReviewFilter: ALL_CARDS_REVIEW_FILTER,
@@ -121,15 +122,16 @@ function appendReviewCandidate(
 
 async function collectReviewCandidates(
   database: IDBDatabase,
+  workspaceId: string,
   reviewFilter: ReviewFilter,
   nowTimestamp: number,
 ): Promise<Readonly<{
   filterResolution: ReviewFilterResolution;
   accumulator: ReviewCandidateAccumulator;
 }>> {
-  const filterResolution = await resolveReviewFilterFromIndexedDb(database, reviewFilter);
+  const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
   let accumulator = createEmptyReviewCandidateAccumulator();
-  await iterateReviewCardsInCanonicalOrder(database, nowTimestamp, (card) => {
+  await iterateReviewCardsInCanonicalOrder(database, workspaceId, nowTimestamp, (card) => {
     if (matchesResolvedReviewFilter(card, filterResolution) === false) {
       return true;
     }
@@ -146,12 +148,13 @@ async function collectReviewCandidates(
 
 async function iterateReviewCardsInCanonicalOrder(
   database: IDBDatabase,
+  workspaceId: string,
   nowTimestamp: number,
   onCard: (card: Card) => boolean | void,
 ): Promise<void> {
   let shouldStop = false;
 
-  await iterateCardsByCreatedAtDesc(database, (card) => {
+  await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
     if (shouldStop) {
       return false;
     }
@@ -188,7 +191,7 @@ async function iterateReviewCardsInCanonicalOrder(
     return true;
   }
 
-  await iterateCardsByDueAtAsc(database, (card) => {
+  await iterateCardsByDueAtAsc(database, workspaceId, (card) => {
     if (shouldStop) {
       return false;
     }
@@ -268,6 +271,23 @@ function buildReviewQueueCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyA
   return encodeCursor({ cardId: lastCard.cardId });
 }
 
+function deleteWorkspaceReviewEvents(
+  store: IDBObjectStore,
+  workspaceId: string,
+): IDBRequest<IDBValidKey[]> {
+  const request = store.getAllKeys();
+  request.onsuccess = () => {
+    for (const key of request.result) {
+      if (!Array.isArray(key) || key[0] !== workspaceId) {
+        continue;
+      }
+
+      store.delete(key);
+    }
+  };
+  return request;
+}
+
 export async function loadReviewEventsForSql(workspaceId: string): Promise<ReadonlyArray<ReviewEvent>> {
   return closeDatabaseAfter(async (database) => {
     const reviewEvents = await getAllFromStore<ReviewEvent>(database, "reviewEvents");
@@ -278,12 +298,13 @@ export async function loadReviewEventsForSql(workspaceId: string): Promise<Reado
 }
 
 export async function loadReviewQueueSnapshot(
+  workspaceId: string,
   reviewFilter: ReviewFilter,
   limit: number,
 ): Promise<ReviewQueueSnapshot> {
   return closeDatabaseAfter(async (database) => {
     const nowTimestamp = Date.now();
-    const { filterResolution, accumulator } = await collectReviewCandidates(database, reviewFilter, nowTimestamp);
+    const { filterResolution, accumulator } = await collectReviewCandidates(database, workspaceId, reviewFilter, nowTimestamp);
     const pageCards = accumulator.dueCards.slice(0, limit);
 
     return {
@@ -296,6 +317,7 @@ export async function loadReviewQueueSnapshot(
 }
 
 export async function loadReviewQueueChunk(
+  workspaceId: string,
   reviewFilter: ReviewFilter,
   cursor: string | null,
   limit: number,
@@ -303,13 +325,13 @@ export async function loadReviewQueueChunk(
 ): Promise<Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>> {
   return closeDatabaseAfter(async (database) => {
     const nowTimestamp = Date.now();
-    const filterResolution = await resolveReviewFilterFromIndexedDb(database, reviewFilter);
+    const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
     const cursorPredicate = makeReviewCursorCardIdPredicate(cursor);
     let hasReachedCursor = cursorPredicate.isSet === false;
     let pageCards: Array<Card> = [];
     let hasMoreCards = false;
 
-    await iterateReviewCardsInCanonicalOrder(database, nowTimestamp, (card) => {
+    await iterateReviewCardsInCanonicalOrder(database, workspaceId, nowTimestamp, (card) => {
       if (excludedCardIds.has(card.cardId)) {
         return true;
       }
@@ -346,18 +368,19 @@ export async function loadReviewQueueChunk(
 }
 
 export async function loadReviewTimelinePage(
+  workspaceId: string,
   reviewFilter: ReviewFilter,
   limit: number,
   offset: number,
 ): Promise<ReviewTimelinePage> {
   return closeDatabaseAfter(async (database) => {
     const nowTimestamp = Date.now();
-    const filterResolution = await resolveReviewFilterFromIndexedDb(database, reviewFilter);
+    const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
     let matchingIndex = 0;
     let pageCards: Array<Card> = [];
     let hasMoreCards = false;
 
-    await iterateReviewCardsInCanonicalOrder(database, nowTimestamp, (card) => {
+    await iterateReviewCardsInCanonicalOrder(database, workspaceId, nowTimestamp, (card) => {
       if (matchesResolvedReviewFilter(card, filterResolution) === false) {
         return true;
       }
@@ -380,11 +403,14 @@ export async function loadReviewTimelinePage(
   });
 }
 
-export async function replaceReviewEvents(reviewEvents: ReadonlyArray<ReviewEvent>): Promise<void> {
+export async function replaceReviewEvents(workspaceId: string, reviewEvents: ReadonlyArray<ReviewEvent>): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
+    await runReadwrite(database, ["reviewEvents"], (transaction) => (
+      deleteWorkspaceReviewEvents(transaction.objectStore("reviewEvents"), workspaceId)
+    ));
+
     await runReadwrite(database, ["reviewEvents"], (transaction) => {
       const store = transaction.objectStore("reviewEvents");
-      store.clear();
       for (const reviewEvent of reviewEvents) {
         store.put(reviewEvent);
       }

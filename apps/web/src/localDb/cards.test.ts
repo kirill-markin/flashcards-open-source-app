@@ -3,7 +3,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { putCard, queryLocalCardsPage } from "./cards";
-import { legacyQueryCards, makeCard, sampleCards, seedCursorFixtures } from "./testSupport";
+import { legacyQueryCards, makeCard, sampleCards, seedCursorFixtures, workspaceId } from "./testSupport";
 import type { QueryCardsInput } from "../types";
 
 describe("localDb cards", () => {
@@ -22,7 +22,7 @@ describe("localDb cards", () => {
     ];
 
     for (const input of inputs) {
-      const result = await queryLocalCardsPage(input);
+      const result = await queryLocalCardsPage(workspaceId, input);
       const legacy = legacyQueryCards(sampleCards, input);
 
       expect(result.cards.map((card) => card.cardId)).toEqual(legacy.cards.slice(0, input.limit).map((card) => card.cardId));
@@ -31,14 +31,14 @@ describe("localDb cards", () => {
   });
 
   it("keeps cards pagination gap-free when createdAt ties", async () => {
-    const firstPage = await queryLocalCardsPage({
+    const firstPage = await queryLocalCardsPage(workspaceId, {
       searchText: null,
       cursor: null,
       limit: 2,
       sorts: [],
       filter: null,
     });
-    const secondPage = await queryLocalCardsPage({
+    const secondPage = await queryLocalCardsPage(workspaceId, {
       searchText: null,
       cursor: firstPage.nextCursor,
       limit: 2,
@@ -58,14 +58,14 @@ describe("localDb cards", () => {
   });
 
   it("keeps cards pagination gap-free for non-default local sorts without materializing a full page list", async () => {
-    const firstPage = await queryLocalCardsPage({
+    const firstPage = await queryLocalCardsPage(workspaceId, {
       searchText: null,
       cursor: null,
       limit: 3,
       sorts: [{ key: "reps", direction: "desc" }],
       filter: null,
     });
-    const secondPage = await queryLocalCardsPage({
+    const secondPage = await queryLocalCardsPage(workspaceId, {
       searchText: null,
       cursor: firstPage.nextCursor,
       limit: 3,
@@ -87,7 +87,7 @@ describe("localDb cards", () => {
   });
 
   it("reflects local DB changes immediately after a local mutation", async () => {
-    const initialCardsPage = await queryLocalCardsPage({
+    const initialCardsPage = await queryLocalCardsPage(workspaceId, {
       searchText: null,
       cursor: null,
       limit: 20,
@@ -96,7 +96,7 @@ describe("localDb cards", () => {
     });
     expect(initialCardsPage.cards.map((card) => card.cardId)).not.toContain("new-sync-card");
 
-    await putCard(makeCard({
+    await putCard(workspaceId, makeCard({
       cardId: "new-sync-card",
       frontText: "Newest synced card",
       backText: "back",
@@ -106,7 +106,7 @@ describe("localDb cards", () => {
       createdAt: "2025-01-11T10:00:00.000Z",
     }));
 
-    const nextCardsPage = await queryLocalCardsPage({
+    const nextCardsPage = await queryLocalCardsPage(workspaceId, {
       searchText: null,
       cursor: null,
       limit: 20,

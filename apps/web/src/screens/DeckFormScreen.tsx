@@ -36,6 +36,7 @@ export function DeckFormScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const {
+    activeWorkspace,
     createDeckItem,
     getDeckById,
     updateDeckItem,
@@ -59,8 +60,12 @@ export function DeckFormScreen(): ReactElement {
     setScreenErrorMessage("");
 
     try {
+      if (activeWorkspace === null) {
+        throw new Error("Workspace is unavailable");
+      }
+
       const [tagsSummary, loadedDeck] = await Promise.all([
-        loadWorkspaceTagsSummary(),
+        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
         deckId === undefined
           ? Promise.resolve(null)
           : deckId === ALL_CARDS_DECK_SLUG
@@ -87,7 +92,7 @@ export function DeckFormScreen(): ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, [deckId, getDeckById]);
+  }, [activeWorkspace, deckId, getDeckById]);
 
   useEffect(() => {
     void loadScreenData();

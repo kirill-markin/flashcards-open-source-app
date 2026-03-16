@@ -408,6 +408,7 @@ function ReviewFilterCheckIcon(): ReactElement {
 
 export function ReviewScreen(): ReactElement {
   const {
+    activeWorkspace,
     selectedReviewFilter,
     workspaceSettings,
     localReadVersion,
@@ -496,16 +497,20 @@ export function ReviewScreen(): ReactElement {
       setReviewLoadErrorMessage("");
 
       try {
+        if (activeWorkspace === null) {
+          throw new Error("Workspace is unavailable");
+        }
+
         const [
           reviewQueueSnapshot,
           reviewTimelinePage,
           tagsSummary,
           decksSnapshot,
         ] = await Promise.all([
-          loadReviewQueueSnapshot(selectedReviewFilter, 8),
-          loadReviewTimelinePage(selectedReviewFilter, 200, 0),
-          loadWorkspaceTagsSummary(),
-          loadDecksListSnapshot(),
+          loadReviewQueueSnapshot(activeWorkspace.workspaceId, selectedReviewFilter, 8),
+          loadReviewTimelinePage(activeWorkspace.workspaceId, selectedReviewFilter, 200, 0),
+          loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+          loadDecksListSnapshot(activeWorkspace.workspaceId),
         ]);
         if (isCancelled) {
           return;
@@ -550,7 +555,7 @@ export function ReviewScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [localReadVersion, selectedReviewFilter]);
+  }, [activeWorkspace, localReadVersion, selectedReviewFilter]);
 
   useEffect(() => {
     setIsAnswerVisible(false);
@@ -622,7 +627,12 @@ export function ReviewScreen(): ReactElement {
       }));
 
       if (nextReviewQueue.length <= 4 && reviewQueueCursor !== null) {
+        if (activeWorkspace === null) {
+          throw new Error("Workspace is unavailable");
+        }
+
         const nextChunk = await loadReviewQueueChunk(
+          activeWorkspace.workspaceId,
           resolvedReviewFilter,
           reviewQueueCursor,
           8 - nextReviewQueue.length,
