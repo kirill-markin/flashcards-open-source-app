@@ -125,9 +125,10 @@ export function AppDataProvider(props: Props): ReactElement {
     setSelectedReviewFilterState(reviewFilter);
   }, []);
 
-  const { initialize, chooseWorkspace, createWorkspace } = useWorkspaceSession({
+  const { initialize, chooseWorkspace, createWorkspace, renameWorkspace, deleteWorkspace } = useWorkspaceSession({
     sessionLoadState,
     session,
+    activeWorkspace,
     availableWorkspaces,
     setSessionLoadState,
     setSessionErrorMessage,
@@ -159,6 +160,8 @@ export function AppDataProvider(props: Props): ReactElement {
     initialize,
     chooseWorkspace,
     createWorkspace,
+    renameWorkspace,
+    deleteWorkspace,
     refreshLocalData: syncEngine.refreshLocalData,
     getCardById: syncEngine.getCardById,
     getDeckById: syncEngine.getDeckById,

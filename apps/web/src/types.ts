@@ -45,6 +45,21 @@ export type WorkspaceSummary = Readonly<{
   isSelected: boolean;
 }>;
 
+export type WorkspaceDeletePreview = Readonly<{
+  workspaceId: string;
+  workspaceName: string;
+  activeCardCount: number;
+  confirmationText: string;
+  isLastAccessibleWorkspace: boolean;
+}>;
+
+export type DeleteWorkspaceResponse = Readonly<{
+  ok: true;
+  deletedWorkspaceId: string;
+  deletedCardsCount: number;
+  workspace: WorkspaceSummary;
+}>;
+
 export type AgentApiKeyConnection = Readonly<{
   connectionId: string;
   label: string;

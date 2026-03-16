@@ -407,6 +407,51 @@ final class CloudSyncService: @unchecked Sendable {
         return response.workspace
     }
 
+    func renameWorkspace(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        name: String
+    ) async throws -> CloudWorkspaceSummary {
+        let response: WorkspaceEnvelope = try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/workspaces/\(workspaceId)/rename",
+            method: "POST",
+            body: CreateWorkspaceRequest(name: name)
+        )
+        return response.workspace
+    }
+
+    func loadWorkspaceDeletePreview(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ) async throws -> CloudWorkspaceDeletePreview {
+        try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/workspaces/\(workspaceId)/delete-preview",
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
+    func deleteWorkspace(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ) async throws -> CloudWorkspaceDeleteResult {
+        try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            bearerToken: bearerToken,
+            path: "/workspaces/\(workspaceId)/delete",
+            method: "POST",
+            body: DeleteAccountRequest(confirmationText: confirmationText)
+        )
+    }
+
     func selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String) async throws -> CloudWorkspaceSummary {
         logCloudFlowPhase(
             phase: .workspaceSelect,

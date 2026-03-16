@@ -316,6 +316,105 @@ extension FlashcardsStore {
         }
     }
 
+    func renameCurrentWorkspace(name: String) async throws {
+        guard self.cloudSettings?.cloudState == .linked else {
+            throw LocalStoreError.validation("Workspace rename is available only for linked cloud workspaces")
+        }
+
+        if self.cloudRuntime.activeCloudSession() == nil {
+            try await self.restoreCloudLinkFromStoredCredentials()
+        }
+
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedName.isEmpty {
+            throw LocalStoreError.validation("Workspace name is required")
+        }
+
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        let renamedWorkspace = try await self.withAuthenticatedCloudSession { session in
+            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+            return try await cloudSyncService.renameWorkspace(
+                apiBaseUrl: session.apiBaseUrl,
+                bearerToken: session.bearerToken,
+                workspaceId: workspaceId,
+                name: trimmedName
+            )
+        }
+
+        let database = try requireLocalDatabase(database: self.database)
+        _ = try database.updateWorkspaceName(workspaceId: workspaceId, name: renamedWorkspace.name)
+        try self.reload()
+        self.globalErrorMessage = ""
+    }
+
+    func loadCurrentWorkspaceDeletePreview() async throws -> CloudWorkspaceDeletePreview {
+        guard self.cloudSettings?.cloudState == .linked else {
+            throw LocalStoreError.validation("Workspace deletion is available only for linked cloud workspaces")
+        }
+
+        if self.cloudRuntime.activeCloudSession() == nil {
+            try await self.restoreCloudLinkFromStoredCredentials()
+        }
+
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        return try await self.withAuthenticatedCloudSession { session in
+            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+            return try await cloudSyncService.loadWorkspaceDeletePreview(
+                apiBaseUrl: session.apiBaseUrl,
+                bearerToken: session.bearerToken,
+                workspaceId: workspaceId
+            )
+        }
+    }
+
+    func deleteCurrentWorkspace(confirmationText: String) async throws {
+        guard self.cloudSettings?.cloudState == .linked else {
+            throw LocalStoreError.validation("Workspace deletion is available only for linked cloud workspaces")
+        }
+
+        if self.cloudRuntime.activeCloudSession() == nil {
+            try await self.restoreCloudLinkFromStoredCredentials()
+        }
+
+        let localWorkspaceId = try requireWorkspaceId(workspace: self.workspace)
+        self.syncStatus = .syncing
+
+        do {
+            let deleteResult = try await self.withAuthenticatedCloudSession { session in
+                let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+                let response = try await cloudSyncService.deleteWorkspace(
+                    apiBaseUrl: session.apiBaseUrl,
+                    bearerToken: session.bearerToken,
+                    workspaceId: localWorkspaceId,
+                    confirmationText: confirmationText
+                )
+                return (session, response)
+            }
+
+            let replacementSession = CloudLinkedSession(
+                userId: deleteResult.0.userId,
+                workspaceId: deleteResult.1.workspace.workspaceId,
+                email: deleteResult.0.email,
+                configurationMode: deleteResult.0.configurationMode,
+                apiBaseUrl: deleteResult.0.apiBaseUrl,
+                bearerToken: deleteResult.0.bearerToken
+            )
+            let database = try requireLocalDatabase(database: self.database)
+            try database.replaceLocalWorkspaceAfterRemoteDelete(
+                localWorkspaceId: localWorkspaceId,
+                replacementWorkspace: deleteResult.1.workspace,
+                linkedSession: replacementSession
+            )
+            self.cloudRuntime.setActiveCloudSession(linkedSession: replacementSession)
+            let syncResult = try await self.runLinkedSync(linkedSession: replacementSession)
+            try await self.applySyncResultWithoutBlockingReset(syncResult: syncResult, now: Date())
+        } catch {
+            self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            throw error
+        }
+    }
+
     func finishCloudLink(linkedSession: CloudLinkedSession) async throws {
         try await self.cloudRuntime.runCloudLinkTransition { [weak self] in
             guard let self else {

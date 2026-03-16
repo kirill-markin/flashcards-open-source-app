@@ -7,9 +7,11 @@ import {
 } from "react";
 import {
   createWorkspace as createWorkspaceRequest,
+  deleteWorkspace as deleteWorkspaceRequest,
   getSession,
   isAuthRedirectError,
   listWorkspaces,
+  renameWorkspace as renameWorkspaceRequest,
   revalidateSession as revalidateSessionRequest,
   selectWorkspace,
 } from "../api";
@@ -22,7 +24,6 @@ import {
   findWorkspaceById,
   getErrorMessage,
   markSelectedWorkspaces,
-  upsertWorkspaceSummary,
 } from "./domain";
 import type { SessionLoadState } from "./types";
 
@@ -31,6 +32,7 @@ const defaultWorkspaceName = "Personal";
 type UseWorkspaceSessionParams = Readonly<{
   sessionLoadState: SessionLoadState;
   session: SessionInfo | null;
+  activeWorkspace: WorkspaceSummary | null;
   availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
   setSessionLoadState: Dispatch<SetStateAction<SessionLoadState>>;
   setSessionErrorMessage: Dispatch<SetStateAction<string>>;
@@ -48,6 +50,8 @@ type WorkspaceSession = Readonly<{
   initialize: () => Promise<void>;
   chooseWorkspace: (workspaceId: string) => Promise<void>;
   createWorkspace: (name: string) => Promise<void>;
+  renameWorkspace: (workspaceId: string, name: string) => Promise<void>;
+  deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
 }>;
 
 function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
@@ -74,6 +78,23 @@ function buildLinkedCloudSettings(session: SessionInfo, workspaceId: string): Cl
   };
 }
 
+function replaceWorkspaceSummary(
+  workspaces: ReadonlyArray<WorkspaceSummary>,
+  workspace: WorkspaceSummary,
+): ReadonlyArray<WorkspaceSummary> {
+  let didReplace = false;
+  const nextWorkspaces = workspaces.map((currentWorkspace) => {
+    if (currentWorkspace.workspaceId !== workspace.workspaceId) {
+      return currentWorkspace;
+    }
+
+    didReplace = true;
+    return workspace;
+  });
+
+  return didReplace ? nextWorkspaces : [...workspaces, workspace];
+}
+
 function consumeLoggedOutMarker(): boolean {
   const url = new URL(window.location.href);
   if (url.searchParams.get("logged_out") !== "1") {
@@ -94,6 +115,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   const {
     sessionLoadState,
     session,
+    activeWorkspace,
     availableWorkspaces,
     setSessionLoadState,
     setSessionErrorMessage,
@@ -262,8 +284,84 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setIsChoosingWorkspace(true);
     try {
       const createdWorkspace = await createWorkspaceRequest(trimmedName);
-      const nextWorkspaces = upsertWorkspaceSummary(availableWorkspaces, createdWorkspace);
+      const nextWorkspaces = replaceWorkspaceSummary(availableWorkspaces, createdWorkspace);
       await activateWorkspace(session, nextWorkspaces, createdWorkspace);
+      setErrorMessage("");
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
+      const nextErrorMessage = getErrorMessage(error);
+      setErrorMessage(nextErrorMessage);
+      throw error;
+    } finally {
+      setIsChoosingWorkspace(false);
+    }
+  }, [activateWorkspace, availableWorkspaces, session, setErrorMessage, setIsChoosingWorkspace]);
+
+  const renameWorkspace = useCallback(async function renameWorkspace(
+    workspaceId: string,
+    name: string,
+  ): Promise<void> {
+    if (session === null) {
+      throw new Error("Session is unavailable");
+    }
+
+    const trimmedName = name.trim();
+    if (trimmedName === "") {
+      throw new Error("Workspace name is required");
+    }
+
+    setIsChoosingWorkspace(true);
+    try {
+      const renamedWorkspace = await renameWorkspaceRequest(workspaceId, trimmedName);
+      const nextWorkspaces = replaceWorkspaceSummary(availableWorkspaces, renamedWorkspace);
+      setAvailableWorkspaces(nextWorkspaces);
+      if (activeWorkspace?.workspaceId === workspaceId) {
+        setActiveWorkspace({
+          ...renamedWorkspace,
+          isSelected: true,
+        });
+      }
+      setErrorMessage("");
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return;
+      }
+
+      const nextErrorMessage = getErrorMessage(error);
+      setErrorMessage(nextErrorMessage);
+      throw error;
+    } finally {
+      setIsChoosingWorkspace(false);
+    }
+  }, [
+    activeWorkspace,
+    availableWorkspaces,
+    session,
+    setActiveWorkspace,
+    setAvailableWorkspaces,
+    setErrorMessage,
+    setIsChoosingWorkspace,
+  ]);
+
+  const deleteWorkspace = useCallback(async function deleteWorkspace(
+    workspaceId: string,
+    confirmationText: string,
+  ): Promise<void> {
+    if (session === null) {
+      throw new Error("Session is unavailable");
+    }
+
+    setIsChoosingWorkspace(true);
+    try {
+      const response = await deleteWorkspaceRequest(workspaceId, confirmationText);
+      const nextWorkspaces = replaceWorkspaceSummary(
+        availableWorkspaces.filter((workspace) => workspace.workspaceId !== response.deletedWorkspaceId),
+        response.workspace,
+      );
+      await activateWorkspace(session, nextWorkspaces, response.workspace);
       setErrorMessage("");
     } catch (error) {
       if (isAuthRedirectError(error)) {
@@ -358,5 +456,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     initialize,
     chooseWorkspace,
     createWorkspace,
+    renameWorkspace,
+    deleteWorkspace,
   };
 }

@@ -321,6 +321,21 @@ struct CloudWorkspaceSummary: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct CloudWorkspaceDeletePreview: Codable, Hashable, Sendable {
+    let workspaceId: String
+    let workspaceName: String
+    let activeCardCount: Int
+    let confirmationText: String
+    let isLastAccessibleWorkspace: Bool
+}
+
+struct CloudWorkspaceDeleteResult: Codable, Hashable, Sendable {
+    let ok: Bool
+    let deletedWorkspaceId: String
+    let deletedCardsCount: Int
+    let workspace: CloudWorkspaceSummary
+}
+
 struct CloudWorkspaceLinkContext: Hashable, Identifiable, Sendable {
     let userId: String
     let email: String?

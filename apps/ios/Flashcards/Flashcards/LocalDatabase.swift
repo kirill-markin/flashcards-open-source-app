@@ -703,6 +703,10 @@ final class LocalDatabase {
         )
     }
 
+    func updateWorkspaceName(workspaceId: String, name: String) throws -> Workspace {
+        try self.workspaceSettingsStore.updateWorkspaceName(workspaceId: workspaceId, name: name)
+    }
+
     func loadOutboxEntries(workspaceId: String, limit: Int) throws -> [PersistedOutboxEntry] {
         try self.outboxStore.loadOutboxEntries(workspaceId: workspaceId, limit: limit)
     }
@@ -930,6 +934,119 @@ final class LocalDatabase {
                 cloudState: .linked,
                 linkedUserId: linkedSession.userId,
                 linkedWorkspaceId: linkedSession.workspaceId,
+                linkedEmail: linkedSession.email
+            )
+        }
+    }
+
+    func replaceLocalWorkspaceAfterRemoteDelete(
+        localWorkspaceId: String,
+        replacementWorkspace: CloudWorkspaceSummary,
+        linkedSession: CloudLinkedSession
+    ) throws {
+        let currentSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: localWorkspaceId)
+
+        try self.core.inTransaction {
+            let existingReplacementWorkspaceCount = try self.core.scalarInt(
+                sql: "SELECT COUNT(*) FROM workspaces WHERE workspace_id = ?",
+                values: [.text(replacementWorkspace.workspaceId)]
+            )
+
+            if existingReplacementWorkspaceCount == 0 {
+                try self.core.execute(
+                    sql: """
+                    INSERT INTO workspaces (
+                        workspace_id,
+                        name,
+                        created_at,
+                        fsrs_algorithm,
+                        fsrs_desired_retention,
+                        fsrs_learning_steps_minutes_json,
+                        fsrs_relearning_steps_minutes_json,
+                        fsrs_maximum_interval_days,
+                        fsrs_enable_fuzz,
+                        fsrs_client_updated_at,
+                        fsrs_last_modified_by_device_id,
+                        fsrs_last_operation_id,
+                        fsrs_updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    values: [
+                        .text(replacementWorkspace.workspaceId),
+                        .text(replacementWorkspace.name),
+                        .text(replacementWorkspace.createdAt),
+                        .text(currentSettings.algorithm),
+                        .real(currentSettings.desiredRetention),
+                        .text(try self.workspaceSettingsStore.encodeIntegerArray(values: currentSettings.learningStepsMinutes)),
+                        .text(try self.workspaceSettingsStore.encodeIntegerArray(values: currentSettings.relearningStepsMinutes)),
+                        .integer(Int64(currentSettings.maximumIntervalDays)),
+                        .integer(currentSettings.enableFuzz ? 1 : 0),
+                        .text(currentSettings.clientUpdatedAt),
+                        .text(currentSettings.lastModifiedByDeviceId),
+                        .text(currentSettings.lastOperationId),
+                        .text(currentSettings.updatedAt)
+                    ]
+                )
+            } else {
+                _ = try self.core.execute(
+                    sql: """
+                    UPDATE workspaces
+                    SET name = ?, created_at = ?
+                    WHERE workspace_id = ?
+                    """,
+                    values: [
+                        .text(replacementWorkspace.name),
+                        .text(replacementWorkspace.createdAt),
+                        .text(replacementWorkspace.workspaceId)
+                    ]
+                )
+            }
+
+            let workspaceScopedTables: [String] = ["cards", "decks", "review_events", "outbox", "sync_state"]
+            for tableName in workspaceScopedTables {
+                _ = try self.core.execute(
+                    sql: "DELETE FROM \(tableName) WHERE workspace_id = ?",
+                    values: [.text(localWorkspaceId)]
+                )
+                _ = try self.core.execute(
+                    sql: "DELETE FROM \(tableName) WHERE workspace_id = ?",
+                    values: [.text(replacementWorkspace.workspaceId)]
+                )
+            }
+
+            _ = try self.core.execute(
+                sql: """
+                UPDATE user_settings
+                SET workspace_id = ?
+                WHERE workspace_id = ?
+                """,
+                values: [
+                    .text(replacementWorkspace.workspaceId),
+                    .text(localWorkspaceId)
+                ]
+            )
+
+            _ = try self.core.execute(
+                sql: "DELETE FROM workspaces WHERE workspace_id = ?",
+                values: [.text(localWorkspaceId)]
+            )
+
+            try self.core.execute(
+                sql: """
+                INSERT OR REPLACE INTO sync_state (workspace_id, last_applied_change_id, updated_at)
+                VALUES (?, 0, ?)
+                """,
+                values: [
+                    .text(replacementWorkspace.workspaceId),
+                    .text(nowIsoTimestamp())
+                ]
+            )
+
+            try self.workspaceSettingsStore.updateCloudSettings(
+                cloudState: .linked,
+                linkedUserId: linkedSession.userId,
+                linkedWorkspaceId: replacementWorkspace.workspaceId,
                 linkedEmail: linkedSession.email
             )
         }

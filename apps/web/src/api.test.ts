@@ -3,8 +3,11 @@ import {
   AuthRedirectError,
   createLocalChatRequestBody,
   createWorkspace,
+  deleteWorkspace,
   getSession,
   listWorkspaces,
+  loadWorkspaceDeletePreview,
+  renameWorkspace,
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
 } from "./api";
@@ -142,6 +145,93 @@ describe("web auth recovery", () => {
 
     expect(workspace.workspaceId).toBe("workspace-2");
     expect(seenCsrfTokens).toEqual(["csrf-old", "csrf-new"]);
+  });
+
+  it("renames a workspace through the human management endpoint", async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "http://localhost:8080/v1/me") {
+        return createJsonResponse(200, createSessionPayload("csrf-rename"));
+      }
+
+      if (url === "http://localhost:8080/v1/workspaces/workspace-1/rename") {
+        expect(getHeaderValue(init, "X-CSRF-Token")).toBe("csrf-rename");
+        return createJsonResponse(200, {
+          workspace: {
+            workspaceId: "workspace-1",
+            name: "Renamed workspace",
+            createdAt: "2026-03-09T00:00:00.000Z",
+            isSelected: true,
+          },
+        });
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    await getSession();
+    const workspace = await renameWorkspace("workspace-1", "Renamed workspace");
+
+    expect(workspace.name).toBe("Renamed workspace");
+  });
+
+  it("loads the delete preview for a workspace", async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "http://localhost:8080/v1/workspaces/workspace-1/delete-preview") {
+        return createJsonResponse(200, {
+          workspaceId: "workspace-1",
+          workspaceName: "Primary",
+          activeCardCount: 7,
+          confirmationText: "delete workspace",
+          isLastAccessibleWorkspace: false,
+        });
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    const preview = await loadWorkspaceDeletePreview("workspace-1");
+
+    expect(preview).toEqual({
+      workspaceId: "workspace-1",
+      workspaceName: "Primary",
+      activeCardCount: 7,
+      confirmationText: "delete workspace",
+      isLastAccessibleWorkspace: false,
+    });
+  });
+
+  it("deletes a workspace and returns the selected replacement workspace", async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "http://localhost:8080/v1/me") {
+        return createJsonResponse(200, createSessionPayload("csrf-delete"));
+      }
+
+      if (url === "http://localhost:8080/v1/workspaces/workspace-1/delete") {
+        expect(getHeaderValue(init, "X-CSRF-Token")).toBe("csrf-delete");
+        return createJsonResponse(200, {
+          ok: true,
+          deletedWorkspaceId: "workspace-1",
+          deletedCardsCount: 4,
+          workspace: {
+            workspaceId: "workspace-2",
+            name: "Replacement",
+            createdAt: "2026-03-09T00:00:00.000Z",
+            isSelected: true,
+          },
+        });
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    await getSession();
+    const response = await deleteWorkspace("workspace-1", "delete workspace");
+
+    expect(response.deletedWorkspaceId).toBe("workspace-1");
+    expect(response.workspace.workspaceId).toBe("workspace-2");
   });
 
   it("shares one refresh operation across concurrent 401 responses", async () => {

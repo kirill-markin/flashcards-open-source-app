@@ -149,6 +149,26 @@ struct WorkspaceSettingsStore {
         return cloudSettings
     }
 
+    func updateWorkspaceName(workspaceId: String, name: String) throws -> Workspace {
+        let updatedRows = try self.core.execute(
+            sql: """
+            UPDATE workspaces
+            SET name = ?
+            WHERE workspace_id = ?
+            """,
+            values: [
+                .text(name),
+                .text(workspaceId)
+            ]
+        )
+
+        if updatedRows == 0 {
+            throw LocalStoreError.database("Workspace row is missing")
+        }
+
+        return try self.loadWorkspace()
+    }
+
     func updateCloudSettings(
         cloudState: CloudAccountState,
         linkedUserId: String?,
