@@ -13,6 +13,7 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 ## Platform Plan
 
 - Backend: AWS
+- AWS infra deploys via CI/CD only. Do not run AWS deploys locally; push to `main` and watch CI/CD.
 - Web app: supported
 - iOS app: Swift (priority)
 - Android app: planned later
