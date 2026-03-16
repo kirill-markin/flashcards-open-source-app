@@ -372,6 +372,8 @@ describe("createLocalChatRequestBody", () => {
       }],
       "gpt-5.4",
       "Europe/Madrid",
+      "chat-session-1",
+      "container-1",
       {
         totalCards: 3,
       },
@@ -383,6 +385,8 @@ describe("createLocalChatRequestBody", () => {
       model: "gpt-5.4",
       timezone: "Europe/Madrid",
       devicePlatform: "web",
+      chatSessionId: "chat-session-1",
+      codeInterpreterContainerId: "container-1",
       userContext: {
         totalCards: 3,
       },

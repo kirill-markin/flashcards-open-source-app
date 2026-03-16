@@ -18,10 +18,19 @@ describe("ChatPanel attachments", () => {
   it("blocks send before network when post-compression payload exceeds the 9.5 MB safety limit", async () => {
     const oversizedPayload = "x".repeat(10_100_000);
     createLocalChatRequestBodyMock.mockImplementation(
-      (messages: ReadonlyArray<unknown>, model: string, timezone: string, userContext: unknown) => ({
+      (
+        messages: ReadonlyArray<unknown>,
+        model: string,
+        timezone: string,
+        chatSessionId: string,
+        codeInterpreterContainerId: string | null,
+        userContext: unknown,
+      ) => ({
         messages,
         model,
         timezone,
+        chatSessionId,
+        codeInterpreterContainerId,
         userContext,
         oversizedPayload,
       }),
@@ -89,13 +98,13 @@ describe("ChatPanel attachments", () => {
       await Promise.resolve();
     });
 
-    expect(createLocalChatRequestBodyMock.mock.calls[0]?.[3]).toEqual({
+    expect(createLocalChatRequestBodyMock.mock.calls[0]?.[5]).toEqual({
       totalCards: 1,
     });
 
     await chatPanel.sendMessage("hello");
 
-    expect(createLocalChatRequestBodyMock.mock.calls.some((call) => JSON.stringify(call[3]) === JSON.stringify({
+    expect(createLocalChatRequestBodyMock.mock.calls.some((call) => JSON.stringify(call[5]) === JSON.stringify({
       totalCards: 1,
     }))).toBe(true);
   });

@@ -213,9 +213,16 @@ export type StreamLocalTurnParams = Readonly<{
   model: string;
   timezone: string;
   devicePlatform: "ios" | "web";
+  chatSessionId: string;
+  codeInterpreterContainerId: string | null;
   userContext: LocalChatUserContext;
   providerSafetyUserId?: string | null;
   requestId: string;
+}>;
+
+export type PreparedLocalTurn = Readonly<{
+  codeInterpreterContainerId: string | null;
+  stream: AsyncGenerator<LocalChatStreamEvent>;
 }>;
 
 export class LocalChatRuntimeError extends Error {
@@ -837,4 +844,13 @@ export async function* streamLocalTurn(
   params: StreamLocalTurnParams,
 ): AsyncGenerator<LocalChatStreamEvent> {
   yield* streamLocalAgentTurn(params, createClient());
+}
+
+export async function prepareLocalTurn(
+  params: StreamLocalTurnParams,
+): Promise<PreparedLocalTurn> {
+  return {
+    codeInterpreterContainerId: null,
+    stream: streamLocalTurn(params),
+  };
 }

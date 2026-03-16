@@ -183,6 +183,8 @@ test("chat local-turn route forwards the authenticated request context to the lo
       model: "gpt-5.4",
       timezone: "Europe/Madrid",
       devicePlatform: "web",
+      chatSessionId: "chat-session-test-1",
+      codeInterpreterContainerId: null,
       userContext: { totalCards: 5 },
     }),
     headers: {

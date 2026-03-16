@@ -80,6 +80,10 @@ func aiChatAppVersion() -> String {
     return trimmedVersion.isEmpty ? "1.0.0" : trimmedVersion
 }
 
+func makeAIChatSessionId() -> String {
+    UUID().uuidString.lowercased()
+}
+
 func aiChatTruncatedSnippet(_ value: String) -> String {
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
     if trimmed.count <= 240 {
@@ -266,6 +270,35 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
 struct AIChatPersistedState: Codable, Hashable, Sendable {
     let messages: [AIChatMessage]
     let selectedModelId: String
+    let chatSessionId: String
+    let codeInterpreterContainerId: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case messages
+        case selectedModelId
+        case chatSessionId
+        case codeInterpreterContainerId
+    }
+
+    init(
+        messages: [AIChatMessage],
+        selectedModelId: String,
+        chatSessionId: String,
+        codeInterpreterContainerId: String?
+    ) {
+        self.messages = messages
+        self.selectedModelId = selectedModelId
+        self.chatSessionId = chatSessionId
+        self.codeInterpreterContainerId = codeInterpreterContainerId
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.messages = try container.decode([AIChatMessage].self, forKey: .messages)
+        self.selectedModelId = try container.decode(String.self, forKey: .selectedModelId)
+        self.chatSessionId = try container.decodeIfPresent(String.self, forKey: .chatSessionId) ?? makeAIChatSessionId()
+        self.codeInterpreterContainerId = try container.decodeIfPresent(String.self, forKey: .codeInterpreterContainerId)
+    }
 }
 
 struct AILocalChatWireMessage: Codable, Hashable, Sendable {
@@ -289,6 +322,8 @@ struct AILocalChatRequestBody: Codable, Hashable, Sendable {
     let model: String
     let timezone: String
     let devicePlatform: String
+    let chatSessionId: String
+    let codeInterpreterContainerId: String?
     let userContext: AILocalChatUserContext
 }
 
@@ -414,6 +449,7 @@ struct AITurnStreamOutcome: Hashable, Sendable {
     let awaitsToolResults: Bool
     let requestedToolCalls: [AIToolCallRequest]
     let requestId: String?
+    let codeInterpreterContainerId: String?
 }
 
 struct AIChatBackendError: Decodable, Hashable, Sendable {

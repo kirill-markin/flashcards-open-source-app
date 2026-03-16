@@ -584,6 +584,8 @@ export function createLocalChatRequestBody(
   messages: ReadonlyArray<LocalChatMessage>,
   model: string,
   timezone: string,
+  chatSessionId: string,
+  codeInterpreterContainerId: string | null,
   userContext: LocalChatUserContext,
 ): LocalChatRequestBody {
   return {
@@ -591,6 +593,8 @@ export function createLocalChatRequestBody(
     model,
     timezone,
     devicePlatform: "web",
+    chatSessionId,
+    codeInterpreterContainerId,
     userContext,
   };
 }

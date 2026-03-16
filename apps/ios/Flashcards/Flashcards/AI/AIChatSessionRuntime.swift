@@ -233,7 +233,12 @@ actor AIChatSessionRuntime {
         self.localContextLoader = localContextLoader
         self.streamFlushInterval = streamFlushInterval
         self.historyCheckpointInterval = historyCheckpointInterval
-        self.persistedState = AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+        self.persistedState = AIChatPersistedState(
+            messages: [],
+            selectedModelId: aiChatDefaultModelId,
+            chatSessionId: makeAIChatSessionId(),
+            codeInterpreterContainerId: nil
+        )
         self.pendingAssistantText = ""
         self.hasFlushedFirstAssistantDelta = false
         self.lastStreamFlushAt = .distantPast
@@ -292,6 +297,14 @@ actor AIChatSessionRuntime {
                     }
                 )
                 shouldTrackFirstRequestLatency = false
+                if let codeInterpreterContainerId = outcome.codeInterpreterContainerId {
+                    self.persistedState = AIChatPersistedState(
+                        messages: self.persistedState.messages,
+                        selectedModelId: self.persistedState.selectedModelId,
+                        chatSessionId: self.persistedState.chatSessionId,
+                        codeInterpreterContainerId: codeInterpreterContainerId
+                    )
+                }
                 await self.flushPendingAssistantText(eventHandler: eventHandler)
                 if outcome.awaitsToolResults == false {
                     self.turnContext = markAIChatTurnTerminal(
@@ -733,6 +746,8 @@ private func makeRuntimeRequestBody(
         model: state.selectedModelId,
         timezone: TimeZone.current.identifier,
         devicePlatform: "ios",
+        chatSessionId: state.chatSessionId,
+        codeInterpreterContainerId: state.codeInterpreterContainerId,
         userContext: userContext
     )
 }
@@ -806,7 +821,12 @@ private func appendAssistantText(state: AIChatPersistedState, text: String) -> A
         timestamp: lastMessage.timestamp,
         isError: lastMessage.isError
     )
-    return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
+    return AIChatPersistedState(
+        messages: messages,
+        selectedModelId: state.selectedModelId,
+        chatSessionId: state.chatSessionId,
+        codeInterpreterContainerId: state.codeInterpreterContainerId
+    )
 }
 
 private func upsertAssistantToolCall(
@@ -842,7 +862,12 @@ private func upsertAssistantToolCall(
         timestamp: lastMessage.timestamp,
         isError: lastMessage.isError
     )
-    return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
+    return AIChatPersistedState(
+        messages: messages,
+        selectedModelId: state.selectedModelId,
+        chatSessionId: state.chatSessionId,
+        codeInterpreterContainerId: state.codeInterpreterContainerId
+    )
 }
 
 private func completeAssistantToolCall(
@@ -886,7 +911,12 @@ private func completeAssistantToolCall(
         timestamp: lastMessage.timestamp,
         isError: lastMessage.isError
     )
-    return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
+    return AIChatPersistedState(
+        messages: messages,
+        selectedModelId: state.selectedModelId,
+        chatSessionId: state.chatSessionId,
+        codeInterpreterContainerId: state.codeInterpreterContainerId
+    )
 }
 
 private func assistantToolCall(
@@ -938,7 +968,12 @@ private func markAssistantError(state: AIChatPersistedState, message: String) ->
         )
     }
 
-    return AIChatPersistedState(messages: messages, selectedModelId: state.selectedModelId)
+    return AIChatPersistedState(
+        messages: messages,
+        selectedModelId: state.selectedModelId,
+        chatSessionId: state.chatSessionId,
+        codeInterpreterContainerId: state.codeInterpreterContainerId
+    )
 }
 
 private func isOptimisticAssistantStatus(content: [AIChatContentPart]) -> Bool {

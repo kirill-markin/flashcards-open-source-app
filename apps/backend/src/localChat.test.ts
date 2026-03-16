@@ -73,16 +73,53 @@ function makeFakeClient(
   capturedBodies: Array<CapturedStreamBody>,
   options?: Readonly<{
     listedContainerIds?: Array<string>;
+    createdContainerIds?: Array<string>;
+    retrievedContainerIds?: Array<string>;
+    createdContainerFiles?: Array<Readonly<{
+      containerId: string;
+      fileId: string;
+    }>>;
     containerFilesById?: Readonly<Record<string, ReadonlyArray<Readonly<{
       id: string;
       path: string;
       source: string;
       bytes: number;
     }>>>>;
+    containerNameById?: Readonly<Record<string, string>>;
+    containerStatusById?: Readonly<Record<string, string>>;
   }>,
 ): Readonly<{
   containers: Readonly<{
+    create: (
+      body: Readonly<{
+        name: string;
+        expires_after: Readonly<{
+          anchor: "last_active_at";
+          minutes: number;
+        }>;
+      }>,
+    ) => Promise<Readonly<{
+      id: string;
+      name: string;
+      status: string;
+    }>>;
+    retrieve: (
+      containerID: string,
+    ) => Promise<Readonly<{
+      id: string;
+      name: string;
+      status: string;
+    }>>;
     files: Readonly<{
+      create: (
+        containerID: string,
+        body: Readonly<{ file_id: string }>,
+      ) => Promise<Readonly<{
+        id: string;
+        path: string;
+        source: string;
+        bytes: number;
+      }>>;
       list: (
         containerID: string,
       ) => Promise<Readonly<{ data: ReadonlyArray<Readonly<{
@@ -94,7 +131,9 @@ function makeFakeClient(
     }>;
   }>;
   files: Readonly<{
-    create: () => Promise<Readonly<{ id: string; filename: string }>>;
+    create: (
+      body: Readonly<{ file: File; purpose: "user_data" }>,
+    ) => Promise<Readonly<{ id: string; filename: string }>>;
   }>;
   responses: Readonly<{
     stream: (body: Readonly<Record<string, unknown>>) => AsyncIterable<FakeStreamEvent> & Readonly<{
@@ -103,10 +142,47 @@ function makeFakeClient(
   }>;
 }> {
   let attemptIndex = 0;
+  let createdContainerIndex = 0;
 
   return {
     containers: {
+      async create(_body: Readonly<{
+        name: string;
+        expires_after: Readonly<{
+          anchor: "last_active_at";
+          minutes: number;
+        }>;
+      }>) {
+        const containerId = `container_created_${createdContainerIndex + 1}`;
+        createdContainerIndex += 1;
+        options?.createdContainerIds?.push(containerId);
+        return {
+          id: containerId,
+          name: options?.containerNameById?.[containerId] ?? "flashcards-local-chat-session-test",
+          status: "active",
+        };
+      },
+      async retrieve(containerID: string) {
+        options?.retrievedContainerIds?.push(containerID);
+        return {
+          id: containerID,
+          name: options?.containerNameById?.[containerID] ?? "flashcards-local-chat-session-test",
+          status: options?.containerStatusById?.[containerID] ?? "active",
+        };
+      },
       files: {
+        async create(containerID: string, body: Readonly<{ file_id: string }>) {
+          options?.createdContainerFiles?.push({
+            containerId: containerID,
+            fileId: body.file_id,
+          });
+          return {
+            id: `cfile_for_${body.file_id}`,
+            path: `/mnt/data/${body.file_id}.dat`,
+            source: "user",
+            bytes: 4,
+          };
+        },
         async list(containerID: string) {
           options?.listedContainerIds?.push(containerID);
           return {
@@ -116,7 +192,7 @@ function makeFakeClient(
       },
     },
     files: {
-      async create() {
+      async create(_body: Readonly<{ file: File; purpose: "user_data" }>) {
         return {
           id: "file_test_1",
           filename: "test.txt",
@@ -412,6 +488,8 @@ test("streamLocalAgentTurn emits text deltas and done when no tool calls are req
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
+    chatSessionId: "session-test-1",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     providerSafetyUserId: "fcdec6df4d44dbc637c7c5b58efface52a7f8a88535423430255be0bb89bedd8",
     requestId: "request-1",
@@ -458,6 +536,8 @@ test("streamLocalAgentTurn maps uploaded files to input_file with file_id only",
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    chatSessionId: "session-test-2",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     requestId: "request-file-1",
   }, client));
@@ -482,6 +562,7 @@ test("streamLocalAgentTurn maps uploaded files to input_file with file_id only",
 
 test("streamLocalAgentTurn duplicates small text attachments inline and keeps them in code interpreter", async () => {
   const capturedBodies: Array<CapturedStreamBody> = [];
+  const createdContainerFiles: Array<Readonly<{ containerId: string; fileId: string }>> = [];
   const client = makeFakeClient(
     [{
       events: [],
@@ -492,6 +573,9 @@ test("streamLocalAgentTurn duplicates small text attachments inline and keeps th
       },
     }],
     capturedBodies,
+    {
+      createdContainerFiles,
+    },
   );
 
   const events = await collectEvents(streamLocalAgentTurn({
@@ -507,6 +591,8 @@ test("streamLocalAgentTurn duplicates small text attachments inline and keeps th
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    chatSessionId: "session-test-3",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     requestId: "request-file-inline-1",
   }, client));
@@ -523,9 +609,7 @@ test("streamLocalAgentTurn duplicates small text attachments inline and keeps th
   const codeInterpreterTool = capturedBodies[0]?.tools.find((tool) => (
     typeof tool === "object" && tool !== null && "type" in tool && tool.type === "code_interpreter"
   )) as Readonly<{
-    container: Readonly<{
-      file_ids: ReadonlyArray<string>;
-    }>;
+    container: string;
   }> | undefined;
 
   assert.equal(firstContent?.type, "input_file");
@@ -534,7 +618,11 @@ test("streamLocalAgentTurn duplicates small text attachments inline and keeps th
   assert.match(String(secondContent?.text), /<attached_text_file name="test\.txt" media_type="text\/plain">/);
   assert.match(String(secondContent?.text), /hello from file/);
   assert.match(String(secondContent?.text), /mounted files are typically exposed under \/mnt\/data/i);
-  assert.deepEqual(codeInterpreterTool?.container.file_ids, ["file_test_1"]);
+  assert.equal(codeInterpreterTool?.container, "container_created_1");
+  assert.deepEqual(createdContainerFiles, [{
+    containerId: "container_created_1",
+    fileId: "file_test_1",
+  }]);
 });
 
 test("streamLocalAgentTurn keeps csv attachments tool-only", async () => {
@@ -564,6 +652,8 @@ test("streamLocalAgentTurn keeps csv attachments tool-only", async () => {
     model: "gpt-5.2",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    chatSessionId: "session-test-4",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     requestId: "request-file-csv-1",
   }, client));
@@ -571,9 +661,15 @@ test("streamLocalAgentTurn keeps csv attachments tool-only", async () => {
   const firstInputItem = capturedBodies[0]?.input[0] as Readonly<{
     content: ReadonlyArray<Readonly<Record<string, unknown>>>;
   }> | undefined;
+  const codeInterpreterTool = capturedBodies[0]?.tools.find((tool) => (
+    typeof tool === "object" && tool !== null && "type" in tool && tool.type === "code_interpreter"
+  )) as Readonly<{
+    container: string;
+  }> | undefined;
   assert.equal(firstInputItem?.content.length, 1);
   assert.equal(firstInputItem?.content[0]?.type, "input_file");
   assert.deepEqual(capturedBodies[0]?.tool_choice, { type: "code_interpreter" });
+  assert.equal(codeInterpreterTool?.container, "container_created_1");
 });
 
 test("streamLocalAgentTurn verifies spreadsheet containers after code interpreter runs", async () => {
@@ -621,6 +717,8 @@ test("streamLocalAgentTurn verifies spreadsheet containers after code interprete
     model: "gpt-5.4",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    chatSessionId: "session-test-5",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     requestId: "request-file-csv-container-1",
   }, client));
@@ -628,7 +726,52 @@ test("streamLocalAgentTurn verifies spreadsheet containers after code interprete
   assert.deepEqual(events, [
     { type: "done" },
   ]);
-  assert.deepEqual(listedContainerIds, ["container_test_1"]);
+  assert.deepEqual(listedContainerIds, ["container_created_1", "container_test_1"]);
+});
+
+test("streamLocalAgentTurn reuses an explicit code interpreter container across follow-up turns", async () => {
+  const capturedBodies: Array<CapturedStreamBody> = [];
+  const retrievedContainerIds: Array<string> = [];
+  const client = makeFakeClient(
+    [{
+      events: [],
+      finalResponse: {
+        output: [
+          { type: "message" },
+        ],
+      },
+    }],
+    capturedBodies,
+    {
+      retrievedContainerIds,
+      containerNameById: {
+        container_existing_1: "flashcards-local-chat-session-reuse-1",
+      },
+    },
+  );
+
+  const events = await collectEvents(streamLocalAgentTurn({
+    messages: [{ role: "user", content: userTextContent("use the previous csv file") }],
+    model: "gpt-5.4",
+    timezone: "Europe/Madrid",
+    devicePlatform: "web",
+    chatSessionId: "session-reuse-1",
+    codeInterpreterContainerId: "container_existing_1",
+    userContext: testUserContext,
+    requestId: "request-container-reuse-1",
+  }, client));
+
+  const codeInterpreterTool = capturedBodies[0]?.tools.find((tool) => (
+    typeof tool === "object" && tool !== null && "type" in tool && tool.type === "code_interpreter"
+  )) as Readonly<{
+    container: string;
+  }> | undefined;
+
+  assert.deepEqual(events, [
+    { type: "done" },
+  ]);
+  assert.deepEqual(retrievedContainerIds, ["container_existing_1"]);
+  assert.equal(codeInterpreterTool?.container, "container_existing_1");
 });
 
 test("streamAnthropicLocalAgentTurn duplicates small text attachments inline next to container uploads", async () => {
@@ -657,6 +800,8 @@ test("streamAnthropicLocalAgentTurn duplicates small text attachments inline nex
     model: "claude-sonnet-4-6",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    chatSessionId: "session-test-6",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     requestId: "request-anthropic-file-1",
   }, client));
@@ -714,6 +859,8 @@ test("streamLocalAgentTurn retries malformed tool arguments and emits repair_att
     model: "gpt-4.1-mini",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
+    chatSessionId: "session-test-7",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     requestId: "request-2",
   }, client));
@@ -778,6 +925,8 @@ test("streamLocalAgentTurn retries schema failures before emitting a tool call",
     model: "gpt-5.4",
     timezone: "Europe/Madrid",
     devicePlatform: "ios",
+    chatSessionId: "session-test-8",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     requestId: "request-3",
   }, client));
@@ -834,6 +983,8 @@ test("streamLocalAgentTurn stops after three repair attempts", async () => {
         model: "gpt-5.4",
         timezone: "Europe/Madrid",
         devicePlatform: "ios",
+        chatSessionId: "session-test-9",
+        codeInterpreterContainerId: null,
         userContext: testUserContext,
         requestId: "request-4",
       }, client));
@@ -873,6 +1024,8 @@ test("streamAnthropicLocalAgentTurn emits tool requests and await_tool_results",
     model: "claude-sonnet-4-6",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    chatSessionId: "session-test-10",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     providerSafetyUserId: "fcdec6df4d44dbc637c7c5b58efface52a7f8a88535423430255be0bb89bedd8",
     requestId: "request-anthropic-1",
@@ -929,6 +1082,8 @@ test("streamAnthropicLocalAgentTurn retries malformed tool arguments", async () 
     model: "claude-sonnet-4-6",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    chatSessionId: "session-test-11",
+    codeInterpreterContainerId: null,
     userContext: testUserContext,
     requestId: "request-anthropic-2",
   }, client));
@@ -965,6 +1120,8 @@ test("streamAnthropicLocalAgentTurn stops after three repair attempts", async ()
         model: "claude-sonnet-4-6",
         timezone: "Europe/Madrid",
         devicePlatform: "web",
+        chatSessionId: "session-test-12",
+        codeInterpreterContainerId: null,
         userContext: testUserContext,
         requestId: "request-anthropic-3",
       }, client));
@@ -984,6 +1141,8 @@ test("streamLocalChatResponse rejects only unknown local models", async () => {
           model: "unknown-model",
           timezone: "Europe/Madrid",
           devicePlatform: "ios",
+          chatSessionId: "session-test-13",
+          codeInterpreterContainerId: null,
           userContext: testUserContext,
         },
         "request-id",
@@ -1015,6 +1174,8 @@ test("streamLocalChatResponse returns a stable not-configured error when the pro
             model: "gpt-5.4",
             timezone: "Europe/Madrid",
             devicePlatform: "ios",
+            chatSessionId: "session-test-14",
+            codeInterpreterContainerId: null,
             userContext: testUserContext,
           },
           "request-id",
@@ -1049,6 +1210,8 @@ test("parseLocalChatRequestBody requires a non-negative user card count", () => 
     model: "gpt-5.4",
     timezone: "Europe/Madrid",
     devicePlatform: "web",
+    chatSessionId: "session-test-15",
+    codeInterpreterContainerId: null,
     userContext: {
       totalCards: 7,
     },
@@ -1063,6 +1226,8 @@ test("parseLocalChatRequestBody requires a non-negative user card count", () => 
         model: "gpt-5.4",
         timezone: "Europe/Madrid",
         devicePlatform: "web",
+        chatSessionId: "session-test-16",
+        codeInterpreterContainerId: null,
         userContext: {
           totalCards: -1,
         },
@@ -1078,6 +1243,8 @@ test("parseLocalChatRequestBody requires a non-negative user card count", () => 
         model: "gpt-5.4",
         timezone: "Europe/Madrid",
         devicePlatform: "web",
+        chatSessionId: "session-test-17",
+        codeInterpreterContainerId: null,
         userContext: {
           totalCards: "7",
         },

@@ -424,10 +424,19 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       localCardCount: 1,
     });
     createLocalChatRequestBodyMock.mockImplementation(
-      (messages: ReadonlyArray<unknown>, model: string, timezone: string, userContext: unknown) => ({
+      (
+        messages: ReadonlyArray<unknown>,
+        model: string,
+        timezone: string,
+        chatSessionId: string,
+        codeInterpreterContainerId: string | null,
+        userContext: unknown,
+      ) => ({
         messages,
         model,
         timezone,
+        chatSessionId,
+        codeInterpreterContainerId,
         userContext,
       }),
     );
