@@ -39,6 +39,11 @@ function makeQueryResult<Row extends pg.QueryResultRow>(
 test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed when user has no memberships", async () => {
   let savedWorkspaceId: string | null = null;
   let syncChangeInsertCount = 0;
+  let insertedWorkspaceId: string | null = null;
+  let workspaceMembershipInserted = false;
+  let insertedBootstrapTimestamp: string | null = null;
+  let insertedBootstrapDeviceId: string | null = null;
+  let insertedBootstrapOperationId: string | null = null;
 
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
@@ -68,9 +73,13 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
       }
 
       if (text.includes("INSERT INTO org.workspaces")) {
+        const workspaceId = params[0];
         const bootstrapTimestamp = params[2];
         const bootstrapDeviceId = params[3];
         const bootstrapOperationId = params[4];
+        if (typeof workspaceId !== "string") {
+          throw new Error("Expected workspace id to be a string");
+        }
         if (typeof bootstrapTimestamp !== "string") {
           throw new Error("Expected bootstrap timestamp to be a string");
         }
@@ -81,6 +90,30 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
           throw new Error("Expected bootstrap operation id to be a string");
         }
 
+        insertedWorkspaceId = workspaceId;
+        insertedBootstrapTimestamp = bootstrapTimestamp;
+        insertedBootstrapDeviceId = bootstrapDeviceId;
+        insertedBootstrapOperationId = bootstrapOperationId;
+        return makeQueryResult<Row>([]);
+      }
+
+      if (text.includes("INSERT INTO org.workspace_memberships")) {
+        workspaceMembershipInserted = true;
+        return makeQueryResult<Row>([]);
+      }
+
+      if (text.includes("FROM org.workspaces")) {
+        if (workspaceMembershipInserted === false) {
+          throw new Error("Workspace scheduler seed must be loaded after membership insert");
+        }
+        if (
+          insertedBootstrapTimestamp === null
+          || insertedBootstrapDeviceId === null
+          || insertedBootstrapOperationId === null
+        ) {
+          throw new Error("Expected workspace bootstrap values to be captured before scheduler seed lookup");
+        }
+
         return makeQueryResult<Row>([{
           fsrs_algorithm: "fsrs-6",
           fsrs_desired_retention: 0.9,
@@ -88,17 +121,14 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
           fsrs_relearning_steps_minutes: [10],
           fsrs_maximum_interval_days: 36500,
           fsrs_enable_fuzz: true,
-          fsrs_client_updated_at: bootstrapTimestamp,
-          fsrs_last_modified_by_device_id: bootstrapDeviceId,
-          fsrs_last_operation_id: bootstrapOperationId,
+          fsrs_client_updated_at: insertedBootstrapTimestamp,
+          fsrs_last_modified_by_device_id: insertedBootstrapDeviceId,
+          fsrs_last_operation_id: insertedBootstrapOperationId,
           fsrs_updated_at: "2026-03-11T10:00:00.000Z",
         }]);
       }
 
-      if (
-        text.includes("INSERT INTO sync.devices")
-        || text.includes("INSERT INTO org.workspace_memberships")
-      ) {
+      if (text.includes("INSERT INTO sync.devices")) {
         return makeQueryResult<Row>([]);
       }
 
@@ -124,6 +154,7 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
 
   const profile = await ensureUserProfileInExecutor(executor, "new-user", "new-user@example.com");
   assert.ok(savedWorkspaceId !== null);
+  assert.equal(savedWorkspaceId, insertedWorkspaceId);
   assert.equal(profile.selectedWorkspaceId, savedWorkspaceId);
   assert.equal(profile.email, "new-user@example.com");
   assert.equal(syncChangeInsertCount, 1);
