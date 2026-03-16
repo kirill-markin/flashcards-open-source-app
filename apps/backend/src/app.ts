@@ -117,6 +117,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
         "x-amz-apigw-id",
         "x-amzn-requestid",
         "x-chat-request-id",
+        "x-code-interpreter-container-id",
       ],
       credentials: true,
     }),

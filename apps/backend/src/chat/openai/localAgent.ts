@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
 import OpenAI, { toFile } from "openai";
+import packageJson from "../../../package.json";
 import type {
   ResponseFunctionToolCall,
   ResponseInputItem,
@@ -31,6 +32,7 @@ const LOCAL_CHAT_MODEL_IDS = new Set([
   "gpt-4.1-mini",
   "gpt-4.1-nano",
 ]);
+const OPENAI_SDK_VERSION = packageJson.dependencies.openai;
 
 type OpenAIToolEvent =
   | Readonly<{
@@ -180,6 +182,18 @@ type LocalChatLogEvent =
     attachmentFileNames: ReadonlyArray<string>;
     attachmentMediaTypes: ReadonlyArray<string>;
     forcedToolChoice: "auto" | "code_interpreter";
+  }>
+  | Readonly<{
+    action: "client_initialized";
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+    sdkVersion: string;
+    hasResponses: boolean;
+    hasResponsesStream: boolean;
+    hasFiles: boolean;
+    hasContainers: boolean;
+    hasContainerFiles: boolean;
   }>
   | Readonly<{
     action: "stream_opened";
@@ -404,6 +418,47 @@ function logLocalChatEvent(event: LocalChatLogEvent): void {
 
 function createClient(): OpenAIResponsesClient {
   return new OpenAI();
+}
+
+function logOpenAIClientInitialization(
+  params: Readonly<{
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+  }>,
+  client: OpenAIResponsesClient,
+): void {
+  logLocalChatEvent({
+    action: "client_initialized",
+    requestId: params.requestId,
+    model: params.model,
+    chatSessionId: params.chatSessionId,
+    sdkVersion: OPENAI_SDK_VERSION,
+    hasResponses: client.responses !== undefined,
+    hasResponsesStream: typeof client.responses?.stream === "function",
+    hasFiles: typeof client.files.create === "function",
+    hasContainers: client.containers !== undefined,
+    hasContainerFiles: client.containers?.files !== undefined,
+  });
+}
+
+function assertOpenAIResponsesClient(
+  params: Readonly<{
+    requestId: string;
+    model: string;
+    chatSessionId: string;
+  }>,
+  client: OpenAIResponsesClient,
+): void {
+  logOpenAIClientInitialization(params, client);
+
+  if (typeof client.responses?.stream !== "function") {
+    throw new LocalChatRuntimeError(
+      "AI chat OpenAI client is misconfigured on this server.",
+      "LOCAL_CHAT_CLIENT_INVALID",
+      "client_setup",
+    );
+  }
 }
 
 function codeInterpreterContainerName(chatSessionId: string): string {
@@ -1294,10 +1349,11 @@ async function* streamPreparedLocalAgentTurn(
   );
 }
 
-export async function prepareLocalTurn(
+async function prepareLocalAgentTurn(
   params: StreamLocalTurnParams,
   client: OpenAIResponsesClient,
 ): Promise<PreparedLocalTurn> {
+  assertOpenAIResponsesClient(params, client);
   const attachmentSummaries = latestUserAttachments(params.messages);
   logLocalChatEvent({
     action: "request",
@@ -1332,13 +1388,19 @@ export async function* streamLocalAgentTurn(
   params: StreamLocalTurnParams,
   client: OpenAIResponsesClient,
 ): AsyncGenerator<LocalChatStreamEvent> {
-  const preparedTurn = await prepareLocalTurn(params, client);
+  const preparedTurn = await prepareLocalAgentTurn(params, client);
   yield* preparedTurn.stream;
 }
 
 export async function* streamLocalTurn(
   params: StreamLocalTurnParams,
 ): AsyncGenerator<LocalChatStreamEvent> {
-  const preparedTurn = await prepareLocalTurn(params, createClient());
+  const preparedTurn = await prepareLocalAgentTurn(params, createClient());
   yield* preparedTurn.stream;
+}
+
+export async function prepareLocalTurn(
+  params: StreamLocalTurnParams,
+): Promise<PreparedLocalTurn> {
+  return prepareLocalAgentTurn(params, createClient());
 }

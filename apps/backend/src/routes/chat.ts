@@ -50,6 +50,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         requestId,
         normalizedFailure.code,
         "local_turn_request",
+        error,
       );
     }
   });
