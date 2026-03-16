@@ -12,7 +12,7 @@ describe("localDb workspace", () => {
   });
 
   it("builds workspace tag summaries from active card tags only", async () => {
-    const result = await loadWorkspaceTagsSummary();
+    const result = await loadWorkspaceTagsSummary(workspaceId);
 
     expect(result.totalCards).toBe(7);
     expect(result.tags).toEqual([
@@ -28,7 +28,7 @@ describe("localDb workspace", () => {
     Date.now = () => Date.parse("2025-01-08T00:00:00.000Z");
 
     try {
-      const result = await loadDecksListSnapshot();
+      const result = await loadDecksListSnapshot(workspaceId);
 
       expect(result.allCardsStats).toEqual({
         totalCards: 7,

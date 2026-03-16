@@ -175,14 +175,14 @@ export function CardsScreen(): ReactElement {
 
     try {
       const [nextPage, tagsSummary] = await Promise.all([
-        queryLocalCardsPage({
+        queryLocalCardsPage(activeWorkspace.workspaceId, {
           searchText: normalizedSearchText,
           cursor: null,
           limit: cardsPageSize,
           sorts,
           filter: cardFilter,
         }),
-        loadWorkspaceTagsSummary(),
+        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
       ]);
 
       if (requestSequenceRef.current !== requestSequence) {
@@ -238,7 +238,7 @@ export function CardsScreen(): ReactElement {
     }));
 
     try {
-      const nextPage = await queryLocalCardsPage({
+      const nextPage = await queryLocalCardsPage(activeWorkspace.workspaceId, {
         searchText: normalizedSearchText,
         cursor: currentCursor,
         limit: cardsPageSize,

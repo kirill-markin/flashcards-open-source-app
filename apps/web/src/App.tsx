@@ -158,6 +158,22 @@ export function AppShell(): ReactElement {
     );
   }
 
+  if (sessionLoadState === "loading_workspace" && activeWorkspace !== null) {
+    return (
+      <main className="page-state">
+        <section className="panel panel-center state-panel">
+          <h1 className="title">{activeWorkspace.name}</h1>
+          <p className="subtitle">{sessionErrorMessage === "" ? "Loading workspace…" : sessionErrorMessage}</p>
+          {sessionErrorMessage !== "" ? (
+            <button className="primary-btn" type="button" onClick={() => void chooseWorkspace(activeWorkspace.workspaceId)}>
+              Retry
+            </button>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
+
   if (sessionLoadState === "error") {
     return (
       <main className="page-state">

@@ -98,7 +98,12 @@ export function AppDataProvider(props: Props): ReactElement {
     let isCancelled = false;
 
     async function refreshLocalCardCount(): Promise<void> {
-      const cardCount = await loadActiveCardCount();
+      if (activeWorkspace === null) {
+        setLocalCardCount(0);
+        return;
+      }
+
+      const cardCount = await loadActiveCardCount(activeWorkspace.workspaceId);
       if (isCancelled) {
         return;
       }
@@ -111,7 +116,7 @@ export function AppDataProvider(props: Props): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [localReadVersion]);
+  }, [activeWorkspace, localReadVersion]);
 
   const selectReviewFilter = useCallback(function selectReviewFilter(reviewFilter: ReviewFilter): void {
     if (isReviewFilterEqual(selectedReviewFilterState, reviewFilter)) {
@@ -138,8 +143,9 @@ export function AppDataProvider(props: Props): ReactElement {
     setIsChoosingWorkspace,
     setErrorMessage,
     setCloudSettings,
-    refreshLocalData: syncEngine.refreshLocalData,
+    refreshWorkspaceView: syncEngine.refreshWorkspaceView,
     runSync: syncEngine.runSync,
+    runSyncForWorkspace: syncEngine.runSyncForWorkspace,
   });
 
   const value: AppDataContextValue = {

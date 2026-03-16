@@ -11,6 +11,7 @@ import {
   resolveLegacyReviewFilterForTest,
   sampleCards,
   seedCursorFixtures,
+  workspaceId,
 } from "./testSupport";
 
 describe("localDb reviews", () => {
@@ -29,7 +30,7 @@ describe("localDb reviews", () => {
         { kind: "deck", deckId: deckLongCode.deckId } as const,
         { kind: "tag", tag: "grammar" } as const,
       ]) {
-        const result = await loadReviewQueueSnapshot(reviewFilter, 8);
+        const result = await loadReviewQueueSnapshot(workspaceId, reviewFilter, 8);
         const legacyCards = legacyReviewCards(reviewFilter, sampleCards, [deckFastGrammar, deckLongCode], nowTimestamp);
         const legacyDueCards = legacyCards.filter((card) => isCardDueForTest(card, nowTimestamp));
 
@@ -57,8 +58,9 @@ describe("localDb reviews", () => {
     Date.now = () => nowTimestamp;
 
     try {
-      const initialSnapshot = await loadReviewQueueSnapshot({ kind: "allCards" }, 2);
+      const initialSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 2);
       const result = await loadReviewQueueChunk(
+        workspaceId,
         { kind: "allCards" },
         initialSnapshot.nextCursor,
         2,
@@ -89,7 +91,7 @@ describe("localDb reviews", () => {
     Date.now = () => nowTimestamp;
 
     try {
-      const result = await loadReviewTimelinePage({ kind: "allCards" }, 4, 0);
+      const result = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 4, 0);
       const legacyCards = legacyReviewCards(
         { kind: "allCards" },
         sampleCards,

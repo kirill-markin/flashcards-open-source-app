@@ -322,6 +322,6 @@ export const sampleCards: ReadonlyArray<Card> = [
 
 export async function seedCursorFixtures(): Promise<void> {
   await clearWebSyncCache();
-  await replaceDecks([deckFastGrammar, deckLongCode]);
-  await replaceCards(sampleCards);
+  await replaceDecks(workspaceId, [deckFastGrammar, deckLongCode]);
+  await replaceCards(workspaceId, sampleCards);
 }

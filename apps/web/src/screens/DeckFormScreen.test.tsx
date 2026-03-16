@@ -9,6 +9,12 @@ import type { Card, Deck } from "../types";
 
 const { mockAppData } = vi.hoisted(() => ({
   mockAppData: {
+    activeWorkspace: {
+      workspaceId: "workspace-1",
+      name: "Primary",
+      createdAt: "2026-03-10T00:00:00.000Z",
+      isSelected: true,
+    },
     cards: [] as Array<Card>,
     ensureCardsLoaded: vi.fn(async () => undefined),
     ensureDecksLoaded: vi.fn(async () => undefined),

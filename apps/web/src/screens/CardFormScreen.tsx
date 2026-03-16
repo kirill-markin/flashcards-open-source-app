@@ -17,7 +17,7 @@ function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSumma
 export function CardFormScreen(): ReactElement {
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const { getCardById, createCardItem, updateCardItem, deleteCardItem, setErrorMessage, localReadVersion } = useAppData();
+  const { activeWorkspace, getCardById, createCardItem, updateCardItem, deleteCardItem, setErrorMessage, localReadVersion } = useAppData();
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [formState, setFormState] = useState<CardFormState>(toCardFormState(null));
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
@@ -34,8 +34,12 @@ export function CardFormScreen(): ReactElement {
     setIsLoading(true);
 
     try {
+      if (activeWorkspace === null) {
+        throw new Error("Workspace is unavailable");
+      }
+
       const [tagsSummary, loadedCard] = await Promise.all([
-        loadWorkspaceTagsSummary(),
+        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
         isCreateMode || cardId === undefined ? Promise.resolve(null) : getCardById(cardId),
       ]);
       setTagSuggestions(toTagSuggestions(tagsSummary.tags));
@@ -46,7 +50,7 @@ export function CardFormScreen(): ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, [cardId, getCardById, isCreateMode]);
+  }, [activeWorkspace, cardId, getCardById, isCreateMode]);
 
   useEffect(() => {
     void loadScreenData();

@@ -13,7 +13,6 @@ import {
 } from "../localDb/cards";
 import {
   loadCloudSettings,
-  putCloudSettings,
 } from "../localDb/cloudSettings";
 import {
   loadDeckById,
@@ -31,6 +30,7 @@ import {
   loadWorkspaceSettings,
   putWorkspaceSettings,
   setLastAppliedChangeId,
+  setWorkspaceHydrated,
 } from "../localDb/workspace";
 import type {
   Card,
@@ -83,7 +83,9 @@ type UseSyncEngineParams = Readonly<{
 
 type SyncEngine = Readonly<{
   runSync: () => Promise<void>;
+  runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
   refreshLocalData: () => Promise<void>;
+  refreshWorkspaceView: (workspaceId: string) => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;
   getDeckById: (deckId: string) => Promise<Deck>;
   createCardItem: (input: CreateCardInput) => Promise<Card>;
@@ -95,8 +97,8 @@ type SyncEngine = Readonly<{
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
 }>;
 
-async function requireCard(cardId: string): Promise<Card> {
-  const card = await loadCardById(cardId);
+async function requireCard(workspaceId: string, cardId: string): Promise<Card> {
+  const card = await loadCardById(workspaceId, cardId);
   if (card === null) {
     throw new Error(`Card not found: ${cardId}`);
   }
@@ -104,8 +106,8 @@ async function requireCard(cardId: string): Promise<Card> {
   return card;
 }
 
-async function requireDeck(deckId: string): Promise<Deck> {
-  const deck = await loadDeckById(deckId);
+async function requireDeck(workspaceId: string, deckId: string): Promise<Deck> {
+  const deck = await loadDeckById(workspaceId, deckId);
   if (deck === null) {
     throw new Error(`Deck not found: ${deckId}`);
   }
@@ -113,10 +115,6 @@ async function requireDeck(deckId: string): Promise<Deck> {
   return deck;
 }
 
-/**
- * Treats cloud settings as the only valid source of sync device identity for
- * browser writes so local mutations cannot silently mint cross-user device ids.
- */
 function requireCloudDeviceId(cloudSettings: CloudSettings | null): string {
   if (cloudSettings === null) {
     throw new Error("Cloud settings are not loaded");
@@ -140,59 +138,107 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     setIsSyncing,
     setErrorMessage,
   } = params;
-  const syncPromiseRef = useRef<Promise<void> | null>(null);
-  const needsResyncRef = useRef<boolean>(false);
+  const activeWorkspaceRef = useRef<WorkspaceSummary | null>(activeWorkspace);
+  const syncPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
+  const needsResyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
+  const syncingWorkspaceIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    activeWorkspaceRef.current = activeWorkspace;
+    setIsSyncing(activeWorkspace !== null && syncingWorkspaceIdsRef.current.has(activeWorkspace.workspaceId));
+  }, [activeWorkspace, setIsSyncing]);
 
   const bumpLocalReadVersion = useCallback(function bumpLocalReadVersion(): void {
     setLocalReadVersion((currentValue) => currentValue + 1);
   }, [setLocalReadVersion]);
 
-  const refreshLocalMetadata = useCallback(async function refreshLocalMetadata(): Promise<void> {
+  const isVisibleWorkspace = useCallback(function isVisibleWorkspace(workspaceId: string): boolean {
+    return activeWorkspaceRef.current?.workspaceId === workspaceId;
+  }, []);
+
+  const refreshSyncIndicator = useCallback(function refreshSyncIndicator(): void {
+    const currentWorkspace = activeWorkspaceRef.current;
+    setIsSyncing(currentWorkspace !== null && syncingWorkspaceIdsRef.current.has(currentWorkspace.workspaceId));
+  }, [setIsSyncing]);
+
+  const refreshLocalMetadata = useCallback(async function refreshLocalMetadata(workspaceId: string): Promise<void> {
     const [workspaceSettings, cloudSettings] = await Promise.all([
-      loadWorkspaceSettings(),
+      loadWorkspaceSettings(workspaceId),
       loadCloudSettings(),
     ]);
-    setWorkspaceSettings(workspaceSettings);
     setCloudSettings(cloudSettings);
-  }, [setCloudSettings, setWorkspaceSettings]);
+    if (isVisibleWorkspace(workspaceId)) {
+      setWorkspaceSettings(workspaceSettings);
+    }
+  }, [isVisibleWorkspace, setCloudSettings, setWorkspaceSettings]);
 
-  const applySyncChange = useCallback(async function applySyncChange(change: SyncChange): Promise<void> {
-    if (change.entityType === "card") {
-      await putCard(change.payload);
+  const refreshWorkspaceView = useCallback(async function refreshWorkspaceView(workspaceId: string): Promise<void> {
+    await refreshLocalMetadata(workspaceId);
+    if (isVisibleWorkspace(workspaceId)) {
       bumpLocalReadVersion();
+    }
+  }, [bumpLocalReadVersion, isVisibleWorkspace, refreshLocalMetadata]);
+
+  const applySyncChange = useCallback(async function applySyncChange(
+    workspaceId: string,
+    change: SyncChange,
+  ): Promise<void> {
+    if (change.entityType === "card") {
+      await putCard(workspaceId, change.payload);
+      if (isVisibleWorkspace(workspaceId)) {
+        bumpLocalReadVersion();
+      }
       return;
     }
 
     if (change.entityType === "deck") {
+      if (change.payload.workspaceId !== workspaceId) {
+        throw new Error(`Deck sync payload workspace mismatch: ${change.payload.workspaceId}`);
+      }
+
       await putDeck(change.payload);
-      bumpLocalReadVersion();
+      if (isVisibleWorkspace(workspaceId)) {
+        bumpLocalReadVersion();
+      }
       return;
     }
 
     if (change.entityType === "workspace_scheduler_settings") {
-      await putWorkspaceSettings(change.payload);
-      setWorkspaceSettings(change.payload);
+      await putWorkspaceSettings(workspaceId, change.payload);
+      if (isVisibleWorkspace(workspaceId)) {
+        setWorkspaceSettings(change.payload);
+      }
       return;
+    }
+
+    if (change.payload.workspaceId !== workspaceId) {
+      throw new Error(`Review event sync payload workspace mismatch: ${change.payload.workspaceId}`);
     }
 
     await putReviewEvent(change.payload);
-    bumpLocalReadVersion();
-  }, [bumpLocalReadVersion, setWorkspaceSettings]);
+    if (isVisibleWorkspace(workspaceId)) {
+      bumpLocalReadVersion();
+    }
+  }, [bumpLocalReadVersion, isVisibleWorkspace, setWorkspaceSettings]);
 
-  const runSync = useCallback(async function runSync(): Promise<void> {
-    if (session === null || activeWorkspace === null) {
+  const runSyncForWorkspace = useCallback(async function runSyncForWorkspace(
+    workspace: WorkspaceSummary,
+  ): Promise<void> {
+    if (session === null) {
       return;
     }
 
-    const workspaceId = activeWorkspace.workspaceId;
-    const activeSync = syncPromiseRef.current;
-    if (activeSync !== null) {
-      needsResyncRef.current = true;
+    const workspaceId = workspace.workspaceId;
+    const activeSync = syncPromisesRef.current.get(workspaceId);
+    if (activeSync !== undefined) {
+      needsResyncWorkspaceIdsRef.current.add(workspaceId);
       return activeSync;
     }
 
+    syncingWorkspaceIdsRef.current.add(workspaceId);
+    refreshSyncIndicator();
+
     const syncTask = (async (): Promise<void> => {
-      setIsSyncing(true);
       try {
         const cloudSettings = await loadCloudSettings();
         const deviceId = requireCloudDeviceId(cloudSettings);
@@ -210,7 +256,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
             for (const result of pushResult.operations) {
               if (result.status === "applied" || result.status === "ignored" || result.status === "duplicate") {
-                await deleteOutboxRecord(result.operationId);
+                await deleteOutboxRecord(workspaceId, result.operationId);
               }
             }
           } catch (error) {
@@ -228,7 +274,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           currentOutbox = await listOutboxRecords(workspaceId);
         }
 
-        let afterChangeId = await loadLastAppliedChangeId();
+        let afterChangeId = await loadLastAppliedChangeId(workspaceId);
         while (true) {
           const pullResult = await pullSyncChanges(
             workspaceId,
@@ -239,7 +285,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             syncPageSize,
           );
           for (const change of pullResult.changes) {
-            await applySyncChange(change);
+            await applySyncChange(workspaceId, change);
           }
 
           afterChangeId = pullResult.nextChangeId;
@@ -250,7 +296,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           }
         }
 
-        await refreshLocalMetadata();
+        await setWorkspaceHydrated(workspaceId, true);
+        await refreshWorkspaceView(workspaceId);
         setErrorMessage("");
       } catch (error) {
         if (isAuthRedirectError(error)) {
@@ -260,54 +307,73 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         setErrorMessage(getErrorMessage(error));
         throw error;
       } finally {
-        syncPromiseRef.current = null;
-        setIsSyncing(false);
+        syncPromisesRef.current.delete(workspaceId);
+        syncingWorkspaceIdsRef.current.delete(workspaceId);
+        refreshSyncIndicator();
 
-        if (needsResyncRef.current) {
-          needsResyncRef.current = false;
-          void runSync();
+        if (needsResyncWorkspaceIdsRef.current.has(workspaceId)) {
+          needsResyncWorkspaceIdsRef.current.delete(workspaceId);
+          void runSyncForWorkspace(workspace);
         }
       }
     })();
 
-    syncPromiseRef.current = syncTask;
+    syncPromisesRef.current.set(workspaceId, syncTask);
     return syncTask;
   }, [
-    activeWorkspace,
     applySyncChange,
-    refreshLocalMetadata,
+    refreshSyncIndicator,
+    refreshWorkspaceView,
     session,
     setErrorMessage,
-    setIsSyncing,
   ]);
 
-  useEffect(() => {
-    if (sessionLoadState !== "ready" || session === null) {
+  const runSync = useCallback(async function runSync(): Promise<void> {
+    if (activeWorkspace === null) {
       return;
     }
 
-    void refreshLocalMetadata();
-    void runSync();
-  }, [refreshLocalMetadata, runSync, session, sessionLoadState]);
+    await runSyncForWorkspace(activeWorkspace);
+  }, [activeWorkspace, runSyncForWorkspace]);
+
+  useEffect(() => {
+    if (sessionLoadState !== "ready" || session === null || activeWorkspace === null) {
+      return;
+    }
+
+    void refreshLocalMetadata(activeWorkspace.workspaceId);
+    void runSyncForWorkspace(activeWorkspace);
+  }, [activeWorkspace, refreshLocalMetadata, runSyncForWorkspace, session, sessionLoadState]);
 
   const refreshLocalData = useCallback(async function refreshLocalData(): Promise<void> {
-    await refreshLocalMetadata();
-    bumpLocalReadVersion();
-    await runSync();
-  }, [bumpLocalReadVersion, refreshLocalMetadata, runSync]);
+    if (activeWorkspace === null) {
+      return;
+    }
+
+    await refreshWorkspaceView(activeWorkspace.workspaceId);
+    await runSyncForWorkspace(activeWorkspace);
+  }, [activeWorkspace, refreshWorkspaceView, runSyncForWorkspace]);
 
   const getCardById = useCallback(async function getCardById(cardId: string): Promise<Card> {
-    return requireCard(cardId);
-  }, []);
+    if (activeWorkspace === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
+    return requireCard(activeWorkspace.workspaceId, cardId);
+  }, [activeWorkspace]);
 
   const getDeckById = useCallback(async function getDeckById(deckId: string): Promise<Deck> {
-    return requireDeck(deckId);
-  }, []);
+    if (activeWorkspace === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
+    return requireDeck(activeWorkspace.workspaceId, deckId);
+  }, [activeWorkspace]);
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
 
   const createCardItem = useCallback(async function createCardItem(input: CreateCardInput): Promise<Card> {
-    if (activeWorkspaceId === null) {
+    if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
@@ -325,15 +391,15 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       operation: buildCardUpsertOperation(nextCard),
     };
 
-    await putCard(nextCard);
+    await putCard(activeWorkspaceId, nextCard);
     await putOutboxRecord(nextOutboxRecord);
     bumpLocalReadVersion();
-    void runSync();
+    void runSyncForWorkspace(activeWorkspace);
     return nextCard;
-  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
 
   const createDeckItem = useCallback(async function createDeckItem(input: CreateDeckInput): Promise<Deck> {
-    if (activeWorkspaceId === null) {
+    if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
@@ -357,16 +423,16 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     await putDeck(nextDeck);
     await putOutboxRecord(nextOutboxRecord);
     bumpLocalReadVersion();
-    void runSync();
+    void runSyncForWorkspace(activeWorkspace);
     return nextDeck;
-  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
 
   const updateCardItem = useCallback(async function updateCardItem(cardId: string, input: UpdateCardInput): Promise<Card> {
-    if (activeWorkspaceId === null) {
+    if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingCard = await requireCard(cardId);
+    const existingCard = await requireCard(activeWorkspaceId, cardId);
     const normalizedInput = normalizeUpdateCardInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
@@ -381,19 +447,19 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       operation: buildCardUpsertOperation(nextCard),
     };
 
-    await putCard(nextCard);
+    await putCard(activeWorkspaceId, nextCard);
     await putOutboxRecord(nextOutboxRecord);
     bumpLocalReadVersion();
-    void runSync();
+    void runSyncForWorkspace(activeWorkspace);
     return nextCard;
-  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
 
   const updateDeckItem = useCallback(async function updateDeckItem(deckId: string, input: UpdateDeckInput): Promise<Deck> {
-    if (activeWorkspaceId === null) {
+    if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingDeck = await requireDeck(deckId);
+    const existingDeck = await requireDeck(activeWorkspaceId, deckId);
     const normalizedInput = normalizeUpdateDeckInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
@@ -411,16 +477,16 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     await putDeck(nextDeck);
     await putOutboxRecord(nextOutboxRecord);
     bumpLocalReadVersion();
-    void runSync();
+    void runSyncForWorkspace(activeWorkspace);
     return nextDeck;
-  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
 
   const deleteCardItem = useCallback(async function deleteCardItem(cardId: string): Promise<Card> {
-    if (activeWorkspaceId === null) {
+    if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingCard = await requireCard(cardId);
+    const existingCard = await requireCard(activeWorkspaceId, cardId);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = requireCloudDeviceId(await loadCloudSettings());
@@ -434,19 +500,19 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       operation: buildCardUpsertOperation(nextCard),
     };
 
-    await putCard(nextCard);
+    await putCard(activeWorkspaceId, nextCard);
     await putOutboxRecord(nextOutboxRecord);
     bumpLocalReadVersion();
-    void runSync();
+    void runSyncForWorkspace(activeWorkspace);
     return nextCard;
-  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
 
   const deleteDeckItem = useCallback(async function deleteDeckItem(deckId: string): Promise<Deck> {
-    if (activeWorkspaceId === null) {
+    if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
-    const existingDeck = await requireDeck(deckId);
+    const existingDeck = await requireDeck(activeWorkspaceId, deckId);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const deviceId = requireCloudDeviceId(await loadCloudSettings());
@@ -463,21 +529,21 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     await putDeck(nextDeck);
     await putOutboxRecord(nextOutboxRecord);
     bumpLocalReadVersion();
-    void runSync();
+    void runSyncForWorkspace(activeWorkspace);
     return nextDeck;
-  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
 
   const submitReviewItem = useCallback(async function submitReviewItem(
     cardId: string,
     rating: 0 | 1 | 2 | 3,
   ): Promise<Card> {
-    if (activeWorkspaceId === null) {
+    if (activeWorkspaceId === null || activeWorkspace === null) {
       throw new Error("Workspace is unavailable");
     }
 
     const [existingCard, schedulerSettings] = await Promise.all([
-      requireCard(cardId),
-      loadWorkspaceSettings(),
+      requireCard(activeWorkspaceId, cardId),
+      loadWorkspaceSettings(activeWorkspaceId),
     ]);
     if (schedulerSettings === null) {
       throw new Error("Workspace scheduler settings are not loaded");
@@ -532,17 +598,19 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     };
 
     await putReviewEvent(nextReviewEvent);
-    await putCard(nextCard);
+    await putCard(activeWorkspaceId, nextCard);
     await putOutboxRecord(reviewEventOutboxRecord);
     await putOutboxRecord(cardOutboxRecord);
     bumpLocalReadVersion();
-    void runSync();
+    void runSyncForWorkspace(activeWorkspace);
     return nextCard;
-  }, [activeWorkspaceId, bumpLocalReadVersion, runSync]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
 
   return {
     runSync,
+    runSyncForWorkspace,
     refreshLocalData,
+    refreshWorkspaceView,
     getCardById,
     getDeckById,
     createCardItem,

@@ -13,7 +13,7 @@ const emptyTagsSummary: WorkspaceTagsSummary = {
 };
 
 export function TagsScreen(): ReactElement {
-  const { localReadVersion, refreshLocalData } = useAppData();
+  const { activeWorkspace, localReadVersion, refreshLocalData } = useAppData();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -26,7 +26,11 @@ export function TagsScreen(): ReactElement {
       setErrorMessage("");
 
       try {
-        const nextTagsSummary = await loadWorkspaceTagsSummary();
+        if (activeWorkspace === null) {
+          throw new Error("Workspace is unavailable");
+        }
+
+        const nextTagsSummary = await loadWorkspaceTagsSummary(activeWorkspace.workspaceId);
         if (isCancelled) {
           return;
         }
@@ -50,7 +54,7 @@ export function TagsScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [localReadVersion]);
+  }, [activeWorkspace, localReadVersion]);
 
   if (isLoading) {
     return (

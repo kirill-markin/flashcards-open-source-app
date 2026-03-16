@@ -37,6 +37,7 @@ export function DeckDetailScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const {
+    activeWorkspace,
     deleteDeckItem,
     openReview,
     setErrorMessage,
@@ -61,9 +62,13 @@ export function DeckDetailScreen(): ReactElement {
     setScreenErrorMessage("");
 
     try {
+      if (activeWorkspace === null) {
+        throw new Error("Workspace is unavailable");
+      }
+
       if (deckId === ALL_CARDS_DECK_SLUG) {
-        const decksSnapshot = await loadDecksListSnapshot();
-        const allCards = await loadCardsMatchingDeck({
+        const decksSnapshot = await loadDecksListSnapshot(activeWorkspace.workspaceId);
+        const allCards = await loadCardsMatchingDeck(activeWorkspace.workspaceId, {
           version: 2,
           effortLevels: [],
           tags: [],
@@ -82,7 +87,7 @@ export function DeckDetailScreen(): ReactElement {
         return;
       }
 
-      const deck = await loadDeckById(deckId);
+      const deck = await loadDeckById(activeWorkspace.workspaceId, deckId);
       if (deck === null) {
         setDetailState(null);
         setScreenErrorMessage("Deck not found.");
@@ -90,7 +95,7 @@ export function DeckDetailScreen(): ReactElement {
         return;
       }
 
-      const matchingCards = await loadCardsMatchingDeck(deck.filterDefinition);
+      const matchingCards = await loadCardsMatchingDeck(activeWorkspace.workspaceId, deck.filterDefinition);
       setDetailState({
         title: deck.name,
         filterSummary: formatDeckFilterDefinition(deck.filterDefinition),
@@ -107,7 +112,7 @@ export function DeckDetailScreen(): ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, [deckId]);
+  }, [activeWorkspace, deckId]);
 
   useEffect(() => {
     void loadScreenData();

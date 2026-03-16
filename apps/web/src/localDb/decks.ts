@@ -28,12 +28,13 @@ type DeckStatsAccumulator = Readonly<{
 
 async function iterateDecksByCreatedAtDesc(
   database: IDBDatabase,
+  workspaceId: string,
   onDeck: (deck: Deck) => boolean | void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(["decks"], "readonly");
     const decksStore = transaction.objectStore("decks");
-    const request = decksStore.index("createdAt_deckId").openCursor(null, "prev");
+    const request = decksStore.index("workspaceId_createdAt_deckId").openCursor(null, "prev");
     let isResolved = false;
 
     const finish = (): void => {
@@ -60,7 +61,13 @@ async function iterateDecksByCreatedAtDesc(
         return;
       }
 
-      const shouldContinue = onDeck(cursor.value as Deck);
+      const deck = cursor.value as Deck;
+      if (deck.workspaceId !== workspaceId) {
+        cursor.continue();
+        return;
+      }
+
+      const shouldContinue = onDeck(deck);
       if (shouldContinue === false) {
         finish();
         return;
@@ -71,8 +78,8 @@ async function iterateDecksByCreatedAtDesc(
   });
 }
 
-export async function loadDeckRecord(database: IDBDatabase, deckId: string): Promise<Deck | null> {
-  const deck = await getFromStore<Deck>(database, "decks", deckId);
+export async function loadDeckRecord(database: IDBDatabase, workspaceId: string, deckId: string): Promise<Deck | null> {
+  const deck = await getFromStore<Deck>(database, "decks", [workspaceId, deckId]);
   if (deck === undefined || deck.deletedAt !== null) {
     return null;
   }
@@ -111,9 +118,26 @@ function toDeckCardStats(stats: DeckStatsAccumulator): DeckCardStats {
   };
 }
 
-export async function loadActiveDecksWithDatabase(database: IDBDatabase): Promise<ReadonlyArray<Deck>> {
+function deleteWorkspaceDecks(
+  store: IDBObjectStore,
+  workspaceId: string,
+): IDBRequest<IDBValidKey[]> {
+  const request = store.getAllKeys();
+  request.onsuccess = () => {
+    for (const key of request.result) {
+      if (!Array.isArray(key) || key[0] !== workspaceId) {
+        continue;
+      }
+
+      store.delete(key);
+    }
+  };
+  return request;
+}
+
+export async function loadActiveDecksWithDatabase(database: IDBDatabase, workspaceId: string): Promise<ReadonlyArray<Deck>> {
   const decks: Array<Deck> = [];
-  await iterateDecksByCreatedAtDesc(database, (deck) => {
+  await iterateDecksByCreatedAtDesc(database, workspaceId, (deck) => {
     if (deck.deletedAt === null) {
       decks.push(deck);
     }
@@ -122,20 +146,20 @@ export async function loadActiveDecksWithDatabase(database: IDBDatabase): Promis
   return decks;
 }
 
-export async function loadAllActiveDecksForSql(): Promise<ReadonlyArray<Deck>> {
-  return closeDatabaseAfter((database) => loadActiveDecksWithDatabase(database));
+export async function loadAllActiveDecksForSql(workspaceId: string): Promise<ReadonlyArray<Deck>> {
+  return closeDatabaseAfter((database) => loadActiveDecksWithDatabase(database, workspaceId));
 }
 
-export async function loadDecksListSnapshot(): Promise<DecksListSnapshot> {
+export async function loadDecksListSnapshot(workspaceId: string): Promise<DecksListSnapshot> {
   return closeDatabaseAfter(async (database) => {
     const nowTimestamp = Date.now();
-    const decks = await loadActiveDecksWithDatabase(database);
+    const decks = await loadActiveDecksWithDatabase(database, workspaceId);
     let allCardsStats = emptyDeckStatsAccumulator();
     const deckStatsById = new Map<string, DeckStatsAccumulator>(
       decks.map((deck) => [deck.deckId, emptyDeckStatsAccumulator()] as const),
     );
 
-    await iterateCardsByCreatedAtDesc(database, (card) => {
+    await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
       if (card.deletedAt !== null) {
         return true;
       }
@@ -178,15 +202,16 @@ export async function loadDecksListSnapshot(): Promise<DecksListSnapshot> {
   });
 }
 
-export async function loadDeckById(deckId: string): Promise<Deck | null> {
-  return closeDatabaseAfter((database) => loadDeckRecord(database, deckId));
+export async function loadDeckById(workspaceId: string, deckId: string): Promise<Deck | null> {
+  return closeDatabaseAfter((database) => loadDeckRecord(database, workspaceId, deckId));
 }
 
-export async function replaceDecks(decks: ReadonlyArray<Deck>): Promise<void> {
+export async function replaceDecks(workspaceId: string, decks: ReadonlyArray<Deck>): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
+    await runReadwrite(database, ["decks"], (transaction) => deleteWorkspaceDecks(transaction.objectStore("decks"), workspaceId));
+
     await runReadwrite(database, ["decks"], (transaction) => {
       const store = transaction.objectStore("decks");
-      store.clear();
       for (const deck of decks) {
         store.put(deck);
       }
