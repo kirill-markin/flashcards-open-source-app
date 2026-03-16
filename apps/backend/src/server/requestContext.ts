@@ -19,6 +19,12 @@ export type RequestContext = Readonly<{
   connectionId: string | null;
 }>;
 
+type LoadRequestContextDependencies = Readonly<{
+  authenticateRequestFn: typeof authenticateRequest;
+  isDeletedSubjectFn: typeof isDeletedSubject;
+  ensureUserProfileFn: typeof ensureUserProfile;
+}>;
+
 export function getAllowedOrigins(): Array<string> {
   const raw = process.env.BACKEND_ALLOWED_ORIGINS ?? "http://localhost:3000";
   return raw
@@ -27,14 +33,15 @@ export function getAllowedOrigins(): Array<string> {
     .filter((value) => value !== "");
 }
 
-export async function loadRequestContext(
+export async function loadRequestContextWithDependencies(
   requestAuthInputs: RequestAuthInputs,
+  dependencies: LoadRequestContextDependencies,
 ): Promise<RequestContext> {
-  const auth = await authenticateRequest(toAuthRequest(requestAuthInputs));
-  if (auth.transport !== "api_key" && auth.transport !== "none" && await isDeletedSubject(auth.userId)) {
+  const auth = await dependencies.authenticateRequestFn(toAuthRequest(requestAuthInputs));
+  if (auth.transport !== "none" && await dependencies.isDeletedSubjectFn(auth.userId)) {
     throw new HttpError(410, "This account has already been deleted.", "ACCOUNT_DELETED");
   }
-  const userProfile = await ensureUserProfile(auth.userId, auth.email);
+  const userProfile = await dependencies.ensureUserProfileFn(auth.userId, auth.email);
   const selectedWorkspaceId = auth.transport === "api_key"
     ? auth.selectedWorkspaceId
     : userProfile.selectedWorkspaceId;
@@ -48,6 +55,16 @@ export async function loadRequestContext(
     transport: auth.transport,
     connectionId: auth.connectionId,
   };
+}
+
+export async function loadRequestContext(
+  requestAuthInputs: RequestAuthInputs,
+): Promise<RequestContext> {
+  return loadRequestContextWithDependencies(requestAuthInputs, {
+    authenticateRequestFn: authenticateRequest,
+    isDeletedSubjectFn: isDeletedSubject,
+    ensureUserProfileFn: ensureUserProfile,
+  });
 }
 
 export async function loadRequestContextFromRequest(
