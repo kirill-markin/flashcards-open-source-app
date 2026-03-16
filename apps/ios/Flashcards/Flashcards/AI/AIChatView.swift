@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct AIChatView: View {
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.scenePhase) var scenePhase
     let chatStore: AIChatStore
     @State var isCloudSignInPresented: Bool
@@ -75,10 +76,10 @@ struct AIChatView: View {
                 return
             }
 
-            self.handleAIChatPresentationRequest(request: self.flashcardsStore.aiChatPresentationRequest)
+            self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
             self.chatStore.warmUpSessionIfNeeded()
         }
-        .onChange(of: self.flashcardsStore.aiChatPresentationRequest) { _, request in
+        .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
             guard self.hasAcceptedExternalAIConsent else {
                 return
             }
@@ -95,13 +96,13 @@ struct AIChatView: View {
             guard self.hasAcceptedExternalAIConsent else {
                 return
             }
-            guard self.flashcardsStore.selectedTab == .ai else {
+            guard self.navigation.selectedTab == .ai else {
                 return
             }
 
             self.chatStore.warmUpSessionIfNeeded()
         }
-        .onChange(of: self.flashcardsStore.selectedTab) { _, nextTab in
+        .onChange(of: self.navigation.selectedTab) { _, nextTab in
             guard nextTab != .ai else {
                 return
             }
@@ -385,7 +386,7 @@ struct AIChatView: View {
     func acceptExternalAIConsent() {
         grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
         self.hasAcceptedExternalAIConsent = true
-        self.handleAIChatPresentationRequest(request: self.flashcardsStore.aiChatPresentationRequest)
+        self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
         self.chatStore.warmUpSessionIfNeeded()
     }
 
@@ -411,7 +412,7 @@ struct AIChatView: View {
         }
 
         self.chatStore.applyPresentationRequest(request: request)
-        self.flashcardsStore.clearAIChatPresentationRequest()
+        self.navigation.clearAIChatPresentationRequest()
     }
 
     func repairStatus(for message: AIChatMessage) -> AIChatRepairAttemptStatus? {

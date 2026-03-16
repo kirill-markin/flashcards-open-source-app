@@ -12,6 +12,7 @@ let reviewOverlayBannerDismissDelayNanoseconds: UInt64 = 3_000_000_000
 
 struct ReviewView: View {
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
     @State var isAnswerVisible: Bool = false
     @State var preparedRevealState: PreparedReviewRevealState? = nil
@@ -246,7 +247,7 @@ struct ReviewView: View {
             }
 
             Button {
-                store.openDeckManagement()
+                navigation.openSettings(destination: .workspaceDecks)
             } label: {
                 Label("Edit decks", systemImage: "square.stack.3d.up")
             }
@@ -474,7 +475,7 @@ struct ReviewView: View {
         } actions: {
             VStack(spacing: 8) {
                 Button {
-                    store.openCardCreation()
+                    navigation.openCardCreation()
                 } label: {
                     Label("Create card", systemImage: "plus")
                 }
@@ -485,7 +486,7 @@ struct ReviewView: View {
                     .foregroundStyle(.secondary)
 
                 Button {
-                    store.openAICardCreation()
+                    navigation.openAICardCreation()
                 } label: {
                     Label("Create with AI", systemImage: "sparkles")
                 }
@@ -513,5 +514,6 @@ struct ReviewView: View {
     NavigationStack {
         ReviewView()
             .environment(FlashcardsStore())
+            .environment(AppNavigationModel())
     }
 }

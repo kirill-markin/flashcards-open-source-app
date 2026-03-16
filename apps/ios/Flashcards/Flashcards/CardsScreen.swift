@@ -43,6 +43,7 @@ enum CardEditorPresentation: Hashable, Identifiable {
 
 struct CardsScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
     @State private var editorPresentation: CardEditorPresentation? = nil
     @State private var isFilterSheetPresented: Bool = false
@@ -173,9 +174,9 @@ struct CardsScreen: View {
             }
         }
         .onAppear {
-            self.handleCardsPresentationRequest(request: store.cardsPresentationRequest)
+            self.handleCardsPresentationRequest(request: navigation.cardsPresentationRequest)
         }
-        .onChange(of: store.cardsPresentationRequest) { _, request in
+        .onChange(of: navigation.cardsPresentationRequest) { _, request in
             self.handleCardsPresentationRequest(request: request)
         }
         .task(id: self.queryReloadKey) {
@@ -274,7 +275,7 @@ struct CardsScreen: View {
         switch request {
         case .createCard:
             self.beginCreating()
-            store.clearCardsPresentationRequest()
+            navigation.clearCardsPresentationRequest()
         }
     }
 
@@ -440,5 +441,6 @@ struct CardRow: View {
     NavigationStack {
         CardsScreen()
             .environment(FlashcardsStore())
+            .environment(AppNavigationModel())
     }
 }

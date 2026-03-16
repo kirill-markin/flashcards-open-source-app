@@ -117,7 +117,6 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
 
     func testSelectReviewFilterExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
-        store.selectTab(tab: .ai)
         store.cloudSyncFastPollingUntil = nil
 
         store.selectReviewFilter(reviewFilter: .allCards)
@@ -125,14 +124,13 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
         XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
         XCTAssertEqual(
-            store.currentCloudSyncPollingInterval(now: Date()),
+            store.currentCloudSyncPollingInterval(selectedTab: .ai, now: Date()),
             cloudSyncFastPollingIntervalSeconds
         )
     }
 
     func testUpdateSchedulerSettingsExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
-        store.selectTab(tab: .settings)
         store.cloudSyncFastPollingUntil = nil
 
         try store.updateSchedulerSettings(
@@ -146,7 +144,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
         XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
         XCTAssertEqual(
-            store.currentCloudSyncPollingInterval(now: Date()),
+            store.currentCloudSyncPollingInterval(selectedTab: .settings, now: Date()),
             cloudSyncFastPollingIntervalSeconds
         )
     }

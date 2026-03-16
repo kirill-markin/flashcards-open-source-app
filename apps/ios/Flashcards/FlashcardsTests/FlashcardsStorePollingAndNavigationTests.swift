@@ -70,33 +70,28 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
-    func testSelectTabReviewEnablesFastCloudSyncPolling() throws {
+    func testStoreCurrentCloudSyncPollingIntervalReturnsFastForReviewTab() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         store.cloudSyncFastPollingUntil = nil
 
-        store.selectTab(tab: .review)
-
         XCTAssertEqual(
-            store.currentCloudSyncPollingInterval(now: Date()),
+            store.currentCloudSyncPollingInterval(selectedTab: .review, now: Date()),
             cloudSyncFastPollingIntervalSeconds
         )
     }
 
-    func testSelectTabCardsEnablesFastCloudSyncPolling() throws {
+    func testStoreCurrentCloudSyncPollingIntervalReturnsFastForCardsTab() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         store.cloudSyncFastPollingUntil = nil
 
-        store.selectTab(tab: .cards)
-
         XCTAssertEqual(
-            store.currentCloudSyncPollingInterval(now: Date()),
+            store.currentCloudSyncPollingInterval(selectedTab: .cards, now: Date()),
             cloudSyncFastPollingIntervalSeconds
         )
     }
 
     func testSaveCardExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
-        store.selectTab(tab: .ai)
         store.cloudSyncFastPollingUntil = nil
 
         try store.saveCard(
@@ -107,14 +102,13 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
         XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
         XCTAssertEqual(
-            store.currentCloudSyncPollingInterval(now: Date()),
+            store.currentCloudSyncPollingInterval(selectedTab: .ai, now: Date()),
             cloudSyncFastPollingIntervalSeconds
         )
     }
 
     func testCreateDeckExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
-        store.selectTab(tab: .ai)
         store.cloudSyncFastPollingUntil = nil
 
         try store.createDeck(
@@ -124,7 +118,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
         XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
         XCTAssertEqual(
-            store.currentCloudSyncPollingInterval(now: Date()),
+            store.currentCloudSyncPollingInterval(selectedTab: .ai, now: Date()),
             cloudSyncFastPollingIntervalSeconds
         )
     }
@@ -136,7 +130,6 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
             editingCardId: nil
         )
         let cardId = try XCTUnwrap(store.cards.first?.cardId)
-        store.selectTab(tab: .ai)
         store.cloudSyncFastPollingUntil = nil
 
         try store.submitReview(cardId: cardId, rating: .good)
@@ -144,27 +137,27 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         let deadline = try XCTUnwrap(store.cloudSyncFastPollingUntil)
         XCTAssertGreaterThan(deadline.timeIntervalSinceNow, 0)
         XCTAssertEqual(
-            store.currentCloudSyncPollingInterval(now: Date()),
+            store.currentCloudSyncPollingInterval(selectedTab: .ai, now: Date()),
             cloudSyncFastPollingIntervalSeconds
         )
     }
 
-    func testOpenAICardCreationSelectsAITabAndSetsPresentationRequest() throws {
-        let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
+    func testAppNavigationModelOpenAICardCreationSelectsAITabAndSetsPresentationRequest() {
+        let navigation = AppNavigationModel()
 
-        store.openAICardCreation()
+        navigation.openAICardCreation()
 
-        XCTAssertEqual(store.selectedTab, .ai)
-        XCTAssertEqual(store.aiChatPresentationRequest, .createCard)
+        XCTAssertEqual(navigation.selectedTab, .ai)
+        XCTAssertEqual(navigation.aiChatPresentationRequest, .createCard)
     }
 
-    func testOpenDeckManagementSelectsSettingsTabAndSetsPresentationRequest() throws {
-        let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
+    func testAppNavigationModelOpenSettingsBuildsWorkspaceDecksPath() {
+        let navigation = AppNavigationModel()
 
-        store.openDeckManagement()
+        navigation.openSettings(destination: .workspaceDecks)
 
-        XCTAssertEqual(store.selectedTab, .settings)
-        XCTAssertEqual(store.settingsPresentationRequest, .workspaceDecks)
+        XCTAssertEqual(navigation.selectedTab, .settings)
+        XCTAssertEqual(navigation.settingsPath, [.workspace, .workspaceDecks])
     }
 
     func testSettingsNavigationDestinationsIncludeAccount() {
