@@ -116,6 +116,20 @@ function isCsvFile(mediaType: string, fileName: string): boolean {
     || normalizedFileName.endsWith(".csv");
 }
 
+export function isSpreadsheetFile(mediaType: string, fileName: string): boolean {
+  const normalizedMediaType = normalizeMediaType(mediaType);
+  const normalizedFileName = normalizeFileName(fileName);
+
+  if (isCsvFile(mediaType, fileName)) {
+    return true;
+  }
+
+  return normalizedMediaType === "application/vnd.ms-excel"
+    || normalizedMediaType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    || normalizedFileName.endsWith(".xls")
+    || normalizedFileName.endsWith(".xlsx");
+}
+
 function escapeXmlAttribute(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -135,6 +149,7 @@ function buildLocalAttachmentHandlingSection(): string {
   return [
     "Attachment handling:",
     "If a small text attachment is duplicated inline inside <attached_text_file>, read that inline text before using code execution.",
+    "For CSV, XLS, and XLSX attachments, inspect the file with code execution before saying it is missing or inaccessible.",
     "When a file is available to code execution, the mounted filename may differ from the uploaded filename.",
     "Mounted files are typically exposed under /mnt/data with generated names or prefixes.",
     "Inspect mounted files before claiming that an attached file is missing.",
