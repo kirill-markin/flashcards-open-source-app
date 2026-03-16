@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 struct ThisDeviceSettingsView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     private var deviceModel: String {
         let model = UIDevice.current.model.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -82,6 +82,6 @@ struct ThisDeviceSettingsView: View {
 #Preview {
     NavigationStack {
         ThisDeviceSettingsView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

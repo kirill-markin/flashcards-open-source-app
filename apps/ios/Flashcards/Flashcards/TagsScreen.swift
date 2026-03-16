@@ -5,7 +5,7 @@ private func formatCardsCount(_ cardsCount: Int) -> String {
 }
 
 struct TagsScreen: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @State private var tagsSummary: WorkspaceTagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
     @State private var errorMessage: String = ""
     @State private var isLoading: Bool = true
@@ -99,6 +99,6 @@ struct TagsScreen: View {
 #Preview {
     NavigationStack {
         TagsScreen()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

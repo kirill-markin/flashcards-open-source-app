@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AccountDeletionProgressView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     var body: some View {
         ZStack {
@@ -38,5 +38,5 @@ struct AccountDeletionProgressView: View {
 
 #Preview {
     AccountDeletionProgressView()
-        .environmentObject(FlashcardsStore())
+        .environment(FlashcardsStore())
 }

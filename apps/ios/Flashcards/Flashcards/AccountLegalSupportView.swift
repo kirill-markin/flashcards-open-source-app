@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AccountLegalSupportView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     private var hasAcceptedAIDataUse: Bool {
         hasAIChatExternalProviderConsent(userDefaults: self.store.userDefaults)
@@ -96,6 +96,6 @@ struct AccountLegalSupportView: View {
 #Preview {
     NavigationStack {
         AccountLegalSupportView()
-            .environmentObject(FlashcardsStore())
+            .environment(FlashcardsStore())
     }
 }

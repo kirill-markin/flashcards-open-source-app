@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DeleteAccountConfirmationView: View {
-    @EnvironmentObject private var store: FlashcardsStore
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var confirmationText: String = ""
@@ -62,5 +62,5 @@ struct DeleteAccountConfirmationView: View {
 
 #Preview {
     DeleteAccountConfirmationView()
-        .environmentObject(FlashcardsStore())
+        .environment(FlashcardsStore())
 }

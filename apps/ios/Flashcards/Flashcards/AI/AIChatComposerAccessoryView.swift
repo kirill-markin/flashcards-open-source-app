@@ -37,7 +37,9 @@ func aiChatComposerAccessoryIcon(systemName: String) -> some View {
 
 extension AIChatView {
     var composerAccessory: some View {
-        ReadableContentLayout(
+        @Bindable var chatStore = self.chatStore
+
+        return ReadableContentLayout(
             maxWidth: flashcardsReadableContentMaxWidth,
             horizontalPadding: 16
         ) {
@@ -71,7 +73,7 @@ extension AIChatView {
                 ZStack(alignment: .bottomTrailing) {
                     TextField(
                         "Ask about cards, review history, or propose a change...",
-                        text: self.$chatStore.inputText,
+                        text: $chatStore.inputText,
                         selection: self.$composerSelection,
                         axis: .vertical
                     )
