@@ -157,6 +157,7 @@ describe("WorkspaceSettingsScreen", () => {
     expect(container.textContent).toContain("Settings");
     expect(container.textContent).toContain("Overview");
     expect(container.textContent).toContain("Scheduler");
+    expect(container.textContent).toContain("Export");
     expect(container.textContent).toContain("Device");
     expect(container.textContent).toContain("This Device");
 
@@ -166,6 +167,7 @@ describe("WorkspaceSettingsScreen", () => {
       "/settings/workspace/tags",
       "/settings/workspace/overview",
       "/settings/workspace/scheduler",
+      "/settings/workspace/export",
       "/settings/workspace/device",
     ]);
   });

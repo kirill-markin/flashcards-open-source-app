@@ -3,6 +3,7 @@ import { useAppData } from "../appData";
 import {
   settingsDecksRoute,
   settingsDeviceRoute,
+  settingsExportRoute,
   settingsOverviewRoute,
   settingsSchedulerRoute,
   settingsTagsRoute,
@@ -109,6 +110,12 @@ export function WorkspaceSettingsScreen(): ReactElement {
             description="Review the active scheduler configuration for future reviews."
             value={workspaceSettings === null ? "Unavailable" : workspaceSettings.algorithm.toUpperCase()}
             to={settingsSchedulerRoute}
+          />
+          <SettingsNavigationCard
+            title="Export"
+            description="Save all active cards from this workspace as a standard CSV file."
+            value="CSV"
+            to={settingsExportRoute}
           />
         </div>
       </section>
