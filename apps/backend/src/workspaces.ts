@@ -386,12 +386,27 @@ export async function ensureUserSelectedWorkspaceInExecutor(
   return earliestWorkspaceId;
 }
 
-async function setSelectedWorkspaceForApiKeyConnectionInExecutor(
+export async function setSelectedWorkspaceForApiKeyConnectionInExecutor(
   executor: DatabaseExecutor,
   userId: string,
   connectionId: string,
   selectedWorkspaceId: string | null,
 ): Promise<void> {
+  if (selectedWorkspaceId !== null) {
+    const membershipResult = await executor.query<WorkspaceMembershipRow>(
+      [
+        "SELECT workspace_id",
+        "FROM org.workspace_memberships",
+        "WHERE user_id = $1 AND workspace_id = $2",
+      ].join(" "),
+      [userId, selectedWorkspaceId],
+    );
+
+    if (membershipResult.rows.length === 0) {
+      throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
+    }
+  }
+
   const result = await executor.query<AgentApiKeySelectionRow>(
     [
       "UPDATE auth.agent_api_keys",

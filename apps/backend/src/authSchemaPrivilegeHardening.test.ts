@@ -6,6 +6,7 @@ import test from "node:test";
 const runtimeRolesMigrationPath = path.resolve(process.cwd(), "../../db/migrations/0024_auth_runtime_roles.sql");
 const cleanupMigrationPath = path.resolve(process.cwd(), "../../db/migrations/0025_remove_legacy_app_role.sql");
 const accountDeleteCleanupMigrationPath = path.resolve(process.cwd(), "../../db/migrations/0029_account_delete_auth_cleanup.sql");
+const apiKeySelectedWorkspaceMigrationPath = path.resolve(process.cwd(), "../../db/migrations/0030_agent_api_key_selected_workspace_rls.sql");
 const migrateScriptPath = path.resolve(process.cwd(), "../../scripts/migrate.sh");
 const backendAgentApiKeysPath = path.resolve(process.cwd(), "src/agentApiKeys.ts");
 const backendWorkspacesPath = path.resolve(process.cwd(), "src/workspaces.ts");
@@ -13,6 +14,7 @@ const backendWorkspacesPath = path.resolve(process.cwd(), "src/workspaces.ts");
 const runtimeRolesMigrationSql = readFileSync(runtimeRolesMigrationPath, "utf8");
 const cleanupMigrationSql = readFileSync(cleanupMigrationPath, "utf8");
 const accountDeleteCleanupMigrationSql = readFileSync(accountDeleteCleanupMigrationPath, "utf8");
+const apiKeySelectedWorkspaceMigrationSql = readFileSync(apiKeySelectedWorkspaceMigrationPath, "utf8");
 const migrateScript = readFileSync(migrateScriptPath, "utf8");
 const backendAgentApiKeysSource = readFileSync(backendAgentApiKeysPath, "utf8");
 const backendWorkspacesSource = readFileSync(backendWorkspacesPath, "utf8");
@@ -72,6 +74,17 @@ test("0029_account_delete_auth_cleanup grants backend_app execute on auth artifa
   );
 });
 
+test("0030_agent_api_key_selected_workspace_rls enforces accessible selected workspace writes for API keys", () => {
+  assert.match(
+    apiKeySelectedWorkspaceMigrationSql,
+    /CREATE POLICY agent_api_keys_insert_runtime[\s\S]*selected_workspace_id IS NULL[\s\S]*security\.user_has_workspace_access\(selected_workspace_id\)/,
+  );
+  assert.match(
+    apiKeySelectedWorkspaceMigrationSql,
+    /CREATE POLICY agent_api_keys_update_runtime[\s\S]*selected_workspace_id IS NULL[\s\S]*security\.user_has_workspace_access\(selected_workspace_id\)/,
+  );
+});
+
 test("backend auth agent key flows use scoped queries and the bootstrap function", () => {
   assert.match(
     backendAgentApiKeysSource,
@@ -91,6 +104,14 @@ test("backend selected workspace updates for API keys run in a user-scoped trans
   assert.match(
     backendWorkspacesSource,
     /export async function setSelectedWorkspaceForApiKeyConnection[\s\S]*transactionWithUserScope\(\{ userId \}/,
+  );
+  assert.match(
+    backendWorkspacesSource,
+    /export async function setSelectedWorkspaceForApiKeyConnectionInExecutor[\s\S]*if \(selectedWorkspaceId !== null\)[\s\S]*throw new HttpError\(404, "Workspace not found", "WORKSPACE_NOT_FOUND"\)/,
+  );
+  assert.match(
+    backendWorkspacesSource,
+    /export async function ensureApiKeyWorkspaceSelection[\s\S]*if \(selectedWorkspaceId !== null\)[\s\S]*await setSelectedWorkspaceForApiKeyConnection\(userId, connectionId, null\);/,
   );
 });
 
