@@ -10,8 +10,9 @@ post:
     with semicolons in one sql string. A batch must contain only read
     statements or only mutation statements. Mutation batches are executed
     atomically. SELECT supports projected column lists, LIKE, case-insensitive
-    exact string matches via LOWER(column) = 'value', aggregates, GROUP BY,
-    NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.
+    exact string matches via LOWER(column) = 'value', LOWER(column) IN (...),
+    and LOWER(column) NOT IN (...), aggregates, GROUP BY, NOW(), standalone
+    ORDER BY RANDOM(), and cards UNNEST tags AS tag.
   security:
     - ApiKeyHeader: []
   requestBody:
@@ -179,6 +180,72 @@ post:
                       tags:
                         - TypeScript
                         - frontend
+                  rowCount: 1
+                  limit: 20
+                  offset: 0
+                  hasMore: false
+                instructions: >-
+                  Read rows from data.rows. No further rows are available for
+                  this query. LIMIT defaults to 100 and is capped at 100.
+                  Prefer a stable ORDER BY clause when paginating. This
+                  endpoint supports the published SQL dialect, not full
+                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            exactTagMembership:
+              value:
+                ok: true
+                data:
+                  statementType: select
+                  resource: cards
+                  sql: >-
+                    SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS
+                    tag WHERE LOWER(tag) IN ('english', 'slang') GROUP BY tag
+                    ORDER BY cards_count DESC LIMIT 20 OFFSET 0
+                  normalizedSql: >-
+                    SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS
+                    tag WHERE LOWER(tag) IN ('english', 'slang') GROUP BY tag
+                    ORDER BY cards_count DESC LIMIT 20 OFFSET 0
+                  rows:
+                    - tag: English
+                      cards_count: 12
+                    - tag: slang
+                      cards_count: 4
+                  rowCount: 2
+                  limit: 20
+                  offset: 0
+                  hasMore: false
+                instructions: >-
+                  Read rows from data.rows. No further rows are available for
+                  this query. LIMIT defaults to 100 and is capped at 100.
+                  Prefer a stable ORDER BY clause when paginating. This
+                  endpoint supports the published SQL dialect, not full
+                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            excludedTags:
+              value:
+                ok: true
+                data:
+                  statementType: select
+                  resource: cards
+                  sql: >-
+                    SELECT card_id, front_text, back_text, tags FROM cards
+                    UNNEST tags AS tag WHERE LOWER(tag) NOT IN ('humor',
+                    'internet') ORDER BY created_at DESC, card_id ASC LIMIT 20
+                    OFFSET 0
+                  normalizedSql: >-
+                    SELECT card_id, front_text, back_text, tags FROM cards
+                    UNNEST tags AS tag WHERE LOWER(tag) NOT IN ('humor',
+                    'internet') ORDER BY created_at DESC, card_id ASC LIMIT 20
+                    OFFSET 0
+                  rows:
+                    - card_id: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                      front_text: Example question
+                      back_text: Example answer
+                      tags:
+                        - English
+                        - phrases
                   rowCount: 1
                   limit: 20
                   offset: 0

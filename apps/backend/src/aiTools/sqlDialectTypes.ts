@@ -57,6 +57,8 @@ export type SqlPredicate =
     type: "in";
     columnName: string;
     values: ReadonlyArray<SqlLiteral>;
+    caseInsensitive: boolean;
+    isNegated: boolean;
   }>
   | Readonly<{
     type: "overlap";

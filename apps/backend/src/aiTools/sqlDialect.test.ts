@@ -277,6 +277,133 @@ test("executeSqlSelect supports exact case-insensitive matches on UNNEST aliases
   assert.deepEqual(result.rows, [{ card_id: "card-1", tag: "Grammar" }]);
 });
 
+test("parseSqlStatement supports case-insensitive IN lists on UNNEST aliases", () => {
+  const statement = parseSelectStatement(
+    "SELECT card_id, tag FROM cards UNNEST tags AS tag WHERE LOWER(tag) IN ('grammar', 'verbs') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+  );
+
+  assert.deepEqual(statement.predicateClauses, [[{
+    type: "in",
+    columnName: "tag",
+    values: ["grammar", "verbs"],
+    caseInsensitive: true,
+    isNegated: false,
+  }]]);
+});
+
+test("parseSqlStatement supports case-insensitive NOT IN lists on UNNEST aliases", () => {
+  const statement = parseSelectStatement(
+    "SELECT card_id, tag FROM cards UNNEST tags AS tag WHERE LOWER(tag) NOT IN ('grammar', 'verbs') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+  );
+
+  assert.deepEqual(statement.predicateClauses, [[{
+    type: "in",
+    columnName: "tag",
+    values: ["grammar", "verbs"],
+    caseInsensitive: true,
+    isNegated: true,
+  }]]);
+});
+
+test("parseSqlStatement supports case-insensitive IN lists on regular columns", () => {
+  const statement = parseSelectStatement(
+    "SELECT card_id FROM cards WHERE LOWER(effort_level) IN ('fast', 'medium') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+  );
+
+  assert.deepEqual(statement.predicateClauses, [[{
+    type: "in",
+    columnName: "effort_level",
+    values: ["fast", "medium"],
+    caseInsensitive: true,
+    isNegated: false,
+  }]]);
+});
+
+test("parseSqlStatement rejects non-string literals in case-insensitive IN lists", () => {
+  assert.throws(
+    () => parseSqlStatement(
+      "SELECT card_id, tag FROM cards UNNEST tags AS tag WHERE LOWER(tag) IN ('grammar', 1) ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+    ),
+    /LOWER\(column\) IN \(\.\.\.\) only supports string literals/,
+  );
+});
+
+test("parseSqlStatement rejects non-string literals in case-insensitive NOT IN lists", () => {
+  assert.throws(
+    () => parseSqlStatement(
+      "SELECT card_id, tag FROM cards UNNEST tags AS tag WHERE LOWER(tag) NOT IN ('grammar', 1) ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+    ),
+    /LOWER\(column\) NOT IN \(\.\.\.\) only supports string literals/,
+  );
+});
+
+test("executeSqlSelect supports case-insensitive IN lists", () => {
+  const statement = parseSelectStatement(
+    "SELECT card_id, tag FROM cards UNNEST tags AS tag WHERE LOWER(tag) IN ('grammar', 'verbs') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+  );
+
+  const result = executeSqlSelect(statement, [
+    {
+      ...sampleRows[0],
+      tags: ["Grammar", "verbs"],
+    },
+    sampleRows[1],
+    sampleRows[2],
+  ], 100);
+
+  assert.equal(result.rowCount, 3);
+  assert.deepEqual(result.rows, [
+    { card_id: "card-1", tag: "Grammar" },
+    { card_id: "card-1", tag: "verbs" },
+    { card_id: "card-2", tag: "verbs" },
+  ]);
+});
+
+test("executeSqlSelect supports case-insensitive NOT IN lists", () => {
+  const statement = parseSelectStatement(
+    "SELECT card_id, tag FROM cards UNNEST tags AS tag WHERE LOWER(tag) NOT IN ('grammar') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+  );
+
+  const result = executeSqlSelect(statement, [
+    {
+      ...sampleRows[0],
+      tags: ["Grammar", "verbs"],
+    },
+    sampleRows[1],
+    sampleRows[2],
+  ], 100);
+
+  assert.equal(result.rowCount, 3);
+  assert.deepEqual(result.rows, [
+    { card_id: "card-1", tag: "verbs" },
+    { card_id: "card-2", tag: "verbs" },
+    { card_id: "card-3", tag: "reading" },
+  ]);
+});
+
+test("executeSqlSelect keeps plain IN behavior unchanged", () => {
+  const statement = parseSelectStatement(
+    "SELECT card_id, reps FROM cards WHERE reps IN (1, 3) ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+  );
+
+  const result = executeSqlSelect(statement, sampleRows, 100);
+
+  assert.equal(result.rowCount, 2);
+  assert.deepEqual(result.rows, [
+    { card_id: "card-1", reps: 1 },
+    { card_id: "card-3", reps: 3 },
+  ]);
+});
+
+test("parseSqlStatement still rejects plain NOT IN", () => {
+  assert.throws(
+    () => parseSqlStatement(
+      "SELECT card_id FROM cards WHERE reps NOT IN (1, 2) ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0",
+    ),
+    /Unsupported predicate: reps NOT IN \(1, 2\)/,
+  );
+});
+
 test("parseSqlStatement rejects duplicate top-level SELECT clauses", () => {
   assert.throws(
     () => parseSqlStatement("SELECT card_id FROM cards WHERE card_id = 'card-1' WHERE back_text = 'card-2' LIMIT 1 OFFSET 0"),
