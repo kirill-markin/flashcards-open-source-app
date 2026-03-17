@@ -8,6 +8,7 @@ import {
   ensureUserSelectedWorkspaceInExecutor,
   loadWorkspaceDeletePreviewInExecutor,
   renameWorkspaceInExecutor,
+  setSelectedWorkspaceForApiKeyConnectionInExecutor,
 } from "./workspaces";
 
 function makeQueryResult<Row extends pg.QueryResultRow>(
@@ -505,4 +506,68 @@ test("loadWorkspaceDeletePreviewInExecutor returns not found for an inaccessible
       && "code" in error
       && error.code === "WORKSPACE_NOT_FOUND",
   );
+});
+
+test("setSelectedWorkspaceForApiKeyConnectionInExecutor rejects inaccessible non-null workspaces", async () => {
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("SELECT workspace_id FROM org.workspace_memberships")) {
+        assert.deepEqual(params, ["user-1", "workspace-missing"]);
+        return makeQueryResult<Row>([]);
+      }
+
+      if (text.includes("UPDATE auth.agent_api_keys")) {
+        throw new Error("Update should not run when workspace access is missing");
+      }
+
+      throw new Error(`Unexpected SQL in test: ${text}`);
+    },
+  };
+
+  await assert.rejects(
+    setSelectedWorkspaceForApiKeyConnectionInExecutor(
+      executor,
+      "user-1",
+      "connection-1",
+      "workspace-missing",
+    ),
+    (error: unknown) => error instanceof Error
+      && "code" in error
+      && error.code === "WORKSPACE_NOT_FOUND",
+  );
+});
+
+test("setSelectedWorkspaceForApiKeyConnectionInExecutor allows null selection without membership lookup", async () => {
+  let updateRan = false;
+
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("SELECT workspace_id FROM org.workspace_memberships")) {
+        throw new Error("Membership lookup should not run for null selection");
+      }
+
+      if (text.includes("UPDATE auth.agent_api_keys")) {
+        assert.deepEqual(params, [null, "user-1", "connection-1"]);
+        updateRan = true;
+        return makeQueryResult<Row>([{ connection_id: "connection-1" }]);
+      }
+
+      throw new Error(`Unexpected SQL in test: ${text}`);
+    },
+  };
+
+  await setSelectedWorkspaceForApiKeyConnectionInExecutor(
+    executor,
+    "user-1",
+    "connection-1",
+    null,
+  );
+
+  assert.equal(updateRan, true);
 });
