@@ -80,7 +80,8 @@ export function buildSharedWritePolicyLines(): ReadonlyArray<string> {
     "- Every newly proposed card must include at least one tag.",
     "- If the user did not provide tags for a new card, you MUST suggest one or more concrete tags and include them in the proposed card draft before asking for confirmation.",
     "- Keep tags minimal: use the smallest useful set per card and prefer 1-2 tags unless the user explicitly asks for more.",
-    "- You MUST reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate.",
+    "- By default, you MUST reuse existing workspace tags whenever that is possible and logically fits the card.",
+    "- You MUST create a new tag only when no existing workspace tag is appropriate, and you MUST ask the user to approve that new tag before proposing or executing it.",
     "- You MUST then wait for explicit user confirmation before executing the write tool.",
   ];
 }
@@ -103,7 +104,8 @@ export function buildLocalWritePolicyLines(): ReadonlyArray<string> {
     "- Every newly proposed card must include at least one tag.",
     "- If the user did not provide tags for a new card, you must suggest one or more concrete tags and include them in the proposed card draft before asking for confirmation.",
     "- Keep tags minimal: use the smallest useful set per card and prefer 1-2 tags unless the user explicitly asks for more.",
-    "- You must reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate.",
+    "- By default, you must reuse existing workspace tags whenever that is possible and logically fits the card.",
+    "- You must create a new tag only when no existing workspace tag is appropriate, and you must ask the user to approve that new tag before proposing or executing it.",
     "- You must then wait for explicit user confirmation before executing the write tool.",
     "- Use write tools only after the latest user message clearly confirms the exact proposed change.",
     "- Never mutate hidden FSRS fields, sync metadata, or arbitrary non-product tables directly.",

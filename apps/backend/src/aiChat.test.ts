@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { buildAIChatSystemInstructions } from "./chat/aiChatRuntimeShared";
 import {
   createAIChatErrorEvent,
   createAIChatErrorResponse,
@@ -124,4 +125,21 @@ test("isSupportedOpenAIChatModel accepts only OpenAI AI chat models", () => {
 test("isSupportedAnthropicAIChatModel accepts only Anthropic AI chat models", () => {
   assert.equal(isSupportedAnthropicAIChatModel("claude-sonnet-4-6"), true);
   assert.equal(isSupportedAnthropicAIChatModel("gpt-5.4"), false);
+});
+
+test("buildAIChatSystemInstructions prefers existing tags and requires approval for new ones", () => {
+  const instructions = buildAIChatSystemInstructions(
+    "Europe/Madrid",
+    "web",
+    { totalCards: 10 },
+  );
+
+  assert.match(
+    instructions,
+    /By default, you must reuse existing workspace tags whenever that is possible and logically fits the card\./i,
+  );
+  assert.match(
+    instructions,
+    /You must create a new tag only when no existing workspace tag is appropriate, and you must ask the user to approve that new tag before proposing or executing it\./i,
+  );
 });
