@@ -43,7 +43,7 @@ test("loadOpenApiDocument returns the canonical v1 spec with the SQL surface", (
   assert.equal("/agent/tools/list_cards" in paths, false);
   assert.equal("/agent/tools/list_tags" in paths, false);
   assert.equal("/workspaces/{workspaceId}/sync/push" in paths, false);
-  assert.equal("/chat/local-turn" in paths, false);
+  assert.equal("/chat/turn" in paths, false);
   assert.equal("/agent-api-keys" in paths, false);
   assert.deepEqual(agentDocs.required, ["openapiUrl"]);
   assert.deepEqual(agentSqlRequest.required, ["sql"]);

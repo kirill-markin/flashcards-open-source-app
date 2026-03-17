@@ -1,41 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { parseLocalSSELine, toLocalChatMessages } from "./localRuntime";
+import { parseAIChatSSELine, toAIChatMessages } from "./aiChatWire";
 import { normalizeStoredMessageForTests } from "./useChatHistory";
 import type { StoredMessage } from "./useChatHistory";
 
-describe("localRuntime", () => {
-  it("preserves repeated tool names by toolCallId when converting history to local-turn wire messages", () => {
+describe("aiChatWire", () => {
+  it("drops assistant tool-call parts when converting history to the chat wire format", () => {
     const messages: ReadonlyArray<StoredMessage> = [{
       role: "assistant",
       content: [
         { type: "text", text: "Running SQL." },
         { type: "tool_call", toolCallId: "call-1", name: "sql", status: "completed", input: "{\"sql\":\"SHOW TABLES\"}", output: "{\"rows\":[{\"table_name\":\"cards\"}]}" },
-        { type: "tool_call", toolCallId: "call-2", name: "list_outbox", status: "completed", input: "{\"cursor\":null,\"limit\":20}", output: "{\"outbox\":[]}" },
       ],
       timestamp: 1,
       isError: false,
     }];
 
-    expect(toLocalChatMessages(messages)).toEqual([
+    expect(toAIChatMessages(messages)).toEqual([
       {
         role: "assistant",
         content: [
           { type: "text", text: "Running SQL." },
-          { type: "tool_call", toolCallId: "call-1", name: "sql", status: "completed", input: "{\"sql\":\"SHOW TABLES\"}", output: "{\"rows\":[{\"table_name\":\"cards\"}]}" },
-          { type: "tool_call", toolCallId: "call-2", name: "list_outbox", status: "completed", input: "{\"cursor\":null,\"limit\":20}", output: "{\"outbox\":[]}" },
         ],
-      },
-      {
-        role: "tool",
-        toolCallId: "call-1",
-        name: "sql",
-        output: "{\"rows\":[{\"table_name\":\"cards\"}]}",
-      },
-      {
-        role: "tool",
-        toolCallId: "call-2",
-        name: "list_outbox",
-        output: "{\"outbox\":[]}",
       },
     ]);
   });
@@ -78,8 +63,8 @@ describe("localRuntime", () => {
     });
   });
 
-  it("preserves attachments and parses local SSE lines", () => {
-    expect(toLocalChatMessages([{
+  it("preserves attachments and parses chat SSE lines", () => {
+    expect(toAIChatMessages([{
       role: "user",
       content: [{ type: "image", mediaType: "image/png", base64Data: "abc" }],
       timestamp: 1,
@@ -89,8 +74,8 @@ describe("localRuntime", () => {
       content: [{ type: "image", mediaType: "image/png", base64Data: "abc" }],
     }]);
 
-    expect(parseLocalSSELine("data: {\"type\":\"await_tool_results\"}")).toEqual({
-      type: "await_tool_results",
+    expect(parseAIChatSSELine("data: {\"type\":\"done\"}")).toEqual({
+      type: "done",
     });
   });
 });

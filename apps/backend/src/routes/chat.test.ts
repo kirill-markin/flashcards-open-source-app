@@ -8,7 +8,7 @@ import { createChatRoutes } from "./chat";
 function createChatTestApp(
   options: Readonly<{
     requestContext?: RequestContext;
-    streamLocalChatResponseFn?: Parameters<typeof createChatRoutes>[0]["streamLocalChatResponseFn"];
+    streamAIChatResponseFn?: Parameters<typeof createChatRoutes>[0]["streamAIChatResponseFn"];
     transcribeAudioFn: Parameters<typeof createChatRoutes>[0]["transcribeAudioFn"];
   }>,
 ): Hono {
@@ -44,7 +44,7 @@ function createChatTestApp(
         }),
       },
     }),
-    streamLocalChatResponseFn: options.streamLocalChatResponseFn,
+    streamAIChatResponseFn: options.streamAIChatResponseFn,
     transcribeAudioFn: options.transcribeAudioFn,
   }));
   return app;
@@ -155,7 +155,7 @@ test("chat transcriptions route surfaces invalid audio failures as 422", async (
   });
 });
 
-test("chat local-turn route forwards the authenticated request context to the local chat response pipeline", async () => {
+test("chat turn route forwards the authenticated request context to the AI chat response pipeline", async () => {
   let observedUserId: string | null = null;
   let observedTransport: string | null = null;
   const app = createChatTestApp({
@@ -168,7 +168,7 @@ test("chat local-turn route forwards the authenticated request context to the lo
       transport: "bearer",
       connectionId: null,
     },
-    streamLocalChatResponseFn: async (_body, _requestId, requestContext) => {
+    streamAIChatResponseFn: async (_body: unknown, _requestId: string, requestContext: RequestContext) => {
       observedUserId = requestContext.userId;
       observedTransport = requestContext.transport;
       return new Response(null, { status: 204 });
@@ -176,7 +176,7 @@ test("chat local-turn route forwards the authenticated request context to the lo
     transcribeAudioFn: async () => "ignored",
   });
 
-  const response = await app.request("https://api.example.com/chat/local-turn", {
+  const response = await app.request("https://api.example.com/chat/turn", {
     method: "POST",
     body: JSON.stringify({
       messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],

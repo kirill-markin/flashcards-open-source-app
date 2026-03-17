@@ -5,7 +5,7 @@ import {
   makeAIEndpointNotConfiguredError,
 } from "./aiAvailabilityErrors";
 
-test("makeAIEndpointNotConfiguredError returns the stable local chat contract", () => {
+test("makeAIEndpointNotConfiguredError returns the stable AI chat contract", () => {
   const error = makeAIEndpointNotConfiguredError("chat");
   assert.equal(error.statusCode, 503);
   assert.equal(error.code, "LOCAL_CHAT_NOT_CONFIGURED");

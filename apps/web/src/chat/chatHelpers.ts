@@ -26,7 +26,7 @@ export function calculateSidebarWidthFromPointer(
 }
 
 /**
- * Builds local chat content parts while preserving attachment order and only
+ * Builds AI chat content parts while preserving attachment order and only
  * appending user text when its trimmed value is non-empty.
  */
 export function buildContentParts(

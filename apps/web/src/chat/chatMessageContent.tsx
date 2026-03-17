@@ -10,8 +10,6 @@ import type { StoredMessage } from "./useChatHistory";
  */
 export function formatToolLabel(name: string): string {
   if (name === "sql") return "SQL";
-  if (name === "get_cloud_settings") return "Cloud settings";
-  if (name === "list_outbox") return "Outbox";
   if (name === "code_execution" || name === "code_interpreter") return "Code execution";
   if (name === "web_search") return "Web search";
   return name;

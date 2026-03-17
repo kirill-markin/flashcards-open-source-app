@@ -168,6 +168,7 @@ export function AppDataProvider(props: Props): ReactElement {
     createWorkspace,
     renameWorkspace,
     deleteWorkspace,
+    runSync: syncEngine.runSync,
     refreshLocalData: syncEngine.refreshLocalData,
     getCardById: syncEngine.getCardById,
     getDeckById: syncEngine.getDeckById,

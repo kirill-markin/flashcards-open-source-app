@@ -3,14 +3,11 @@
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
-  createDeferred,
   createSSELine,
   createStreamResponse,
   createTimedStreamResponse,
-  executeLocalToolMock,
   setupChatPanelTest,
-  streamDeltaPayload,
-  streamLocalChatMock,
+  streamAIChatMock,
 } from "./ChatPanelTestSupport";
 
 const chatPanel = setupChatPanelTest();
@@ -57,45 +54,38 @@ describe("ChatPanel tool calls", () => {
     expect(children[2]?.textContent).toBe("\n\nAfter tool\n\n");
   });
 
-  it("renders a pending tool block immediately and upgrades it in place after completion", async () => {
-    const deferredToolResult = createDeferred<Readonly<{
-      output: string;
-      didMutateAppState: boolean;
-    }>>();
-    executeLocalToolMock.mockImplementationOnce(() => deferredToolResult.promise);
-    streamLocalChatMock
-      .mockResolvedValueOnce(createStreamResponse([
-        createSSELine({ type: "tool_call_request", toolCallId: "tool-1", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" }),
-        createSSELine({ type: "await_tool_results" }),
-      ], 200))
-      .mockResolvedValueOnce(createTimedStreamResponse([{ atMs: 0, payload: streamDeltaPayload("Done") }], 1, 200));
+  it("renders backend tool progress and finishes with a completed tool block", async () => {
+    streamAIChatMock.mockResolvedValueOnce(createTimedStreamResponse([
+      {
+        atMs: 0,
+        payload: createSSELine({ type: "tool_call_request", toolCallId: "tool-1", name: "sql", input: "{\"sql\":\"SHOW TABLES\"}" }),
+      },
+      {
+        atMs: 20,
+        payload: createSSELine({ type: "tool_call", toolCallId: "tool-1", name: "sql", status: "completed", input: "{\"sql\":\"SHOW TABLES\"}", output: "{\"rows\":[]}" }),
+      },
+      {
+        atMs: 20,
+        payload: createSSELine({ type: "delta", text: "Done" }),
+      },
+      {
+        atMs: 20,
+        payload: createSSELine({ type: "done" }),
+      },
+    ], 30, 200));
 
     await chatPanel.renderChatPanel();
     await chatPanel.sendMessage("run sql");
 
     const mountedContainer = chatPanel.getContainer();
-    const pendingToolCall = mountedContainer.querySelector(".chat-tool-call-started");
-    expect(pendingToolCall).not.toBeNull();
-    expect(pendingToolCall?.querySelector(".chat-tool-call-summary-main")?.textContent).toBe("SQL: SHOW TABLES");
-    expect(pendingToolCall?.textContent).toContain("Running");
-    expect(mountedContainer.querySelectorAll(".chat-tool-call")).toHaveLength(1);
-    expect(mountedContainer.textContent).not.toContain("Looking through your cards...");
-
     await act(async () => {
-      deferredToolResult.resolve({
-        output: "{\"rows\":[]}",
-        didMutateAppState: false,
-      });
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(5);
+      vi.advanceTimersByTime(40);
       await Promise.resolve();
     });
 
     expect(mountedContainer.querySelectorAll(".chat-tool-call")).toHaveLength(1);
     expect(mountedContainer.querySelector(".chat-tool-call-started")).toBeNull();
+    expect(mountedContainer.querySelector(".chat-tool-call-summary-main")?.textContent).toBe("SQL: SHOW TABLES");
     expect(mountedContainer.querySelector(".chat-tool-call-completed")?.textContent).toContain("Done");
     expect(mountedContainer.textContent).toContain("Done");
   });

@@ -10,7 +10,7 @@ import {
   setTextareaSelection,
   setTextareaValue,
   streamDeltaPayload,
-  streamLocalChatMock,
+  streamAIChatMock,
 } from "./ChatPanelTestSupport";
 
 const chatPanel = setupChatPanelTest();
@@ -63,7 +63,7 @@ describe("ChatPanel rendering", () => {
   });
 
   it("preserves streamed assistant text whitespace before rendering the bubble", async () => {
-    streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
+    streamAIChatMock.mockResolvedValueOnce(createTimedStreamResponse([
       { atMs: 0, payload: streamDeltaPayload("\n\n   First paragraph") },
       { atMs: 10, payload: streamDeltaPayload("\n\n\n\nSecond paragraph   \n") },
     ], 20, 200));
@@ -84,7 +84,7 @@ describe("ChatPanel rendering", () => {
 
   it("shows the optimistic assistant status immediately after send while the first stream request is pending", async () => {
     const deferredResponse = createDeferred<Response>();
-    streamLocalChatMock.mockImplementationOnce(() => deferredResponse.promise);
+    streamAIChatMock.mockImplementationOnce(() => deferredResponse.promise);
 
     await chatPanel.renderChatPanel();
     await chatPanel.sendMessage("check cards");
@@ -125,7 +125,7 @@ describe("ChatPanel rendering", () => {
   });
 
   it("preserves paragraph boundaries across streamed assistant deltas", async () => {
-    streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
+    streamAIChatMock.mockResolvedValueOnce(createTimedStreamResponse([
       { atMs: 0, payload: streamDeltaPayload("Точный план изменений:\n- не менять остальные теги\n\n") },
       { atMs: 10, payload: streamDeltaPayload("Подтверди, и я выполню объединение `DSA -> dsa`.") },
     ], 20, 200));
@@ -178,7 +178,7 @@ describe("ChatPanel rendering", () => {
   });
 
   it("replaces send with stop while streaming and allows sending again after stop", async () => {
-    streamLocalChatMock
+    streamAIChatMock
       .mockImplementationOnce((_body: unknown, signal: AbortSignal) => Promise.resolve(
         createAbortableTimedStreamResponse(
           signal,
@@ -207,8 +207,8 @@ describe("ChatPanel rendering", () => {
 
     await chatPanel.stopStreaming();
 
-    expect(streamLocalChatMock.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
-    expect((streamLocalChatMock.mock.calls[0]?.[1] as AbortSignal).aborted).toBe(true);
+    expect(streamAIChatMock.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
+    expect((streamAIChatMock.mock.calls[0]?.[1] as AbortSignal).aborted).toBe(true);
     expect(mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]')).toBeNull();
     expect(mountedContainer.querySelector('.chat-send-btn[aria-label="Send message"]')).not.toBeNull();
     expect((mountedContainer.querySelector(".chat-attach-btn") as HTMLButtonElement | null)?.disabled).toBe(false);
@@ -221,12 +221,12 @@ describe("ChatPanel rendering", () => {
       await Promise.resolve();
     });
 
-    expect(streamLocalChatMock).toHaveBeenCalledTimes(2);
+    expect(streamAIChatMock).toHaveBeenCalledTimes(2);
     expect(mountedContainer.textContent).toContain("Second response");
   });
 
   it("aborts the active stream before clearing history when starting a new chat", async () => {
-    streamLocalChatMock.mockImplementationOnce((_body: unknown, signal: AbortSignal) => Promise.resolve(
+    streamAIChatMock.mockImplementationOnce((_body: unknown, signal: AbortSignal) => Promise.resolve(
       createAbortableTimedStreamResponse(
         signal,
         [{ atMs: 50, payload: streamDeltaPayload("Partial response") }],
@@ -252,14 +252,14 @@ describe("ChatPanel rendering", () => {
       await Promise.resolve();
     });
 
-    expect(streamLocalChatMock.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
-    expect((streamLocalChatMock.mock.calls[0]?.[1] as AbortSignal).aborted).toBe(true);
+    expect(streamAIChatMock.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
+    expect((streamAIChatMock.mock.calls[0]?.[1] as AbortSignal).aborted).toBe(true);
     expect(mountedContainer.textContent).not.toContain("Partial response");
     expect(mountedContainer.querySelectorAll(".chat-msg")).toHaveLength(0);
   });
 
   it("lets the user keep building the next draft while the assistant is streaming", async () => {
-    streamLocalChatMock.mockImplementationOnce((_body: unknown, signal: AbortSignal) => Promise.resolve(
+    streamAIChatMock.mockImplementationOnce((_body: unknown, signal: AbortSignal) => Promise.resolve(
       createAbortableTimedStreamResponse(
         signal,
         [{ atMs: 50, payload: streamDeltaPayload("Partial response") }],

@@ -4,7 +4,7 @@ import { createApp } from "./app";
 const app = createApp("");
 
 /**
- * Uses the streaming Lambda adapter only for the local-turn SSE integration.
+ * Uses the streaming Lambda adapter only for the AI chat turn SSE integration.
  *
  * The chat route returns Server-Sent Events, so the buffered `handle(app)`
  * adapter would collapse every SSE frame into one final body and break the

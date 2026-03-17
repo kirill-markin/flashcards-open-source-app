@@ -969,7 +969,7 @@ function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement {
  * Canonical SQL-dialect parser for backend and browser-local runtimes.
  *
  * iOS mirror:
- * `apps/ios/Flashcards/Flashcards/AI/LocalAISqlDialect.swift::localAISqlParseStatement`
+ * `apps/backend/src/aiTools/sqlDialectParser.ts::parseSqlStatement`
  */
 export function parseSqlStatement(value: string): ParsedSqlStatement {
   const normalizedSql = normalizeSqlWhitespace(value);

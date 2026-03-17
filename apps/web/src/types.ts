@@ -484,7 +484,7 @@ export type ChatStreamEvent =
   | Readonly<{ type: "done" }>
   | Readonly<{ type: "error"; message: string }>;
 
-export type LocalChatMessage =
+export type AIChatWireMessage =
   | Readonly<{
     role: "user";
     content: ReadonlyArray<ContentPart>;
@@ -492,33 +492,27 @@ export type LocalChatMessage =
   | Readonly<{
     role: "assistant";
     content: ReadonlyArray<ContentPart>;
-  }>
-  | Readonly<{
-    role: "tool";
-    toolCallId: string;
-    name: string;
-    output: string;
   }>;
 
 /**
  * High-level user facts injected into the system prompt before the model
  * reaches for workspace SQL. Keep this small, factual, and easy to extend.
  */
-export type LocalChatUserContext = Readonly<{
+export type AIChatUserContext = Readonly<{
   totalCards: number;
 }>;
 
-export type LocalChatRequestBody = Readonly<{
-  messages: ReadonlyArray<LocalChatMessage>;
+export type AIChatTurnRequestBody = Readonly<{
+  messages: ReadonlyArray<AIChatWireMessage>;
   model: string;
   timezone: string;
   devicePlatform: "web";
   chatSessionId: string;
   codeInterpreterContainerId: string | null;
-  userContext: LocalChatUserContext;
+  userContext: AIChatUserContext;
 }>;
 
-export type LocalChatStreamEvent =
+export type AIChatTurnStreamEvent =
   | Readonly<{ type: "delta"; text: string }>
   | Readonly<{
     type: "tool_call";
@@ -536,7 +530,6 @@ export type LocalChatStreamEvent =
     maxAttempts: number;
     toolName: string | null;
   }>
-  | Readonly<{ type: "await_tool_results" }>
   | Readonly<{ type: "done" }>
   | Readonly<{
     type: "error";
@@ -587,7 +580,7 @@ export type ChatDiagnosticsPayload = Readonly<{
   lastEventType: string | null;
 }>;
 
-export type LocalChatFailureDiagnosticsPayload = Readonly<{
+export type AIChatFailureDiagnosticsPayload = Readonly<{
   kind: "failure";
   clientRequestId: string;
   backendRequestId: string | null;
@@ -608,7 +601,7 @@ export type LocalChatFailureDiagnosticsPayload = Readonly<{
   devicePlatform: "web";
 }>;
 
-export type LocalChatLatencyResult =
+export type AIChatLatencyResult =
   | "success"
   | "response_not_ok"
   | "missing_reader"
@@ -618,7 +611,7 @@ export type LocalChatLatencyResult =
   | "cancelled_before_first_delta"
   | "stream_error_before_first_delta";
 
-export type LocalChatLatencyDiagnosticsPayload = Readonly<{
+export type AIChatLatencyDiagnosticsPayload = Readonly<{
   kind: "latency";
   clientRequestId: string;
   backendRequestId: string | null;
@@ -626,7 +619,7 @@ export type LocalChatLatencyDiagnosticsPayload = Readonly<{
   messageCount: number;
   appVersion: string;
   devicePlatform: "web";
-  result: LocalChatLatencyResult;
+  result: AIChatLatencyResult;
   statusCode: number | null;
   firstEventType: string | null;
   didReceiveFirstSseLine: boolean;
@@ -641,6 +634,6 @@ export type LocalChatLatencyDiagnosticsPayload = Readonly<{
   tapToTerminalMs: number | null;
 }>;
 
-export type LocalChatDiagnosticsPayload =
-  | LocalChatFailureDiagnosticsPayload
-  | LocalChatLatencyDiagnosticsPayload;
+export type AIChatDiagnosticsPayload =
+  | AIChatFailureDiagnosticsPayload
+  | AIChatLatencyDiagnosticsPayload;

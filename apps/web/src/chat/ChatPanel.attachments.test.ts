@@ -4,12 +4,12 @@ import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
   createDropEvent,
-  createLocalChatRequestBodyMock,
+  createAIChatRequestBodyMock,
   ensurePersistentStorageMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
   setupChatPanelTest,
-  streamLocalChatMock,
+  streamAIChatMock,
 } from "./ChatPanelTestSupport";
 
 const chatPanel = setupChatPanelTest();
@@ -17,7 +17,7 @@ const chatPanel = setupChatPanelTest();
 describe("ChatPanel attachments", () => {
   it("blocks send before network when post-compression payload exceeds the 9.5 MB safety limit", async () => {
     const oversizedPayload = "x".repeat(10_100_000);
-    createLocalChatRequestBodyMock.mockImplementation(
+    createAIChatRequestBodyMock.mockImplementation(
       (
         messages: ReadonlyArray<unknown>,
         model: string,
@@ -39,7 +39,7 @@ describe("ChatPanel attachments", () => {
     await chatPanel.renderChatPanel();
     await chatPanel.sendMessage("trigger limit");
 
-    expect(streamLocalChatMock).not.toHaveBeenCalled();
+    expect(streamAIChatMock).not.toHaveBeenCalled();
     expect(ensurePersistentStorageMock).not.toHaveBeenCalled();
     expect(chatPanel.getContainer().textContent).toContain("Attachment payload limit is 10 MB after compression.");
   });
@@ -77,7 +77,7 @@ describe("ChatPanel attachments", () => {
     alertSpy.mockRestore();
   });
 
-  it("passes active card totals into local chat request bodies for sends and attachment draft checks", async () => {
+  it("passes active card totals into AI chat request bodies for sends and attachment draft checks", async () => {
     prepareAttachmentMock.mockResolvedValue({
       fileName: "notes.txt",
       mediaType: "text/plain",
@@ -98,13 +98,13 @@ describe("ChatPanel attachments", () => {
       await Promise.resolve();
     });
 
-    expect(createLocalChatRequestBodyMock.mock.calls[0]?.[5]).toEqual({
+    expect(createAIChatRequestBodyMock.mock.calls[0]?.[5]).toEqual({
       totalCards: 1,
     });
 
     await chatPanel.sendMessage("hello");
 
-    expect(createLocalChatRequestBodyMock.mock.calls.some((call) => JSON.stringify(call[5]) === JSON.stringify({
+    expect(createAIChatRequestBodyMock.mock.calls.some((call) => JSON.stringify(call[5]) === JSON.stringify({
       totalCards: 1,
     }))).toBe(true);
   });

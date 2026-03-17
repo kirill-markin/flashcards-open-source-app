@@ -6,26 +6,29 @@ import type {
   ResponseInputItem,
 } from "openai/resources/responses/responses";
 import type {
-  LocalAssistantToolCall,
-  LocalChatMessage,
-  LocalChatStreamEvent,
-  LocalChatUserContext,
-} from "../localTypes";
+  AIChatAssistantToolCall,
+  AIChatMessage,
+  AIChatTurnStreamEvent,
+  AIChatUserContext,
+  AIChatWireMessage,
+} from "../aiChatTypes";
 import {
+  buildAssistantToolCallContentParts,
   buildInlineTextAttachmentContext,
-  buildLocalSystemInstructions,
-  extractLocalAssistantToolCalls,
+  buildAIChatSystemInstructions,
+  extractAIChatAssistantToolCalls,
   isSpreadsheetFile,
-  isLocalToolName,
+  isAIChatToolName,
   isRepairableToolCallError,
-  makeLocalRepairStatusEvent,
-  MAX_LOCAL_TOOL_REPAIR_ATTEMPTS,
-  summarizeLocalContentParts,
-  toLocalAssistantToolCall,
-} from "../localRuntimeShared";
-import { OPENAI_LOCAL_FLASHCARDS_TOOLS } from "./localTools";
+  makeAIChatRepairStatusEvent,
+  MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS,
+  summarizeAIChatContentParts,
+  toAIChatAssistantToolCall,
+} from "../aiChatRuntimeShared";
+import { executeAIChatSqlTool } from "../aiChatToolExecutor";
+import { OPENAI_AI_CHAT_TOOLS } from "./aiChatTools";
 
-const LOCAL_CHAT_MODEL_IDS = new Set([
+const AI_CHAT_MODEL_IDS = new Set([
   "gpt-5.4",
   "gpt-5.2",
   "gpt-4.1",
@@ -169,7 +172,7 @@ type OpenAIResponsesClient = Readonly<{
   }>;
 }>;
 
-type LocalChatLogEvent =
+type AIChatLogEvent =
   | Readonly<{
     action: "request";
     requestId: string;
@@ -379,24 +382,28 @@ type LatestUserAttachmentSummary = Readonly<{
 const CODE_INTERPRETER_CONTAINER_EXPIRY_MINUTES = 20;
 const LOG_SNIPPET_MAX_CHARS = 400;
 
-export type StreamLocalTurnParams = Readonly<{
-  messages: ReadonlyArray<LocalChatMessage>;
+export type StreamAIChatTurnParams = Readonly<{
+  messages: ReadonlyArray<AIChatWireMessage>;
   model: string;
   timezone: string;
   devicePlatform: "ios" | "web";
   chatSessionId: string;
   codeInterpreterContainerId: string | null;
-  userContext: LocalChatUserContext;
+  userContext: AIChatUserContext;
   providerSafetyUserId?: string | null;
   requestId: string;
+  requestUrl: string;
+  userId: string;
+  workspaceId: string;
+  selectedWorkspaceId: string | null;
 }>;
 
-export type PreparedLocalTurn = Readonly<{
+export type PreparedAIChatTurn = Readonly<{
   codeInterpreterContainerId: string | null;
-  stream: AsyncGenerator<LocalChatStreamEvent>;
+  stream: AsyncGenerator<AIChatTurnStreamEvent>;
 }>;
 
-export class LocalChatRuntimeError extends Error {
+export class AIChatRuntimeError extends Error {
   readonly code: string;
   readonly stage: string;
 
@@ -407,11 +414,11 @@ export class LocalChatRuntimeError extends Error {
   }
 }
 
-function logLocalChatEvent(event: LocalChatLogEvent): void {
+function logAIChatEvent(event: AIChatLogEvent): void {
   console.error(JSON.stringify({
     domain: "chat",
     vendor: "openai",
-    mode: "local_client",
+    mode: "backend_chat",
     ...event,
   }));
 }
@@ -428,7 +435,7 @@ function logOpenAIClientInitialization(
   }>,
   client: OpenAIResponsesClient,
 ): void {
-  logLocalChatEvent({
+  logAIChatEvent({
     action: "client_initialized",
     requestId: params.requestId,
     model: params.model,
@@ -453,7 +460,7 @@ function assertOpenAIResponsesClient(
   logOpenAIClientInitialization(params, client);
 
   if (typeof client.responses?.stream !== "function") {
-    throw new LocalChatRuntimeError(
+    throw new AIChatRuntimeError(
       "AI chat OpenAI client is misconfigured on this server.",
       "LOCAL_CHAT_CLIENT_INVALID",
       "client_setup",
@@ -596,7 +603,7 @@ function summarizeFinalResponse(
 }
 
 function latestUserMessageIndex(
-  messages: ReadonlyArray<LocalChatMessage>,
+  messages: ReadonlyArray<AIChatMessage>,
 ): number {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     if (messages[index]?.role === "user") {
@@ -607,7 +614,7 @@ function latestUserMessageIndex(
   return -1;
 }
 
-function latestUserAttachments(messages: ReadonlyArray<LocalChatMessage>): ReadonlyArray<LatestUserAttachmentSummary> {
+function latestUserAttachments(messages: ReadonlyArray<AIChatMessage>): ReadonlyArray<LatestUserAttachmentSummary> {
   const latestUserIndex = latestUserMessageIndex(messages);
   if (latestUserIndex < 0) {
     return [];
@@ -649,7 +656,7 @@ async function verifySpreadsheetContainers(
 
   const codeInterpreterCalls = finalResponse.output.filter(isCodeInterpreterCallOutputItem);
   if (codeInterpreterCalls.length === 0) {
-    logLocalChatEvent({
+    logAIChatEvent({
       action: "spreadsheet_attachment_without_code_interpreter",
       requestId: params.requestId,
       model: params.model,
@@ -659,7 +666,7 @@ async function verifySpreadsheetContainers(
   }
 
   if (client.containers?.files.list === undefined) {
-    logLocalChatEvent({
+    logAIChatEvent({
       action: "spreadsheet_container_verification_unavailable",
       requestId: params.requestId,
       model: params.model,
@@ -685,7 +692,7 @@ async function verifySpreadsheetContainers(
         bytes: file.bytes,
       }));
 
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "spreadsheet_container_verified",
         requestId: params.requestId,
         model: params.model,
@@ -694,7 +701,7 @@ async function verifySpreadsheetContainers(
         containerFiles,
       });
     } catch (error) {
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "spreadsheet_container_verification_failed",
         requestId: params.requestId,
         model: params.model,
@@ -708,7 +715,7 @@ async function verifySpreadsheetContainers(
 
 async function uploadLatestUserFiles(
   client: OpenAIResponsesClient,
-  messages: ReadonlyArray<LocalChatMessage>,
+  messages: ReadonlyArray<AIChatMessage>,
 ): Promise<UploadPlan> {
   const latestUserIndex = latestUserMessageIndex(messages);
   if (latestUserIndex < 0) {
@@ -779,7 +786,7 @@ async function logCodeInterpreterContainerInventory(
     bytes: file.bytes,
   })) ?? [];
 
-  logLocalChatEvent({
+  logAIChatEvent({
     action: "code_interpreter_container_inventory",
     requestId: params.requestId,
     model: params.model,
@@ -792,7 +799,7 @@ async function logCodeInterpreterContainerInventory(
 
 async function resolveCodeInterpreterContainer(
   client: OpenAIResponsesClient,
-  params: StreamLocalTurnParams,
+  params: StreamAIChatTurnParams,
   uploadPlan: UploadPlan,
 ): Promise<CodeInterpreterContainerPlan> {
   const shouldUseExplicitContainer = uploadPlan.uploadedFileIds.length > 0
@@ -811,7 +818,7 @@ async function resolveCodeInterpreterContainer(
     || client.containers.files.create === undefined
     || client.containers.files.list === undefined
   ) {
-    throw new LocalChatRuntimeError(
+    throw new AIChatRuntimeError(
       "AI chat code execution is unavailable on this server.",
       "LOCAL_CHAT_CONTAINER_UNAVAILABLE",
       "container_setup",
@@ -826,7 +833,7 @@ async function resolveCodeInterpreterContainer(
     try {
       const existingContainer = await client.containers.retrieve(params.codeInterpreterContainerId);
       if (existingContainer.name !== expectedContainerName) {
-        logLocalChatEvent({
+        logAIChatEvent({
           action: "code_interpreter_container_session_mismatch",
           requestId: params.requestId,
           model: params.model,
@@ -840,7 +847,7 @@ async function resolveCodeInterpreterContainer(
         recreationReason = `status_${existingContainer.status}`;
       } else {
         effectiveContainerId = existingContainer.id;
-        logLocalChatEvent({
+        logAIChatEvent({
           action: "code_interpreter_container_reused",
           requestId: params.requestId,
           model: params.model,
@@ -865,7 +872,7 @@ async function resolveCodeInterpreterContainer(
     effectiveContainerId = createdContainer.id;
 
     if (recreationReason === null) {
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "code_interpreter_container_created",
         requestId: params.requestId,
         model: params.model,
@@ -874,7 +881,7 @@ async function resolveCodeInterpreterContainer(
         containerName: createdContainer.name,
       });
     } else {
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "code_interpreter_container_recreated",
         requestId: params.requestId,
         model: params.model,
@@ -889,7 +896,7 @@ async function resolveCodeInterpreterContainer(
 
   for (const fileId of uploadPlan.uploadedFileIds) {
     const containerFile = await client.containers.files.create(effectiveContainerId, { file_id: fileId });
-    logLocalChatEvent({
+    logAIChatEvent({
       action: "code_interpreter_container_file_added",
       requestId: params.requestId,
       model: params.model,
@@ -915,18 +922,18 @@ async function resolveCodeInterpreterContainer(
   };
 }
 
-function assistantTextContent(message: Extract<LocalChatMessage, { role: "assistant" }>): string {
-  return summarizeLocalContentParts(message.content);
+function assistantTextContent(message: Extract<AIChatMessage, { role: "assistant" }>): string {
+  return summarizeAIChatContentParts(message.content);
 }
 
 function messageToResponseItems(
-  message: LocalChatMessage,
+  message: AIChatMessage,
   messageIndex: number,
   uploadPlan: UploadPlan,
 ): ReadonlyArray<ResponseInputItem> {
   if (message.role === "user") {
     if (uploadPlan.latestUserIndex !== messageIndex) {
-      const summarizedContent = summarizeLocalContentParts(message.content);
+      const summarizedContent = summarizeAIChatContentParts(message.content);
       return summarizedContent === ""
         ? []
         : [{
@@ -997,7 +1004,7 @@ function messageToResponseItems(
       });
     }
 
-    for (const toolCall of extractLocalAssistantToolCalls(message.content)) {
+    for (const toolCall of extractAIChatAssistantToolCalls(message.content)) {
       items.push({
         type: "function_call",
         call_id: toolCall.toolCallId,
@@ -1017,7 +1024,7 @@ function messageToResponseItems(
 }
 
 function buildInput(
-  messages: ReadonlyArray<LocalChatMessage>,
+  messages: ReadonlyArray<AIChatMessage>,
   uploadPlan: UploadPlan,
   repairState: RepairPromptState | null,
 ): ReadonlyArray<ResponseInputItem> {
@@ -1055,8 +1062,8 @@ function normalizeToolCall(
   toolCall: ResponseFunctionToolCall,
   params: Readonly<{ requestId: string; model: string }>,
 ): ValidatedToolCall {
-  const normalizedToolCall = toLocalAssistantToolCall(toolCall.call_id, toolCall.name, toolCall.arguments);
-  logLocalChatEvent({
+  const normalizedToolCall = toAIChatAssistantToolCall(toolCall.call_id, toolCall.name, toolCall.arguments);
+  logAIChatEvent({
     action: "tool_call_validated",
     requestId: params.requestId,
     model: params.model,
@@ -1073,10 +1080,23 @@ function normalizeToolCall(
 function normalizeToolCalls(
   toolCalls: ReadonlyArray<ResponseFunctionToolCall>,
   params: Readonly<{ requestId: string; model: string }>,
-): ReadonlyArray<LocalAssistantToolCall> {
+): ReadonlyArray<AIChatAssistantToolCall> {
   return toolCalls
-    .filter((toolCall) => isLocalToolName(toolCall.name))
+    .filter((toolCall) => isAIChatToolName(toolCall.name))
     .map((toolCall) => normalizeToolCall(toolCall, params));
+}
+
+function parseSqlToolInput(input: string): string {
+  const parsed = JSON.parse(input) as Readonly<{ sql?: unknown }>;
+  if (typeof parsed.sql !== "string" || parsed.sql.trim() === "") {
+    throw new AIChatRuntimeError(
+      "AI chat produced an invalid SQL tool payload.",
+      "AI_CHAT_TOOL_INPUT_INVALID",
+      "tool_execution",
+    );
+  }
+
+  return parsed.sql;
 }
 
 function summarizeWebSearchAction(action: Readonly<Record<string, unknown>> | undefined): string | null {
@@ -1113,17 +1133,17 @@ function summarizeCodeInterpreterOutputs(
   return parts.length === 0 ? null : parts.join("\n");
 }
 
-export function isSupportedLocalChatModel(model: string): boolean {
-  return LOCAL_CHAT_MODEL_IDS.has(model);
+export function isSupportedAIChatModel(model: string): boolean {
+  return AI_CHAT_MODEL_IDS.has(model);
 }
 
-async function* streamPreparedLocalAgentTurn(
-  params: StreamLocalTurnParams,
+async function* streamPreparedAIChatAgentTurn(
+  params: StreamAIChatTurnParams,
   client: OpenAIResponsesClient,
   uploadPlan: UploadPlan,
   attachmentSummaries: ReadonlyArray<LatestUserAttachmentSummary>,
   containerPlan: CodeInterpreterContainerPlan,
-): AsyncGenerator<LocalChatStreamEvent> {
+): AsyncGenerator<AIChatTurnStreamEvent> {
   const spreadsheetAttachments = attachmentSummaries.filter((attachment) => attachment.isSpreadsheet);
   const forcedToolChoice = spreadsheetAttachments.length > 0 ? "code_interpreter" : "auto";
   const shouldLogResponseSummary = attachmentSummaries.length > 0
@@ -1131,11 +1151,21 @@ async function* streamPreparedLocalAgentTurn(
     || containerPlan.effectiveContainerId !== null;
 
   let repairState: RepairPromptState | null = null;
-  let streamedAssistantText = "";
   let deltaCount = 0;
+  const conversationMessages: Array<AIChatMessage> = params.messages.map((message) => {
+    if (message.role === "user") {
+      return message;
+    }
 
-  for (let repairAttempt = 0; repairAttempt <= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS; repairAttempt += 1) {
-    logLocalChatEvent({
+    return {
+      role: "assistant",
+      content: message.content.filter((part) => part.type !== "tool_call"),
+    } satisfies AIChatMessage;
+  });
+
+  for (let repairAttempt = 0; repairAttempt <= MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS; repairAttempt += 1) {
+    let streamedAssistantText = "";
+    logAIChatEvent({
       action: "stream_opened",
       requestId: params.requestId,
       model: params.model,
@@ -1145,8 +1175,8 @@ async function* streamPreparedLocalAgentTurn(
     const startedProviderTools = new Set<string>();
     const stream = client.responses.stream({
       model: params.model,
-      instructions: buildLocalSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
-      input: buildInput(params.messages, uploadPlan, repairState),
+      instructions: buildAIChatSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
+      input: buildInput(conversationMessages, uploadPlan, repairState),
       ...(forcedToolChoice === "code_interpreter"
         ? { tool_choice: { type: "code_interpreter" as const } }
         : {}),
@@ -1154,7 +1184,7 @@ async function* streamPreparedLocalAgentTurn(
         ? {}
         : { safety_identifier: params.providerSafetyUserId }),
       tools: [
-        ...OPENAI_LOCAL_FLASHCARDS_TOOLS,
+        ...OPENAI_AI_CHAT_TOOLS,
         {
           type: "web_search",
           search_context_size: "medium",
@@ -1239,7 +1269,7 @@ async function* streamPreparedLocalAgentTurn(
     const finalResponse = await stream.finalResponse();
     if (shouldLogResponseSummary) {
       const responseSummary = summarizeFinalResponse(finalResponse);
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "response_summary",
         requestId: params.requestId,
         model: params.model,
@@ -1262,7 +1292,7 @@ async function* streamPreparedLocalAgentTurn(
     const toolCalls = finalResponse.output.filter(isFunctionToolCall);
 
     if (toolCalls.length === 0) {
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "stream_closed",
         requestId: params.requestId,
         model: params.model,
@@ -1280,7 +1310,7 @@ async function* streamPreparedLocalAgentTurn(
         model: params.model,
       });
 
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "stream_closed",
         requestId: params.requestId,
         model: params.model,
@@ -1294,6 +1324,7 @@ async function* streamPreparedLocalAgentTurn(
         return;
       }
 
+      const toolOutputsById = new Map<string, string>();
       for (const toolCall of normalizedToolCalls) {
         yield {
           type: "tool_call_request",
@@ -1301,23 +1332,83 @@ async function* streamPreparedLocalAgentTurn(
           name: toolCall.name,
           input: toolCall.input,
         };
+
+        yield {
+          type: "tool_call",
+          toolCallId: toolCall.toolCallId,
+          name: toolCall.name,
+          status: "started",
+          input: toolCall.input,
+          output: null,
+        };
+
+        const toolOutput = await executeAIChatSqlTool({
+          requestUrl: params.requestUrl,
+          requestId: params.requestId,
+          userId: params.userId,
+          workspaceId: params.workspaceId,
+          selectedWorkspaceId: params.selectedWorkspaceId,
+          devicePlatform: params.devicePlatform,
+        }, parseSqlToolInput(toolCall.input));
+        toolOutputsById.set(toolCall.toolCallId, toolOutput);
+
+        yield {
+          type: "tool_call",
+          toolCallId: toolCall.toolCallId,
+          name: toolCall.name,
+          status: "completed",
+          input: toolCall.input,
+          output: toolOutput,
+        };
       }
 
-      yield { type: "await_tool_results" };
-      return;
+      const assistantContent = [
+        ...(streamedAssistantText === ""
+          ? []
+          : [{ type: "text", text: streamedAssistantText }] as const),
+        ...buildAssistantToolCallContentParts(normalizedToolCalls, toolOutputsById),
+      ];
+
+      if (assistantContent.length > 0) {
+        conversationMessages.push({
+          role: "assistant",
+          content: assistantContent,
+        });
+      }
+
+      for (const toolCall of normalizedToolCalls) {
+        const output = toolOutputsById.get(toolCall.toolCallId);
+        if (output === undefined) {
+          throw new AIChatRuntimeError(
+            `Missing backend tool output for ${toolCall.toolCallId}`,
+            "AI_CHAT_TOOL_OUTPUT_MISSING",
+            "tool_execution",
+          );
+        }
+
+        conversationMessages.push({
+          role: "tool",
+          toolCallId: toolCall.toolCallId,
+          name: toolCall.name,
+          output,
+        });
+      }
+
+      repairState = null;
+      continue;
     } catch (error) {
       if (isRepairableToolCallError(error) === false) {
         throw error;
       }
 
-      if (repairAttempt >= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS) {
-        logLocalChatEvent({
+      if (repairAttempt >= MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS) {
+        logAIChatEvent({
           action: "repair_exhausted",
           requestId: params.requestId,
           model: params.model,
           toolName: error.toolName,
         });
-        throw new LocalChatRuntimeError(
+        throw new AIChatRuntimeError(
           "Assistant could not prepare a valid tool call. Try again.",
           "LOCAL_TOOL_CALL_INVALID",
           "tool_call_validation",
@@ -1325,12 +1416,12 @@ async function* streamPreparedLocalAgentTurn(
       }
 
       const nextAttempt = repairAttempt + 1;
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "repair_attempt",
         requestId: params.requestId,
         model: params.model,
         attempt: nextAttempt,
-        maxAttempts: MAX_LOCAL_TOOL_REPAIR_ATTEMPTS,
+        maxAttempts: MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS,
         toolName: error.toolName,
         details: error.rawDetails,
       });
@@ -1338,24 +1429,24 @@ async function* streamPreparedLocalAgentTurn(
         assistantText: streamedAssistantText,
         prompt: error.repairPrompt,
       };
-      yield makeLocalRepairStatusEvent(nextAttempt, error.toolName);
+      yield makeAIChatRepairStatusEvent(nextAttempt, error.toolName);
     }
   }
 
-  throw new LocalChatRuntimeError(
+  throw new AIChatRuntimeError(
     "Assistant could not prepare a valid tool call. Try again.",
     "LOCAL_TOOL_CALL_INVALID",
     "tool_call_validation",
   );
 }
 
-async function prepareLocalAgentTurn(
-  params: StreamLocalTurnParams,
+async function prepareAIChatAgentTurn(
+  params: StreamAIChatTurnParams,
   client: OpenAIResponsesClient,
-): Promise<PreparedLocalTurn> {
+): Promise<PreparedAIChatTurn> {
   assertOpenAIResponsesClient(params, client);
   const attachmentSummaries = latestUserAttachments(params.messages);
-  logLocalChatEvent({
+  logAIChatEvent({
     action: "request",
     requestId: params.requestId,
     model: params.model,
@@ -1374,7 +1465,7 @@ async function prepareLocalAgentTurn(
 
   return {
     codeInterpreterContainerId: containerPlan.effectiveContainerId,
-    stream: streamPreparedLocalAgentTurn(
+    stream: streamPreparedAIChatAgentTurn(
       params,
       client,
       uploadPlan,
@@ -1384,23 +1475,23 @@ async function prepareLocalAgentTurn(
   };
 }
 
-export async function* streamLocalAgentTurn(
-  params: StreamLocalTurnParams,
+export async function* streamAIChatAgentTurn(
+  params: StreamAIChatTurnParams,
   client: OpenAIResponsesClient,
-): AsyncGenerator<LocalChatStreamEvent> {
-  const preparedTurn = await prepareLocalAgentTurn(params, client);
+): AsyncGenerator<AIChatTurnStreamEvent> {
+  const preparedTurn = await prepareAIChatAgentTurn(params, client);
   yield* preparedTurn.stream;
 }
 
-export async function* streamLocalTurn(
-  params: StreamLocalTurnParams,
-): AsyncGenerator<LocalChatStreamEvent> {
-  const preparedTurn = await prepareLocalAgentTurn(params, createClient());
+export async function* streamAIChatTurn(
+  params: StreamAIChatTurnParams,
+): AsyncGenerator<AIChatTurnStreamEvent> {
+  const preparedTurn = await prepareAIChatAgentTurn(params, createClient());
   yield* preparedTurn.stream;
 }
 
-export async function prepareLocalTurn(
-  params: StreamLocalTurnParams,
-): Promise<PreparedLocalTurn> {
-  return prepareLocalAgentTurn(params, createClient());
+export async function prepareAIChatTurn(
+  params: StreamAIChatTurnParams,
+): Promise<PreparedAIChatTurn> {
+  return prepareAIChatAgentTurn(params, createClient());
 }

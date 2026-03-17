@@ -1,29 +1,32 @@
 import { Buffer } from "node:buffer";
 import Anthropic, { toFile } from "@anthropic-ai/sdk";
 import type {
-  LocalAssistantToolCall,
-  LocalChatMessage,
-  LocalChatStreamEvent,
-  LocalChatUserContext,
-} from "../localTypes";
+  AIChatAssistantToolCall,
+  AIChatMessage,
+  AIChatTurnStreamEvent,
+  AIChatUserContext,
+  AIChatWireMessage,
+} from "../aiChatTypes";
 import {
+  buildAssistantToolCallContentParts,
   buildInlineTextAttachmentContext,
-  buildLocalSystemInstructions,
-  extractLocalAssistantToolCalls,
-  isLocalToolName,
+  buildAIChatSystemInstructions,
+  extractAIChatAssistantToolCalls,
+  isAIChatToolName,
   isRepairableToolCallError,
-  makeLocalRepairStatusEvent,
-  MAX_LOCAL_TOOL_REPAIR_ATTEMPTS,
-  summarizeLocalContentParts,
-  toLocalAssistantToolCall,
-} from "../localRuntimeShared";
+  makeAIChatRepairStatusEvent,
+  MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS,
+  summarizeAIChatContentParts,
+  toAIChatAssistantToolCall,
+} from "../aiChatRuntimeShared";
 import { CHAT_MODELS } from "../models";
-import { OPENAI_LOCAL_FLASHCARDS_TOOLS } from "../openai/localTools";
+import { executeAIChatSqlTool } from "../aiChatToolExecutor";
+import { OPENAI_AI_CHAT_TOOLS } from "../openai/aiChatTools";
 
 const MAX_TOKENS = 8_192;
 const FILES_BETA = "files-api-2025-04-14" as const;
 
-const LOCAL_CHAT_MODEL_IDS = new Set(
+const AI_CHAT_MODEL_IDS = new Set(
   CHAT_MODELS
     .filter((model) => model.vendor === "anthropic")
     .map((model) => model.id),
@@ -48,7 +51,7 @@ type AnthropicContentBlockStartEvent = Readonly<{
   content_block: AnthropicContentBlock;
 }>;
 
-type AnthropicLocalStreamEvent =
+type AnthropicAIChatStreamEvent =
   | AnthropicTextDeltaEvent
   | AnthropicContentBlockStartEvent
   | Readonly<{ type: string }>;
@@ -130,7 +133,7 @@ type AnthropicMessageParam = Readonly<{
   content: string | ReadonlyArray<Readonly<Record<string, unknown>>>;
 }>;
 
-type AnthropicStreamLike = AsyncIterable<AnthropicLocalStreamEvent> & Readonly<{
+type AnthropicStreamLike = AsyncIterable<AnthropicAIChatStreamEvent> & Readonly<{
   finalMessage: () => Promise<AnthropicFinalMessage>;
 }>;
 
@@ -143,7 +146,7 @@ type AnthropicMessagesClient = Readonly<{
   }>;
 }>;
 
-type LocalChatLogEvent =
+type AIChatLogEvent =
   | Readonly<{
     action: "request";
     requestId: string;
@@ -208,24 +211,28 @@ type ValidatedToolCall = Readonly<{
   input: string;
 }>;
 
-export type StreamLocalTurnParams = Readonly<{
-  messages: ReadonlyArray<LocalChatMessage>;
+export type StreamAIChatTurnParams = Readonly<{
+  messages: ReadonlyArray<AIChatWireMessage>;
   model: string;
   timezone: string;
   devicePlatform: "ios" | "web";
   chatSessionId: string;
   codeInterpreterContainerId: string | null;
-  userContext: LocalChatUserContext;
+  userContext: AIChatUserContext;
   providerSafetyUserId?: string | null;
   requestId: string;
+  requestUrl: string;
+  userId: string;
+  workspaceId: string;
+  selectedWorkspaceId: string | null;
 }>;
 
-export type PreparedLocalTurn = Readonly<{
+export type PreparedAIChatTurn = Readonly<{
   codeInterpreterContainerId: string | null;
-  stream: AsyncGenerator<LocalChatStreamEvent>;
+  stream: AsyncGenerator<AIChatTurnStreamEvent>;
 }>;
 
-export class LocalChatRuntimeError extends Error {
+export class AIChatRuntimeError extends Error {
   readonly code: string;
   readonly stage: string;
 
@@ -236,11 +243,11 @@ export class LocalChatRuntimeError extends Error {
   }
 }
 
-function logLocalChatEvent(event: LocalChatLogEvent): void {
+function logAIChatEvent(event: AIChatLogEvent): void {
   console.error(JSON.stringify({
     domain: "chat",
     vendor: "anthropic",
-    mode: "local_client",
+    mode: "backend_chat",
     ...event,
   }));
 }
@@ -250,20 +257,20 @@ function createClient(): AnthropicMessagesClient {
 }
 
 function isAnthropicTextDeltaEvent(
-  event: AnthropicLocalStreamEvent,
+  event: AnthropicAIChatStreamEvent,
 ): event is AnthropicTextDeltaEvent {
   return event.type === "content_block_delta";
 }
 
 function isAnthropicContentBlockStartEvent(
-  event: AnthropicLocalStreamEvent,
+  event: AnthropicAIChatStreamEvent,
 ): event is AnthropicContentBlockStartEvent {
   return event.type === "content_block_start";
 }
 
-function localAnthropicTools(): ReadonlyArray<Readonly<Record<string, unknown>>> {
+function anthropicAIChatTools(): ReadonlyArray<Readonly<Record<string, unknown>>> {
   return [
-    ...OPENAI_LOCAL_FLASHCARDS_TOOLS.map((tool) => ({
+    ...OPENAI_AI_CHAT_TOOLS.map((tool) => ({
       name: tool.name,
       description: tool.description,
       input_schema: tool.parameters as Readonly<Record<string, unknown>>,
@@ -284,7 +291,7 @@ function parseToolInput(rawInput: string): unknown {
   return JSON.parse(rawInput) as unknown;
 }
 
-function latestUserMessageIndex(messages: ReadonlyArray<LocalChatMessage>): number {
+function latestUserMessageIndex(messages: ReadonlyArray<AIChatMessage>): number {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     if (messages[index]?.role === "user") {
       return index;
@@ -294,7 +301,7 @@ function latestUserMessageIndex(messages: ReadonlyArray<LocalChatMessage>): numb
   return -1;
 }
 
-function isUploadableFileMessagePart(message: LocalChatMessage, partIndex: number): boolean {
+function isUploadableFileMessagePart(message: AIChatMessage, partIndex: number): boolean {
   if (message.role !== "user") {
     return false;
   }
@@ -305,7 +312,7 @@ function isUploadableFileMessagePart(message: LocalChatMessage, partIndex: numbe
 
 async function uploadLatestUserFiles(
   client: AnthropicMessagesClient,
-  messages: ReadonlyArray<LocalChatMessage>,
+  messages: ReadonlyArray<AIChatMessage>,
 ): Promise<UploadPlan> {
   const latestUserIndex = latestUserMessageIndex(messages);
   if (latestUserIndex < 0) {
@@ -360,22 +367,22 @@ function assertImageMediaType(mediaType: string): "image/jpeg" | "image/png" | "
     return mediaType;
   }
 
-  throw new LocalChatRuntimeError(
-    `Unsupported image media type for Anthropic local chat: ${mediaType}`,
+  throw new AIChatRuntimeError(
+    `Unsupported image media type for Anthropic AI chat: ${mediaType}`,
     "LOCAL_ATTACHMENT_UNSUPPORTED",
     "attachment_mapping",
   );
 }
 
 function mapLatestUserPartToAnthropicContentBlocks(
-  message: Extract<LocalChatMessage, { role: "user" }>,
+  message: Extract<AIChatMessage, { role: "user" }>,
   messageIndex: number,
   partIndex: number,
   uploadPlan: UploadPlan,
 ): ReadonlyArray<Readonly<Record<string, unknown>>> {
   const part = message.content[partIndex];
   if (part === undefined) {
-    throw new LocalChatRuntimeError(
+    throw new AIChatRuntimeError(
       `Missing message part at index ${partIndex}`,
       "LOCAL_ATTACHMENT_UNSUPPORTED",
       "attachment_mapping",
@@ -412,7 +419,7 @@ function mapLatestUserPartToAnthropicContentBlocks(
 
     const uploadedPart = uploadPlan.uploadedParts.get(`${messageIndex}:${partIndex}`);
     if (uploadedPart === undefined) {
-      throw new LocalChatRuntimeError(
+      throw new AIChatRuntimeError(
         `Missing uploaded file for ${part.fileName}`,
         "LOCAL_FILE_UPLOAD_MISSING",
         "file_upload",
@@ -434,25 +441,25 @@ function mapLatestUserPartToAnthropicContentBlocks(
     return blocks;
   }
 
-  throw new LocalChatRuntimeError(
+  throw new AIChatRuntimeError(
     `Unsupported user content part: ${part.type}`,
     "LOCAL_ATTACHMENT_UNSUPPORTED",
     "attachment_mapping",
   );
 }
 
-function assistantTextContent(message: Extract<LocalChatMessage, { role: "assistant" }>): string {
-  return summarizeLocalContentParts(message.content);
+function assistantTextContent(message: Extract<AIChatMessage, { role: "assistant" }>): string {
+  return summarizeAIChatContentParts(message.content);
 }
 
 function messageToAnthropicMessage(
-  message: LocalChatMessage,
+  message: AIChatMessage,
   messageIndex: number,
   uploadPlan: UploadPlan,
 ): AnthropicMessageParam | null {
   if (message.role === "user") {
     if (uploadPlan.latestUserIndex !== messageIndex) {
-      const summarizedContent = summarizeLocalContentParts(message.content);
+      const summarizedContent = summarizeAIChatContentParts(message.content);
       return summarizedContent === ""
         ? null
         : {
@@ -483,7 +490,7 @@ function messageToAnthropicMessage(
       });
     }
 
-    for (const toolCall of extractLocalAssistantToolCalls(message.content)) {
+    for (const toolCall of extractAIChatAssistantToolCalls(message.content)) {
       content.push({
         type: "tool_use",
         id: toolCall.toolCallId,
@@ -511,7 +518,7 @@ function messageToAnthropicMessage(
 }
 
 function buildInput(
-  messages: ReadonlyArray<LocalChatMessage>,
+  messages: ReadonlyArray<AIChatMessage>,
   uploadPlan: UploadPlan,
   repairState: RepairPromptState | null,
 ): ReadonlyArray<AnthropicMessageParam> {
@@ -548,8 +555,8 @@ function buildInput(
   return items;
 }
 
-function isLocalToolUseBlock(block: AnthropicContentBlock): block is AnthropicToolUseBlock {
-  return block.type === "tool_use" && "name" in block && typeof block.name === "string" && isLocalToolName(block.name);
+function isAIChatToolUseBlock(block: AnthropicContentBlock): block is AnthropicToolUseBlock {
+  return block.type === "tool_use" && "name" in block && typeof block.name === "string" && isAIChatToolName(block.name);
 }
 
 function isServerToolUseBlock(block: AnthropicContentBlock): block is AnthropicServerToolUseBlock {
@@ -568,12 +575,12 @@ function normalizeToolCall(
   toolCall: AnthropicToolUseBlock,
   params: Readonly<{ requestId: string; model: string }>,
 ): ValidatedToolCall {
-  const normalizedToolCall = toLocalAssistantToolCall(
+  const normalizedToolCall = toAIChatAssistantToolCall(
     toolCall.id,
     toolCall.name,
     JSON.stringify(toolCall.input),
   );
-  logLocalChatEvent({
+  logAIChatEvent({
     action: "tool_call_validated",
     requestId: params.requestId,
     model: params.model,
@@ -590,7 +597,7 @@ function normalizeToolCall(
 function normalizeToolCalls(
   toolCalls: ReadonlyArray<AnthropicToolUseBlock>,
   params: Readonly<{ requestId: string; model: string }>,
-): ReadonlyArray<LocalAssistantToolCall> {
+): ReadonlyArray<AIChatAssistantToolCall> {
   return toolCalls.map((toolCall) => {
     const normalizedToolCall = normalizeToolCall(toolCall, params);
     return {
@@ -599,6 +606,19 @@ function normalizeToolCalls(
       input: normalizedToolCall.input,
     };
   });
+}
+
+function parseSqlToolInput(input: string): string {
+  const parsed = JSON.parse(input) as Readonly<{ sql?: unknown }>;
+  if (typeof parsed.sql !== "string" || parsed.sql.trim() === "") {
+    throw new AIChatRuntimeError(
+      "AI chat produced an invalid SQL tool payload.",
+      "AI_CHAT_TOOL_INPUT_INVALID",
+      "tool_execution",
+    );
+  }
+
+  return parsed.sql;
 }
 
 function stringifyUnknown(value: unknown): string | null {
@@ -649,15 +669,15 @@ function summarizeCodeExecutionResultContent(
   return JSON.stringify(content);
 }
 
-export function isSupportedLocalChatModel(model: string): boolean {
-  return LOCAL_CHAT_MODEL_IDS.has(model);
+export function isSupportedAIChatModel(model: string): boolean {
+  return AI_CHAT_MODEL_IDS.has(model);
 }
 
-export async function* streamLocalAgentTurn(
-  params: StreamLocalTurnParams,
+export async function* streamAIChatAgentTurn(
+  params: StreamAIChatTurnParams,
   client: AnthropicMessagesClient,
-): AsyncGenerator<LocalChatStreamEvent> {
-  logLocalChatEvent({
+): AsyncGenerator<AIChatTurnStreamEvent> {
+  logAIChatEvent({
     action: "request",
     requestId: params.requestId,
     model: params.model,
@@ -665,12 +685,22 @@ export async function* streamLocalAgentTurn(
   });
 
   let repairState: RepairPromptState | null = null;
-  let streamedAssistantText = "";
   let deltaCount = 0;
-  const uploadPlan = await uploadLatestUserFiles(client, params.messages);
+  const conversationMessages: Array<AIChatMessage> = params.messages.map((message) => {
+    if (message.role === "user") {
+      return message;
+    }
 
-  for (let repairAttempt = 0; repairAttempt <= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS; repairAttempt += 1) {
-    logLocalChatEvent({
+    return {
+      role: "assistant",
+      content: message.content.filter((part) => part.type !== "tool_call"),
+    } satisfies AIChatMessage;
+  });
+  const uploadPlan = await uploadLatestUserFiles(client, conversationMessages);
+
+  for (let repairAttempt = 0; repairAttempt <= MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS; repairAttempt += 1) {
+    let streamedAssistantText = "";
+    logAIChatEvent({
       action: "stream_opened",
       requestId: params.requestId,
       model: params.model,
@@ -682,12 +712,12 @@ export async function* streamLocalAgentTurn(
     const stream = client.beta.messages.stream({
       model: params.model,
       max_tokens: MAX_TOKENS,
-      system: buildLocalSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
-      messages: buildInput(params.messages, uploadPlan, repairState),
+      system: buildAIChatSystemInstructions(params.timezone, params.devicePlatform, params.userContext),
+      messages: buildInput(conversationMessages, uploadPlan, repairState),
       ...(params.providerSafetyUserId === undefined || params.providerSafetyUserId === null
         ? {}
         : { metadata: { user_id: params.providerSafetyUserId } }),
-      tools: localAnthropicTools(),
+      tools: anthropicAIChatTools(),
       betas: [FILES_BETA],
     });
 
@@ -751,10 +781,10 @@ export async function* streamLocalAgentTurn(
       }
     }
 
-    const toolCalls = finalMessage.content.filter(isLocalToolUseBlock);
+    const toolCalls = finalMessage.content.filter(isAIChatToolUseBlock);
 
     if (toolCalls.length === 0) {
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "stream_closed",
         requestId: params.requestId,
         model: params.model,
@@ -771,7 +801,7 @@ export async function* streamLocalAgentTurn(
         requestId: params.requestId,
         model: params.model,
       });
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "stream_closed",
         requestId: params.requestId,
         model: params.model,
@@ -785,6 +815,7 @@ export async function* streamLocalAgentTurn(
         return;
       }
 
+      const toolOutputsById = new Map<string, string>();
       for (const toolCall of normalizedToolCalls) {
         yield {
           type: "tool_call_request",
@@ -792,23 +823,83 @@ export async function* streamLocalAgentTurn(
           name: toolCall.name,
           input: toolCall.input,
         };
+
+        yield {
+          type: "tool_call",
+          toolCallId: toolCall.toolCallId,
+          name: toolCall.name,
+          status: "started",
+          input: toolCall.input,
+          output: null,
+        };
+
+        const toolOutput = await executeAIChatSqlTool({
+          requestUrl: params.requestUrl,
+          requestId: params.requestId,
+          userId: params.userId,
+          workspaceId: params.workspaceId,
+          selectedWorkspaceId: params.selectedWorkspaceId,
+          devicePlatform: params.devicePlatform,
+        }, parseSqlToolInput(toolCall.input));
+        toolOutputsById.set(toolCall.toolCallId, toolOutput);
+
+        yield {
+          type: "tool_call",
+          toolCallId: toolCall.toolCallId,
+          name: toolCall.name,
+          status: "completed",
+          input: toolCall.input,
+          output: toolOutput,
+        };
       }
 
-      yield { type: "await_tool_results" };
-      return;
+      const assistantContent = [
+        ...(streamedAssistantText === ""
+          ? []
+          : [{ type: "text", text: streamedAssistantText }] as const),
+        ...buildAssistantToolCallContentParts(normalizedToolCalls, toolOutputsById),
+      ];
+
+      if (assistantContent.length > 0) {
+        conversationMessages.push({
+          role: "assistant",
+          content: assistantContent,
+        });
+      }
+
+      for (const toolCall of normalizedToolCalls) {
+        const output = toolOutputsById.get(toolCall.toolCallId);
+        if (output === undefined) {
+          throw new AIChatRuntimeError(
+            `Missing backend tool output for ${toolCall.toolCallId}`,
+            "AI_CHAT_TOOL_OUTPUT_MISSING",
+            "tool_execution",
+          );
+        }
+
+        conversationMessages.push({
+          role: "tool",
+          toolCallId: toolCall.toolCallId,
+          name: toolCall.name,
+          output,
+        });
+      }
+
+      repairState = null;
+      continue;
     } catch (error) {
       if (isRepairableToolCallError(error) === false) {
         throw error;
       }
 
-      if (repairAttempt >= MAX_LOCAL_TOOL_REPAIR_ATTEMPTS) {
-        logLocalChatEvent({
+      if (repairAttempt >= MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS) {
+        logAIChatEvent({
           action: "repair_exhausted",
           requestId: params.requestId,
           model: params.model,
           toolName: error.toolName,
         });
-        throw new LocalChatRuntimeError(
+        throw new AIChatRuntimeError(
           "Assistant could not prepare a valid tool call. Try again.",
           "LOCAL_TOOL_CALL_INVALID",
           "tool_call_validation",
@@ -816,12 +907,12 @@ export async function* streamLocalAgentTurn(
       }
 
       const nextAttempt = repairAttempt + 1;
-      logLocalChatEvent({
+      logAIChatEvent({
         action: "repair_attempt",
         requestId: params.requestId,
         model: params.model,
         attempt: nextAttempt,
-        maxAttempts: MAX_LOCAL_TOOL_REPAIR_ATTEMPTS,
+        maxAttempts: MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS,
         toolName: error.toolName,
         details: error.rawDetails,
       });
@@ -829,28 +920,28 @@ export async function* streamLocalAgentTurn(
         assistantText: streamedAssistantText,
         prompt: error.repairPrompt,
       };
-      yield makeLocalRepairStatusEvent(nextAttempt, error.toolName);
+      yield makeAIChatRepairStatusEvent(nextAttempt, error.toolName);
     }
   }
 
-  throw new LocalChatRuntimeError(
+  throw new AIChatRuntimeError(
     "Assistant could not prepare a valid tool call. Try again.",
     "LOCAL_TOOL_CALL_INVALID",
     "tool_call_validation",
   );
 }
 
-export async function* streamLocalTurn(
-  params: StreamLocalTurnParams,
-): AsyncGenerator<LocalChatStreamEvent> {
-  yield* streamLocalAgentTurn(params, createClient());
+export async function* streamAIChatTurn(
+  params: StreamAIChatTurnParams,
+): AsyncGenerator<AIChatTurnStreamEvent> {
+  yield* streamAIChatAgentTurn(params, createClient());
 }
 
-export async function prepareLocalTurn(
-  params: StreamLocalTurnParams,
-): Promise<PreparedLocalTurn> {
+export async function prepareAIChatTurn(
+  params: StreamAIChatTurnParams,
+): Promise<PreparedAIChatTurn> {
   return {
     codeInterpreterContainerId: null,
-    stream: streamLocalTurn(params),
+    stream: streamAIChatTurn(params),
   };
 }

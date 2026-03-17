@@ -111,15 +111,13 @@ final class AIChatStore {
         flashcardsStore: FlashcardsStore,
         historyStore: any AIChatHistoryStoring,
         chatService: any AIChatStreaming,
-        toolExecutor: any AIToolExecuting,
-        localContextLoader: any AIChatLocalContextLoading
+        contextLoader: any AIChatContextLoading
     ) {
         self.init(
             flashcardsStore: flashcardsStore,
             historyStore: historyStore,
             chatService: chatService,
-            toolExecutor: toolExecutor,
-            localContextLoader: localContextLoader,
+            contextLoader: contextLoader,
             voiceRecorder: AIChatDisabledVoiceRecorder(),
             audioTranscriber: AIChatDisabledAudioTranscriber()
         )
@@ -129,8 +127,7 @@ final class AIChatStore {
         flashcardsStore: FlashcardsStore,
         historyStore: any AIChatHistoryStoring,
         chatService: any AIChatStreaming,
-        toolExecutor: any AIToolExecuting,
-        localContextLoader: any AIChatLocalContextLoading,
+        contextLoader: any AIChatContextLoading,
         voiceRecorder: any AIChatVoiceRecording,
         audioTranscriber: any AIChatAudioTranscribing
     ) {
@@ -142,8 +139,7 @@ final class AIChatStore {
         self.runtime = AIChatSessionRuntime(
             historyStore: historyStore,
             chatService: chatService,
-            toolExecutor: toolExecutor,
-            localContextLoader: localContextLoader,
+            contextLoader: contextLoader,
             streamFlushInterval: 0.1,
             historyCheckpointInterval: 2.0
         )
@@ -343,37 +339,37 @@ final class AIChatStore {
 
         self.activeAlert = nil
         self.repairStatus = nil
-        self.messages.append(
-            AIChatMessage(
-                id: UUID().uuidString.lowercased(),
-                role: .user,
-                content: content,
-                timestamp: nowIsoTimestamp(),
-                isError: false
-            )
-        )
-        self.messages.append(
-            AIChatMessage(
-                id: UUID().uuidString.lowercased(),
-                role: .assistant,
-                content: [.text(aiChatOptimisticAssistantStatusText)],
-                timestamp: nowIsoTimestamp(),
-                isError: false
-            )
-        )
-        self.inputText = ""
-        self.pendingAttachments = []
-        self.isStreaming = true
-
         let conversationId = UUID().uuidString.lowercased()
-        self.activeConversationId = conversationId
 
-        let initialState = self.currentPersistedState()
         let task = Task {
             var diagnosticsSession: CloudLinkedSession?
             do {
                 let session = try await self.flashcardsStore.authenticatedCloudSessionForAI()
+                try await self.ensureAIChatReadyForSend(linkedSession: session)
+                self.messages.append(
+                    AIChatMessage(
+                        id: UUID().uuidString.lowercased(),
+                        role: .user,
+                        content: content,
+                        timestamp: nowIsoTimestamp(),
+                        isError: false
+                    )
+                )
+                self.messages.append(
+                    AIChatMessage(
+                        id: UUID().uuidString.lowercased(),
+                        role: .assistant,
+                        content: [.text(aiChatOptimisticAssistantStatusText)],
+                        timestamp: nowIsoTimestamp(),
+                        isError: false
+                    )
+                )
+                self.inputText = ""
+                self.pendingAttachments = []
+                self.isStreaming = true
+                self.activeConversationId = conversationId
                 diagnosticsSession = session
+                let initialState = self.currentPersistedState()
                 let result = await self.runtime.run(
                     session: session,
                     initialState: initialState,
@@ -395,6 +391,11 @@ final class AIChatStore {
                 let latestPersistedState = self.historyStore.loadState()
                 self.chatSessionId = latestPersistedState.chatSessionId
                 self.codeInterpreterContainerId = latestPersistedState.codeInterpreterContainerId
+                do {
+                    _ = try await self.flashcardsStore.runLinkedSync(linkedSession: session)
+                } catch {
+                    self.flashcardsStore.globalErrorMessage = Flashcards.errorMessage(error: error)
+                }
             } catch is CancellationError {
             } catch {
                 let latestPersistedState = self.historyStore.loadState()
@@ -417,6 +418,21 @@ final class AIChatStore {
         }
 
         self.activeSendTask = task
+    }
+
+    private func ensureAIChatReadyForSend(linkedSession: CloudLinkedSession) async throws {
+        guard let workspaceId = self.flashcardsStore.workspace?.workspaceId else {
+            throw LocalStoreError.validation("Select a workspace before using AI chat.")
+        }
+        guard let database = self.flashcardsStore.database else {
+            throw LocalStoreError.uninitialized("Local database is unavailable")
+        }
+
+        _ = try await self.flashcardsStore.runLinkedSync(linkedSession: linkedSession)
+        let outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
+        if outboxEntries.isEmpty == false {
+            throw LocalStoreError.validation("AI chat is blocked until all pending sync operations are uploaded.")
+        }
     }
 
     private func trimmedInputText() -> String {
@@ -565,8 +581,6 @@ final class AIChatStore {
             self.upsertToolCall(toolCall: toolCall)
         case .setRepairStatus(let status):
             self.repairStatus = status
-        case .refreshLocalState:
-            self.flashcardsStore.refreshLocalReadModels(now: Date())
         case .finish:
             self.repairStatus = nil
             if self.activeConversationId == conversationId {

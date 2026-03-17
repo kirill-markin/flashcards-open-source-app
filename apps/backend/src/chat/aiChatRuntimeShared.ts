@@ -1,13 +1,13 @@
 import { Buffer } from "node:buffer";
 import { ZodError } from "zod";
 import type {
-  LocalAssistantToolCall,
-  LocalChatDevicePlatform,
-  LocalChatStreamEvent,
-  LocalChatUserContext,
-  LocalContentPart,
-  LocalFileContentPart,
-} from "./localTypes";
+  AIChatAssistantToolCall,
+  AIChatContentPart,
+  AIChatDevicePlatform,
+  AIChatFileContentPart,
+  AIChatTurnStreamEvent,
+  AIChatUserContext,
+} from "./aiChatTypes";
 import {
   buildAssistantRoleSection,
   buildCardEffortSection,
@@ -24,10 +24,10 @@ import {
   buildUserContextSection,
   buildWritePolicySection,
 } from "./promptSections";
-import { OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS } from "./openai/localTools";
+import { OPENAI_AI_CHAT_TOOL_ARGUMENT_VALIDATORS } from "./openai/aiChatTools";
 
-export const MAX_LOCAL_TOOL_REPAIR_ATTEMPTS = 3;
-const LOCAL_TOOL_NAME_SET = new Set(Object.keys(OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS));
+export const MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS = 3;
+const AI_CHAT_TOOL_NAME_SET = new Set(Object.keys(OPENAI_AI_CHAT_TOOL_ARGUMENT_VALIDATORS));
 export const INLINE_TEXT_ATTACHMENT_MAX_BYTES = 64 * 1024;
 
 const GENERIC_FILE_MEDIA_TYPES = new Set([
@@ -89,7 +89,7 @@ function formatSchemaIssues(error: ZodError): string {
   }).join("; ");
 }
 
-function platformPromptLabel(devicePlatform: LocalChatDevicePlatform): string {
+function platformPromptLabel(devicePlatform: AIChatDevicePlatform): string {
   return devicePlatform === "web"
     ? "The user is chatting with you in the web browser chat."
     : "The user is chatting with you in the iOS app chat on iPhone.";
@@ -158,19 +158,19 @@ function buildLocalAttachmentHandlingSection(): string {
 }
 
 /**
- * Builds the canonical system instructions for local-turn runtimes. Every
- * local client must use the same tool-call rules and write-policy wording so
- * OpenAI and Anthropic turns produce compatible local tool requests. The
+ * Builds the canonical system instructions for backend-executed AI chat. Every
+ * provider must use the same tool-call rules and write-policy wording so
+ * OpenAI and Anthropic turns produce compatible SQL tool requests. The
  * attachment section documents the hybrid delivery strategy for small text
  * files and instructs models how to find mounted files inside code execution.
  *
  * iOS consumer:
  * `apps/ios/Flashcards/Flashcards/AI/AIChatSessionRuntime.swift`
  */
-export function buildLocalSystemInstructions(
+export function buildAIChatSystemInstructions(
   timezone: string,
-  devicePlatform: LocalChatDevicePlatform,
-  userContext: LocalChatUserContext,
+  devicePlatform: AIChatDevicePlatform,
+  userContext: AIChatUserContext,
 ): string {
   return buildPromptFromSections([
     buildAssistantRoleSection(),
@@ -195,7 +195,7 @@ export function buildLocalSystemInstructions(
  * addition to tool/container delivery. CSV is intentionally excluded because
  * it is more often processed programmatically than read conversationally.
  */
-export function isInlineTextAttachmentCandidate(part: LocalFileContentPart): boolean {
+export function isInlineTextAttachmentCandidate(part: AIChatFileContentPart): boolean {
   if (isCsvFile(part.mediaType, part.fileName)) {
     return false;
   }
@@ -216,7 +216,7 @@ export function isInlineTextAttachmentCandidate(part: LocalFileContentPart): boo
  * Decodes a text-like attachment as strict UTF-8 when it is small enough to
  * duplicate inline. Invalid UTF-8 and oversized files are left tool-only.
  */
-export function decodeInlineTextAttachment(part: LocalFileContentPart): string | null {
+export function decodeInlineTextAttachment(part: AIChatFileContentPart): string | null {
   if (isInlineTextAttachmentCandidate(part) === false) {
     return null;
   }
@@ -238,7 +238,7 @@ export function decodeInlineTextAttachment(part: LocalFileContentPart): string |
  * attachments directly from the prompt without guessing file boundaries.
  */
 export function buildInlineTextAttachmentBlock(
-  part: LocalFileContentPart,
+  part: AIChatFileContentPart,
   textContent: string,
 ): string {
   return [
@@ -253,7 +253,7 @@ export function buildInlineTextAttachmentBlock(
  * avoids promising an exact mounted filename while still pointing the model to
  * the documented /mnt/data pattern.
  */
-export function buildExecutionEnvironmentHintBlock(part: LocalFileContentPart): string {
+export function buildExecutionEnvironmentHintBlock(part: AIChatFileContentPart): string {
   return [
     `<attached_file_execution_hint name="${escapeXmlAttribute(part.fileName)}">`,
     "The original file is also available to code execution.",
@@ -268,7 +268,7 @@ export function buildExecutionEnvironmentHintBlock(part: LocalFileContentPart): 
  * Returns the full inline attachment context for small text files. The caller
  * can append this directly as a text block next to the uploaded file handle.
  */
-export function buildInlineTextAttachmentContext(part: LocalFileContentPart): string | null {
+export function buildInlineTextAttachmentContext(part: AIChatFileContentPart): string | null {
   const textContent = decodeInlineTextAttachment(part);
   if (textContent === null) {
     return null;
@@ -305,20 +305,20 @@ function createRepairableToolCallError(
   };
 }
 
-function getLocalToolArgumentValidator(
+function getAIChatToolArgumentValidator(
   toolName: string,
-): typeof OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS[keyof typeof OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS] | undefined {
-  return OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS[
-    toolName as keyof typeof OPENAI_LOCAL_TOOL_ARGUMENT_VALIDATORS
+): typeof OPENAI_AI_CHAT_TOOL_ARGUMENT_VALIDATORS[keyof typeof OPENAI_AI_CHAT_TOOL_ARGUMENT_VALIDATORS] | undefined {
+  return OPENAI_AI_CHAT_TOOL_ARGUMENT_VALIDATORS[
+    toolName as keyof typeof OPENAI_AI_CHAT_TOOL_ARGUMENT_VALIDATORS
   ];
 }
 
 /**
- * Validates local tool arguments against the shared canonical local-tool
- * schema. The returned JSON string is normalized and safe to persist in local
+ * Validates AI chat tool arguments against the shared canonical tool
+ * schema. The returned JSON string is normalized and safe to persist in
  * chat history and replay in later turns.
  */
-export function validateLocalToolArguments(toolName: string, rawArguments: string): string {
+export function validateAIChatToolArguments(toolName: string, rawArguments: string): string {
   let parsedArguments: unknown;
 
   try {
@@ -332,7 +332,7 @@ export function validateLocalToolArguments(toolName: string, rawArguments: strin
     );
   }
 
-  const validator = getLocalToolArgumentValidator(toolName);
+  const validator = getAIChatToolArgumentValidator(toolName);
   if (validator === undefined) {
     throw createRepairableToolCallError(
       toolName,
@@ -362,10 +362,10 @@ export function isRepairableToolCallError(error: unknown): error is RepairableTo
     && "rawDetails" in error;
 }
 
-export function makeLocalRepairStatusEvent(
+export function makeAIChatRepairStatusEvent(
   attempt: number,
   toolName: string | null,
-): LocalChatStreamEvent {
+): AIChatTurnStreamEvent {
   const message = toolName === null
     ? "Assistant is correcting a tool call."
     : `Assistant is correcting ${toolName}.`;
@@ -374,32 +374,32 @@ export function makeLocalRepairStatusEvent(
     type: "repair_attempt",
     message,
     attempt,
-    maxAttempts: MAX_LOCAL_TOOL_REPAIR_ATTEMPTS,
+    maxAttempts: MAX_AI_CHAT_TOOL_REPAIR_ATTEMPTS,
     toolName,
   };
 }
 
 /**
- * Normalizes one validated local tool call into the persisted assistant-tool
- * record format shared by iOS and web local chat histories.
+ * Normalizes one validated AI chat tool call into the persisted assistant-tool
+ * record format shared by iOS and web chat histories.
  */
-export function toLocalAssistantToolCall(
+export function toAIChatAssistantToolCall(
   toolCallId: string,
   name: string,
   rawInput: string,
-): LocalAssistantToolCall {
+): AIChatAssistantToolCall {
   return {
     toolCallId,
     name,
-    input: validateLocalToolArguments(name, rawInput),
+    input: validateAIChatToolArguments(name, rawInput),
   };
 }
 
-export function isLocalToolName(name: string): boolean {
-  return LOCAL_TOOL_NAME_SET.has(name);
+export function isAIChatToolName(name: string): boolean {
+  return AI_CHAT_TOOL_NAME_SET.has(name);
 }
 
-export function summarizeLocalContentParts(parts: ReadonlyArray<LocalContentPart>): string {
+export function summarizeAIChatContentParts(parts: ReadonlyArray<AIChatContentPart>): string {
   return parts.map((part) => {
     if (part.type === "text") {
       return part.text;
@@ -413,7 +413,7 @@ export function summarizeLocalContentParts(parts: ReadonlyArray<LocalContentPart
       return `[${part.fileName}]`;
     }
 
-    if (isLocalToolName(part.name)) {
+    if (isAIChatToolName(part.name)) {
       return "";
     }
 
@@ -423,11 +423,11 @@ export function summarizeLocalContentParts(parts: ReadonlyArray<LocalContentPart
   }).filter((part) => part !== "").join("\n");
 }
 
-export function extractLocalAssistantToolCalls(
-  parts: ReadonlyArray<LocalContentPart>,
-): ReadonlyArray<LocalAssistantToolCall> {
+export function extractAIChatAssistantToolCalls(
+  parts: ReadonlyArray<AIChatContentPart>,
+): ReadonlyArray<AIChatAssistantToolCall> {
   return parts.flatMap((part) => {
-    if (part.type !== "tool_call" || isLocalToolName(part.name) === false) {
+    if (part.type !== "tool_call" || isAIChatToolName(part.name) === false) {
       return [];
     }
 
@@ -437,4 +437,18 @@ export function extractLocalAssistantToolCalls(
       input: part.input ?? "{}",
     }];
   });
+}
+
+export function buildAssistantToolCallContentParts(
+  toolCalls: ReadonlyArray<AIChatAssistantToolCall>,
+  outputsByToolCallId: ReadonlyMap<string, string>,
+): ReadonlyArray<Extract<AIChatContentPart, { type: "tool_call" }>> {
+  return toolCalls.map((toolCall) => ({
+    type: "tool_call",
+    toolCallId: toolCall.toolCallId,
+    name: toolCall.name,
+    status: "completed",
+    input: toolCall.input,
+    output: outputsByToolCallId.get(toolCall.toolCallId) ?? null,
+  }));
 }

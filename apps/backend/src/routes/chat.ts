@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { AuthError } from "../auth";
 import {
-  createLocalChatErrorResponse,
-  logLocalChatDiagnostics,
-  parseLocalChatDiagnosticsBody,
-  parseLocalChatRequestBody,
-  streamLocalChatResponse,
+  createAIChatErrorResponse,
+  logAIChatDiagnostics,
+  parseAIChatDiagnosticsBody,
+  parseAIChatTurnRequestBody,
+  streamAIChatResponse,
 } from "../chat/http";
 import { classifyAIEndpointFailure } from "../chat/aiAvailabilityErrors";
 import {
@@ -22,34 +22,34 @@ import type { AppEnv } from "../app";
 type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
-  streamLocalChatResponseFn?: typeof streamLocalChatResponse;
+  streamAIChatResponseFn?: typeof streamAIChatResponse;
   transcribeAudioFn?: (upload: ChatTranscriptionUpload) => Promise<string>;
 }>;
 
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
-  const streamLocalChatResponseFn = options.streamLocalChatResponseFn ?? streamLocalChatResponse;
+  const streamAIChatResponseFn = options.streamAIChatResponseFn ?? streamAIChatResponse;
   const transcribeAudioFn = options.transcribeAudioFn ?? transcribeChatAudioUpload;
 
-  app.post("/chat/local-turn", async (context) => {
+  app.post("/chat/turn", async (context) => {
     const requestId = randomUUID();
 
     try {
       const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
-      const body = parseLocalChatRequestBody(await parseJsonBody(context.req.raw));
-      return await streamLocalChatResponseFn(body, requestId, requestContext);
+      const body = parseAIChatTurnRequestBody(await parseJsonBody(context.req.raw));
+      return await streamAIChatResponseFn(body, requestId, requestContext, context.req.url);
     } catch (error) {
       if (error instanceof HttpError || error instanceof AuthError) {
         throw error;
       }
 
       const normalizedFailure = classifyAIEndpointFailure("chat", error, null);
-      return createLocalChatErrorResponse(
+      return createAIChatErrorResponse(
         normalizedFailure.message,
         requestId,
         normalizedFailure.code,
-        "local_turn_request",
+        "ai_chat_turn_request",
         error,
       );
     }
@@ -62,10 +62,10 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     return context.json({ text });
   });
 
-  app.post("/chat/local-turn/diagnostics", async (context) => {
+  app.post("/chat/turn/diagnostics", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
-    const body = parseLocalChatDiagnosticsBody(await parseJsonBody(context.req.raw));
-    logLocalChatDiagnostics(requestContext, body);
+    const body = parseAIChatDiagnosticsBody(await parseJsonBody(context.req.raw));
+    logAIChatDiagnostics(requestContext, body);
     return new Response(null, { status: 204 });
   });
 

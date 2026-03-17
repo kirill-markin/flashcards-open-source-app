@@ -53,7 +53,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
 - `infra/aws/lib/api-gateway.ts` deploys the main API Gateway and two Lambda entrypoints:
   - a buffered backend Lambda for normal JSON endpoints
-  - a dedicated streaming Lambda for `/chat/local-turn`
+  - a dedicated streaming Lambda for `/chat/turn`
 - The backend Lambda runs in the VPC, reads the backend DB secret, verifies Cognito ID tokens, and can optionally read model-provider secrets.
 - API Gateway predeclares the public route tree, including agent, workspace, sync, cards, chat, and system routes.
 
@@ -71,7 +71,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 - `agent`: machine-facing discovery, workspace bootstrap, SQL endpoint, and agent OpenAPI documents
 - `workspaces`: list/create/select workspaces and manage agent API key connections from human sessions
 - `cards`: card query and tag summary endpoints
-- `chat`: streaming local-turn chat, transcription, and diagnostics endpoints
+- `chat`: streaming AI chat turn, transcription, and diagnostics endpoints
 - `sync`: offline-first push and pull endpoints
 
 The backend is Hono-based in local dev and in Lambda. In local dev it serves on `http://localhost:8080/v1`.
@@ -197,20 +197,14 @@ There is no separate background scheduler worker.
 
 ## AI chat architecture
 
-The app has a hybrid AI architecture:
+The app uses backend-executed AI chat:
 
-- The model call is remote and goes through `POST /v1/chat/local-turn`.
+- The model call is remote and goes through `POST /v1/chat/turn`.
 - The response is streamed over SSE from the dedicated streaming Lambda.
 - Available model vendors are OpenAI and Anthropic.
 - Shared workspace data access is intentionally normalized around one SQL tool contract.
-
-Local tools are mirrored across backend, web, and iOS:
-
-- `sql`
-- `get_cloud_settings`
-- `list_outbox`
-
-The public agent API exposes only the shared SQL surface, while app-local runtimes keep the extra local-only tools.
+- The backend executes AI chat tools and continues provider loops internally.
+- Web and iOS act as stream plus sync clients and do not execute chat tools locally.
 
 ## Agent API architecture
 

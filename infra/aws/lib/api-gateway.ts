@@ -223,7 +223,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
    * chat paths keep their own entry point while the rest of the API stays on
    * the classic buffered Lambda integration.
    *
-   * Only `/chat/local-turn` uses this integration. The diagnostics endpoint
+   * Only `/chat/turn` uses this integration. The diagnostics endpoint
    * stays on the buffered path because it returns a normal `204` response and
    * does not need streaming semantics.
    */
@@ -271,10 +271,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   me.addResource("delete").addMethod("POST", integration);
 
   const chat = restApi.root.addResource("chat");
-  const localTurn = chat.addResource("local-turn");
-  localTurn.addMethod("POST", streamingIntegration);
+  const turn = chat.addResource("turn");
+  turn.addMethod("POST", streamingIntegration);
   chat.addResource("transcriptions").addMethod("POST", integration);
-  localTurn.addResource("diagnostics").addMethod("POST", integration);
+  turn.addResource("diagnostics").addMethod("POST", integration);
 
   const workspaces = restApi.root.addResource("workspaces");
   workspaces.addMethod("GET", integration);

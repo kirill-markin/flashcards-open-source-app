@@ -250,7 +250,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
 
     func streamTurn(
         session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
+        request: AIChatTurnRequestBody,
         tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
@@ -288,7 +288,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
 
         var urlRequest = URLRequest(url: try self.makeURL(
             apiBaseUrl: session.apiBaseUrl,
-            path: "/chat/local-turn",
+            path: "/chat/turn",
             clientRequestId: clientRequestId
         ))
         urlRequest.httpMethod = "POST"
@@ -363,9 +363,6 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 clientRequestId: clientRequestId,
                 backendRequestId: backendRequestId
             )
-            var awaitsToolResults = false
-            var requestedToolCalls: [AIToolCallRequest] = []
-
             let streamCompleted = try await consumeSSEBytes(
                 bytes: bytes,
                 onLine: { line in
@@ -393,7 +390,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                         }
                     case .toolCall, .toolCallRequest:
                         didReceiveContent = true
-                    case .repairAttempt, .awaitToolResults, .done, .error:
+                    case .repairAttempt, .done, .error:
                         break
                     }
 
@@ -401,8 +398,6 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                         event: event,
                         clientRequestId: clientRequestId,
                         configurationMode: session.configurationMode,
-                        requestedToolCalls: &requestedToolCalls,
-                        awaitsToolResults: &awaitsToolResults,
                         onDelta: onDelta,
                         onToolCall: onToolCall,
                         onToolCallRequest: onToolCallRequest,
@@ -415,8 +410,6 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 let result: AIChatLatencyResult = didReceiveContent ? .success : .emptyResponse
                 await emitLatencyIfNeeded(result: result)
                 return AITurnStreamOutcome(
-                    awaitsToolResults: false,
-                    requestedToolCalls: requestedToolCalls,
                     requestId: backendRequestId,
                     codeInterpreterContainerId: codeInterpreterContainerId
                 )
@@ -437,7 +430,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     }
                 case .toolCall, .toolCallRequest:
                     didReceiveContent = true
-                case .repairAttempt, .awaitToolResults, .done, .error:
+                case .repairAttempt, .done, .error:
                     break
                 }
 
@@ -445,8 +438,6 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     event: event,
                     clientRequestId: clientRequestId,
                     configurationMode: session.configurationMode,
-                    requestedToolCalls: &requestedToolCalls,
-                    awaitsToolResults: &awaitsToolResults,
                     onDelta: onDelta,
                     onToolCall: onToolCall,
                     onToolCallRequest: onToolCallRequest,
@@ -456,8 +447,6 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                     let result: AIChatLatencyResult = didReceiveContent ? .success : .emptyResponse
                     await emitLatencyIfNeeded(result: result)
                     return AITurnStreamOutcome(
-                        awaitsToolResults: false,
-                        requestedToolCalls: requestedToolCalls,
                         requestId: backendRequestId,
                         codeInterpreterContainerId: codeInterpreterContainerId
                     )
@@ -467,8 +456,6 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
             let result: AIChatLatencyResult = didReceiveContent ? .success : .emptyResponse
             await emitLatencyIfNeeded(result: result)
             return AITurnStreamOutcome(
-                awaitsToolResults: awaitsToolResults,
-                requestedToolCalls: requestedToolCalls,
                 requestId: backendRequestId,
                 codeInterpreterContainerId: codeInterpreterContainerId
             )
@@ -527,7 +514,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         do {
             var request = URLRequest(url: try self.makeURL(
                 apiBaseUrl: session.apiBaseUrl,
-                path: "/chat/local-turn/diagnostics",
+                path: "/chat/turn/diagnostics",
                 clientRequestId: clientRequestId
             ))
             request.httpMethod = "POST"
@@ -654,8 +641,6 @@ private func processStreamEvent(
     event: AIChatBackendStreamEvent,
     clientRequestId: String,
     configurationMode: CloudServiceConfigurationMode,
-    requestedToolCalls: inout [AIToolCallRequest],
-    awaitsToolResults: inout Bool,
     onDelta: @escaping @Sendable (String) async -> Void,
     onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
     onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
@@ -669,14 +654,10 @@ private func processStreamEvent(
         await onToolCall(toolCall)
         return false
     case .toolCallRequest(let toolCallRequest):
-        requestedToolCalls.append(toolCallRequest)
         await onToolCallRequest(toolCallRequest)
         return false
     case .repairAttempt(let status):
         await onRepairAttempt(status)
-        return false
-    case .awaitToolResults:
-        awaitsToolResults = true
         return false
     case .done:
         return true
@@ -724,8 +705,6 @@ private func aiChatLatencyEventType(event: AIChatBackendStreamEvent) -> String {
         return "tool_call_request"
     case .repairAttempt:
         return "repair_attempt"
-    case .awaitToolResults:
-        return "await_tool_results"
     case .done:
         return "done"
     case .error:

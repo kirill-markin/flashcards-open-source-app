@@ -11,9 +11,9 @@ extension LocalDatabase {
         )
     }
 
-    func loadAIChatLocalContext() throws -> AIChatLocalContext {
+    func loadAIChatContext() throws -> AIChatContext {
         let bootstrapSnapshot = try self.loadBootstrapSnapshot()
-        return AIChatLocalContext(
+        return AIChatContext(
             workspace: bootstrapSnapshot.workspace,
             schedulerSettings: bootstrapSnapshot.schedulerSettings,
             totalActiveCards: try self.cardStore.loadActiveCardCount(workspaceId: bootstrapSnapshot.workspace.workspaceId)

@@ -6,10 +6,9 @@
  * focused: auth, request parsing, workspace selection, envelope shaping, and
  * next-action hints. The backend tool behavior itself lives here.
  *
- * Local browser and iOS runtimes intentionally mirror parts of this behavior
- * against local state instead of the backend database:
- * - `apps/web/src/chat/localToolExecutor.ts`
- * - `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`
+ * The web and iOS AI chat runtimes consume the results of this backend
+ * behavior through the shared SQL tool contract instead of reimplementing it
+ * against device-local state.
  *
  */
 import { randomUUID } from "node:crypto";
@@ -397,9 +396,7 @@ function toUpdateDeckInput(item: AgentToolUpdateDeckBody, currentDeck: Deck): Up
 
 /**
  * Canonical backend implementation of the shared SQL `workspace` resource.
- * Browser-local and iOS-local mirrors live in
- * `apps/web/src/chat/localToolExecutor.ts` and
- * `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`.
+ * AI chat clients consume this through the backend SQL tool contract.
  */
 export async function loadAgentWorkspaceOperation(
   dependencies: AgentToolOperationDependencies,

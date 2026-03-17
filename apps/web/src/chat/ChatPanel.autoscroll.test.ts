@@ -9,7 +9,7 @@ import {
   readScrollBehavior,
   setupChatPanelTest,
   streamDeltaPayload,
-  streamLocalChatMock,
+  streamAIChatMock,
 } from "./ChatPanelTestSupport";
 
 const chatPanel = setupChatPanelTest();
@@ -31,7 +31,7 @@ describe("ChatPanel autoscroll", () => {
   });
 
   it("batches streaming autoscroll to one smooth scroll every 2 seconds", async () => {
-    streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
+    streamAIChatMock.mockResolvedValueOnce(createTimedStreamResponse([
       { atMs: 100, payload: streamDeltaPayload("A") },
       { atMs: 300, payload: streamDeltaPayload("B") },
       { atMs: 700, payload: streamDeltaPayload("C") },
@@ -60,7 +60,7 @@ describe("ChatPanel autoscroll", () => {
   });
 
   it("disables autoscroll when user scrolls up and keeps it off during streaming", async () => {
-    streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
+    streamAIChatMock.mockResolvedValueOnce(createTimedStreamResponse([
       { atMs: 100, payload: streamDeltaPayload("A") },
       { atMs: 500, payload: streamDeltaPayload("B") },
       { atMs: 900, payload: streamDeltaPayload("C") },
@@ -92,7 +92,7 @@ describe("ChatPanel autoscroll", () => {
   });
 
   it("re-enables autoscroll after returning to bottom and catches up on the next tick", async () => {
-    streamLocalChatMock.mockResolvedValueOnce(createTimedStreamResponse([
+    streamAIChatMock.mockResolvedValueOnce(createTimedStreamResponse([
       { atMs: 100, payload: streamDeltaPayload("A") },
       { atMs: 500, payload: streamDeltaPayload("B") },
       { atMs: 900, payload: streamDeltaPayload("C") },

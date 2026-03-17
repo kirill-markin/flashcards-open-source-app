@@ -5,15 +5,16 @@ import {
   type AIEndpointFailureClassification,
 } from "./aiAvailabilityErrors";
 import type {
-  LocalChatUserContext,
-  LocalContentPart,
-  LocalChatMessage,
-  LocalChatRequestBody,
-  LocalChatStreamEvent,
-} from "./localTypes";
+  AIChatContentPart,
+  AIChatTurnRequestBody,
+  AIChatTurnStreamEvent,
+  AIChatUserContext,
+  AIChatWireMessage,
+} from "./aiChatTypes";
 import { CHAT_MODELS } from "./models";
 import { hashAIProviderUserId } from "./providerSafety";
 import type { RequestContext } from "../server/requestContext";
+import { requireSelectedWorkspaceId } from "../server/requestContext";
 import {
   expectNonEmptyString,
   expectNonNegativeInteger,
@@ -22,9 +23,7 @@ import {
   expectRecord,
 } from "../server/requestParsing";
 import { getErrorLogContext } from "../server/logging";
-import { isLocalToolName } from "./localRuntimeShared";
-
-type LocalChatDiagnosticsBody = Readonly<{
+type AIChatDiagnosticsBody = Readonly<{
   kind: "failure";
   clientRequestId: string;
   backendRequestId: string | null;
@@ -45,7 +44,7 @@ type LocalChatDiagnosticsBody = Readonly<{
   devicePlatform: string;
 }>;
 
-type LocalChatLatencyDiagnosticsBody = Readonly<{
+type AIChatLatencyDiagnosticsBody = Readonly<{
   kind: "latency";
   clientRequestId: string;
   backendRequestId: string | null;
@@ -68,29 +67,20 @@ type LocalChatLatencyDiagnosticsBody = Readonly<{
   tapToTerminalMs: number | null;
 }>;
 
-type ParsedLocalChatDiagnosticsBody =
-  | LocalChatDiagnosticsBody
-  | LocalChatLatencyDiagnosticsBody;
+type ParsedAIChatDiagnosticsBody =
+  | AIChatDiagnosticsBody
+  | AIChatLatencyDiagnosticsBody;
 
-type LocalChatContinuationContext = Readonly<{
-  continuationAttempt: number;
-  toolCallIds: ReadonlyArray<string>;
-}>;
-
-type LocalChatStructuredError = Error & Readonly<{
+type AIChatStructuredError = Error & Readonly<{
   code: string;
   stage: string;
-  continuationAttempt: number | null;
-  toolCallIds: ReadonlyArray<string>;
   classification: string;
 }>;
 
-type LocalChatToolMessage = Extract<LocalChatMessage, { role: "tool" }>;
-
-function parseLocalContentPart(
+function parseAIChatContentPart(
   value: unknown,
   context: string,
-): LocalContentPart {
+): AIChatContentPart {
   const body = expectRecord(value);
   const type = expectNonEmptyString(body.type, `${context}.type`);
 
@@ -148,18 +138,18 @@ function parseLocalContentPart(
   throw new HttpError(400, `${context}.type is invalid`);
 }
 
-function parseLocalContentParts(
+function parseAIChatContentParts(
   value: unknown,
   context: string,
-): ReadonlyArray<LocalContentPart> {
+): ReadonlyArray<AIChatContentPart> {
   if (!Array.isArray(value)) {
     throw new HttpError(400, `${context} must be an array`);
   }
 
-  return value.map((partValue, index) => parseLocalContentPart(partValue, `${context}[${index}]`));
+  return value.map((partValue, index) => parseAIChatContentPart(partValue, `${context}[${index}]`));
 }
 
-function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage> {
+function parseAIChatMessages(value: unknown): ReadonlyArray<AIChatWireMessage> {
   if (!Array.isArray(value) || value.length === 0) {
     throw new HttpError(400, "messages must be a non-empty array");
   }
@@ -169,7 +159,7 @@ function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage>
     const role = expectNonEmptyString(body.role, `messages[${index}].role`);
 
     if (role === "user") {
-      const content = parseLocalContentParts(body.content, `messages[${index}].content`);
+      const content = parseAIChatContentParts(body.content, `messages[${index}].content`);
       for (const part of content) {
         if (part.type === "tool_call") {
           throw new HttpError(400, `messages[${index}].content cannot include tool_call parts for user messages`);
@@ -185,21 +175,7 @@ function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage>
     if (role === "assistant") {
       return {
         role: "assistant",
-        content: parseLocalContentParts(body.content, `messages[${index}].content`),
-      };
-    }
-
-    if (role === "tool") {
-      const outputValue = body.output;
-      if (typeof outputValue !== "string") {
-        throw new HttpError(400, `messages[${index}].output must be a string`);
-      }
-
-      return {
-        role: "tool",
-        toolCallId: expectNonEmptyString(body.toolCallId, `messages[${index}].toolCallId`),
-        name: expectNonEmptyString(body.name, `messages[${index}].name`),
-        output: outputValue,
+        content: parseAIChatContentParts(body.content, `messages[${index}].content`),
       };
     }
 
@@ -207,7 +183,7 @@ function parseLocalChatMessages(value: unknown): ReadonlyArray<LocalChatMessage>
   });
 }
 
-function parseLocalChatUserContext(value: unknown): LocalChatUserContext {
+function parseAIChatUserContext(value: unknown): AIChatUserContext {
   const body = expectRecord(value);
 
   return {
@@ -215,7 +191,7 @@ function parseLocalChatUserContext(value: unknown): LocalChatUserContext {
   };
 }
 
-export function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody {
+export function parseAIChatTurnRequestBody(value: unknown): AIChatTurnRequestBody {
   const body = expectRecord(value);
   const model = expectNonEmptyString(body.model, "model");
   const timezone = expectNonEmptyString(body.timezone, "timezone");
@@ -227,164 +203,27 @@ export function parseLocalChatRequestBody(value: unknown): LocalChatRequestBody 
   );
 
   return {
-    messages: parseLocalChatMessages(body.messages),
+    messages: parseAIChatMessages(body.messages),
     model,
     timezone,
     devicePlatform: devicePlatform === "web" ? "web" : "ios",
     chatSessionId,
     codeInterpreterContainerId,
-    userContext: parseLocalChatUserContext(body.userContext),
+    userContext: parseAIChatUserContext(body.userContext),
   };
 }
 
-function makeLocalChatStructuredError(
+function makeAIChatStructuredError(
   message: string,
   code: string,
   stage: string,
-  continuationAttempt: number | null,
-  toolCallIds: ReadonlyArray<string>,
   classification: string,
-): LocalChatStructuredError {
+): AIChatStructuredError {
   return Object.assign(new Error(message), {
     code,
     stage,
-    continuationAttempt,
-    toolCallIds,
     classification,
   });
-}
-
-function toLocalChatContinuationContext(
-  continuationAttempt: number,
-  toolCallIds: ReadonlySet<string>,
-): LocalChatContinuationContext {
-  return {
-    continuationAttempt,
-    toolCallIds: [...toolCallIds],
-  };
-}
-
-function localContinuationValidationError(
-  continuationAttempt: number,
-  toolCallIds: ReadonlySet<string>,
-  classification: string,
-): LocalChatStructuredError {
-  return makeLocalChatStructuredError(
-    "AI chat is temporarily unavailable on this server. Try again later.",
-    "LOCAL_CHAT_CONTINUATION_FAILED",
-    "request_validation",
-    continuationAttempt,
-    [...toolCallIds],
-    classification,
-  );
-}
-
-function localToolMessageId(message: LocalChatToolMessage): string {
-  return message.toolCallId;
-}
-
-export function validateLocalChatMessages(
-  messages: ReadonlyArray<LocalChatMessage>,
-): LocalChatContinuationContext {
-  let continuationAttempt = 0;
-  const localToolCallIds = new Set<string>();
-  const seenToolOutputIds = new Set<string>();
-  let expectedToolOutputIds: Set<string> | null = null;
-
-  for (const message of messages) {
-    if (message.role === "assistant") {
-      if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
-        throw localContinuationValidationError(
-          continuationAttempt,
-          localToolCallIds,
-          "missing_tool_output_before_next_message",
-        );
-      }
-
-      const assistantToolCallIds = new Set<string>();
-      const completedLocalToolCallIds: Array<string> = [];
-      for (const part of message.content) {
-        if (part.type !== "tool_call" || isLocalToolName(part.name) === false) {
-          continue;
-        }
-
-        if (assistantToolCallIds.has(part.toolCallId)) {
-          throw localContinuationValidationError(
-            continuationAttempt,
-            localToolCallIds,
-            "duplicate_assistant_tool_call_id",
-          );
-        }
-
-        assistantToolCallIds.add(part.toolCallId);
-        localToolCallIds.add(part.toolCallId);
-
-        if (part.status !== "completed" || part.output === null) {
-          throw localContinuationValidationError(
-            continuationAttempt,
-            localToolCallIds,
-            "dangling_local_tool_call",
-          );
-        }
-
-        completedLocalToolCallIds.push(part.toolCallId);
-      }
-
-      if (completedLocalToolCallIds.length > 0) {
-        continuationAttempt += 1;
-        expectedToolOutputIds = new Set(completedLocalToolCallIds);
-      }
-
-      continue;
-    }
-
-    if (message.role === "tool") {
-      const toolMessageId = localToolMessageId(message);
-      localToolCallIds.add(toolMessageId);
-
-      if (seenToolOutputIds.has(toolMessageId)) {
-        throw localContinuationValidationError(
-          continuationAttempt,
-          localToolCallIds,
-          "duplicate_tool_output_message",
-        );
-      }
-
-      if (expectedToolOutputIds === null || expectedToolOutputIds.has(toolMessageId) === false) {
-        throw localContinuationValidationError(
-          continuationAttempt,
-          localToolCallIds,
-          "unexpected_tool_output_message",
-        );
-      }
-
-      seenToolOutputIds.add(toolMessageId);
-      expectedToolOutputIds.delete(toolMessageId);
-      if (expectedToolOutputIds.size === 0) {
-        expectedToolOutputIds = null;
-      }
-
-      continue;
-    }
-
-    if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
-      throw localContinuationValidationError(
-        continuationAttempt,
-        localToolCallIds,
-        "missing_tool_output_before_next_message",
-      );
-    }
-  }
-
-  if (expectedToolOutputIds !== null && expectedToolOutputIds.size > 0) {
-    throw localContinuationValidationError(
-      continuationAttempt,
-      localToolCallIds,
-      "missing_tool_output_at_end_of_history",
-    );
-  }
-
-  return toLocalChatContinuationContext(continuationAttempt, localToolCallIds);
 }
 
 function expectBoolean(value: unknown, context: string): boolean {
@@ -403,7 +242,7 @@ function expectStringArray(value: unknown, context: string): ReadonlyArray<strin
   return value.map((item, index) => expectNonEmptyString(item, `${context}[${index}]`));
 }
 
-export function parseLocalChatDiagnosticsBody(value: unknown): ParsedLocalChatDiagnosticsBody {
+export function parseAIChatDiagnosticsBody(value: unknown): ParsedAIChatDiagnosticsBody {
   const body = expectRecord(value);
   const kind = expectNonEmptyString(body.kind, "kind");
 
@@ -464,7 +303,7 @@ function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function getLocalChatStructuredError(error: unknown): LocalChatStructuredError | null {
+function getAIChatStructuredError(error: unknown): AIChatStructuredError | null {
   if (
     typeof error !== "object"
     || error === null
@@ -478,31 +317,22 @@ function getLocalChatStructuredError(error: unknown): LocalChatStructuredError |
     return null;
   }
 
-  const continuationAttempt = "continuationAttempt" in error && typeof error.continuationAttempt === "number"
-    ? error.continuationAttempt
-    : null;
-  const toolCallIds = "toolCallIds" in error && Array.isArray(error.toolCallIds)
-    ? error.toolCallIds.filter((value): value is string => typeof value === "string")
-    : [];
-
   return Object.assign(new Error(getInternalErrorMessage(error)), {
     code: error.code,
     stage: error.stage,
-    continuationAttempt,
-    toolCallIds,
     classification: error.classification,
   });
 }
 
-export function logLocalChatDiagnostics(
+export function logAIChatDiagnostics(
   requestContext: RequestContext,
-  body: ParsedLocalChatDiagnosticsBody,
+  body: ParsedAIChatDiagnosticsBody,
 ): void {
   if (body.kind === "latency") {
     console.log(JSON.stringify({
       domain: "chat",
-      vendor: "local_client",
-      action: "local_chat_latency_diagnostics",
+      vendor: "backend_chat",
+      action: "ai_chat_latency_diagnostics",
       workspaceId: requestContext.selectedWorkspaceId,
       transport: requestContext.transport,
       userId: requestContext.userId,
@@ -513,8 +343,8 @@ export function logLocalChatDiagnostics(
 
   console.error(JSON.stringify({
     domain: "chat",
-    vendor: "local_client",
-    action: "local_chat_diagnostics",
+    vendor: "backend_chat",
+    action: "ai_chat_diagnostics",
     workspaceId: requestContext.selectedWorkspaceId,
     transport: requestContext.transport,
     userId: requestContext.userId,
@@ -522,20 +352,19 @@ export function logLocalChatDiagnostics(
   }));
 }
 
-function logLocalChatTerminalError(
+function logAIChatTerminalError(
   requestId: string,
   code: string,
   stage: string,
   message: string,
   error?: unknown,
   details?: AIEndpointFailureClassification,
-  continuationContext?: LocalChatContinuationContext,
   classification?: string,
 ): void {
   console.error(JSON.stringify({
     domain: "chat",
-    vendor: "local_client",
-    mode: "local_client",
+    vendor: "backend_chat",
+    mode: "backend_chat",
     action: "terminal_error_emitted",
     requestId,
     code,
@@ -546,19 +375,19 @@ function logLocalChatTerminalError(
     upstreamRequestId: details?.upstreamRequestId ?? "-",
     upstreamMessage: details?.upstreamMessage ?? "-",
     originalMessage: details?.originalMessage ?? message,
-    continuationAttempt: continuationContext?.continuationAttempt ?? null,
-    toolCallIds: continuationContext?.toolCallIds ?? [],
+    continuationAttempt: null,
+    toolCallIds: [],
     classification: classification ?? null,
     ...getErrorLogContext(error ?? message),
   }));
 }
 
-export function createLocalChatErrorEvent(
+export function createAIChatErrorEvent(
   message: string,
   requestId: string,
   code: string,
   stage: string,
-): Extract<LocalChatStreamEvent, { type: "error" }> {
+): Extract<AIChatTurnStreamEvent, { type: "error" }> {
   return {
     type: "error",
     message,
@@ -568,12 +397,12 @@ export function createLocalChatErrorEvent(
   };
 }
 
-function createLocalChatErrorEventFromError(
+function createAIChatErrorEventFromError(
   error: unknown,
   requestId: string,
   fallbackStage: string,
   provider: string | null,
-): Extract<LocalChatStreamEvent, { type: "error" }> {
+): Extract<AIChatTurnStreamEvent, { type: "error" }> {
   if (
     typeof error === "object" &&
     error !== null &&
@@ -582,7 +411,7 @@ function createLocalChatErrorEventFromError(
     typeof error.code === "string" &&
     typeof error.stage === "string"
   ) {
-    return createLocalChatErrorEvent(
+    return createAIChatErrorEvent(
       getInternalErrorMessage(error),
       requestId,
       error.code,
@@ -591,7 +420,7 @@ function createLocalChatErrorEventFromError(
   }
 
   const normalizedFailure = classifyAIEndpointFailure("chat", error, provider);
-  return createLocalChatErrorEvent(
+  return createAIChatErrorEvent(
     normalizedFailure.message,
     requestId,
     normalizedFailure.code,
@@ -599,15 +428,15 @@ function createLocalChatErrorEventFromError(
   );
 }
 
-export function createLocalChatErrorResponse(
+export function createAIChatErrorResponse(
   message: string,
   requestId: string,
   code: string,
   stage: string,
   error?: unknown,
 ): Response {
-  const errorEvent = createLocalChatErrorEvent(message, requestId, code, stage);
-  logLocalChatTerminalError(requestId, code, stage, message, error);
+  const errorEvent = createAIChatErrorEvent(message, requestId, code, stage);
+  logAIChatTerminalError(requestId, code, stage, message, error);
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
@@ -635,33 +464,38 @@ function getProviderSafetyUserId(requestContext: RequestContext): string | null 
   return hashAIProviderUserId(requestContext.userId);
 }
 
-type PreparedLocalTurnModule = Readonly<{
-  prepareLocalTurn: (
+type PreparedAIChatTurnModule = Readonly<{
+  prepareAIChatTurn: (
     params: Readonly<{
-      messages: ReadonlyArray<LocalChatMessage>;
+      messages: ReadonlyArray<AIChatWireMessage>;
       model: string;
       timezone: string;
       devicePlatform: "ios" | "web";
       chatSessionId: string;
       codeInterpreterContainerId: string | null;
-      userContext: LocalChatUserContext;
+      userContext: AIChatUserContext;
       providerSafetyUserId?: string | null;
       requestId: string;
+      requestUrl: string;
+      userId: string;
+      workspaceId: string;
+      selectedWorkspaceId: string | null;
     }>,
   ) => Promise<Readonly<{
     codeInterpreterContainerId: string | null;
-    stream: AsyncGenerator<LocalChatStreamEvent>;
+    stream: AsyncGenerator<AIChatTurnStreamEvent>;
   }>>;
 }>;
 
-export async function streamLocalChatResponse(
-  body: LocalChatRequestBody,
+export async function streamAIChatResponse(
+  body: AIChatTurnRequestBody,
   requestId: string,
   requestContext: RequestContext,
+  requestUrl: string,
 ): Promise<Response> {
   const validModel = CHAT_MODELS.find((model) => model.id === body.model);
   if (validModel === undefined) {
-    throw new HttpError(400, `Unknown local chat model: ${body.model}`);
+    throw new HttpError(400, `Unknown AI chat model: ${body.model}`);
   }
 
   const apiKey = validModel.vendor === "anthropic"
@@ -671,11 +505,12 @@ export async function streamLocalChatResponse(
     throw makeAIEndpointNotConfiguredError("chat");
   }
 
-  const initialContinuationContext = validateLocalChatMessages(body.messages);
+  const workspaceId = requireSelectedWorkspaceId(requestContext);
+
   const agentModule = (validModel.vendor === "anthropic"
-    ? await import("./anthropic/localAgent")
-    : await import("./openai/localAgent")) as PreparedLocalTurnModule;
-  const preparedTurn = await agentModule.prepareLocalTurn({
+    ? await import("./anthropic/aiChatAgent")
+    : await import("./openai/aiChatAgent")) as PreparedAIChatTurnModule;
+  const preparedTurn = await agentModule.prepareAIChatTurn({
     messages: body.messages,
     model: body.model,
     timezone: body.timezone,
@@ -685,35 +520,31 @@ export async function streamLocalChatResponse(
     userContext: body.userContext,
     providerSafetyUserId: getProviderSafetyUserId(requestContext),
     requestId,
+    requestUrl,
+    userId: requestContext.userId,
+    workspaceId,
+    selectedWorkspaceId: requestContext.selectedWorkspaceId,
   });
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      let continuationContext: LocalChatContinuationContext | null = initialContinuationContext;
-
       try {
         for await (const event of preparedTurn.stream) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-          if (event.type === "done" || event.type === "await_tool_results") {
+          if (event.type === "done") {
             break;
           }
         }
       } catch (error) {
-        const structuredError = getLocalChatStructuredError(error);
-        const effectiveContinuationContext = structuredError === null
-          ? continuationContext
-          : {
-            continuationAttempt: structuredError.continuationAttempt ?? continuationContext?.continuationAttempt ?? 0,
-            toolCallIds: structuredError.toolCallIds,
-          };
+        const structuredError = getAIChatStructuredError(error);
         const normalizedFailure = classifyAIEndpointFailure("chat", error, validModel.vendor);
-        const errorEvent = createLocalChatErrorEventFromError(
+        const errorEvent = createAIChatErrorEventFromError(
           error,
           requestId,
-          "stream_local_turn",
+          "stream_ai_chat_turn",
           validModel.vendor,
         );
-        logLocalChatTerminalError(
+        logAIChatTerminalError(
           requestId,
           errorEvent.code,
           errorEvent.stage,
@@ -727,12 +558,9 @@ export async function streamLocalChatResponse(
             && typeof error.stage === "string"
             ? undefined
             : normalizedFailure,
-          effectiveContinuationContext ?? undefined,
-          structuredError?.classification
-            ?? (normalizedFailure.code === "LOCAL_CHAT_CONTINUATION_FAILED" ? "provider_continuation_failure" : null)
-            ?? undefined,
+          structuredError?.classification ?? undefined,
         );
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent satisfies LocalChatStreamEvent)}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent satisfies AIChatTurnStreamEvent)}\n\n`));
       } finally {
         controller.close();
       }

@@ -524,7 +524,7 @@ function isGroupedSelect(statement: SqlSelectStatement): boolean {
 
 /**
  * iOS mirror:
- * `apps/ios/Flashcards/Flashcards/AI/LocalAISqlReadExecutor.swift::executeSqlSelect`
+ * `apps/backend/src/aiTools/sqlDialectSelectExecutor.ts::executeSqlSelect`
  */
 export function executeSqlSelect(
   statement: SqlSelectStatement,
