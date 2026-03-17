@@ -14,16 +14,12 @@ struct AIChatToolSection: Hashable, Sendable, Identifiable {
  - `apps/web/src/chat/chatMessageContent.tsx::formatToolLabel`
  - `apps/web/src/chat/chatMessageContent.tsx::extractToolCallPreview`
 
- Keep user-facing local tool labels aligned across web and iOS chat UIs.
+ Keep user-facing tool labels aligned across web and iOS chat UIs.
  */
 func aiChatToolLabel(name: String) -> String {
     switch name {
     case "sql":
         return "SQL"
-    case "get_cloud_settings":
-        return "Cloud settings"
-    case "list_outbox":
-        return "Outbox"
     case "code_execution", "code_interpreter":
         return "Code execution"
     case "web_search":

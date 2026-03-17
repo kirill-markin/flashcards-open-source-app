@@ -7,11 +7,12 @@ import {
   type MutableRefObject,
   type ReactElement,
 } from "react";
-import { createLocalChatRequestBody, streamLocalChat, transcribeChatAudio } from "../api";
+import { createAIChatRequestBody, streamAIChat, transcribeChatAudio } from "../api";
 import { webAppVersion } from "../clientIdentity";
 import { DEFAULT_MODEL_ID } from "../chatModels";
 import { useAppData } from "../appData";
 import { ensurePersistentStorage } from "../localDb/cloudSettings";
+import { listOutboxRecords } from "../localDb/outbox";
 import {
   explainBrowserMediaPermissionError,
   queryBrowserPermissionState,
@@ -37,10 +38,9 @@ import {
   toRequestBodySizeBytes,
 } from "./chatHelpers";
 import { renderStoredMessageContent } from "./chatMessageContent";
-import { reportLocalChatDiagnostics } from "./localChatDiagnostics";
-import { runLocalChatRuntime } from "./localChatRuntime";
-import { createLocalToolExecutor } from "./localToolExecutor";
-import { toLocalChatMessages } from "./localRuntime";
+import { reportAIChatDiagnostics } from "./aiChatDiagnostics";
+import { runAIChatRuntime } from "./aiChatRuntime";
+import { toAIChatMessages } from "./aiChatWire";
 import { ModelSelector } from "./ModelSelector";
 import { useChatAutoScroll } from "./useChatAutoScroll";
 import {
@@ -188,13 +188,13 @@ export function ChatPanel(props: Props): ReactElement {
   function buildDraftRequestBodyForAttachments(
     attachments: ReadonlyArray<PendingAttachment>,
     timezone: string,
-  ): ReturnType<typeof createLocalChatRequestBody> | null {
+  ): ReturnType<typeof createAIChatRequestBody> | null {
     const draftContentParts = buildContentParts(inputText, attachments);
     if (draftContentParts.length === 0) {
       return null;
     }
 
-    const draftWireMessages = toLocalChatMessages([
+    const draftWireMessages = toAIChatMessages([
       ...messages,
       {
         role: "user",
@@ -203,7 +203,7 @@ export function ChatPanel(props: Props): ReactElement {
         isError: false,
       },
     ]);
-    return createLocalChatRequestBody(
+    return createAIChatRequestBody(
       draftWireMessages,
       selectedModel,
       timezone,
@@ -539,7 +539,7 @@ export function ChatPanel(props: Props): ReactElement {
     }
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const initialWireMessages = toLocalChatMessages([
+    const initialWireMessages = toAIChatMessages([
       ...messages,
       {
         role: "user",
@@ -548,7 +548,7 @@ export function ChatPanel(props: Props): ReactElement {
         isError: false,
       },
     ]);
-    const initialRequestBody = createLocalChatRequestBody(
+    const initialRequestBody = createAIChatRequestBody(
       initialWireMessages,
       selectedModel,
       timezone,
@@ -558,6 +558,23 @@ export function ChatPanel(props: Props): ReactElement {
     );
     if (toRequestBodySizeBytes(initialRequestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       markAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
+      return;
+    }
+
+    if (appData.activeWorkspace === null) {
+      appData.setErrorMessage("Select a workspace before using AI chat.");
+      return;
+    }
+
+    try {
+      await appData.runSync();
+      const outboxRecords = await listOutboxRecords(appData.activeWorkspace.workspaceId);
+      if (outboxRecords.length > 0) {
+        appData.setErrorMessage("AI chat is blocked until all pending sync operations are uploaded.");
+        return;
+      }
+    } catch (error) {
+      appData.setErrorMessage(error instanceof Error ? error.message : String(error));
       return;
     }
 
@@ -582,16 +599,15 @@ export function ChatPanel(props: Props): ReactElement {
       const storageState = await ensurePersistentStorage();
       console.info("chat_local_storage_state", storageState);
 
-      const localToolExecutor = createLocalToolExecutor(appData);
-      await runLocalChatRuntime(
+      await runAIChatRuntime(
         {
           createRequestBody: (
-            runtimeMessages: ReadonlyArray<ReturnType<typeof toLocalChatMessages>[number]>,
+            runtimeMessages: ReadonlyArray<ReturnType<typeof toAIChatMessages>[number]>,
             runtimeModel: string,
             runtimeTimezone: string,
             runtimeChatSessionId: string,
             runtimeCodeInterpreterContainerId: string | null,
-          ) => createLocalChatRequestBody(
+          ) => createAIChatRequestBody(
             runtimeMessages,
             runtimeModel,
             runtimeTimezone,
@@ -599,9 +615,8 @@ export function ChatPanel(props: Props): ReactElement {
             runtimeCodeInterpreterContainerId,
             { totalCards: appData.localCardCount },
           ),
-          streamChat: streamLocalChat,
-          executeTool: localToolExecutor.execute,
-          reportDiagnostics: reportLocalChatDiagnostics,
+          streamChat: streamAIChat,
+          reportDiagnostics: reportAIChatDiagnostics,
           generateRequestId: () => globalThis.crypto.randomUUID(),
           now: () => Date.now(),
           appVersion: webAppVersion,
@@ -634,6 +649,12 @@ export function ChatPanel(props: Props): ReactElement {
           },
         },
       );
+
+      try {
+        await appData.runSync();
+      } catch (error) {
+        appData.setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } catch (error) {
       if (abortController.signal.aborted === false) {
         markAssistantError(error instanceof Error ? error.message : String(error));

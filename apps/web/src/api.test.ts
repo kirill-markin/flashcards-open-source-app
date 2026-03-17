@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthRedirectError,
-  createLocalChatRequestBody,
+  createAIChatRequestBody,
   createWorkspace,
   deleteWorkspace,
   getSession,
@@ -363,9 +363,9 @@ describe("web auth recovery", () => {
   });
 });
 
-describe("createLocalChatRequestBody", () => {
+describe("createAIChatRequestBody", () => {
   it("includes the required user context block payload", () => {
-    expect(createLocalChatRequestBody(
+    expect(createAIChatRequestBody(
       [{
         role: "user",
         content: [{ type: "text", text: "hello" }],

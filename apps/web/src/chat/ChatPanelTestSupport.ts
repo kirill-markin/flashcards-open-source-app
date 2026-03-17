@@ -5,24 +5,24 @@ import { afterEach, beforeEach, expect, vi } from "vitest";
 const {
   useChatLayoutMock,
   useAppDataMock,
-  createLocalChatRequestBodyMock,
-  sendLocalChatDiagnosticsMock,
-  streamLocalChatMock,
+  createAIChatRequestBodyMock,
+  sendAIChatDiagnosticsMock,
+  streamAIChatMock,
   transcribeChatAudioMock,
   ensurePersistentStorageMock,
-  executeLocalToolMock,
+  listOutboxRecordsMock,
   checkFileSizeMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
 } = vi.hoisted(() => ({
   useChatLayoutMock: vi.fn(),
   useAppDataMock: vi.fn(),
-  createLocalChatRequestBodyMock: vi.fn(),
-  sendLocalChatDiagnosticsMock: vi.fn(),
-  streamLocalChatMock: vi.fn(),
+  createAIChatRequestBodyMock: vi.fn(),
+  sendAIChatDiagnosticsMock: vi.fn(),
+  streamAIChatMock: vi.fn(),
   transcribeChatAudioMock: vi.fn(),
   ensurePersistentStorageMock: vi.fn(),
-  executeLocalToolMock: vi.fn(),
+  listOutboxRecordsMock: vi.fn(),
   checkFileSizeMock: vi.fn(),
   prepareAttachmentMock: vi.fn(),
   recompressImageAttachmentMock: vi.fn(),
@@ -37,9 +37,9 @@ vi.mock("./ChatLayoutContext", () => ({
 }));
 
 vi.mock("../api", () => ({
-  createLocalChatRequestBody: createLocalChatRequestBodyMock,
-  sendLocalChatDiagnostics: sendLocalChatDiagnosticsMock,
-  streamLocalChat: streamLocalChatMock,
+  createAIChatRequestBody: createAIChatRequestBodyMock,
+  sendAIChatDiagnostics: sendAIChatDiagnosticsMock,
+  streamAIChat: streamAIChatMock,
   transcribeChatAudio: transcribeChatAudioMock,
 }));
 
@@ -47,15 +47,9 @@ vi.mock("../localDb/cloudSettings", () => ({
   ensurePersistentStorage: ensurePersistentStorageMock,
 }));
 
-vi.mock("./localToolExecutor", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./localToolExecutor")>();
-  return {
-    ...actual,
-    createLocalToolExecutor: () => ({
-      execute: executeLocalToolMock,
-    }),
-  };
-});
+vi.mock("../localDb/outbox", () => ({
+  listOutboxRecords: listOutboxRecordsMock,
+}));
 
 vi.mock("./FileAttachment", () => ({
   checkFileSize: checkFileSizeMock,
@@ -122,13 +116,13 @@ type ChatPanelTestHarness = Readonly<{
 
 export {
   checkFileSizeMock,
-  createLocalChatRequestBodyMock,
+  createAIChatRequestBodyMock,
   ensurePersistentStorageMock,
-  executeLocalToolMock,
+  listOutboxRecordsMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
-  sendLocalChatDiagnosticsMock,
-  streamLocalChatMock,
+  sendAIChatDiagnosticsMock,
+  streamAIChatMock,
   transcribeChatAudioMock,
   useAppDataMock,
   useChatLayoutMock,
@@ -404,12 +398,12 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
 
     useChatLayoutMock.mockReset();
     useAppDataMock.mockReset();
-    createLocalChatRequestBodyMock.mockReset();
-    sendLocalChatDiagnosticsMock.mockReset();
-    streamLocalChatMock.mockReset();
+    createAIChatRequestBodyMock.mockReset();
+    sendAIChatDiagnosticsMock.mockReset();
+    streamAIChatMock.mockReset();
     transcribeChatAudioMock.mockReset();
     ensurePersistentStorageMock.mockReset();
-    executeLocalToolMock.mockReset();
+    listOutboxRecordsMock.mockReset();
     checkFileSizeMock.mockReset();
     prepareAttachmentMock.mockReset();
     recompressImageAttachmentMock.mockReset();
@@ -421,9 +415,17 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       setChatWidth: vi.fn(),
     });
     useAppDataMock.mockReturnValue({
+      activeWorkspace: {
+        workspaceId: "workspace-1",
+        name: "Primary",
+        createdAt: "2026-03-10T00:00:00.000Z",
+        isSelected: true,
+      },
       localCardCount: 1,
+      runSync: vi.fn(async (): Promise<void> => undefined),
+      setErrorMessage: vi.fn(),
     });
-    createLocalChatRequestBodyMock.mockImplementation(
+    createAIChatRequestBodyMock.mockImplementation(
       (
         messages: ReadonlyArray<unknown>,
         model: string,
@@ -440,14 +442,12 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
         userContext,
       }),
     );
-    sendLocalChatDiagnosticsMock.mockResolvedValue(undefined);
+    sendAIChatDiagnosticsMock.mockResolvedValue(undefined);
     ensurePersistentStorageMock.mockResolvedValue({
       persistence: "granted",
     });
-    executeLocalToolMock.mockResolvedValue({
-      output: "{}",
-    });
-    streamLocalChatMock.mockResolvedValue(
+    listOutboxRecordsMock.mockResolvedValue([]);
+    streamAIChatMock.mockResolvedValue(
       createTimedStreamResponse([{ atMs: 0, payload: streamDeltaPayload("done") }], 1, 200),
     );
     transcribeChatAudioMock.mockResolvedValue("dictated text");

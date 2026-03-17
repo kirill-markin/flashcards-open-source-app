@@ -1,12 +1,12 @@
 /**
- * Browser-local chat diagnostics helpers.
+ * Browser AI chat diagnostics helpers.
  *
  * The runtime emits best-effort telemetry so SSE decoding failures and backend
  * stream anomalies can be correlated with API Gateway and backend logs without
  * interrupting the user flow when diagnostic delivery fails.
  */
-import { sendLocalChatDiagnostics as postLocalChatDiagnostics } from "../api";
-import type { LocalChatDiagnosticsPayload } from "../types";
+import { sendAIChatDiagnostics as postAIChatDiagnostics } from "../api";
+import type { AIChatDiagnosticsPayload } from "../types";
 
 export type ChatResponseMetadata = Readonly<{
   statusCode: number | null;
@@ -73,14 +73,14 @@ export function buildChatResponseMetadata(response: Response | null): ChatRespon
  * Sends frontend chat diagnostics without surfacing delivery failures to the
  * user-facing runtime flow.
  */
-export async function reportLocalChatDiagnostics(payload: LocalChatDiagnosticsPayload): Promise<void> {
+export async function reportAIChatDiagnostics(payload: AIChatDiagnosticsPayload): Promise<void> {
   const localAction = payload.kind === "latency"
     ? "chat_local_latency"
     : "chat_local_frontend_diagnostics";
   console.info(localAction, payload);
 
   try {
-    await postLocalChatDiagnostics(payload);
+    await postAIChatDiagnostics(payload);
   } catch (error) {
     console.error("chat_local_frontend_diagnostics_failed", {
       kind: payload.kind,

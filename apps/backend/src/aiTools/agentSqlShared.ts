@@ -68,9 +68,8 @@ export type AgentSqlExecutionResult = Readonly<{
 /**
  * Keep this alias aligned with:
  * - `apps/backend/src/aiTools/sqlToolLimits.ts`
- * - `apps/web/src/chat/localToolExecutorTypes.ts`
- * - `apps/ios/Flashcards/Flashcards/AI/LocalAISqlRuntimeModels.swift`
- * - `apps/ios/Flashcards/Flashcards/AI/LocalAIToolExecutor.swift`
+ * - `apps/web/src/types.ts`
+ * - `apps/ios/Flashcards/Flashcards/AI/AIChatTypes.swift`
  */
 export const MAX_SQL_LIMIT = MAX_SQL_RECORD_LIMIT;
 

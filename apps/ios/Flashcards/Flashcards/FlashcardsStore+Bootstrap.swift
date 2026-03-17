@@ -156,23 +156,18 @@ extension FlashcardsStore {
             encoder: self.encoder,
             decoder: self.decoder
         )
-        let workspaceRuntime: any AIToolExecuting & AIChatLocalContextLoading
+        let contextLoader: any AIChatContextLoading
         if let databaseURL = self.localDatabaseURL {
-            workspaceRuntime = LocalAIToolExecutor(
-                databaseURL: databaseURL,
-                encoder: self.encoder,
-                decoder: self.decoder
-            )
+            contextLoader = AIChatContextLoader(databaseURL: databaseURL)
         } else {
-            workspaceRuntime = UnavailableAIToolExecutor()
+            contextLoader = UnavailableAIChatContextLoader()
         }
 
         return AIChatStore(
             flashcardsStore: self,
             historyStore: historyStore,
             chatService: chatService,
-            toolExecutor: workspaceRuntime,
-            localContextLoader: workspaceRuntime,
+            contextLoader: contextLoader,
             voiceRecorder: AIChatVoiceRecorder(),
             audioTranscriber: AIChatTranscriptionService(
                 session: URLSession.shared,

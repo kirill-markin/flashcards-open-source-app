@@ -107,7 +107,7 @@ test("openapi endpoints return the same JSON document", async () => {
   assert.deepEqual(agentOpenapiBody, openapiBody);
   assert.deepEqual(agentSwaggerBody, openapiBody);
   assert.equal("/workspaces/{workspaceId}/sync/push" in openapiBody.paths, false);
-  assert.equal("/chat/local-turn" in openapiBody.paths, false);
+  assert.equal("/chat/turn" in openapiBody.paths, false);
   assert.equal("/agent-api-keys" in openapiBody.paths, false);
   assert.equal("/agent/sql" in openapiBody.paths, true);
 });

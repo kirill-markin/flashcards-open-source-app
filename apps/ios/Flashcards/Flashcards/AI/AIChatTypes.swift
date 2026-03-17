@@ -26,17 +26,8 @@ let aiChatSupportedFileExtensions: Set<String> = [
     "log",
     "docx",
 ]
-/**
- iOS-local tool catalog.
-
- Keep this set aligned with:
- - `apps/web/src/chat/localToolExecutor.ts::LOCAL_TOOL_NAMES`
- - `apps/backend/src/chat/openai/localTools.ts::OPENAI_LOCAL_FLASHCARDS_TOOLS`
- */
-let aiChatLocalToolNames: Set<String> = [
+let aiChatToolNames: Set<String> = [
     "sql",
-    "get_cloud_settings",
-    "list_outbox",
 ]
 let aiChatExternalProviderDisclosureItems: [String] = [
     "Typed prompts and card-derived context needed for your request can be sent to external AI providers.",
@@ -301,30 +292,27 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     }
 }
 
-struct AILocalChatWireMessage: Codable, Hashable, Sendable {
+struct AIChatWireMessage: Codable, Hashable, Sendable {
     let role: String
-    let content: [AIChatContentPart]?
-    let toolCallId: String?
-    let name: String?
-    let output: String?
+    let content: [AIChatContentPart]
 }
 
 /**
  Keep this block limited to short, stable user facts that help the model start
  from the right high-level context without replacing workspace tools.
  */
-struct AILocalChatUserContext: Codable, Hashable, Sendable {
+struct AIChatUserContext: Codable, Hashable, Sendable {
     let totalCards: Int
 }
 
-struct AILocalChatRequestBody: Codable, Hashable, Sendable {
-    let messages: [AILocalChatWireMessage]
+struct AIChatTurnRequestBody: Codable, Hashable, Sendable {
+    let messages: [AIChatWireMessage]
     let model: String
     let timezone: String
     let devicePlatform: String
     let chatSessionId: String
     let codeInterpreterContainerId: String?
-    let userContext: AILocalChatUserContext
+    let userContext: AIChatUserContext
 }
 
 struct AIToolCallRequest: Hashable, Sendable {
@@ -446,8 +434,6 @@ struct AIChatRepairAttemptStatus: Hashable, Sendable {
 }
 
 struct AITurnStreamOutcome: Hashable, Sendable {
-    let awaitsToolResults: Bool
-    let requestedToolCalls: [AIToolCallRequest]
     let requestId: String?
     let codeInterpreterContainerId: String?
 }
@@ -464,7 +450,6 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
     case toolCall(AIChatToolCall)
     case toolCallRequest(AIToolCallRequest)
     case repairAttempt(AIChatRepairAttemptStatus)
-    case awaitToolResults
     case done
     case error(AIChatBackendError)
 
@@ -519,8 +504,6 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
                     toolName: try container.decodeIfPresent(String.self, forKey: .toolName)
                 )
             )
-        case "await_tool_results":
-            self = .awaitToolResults
         case "done":
             self = .done
         case "error":
@@ -546,20 +529,14 @@ enum AIChatRuntimeEvent: Sendable {
     case appendAssistantText(String)
     case upsertToolCall(AIChatToolCall)
     case setRepairStatus(AIChatRepairAttemptStatus?)
-    case refreshLocalState
     case finish
     case fail(String)
 }
 
-struct AIChatLocalContext: Sendable {
+struct AIChatContext: Sendable {
     let workspace: Workspace
     let schedulerSettings: WorkspaceSchedulerSettings
     let totalActiveCards: Int
-}
-
-struct AIToolExecutionResult: Sendable {
-    let output: String
-    let didMutateAppState: Bool
 }
 
 struct AIChatRuntimeResult: Sendable {
@@ -576,7 +553,7 @@ protocol AIChatHistoryStoring: Sendable {
 protocol AIChatStreaming: Sendable {
     func streamTurn(
         session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
+        request: AIChatTurnRequestBody,
         tapStartedAt: Date?,
         onDelta: @escaping @Sendable (String) async -> Void,
         onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
@@ -596,10 +573,6 @@ protocol AIChatStreaming: Sendable {
     ) async
 }
 
-protocol AIToolExecuting: Sendable {
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult
-}
-
-protocol AIChatLocalContextLoading: Sendable {
-    func loadLocalContext() async throws -> AIChatLocalContext
+protocol AIChatContextLoading: Sendable {
+    func loadContext() async throws -> AIChatContext
 }

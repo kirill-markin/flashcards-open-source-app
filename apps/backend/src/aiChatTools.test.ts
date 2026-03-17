@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { OPENAI_LOCAL_FLASHCARDS_TOOLS } from "./chat/openai/localTools";
+import { OPENAI_AI_CHAT_TOOLS } from "./chat/openai/aiChatTools";
 
 type ObjectToolParameters = Readonly<{
   type: "object";
@@ -8,8 +8,8 @@ type ObjectToolParameters = Readonly<{
   required: ReadonlyArray<string>;
 }>;
 
-test("all strict local tool object schemas declare every property in required", () => {
-  for (const tool of OPENAI_LOCAL_FLASHCARDS_TOOLS) {
+test("all AI chat tool object schemas declare every property in required", () => {
+  for (const tool of OPENAI_AI_CHAT_TOOLS) {
     const rawParameters = tool.parameters as ObjectToolParameters | null;
     if (rawParameters === null) {
       throw new Error(`Tool ${tool.name} is missing parameters`);
@@ -25,10 +25,10 @@ test("all strict local tool object schemas declare every property in required", 
   }
 });
 
-test("removed local write tools stay out of the canonical local tool contract", () => {
-  const toolNames = OPENAI_LOCAL_FLASHCARDS_TOOLS.map((tool) => tool.name);
+test("only backend-executed SQL remains in the AI chat tool contract", () => {
+  const toolNames = OPENAI_AI_CHAT_TOOLS.map((tool) => tool.name);
 
   assert.equal(toolNames.includes("submit_review"), false);
   assert.equal(toolNames.includes("update_scheduler_settings"), false);
-  assert.deepEqual(toolNames.sort(), ["get_cloud_settings", "list_outbox", "sql"]);
+  assert.deepEqual(toolNames.sort(), ["sql"]);
 });

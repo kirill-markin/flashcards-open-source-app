@@ -1,10 +1,10 @@
 import { getAppConfig } from "./config";
 import type {
+  AIChatDiagnosticsPayload,
+  AIChatTurnRequestBody,
+  AIChatUserContext,
+  AIChatWireMessage,
   DeleteWorkspaceResponse,
-  LocalChatDiagnosticsPayload,
-  LocalChatMessage,
-  LocalChatRequestBody,
-  LocalChatUserContext,
   QueryCardsInput,
   QueryCardsPage,
   SessionInfo,
@@ -531,8 +531,8 @@ export async function queryCards(
   return payload as unknown as QueryCardsPage;
 }
 
-export async function streamLocalChat(body: LocalChatRequestBody, signal: AbortSignal): Promise<Response> {
-  return requestResponse("/chat/local-turn", {
+export async function streamAIChat(body: AIChatTurnRequestBody, signal: AbortSignal): Promise<Response> {
+  return requestResponse("/chat/turn", {
     method: "POST",
     body: JSON.stringify(body),
     signal,
@@ -580,14 +580,14 @@ export async function transcribeChatAudio(blob: Blob, source: ChatTranscriptionS
   return payload.text;
 }
 
-export function createLocalChatRequestBody(
-  messages: ReadonlyArray<LocalChatMessage>,
+export function createAIChatRequestBody(
+  messages: ReadonlyArray<AIChatWireMessage>,
   model: string,
   timezone: string,
   chatSessionId: string,
   codeInterpreterContainerId: string | null,
-  userContext: LocalChatUserContext,
-): LocalChatRequestBody {
+  userContext: AIChatUserContext,
+): AIChatTurnRequestBody {
   return {
     messages,
     model,
@@ -599,8 +599,8 @@ export function createLocalChatRequestBody(
   };
 }
 
-export async function sendLocalChatDiagnostics(body: LocalChatDiagnosticsPayload): Promise<void> {
-  const response = await requestResponse("/chat/local-turn/diagnostics", {
+export async function sendAIChatDiagnostics(body: AIChatDiagnosticsPayload): Promise<void> {
+  const response = await requestResponse("/chat/turn/diagnostics", {
     method: "POST",
     body: JSON.stringify(body),
     keepalive: true,

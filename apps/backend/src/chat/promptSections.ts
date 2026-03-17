@@ -22,8 +22,8 @@ export function buildCloudWorkspaceSection(): string {
 
 export function buildLocalWorkspaceSection(): string {
   return joinLines([
-    "The local device database is the source of truth for reads.",
-    "Use only the provided local tools to inspect workspace data.",
+    "You work over the synced workspace state managed by the backend.",
+    "Use the shared sql tool to inspect workspace data.",
   ]);
 }
 
@@ -97,7 +97,7 @@ export function buildCloudWritePolicyLines(): ReadonlyArray<string> {
 export function buildLocalWritePolicyLines(): ReadonlyArray<string> {
   return [
     "- Before any create, update, or delete tool call, you must first describe the exact changes you plan to make.",
-    "- Before proposing or executing any new card or deck creation, you must first inspect the local workspace for exact or similar items through the shared sql tool.",
+    "- Before proposing or executing any new card or deck creation, you must first inspect the workspace for exact or similar items through the shared sql tool.",
     "- You must summarize what you found and discuss possible duplicates or overlap with the user before proposing a creation plan.",
     "- If the requested create, update, or delete work would affect more than 100 records, you must split it into multiple batches of at most 100 records and execute them across separate SQL statements or separate tool calls.",
     "- Every newly proposed card must include at least one tag.",
@@ -106,7 +106,7 @@ export function buildLocalWritePolicyLines(): ReadonlyArray<string> {
     "- You must reuse existing workspace tags when they fit; create a new tag only when no existing tag is appropriate.",
     "- You must then wait for explicit user confirmation before executing the write tool.",
     "- Use write tools only after the latest user message clearly confirms the exact proposed change.",
-    "- Never mutate hidden FSRS fields, sync metadata, outbox rows, cloud settings, or arbitrary local tables directly.",
+    "- Never mutate hidden FSRS fields, sync metadata, or arbitrary non-product tables directly.",
   ];
 }
 
@@ -143,8 +143,6 @@ export function buildLocalToolCallExamplesSection(): string {
   return joinLines([
     "Tool-call JSON examples:",
     ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
-    "- get_cloud_settings => {}",
-    "- list_outbox => {\"cursor\": null, \"limit\": 20}",
   ]);
 }
 

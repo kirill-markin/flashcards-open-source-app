@@ -35,6 +35,7 @@ export type AppDataContextValue = Readonly<{
   createWorkspace: (name: string) => Promise<void>;
   renameWorkspace: (workspaceId: string, name: string) => Promise<void>;
   deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
+  runSync: () => Promise<void>;
   refreshLocalData: () => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;
   getDeckById: (deckId: string) => Promise<Deck>;

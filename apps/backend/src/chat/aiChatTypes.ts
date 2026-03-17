@@ -1,38 +1,38 @@
-export type LocalChatDevicePlatform = "ios" | "web";
+export type AIChatDevicePlatform = "ios" | "web";
 
 /**
  * High-level user facts injected into the system prompt before the model
  * reaches for workspace SQL. Keep this small, factual, and easy to extend.
  */
-export type LocalChatUserContext = Readonly<{
+export type AIChatUserContext = Readonly<{
   totalCards: number;
 }>;
 
-export type LocalAssistantToolCall = Readonly<{
+export type AIChatAssistantToolCall = Readonly<{
   toolCallId: string;
   name: string;
   input: string;
 }>;
 
-export type LocalTextContentPart = Readonly<{
+export type AIChatTextContentPart = Readonly<{
   type: "text";
   text: string;
 }>;
 
-export type LocalImageContentPart = Readonly<{
+export type AIChatImageContentPart = Readonly<{
   type: "image";
   mediaType: string;
   base64Data: string;
 }>;
 
-export type LocalFileContentPart = Readonly<{
+export type AIChatFileContentPart = Readonly<{
   type: "file";
   mediaType: string;
   base64Data: string;
   fileName: string;
 }>;
 
-export type LocalToolCallContentPart = Readonly<{
+export type AIChatToolCallContentPart = Readonly<{
   type: "tool_call";
   toolCallId: string;
   name: string;
@@ -41,21 +41,24 @@ export type LocalToolCallContentPart = Readonly<{
   output: string | null;
 }>;
 
-export type LocalContentPart =
-  | LocalTextContentPart
-  | LocalImageContentPart
-  | LocalFileContentPart
-  | LocalToolCallContentPart;
+export type AIChatContentPart =
+  | AIChatTextContentPart
+  | AIChatImageContentPart
+  | AIChatFileContentPart
+  | AIChatToolCallContentPart;
 
-export type LocalChatMessage =
+export type AIChatWireMessage =
   | Readonly<{
     role: "user";
-    content: ReadonlyArray<LocalContentPart>;
+    content: ReadonlyArray<AIChatContentPart>;
   }>
   | Readonly<{
     role: "assistant";
-    content: ReadonlyArray<LocalContentPart>;
-  }>
+    content: ReadonlyArray<AIChatContentPart>;
+  }>;
+
+export type AIChatMessage =
+  | AIChatWireMessage
   | Readonly<{
     role: "tool";
     toolCallId: string;
@@ -63,17 +66,17 @@ export type LocalChatMessage =
     output: string;
   }>;
 
-export type LocalChatRequestBody = Readonly<{
-  messages: ReadonlyArray<LocalChatMessage>;
+export type AIChatTurnRequestBody = Readonly<{
+  messages: ReadonlyArray<AIChatWireMessage>;
   model: string;
   timezone: string;
-  devicePlatform: LocalChatDevicePlatform;
+  devicePlatform: AIChatDevicePlatform;
   chatSessionId: string;
   codeInterpreterContainerId: string | null;
-  userContext: LocalChatUserContext;
+  userContext: AIChatUserContext;
 }>;
 
-export type LocalChatStreamEvent =
+export type AIChatTurnStreamEvent =
   | Readonly<{ type: "delta"; text: string }>
   | Readonly<{
     type: "tool_call";
@@ -91,7 +94,6 @@ export type LocalChatStreamEvent =
     maxAttempts: number;
     toolName: string | null;
   }>
-  | Readonly<{ type: "await_tool_results" }>
   | Readonly<{ type: "done" }>
   | Readonly<{
     type: "error";
