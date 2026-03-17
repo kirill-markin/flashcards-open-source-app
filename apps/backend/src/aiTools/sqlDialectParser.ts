@@ -466,6 +466,24 @@ function parseStringArrayLiteralList(value: string): ReadonlyArray<string> {
   });
 }
 
+function parseLoweredStringLiteralList(value: string, operator: "IN" | "NOT IN"): ReadonlyArray<string> {
+  const trimmedValue = value.trim();
+  assert(trimmedValue.startsWith("(") && trimmedValue.endsWith(")"), "Expected a parenthesized value list");
+  const innerValue = trimmedValue.slice(1, -1).trim();
+  if (innerValue === "") {
+    return [];
+  }
+
+  return splitTopLevel(innerValue, ",").map((item) => {
+    const parsedValue = parseSqlLiteral(item);
+    if (typeof parsedValue !== "string") {
+      throw new Error(`LOWER(column) ${operator} (...) only supports string literals`);
+    }
+
+    return parsedValue;
+  });
+}
+
 function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
   const trimmedValue = value.trim();
   const matchPredicate = trimmedValue.match(/^MATCH\s*\(\s*('(?:''|[^'])*')\s*\)$/i);
@@ -497,6 +515,22 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
       columnName,
       pattern: parseStringLiteral(loweredEqualsPredicate[2] ?? ""),
       caseInsensitive: true,
+    };
+  }
+
+  const loweredInPredicate = trimmedValue.match(
+    /^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s+(NOT\s+IN|IN)\s*(\(.+\))$/i,
+  );
+  if (loweredInPredicate !== null) {
+    const columnName = (loweredInPredicate[1] ?? "").toLowerCase();
+    const operator = (loweredInPredicate[2] ?? "").toUpperCase().replace(/\s+/g, " ");
+    ensureSqlSourceColumnExists(source, columnName);
+    return {
+      type: "in",
+      columnName,
+      values: parseLoweredStringLiteralList(loweredInPredicate[3] ?? "", operator as "IN" | "NOT IN"),
+      caseInsensitive: true,
+      isNegated: operator === "NOT IN",
     };
   }
 
@@ -551,6 +585,8 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
       type: "in",
       columnName,
       values: splitTopLevel((inPredicate[2] ?? "").slice(1, -1), ",").map(parseSqlLiteral),
+      caseInsensitive: false,
+      isNegated: false,
     };
   }
 

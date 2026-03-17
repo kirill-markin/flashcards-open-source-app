@@ -142,6 +142,21 @@ function normalizeStringArray(value: SqlRowValue | undefined): ReadonlyArray<str
   return value.filter((item): item is string => typeof item === "string");
 }
 
+function rowMatchesInPredicate(columnValue: SqlRowValue | undefined, predicate: Extract<SqlPredicate, { type: "in" }>): boolean {
+  if (predicate.caseInsensitive) {
+    if (typeof columnValue !== "string") {
+      return false;
+    }
+
+    const normalizedColumnValue = columnValue.toLowerCase();
+    const hasMatch = predicate.values.some((value) => typeof value === "string" && normalizedColumnValue === value.toLowerCase());
+    return predicate.isNegated ? hasMatch === false : hasMatch;
+  }
+
+  const hasMatch = predicate.values.some((value) => valuesEqual(columnValue, value));
+  return predicate.isNegated ? hasMatch === false : hasMatch;
+}
+
 function validatePredicate(source: SqlFromSource, predicate: SqlPredicate): void {
   if (predicate.type === "match") {
     return;
@@ -204,7 +219,7 @@ function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
   }
 
   if (predicate.type === "in") {
-    return predicate.values.some((value) => valuesEqual(columnValue, value));
+    return rowMatchesInPredicate(columnValue, predicate);
   }
 
   if (predicate.type === "is_null") {
