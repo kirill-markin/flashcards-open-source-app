@@ -191,6 +191,10 @@ test("executeAgentSql returns a batch payload for read-only multi-statement SQL"
     result.data.statements.map((statement) => statement.statementType),
     ["show_tables", "select"],
   );
+  assert.equal(
+    result.instructions,
+    "Read rows from data.statements. Each entry preserves the single-statement payload shape. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.",
+  );
 });
 
 test("executeAgentSql rejects mixed read and mutation batches", async () => {
@@ -237,6 +241,88 @@ test("executeAgentSql rejects INSERT statements above the per-statement record l
     (error: unknown) => {
       assert.ok(error instanceof HttpError);
       assert.match(error.message, /INSERT may affect at most 100 records per statement/);
+      return true;
+    },
+  );
+});
+
+test("executeAgentSql resolves SQL predicates before single-statement card updates", async () => {
+  const result = await executeAgentSql(
+    makeContext(),
+    "UPDATE cards SET back_text = 'Updated answer' WHERE card_id = 'card-1'",
+    createDependencies({
+      async queryCardsPage() {
+        return {
+          cards: [makeCard("card-1"), makeCard("card-2")],
+          nextCursor: null,
+          totalCount: 2,
+        };
+      },
+      async updateCards(_userId, _workspaceId, updates) {
+        assert.equal(updates.length, 1);
+        assert.equal(updates[0]?.cardId, "card-1");
+        assert.deepEqual(updates[0]?.input, {
+          backText: "Updated answer",
+        });
+        assert.equal(updates[0]?.metadata.lastModifiedByDeviceId, "device-1");
+        assert.match(updates[0]?.metadata.lastOperationId ?? "", /^update_cards-0-/);
+
+        return [{
+          ...makeCard("card-1"),
+          backText: "Updated answer",
+        }];
+      },
+    }),
+  );
+
+  assert.equal(result.data.statementType, "update");
+  assert.equal(result.data.affectedCount, 1);
+  assert.equal(result.data.rows.length, 1);
+  assert.equal(result.data.rows[0]?.card_id, "card-1");
+  assert.equal(result.data.rows[0]?.back_text, "Updated answer");
+});
+
+test("executeAgentSql resolves SQL predicates before single-statement deck deletes", async () => {
+  const result = await executeAgentSql(
+    makeContext(),
+    "DELETE FROM decks WHERE deck_id = 'deck-1'",
+    createDependencies({
+      async listDecksPage() {
+        return {
+          decks: [makeDeck("deck-1"), makeDeck("deck-2")],
+          nextCursor: null,
+        };
+      },
+      async deleteDecks(_userId, _workspaceId, items) {
+        assert.equal(items.length, 1);
+        assert.equal(items[0]?.deckId, "deck-1");
+        assert.equal(items[0]?.metadata.lastModifiedByDeviceId, "device-1");
+        assert.match(items[0]?.metadata.lastOperationId ?? "", /^delete_decks-0-/);
+
+        return {
+          deletedDeckIds: ["deck-1"],
+          deletedCount: 1,
+        };
+      },
+    }),
+  );
+
+  assert.equal(result.data.statementType, "delete");
+  assert.equal(result.data.affectedCount, 1);
+  assert.deepEqual(result.data.rows, []);
+});
+
+test("executeAgentSql prefixes execution-time batch failures with the statement preview", async () => {
+  await assert.rejects(
+    () => executeAgentSql(
+      makeContext(),
+      "SELECT * FROM workspace LIMIT 0 OFFSET 0; SHOW TABLES",
+      createDependencies({}),
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /SQL batch statement 1 failed: LIMIT must be greater than 0/);
+      assert.match(error.message, /Statement: SELECT \* FROM workspace LIMIT 0 OFFSET 0/);
       return true;
     },
   );
