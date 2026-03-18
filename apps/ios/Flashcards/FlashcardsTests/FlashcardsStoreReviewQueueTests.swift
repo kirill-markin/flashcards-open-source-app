@@ -396,6 +396,8 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
             pollNanoseconds: 20_000_000
         ) {
             store.reviewSubmissionFailure != nil
+                && store.effectiveReviewQueue.first?.cardId == cardId
+                && store.isReviewPending(cardId: cardId) == false
         }
 
         let failure = try XCTUnwrap(store.reviewSubmissionFailure)
