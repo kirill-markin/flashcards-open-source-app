@@ -84,13 +84,15 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         )
         let workspaceId = try testWorkspaceId(database: context.database)
 
-        try context.store.saveCard(
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1", tags: ["tag-a"]),
-            editingCardId: nil
+            cardId: nil
         )
-        try context.store.saveCard(
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 2", backText: "Back 2", tags: ["tag-b"]),
-            editingCardId: nil
+            cardId: nil
         )
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
             database: context.database,
@@ -104,6 +106,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             pollNanoseconds: 20_000_000
         ) {
             context.store.isReviewHeadLoading == false
+                && context.store.effectiveReviewQueue.count == 2
         }
 
         let initialReviewQueue = context.store.reviewQueue
@@ -129,13 +132,15 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         )
         let workspaceId = try testWorkspaceId(database: context.database)
 
-        try context.store.saveCard(
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1", tags: ["tag-a"]),
-            editingCardId: nil
+            cardId: nil
         )
-        try context.store.saveCard(
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 2", backText: "Back 2", tags: ["tag-b"]),
-            editingCardId: nil
+            cardId: nil
         )
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
             database: context.database,
@@ -145,6 +150,14 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         context.store.cloudRuntime.setActiveCloudSession(
             linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId)
         )
+
+        await FlashcardsStoreTestSupport.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            context.store.isReviewHeadLoading == false
+                && context.store.effectiveReviewQueue.count == 2
+        }
 
         let initialReviewQueue = context.store.reviewQueue
         let initialCurrentCardId = context.store.effectiveReviewQueue.first?.cardId
@@ -176,13 +189,15 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         )
         let workspaceId = try testWorkspaceId(database: context.database)
 
-        try context.store.saveCard(
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1", tags: ["tag-a"]),
-            editingCardId: nil
+            cardId: nil
         )
-        try context.store.saveCard(
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 2", backText: "Back 2", tags: ["tag-b"]),
-            editingCardId: nil
+            cardId: nil
         )
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
             database: context.database,
@@ -196,6 +211,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             pollNanoseconds: 20_000_000
         ) {
             context.store.isReviewHeadLoading == false
+                && context.store.effectiveReviewQueue.count == 2
         }
 
         let firstCardId = try XCTUnwrap(context.store.effectiveReviewQueue.first?.cardId)
@@ -238,13 +254,15 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         )
         let workspaceId = try testWorkspaceId(database: context.database)
 
-        try context.store.saveCard(
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 1", backText: "Back 1", tags: ["tag-a"]),
-            editingCardId: nil
+            cardId: nil
         )
-        try context.store.saveCard(
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front 2", backText: "Back 2", tags: ["tag-b"]),
-            editingCardId: nil
+            cardId: nil
         )
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(
             database: context.database,
@@ -254,6 +272,14 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         context.store.cloudRuntime.setActiveCloudSession(
             linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId)
         )
+
+        await FlashcardsStoreTestSupport.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            context.store.isReviewHeadLoading == false
+                && context.store.effectiveReviewQueue.count == 2
+        }
 
         let firstCardId = try XCTUnwrap(context.store.effectiveReviewQueue.first?.cardId)
         let secondCardId = try XCTUnwrap(context.store.effectiveReviewQueue.dropFirst().first?.cardId)
