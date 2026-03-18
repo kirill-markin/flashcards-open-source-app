@@ -216,6 +216,7 @@ async function signInWithPasswordViaCognito(
     AuthParameters: {
       USERNAME: email,
       PREFERRED_CHALLENGE: "PASSWORD",
+      PASSWORD: password,
     },
   });
 

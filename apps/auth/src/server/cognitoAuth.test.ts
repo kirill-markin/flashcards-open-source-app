@@ -50,6 +50,18 @@ test("password sign-in sends password with SELECT_CHALLENGE before password chal
       expiresIn: 3600,
     });
     assert.equal(calls.length, 3);
+    assert.deepEqual(calls[0], {
+      target: "InitiateAuth",
+      body: {
+        AuthFlow: "USER_AUTH",
+        ClientId: "test-client-id",
+        AuthParameters: {
+          USERNAME: "reviewer@example.com",
+          PREFERRED_CHALLENGE: "PASSWORD",
+          PASSWORD: "reviewer-password",
+        },
+      },
+    });
     assert.deepEqual(calls[1], {
       target: "RespondToAuthChallenge",
       body: {
