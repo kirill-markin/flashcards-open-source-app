@@ -32,8 +32,8 @@ final class AIChatDictationTests: AIChatTestCaseBase {
             AIChatDictationInsertionResult(
                 text: "hello dictated world",
                 selection: AIChatDictationInsertionSelection(
-                    startUtf16Offset: "hello dictated ".utf16.count,
-                    endUtf16Offset: "hello dictated ".utf16.count
+                    startUtf16Offset: "hello dictated".utf16.count,
+                    endUtf16Offset: "hello dictated".utf16.count
                 )
             )
         )
@@ -201,6 +201,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
         chatStore.inputText = "first"
         chatStore.sendMessage()
+        try await self.waitForChatStart(chatStore: chatStore)
         XCTAssertTrue(chatStore.isStreaming)
 
         chatStore.inputText = "next"

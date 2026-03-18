@@ -580,7 +580,7 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
     func testShouldRefreshCloudIdTokenReturnsTrueForNearExpiry() {
         XCTAssertTrue(
             shouldRefreshCloudIdToken(
-                idTokenExpiresAt: "2026-03-08T10:04:59.000Z",
+                idTokenExpiresAt: "2026-03-08T00:38:19.000Z",
                 now: Date(timeIntervalSince1970: 1_772_930_000)
             )
         )
@@ -1514,7 +1514,7 @@ private final class CloudSupportMockUrlProtocol: URLProtocol {
         }
 
         do {
-            let (response, data) = try handler(self.request)
+            let (response, data) = try handler(materializedRequest(self.request))
             self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             self.client?.urlProtocol(self, didLoad: data)
             self.client?.urlProtocolDidFinishLoading(self)

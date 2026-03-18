@@ -2,6 +2,17 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+@MainActor
+private func requireMessageCount(
+    _ chatStore: AIChatStore,
+    expectedCount: Int,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) -> Bool {
+    XCTAssertEqual(chatStore.messages.count, expectedCount, file: file, line: line)
+    return chatStore.messages.count == expectedCount
+}
+
 final class AIChatStoreFlowTests: AIChatTestCaseBase {
     @MainActor
     func testAIChatStoreBlocksSendWhenCloudIsNotLinked() throws {
@@ -68,7 +79,9 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         try await self.waitForChatCompletion(chatStore: chatStore)
 
         XCTAssertNil(chatStore.activeAlert)
-        XCTAssertEqual(chatStore.messages.count, 2)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[0].role, .user)
         XCTAssertEqual(chatStore.messages[0].text, "hello")
         XCTAssertEqual(chatStore.messages[1].role, .assistant)
@@ -96,7 +109,9 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         try await self.waitForChatCompletion(chatStore: chatStore)
 
         XCTAssertNil(chatStore.repairStatus)
-        XCTAssertEqual(chatStore.messages.count, 2)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
     }
 
@@ -120,6 +135,9 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         try await self.waitForChatCompletion(chatStore: chatStore)
 
         XCTAssertNil(chatStore.repairStatus)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].isError, true)
         XCTAssertEqual(chatStore.messages[1].text, "Checking\n\nStill invalid")
     }
@@ -144,6 +162,9 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await self.waitForChatCompletion(chatStore: chatStore)
 
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].text, String(repeating: "A", count: 20))
         XCTAssertLessThan(historyStore.saveCallCount, 20)
     }
@@ -364,7 +385,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
-    func testAIChatStoreSendMessageClearsDraftAndAttachmentsBeforeStreaming() throws {
+    func testAIChatStoreSendMessageClearsDraftAndAttachmentsBeforeStreaming() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let historyStore = InMemoryHistoryStore(
             savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
@@ -390,10 +411,13 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         chatStore.sendMessage()
 
+        try await self.waitForChatStart(chatStore: chatStore)
         XCTAssertTrue(chatStore.isStreaming)
         XCTAssertEqual(chatStore.inputText, "")
         XCTAssertEqual(chatStore.pendingAttachments, [])
-        XCTAssertEqual(chatStore.messages.count, 2)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[0].role, .user)
         XCTAssertEqual(chatStore.messages[0].content.count, 2)
         XCTAssertEqual(chatStore.messages[1].role, .assistant)
@@ -421,7 +445,9 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await self.waitForChatCompletion(chatStore: chatStore)
 
-        XCTAssertEqual(chatStore.messages.count, 2)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].role, .assistant)
         XCTAssertEqual(chatStore.messages[1].text, "")
         XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
@@ -455,7 +481,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
-    func testAIChatStoreKeepsTypedDraftAfterStoppingStreaming() throws {
+    func testAIChatStoreKeepsTypedDraftAfterStoppingStreaming() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(
@@ -470,6 +496,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         chatStore.inputText = "hello"
         chatStore.sendMessage()
+        try await self.waitForChatStart(chatStore: chatStore)
         XCTAssertTrue(chatStore.isStreaming)
 
         chatStore.inputText = "follow up"
@@ -480,7 +507,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
-    func testAIChatStoreKeepsAttachmentsAddedDuringStreamingAfterStopping() throws {
+    func testAIChatStoreKeepsAttachmentsAddedDuringStreamingAfterStopping() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(
@@ -495,6 +522,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         chatStore.inputText = "hello"
         chatStore.sendMessage()
+        try await self.waitForChatStart(chatStore: chatStore)
         XCTAssertTrue(chatStore.isStreaming)
 
         let pendingAttachment = AIChatAttachment(
@@ -567,7 +595,9 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        XCTAssertEqual(chatStore.messages.count, 2)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
         XCTAssertEqual(chatStore.messages[1].toolCalls.first?.name, "sql")
         XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .started)
@@ -576,6 +606,9 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await self.waitForChatCompletion(chatStore: chatStore)
 
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
         XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .completed)
         XCTAssertEqual(chatStore.messages[1].toolCalls.first?.output, #"{"ok":true}"#)
@@ -612,12 +645,18 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             try await Task.sleep(nanoseconds: 10_000_000)
         }
 
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].text, "A")
 
         try await Task.sleep(nanoseconds: 50_000_000)
         XCTAssertEqual(chatStore.messages[1].text, "A")
 
         try await self.waitForChatCompletion(chatStore: chatStore)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].text, "ABC")
     }
 
@@ -648,6 +687,9 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await self.waitForChatCompletion(chatStore: chatStore)
 
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
         XCTAssertEqual(chatStore.messages[1].text, "")
         XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
         XCTAssertEqual(chatStore.messages[1].toolCalls.first?.name, "web_search")

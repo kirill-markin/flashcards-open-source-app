@@ -35,7 +35,11 @@ final class AIChatAttachmentHelperTests: XCTestCase {
                 mediaType: "image/jpeg"
             )
         ) { error in
-            XCTAssertEqual(Flashcards.errorMessage(error: error), "File is too large. Maximum allowed size is 20 MB.")
+            let nsError = error as NSError
+
+            XCTAssertEqual(nsError.domain, "AIChatAttachment")
+            XCTAssertEqual(nsError.code, 2)
+            XCTAssertEqual(nsError.localizedDescription, "File is too large. Maximum allowed size is 20 MB.")
         }
     }
 
@@ -95,7 +99,7 @@ final class AIChatAttachmentHelperTests: XCTestCase {
 
         XCTAssertEqual(
             aiChatFileImportAlert(error: error),
-            .generalError(message: "Unsupported file type: .exe")
+            .generalError(message: Flashcards.errorMessage(error: error))
         )
     }
 }

@@ -113,7 +113,7 @@ private final class MockUrlProtocol: URLProtocol {
         }
 
         do {
-            let (response, data) = try handler(self.request)
+            let (response, data) = try handler(materializedRequest(self.request))
             self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             self.client?.urlProtocol(self, didLoad: data)
             self.client?.urlProtocolDidFinishLoading(self)

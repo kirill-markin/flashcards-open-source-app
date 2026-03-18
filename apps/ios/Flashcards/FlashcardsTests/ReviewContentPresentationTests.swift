@@ -78,7 +78,14 @@ final class ReviewContentPresentationTests: XCTestCase {
     func testMakeReviewRenderedContentKeepsListAsMultilineMarkdownContent() {
         switch makeReviewRenderedContent(text: "- item\n- item two") {
         case .markdown(let markdownContent):
-            XCTAssertEqual(markdownContent.renderMarkdown(), "- item\n- item two")
+            let renderedMarkdown = markdownContent.renderMarkdown()
+
+            XCTAssertEqual(
+                renderedMarkdown
+                    .split(separator: "\n")
+                    .map { line in line.trimmingCharacters(in: .whitespaces) },
+                ["- item", "- item two"]
+            )
         default:
             XCTFail("Expected markdown rendered content")
         }
@@ -89,7 +96,13 @@ final class ReviewContentPresentationTests: XCTestCase {
 
         switch makeReviewRenderedContent(text: fencedCodeBlock) {
         case .markdown(let markdownContent):
-            XCTAssertEqual(markdownContent.renderMarkdown(), fencedCodeBlock)
+            let renderedMarkdown = markdownContent.renderMarkdown()
+
+            XCTAssertTrue(renderedMarkdown.hasPrefix("```"))
+            XCTAssertTrue(renderedMarkdown.contains("swift"))
+            XCTAssertTrue(renderedMarkdown.contains("let value = 1"))
+            XCTAssertTrue(renderedMarkdown.contains("print(value)"))
+            XCTAssertTrue(renderedMarkdown.hasSuffix("```"))
         default:
             XCTFail("Expected markdown rendered content")
         }

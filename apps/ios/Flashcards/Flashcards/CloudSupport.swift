@@ -195,7 +195,7 @@ private func loadCloudString(bundle: Bundle, key: String) throws -> String {
 private func loadCloudUrlString(bundle: Bundle, key: String) throws -> String {
     let rawValue = try loadCloudString(bundle: bundle, key: key)
     let normalizedValue = rawValue.hasSuffix("/") ? String(rawValue.dropLast()) : rawValue
-    guard URL(string: normalizedValue) != nil else {
+    guard isValidAbsoluteCloudUrlString(normalizedValue) else {
         throw CloudConfigurationError.invalidUrl(key, rawValue)
     }
 
@@ -204,11 +204,22 @@ private func loadCloudUrlString(bundle: Bundle, key: String) throws -> String {
 
 private func loadCloudPageUrlString(bundle: Bundle, key: String) throws -> String {
     let rawValue = try loadCloudString(bundle: bundle, key: key)
-    guard URL(string: rawValue) != nil else {
+    guard isValidAbsoluteCloudUrlString(rawValue) else {
         throw CloudConfigurationError.invalidUrl(key, rawValue)
     }
 
     return rawValue
+}
+
+private func isValidAbsoluteCloudUrlString(_ value: String) -> Bool {
+    guard let components = URLComponents(string: value) else {
+        return false
+    }
+    guard let scheme = components.scheme?.lowercased(), scheme == "https" || scheme == "http" else {
+        return false
+    }
+
+    return components.host?.isEmpty == false
 }
 
 private func loadOfficialCloudServiceConfiguration(bundle: Bundle) throws -> CloudServiceConfiguration {

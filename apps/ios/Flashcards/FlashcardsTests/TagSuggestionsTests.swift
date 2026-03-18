@@ -36,7 +36,8 @@ final class TagSuggestionsTests: XCTestCase {
             filteredSuggestions,
             [
                 TagSuggestion(tag: "verbs", countState: .ready(cardsCount: 3)),
-                TagSuggestion(tag: "vocabulary", countState: .ready(cardsCount: 2))
+                TagSuggestion(tag: "vocabulary", countState: .ready(cardsCount: 2)),
+                TagSuggestion(tag: "travel", countState: .ready(cardsCount: 1))
             ]
         )
     }

@@ -614,6 +614,7 @@ private extension FsrsSchedulerParityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
+            .deletingLastPathComponent()
             .appendingPathComponent("tests/fsrs-full-vectors.json")
     }
 
