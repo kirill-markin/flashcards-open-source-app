@@ -5,7 +5,13 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { isAuthRedirectError, pullSyncChanges, pushSyncOperations } from "../api";
+import {
+  bootstrapPullSyncState,
+  isAuthRedirectError,
+  pullReviewHistorySync,
+  pullSyncChanges,
+  pushSyncOperations,
+} from "../api";
 import { webAppVersion } from "../clientIdentity";
 import {
   loadCardById,
@@ -26,11 +32,16 @@ import {
 } from "../localDb/outbox";
 import { putReviewEvent } from "../localDb/reviews";
 import {
-  loadLastAppliedChangeId,
+  hasHydratedHotState,
+  hasHydratedReviewHistory,
+  loadLastAppliedHotChangeId,
+  loadLastAppliedReviewSequenceId,
   loadWorkspaceSettings,
   putWorkspaceSettings,
-  setLastAppliedChangeId,
-  setWorkspaceHydrated,
+  setHotStateHydrated,
+  setLastAppliedHotChangeId,
+  setLastAppliedReviewSequenceId,
+  setReviewHistoryHydrated,
 } from "../localDb/workspace";
 import type {
   Card,
@@ -38,7 +49,9 @@ import type {
   CreateCardInput,
   CreateDeckInput,
   Deck,
+  ReviewEvent,
   SessionInfo,
+  SyncBootstrapEntry,
   SyncChange,
   UpdateCardInput,
   UpdateDeckInput,
@@ -179,47 +192,81 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
   }, [bumpLocalReadVersion, isVisibleWorkspace, refreshLocalMetadata]);
 
+  const applyBootstrapEntry = useCallback(async function applyBootstrapEntry(
+    workspaceId: string,
+    entry: SyncBootstrapEntry,
+  ): Promise<void> {
+    if (entry.entityType === "card") {
+      await putCard(workspaceId, entry.payload);
+      if (isVisibleWorkspace(workspaceId)) {
+        bumpLocalReadVersion();
+      }
+      return;
+    }
+
+    if (entry.entityType === "deck") {
+      if (entry.payload.workspaceId !== workspaceId) {
+        throw new Error(`Deck sync payload workspace mismatch: ${entry.payload.workspaceId}`);
+      }
+
+      await putDeck(entry.payload);
+      if (isVisibleWorkspace(workspaceId)) {
+        bumpLocalReadVersion();
+      }
+      return;
+    }
+
+    await putWorkspaceSettings(workspaceId, entry.payload);
+    if (isVisibleWorkspace(workspaceId)) {
+      setWorkspaceSettings(entry.payload);
+    }
+  }, [bumpLocalReadVersion, isVisibleWorkspace, setWorkspaceSettings]);
+
   const applySyncChange = useCallback(async function applySyncChange(
     workspaceId: string,
     change: SyncChange,
   ): Promise<void> {
     if (change.entityType === "card") {
-      await putCard(workspaceId, change.payload);
-      if (isVisibleWorkspace(workspaceId)) {
-        bumpLocalReadVersion();
-      }
+      await applyBootstrapEntry(workspaceId, {
+        entityType: "card",
+        entityId: change.entityId,
+        action: change.action,
+        payload: change.payload,
+      });
       return;
     }
 
     if (change.entityType === "deck") {
-      if (change.payload.workspaceId !== workspaceId) {
-        throw new Error(`Deck sync payload workspace mismatch: ${change.payload.workspaceId}`);
-      }
-
-      await putDeck(change.payload);
-      if (isVisibleWorkspace(workspaceId)) {
-        bumpLocalReadVersion();
-      }
+      await applyBootstrapEntry(workspaceId, {
+        entityType: "deck",
+        entityId: change.entityId,
+        action: change.action,
+        payload: change.payload,
+      });
       return;
     }
 
-    if (change.entityType === "workspace_scheduler_settings") {
-      await putWorkspaceSettings(workspaceId, change.payload);
-      if (isVisibleWorkspace(workspaceId)) {
-        setWorkspaceSettings(change.payload);
-      }
-      return;
+    await applyBootstrapEntry(workspaceId, {
+      entityType: "workspace_scheduler_settings",
+      entityId: change.entityId,
+      action: change.action,
+      payload: change.payload,
+    });
+  }, [applyBootstrapEntry]);
+
+  const applyReviewHistoryRecord = useCallback(async function applyReviewHistoryRecord(
+    workspaceId: string,
+    reviewEvent: ReviewEvent,
+  ): Promise<void> {
+    if (reviewEvent.workspaceId !== workspaceId) {
+      throw new Error(`Review event sync payload workspace mismatch: ${reviewEvent.workspaceId}`);
     }
 
-    if (change.payload.workspaceId !== workspaceId) {
-      throw new Error(`Review event sync payload workspace mismatch: ${change.payload.workspaceId}`);
-    }
-
-    await putReviewEvent(change.payload);
+    await putReviewEvent(reviewEvent);
     if (isVisibleWorkspace(workspaceId)) {
       bumpLocalReadVersion();
     }
-  }, [bumpLocalReadVersion, isVisibleWorkspace, setWorkspaceSettings]);
+  }, [bumpLocalReadVersion, isVisibleWorkspace]);
 
   const runSyncForWorkspace = useCallback(async function runSyncForWorkspace(
     workspace: WorkspaceSummary,
@@ -242,6 +289,36 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       try {
         const cloudSettings = await loadCloudSettings();
         const deviceId = requireCloudDeviceId(cloudSettings);
+        const hotStateHydrated = await hasHydratedHotState(workspaceId);
+        if (hotStateHydrated === false) {
+          let bootstrapCursor: string | null = null;
+          let bootstrapHotChangeId = 0;
+
+          while (true) {
+            const bootstrapResult = await bootstrapPullSyncState(
+              workspaceId,
+              deviceId,
+              "web",
+              webAppVersion,
+              bootstrapCursor,
+              syncPageSize,
+            );
+            for (const entry of bootstrapResult.entries) {
+              await applyBootstrapEntry(workspaceId, entry);
+            }
+
+            bootstrapHotChangeId = bootstrapResult.bootstrapHotChangeId;
+            bootstrapCursor = bootstrapResult.nextCursor;
+            if (bootstrapResult.hasMore === false) {
+              break;
+            }
+          }
+
+          await setLastAppliedHotChangeId(workspaceId, bootstrapHotChangeId);
+          await setHotStateHydrated(workspaceId, true);
+          await refreshWorkspaceView(workspaceId);
+        }
+
         let currentOutbox = await listOutboxRecords(workspaceId);
         while (currentOutbox.length > 0) {
           const batch = currentOutbox.slice(0, 100);
@@ -274,29 +351,55 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           currentOutbox = await listOutboxRecords(workspaceId);
         }
 
-        let afterChangeId = await loadLastAppliedChangeId(workspaceId);
+        let afterHotChangeId = await loadLastAppliedHotChangeId(workspaceId);
         while (true) {
           const pullResult = await pullSyncChanges(
             workspaceId,
             deviceId,
             "web",
             webAppVersion,
-            afterChangeId,
+            afterHotChangeId,
             syncPageSize,
           );
           for (const change of pullResult.changes) {
             await applySyncChange(workspaceId, change);
           }
 
-          afterChangeId = pullResult.nextChangeId;
-          await setLastAppliedChangeId(workspaceId, afterChangeId);
+          afterHotChangeId = pullResult.nextHotChangeId;
+          await setLastAppliedHotChangeId(workspaceId, afterHotChangeId);
 
           if (pullResult.hasMore === false) {
             break;
           }
         }
 
-        await setWorkspaceHydrated(workspaceId, true);
+        let afterReviewSequenceId = await loadLastAppliedReviewSequenceId(workspaceId);
+        while (true) {
+          const reviewHistoryResult = await pullReviewHistorySync(
+            workspaceId,
+            deviceId,
+            "web",
+            webAppVersion,
+            afterReviewSequenceId,
+            syncPageSize,
+          );
+
+          for (const reviewEvent of reviewHistoryResult.reviewEvents) {
+            await applyReviewHistoryRecord(workspaceId, reviewEvent);
+          }
+
+          afterReviewSequenceId = reviewHistoryResult.nextReviewSequenceId;
+          await setLastAppliedReviewSequenceId(workspaceId, afterReviewSequenceId);
+
+          if (reviewHistoryResult.hasMore === false) {
+            break;
+          }
+        }
+
+        if (await hasHydratedReviewHistory(workspaceId) === false) {
+          await setReviewHistoryHydrated(workspaceId, true);
+        }
+
         await refreshWorkspaceView(workspaceId);
         setErrorMessage("");
       } catch (error) {
@@ -321,6 +424,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     syncPromisesRef.current.set(workspaceId, syncTask);
     return syncTask;
   }, [
+    applyBootstrapEntry,
+    applyReviewHistoryRecord,
     applySyncChange,
     refreshSyncIndicator,
     refreshWorkspaceView,

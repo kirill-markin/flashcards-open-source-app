@@ -3,12 +3,14 @@ import Foundation
 struct SyncApplier {
     let core: DatabaseCore
 
-    func applySyncChange(workspaceId: String, change: SyncChange) throws {
+    /// Applies one hot-state bootstrap entry by merging canonical mutable state
+    /// into the local mirror with the same LWW comparator as the backend.
+    func applySyncBootstrapEntry(workspaceId: String, entry: SyncBootstrapEntry) throws {
         let cardStore = CardStore(core: self.core)
         let deckStore = DeckStore(core: self.core)
         let workspaceSettingsStore = WorkspaceSettingsStore(core: self.core)
 
-        switch change.payload {
+        switch entry.payload {
         case .card(let card):
             let existingCard = try cardStore.loadOptionalCardIncludingDeleted(workspaceId: workspaceId, cardId: card.cardId)
             if let existingCard, compareLwwCard(left: existingCard, right: card) > 0 {
@@ -32,9 +34,37 @@ struct SyncApplier {
                     workspaceSettingsStore: workspaceSettingsStore
                 )
             }
-        case .reviewEvent(let reviewEvent):
-            try self.insertRemoteReviewEvent(workspaceId: workspaceId, reviewEvent: reviewEvent)
         }
+    }
+
+    /// Applies one hot-state delta change. Review history is intentionally
+    /// excluded from this lane and handled through its own append-only flow.
+    func applySyncChange(workspaceId: String, change: SyncChange) throws {
+        let entryPayload: SyncBootstrapEntryPayload
+        switch change.payload {
+        case .card(let card):
+            entryPayload = .card(card)
+        case .deck(let deck):
+            entryPayload = .deck(deck)
+        case .workspaceSchedulerSettings(let settings):
+            entryPayload = .workspaceSchedulerSettings(settings)
+        }
+
+        try self.applySyncBootstrapEntry(
+            workspaceId: workspaceId,
+            entry: SyncBootstrapEntry(
+                entityType: change.entityType,
+                entityId: change.entityId,
+                action: change.action,
+                payload: entryPayload
+            )
+        )
+    }
+
+    /// Applies one immutable review-history event and ignores duplicates created
+    /// by retries or cross-device imports.
+    func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
+        try self.insertRemoteReviewEvent(workspaceId: workspaceId, reviewEvent: reviewEvent)
     }
 
     private func upsertRemoteCard(

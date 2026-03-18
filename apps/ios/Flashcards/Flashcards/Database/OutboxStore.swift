@@ -49,6 +49,13 @@ private struct ReviewEventOutboxCandidate {
     let payloadJson: String
 }
 
+private struct SyncStateRow {
+    let lastAppliedHotChangeId: Int64
+    let lastAppliedReviewSequenceId: Int64
+    let hasHydratedHotState: Bool
+    let hasHydratedReviewHistory: Bool
+}
+
 struct OutboxStore {
     let core: DatabaseCore
 
@@ -109,6 +116,13 @@ struct OutboxStore {
         }
     }
 
+    func deleteAllOutboxEntries(workspaceId: String) throws {
+        _ = try self.core.execute(
+            sql: "DELETE FROM outbox WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+    }
+
     func deleteStaleReviewEventOutboxEntries(workspaceId: String, currentDeviceId: String) throws -> Int {
         let candidates = try self.core.query(
             sql: """
@@ -152,26 +166,57 @@ struct OutboxStore {
         }
     }
 
-    func loadLastAppliedChangeId(workspaceId: String) throws -> Int64 {
+    func loadLastAppliedHotChangeId(workspaceId: String) throws -> Int64 {
+        try self.loadSyncState(workspaceId: workspaceId).lastAppliedHotChangeId
+    }
+
+    func loadLastAppliedReviewSequenceId(workspaceId: String) throws -> Int64 {
+        try self.loadSyncState(workspaceId: workspaceId).lastAppliedReviewSequenceId
+    }
+
+    func hasHydratedHotState(workspaceId: String) throws -> Bool {
+        try self.loadSyncState(workspaceId: workspaceId).hasHydratedHotState
+    }
+
+    func hasHydratedReviewHistory(workspaceId: String) throws -> Bool {
+        try self.loadSyncState(workspaceId: workspaceId).hasHydratedReviewHistory
+    }
+
+    private func loadSyncState(workspaceId: String) throws -> SyncStateRow {
         let values = try self.core.query(
-            sql: "SELECT last_applied_change_id FROM sync_state WHERE workspace_id = ? LIMIT 1",
+            sql: """
+            SELECT
+                last_applied_hot_change_id,
+                last_applied_review_sequence_id,
+                has_hydrated_hot_state,
+                has_hydrated_review_history
+            FROM sync_state
+            WHERE workspace_id = ?
+            LIMIT 1
+            """,
             values: [.text(workspaceId)]
         ) { statement in
-            DatabaseCore.columnInt64(statement: statement, index: 0)
+            SyncStateRow(
+                lastAppliedHotChangeId: DatabaseCore.columnInt64(statement: statement, index: 0),
+                lastAppliedReviewSequenceId: DatabaseCore.columnInt64(statement: statement, index: 1),
+                hasHydratedHotState: DatabaseCore.columnInt64(statement: statement, index: 2) != 0,
+                hasHydratedReviewHistory: DatabaseCore.columnInt64(statement: statement, index: 3) != 0
+            )
         }
 
-        guard let lastAppliedChangeId = values.first else {
+        guard let syncState = values.first else {
             throw LocalStoreError.database("Sync state row is missing")
         }
 
-        return lastAppliedChangeId
+        return syncState
     }
 
-    func setLastAppliedChangeId(workspaceId: String, changeId: Int64) throws {
-        let updatedRows = try self.core.execute(
+    func setLastAppliedHotChangeId(workspaceId: String, changeId: Int64) throws {
+        try self.updateSyncState(
+            workspaceId: workspaceId,
             sql: """
             UPDATE sync_state
-            SET last_applied_change_id = ?, updated_at = ?
+            SET last_applied_hot_change_id = ?, updated_at = ?
             WHERE workspace_id = ?
             """,
             values: [
@@ -179,6 +224,61 @@ struct OutboxStore {
                 .text(nowIsoTimestamp()),
                 .text(workspaceId)
             ]
+        )
+    }
+
+    func setLastAppliedReviewSequenceId(workspaceId: String, reviewSequenceId: Int64) throws {
+        try self.updateSyncState(
+            workspaceId: workspaceId,
+            sql: """
+            UPDATE sync_state
+            SET last_applied_review_sequence_id = ?, updated_at = ?
+            WHERE workspace_id = ?
+            """,
+            values: [
+                .integer(reviewSequenceId),
+                .text(nowIsoTimestamp()),
+                .text(workspaceId)
+            ]
+        )
+    }
+
+    func setHasHydratedHotState(workspaceId: String, hasHydratedHotState: Bool) throws {
+        try self.updateSyncState(
+            workspaceId: workspaceId,
+            sql: """
+            UPDATE sync_state
+            SET has_hydrated_hot_state = ?, updated_at = ?
+            WHERE workspace_id = ?
+            """,
+            values: [
+                .integer(hasHydratedHotState ? 1 : 0),
+                .text(nowIsoTimestamp()),
+                .text(workspaceId)
+            ]
+        )
+    }
+
+    func setHasHydratedReviewHistory(workspaceId: String, hasHydratedReviewHistory: Bool) throws {
+        try self.updateSyncState(
+            workspaceId: workspaceId,
+            sql: """
+            UPDATE sync_state
+            SET has_hydrated_review_history = ?, updated_at = ?
+            WHERE workspace_id = ?
+            """,
+            values: [
+                .integer(hasHydratedReviewHistory ? 1 : 0),
+                .text(nowIsoTimestamp()),
+                .text(workspaceId)
+            ]
+        )
+    }
+
+    private func updateSyncState(workspaceId: String, sql: String, values: [SQLiteValue]) throws {
+        let updatedRows = try self.core.execute(
+            sql: sql,
+            values: values
         )
 
         if updatedRows == 0 {

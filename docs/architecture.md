@@ -143,7 +143,7 @@ The Postgres schema is split by responsibility:
 
 - `org`: users, workspaces, memberships, user settings
 - `content`: cards, decks, review events
-- `sync`: devices, applied operations, global change feed
+- `sync`: devices, hot-state change metadata, workspace sync metadata, idempotency ledger
 - `auth`: agent OTP challenges, API keys, OTP rate-limit state, deleted subjects
 - `security`: helpers for runtime database context
 
@@ -156,8 +156,9 @@ Important tables and responsibilities:
 - `content.decks`: saved deck filters
 - `content.review_events`: append-only review history
 - `sync.devices`: known client devices per workspace
-- `sync.applied_operations`: idempotency table for pushed operations
-- `sync.changes`: ordered workspace change feed consumed by pull sync
+- `sync.applied_operations_current`: bounded idempotency ledger for batched push requests
+- `sync.hot_changes`: compact hot-state change metadata for mutable roots
+- `sync.workspace_sync_metadata`: per-workspace sync retention and bootstrap metadata
 - `auth.agent_api_keys`: long-lived terminal/agent connections
 
 ## Offline-first sync
@@ -167,20 +168,25 @@ The sync contract is the same across web and iOS:
 1. Write locally first.
 2. Add a record to the local outbox.
 3. Push pending operations to `POST /v1/workspaces/:workspaceId/sync/push`.
-4. Pull ordered remote changes from `POST /v1/workspaces/:workspaceId/sync/pull`.
-5. Apply pulled changes locally.
-6. Advance the local sync cursor and clear acknowledged outbox rows.
+4. Bootstrap hot current state from `POST /v1/workspaces/:workspaceId/sync/bootstrap` when the workspace has not been hydrated locally yet.
+5. Pull hot-state deltas from `POST /v1/workspaces/:workspaceId/sync/pull`.
+6. Pull append-only review history from `POST /v1/workspaces/:workspaceId/sync/review-history/pull` in the background.
+7. Advance the local hot/history cursors and clear only acknowledged outbox rows.
 
 Implemented sync behavior:
 
 - Operations are scoped to a workspace and device.
-- Push is idempotent through `sync.applied_operations`.
+- Push is idempotent through `sync.applied_operations_current`.
+- Push is processed in batches instead of one transaction per operation.
 - Cards, decks, and workspace scheduler settings use last-writer-wins metadata:
   - `clientUpdatedAt`
   - `lastModifiedByDeviceId`
   - `lastOperationId`
 - Review events are append-only and deduplicated by `(workspace_id, device_id, client_event_id)`.
-- The server records every applied mutation in `sync.changes`, then clients read that ordered feed with `afterChangeId`.
+- Mutable state and review history are synchronized through separate lanes:
+  - hot mutable roots use `sync.hot_changes` plus direct materialization from canonical tables
+  - review history uses `content.review_events.review_sequence`
+- Local sync state keeps separate cursors for hot state and review history instead of one global checkpoint.
 
 ## Scheduling architecture
 

@@ -31,16 +31,23 @@ function buildWorkspaceSyncStateRecord(
   workspaceId: string,
   currentRecord: WorkspaceSyncStateRecord | undefined,
   input: Readonly<{
-    lastAppliedChangeId: number;
-    hasHydrated: boolean;
+    lastAppliedHotChangeId: number;
+    lastAppliedReviewSequenceId: number;
+    hasHydratedHotState: boolean;
+    hasHydratedReviewHistory: boolean;
   }>,
 ): WorkspaceSyncStateRecord {
   return {
     workspaceId,
-    lastAppliedChangeId: input.lastAppliedChangeId,
-    hasHydrated: input.hasHydrated,
-    hydratedAt: input.hasHydrated
-      ? currentRecord?.hydratedAt ?? new Date().toISOString()
+    lastAppliedHotChangeId: input.lastAppliedHotChangeId,
+    lastAppliedReviewSequenceId: input.lastAppliedReviewSequenceId,
+    hasHydratedHotState: input.hasHydratedHotState,
+    hasHydratedReviewHistory: input.hasHydratedReviewHistory,
+    hotStateHydratedAt: input.hasHydratedHotState
+      ? currentRecord?.hotStateHydratedAt ?? new Date().toISOString()
+      : null,
+    reviewHistoryHydratedAt: input.hasHydratedReviewHistory
+      ? currentRecord?.reviewHistoryHydratedAt ?? new Date().toISOString()
       : null,
     updatedAt: new Date().toISOString(),
   };
@@ -56,12 +63,20 @@ export async function loadWorkspaceSyncState(workspaceId: string): Promise<Works
   return syncState ?? null;
 }
 
-export async function loadLastAppliedChangeId(workspaceId: string): Promise<number> {
-  return (await loadWorkspaceSyncState(workspaceId))?.lastAppliedChangeId ?? 0;
+export async function loadLastAppliedHotChangeId(workspaceId: string): Promise<number> {
+  return (await loadWorkspaceSyncState(workspaceId))?.lastAppliedHotChangeId ?? 0;
 }
 
-export async function hasHydratedWorkspace(workspaceId: string): Promise<boolean> {
-  return (await loadWorkspaceSyncState(workspaceId))?.hasHydrated ?? false;
+export async function loadLastAppliedReviewSequenceId(workspaceId: string): Promise<number> {
+  return (await loadWorkspaceSyncState(workspaceId))?.lastAppliedReviewSequenceId ?? 0;
+}
+
+export async function hasHydratedHotState(workspaceId: string): Promise<boolean> {
+  return (await loadWorkspaceSyncState(workspaceId))?.hasHydratedHotState ?? false;
+}
+
+export async function hasHydratedReviewHistory(workspaceId: string): Promise<boolean> {
+  return (await loadWorkspaceSyncState(workspaceId))?.hasHydratedReviewHistory ?? false;
 }
 
 export async function loadWorkspaceTagsSummary(workspaceId: string): Promise<WorkspaceTagsSummary> {
@@ -110,25 +125,57 @@ export async function putWorkspaceSettings(workspaceId: string, settings: Worksp
   });
 }
 
-export async function setLastAppliedChangeId(workspaceId: string, lastAppliedChangeId: number): Promise<void> {
+export async function setLastAppliedHotChangeId(workspaceId: string, lastAppliedHotChangeId: number): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
     await runReadwrite(database, ["workspaceSyncState"], (transaction) => transaction.objectStore("workspaceSyncState").put(
       buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
-        lastAppliedChangeId,
-        hasHydrated: currentRecord?.hasHydrated ?? false,
+        lastAppliedHotChangeId,
+        lastAppliedReviewSequenceId: currentRecord?.lastAppliedReviewSequenceId ?? 0,
+        hasHydratedHotState: currentRecord?.hasHydratedHotState ?? false,
+        hasHydratedReviewHistory: currentRecord?.hasHydratedReviewHistory ?? false,
       }),
     ));
   });
 }
 
-export async function setWorkspaceHydrated(workspaceId: string, hasHydrated: boolean): Promise<void> {
+export async function setLastAppliedReviewSequenceId(workspaceId: string, lastAppliedReviewSequenceId: number): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
     await runReadwrite(database, ["workspaceSyncState"], (transaction) => transaction.objectStore("workspaceSyncState").put(
       buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
-        lastAppliedChangeId: currentRecord?.lastAppliedChangeId ?? 0,
-        hasHydrated,
+        lastAppliedHotChangeId: currentRecord?.lastAppliedHotChangeId ?? 0,
+        lastAppliedReviewSequenceId,
+        hasHydratedHotState: currentRecord?.hasHydratedHotState ?? false,
+        hasHydratedReviewHistory: currentRecord?.hasHydratedReviewHistory ?? false,
+      }),
+    ));
+  });
+}
+
+export async function setHotStateHydrated(workspaceId: string, hasHydratedHotState: boolean): Promise<void> {
+  await closeDatabaseAfterWrite(async (database) => {
+    const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
+    await runReadwrite(database, ["workspaceSyncState"], (transaction) => transaction.objectStore("workspaceSyncState").put(
+      buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
+        lastAppliedHotChangeId: currentRecord?.lastAppliedHotChangeId ?? 0,
+        lastAppliedReviewSequenceId: currentRecord?.lastAppliedReviewSequenceId ?? 0,
+        hasHydratedHotState,
+        hasHydratedReviewHistory: currentRecord?.hasHydratedReviewHistory ?? false,
+      }),
+    ));
+  });
+}
+
+export async function setReviewHistoryHydrated(workspaceId: string, hasHydratedReviewHistory: boolean): Promise<void> {
+  await closeDatabaseAfterWrite(async (database) => {
+    const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
+    await runReadwrite(database, ["workspaceSyncState"], (transaction) => transaction.objectStore("workspaceSyncState").put(
+      buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
+        lastAppliedHotChangeId: currentRecord?.lastAppliedHotChangeId ?? 0,
+        lastAppliedReviewSequenceId: currentRecord?.lastAppliedReviewSequenceId ?? 0,
+        hasHydratedHotState: currentRecord?.hasHydratedHotState ?? false,
+        hasHydratedReviewHistory,
       }),
     ));
   });

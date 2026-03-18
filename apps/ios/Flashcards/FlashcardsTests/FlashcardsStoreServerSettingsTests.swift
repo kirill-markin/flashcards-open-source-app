@@ -67,7 +67,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, replacementWorkspace.workspaceId)
         XCTAssertEqual(try context.database.loadActiveCards(workspaceId: replacementWorkspace.workspaceId).count, 0)
         XCTAssertEqual(try context.database.loadOutboxEntries(workspaceId: replacementWorkspace.workspaceId, limit: 100).count, 0)
-        XCTAssertEqual(try context.database.loadLastAppliedChangeId(workspaceId: replacementWorkspace.workspaceId), 0)
+        XCTAssertEqual(try context.database.loadLastAppliedHotChangeId(workspaceId: replacementWorkspace.workspaceId), 0)
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncSessions.last?.workspaceId, replacementWorkspace.workspaceId)
     }
@@ -88,7 +88,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: ["grammar"]),
             cardId: nil
         )
-        try context.database.setLastAppliedChangeId(workspaceId: workspaceId, changeId: 42)
+        try context.database.setLastAppliedHotChangeId(workspaceId: workspaceId, changeId: 42)
         context.store.selectedReviewFilter = .tag(tag: "grammar")
         context.store.userDefaults.set(Data("history".utf8), forKey: "ai-chat-history")
         try context.store.reload()
@@ -107,7 +107,8 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertNil(resetCloudSettings.linkedUserId)
         XCTAssertNotEqual(resetCloudSettings.deviceId, originalCloudSettings.deviceId)
         XCTAssertTrue(try context.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).isEmpty)
-        XCTAssertEqual(try context.database.loadLastAppliedChangeId(workspaceId: workspaceId), 0)
+        XCTAssertEqual(try context.database.loadLastAppliedHotChangeId(workspaceId: workspaceId), 0)
+        XCTAssertEqual(try context.database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId), 0)
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
         XCTAssertEqual(context.store.selectedReviewFilter, .allCards)
         XCTAssertNil(context.store.userDefaults.object(forKey: "ai-chat-history"))
@@ -162,7 +163,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
             cardId: nil
         )
-        try context.database.setLastAppliedChangeId(workspaceId: workspaceId, changeId: 42)
+        try context.database.setLastAppliedHotChangeId(workspaceId: workspaceId, changeId: 42)
         try context.store.reload()
 
         let configuration = try await context.store.validateCustomCloudServer(customOrigin: "https://self-hosted.example.com")
@@ -175,7 +176,8 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(cloudSettings.cloudState, .disconnected)
         XCTAssertNil(cloudSettings.linkedUserId)
         XCTAssertTrue(outboxEntries.isEmpty)
-        XCTAssertEqual(try context.database.loadLastAppliedChangeId(workspaceId: workspaceId), 0)
+        XCTAssertEqual(try context.database.loadLastAppliedHotChangeId(workspaceId: workspaceId), 0)
+        XCTAssertEqual(try context.database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId), 0)
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
         XCTAssertEqual(
             try loadCloudServerOverride(
@@ -252,10 +254,9 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             selection: .createNew
         )
 
-        let outboxEntries = try context.database.loadOutboxEntries(workspaceId: createdWorkspace.workspaceId, limit: 100)
         XCTAssertEqual(context.store.cloudSettings?.cloudState, .linked)
         XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, createdWorkspace.workspaceId)
-        XCTAssertFalse(outboxEntries.isEmpty)
+        XCTAssertTrue(try context.database.loadOutboxEntries(workspaceId: createdWorkspace.workspaceId, limit: 100).isEmpty)
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
         XCTAssertFalse(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
     }

@@ -431,9 +431,6 @@ extension FlashcardsStore {
         self.syncStatus = .syncing
         var didCompleteLocalLink = false
         do {
-            let needsBootstrap = self.cloudSettings?.cloudState != .linked
-                || self.cloudSettings?.linkedWorkspaceId != linkedSession.workspaceId
-
             logCloudFlowPhase(
                 phase: .linkLocalWorkspace,
                 outcome: "start",
@@ -444,9 +441,6 @@ extension FlashcardsStore {
                 localWorkspaceId: context.workspaceId,
                 linkedSession: linkedSession
             )
-            if needsBootstrap {
-                try context.database.bootstrapOutbox(workspaceId: linkedSession.workspaceId)
-            }
 
             self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
             try self.reload()

@@ -294,10 +294,6 @@ function toDeckLwwMetadata(deck: Deck): DeckMutationMetadata {
   };
 }
 
-function toDeckPayloadJson(deck: Deck): string {
-  return JSON.stringify(deck);
-}
-
 async function recordDeckSyncChange(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -311,7 +307,7 @@ async function recordDeckSyncChange(
     "upsert",
     deck.lastModifiedByDeviceId,
     deck.lastOperationId,
-    toDeckPayloadJson(deck),
+    deck.clientUpdatedAt,
   );
 }
 

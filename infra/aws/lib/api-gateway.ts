@@ -309,6 +309,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const workspaceSync = workspaceById.addResource("sync");
   workspaceSync.addResource("push").addMethod("POST", integration);
   workspaceSync.addResource("pull").addMethod("POST", integration);
+  workspaceSync.addResource("bootstrap").addMethod("POST", integration);
+  const workspaceSyncReviewHistory = workspaceSync.addResource("review-history");
+  workspaceSyncReviewHistory.addResource("pull").addMethod("POST", integration);
+  workspaceSyncReviewHistory.addResource("import").addMethod("POST", integration);
 
   agent.addResource("sql").addMethod("POST", integration);
 

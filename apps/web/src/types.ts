@@ -401,45 +401,67 @@ export type SyncPushResult = Readonly<{
     operationId: string;
     entityType: SyncEntityType;
     entityId: string;
-    status: "applied" | "ignored" | "duplicate";
-    resultingChangeId: number | null;
+    status: "applied" | "ignored" | "duplicate" | "rejected";
+    resultingHotChangeId: number | null;
+    error: string | null;
   }>>;
 }>;
 
-export type SyncChange =
+export type SyncBootstrapEntry =
   | Readonly<{
-    changeId: number;
     entityType: "card";
     entityId: string;
     action: "upsert";
     payload: Card;
   }>
   | Readonly<{
-    changeId: number;
     entityType: "deck";
     entityId: string;
     action: "upsert";
     payload: Deck;
   }>
   | Readonly<{
-    changeId: number;
     entityType: "workspace_scheduler_settings";
     entityId: string;
     action: "upsert";
     payload: WorkspaceSchedulerSettings;
-  }>
-  | Readonly<{
-    changeId: number;
-    entityType: "review_event";
-    entityId: string;
-    action: "append";
-    payload: ReviewEvent;
   }>;
+
+export type SyncChange = SyncBootstrapEntry & Readonly<{
+  changeId: number;
+}>;
+
+export type SyncBootstrapPullResult = Readonly<{
+  mode: "pull";
+  entries: ReadonlyArray<SyncBootstrapEntry>;
+  nextCursor: string | null;
+  hasMore: boolean;
+  bootstrapHotChangeId: number;
+  remoteIsEmpty: boolean;
+}>;
+
+export type SyncBootstrapPushResult = Readonly<{
+  mode: "push";
+  appliedEntriesCount: number;
+  bootstrapHotChangeId: number;
+}>;
 
 export type SyncPullResult = Readonly<{
   changes: ReadonlyArray<SyncChange>;
-  nextChangeId: number;
+  nextHotChangeId: number;
   hasMore: boolean;
+}>;
+
+export type SyncReviewHistoryPullResult = Readonly<{
+  reviewEvents: ReadonlyArray<ReviewEvent>;
+  nextReviewSequenceId: number;
+  hasMore: boolean;
+}>;
+
+export type SyncReviewHistoryImportResult = Readonly<{
+  importedCount: number;
+  duplicateCount: number;
+  nextReviewSequenceId: number;
 }>;
 
 export type ChatRole = "user" | "assistant";

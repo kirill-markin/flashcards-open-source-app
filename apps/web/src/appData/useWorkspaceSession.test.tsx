@@ -14,7 +14,7 @@ const {
   deleteWorkspaceMock,
   getSessionMock,
   getStableDeviceIdForUserMock,
-  hasHydratedWorkspaceMock,
+  hasHydratedHotStateMock,
   listWorkspacesMock,
   loadCloudSettingsMock,
   putCloudSettingsMock,
@@ -30,7 +30,7 @@ const {
   deleteWorkspaceMock: vi.fn(),
   getSessionMock: vi.fn(),
   getStableDeviceIdForUserMock: vi.fn(),
-  hasHydratedWorkspaceMock: vi.fn(),
+  hasHydratedHotStateMock: vi.fn(),
   listWorkspacesMock: vi.fn(),
   loadCloudSettingsMock: vi.fn(),
   putCloudSettingsMock: vi.fn(),
@@ -67,7 +67,7 @@ vi.mock("../localDb/cloudSettings", () => ({
 }));
 
 vi.mock("../localDb/workspace", () => ({
-  hasHydratedWorkspace: hasHydratedWorkspaceMock,
+  hasHydratedHotState: hasHydratedHotStateMock,
 }));
 
 const sessionFixture: SessionInfo = {
@@ -153,7 +153,7 @@ describe("useWorkspaceSession", () => {
     deleteWorkspaceMock.mockReset();
     getSessionMock.mockReset();
     getStableDeviceIdForUserMock.mockReset();
-    hasHydratedWorkspaceMock.mockReset();
+    hasHydratedHotStateMock.mockReset();
     listWorkspacesMock.mockReset();
     loadCloudSettingsMock.mockReset();
     putCloudSettingsMock.mockReset();
@@ -166,7 +166,7 @@ describe("useWorkspaceSession", () => {
     consumeAccountDeletedMarkerMock.mockReturnValue(false);
     getStableDeviceIdForUserMock.mockReturnValue("device-1");
     getSessionMock.mockResolvedValue(sessionFixture);
-    hasHydratedWorkspaceMock.mockResolvedValue(true);
+    hasHydratedHotStateMock.mockResolvedValue(true);
     listWorkspacesMock.mockResolvedValue([workspaceFixture]);
     loadCloudSettingsMock.mockResolvedValue(null);
     putCloudSettingsMock.mockResolvedValue(undefined);
@@ -196,7 +196,7 @@ describe("useWorkspaceSession", () => {
 
   it("keeps the workspace loading state until the first sync hydrates an unseen workspace", async () => {
     let resolveInitialSync: (() => void) | null = null;
-    hasHydratedWorkspaceMock.mockResolvedValue(false);
+    hasHydratedHotStateMock.mockResolvedValue(false);
     runSyncForWorkspaceMock.mockImplementation(() => new Promise<void>((resolve) => {
       resolveInitialSync = resolve;
     }));
