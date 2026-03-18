@@ -14,6 +14,7 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 
 - Backend: AWS
 - AWS infra deploys via CI/CD only. Do not run AWS deploys locally; push to `main` and watch CI/CD.
+- Do not build AWS SDK bundles or other AWS deployment artifacts locally. Push code to `main`, and let CI/CD build and deploy everything.
 - Web app: supported
 - iOS app: Swift (priority)
 - Android app: planned later
