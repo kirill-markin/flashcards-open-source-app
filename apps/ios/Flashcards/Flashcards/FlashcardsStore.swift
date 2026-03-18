@@ -142,12 +142,48 @@ final class FlashcardsStore {
         )
     }
 
+    convenience init(
+        userDefaults: UserDefaults,
+        encoder: JSONEncoder,
+        decoder: JSONDecoder,
+        database: LocalDatabase?,
+        cloudAuthService: CloudAuthService,
+        credentialStore: CloudCredentialStore,
+        reviewSubmissionExecutor: ReviewSubmissionExecuting?,
+        reviewHeadLoader: @escaping ReviewHeadLoader,
+        reviewCountsLoader: @escaping ReviewCountsLoader,
+        reviewQueueChunkLoader: @escaping ReviewQueueChunkLoader,
+        reviewTimelinePageLoader: @escaping ReviewTimelinePageLoader,
+        initialGlobalErrorMessage: String
+    ) {
+        let cloudSyncService = database.map { initializedDatabase in
+            CloudSyncService(database: initializedDatabase)
+        }
+
+        self.init(
+            userDefaults: userDefaults,
+            encoder: encoder,
+            decoder: decoder,
+            database: database,
+            cloudAuthService: cloudAuthService,
+            cloudSyncService: cloudSyncService,
+            credentialStore: credentialStore,
+            reviewSubmissionExecutor: reviewSubmissionExecutor,
+            reviewHeadLoader: reviewHeadLoader,
+            reviewCountsLoader: reviewCountsLoader,
+            reviewQueueChunkLoader: reviewQueueChunkLoader,
+            reviewTimelinePageLoader: reviewTimelinePageLoader,
+            initialGlobalErrorMessage: initialGlobalErrorMessage
+        )
+    }
+
     init(
         userDefaults: UserDefaults,
         encoder: JSONEncoder,
         decoder: JSONDecoder,
         database: LocalDatabase?,
         cloudAuthService: CloudAuthService,
+        cloudSyncService: (any CloudSyncServing)?,
         credentialStore: CloudCredentialStore,
         reviewSubmissionExecutor: ReviewSubmissionExecuting?,
         reviewHeadLoader: @escaping ReviewHeadLoader,
@@ -165,9 +201,7 @@ final class FlashcardsStore {
         )
         let dependencies = FlashcardsStoreDependencies(
             cloudAuthService: cloudAuthService,
-            cloudSyncService: database.map { initializedDatabase in
-                CloudSyncService(database: initializedDatabase)
-            },
+            cloudSyncService: cloudSyncService,
             credentialStore: credentialStore,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: reviewHeadLoader,

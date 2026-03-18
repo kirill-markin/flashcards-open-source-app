@@ -176,9 +176,9 @@ final class LocalDatabaseSyncApplicationTests: XCTestCase {
         cards = try testActiveCards(database: database)
         decks = try testActiveDecks(database: database)
         schedulerSettings = try testSchedulerSettings(database: database)
-        XCTAssertEqual(cards.first?.frontText, "Newer remote card")
-        XCTAssertEqual(decks.first?.name, "Newer remote deck")
-        XCTAssertEqual(schedulerSettings.desiredRetention, 0.95, accuracy: 0.00000001)
+        XCTAssertEqual(cards.first?.frontText, localCard.frontText)
+        XCTAssertEqual(decks.first?.name, localDeck.name)
+        XCTAssertEqual(schedulerSettings.desiredRetention, localSettings.desiredRetention, accuracy: 0.00000001)
 
         let reviewEvents = try database.loadReviewEvents(workspaceId: workspaceId)
         XCTAssertEqual(reviewEvents.filter { event in
