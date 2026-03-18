@@ -186,17 +186,32 @@ struct CloudSignInSheet: View {
                             .onSubmit {
                                 self.sendCode()
                             }
+                    }
 
-                        Button("Send code") {
-                            self.sendCode()
-                        }
-                        .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
+                    Section {
+                        VStack(spacing: 12) {
+                            Button("Send code") {
+                                self.sendCode()
+                            }
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 50, alignment: .center)
+                            .foregroundStyle(.white)
+                            .background(
+                                Color.accentColor,
+                                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            )
+                            .opacity(self.isSendingCode || isValidCloudEmail(self.email) == false ? 0.45 : 1)
+                            .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
 
-                        Button("Use email and password") {
-                            self.presentPasswordSignIn()
+                            Button("Use email and password") {
+                                self.presentPasswordSignIn()
+                            }
+                            .buttonStyle(.plain)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .disabled(self.isSendingCode)
                         }
-                        .font(.footnote)
-                        .disabled(self.isSendingCode)
+                        .frame(maxWidth: .infinity, alignment: .center)
                     }
                 }
             }
