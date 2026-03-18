@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+@MainActor
 final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
     func testRelinkWorkspaceMovesLocalDataIntoLinkedWorkspace() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)

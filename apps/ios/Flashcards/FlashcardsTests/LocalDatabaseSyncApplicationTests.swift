@@ -3,6 +3,10 @@ import XCTest
 @testable import Flashcards
 
 final class LocalDatabaseSyncApplicationTests: XCTestCase {
+    /// Verifies the split between hot-state application and review-history
+    /// application in the local database. Keep this test aligned with:
+    /// - `apps/ios/Flashcards/Flashcards/LocalDatabase+Sync.swift`
+    /// - `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`
     func testApplySyncChangePreservesLwwAndReviewEventIdempotency() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
         let workspaceId = try testWorkspaceId(database: database)
@@ -160,25 +164,13 @@ final class LocalDatabaseSyncApplicationTests: XCTestCase {
             reviewedAtClient: "2026-03-09T01:00:00.000Z",
             reviewedAtServer: "2026-03-09T01:00:01.000Z"
         )
-        try database.applySyncChange(
+        try database.applyReviewHistoryEvent(
             workspaceId: workspaceId,
-            change: SyncChange(
-                changeId: 7,
-                entityType: .reviewEvent,
-                entityId: remoteReviewEvent.reviewEventId,
-                action: .append,
-                payload: .reviewEvent(remoteReviewEvent)
-            )
+            reviewEvent: remoteReviewEvent
         )
-        try database.applySyncChange(
+        try database.applyReviewHistoryEvent(
             workspaceId: workspaceId,
-            change: SyncChange(
-                changeId: 8,
-                entityType: .reviewEvent,
-                entityId: remoteReviewEvent.reviewEventId,
-                action: .append,
-                payload: .reviewEvent(remoteReviewEvent)
-            )
+            reviewEvent: remoteReviewEvent
         )
 
         cards = try testActiveCards(database: database)

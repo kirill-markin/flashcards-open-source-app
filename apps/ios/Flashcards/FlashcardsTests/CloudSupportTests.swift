@@ -595,6 +595,159 @@ final class CloudSupportTests: XCTestCase {
         )
     }
 
+    /// Guards the first bootstrap request contract used by
+    /// `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`.
+    ///
+    /// The backend validator in `apps/backend/src/sync.ts` requires the
+    /// `cursor` key to be present, so the first page must send JSON `null`
+    /// instead of omitting the field.
+    @MainActor
+    func testRunLinkedSyncBootstrapRequestIncludesNullCursorOnFirstPage() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        let workspaceId = try testWorkspaceId(database: database)
+
+        let recorder = CloudSupportRequestRecorder()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            recorder.appendPath(url.path)
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+
+            if url.path.hasSuffix("/sync/bootstrap") {
+                let bodyData = try XCTUnwrap(request.httpBody)
+                let bodyObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+                XCTAssertTrue(bodyObject.keys.contains("cursor"))
+                XCTAssertTrue(bodyObject["cursor"] is NSNull)
+
+                let data = """
+                {"mode":"pull","entries":[],"nextCursor":null,"hasMore":false,"bootstrapHotChangeId":0,"remoteIsEmpty":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            if url.path.hasSuffix("/sync/pull") {
+                let data = """
+                {"changes":[],"nextHotChangeId":0,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            XCTAssertTrue(url.path.hasSuffix("/sync/review-history/pull"))
+            let data = """
+            {"reviewEvents":[],"nextReviewSequenceId":0,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+
+        _ = try await service.runLinkedSync(
+            linkedSession: CloudLinkedSession(
+                userId: "user-id",
+                workspaceId: workspaceId,
+                email: "user@example.com",
+                configurationMode: .official,
+                apiBaseUrl: "https://api.example.com/v1",
+                bearerToken: "id-token"
+            )
+        )
+
+        XCTAssertEqual(
+            recorder.requestPaths,
+            [
+                "/v1/workspaces/\(workspaceId)/sync/bootstrap",
+                "/v1/workspaces/\(workspaceId)/sync/pull",
+                "/v1/workspaces/\(workspaceId)/sync/review-history/pull"
+            ]
+        )
+    }
+
+    /// Guards follow-up bootstrap pages so the runtime sender and backend parser
+    /// stay aligned on cursor pagination semantics.
+    ///
+    /// If you change request encoding in
+    /// `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`, update this test
+    /// and `apps/backend/src/sync.ts` together.
+    @MainActor
+    func testRunLinkedSyncBootstrapRequestIncludesCursorOnFollowUpPages() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        let workspaceId = try testWorkspaceId(database: database)
+
+        let recorder = CloudSupportRequestRecorder()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            recorder.appendPath(url.path)
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+
+            if url.path.hasSuffix("/sync/bootstrap") {
+                let bootstrapRequestCount = recorder.requestPaths.filter { $0.hasSuffix("/sync/bootstrap") }.count
+                let bodyData = try XCTUnwrap(request.httpBody)
+                let bodyObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+
+                if bootstrapRequestCount == 1 {
+                    XCTAssertTrue(bodyObject["cursor"] is NSNull)
+                    let data = """
+                    {"mode":"pull","entries":[],"nextCursor":"cursor-1","hasMore":true,"bootstrapHotChangeId":7,"remoteIsEmpty":false}
+                    """.data(using: .utf8)!
+                    return (response, data)
+                }
+
+                XCTAssertEqual(bodyObject["cursor"] as? String, "cursor-1")
+                let data = """
+                {"mode":"pull","entries":[],"nextCursor":null,"hasMore":false,"bootstrapHotChangeId":7,"remoteIsEmpty":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            if url.path.hasSuffix("/sync/pull") {
+                let data = """
+                {"changes":[],"nextHotChangeId":7,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            XCTAssertTrue(url.path.hasSuffix("/sync/review-history/pull"))
+            let data = """
+            {"reviewEvents":[],"nextReviewSequenceId":0,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+
+        _ = try await service.runLinkedSync(
+            linkedSession: CloudLinkedSession(
+                userId: "user-id",
+                workspaceId: workspaceId,
+                email: "user@example.com",
+                configurationMode: .official,
+                apiBaseUrl: "https://api.example.com/v1",
+                bearerToken: "id-token"
+            )
+        )
+
+        XCTAssertEqual(
+            recorder.requestPaths,
+            [
+                "/v1/workspaces/\(workspaceId)/sync/bootstrap",
+                "/v1/workspaces/\(workspaceId)/sync/bootstrap",
+                "/v1/workspaces/\(workspaceId)/sync/pull",
+                "/v1/workspaces/\(workspaceId)/sync/review-history/pull"
+            ]
+        )
+    }
+
     @MainActor
     func testRunLinkedSyncDropsStaleReviewEventOperationsBeforePush() async throws {
         let (databaseURL, database) = try self.makeDatabaseWithURL()
