@@ -259,7 +259,7 @@ async function loadActiveCardCountInExecutor(
     : Number.parseInt(row.active_card_count, 10);
 }
 
-async function createWorkspaceInExecutor(
+export async function createWorkspaceInExecutor(
   executor: DatabaseExecutor,
   userId: string,
   name: string,

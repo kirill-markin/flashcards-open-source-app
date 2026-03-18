@@ -11,6 +11,7 @@ import {
 
 export type RequestContext = Readonly<{
   userId: string;
+  subjectUserId: string;
   selectedWorkspaceId: string | null;
   email: string | null;
   locale: string;
@@ -38,7 +39,8 @@ export async function loadRequestContextWithDependencies(
   dependencies: LoadRequestContextDependencies,
 ): Promise<RequestContext> {
   const auth = await dependencies.authenticateRequestFn(toAuthRequest(requestAuthInputs));
-  if (auth.transport !== "none" && await dependencies.isDeletedSubjectFn(auth.userId)) {
+  const subjectUserId = auth.subjectUserId;
+  if (auth.transport !== "none" && await dependencies.isDeletedSubjectFn(subjectUserId)) {
     throw new HttpError(410, "This account has already been deleted.", "ACCOUNT_DELETED");
   }
   const userProfile = await dependencies.ensureUserProfileFn(auth.userId, auth.email);
@@ -48,6 +50,7 @@ export async function loadRequestContextWithDependencies(
 
   return {
     userId: userProfile.userId,
+    subjectUserId,
     selectedWorkspaceId,
     email: userProfile.email,
     locale: userProfile.locale,

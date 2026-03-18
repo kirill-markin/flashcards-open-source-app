@@ -98,6 +98,8 @@ final class FlashcardsStore {
         let decoder = JSONDecoder()
         let cloudAuthService = CloudAuthService()
         let credentialStore = CloudCredentialStore()
+        let guestCloudAuthService = GuestCloudAuthService()
+        let guestCredentialStore = GuestCloudCredentialStore()
         let database: LocalDatabase?
         let initialGlobalErrorMessage: String
 
@@ -116,6 +118,8 @@ final class FlashcardsStore {
             database: database,
             cloudAuthService: cloudAuthService,
             credentialStore: credentialStore,
+            guestCloudAuthService: guestCloudAuthService,
+            guestCredentialStore: guestCredentialStore,
             initialGlobalErrorMessage: initialGlobalErrorMessage
         )
     }
@@ -127,6 +131,8 @@ final class FlashcardsStore {
         database: LocalDatabase?,
         cloudAuthService: CloudAuthService,
         credentialStore: CloudCredentialStore,
+        guestCloudAuthService: GuestCloudAuthService,
+        guestCredentialStore: GuestCloudCredentialStore,
         initialGlobalErrorMessage: String
     ) {
         let reviewSubmissionExecutor: ReviewSubmissionExecuting? = database.map { initializedDatabase in
@@ -139,6 +145,8 @@ final class FlashcardsStore {
             database: database,
             cloudAuthService: cloudAuthService,
             credentialStore: credentialStore,
+            guestCloudAuthService: guestCloudAuthService,
+            guestCredentialStore: guestCredentialStore,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: defaultReviewHeadLoader,
             reviewCountsLoader: defaultReviewCountsLoader,
@@ -155,6 +163,8 @@ final class FlashcardsStore {
         database: LocalDatabase?,
         cloudAuthService: CloudAuthService,
         credentialStore: CloudCredentialStore,
+        guestCloudAuthService: GuestCloudAuthService,
+        guestCredentialStore: GuestCloudCredentialStore,
         reviewSubmissionExecutor: ReviewSubmissionExecuting?,
         reviewHeadLoader: @escaping ReviewHeadLoader,
         reviewCountsLoader: @escaping ReviewCountsLoader,
@@ -174,6 +184,8 @@ final class FlashcardsStore {
             cloudAuthService: cloudAuthService,
             cloudSyncService: cloudSyncService,
             credentialStore: credentialStore,
+            guestCloudAuthService: guestCloudAuthService,
+            guestCredentialStore: guestCredentialStore,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: reviewHeadLoader,
             reviewCountsLoader: reviewCountsLoader,
@@ -191,6 +203,8 @@ final class FlashcardsStore {
         cloudAuthService: CloudAuthService,
         cloudSyncService: (any CloudSyncServing)?,
         credentialStore: CloudCredentialStore,
+        guestCloudAuthService: GuestCloudAuthService,
+        guestCredentialStore: GuestCloudCredentialStore,
         reviewSubmissionExecutor: ReviewSubmissionExecuting?,
         reviewHeadLoader: @escaping ReviewHeadLoader,
         reviewCountsLoader: @escaping ReviewCountsLoader,
@@ -209,6 +223,8 @@ final class FlashcardsStore {
             cloudAuthService: cloudAuthService,
             cloudSyncService: cloudSyncService,
             credentialStore: credentialStore,
+            guestCloudAuthService: guestCloudAuthService,
+            guestCredentialStore: guestCredentialStore,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: reviewHeadLoader,
             reviewCountsLoader: reviewCountsLoader,

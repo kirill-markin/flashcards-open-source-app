@@ -31,6 +31,7 @@ test("loadRequestContextWithDependencies rejects deleted ApiKey users", async ()
     }, {
       authenticateRequestFn: async () => ({
         userId: "user-1",
+        subjectUserId: "user-1",
         email: "user@example.com",
         cognitoUsername: null,
         transport: "api_key",
@@ -57,12 +58,13 @@ test("loadRequestContextWithDependencies keeps local auth available without dele
     originHeader: undefined,
     refererHeader: undefined,
     secFetchSiteHeader: undefined,
-  }, {
-    authenticateRequestFn: async () => ({
-      userId: "local",
-      email: null,
-      cognitoUsername: null,
-      transport: "none",
+    }, {
+      authenticateRequestFn: async () => ({
+        userId: "local",
+        subjectUserId: "local",
+        email: null,
+        cognitoUsername: null,
+        transport: "none",
       connectionId: null,
       selectedWorkspaceId: null,
     }),
@@ -80,6 +82,7 @@ test("loadRequestContextWithDependencies keeps local auth available without dele
 
   assert.deepEqual(requestContext, {
     userId: "local",
+    subjectUserId: "local",
     selectedWorkspaceId: "workspace-local",
     email: null,
     locale: "en",

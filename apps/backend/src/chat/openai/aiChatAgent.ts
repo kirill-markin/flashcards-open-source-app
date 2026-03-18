@@ -8,6 +8,7 @@ import type {
 import type {
   AIChatAssistantToolCall,
   AIChatMessage,
+  AIChatProviderUsage,
   AIChatTurnStreamEvent,
   AIChatUserContext,
   AIChatWireMessage,
@@ -396,6 +397,7 @@ export type StreamAIChatTurnParams = Readonly<{
   userId: string;
   workspaceId: string;
   selectedWorkspaceId: string | null;
+  onUsage?: (usage: AIChatProviderUsage) => Promise<void>;
 }>;
 
 export type PreparedAIChatTurn = Readonly<{
@@ -1267,6 +1269,23 @@ async function* streamPreparedAIChatAgentTurn(
     }
 
     const finalResponse = await stream.finalResponse();
+    const usage = (finalResponse as Readonly<{
+      usage?: Readonly<{
+        input_tokens?: number;
+        output_tokens?: number;
+      }>;
+    }>).usage;
+    if (
+      usage !== undefined
+      && typeof usage.input_tokens === "number"
+      && typeof usage.output_tokens === "number"
+      && params.onUsage !== undefined
+    ) {
+      await params.onUsage({
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+      });
+    }
     if (shouldLogResponseSummary) {
       const responseSummary = summarizeFinalResponse(finalResponse);
       logAIChatEvent({

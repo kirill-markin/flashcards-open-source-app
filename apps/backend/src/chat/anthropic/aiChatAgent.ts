@@ -3,6 +3,7 @@ import Anthropic, { toFile } from "@anthropic-ai/sdk";
 import type {
   AIChatAssistantToolCall,
   AIChatMessage,
+  AIChatProviderUsage,
   AIChatTurnStreamEvent,
   AIChatUserContext,
   AIChatWireMessage,
@@ -225,6 +226,7 @@ export type StreamAIChatTurnParams = Readonly<{
   userId: string;
   workspaceId: string;
   selectedWorkspaceId: string | null;
+  onUsage?: (usage: AIChatProviderUsage) => Promise<void>;
 }>;
 
 export type PreparedAIChatTurn = Readonly<{

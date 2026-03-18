@@ -1,11 +1,16 @@
 import { HttpError } from "../errors";
 import {
+  assertGuestAiLimitAvailable,
+  recordGuestChatUsage,
+} from "../guestAiQuota";
+import {
   classifyAIEndpointFailure,
   makeAIEndpointNotConfiguredError,
   type AIEndpointFailureClassification,
 } from "./aiAvailabilityErrors";
 import type {
   AIChatContentPart,
+  AIChatProviderUsage,
   AIChatTurnRequestBody,
   AIChatTurnStreamEvent,
   AIChatUserContext,
@@ -480,6 +485,7 @@ type PreparedAIChatTurnModule = Readonly<{
       userId: string;
       workspaceId: string;
       selectedWorkspaceId: string | null;
+      onUsage?: (usage: AIChatProviderUsage) => Promise<void>;
     }>,
   ) => Promise<Readonly<{
     codeInterpreterContainerId: string | null;
@@ -493,6 +499,18 @@ export async function streamAIChatResponse(
   requestContext: RequestContext,
   requestUrl: string,
 ): Promise<Response> {
+  if (requestContext.transport === "guest") {
+    if (body.model !== "gpt-5.4") {
+      throw new HttpError(
+        400,
+        "Guest AI is available only with GPT-5.4.",
+        "GUEST_AI_MODEL_UNAVAILABLE",
+      );
+    }
+
+    await assertGuestAiLimitAvailable(requestContext.userId, new Date());
+  }
+
   const validModel = CHAT_MODELS.find((model) => model.id === body.model);
   if (validModel === undefined) {
     throw new HttpError(400, `Unknown AI chat model: ${body.model}`);
@@ -524,6 +542,16 @@ export async function streamAIChatResponse(
     userId: requestContext.userId,
     workspaceId,
     selectedWorkspaceId: requestContext.selectedWorkspaceId,
+    onUsage: requestContext.transport === "guest"
+      ? async (usage) => {
+        await recordGuestChatUsage(
+          requestContext.userId,
+          usage.inputTokens,
+          usage.outputTokens,
+          new Date(),
+        );
+      }
+      : undefined,
   });
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

@@ -186,7 +186,7 @@ extension AIChatView {
                     }
                 )
             ) {
-                ForEach(AIChatModelDef.all) { model in
+                ForEach(self.chatStore.availableModels) { model in
                     Text(model.label).tag(model.id)
                 }
             }
@@ -195,7 +195,7 @@ extension AIChatView {
     }
 
     var selectedModelLabel: String {
-        AIChatModelDef.all.first(where: { model in
+        (self.chatStore.availableModels + AIChatModelDef.all).first(where: { model in
             model.id == self.chatStore.selectedModelId
         })?.label ?? self.chatStore.selectedModelId
     }

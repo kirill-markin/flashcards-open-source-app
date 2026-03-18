@@ -137,7 +137,7 @@ final class CloudSessionRuntime {
                 email: activeCloudSession.email,
                 configurationMode: activeCloudSession.configurationMode,
                 apiBaseUrl: activeCloudSession.apiBaseUrl,
-                bearerToken: updatedCredentials.idToken
+                authorization: .bearer(updatedCredentials.idToken)
             )
         }
 
@@ -233,7 +233,7 @@ final class CloudSessionRuntime {
             email: cloudSettings.linkedEmail,
             configurationMode: configuration.mode,
             apiBaseUrl: configuration.apiBaseUrl,
-            bearerToken: bearerToken
+            authorization: .bearer(bearerToken)
         )
         self.state.activeCloudSession = linkedSession
         return linkedSession
@@ -252,7 +252,7 @@ final class CloudSessionRuntime {
             email: activeCloudSession.email,
             configurationMode: activeCloudSession.configurationMode,
             apiBaseUrl: activeCloudSession.apiBaseUrl,
-            bearerToken: credentials.idToken
+            authorization: .bearer(credentials.idToken)
         )
         self.state.activeCloudSession = nextSession
         return nextSession

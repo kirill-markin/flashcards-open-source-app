@@ -160,18 +160,26 @@ final class AIChatStore {
         self.activeDictationTask = nil
         self.activeWarmUpTask = nil
         self.activeConversationId = nil
+        self.enforceAllowedSelectedModelIfNeeded()
     }
 
     var isModelLocked: Bool {
-        self.isStreaming || self.messages.isEmpty == false
+        self.isStreaming || self.messages.isEmpty == false || self.usesGuestAIRestrictions
     }
 
     var canSendMessage: Bool {
         self.isStreaming == false
             && self.dictationState == .idle
-            && self.flashcardsStore.cloudSettings?.cloudState == .linked
             && self.hasExternalProviderConsent
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
+    }
+
+    var availableModels: [AIChatModelDef] {
+        self.usesGuestAIRestrictions ? [AIChatModelDef(id: aiChatDefaultModelId, label: "GPT-5.4")] : AIChatModelDef.all
+    }
+
+    var usesGuestAIRestrictions: Bool {
+        self.flashcardsStore.cloudSettings?.cloudState != .linked
     }
 
     var hasExternalProviderConsent: Bool {
@@ -184,6 +192,7 @@ final class AIChatStore {
         }
 
         self.selectedModelId = modelId
+        self.enforceAllowedSelectedModelIfNeeded()
         let state = self.currentPersistedState()
         Task {
             await self.historyStore.saveState(state: state)
@@ -338,16 +347,13 @@ final class AIChatStore {
         }
 
         let tapStartedAt = Date()
+        self.enforceAllowedSelectedModelIfNeeded()
 
         let content = self.makeOutgoingContent()
         if content.isEmpty {
             return
         }
 
-        guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
-            self.showGeneralError(message: "AI chat requires cloud sign-in.")
-            return
-        }
         guard self.hasExternalProviderConsent else {
             self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
             return
@@ -360,7 +366,7 @@ final class AIChatStore {
         let task = Task {
             var diagnosticsSession: CloudLinkedSession?
             do {
-                let session = try await self.flashcardsStore.authenticatedCloudSessionForAI()
+                let session = try await self.flashcardsStore.cloudSessionForAI()
                 try await self.ensureAIChatReadyForSend(linkedSession: session)
                 self.messages.append(
                     AIChatMessage(
@@ -407,10 +413,12 @@ final class AIChatStore {
                 let latestPersistedState = self.historyStore.loadState()
                 self.chatSessionId = latestPersistedState.chatSessionId
                 self.codeInterpreterContainerId = latestPersistedState.codeInterpreterContainerId
-                do {
-                    _ = try await self.flashcardsStore.runLinkedSync(linkedSession: session)
-                } catch {
-                    self.flashcardsStore.globalErrorMessage = Flashcards.errorMessage(error: error)
+                if session.authorization.isGuest == false {
+                    do {
+                        _ = try await self.flashcardsStore.runLinkedSync(linkedSession: session)
+                    } catch {
+                        self.flashcardsStore.globalErrorMessage = Flashcards.errorMessage(error: error)
+                    }
                 }
             } catch is CancellationError {
             } catch {
@@ -500,13 +508,7 @@ final class AIChatStore {
                     self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
                     return
                 }
-                guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
-                    self.dictationState = .idle
-                    self.showGeneralError(message: "AI chat requires cloud sign-in.")
-                    return
-                }
-
-                let session = try await self.flashcardsStore.authenticatedCloudSessionForAI()
+                let session = try await self.flashcardsStore.cloudSessionForAI()
                 let recordedAudio = try await self.voiceRecorder.stopRecording()
                 defer {
                     try? FileManager.default.removeItem(at: recordedAudio.fileUrl)
@@ -585,6 +587,12 @@ final class AIChatStore {
         )
     }
 
+    private func enforceAllowedSelectedModelIfNeeded() {
+        if self.usesGuestAIRestrictions && self.selectedModelId != aiChatDefaultModelId {
+            self.selectedModelId = aiChatDefaultModelId
+        }
+    }
+
     private func handleRuntimeEvent(_ event: AIChatRuntimeEvent, conversationId: String) async {
         if let activeConversationId = self.activeConversationId, activeConversationId != conversationId {
             return
@@ -593,6 +601,8 @@ final class AIChatStore {
         switch event {
         case .appendAssistantText(let text):
             self.appendAssistantText(text: text)
+        case .appendAssistantAccountUpgradePrompt(let message, let buttonTitle):
+            self.appendAssistantAccountUpgradePrompt(message: message, buttonTitle: buttonTitle)
         case .upsertToolCall(let toolCall):
             self.upsertToolCall(toolCall: toolCall)
         case .setRepairStatus(let status):
@@ -683,6 +693,30 @@ final class AIChatStore {
                 )
             )
         }
+    }
+
+    private func appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String) {
+        if let lastIndex = self.messages.indices.last, self.messages[lastIndex].role == .assistant {
+            let lastMessage = self.messages[lastIndex]
+            self.messages[lastIndex] = AIChatMessage(
+                id: lastMessage.id,
+                role: lastMessage.role,
+                content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
+                timestamp: lastMessage.timestamp,
+                isError: false
+            )
+            return
+        }
+
+        self.messages.append(
+            AIChatMessage(
+                id: UUID().uuidString.lowercased(),
+                role: .assistant,
+                content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
+                timestamp: nowIsoTimestamp(),
+                isError: false
+            )
+        )
     }
 
     private func clearOptimisticAssistantStatusIfNeeded() {

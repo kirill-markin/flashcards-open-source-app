@@ -76,6 +76,11 @@ export type AIChatTurnRequestBody = Readonly<{
   userContext: AIChatUserContext;
 }>;
 
+export type AIChatProviderUsage = Readonly<{
+  inputTokens: number;
+  outputTokens: number;
+}>;
+
 export type AIChatTurnStreamEvent =
   | Readonly<{ type: "delta"; text: string }>
   | Readonly<{

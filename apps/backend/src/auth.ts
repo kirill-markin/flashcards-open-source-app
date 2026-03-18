@@ -1,13 +1,16 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { authenticateAgentApiKey } from "./agentApiKeys";
 import { getAuthConfig } from "./authConfig";
+import { query } from "./db";
+import { authenticateGuestSession } from "./guestAuth";
 
-export type AuthTransport = "none" | "bearer" | "session" | "api_key";
+export type AuthTransport = "none" | "bearer" | "session" | "api_key" | "guest";
 
 export type AuthResult = Readonly<{
   userId: string;
   email: string | null;
   cognitoUsername: string | null;
+  subjectUserId: string;
   transport: AuthTransport;
   connectionId: string | null;
   selectedWorkspaceId: string | null;
@@ -53,7 +56,12 @@ function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
 type ParsedAuthorizationHeader =
   | Readonly<{ scheme: "none" }>
   | Readonly<{ scheme: "bearer"; token: string }>
+  | Readonly<{ scheme: "guest"; token: string }>
   | Readonly<{ scheme: "api_key"; token: string }>;
+
+type IdentityMappingRow = Readonly<{
+  user_id: string;
+}>;
 
 function parseAuthorizationHeader(authorizationHeader: string | undefined): ParsedAuthorizationHeader {
   if (authorizationHeader === undefined || authorizationHeader === "") {
@@ -78,7 +86,16 @@ function parseAuthorizationHeader(authorizationHeader: string | undefined): Pars
     return { scheme: "api_key", token };
   }
 
-  throw new AuthError(401, "Authorization header must use Bearer or ApiKey scheme");
+  if (authorizationHeader.startsWith("Guest ")) {
+    const token = authorizationHeader.slice(6).trim();
+    if (token === "") {
+      throw new AuthError(401, "Authorization header must include a guest token");
+    }
+
+    return { scheme: "guest", token };
+  }
+
+  throw new AuthError(401, "Authorization header must use Bearer, Guest, or ApiKey scheme");
 }
 
 export function extractVerifiedIdTokenIdentity(payload: VerifiedIdTokenPayload): AuthenticatedUserIdentity {
@@ -108,6 +125,20 @@ async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> 
   }
 }
 
+async function resolveMappedCognitoUserId(providerSubject: string): Promise<string | null> {
+  const result = await query<IdentityMappingRow>(
+    [
+      "SELECT user_id",
+      "FROM auth.user_identities",
+      "WHERE provider_type = 'cognito' AND provider_subject = $1",
+      "LIMIT 1",
+    ].join(" "),
+    [providerSubject],
+  );
+
+  return result.rows[0]?.user_id ?? null;
+}
+
 /**
  * Authenticates one request using the validated backend auth config rather
  * than raw env defaults. App startup must already have rejected missing or
@@ -121,6 +152,7 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
       userId: "local",
       email: null,
       cognitoUsername: null,
+      subjectUserId: "local",
       transport: "none",
       connectionId: null,
       selectedWorkspaceId: null,
@@ -134,6 +166,7 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
       userId: auth.userId,
       email: null,
       cognitoUsername: null,
+      subjectUserId: auth.userId,
       transport: "api_key",
       connectionId: auth.connectionId,
       selectedWorkspaceId: auth.selectedWorkspaceId,
@@ -142,12 +175,41 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
 
   if (parsedAuthorization.scheme === "bearer") {
     const identity = await verifyIdToken(parsedAuthorization.token);
-    return { ...identity, transport: "bearer", connectionId: null, selectedWorkspaceId: null };
+    const mappedUserId = await resolveMappedCognitoUserId(identity.userId);
+    return {
+      ...identity,
+      userId: mappedUserId ?? identity.userId,
+      subjectUserId: identity.userId,
+      transport: "bearer",
+      connectionId: null,
+      selectedWorkspaceId: null,
+    };
+  }
+
+  if (parsedAuthorization.scheme === "guest") {
+    const guestSession = await authenticateGuestSession(parsedAuthorization.token);
+    return {
+      userId: guestSession.userId,
+      email: null,
+      cognitoUsername: null,
+      subjectUserId: guestSession.userId,
+      transport: "guest",
+      connectionId: null,
+      selectedWorkspaceId: null,
+    };
   }
 
   if (request.sessionToken !== undefined && request.sessionToken !== "") {
     const identity = await verifyIdToken(request.sessionToken);
-    return { ...identity, transport: "session", connectionId: null, selectedWorkspaceId: null };
+    const mappedUserId = await resolveMappedCognitoUserId(identity.userId);
+    return {
+      ...identity,
+      userId: mappedUserId ?? identity.userId,
+      subjectUserId: identity.userId,
+      transport: "session",
+      connectionId: null,
+      selectedWorkspaceId: null,
+    };
   }
 
   throw new AuthError(401, "Missing authentication token");

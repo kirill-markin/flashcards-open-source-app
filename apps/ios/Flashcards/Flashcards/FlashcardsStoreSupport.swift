@@ -63,6 +63,28 @@ protocol CredentialStoring {
     func clearCredentials() throws
 }
 
+protocol GuestCredentialStoring {
+    func loadGuestSession() throws -> StoredGuestCloudSession?
+    func saveGuestSession(session: StoredGuestCloudSession) throws
+    func clearGuestSession() throws
+}
+
+@MainActor
+protocol GuestCloudAuthServing {
+    func createGuestSession(apiBaseUrl: String) async throws -> StoredGuestCloudSession
+    func prepareGuestUpgrade(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String
+    ) async throws -> CloudGuestUpgradeMode
+    func completeGuestUpgrade(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String,
+        selection: CloudGuestUpgradeSelection
+    ) async throws -> CloudWorkspaceSummary
+}
+
 @MainActor
 protocol CloudServiceConfigurationValidating {
     func validate(configuration: CloudServiceConfiguration) async throws
@@ -73,6 +95,9 @@ extension CloudAuthService: CloudAuthServing {}
 @MainActor
 extension CloudSyncService: CloudSyncServing {}
 extension CloudCredentialStore: CredentialStoring {}
+extension GuestCloudCredentialStore: GuestCredentialStoring {}
+@MainActor
+extension GuestCloudAuthService: GuestCloudAuthServing {}
 extension CloudServiceConfigurationValidator: CloudServiceConfigurationValidating {}
 
 struct ReviewSubmissionRequest: Hashable, Sendable {
@@ -102,6 +127,8 @@ struct FlashcardsStoreDependencies {
     let cloudAuthService: any CloudAuthServing
     let cloudSyncService: (any CloudSyncServing)?
     let credentialStore: any CredentialStoring
+    let guestCloudAuthService: any GuestCloudAuthServing
+    let guestCredentialStore: any GuestCredentialStoring
     let reviewSubmissionExecutor: ReviewSubmissionExecuting?
     let reviewHeadLoader: ReviewHeadLoader
     let reviewCountsLoader: ReviewCountsLoader

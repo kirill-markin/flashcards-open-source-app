@@ -35,6 +35,7 @@ function createChatTestApp(
       requestContext: {
         ...(options.requestContext ?? {
           userId: "user-1",
+          subjectUserId: "user-1",
           selectedWorkspaceId: "workspace-1",
           email: "user@example.com",
           locale: "en",
@@ -64,6 +65,7 @@ test("chat transcriptions route accepts multipart uploads and returns text", asy
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
   formData.append("source", "web");
+  formData.append("durationSeconds", "1");
 
   const response = await app.request("https://api.example.com/chat/transcriptions", {
     method: "POST",
@@ -98,6 +100,7 @@ test("chat transcriptions route rejects unsupported media types", async () => {
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.mp3", { type: "audio/mpeg" }));
   formData.append("source", "web");
+  formData.append("durationSeconds", "1");
 
   const response = await app.request("https://api.example.com/chat/transcriptions", {
     method: "POST",
@@ -120,6 +123,7 @@ test("chat transcriptions route surfaces upstream failures as 503", async () => 
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.wav", { type: "audio/wav" }));
   formData.append("source", "ios");
+  formData.append("durationSeconds", "1");
 
   const response = await app.request("https://api.example.com/chat/transcriptions", {
     method: "POST",
@@ -142,6 +146,7 @@ test("chat transcriptions route surfaces invalid audio failures as 422", async (
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
   formData.append("source", "web");
+  formData.append("durationSeconds", "1");
 
   const response = await app.request("https://api.example.com/chat/transcriptions", {
     method: "POST",
@@ -161,6 +166,7 @@ test("chat turn route forwards the authenticated request context to the AI chat 
   const app = createChatTestApp({
     requestContext: {
       userId: "user-42",
+      subjectUserId: "user-42",
       selectedWorkspaceId: "workspace-1",
       email: "user@example.com",
       locale: "en",

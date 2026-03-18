@@ -177,6 +177,17 @@ extension AIChatView {
                         style: aiChatToolBorderStrokeStyle(status: toolCall.status)
                     )
             )
+        case .accountUpgradePrompt(let message, let buttonTitle):
+            VStack(alignment: .leading, spacing: 12) {
+                Text(message)
+                Button(buttonTitle) {
+                    self.navigation.openSettings(destination: .account)
+                }
+                .buttonStyle(.glassProminent)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 }

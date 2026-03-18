@@ -3,18 +3,14 @@ import XCTest
 @testable import Flashcards
 
 final class AIChatConsentTests: XCTestCase {
-    func testAIChatAccessStateRequiresConsentForLinkedUsers() {
+    func testAIChatAccessStateRequiresConsentBeforeAIChatUnlocks() {
         XCTAssertEqual(
-            aiChatAccessState(cloudState: .linked, hasExternalProviderConsent: false),
+            aiChatAccessState(hasExternalProviderConsent: false),
             .consentRequired
         )
         XCTAssertEqual(
-            aiChatAccessState(cloudState: .linked, hasExternalProviderConsent: true),
+            aiChatAccessState(hasExternalProviderConsent: true),
             .ready
-        )
-        XCTAssertEqual(
-            aiChatAccessState(cloudState: .disconnected, hasExternalProviderConsent: true),
-            .signInRequired
         )
     }
 

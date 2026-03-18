@@ -591,12 +591,15 @@ final class CloudSyncService: @unchecked Sendable {
         logCloudFlowPhase(phase: .workspaceList, outcome: "start")
         async let meResponseTask: MeResponse = self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/me",
             method: "GET",
             body: Optional<String>.none
         )
-        async let workspacesResponseTask = self.listWorkspaces(apiBaseUrl: apiBaseUrl, bearerToken: bearerToken)
+        async let workspacesResponseTask = self.listWorkspaces(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: "Bearer \(bearerToken)"
+        )
 
         let meResponse = try await meResponseTask
         let workspacesResponse = try await workspacesResponseTask
@@ -627,7 +630,7 @@ final class CloudSyncService: @unchecked Sendable {
         logCloudFlowPhase(phase: .workspaceCreate, outcome: "start", selection: "create_new")
         let response: WorkspaceEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/workspaces",
             method: "POST",
             body: CreateWorkspaceRequest(name: name)
@@ -650,7 +653,7 @@ final class CloudSyncService: @unchecked Sendable {
     ) async throws -> CloudWorkspaceSummary {
         let response: WorkspaceEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/workspaces/\(workspaceId)/rename",
             method: "POST",
             body: CreateWorkspaceRequest(name: name)
@@ -665,7 +668,7 @@ final class CloudSyncService: @unchecked Sendable {
     ) async throws -> CloudWorkspaceDeletePreview {
         try await self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/workspaces/\(workspaceId)/delete-preview",
             method: "GET",
             body: Optional<String>.none
@@ -680,7 +683,7 @@ final class CloudSyncService: @unchecked Sendable {
     ) async throws -> CloudWorkspaceDeleteResult {
         try await self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/workspaces/\(workspaceId)/delete",
             method: "POST",
             body: DeleteAccountRequest(confirmationText: confirmationText)
@@ -696,7 +699,7 @@ final class CloudSyncService: @unchecked Sendable {
         )
         let response: WorkspaceEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/workspaces/\(workspaceId)/select",
             method: "POST",
             body: Optional<String>.none
@@ -720,7 +723,7 @@ final class CloudSyncService: @unchecked Sendable {
         repeat {
             let response: AgentApiKeyConnectionsEnvelope = try await self.request(
                 apiBaseUrl: apiBaseUrl,
-                bearerToken: bearerToken,
+                authorizationHeader: "Bearer \(bearerToken)",
                 path: self.paginatedPath(basePath: "/agent-api-keys", cursor: nextCursor),
                 method: "GET",
                 body: Optional<String>.none
@@ -737,7 +740,7 @@ final class CloudSyncService: @unchecked Sendable {
     func revokeAgentApiKey(apiBaseUrl: String, bearerToken: String, connectionId: String) async throws -> (AgentApiKeyConnection, String) {
         let response: AgentApiKeyRevokeEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/agent-api-keys/\(connectionId)/revoke",
             method: "POST",
             body: Optional<String>.none
@@ -753,7 +756,7 @@ final class CloudSyncService: @unchecked Sendable {
     ) async throws -> Bool {
         let bootstrapEnvelope: RemoteBootstrapPullResponseEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/workspaces/\(workspaceId)/sync/bootstrap",
             method: "POST",
             body: BootstrapPullRequest(
@@ -772,7 +775,7 @@ final class CloudSyncService: @unchecked Sendable {
     func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws {
         let response: DeleteAccountResponse = try await self.request(
             apiBaseUrl: apiBaseUrl,
-            bearerToken: bearerToken,
+            authorizationHeader: "Bearer \(bearerToken)",
             path: "/me/delete",
             method: "POST",
             body: DeleteAccountRequest(confirmationText: confirmationText)
@@ -866,7 +869,7 @@ final class CloudSyncService: @unchecked Sendable {
     ) async throws -> CloudSyncResult {
         let firstPage: RemoteBootstrapPullResponseEnvelope = try await self.request(
             apiBaseUrl: linkedSession.apiBaseUrl,
-            bearerToken: linkedSession.bearerToken,
+            authorizationHeader: linkedSession.authorization.headerValue,
             path: "\(syncBasePath)/bootstrap",
             method: "POST",
             body: BootstrapPullRequest(
@@ -925,7 +928,7 @@ final class CloudSyncService: @unchecked Sendable {
 
             currentPage = try await self.request(
                 apiBaseUrl: linkedSession.apiBaseUrl,
-                bearerToken: linkedSession.bearerToken,
+                authorizationHeader: linkedSession.authorization.headerValue,
                 path: "\(syncBasePath)/bootstrap",
                 method: "POST",
                 body: BootstrapPullRequest(
@@ -957,7 +960,7 @@ final class CloudSyncService: @unchecked Sendable {
                 let endIndex = min(startIndex + 200, bootstrapEntries.count)
                 let response: RemoteBootstrapPushResponseEnvelope = try await self.request(
                     apiBaseUrl: linkedSession.apiBaseUrl,
-                    bearerToken: linkedSession.bearerToken,
+                    authorizationHeader: linkedSession.authorization.headerValue,
                     path: "\(syncBasePath)/bootstrap",
                     method: "POST",
                     body: BootstrapPushRequest(
@@ -986,7 +989,7 @@ final class CloudSyncService: @unchecked Sendable {
                 let endIndex = min(startIndex + 200, reviewEvents.count)
                 let response: RemoteReviewHistoryImportResponseEnvelope = try await self.request(
                     apiBaseUrl: linkedSession.apiBaseUrl,
-                    bearerToken: linkedSession.bearerToken,
+                    authorizationHeader: linkedSession.authorization.headerValue,
                     path: "\(syncBasePath)/review-history/import",
                     method: "POST",
                     body: ReviewHistoryImportRequest(
@@ -1058,7 +1061,7 @@ final class CloudSyncService: @unchecked Sendable {
             do {
                 let pushResponse: SyncPushResponse = try await self.request(
                     apiBaseUrl: linkedSession.apiBaseUrl,
-                    bearerToken: linkedSession.bearerToken,
+                    authorizationHeader: linkedSession.authorization.headerValue,
                     path: "\(syncBasePath)/push",
                     method: "POST",
                     body: PushRequest(
@@ -1124,7 +1127,7 @@ final class CloudSyncService: @unchecked Sendable {
         while true {
             let pullEnvelope: RemotePullResponseEnvelope = try await self.request(
                 apiBaseUrl: linkedSession.apiBaseUrl,
-                bearerToken: linkedSession.bearerToken,
+                authorizationHeader: linkedSession.authorization.headerValue,
                 path: "\(syncBasePath)/pull",
                 method: "POST",
                 body: PullRequest(
@@ -1174,7 +1177,7 @@ final class CloudSyncService: @unchecked Sendable {
         while true {
             let reviewHistoryEnvelope: RemoteReviewHistoryPullResponseEnvelope = try await self.request(
                 apiBaseUrl: linkedSession.apiBaseUrl,
-                bearerToken: linkedSession.bearerToken,
+                authorizationHeader: linkedSession.authorization.headerValue,
                 path: "\(syncBasePath)/review-history/pull",
                 method: "POST",
                 body: ReviewHistoryPullRequest(
@@ -1247,14 +1250,14 @@ final class CloudSyncService: @unchecked Sendable {
         return components.string ?? "\(basePath)?limit=\(collectionPageLimit)"
     }
 
-    private func listWorkspaces(apiBaseUrl: String, bearerToken: String) async throws -> [CloudWorkspaceSummary] {
+    private func listWorkspaces(apiBaseUrl: String, authorizationHeader: String) async throws -> [CloudWorkspaceSummary] {
         var workspaces: [CloudWorkspaceSummary] = []
         var nextCursor: String? = nil
 
         repeat {
             let response: WorkspacesResponse = try await self.request(
                 apiBaseUrl: apiBaseUrl,
-                bearerToken: bearerToken,
+                authorizationHeader: authorizationHeader,
                 path: self.paginatedPath(basePath: "/workspaces", cursor: nextCursor),
                 method: "GET",
                 body: Optional<String>.none
@@ -1268,7 +1271,7 @@ final class CloudSyncService: @unchecked Sendable {
 
     private func request<Response: Decodable, Body: Encodable>(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         path: String,
         method: String,
         body: Body?
@@ -1276,7 +1279,7 @@ final class CloudSyncService: @unchecked Sendable {
         var request = URLRequest(url: try self.makeUrl(apiBaseUrl: apiBaseUrl, path: path))
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(authorizationHeader, forHTTPHeaderField: "Authorization")
 
         if let body {
             request.httpBody = try JSONEncoder().encode(body)

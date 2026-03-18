@@ -380,7 +380,8 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
                 idToken: "id-token",
                 idTokenExpiresAt: "2030-01-01T00:00:00.000Z"
             ),
-            workspaces: workspaces
+            workspaces: workspaces,
+            guestUpgradeMode: nil
         )
     }
 }

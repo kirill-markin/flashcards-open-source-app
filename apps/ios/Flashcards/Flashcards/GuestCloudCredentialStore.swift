@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-enum CloudCredentialStoreError: LocalizedError {
+enum GuestCloudCredentialStoreError: LocalizedError {
     case encodingFailed
     case decodingFailed
     case unexpectedStatus(OSStatus, String)
@@ -9,16 +9,16 @@ enum CloudCredentialStoreError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .encodingFailed:
-            return "Cloud credentials could not be encoded for secure storage"
+            return "Guest AI credentials could not be encoded for secure storage"
         case .decodingFailed:
-            return "Cloud credentials stored in Keychain are invalid"
+            return "Guest AI credentials stored in Keychain are invalid"
         case .unexpectedStatus(let status, let operation):
             return "Keychain \(operation) failed with status \(status)"
         }
     }
 }
 
-final class CloudCredentialStore {
+final class GuestCloudCredentialStore {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let service: String
@@ -27,7 +27,7 @@ final class CloudCredentialStore {
     init(
         encoder: JSONEncoder = JSONEncoder(),
         decoder: JSONDecoder = JSONDecoder(),
-        service: String = (Bundle.main.bundleIdentifier ?? "flashcards-open-source-app") + ".cloud-auth",
+        service: String = (Bundle.main.bundleIdentifier ?? "flashcards-open-source-app") + ".guest-cloud-auth",
         account: String = "primary"
     ) {
         self.encoder = encoder
@@ -41,15 +41,15 @@ final class CloudCredentialStore {
     }
 
     private var testStorageUrl: URL {
-        let fileName = "\(self.service)-\(self.account)-cloud-credentials.json"
+        let fileName = "\(self.service)-\(self.account)-guest-cloud-session.json"
             .replacingOccurrences(of: "/", with: "-")
         return FileManager.default.temporaryDirectory
             .appendingPathComponent(fileName, isDirectory: false)
     }
 
-    func loadCredentials() throws -> StoredCloudCredentials? {
+    func loadGuestSession() throws -> StoredGuestCloudSession? {
         if self.usesTestFileStorage {
-            return try self.loadCredentialsFromTestFile()
+            return try self.loadGuestSessionFromTestFile()
         }
 
         var result: CFTypeRef?
@@ -67,31 +67,31 @@ final class CloudCredentialStore {
         }
 
         guard status == errSecSuccess else {
-            throw CloudCredentialStoreError.unexpectedStatus(status, "load")
+            throw GuestCloudCredentialStoreError.unexpectedStatus(status, "load")
         }
 
         guard let data = result as? Data else {
-            throw CloudCredentialStoreError.decodingFailed
+            throw GuestCloudCredentialStoreError.decodingFailed
         }
 
         do {
-            return try self.decoder.decode(StoredCloudCredentials.self, from: data)
+            return try self.decoder.decode(StoredGuestCloudSession.self, from: data)
         } catch {
-            throw CloudCredentialStoreError.decodingFailed
+            throw GuestCloudCredentialStoreError.decodingFailed
         }
     }
 
-    func saveCredentials(credentials: StoredCloudCredentials) throws {
+    func saveGuestSession(session: StoredGuestCloudSession) throws {
         if self.usesTestFileStorage {
-            try self.saveCredentialsToTestFile(credentials: credentials)
+            try self.saveGuestSessionToTestFile(session: session)
             return
         }
 
         let data: Data
         do {
-            data = try self.encoder.encode(credentials)
+            data = try self.encoder.encode(session)
         } catch {
-            throw CloudCredentialStoreError.encodingFailed
+            throw GuestCloudCredentialStoreError.encodingFailed
         }
 
         let baseQuery: [CFString: Any] = [
@@ -108,19 +108,19 @@ final class CloudCredentialStore {
         if status == errSecDuplicateItem {
             let updateStatus = SecItemUpdate(baseQuery as CFDictionary, attributes as CFDictionary)
             guard updateStatus == errSecSuccess else {
-                throw CloudCredentialStoreError.unexpectedStatus(updateStatus, "update")
+                throw GuestCloudCredentialStoreError.unexpectedStatus(updateStatus, "update")
             }
             return
         }
 
         guard status == errSecSuccess else {
-            throw CloudCredentialStoreError.unexpectedStatus(status, "save")
+            throw GuestCloudCredentialStoreError.unexpectedStatus(status, "save")
         }
     }
 
-    func clearCredentials() throws {
+    func clearGuestSession() throws {
         if self.usesTestFileStorage {
-            try self.clearCredentialsFromTestFile()
+            try self.clearGuestSessionFromTestFile()
             return
         }
 
@@ -135,10 +135,10 @@ final class CloudCredentialStore {
             return
         }
 
-        throw CloudCredentialStoreError.unexpectedStatus(status, "delete")
+        throw GuestCloudCredentialStoreError.unexpectedStatus(status, "delete")
     }
 
-    private func loadCredentialsFromTestFile() throws -> StoredCloudCredentials? {
+    private func loadGuestSessionFromTestFile() throws -> StoredGuestCloudSession? {
         let fileUrl = self.testStorageUrl
         guard FileManager.default.fileExists(atPath: fileUrl.path) else {
             return nil
@@ -146,24 +146,24 @@ final class CloudCredentialStore {
 
         let data = try Data(contentsOf: fileUrl)
         do {
-            return try self.decoder.decode(StoredCloudCredentials.self, from: data)
+            return try self.decoder.decode(StoredGuestCloudSession.self, from: data)
         } catch {
-            throw CloudCredentialStoreError.decodingFailed
+            throw GuestCloudCredentialStoreError.decodingFailed
         }
     }
 
-    private func saveCredentialsToTestFile(credentials: StoredCloudCredentials) throws {
+    private func saveGuestSessionToTestFile(session: StoredGuestCloudSession) throws {
         let data: Data
         do {
-            data = try self.encoder.encode(credentials)
+            data = try self.encoder.encode(session)
         } catch {
-            throw CloudCredentialStoreError.encodingFailed
+            throw GuestCloudCredentialStoreError.encodingFailed
         }
 
         try data.write(to: self.testStorageUrl, options: .atomic)
     }
 
-    private func clearCredentialsFromTestFile() throws {
+    private func clearGuestSessionFromTestFile() throws {
         let fileUrl = self.testStorageUrl
         guard FileManager.default.fileExists(atPath: fileUrl.path) else {
             return

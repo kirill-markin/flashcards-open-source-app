@@ -122,6 +122,7 @@ enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable, Senda
 enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case disconnected
     case linkingReady = "linking-ready"
+    case guest
     case linked
 
     var id: String {
@@ -134,6 +135,8 @@ enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable, S
             return "Disconnected"
         case .linkingReady:
             return "Linking ready"
+        case .guest:
+            return "Guest"
         case .linked:
             return "Linked"
         }
@@ -302,13 +305,49 @@ struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+enum CloudAuthorization: Hashable, Sendable {
+    case bearer(String)
+    case guest(String)
+
+    var headerValue: String {
+        switch self {
+        case .bearer(let token):
+            return "Bearer \(token)"
+        case .guest(let token):
+            return "Guest \(token)"
+        }
+    }
+
+    var isGuest: Bool {
+        switch self {
+        case .guest:
+            return true
+        case .bearer:
+            return false
+        }
+    }
+}
+
 struct CloudLinkedSession: Hashable, Sendable {
     let userId: String
     let workspaceId: String
     let email: String?
     let configurationMode: CloudServiceConfigurationMode
     let apiBaseUrl: String
-    let bearerToken: String
+    let authorization: CloudAuthorization
+
+    var authorizationHeaderValue: String {
+        self.authorization.headerValue
+    }
+
+    var bearerToken: String {
+        switch self.authorization {
+        case .bearer(let token):
+            return token
+        case .guest:
+            preconditionFailure("Bearer token is unavailable for guest cloud sessions")
+        }
+    }
 }
 
 struct CloudWorkspaceSummary: Codable, Identifiable, Hashable, Sendable {
@@ -343,6 +382,7 @@ struct CloudWorkspaceLinkContext: Hashable, Identifiable, Sendable {
     let apiBaseUrl: String
     let credentials: StoredCloudCredentials
     let workspaces: [CloudWorkspaceSummary]
+    let guestUpgradeMode: CloudGuestUpgradeMode?
 
     var id: String {
         userId
@@ -385,6 +425,22 @@ struct StoredCloudCredentials: Codable, Hashable {
     let refreshToken: String
     let idToken: String
     let idTokenExpiresAt: String
+}
+
+struct StoredGuestCloudSession: Codable, Hashable, Sendable {
+    let guestToken: String
+    let userId: String
+    let workspaceId: String
+}
+
+enum CloudGuestUpgradeMode: String, Codable, Hashable, Sendable {
+    case bound
+    case mergeRequired = "merge_required"
+}
+
+enum CloudGuestUpgradeSelection: Hashable, Sendable {
+    case existing(workspaceId: String)
+    case createNew
 }
 
 struct CloudIdentityToken: Hashable {

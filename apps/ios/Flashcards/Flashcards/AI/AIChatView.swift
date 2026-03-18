@@ -6,10 +6,9 @@ import UniformTypeIdentifiers
 
 struct AIChatView: View {
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
-    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(AppNavigationModel.self) var navigation: AppNavigationModel
     @Environment(\.scenePhase) var scenePhase
     let chatStore: AIChatStore
-    @State var isCloudSignInPresented: Bool
     @State var isCameraPresented: Bool
     @State var isFileImporterPresented: Bool
     @State var isPhotoPickerPresented: Bool
@@ -27,7 +26,6 @@ struct AIChatView: View {
     @MainActor
     init(chatStore: AIChatStore) {
         self.chatStore = chatStore
-        self.isCloudSignInPresented = false
         self.isCameraPresented = false
         self.isFileImporterPresented = false
         self.isPhotoPickerPresented = false
@@ -45,8 +43,6 @@ struct AIChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             switch self.accessState {
-            case .signInRequired:
-                self.signInGate
             case .consentRequired:
                 self.consentGate
             case .ready:
@@ -165,10 +161,6 @@ struct AIChatView: View {
                 }
             )
         }
-        .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet()
-                .environment(self.flashcardsStore)
-        }
         .alert(
             self.chatStore.activeAlert?.title ?? "",
             isPresented: Binding(
@@ -209,37 +201,7 @@ struct AIChatView: View {
     }
 
     var accessState: AIChatAccessState {
-        aiChatAccessState(
-            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
-            hasExternalProviderConsent: self.hasAcceptedExternalAIConsent
-        )
-    }
-
-    var signInGate: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            ReadableContentLayout(
-                maxWidth: flashcardsReadableFormMaxWidth,
-                horizontalPadding: 24,
-                alignment: .center
-            ) {
-                VStack(spacing: 16) {
-                    Image(systemName: "sparkles.rectangle.stack")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.secondary)
-                    Text("Sign in to use AI. It can help you explore your cards, spot weak areas, and draft changes before you save them.")
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                    Button("Sign in for AI chat") {
-                        self.isCloudSignInPresented = true
-                    }
-                    .buttonStyle(.glassProminent)
-                }
-            }
-
-            Spacer()
-        }
+        aiChatAccessState(hasExternalProviderConsent: self.hasAcceptedExternalAIConsent)
     }
 
     var consentGate: some View {
@@ -248,33 +210,30 @@ struct AIChatView: View {
                 maxWidth: flashcardsReadableFormMaxWidth,
                 horizontalPadding: 24
             ) {
-                VStack(alignment: .leading, spacing: 20) {
-                    Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 16) {
                     Image(systemName: "lock.shield")
-                        .font(.system(size: 42))
+                        .font(.system(size: 40))
                         .foregroundStyle(.secondary)
 
                     Text("Before you use AI")
                         .font(.title3.weight(.semibold))
 
-                    Text("Hosted AI is optional. Before you use it on this device, please confirm that you understand which request data can be sent to third-party AI providers configured on the current server.")
+                    Text("AI can be wrong. Review important results before relying on them.")
                         .foregroundStyle(.secondary)
 
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
                         ForEach(aiChatExternalProviderDisclosureItems, id: \.self) { item in
                             Label(item, systemImage: "checkmark.circle")
                         }
-                        Label("The exact AI provider depends on the current hosted server configuration.", systemImage: "server.rack")
                     }
                     .font(.subheadline)
 
-                    Text(aiChatAccuracyWarningText)
-                        .foregroundStyle(.secondary)
+                    Button("OK") {
+                        self.acceptExternalAIConsent()
+                    }
+                    .buttonStyle(.glassProminent)
 
-                    Text("Cards, decks, and review continue to work without AI.")
-                        .foregroundStyle(.secondary)
-
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
                         if let privacyUrl = URL(string: flashcardsPrivacyPolicyUrl) {
                             Link("Privacy Policy", destination: privacyUrl)
                         }
@@ -286,13 +245,6 @@ struct AIChatView: View {
                         }
                     }
                     .font(.subheadline.weight(.medium))
-
-                    Button("I understand and continue") {
-                        self.acceptExternalAIConsent()
-                    }
-                    .buttonStyle(.glassProminent)
-
-                    Spacer(minLength: 0)
                 }
                 .padding(.vertical, 24)
             }

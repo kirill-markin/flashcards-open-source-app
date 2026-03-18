@@ -20,6 +20,7 @@ test("createAgentAccountEnvelope points the agent to list workspaces and then us
 
   const envelope = createAgentAccountEnvelope("https://api.example.com/v1/agent/me", {
     userId: "user-1",
+    subjectUserId: "user-1",
     transport: "api_key",
     connectionId: "connection-1",
     selectedWorkspaceId: null,

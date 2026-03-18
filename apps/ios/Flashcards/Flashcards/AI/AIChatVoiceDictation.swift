@@ -12,6 +12,7 @@ struct AIChatRecordedAudio: Sendable {
     let fileUrl: URL
     let fileName: String
     let mediaType: String
+    let durationSeconds: Double
 }
 
 struct AIChatDictationInsertionSelection: Equatable, Sendable {
@@ -141,7 +142,8 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
         return AIChatRecordedAudio(
             fileUrl: fileUrl,
             fileName: "chat-dictation.m4a",
-            mediaType: "audio/mp4"
+            mediaType: "audio/mp4",
+            durationSeconds: recorder.currentTime
         )
     }
 
@@ -228,7 +230,7 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         let boundary = "Boundary-\(UUID().uuidString.lowercased())"
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(session.bearerToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(session.authorization.headerValue, forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = try self.makeMultipartBody(boundary: boundary, recordedAudio: recordedAudio)
         return request
@@ -248,6 +250,15 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
             return .invalidAudio
         }
 
+        if errorDetails.code == "GUEST_AI_LIMIT_REACHED" {
+            return .serverMessage(
+                appendCloudRequestIdReference(
+                    message: aiChatGuestQuotaReachedMessage,
+                    requestId: errorDetails.requestId
+                )
+            )
+        }
+
         return .serverMessage(
             makeAIChatUserFacingErrorMessage(
                 rawMessage: errorDetails.message,
@@ -265,6 +276,9 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         body.append(Data("--\(boundary)\r\n".utf8))
         body.append(Data("Content-Disposition: form-data; name=\"source\"\r\n\r\n".utf8))
         body.append(Data("ios\r\n".utf8))
+        body.append(Data("--\(boundary)\r\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"durationSeconds\"\r\n\r\n".utf8))
+        body.append(Data("\(recordedAudio.durationSeconds)\r\n".utf8))
         body.append(Data("--\(boundary)\r\n".utf8))
         body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"\(recordedAudio.fileName)\"\r\n".utf8))
         body.append(Data("Content-Type: \(recordedAudio.mediaType)\r\n\r\n".utf8))

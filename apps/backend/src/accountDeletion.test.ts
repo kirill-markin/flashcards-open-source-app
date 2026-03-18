@@ -22,7 +22,8 @@ test("deleteAccountForAuthenticatedUser rejects the wrong confirmation text befo
 
   await assert.rejects(
     () => deleteAccountForAuthenticatedUser({
-      userId: "user-1",
+      appUserId: "user-1",
+      authSubjectUserId: "user-1",
       cognitoUsername: "cognito-user-1",
       confirmationText: "wrong text",
     }, {
@@ -49,7 +50,8 @@ test("deleteAccountForAuthenticatedUser skips database work for already deleted 
   let cognitoDeleteCalled = false;
 
   await deleteAccountForAuthenticatedUser({
-    userId: "user-1",
+    appUserId: "user-1",
+    authSubjectUserId: "user-1",
     cognitoUsername: "cognito-user-1",
     confirmationText: deleteAccountConfirmationText,
   }, {
@@ -72,7 +74,8 @@ test("deleteAccountForAuthenticatedUser keeps shared workspaces, deletes sole-me
   let cognitoDeleteCalled = false;
 
   await deleteAccountForAuthenticatedUser({
-    userId: "user-1",
+    appUserId: "user-1",
+    authSubjectUserId: "user-1",
     cognitoUsername: "cognito-user-1",
     confirmationText: deleteAccountConfirmationText,
   }, {
@@ -141,7 +144,8 @@ test("deleteAccountForAuthenticatedUser deletes sole-member workspace data and t
   let cognitoDeleteCalled = false;
 
   await deleteAccountForAuthenticatedUser({
-    userId: "user-1",
+    appUserId: "user-1",
+    authSubjectUserId: "user-1",
     cognitoUsername: "cognito-user-1",
     confirmationText: deleteAccountConfirmationText,
   }, {
