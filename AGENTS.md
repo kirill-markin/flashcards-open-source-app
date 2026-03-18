@@ -23,7 +23,8 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 We support the web app, the iOS app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
 Running iOS tests is a heavy operation, so do not run them automatically and only run them after the user explicitly agrees.
-If iOS tests are explicitly requested, run them only on one specific simulator image confirmed with the user or already available locally, and do not trigger extra runtime downloads automatically.
+If iOS tests are explicitly requested, run them only on one specific iPhone simulator runtime that is already downloaded locally.
+If that iPhone simulator runtime is not already available locally, do not run the tests and do not trigger extra runtime downloads or installations.
 For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.
 
 ## Repository Strategy
