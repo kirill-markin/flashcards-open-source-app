@@ -86,6 +86,12 @@ final class FlashcardsStore {
     @ObservationIgnored var isAccountDeletionRunning: Bool
     @ObservationIgnored lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
 
+    func shutdownForTests() {
+        self.aiChatStore.shutdownForTests()
+        self.reviewRuntime.cancelForAccountDeletion()
+        self.cloudRuntime.cancelForAccountDeletion()
+    }
+
     convenience init() {
         let userDefaults = UserDefaults.standard
         let encoder = JSONEncoder()

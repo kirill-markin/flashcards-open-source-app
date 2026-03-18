@@ -956,9 +956,6 @@ class AIChatTestCaseBase: XCTestCase {
     func makeStore() throws -> FlashcardsStore {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
-        self.addTeardownBlock {
-            try? FileManager.default.removeItem(at: databaseDirectory)
-        }
 
         let suiteName = "flashcards-store-tests-\(UUID().uuidString)"
         let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -967,7 +964,7 @@ class AIChatTestCaseBase: XCTestCase {
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
-        return FlashcardsStore(
+        let store = FlashcardsStore(
             userDefaults: userDefaults,
             encoder: JSONEncoder(),
             decoder: JSONDecoder(),
@@ -983,6 +980,16 @@ class AIChatTestCaseBase: XCTestCase {
             ),
             initialGlobalErrorMessage: ""
         )
+        self.addTeardownBlock {
+            try await MainActor.run {
+                store.shutdownForTests()
+                try store.database?.close()
+            }
+            await Task.yield()
+            await Task.yield()
+            try? FileManager.default.removeItem(at: databaseDirectory)
+        }
+        return store
     }
 
     @MainActor
@@ -1000,9 +1007,6 @@ class AIChatTestCaseBase: XCTestCase {
     ) throws -> FlashcardsStore {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
-        self.addTeardownBlock {
-            try? FileManager.default.removeItem(at: databaseDirectory)
-        }
 
         let suiteName = "flashcards-linked-store-tests-\(UUID().uuidString)"
         let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -1058,6 +1062,15 @@ class AIChatTestCaseBase: XCTestCase {
             linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: "workspace-1")
         )
         grantAIChatExternalProviderConsent(userDefaults: userDefaults)
+        self.addTeardownBlock {
+            try await MainActor.run {
+                store.shutdownForTests()
+                try store.database?.close()
+            }
+            await Task.yield()
+            await Task.yield()
+            try? FileManager.default.removeItem(at: databaseDirectory)
+        }
         return store
     }
 

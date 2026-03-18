@@ -17,6 +17,7 @@ final class DatabaseCore {
     let connection: OpaquePointer
     let encoder: JSONEncoder
     let decoder: JSONDecoder
+    private var isClosed: Bool
 
     convenience init() throws {
         try self.init(databaseURL: Self.defaultDatabaseURL())
@@ -26,6 +27,7 @@ final class DatabaseCore {
         self.databaseURL = databaseURL
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
+        self.isClosed = false
         self.connection = try Self.openConnection(databaseURL: databaseURL)
         sqlite3_busy_timeout(self.connection, 5_000)
         try self.enableForeignKeys()
@@ -35,7 +37,22 @@ final class DatabaseCore {
     }
 
     deinit {
-        sqlite3_close(connection)
+        if self.isClosed == false {
+            sqlite3_close_v2(self.connection)
+        }
+    }
+
+    func close() throws {
+        guard self.isClosed == false else {
+            return
+        }
+
+        let closeResult = sqlite3_close_v2(self.connection)
+        guard closeResult == SQLITE_OK else {
+            throw LocalStoreError.database("Failed to close database connection: \(self.lastErrorMessage())")
+        }
+
+        self.isClosed = true
     }
 
     func encodeJsonString<T: Encodable>(value: T) throws -> String {

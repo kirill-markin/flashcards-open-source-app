@@ -300,9 +300,14 @@ enum FlashcardsStoreTestSupport {
 
     static func makeStoreContext(testCase: XCTestCase) throws -> StoreContext {
         let environment = try self.makeStoreEnvironment(testCase: testCase)
+        let store = self.makeStore(environment: environment)
+        self.registerStoreTeardown(
+            testCase: testCase,
+            store: store
+        )
 
         return StoreContext(
-            store: self.makeStore(environment: environment),
+            store: store,
             database: environment.database
         )
     }
@@ -313,13 +318,18 @@ enum FlashcardsStoreTestSupport {
         reviewCountsDelayNanoseconds: UInt64
     ) throws -> StoreContext {
         let environment = try self.makeStoreEnvironment(testCase: testCase)
+        let store = self.makeStore(
+            environment: environment,
+            reviewHeadDelayNanoseconds: reviewHeadDelayNanoseconds,
+            reviewCountsDelayNanoseconds: reviewCountsDelayNanoseconds
+        )
+        self.registerStoreTeardown(
+            testCase: testCase,
+            store: store
+        )
 
         return StoreContext(
-            store: self.makeStore(
-                environment: environment,
-                reviewHeadDelayNanoseconds: reviewHeadDelayNanoseconds,
-                reviewCountsDelayNanoseconds: reviewCountsDelayNanoseconds
-            ),
+            store: store,
             database: environment.database
         )
     }
@@ -330,22 +340,27 @@ enum FlashcardsStoreTestSupport {
     ) throws -> StoreContext {
         let environment = try self.makeStoreEnvironment(testCase: testCase)
         let reviewSubmissionExecutor = makeReviewSubmissionExecutor(environment.database)
+        let store = FlashcardsStore(
+            userDefaults: environment.userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: environment.database,
+            cloudAuthService: CloudAuthService(),
+            credentialStore: environment.credentialStore,
+            reviewSubmissionExecutor: reviewSubmissionExecutor,
+            reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: 0),
+            reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: 0),
+            reviewQueueChunkLoader: self.makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
+            reviewTimelinePageLoader: self.makeReviewTimelinePageLoader(),
+            initialGlobalErrorMessage: ""
+        )
+        self.registerStoreTeardown(
+            testCase: testCase,
+            store: store
+        )
 
         return StoreContext(
-            store: FlashcardsStore(
-                userDefaults: environment.userDefaults,
-                encoder: JSONEncoder(),
-                decoder: JSONDecoder(),
-                database: environment.database,
-                cloudAuthService: CloudAuthService(),
-                credentialStore: environment.credentialStore,
-                reviewSubmissionExecutor: reviewSubmissionExecutor,
-                reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: 0),
-                reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: 0),
-                reviewQueueChunkLoader: self.makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
-                reviewTimelinePageLoader: self.makeReviewTimelinePageLoader(),
-                initialGlobalErrorMessage: ""
-            ),
+            store: store,
             database: environment.database
         )
     }
@@ -358,22 +373,27 @@ enum FlashcardsStoreTestSupport {
     ) throws -> StoreContext {
         let environment = try self.makeStoreEnvironment(testCase: testCase)
         let reviewSubmissionExecutor = makeReviewSubmissionExecutor(environment.database)
+        let store = FlashcardsStore(
+            userDefaults: environment.userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: environment.database,
+            cloudAuthService: CloudAuthService(),
+            credentialStore: environment.credentialStore,
+            reviewSubmissionExecutor: reviewSubmissionExecutor,
+            reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: reviewHeadDelayNanoseconds),
+            reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: reviewCountsDelayNanoseconds),
+            reviewQueueChunkLoader: self.makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
+            reviewTimelinePageLoader: self.makeReviewTimelinePageLoader(),
+            initialGlobalErrorMessage: ""
+        )
+        self.registerStoreTeardown(
+            testCase: testCase,
+            store: store
+        )
 
         return StoreContext(
-            store: FlashcardsStore(
-                userDefaults: environment.userDefaults,
-                encoder: JSONEncoder(),
-                decoder: JSONDecoder(),
-                database: environment.database,
-                cloudAuthService: CloudAuthService(),
-                credentialStore: environment.credentialStore,
-                reviewSubmissionExecutor: reviewSubmissionExecutor,
-                reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: reviewHeadDelayNanoseconds),
-                reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: reviewCountsDelayNanoseconds),
-                reviewQueueChunkLoader: self.makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
-                reviewTimelinePageLoader: self.makeReviewTimelinePageLoader(),
-                initialGlobalErrorMessage: ""
-            ),
+            store: store,
             database: environment.database
         )
     }
@@ -431,6 +451,10 @@ enum FlashcardsStoreTestSupport {
             reviewTimelinePageLoader: self.makeReviewTimelinePageLoader(),
             initialGlobalErrorMessage: ""
         )
+        self.registerStoreTeardown(
+            testCase: testCase,
+            store: store
+        )
 
         return CloudSyncContext(
             store: store,
@@ -438,6 +462,20 @@ enum FlashcardsStoreTestSupport {
             credentialStore: environment.credentialStore,
             cloudSyncService: cloudSyncService
         )
+    }
+
+    private static func registerStoreTeardown(
+        testCase: XCTestCase,
+        store: FlashcardsStore
+    ) {
+        testCase.addTeardownBlock {
+            try await MainActor.run {
+                store.shutdownForTests()
+                try store.database?.close()
+            }
+            await Task.yield()
+            await Task.yield()
+        }
     }
 
     static func makeStoredCloudCredentials() -> StoredCloudCredentials {
