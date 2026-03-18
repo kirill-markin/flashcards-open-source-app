@@ -20,6 +20,7 @@ enum FlashcardsStoreTestSupport {
         let store: FlashcardsStore
         let database: LocalDatabase
         let credentialStore: CloudCredentialStore
+        let guestCredentialStore: GuestCloudCredentialStore
         let cloudSyncService: MockCloudSyncService
     }
 
@@ -474,6 +475,7 @@ enum FlashcardsStoreTestSupport {
             store: store,
             database: environment.database,
             credentialStore: environment.credentialStore,
+            guestCredentialStore: environment.guestCredentialStore,
             cloudSyncService: cloudSyncService
         )
     }
@@ -520,6 +522,25 @@ enum FlashcardsStoreTestSupport {
             configurationMode: .official,
             apiBaseUrl: "https://api.example.com/v1",
             authorization: .bearer("id-token")
+        )
+    }
+
+    static func makeGuestSession(userId: String, workspaceId: String, guestToken: String) -> CloudLinkedSession {
+        CloudLinkedSession(
+            userId: userId,
+            workspaceId: workspaceId,
+            email: nil,
+            configurationMode: .official,
+            apiBaseUrl: "https://api.example.com/v1",
+            authorization: .guest(guestToken)
+        )
+    }
+
+    static func makeStoredGuestCloudSession(userId: String, workspaceId: String, guestToken: String) -> StoredGuestCloudSession {
+        StoredGuestCloudSession(
+            guestToken: guestToken,
+            userId: userId,
+            workspaceId: workspaceId
         )
     }
 

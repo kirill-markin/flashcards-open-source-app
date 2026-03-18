@@ -285,14 +285,30 @@ extension FlashcardsStore {
 
     func syncCloudNow() async throws {
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials()
-            return
+            if self.cloudSettings?.cloudState == .guest {
+                _ = try await self.prepareGuestCloudSessionForAI()
+            } else {
+                try await self.restoreCloudLinkFromStoredCredentials()
+                return
+            }
         }
+
+        guard let activeSession = self.cloudRuntime.activeCloudSession() else {
+            throw LocalStoreError.uninitialized("Cloud session is unavailable")
+        }
+
+        let isGuestSession = activeSession.authorization.isGuest
+        let failureStateCloudState = self.cloudSettings?.cloudState
 
         self.syncStatus = .syncing
         do {
-            let syncResult = try await self.withAuthenticatedCloudSession { session in
-                try await self.runLinkedSync(linkedSession: session)
+            let syncResult: CloudSyncResult
+            if isGuestSession {
+                syncResult = try await self.runLinkedSync(linkedSession: activeSession)
+            } else {
+                syncResult = try await self.withAuthenticatedCloudSession { session in
+                    try await self.runLinkedSync(linkedSession: session)
+                }
             }
             let now = Date()
             try await self.applySyncResultWithoutBlockingReset(
@@ -300,9 +316,9 @@ extension FlashcardsStore {
                 now: now
             )
         } catch {
-            self.syncStatus = self.cloudSettings?.cloudState == .linked
+            self.syncStatus = failureStateCloudState == .linked || failureStateCloudState == .guest
                 ? .failed(message: Flashcards.errorMessage(error: error))
-            : .idle
+                : .idle
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
@@ -316,7 +332,10 @@ extension FlashcardsStore {
 
         do {
             let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
-            if self.cloudRuntime.activeCloudSession() == nil && hasStoredCredentials == false {
+            let hasStoredGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() != nil
+            if self.cloudRuntime.activeCloudSession() == nil
+                && hasStoredCredentials == false
+                && hasStoredGuestSession == false {
                 if self.cloudSettings?.cloudState == .linked {
                     try self.logoutCloudAccount()
                 }
