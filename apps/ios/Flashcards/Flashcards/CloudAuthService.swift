@@ -9,8 +9,21 @@ enum CloudAuthError: LocalizedError {
         switch self {
         case .invalidBaseUrl:
             return "Cloud sign-in is unavailable. Check the app configuration."
-        case .invalidResponse(let details, _):
+        case .invalidResponse(let details, let statusCode):
             switch details.code {
+            case "INVALID_EMAIL":
+                return "Enter a valid email address."
+            case "PASSWORD_REQUIRED":
+                return "Enter your password."
+            case "PASSWORD_SIGN_IN_FAILED":
+                if statusCode == 401 {
+                    return "Email or password is incorrect."
+                }
+
+                return appendCloudRequestIdReference(
+                    message: "Could not sign in with password. Try again.",
+                    requestId: details.requestId
+                )
             case "OTP_SESSION_EXPIRED":
                 return "Code expired. Request a new one."
             case "OTP_CHALLENGE_CONSUMED":
@@ -68,7 +81,12 @@ private struct VerifyCodeRequest: Encodable {
     let otpSessionToken: String
 }
 
-private struct VerifyCodeResponse: Decodable {
+private struct SignInPasswordRequest: Encodable {
+    let email: String
+    let password: String
+}
+
+private struct AuthSuccessResponse: Decodable {
     let ok: Bool
     let idToken: String
     let refreshToken: String
@@ -145,7 +163,7 @@ final class CloudAuthService {
     func verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
         let normalizedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
         logCloudFlowPhase(phase: .authVerifyCode, outcome: "start")
-        let response: VerifyCodeResponse = try await self.request(
+        let response: AuthSuccessResponse = try await self.request(
             authBaseUrl: authBaseUrl,
             path: "/api/verify-code",
             method: "POST",
@@ -160,10 +178,34 @@ final class CloudAuthService {
             throw CloudAuthError.invalidResponseBody("verify-code did not return ok=true")
         }
 
-        return StoredCloudCredentials(
+        return makeStoredCloudCredentials(
             refreshToken: response.refreshToken,
             idToken: response.idToken,
-            idTokenExpiresAt: makeIdTokenExpiryTimestamp(now: Date(), expiresInSeconds: response.expiresIn)
+            expiresIn: response.expiresIn
+        )
+    }
+
+    func signInWithPassword(email: String, password: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        logCloudFlowPhase(phase: .authSignInPassword, outcome: "start")
+        let response: AuthSuccessResponse = try await self.request(
+            authBaseUrl: authBaseUrl,
+            path: "/api/sign-in-password",
+            method: "POST",
+            body: SignInPasswordRequest(
+                email: normalizedEmail,
+                password: password
+            )
+        )
+
+        guard response.ok else {
+            throw CloudAuthError.invalidResponseBody("sign-in-password did not return ok=true")
+        }
+
+        return makeStoredCloudCredentials(
+            refreshToken: response.refreshToken,
+            idToken: response.idToken,
+            expiresIn: response.expiresIn
         )
     }
 
@@ -202,6 +244,31 @@ final class CloudAuthService {
         return url
     }
 
+    private func phase(for path: String) -> CloudFlowPhase {
+        switch path {
+        case "/api/send-code":
+            return .authSendCode
+        case "/api/verify-code":
+            return .authVerifyCode
+        case "/api/sign-in-password":
+            return .authSignInPassword
+        default:
+            return .authVerifyCode
+        }
+    }
+
+    private func makeStoredCloudCredentials(
+        refreshToken: String,
+        idToken: String,
+        expiresIn: Int
+    ) -> StoredCloudCredentials {
+        StoredCloudCredentials(
+            refreshToken: refreshToken,
+            idToken: idToken,
+            idTokenExpiresAt: makeIdTokenExpiryTimestamp(now: Date(), expiresInSeconds: expiresIn)
+        )
+    }
+
     private func request<Response: Decodable, Body: Encodable>(
         authBaseUrl: String,
         path: String,
@@ -221,7 +288,7 @@ final class CloudAuthService {
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
             let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
             let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: requestId)
-            let phase: CloudFlowPhase = path == "/api/send-code" ? .authSendCode : .authVerifyCode
+            let phase = self.phase(for: path)
             logCloudFlowPhase(
                 phase: phase,
                 outcome: "failure",
@@ -232,7 +299,7 @@ final class CloudAuthService {
             throw CloudAuthError.invalidResponse(errorDetails, httpResponse.statusCode)
         }
 
-        let phase: CloudFlowPhase = path == "/api/send-code" ? .authSendCode : .authVerifyCode
+        let phase = self.phase(for: path)
         logCloudFlowPhase(phase: phase, outcome: "success")
 
         return try self.decoder.decode(Response.self, from: data)

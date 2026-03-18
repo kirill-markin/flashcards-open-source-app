@@ -4,6 +4,7 @@ import OSLog
 enum CloudFlowPhase: String {
     case authSendCode = "auth_send_code"
     case authVerifyCode = "auth_verify_code"
+    case authSignInPassword = "auth_sign_in_password"
     case workspaceList = "workspace_list"
     case workspaceCreate = "workspace_create"
     case workspaceSelect = "workspace_select"

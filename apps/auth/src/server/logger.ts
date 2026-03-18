@@ -9,6 +9,8 @@ type AuthAction =
   | "verify_code"
   | "verify_code_error"
   | "verify_code_locked"
+  | "sign_in_password"
+  | "sign_in_password_error"
   | "agent_verify_code_error"
   | "agent_verify_code_locked"
   | "refresh_token"

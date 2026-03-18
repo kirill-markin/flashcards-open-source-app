@@ -132,6 +132,16 @@ extension FlashcardsStore {
         return challenge
     }
 
+    func signInCloudWithPassword(email: String, password: String) async throws -> CloudVerifiedAuthContext {
+        let configuration = try self.currentCloudServiceConfiguration()
+        self.globalErrorMessage = ""
+        return try await self.cloudRuntime.signInWithPassword(
+            email: email,
+            password: password,
+            configuration: configuration
+        )
+    }
+
     func verifyCloudOtp(challenge: CloudOtpChallenge, code: String) async throws -> CloudVerifiedAuthContext {
         let configuration = try self.currentCloudServiceConfiguration()
         self.globalErrorMessage = ""
