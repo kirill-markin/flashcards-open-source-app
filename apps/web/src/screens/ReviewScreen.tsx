@@ -71,12 +71,33 @@ const reviewAnswerOptions: ReadonlyArray<Readonly<{
   { title: "Again", rating: 0 },
 ];
 
+const reviewShortcutRatingsByKey: Readonly<Record<string, ReviewRating>> = {
+  "1": 0,
+  "2": 1,
+  "3": 2,
+  "4": 3,
+};
+
 function formatTimestamp(value: string | null): string {
   if (value === null) {
     return "new";
   }
 
   return new Date(value).toLocaleString();
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  return target instanceof HTMLInputElement
+    || target instanceof HTMLTextAreaElement
+    || target instanceof HTMLSelectElement;
 }
 
 function renderTags(tags: ReadonlyArray<string>): string {
@@ -612,6 +633,35 @@ export function ReviewScreen(): ReactElement {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isReviewFilterMenuOpen]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (selectedCard === null || isSubmitting || isEditorPresented || isReviewFilterMenuOpen || isEditableKeyboardTarget(event.target)) {
+        return;
+      }
+
+      if (event.key === " ") {
+        if (isAnswerVisible) {
+          return;
+        }
+
+        event.preventDefault();
+        setIsAnswerVisible(true);
+        return;
+      }
+
+      const rating = reviewShortcutRatingsByKey[event.key];
+      if (rating === undefined || !isAnswerVisible) {
+        return;
+      }
+
+      event.preventDefault();
+      void handleReview(selectedCard, rating);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isAnswerVisible, isEditorPresented, isReviewFilterMenuOpen, isSubmitting, selectedCard, reviewQueueCursor, activeReviewQueue, activeWorkspace, resolvedReviewFilter]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<void> {
     setIsSubmitting(true);

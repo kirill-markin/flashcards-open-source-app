@@ -65,6 +65,7 @@ export type ReviewScreenTestState = {
 };
 
 type ReviewScreenTestHarness = Readonly<{
+  dispatchDocumentKeydown: (key: string) => Promise<void>;
   getContainer: () => HTMLDivElement;
   getState: () => ReviewScreenTestState;
   openReviewFilterMenu: () => Promise<void>;
@@ -277,6 +278,10 @@ export function setInputValue(input: HTMLInputElement, value: string): void {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+export function dispatchKeydown(element: Document | HTMLElement, key: string): void {
+  element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+}
+
 const reviewStylesheet = readFileSync(resolve(process.cwd(), "src/styles/features/review.css"), "utf8");
 
 export function reviewStylesContain(...fragments: ReadonlyArray<string>): boolean {
@@ -372,7 +377,14 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     });
   }
 
+  async function dispatchDocumentKeydown(key: string): Promise<void> {
+    await act(async () => {
+      dispatchKeydown(document, key);
+    });
+  }
+
   return {
+    dispatchDocumentKeydown,
     getContainer,
     getState: (): ReviewScreenTestState => state,
     openReviewFilterMenu,
