@@ -147,6 +147,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             workspaceId: workspaceId
         )
         try context.store.reload()
+        try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
         context.store.cloudRuntime.setActiveCloudSession(
             linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId)
         )
@@ -269,6 +270,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             workspaceId: workspaceId
         )
         try context.store.reload()
+        try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
         context.store.cloudRuntime.setActiveCloudSession(
             linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId)
         )
