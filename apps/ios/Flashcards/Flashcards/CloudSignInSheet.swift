@@ -144,7 +144,7 @@ struct CloudSignInSheet: View {
     @State private var postAuthFailureState: CloudPostAuthFailureState?
     @State private var errorMessage: String = ""
     @State private var isSendingCode: Bool = false
-    @State private var isDisconnectConfirmationPresented: Bool = false
+    @State private var isLogoutConfirmationPresented: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -244,19 +244,19 @@ struct CloudSignInSheet: View {
                         self.postAuthFailureState = nil
                         self.dismiss()
                     },
-                    onDisconnect: {
-                        self.isDisconnectConfirmationPresented = true
+                    onLogout: {
+                        self.isLogoutConfirmationPresented = true
                     }
                 )
                 .environment(self.store)
             }
-            .alert("Disconnect this device?", isPresented: self.$isDisconnectConfirmationPresented) {
+            .alert("Log out and clear this device?", isPresented: self.$isLogoutConfirmationPresented) {
                 Button("Cancel", role: .cancel) {}
-                Button("Disconnect", role: .destructive) {
-                    self.disconnectAndDismiss()
+                Button("Log out", role: .destructive) {
+                    self.logoutAndDismiss()
                 }
             } message: {
-                Text("This device will stop syncing with the current cloud account until you sign in again.")
+                Text("All local workspaces and synced data will be removed from this device.")
             }
             .onAppear {
                 self.scheduleEmailFieldFocus()
@@ -442,9 +442,9 @@ struct CloudSignInSheet: View {
         )
     }
 
-    private func disconnectAndDismiss() {
+    private func logoutAndDismiss() {
         do {
-            try self.store.disconnectCloudAccount()
+            try self.store.logoutCloudAccount()
         } catch {
             self.errorMessage = Flashcards.errorMessage(error: error)
         }
@@ -801,7 +801,7 @@ private struct CloudPostAuthFailureSheet: View {
     let state: CloudPostAuthFailureState
     let onRetry: () -> Void
     let onClose: () -> Void
-    let onDisconnect: () -> Void
+    let onLogout: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -831,8 +831,8 @@ private struct CloudPostAuthFailureSheet: View {
                             self.onClose()
                         }
 
-                        Button("Disconnect account", role: .destructive) {
-                            self.onDisconnect()
+                        Button("Log out", role: .destructive) {
+                            self.onLogout()
                         }
                     }
                 }

@@ -553,6 +553,7 @@ struct AIChatRuntimeResult: Sendable {
 }
 
 protocol AIChatHistoryStoring: Sendable {
+    func activateWorkspace(workspaceId: String?)
     func loadState() -> AIChatPersistedState
     func saveState(state: AIChatPersistedState) async
     func clearState() async

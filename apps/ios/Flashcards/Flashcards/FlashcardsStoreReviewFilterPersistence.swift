@@ -13,6 +13,19 @@ struct PersistedReviewFilter: Codable, Hashable {
 }
 
 let selectedReviewFilterUserDefaultsKey: String = "selected-review-filter"
+let selectedReviewFilterUserDefaultsKeyPrefix: String = "selected-review-filter::"
+
+func makeSelectedReviewFilterUserDefaultsKey(workspaceId: String) -> String {
+    "\(selectedReviewFilterUserDefaultsKeyPrefix)\(workspaceId)"
+}
+
+func clearStoredReviewFilters(userDefaults: UserDefaults) {
+    userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
+
+    for key in userDefaults.dictionaryRepresentation().keys where key.hasPrefix(selectedReviewFilterUserDefaultsKeyPrefix) {
+        userDefaults.removeObject(forKey: key)
+    }
+}
 
 func makePersistedReviewFilter(reviewFilter: ReviewFilter) -> PersistedReviewFilter {
     switch reviewFilter {
@@ -45,8 +58,15 @@ func makeReviewFilter(persistedReviewFilter: PersistedReviewFilter) throws -> Re
 }
 
 extension FlashcardsStore {
-    static func loadSelectedReviewFilter(userDefaults: UserDefaults, decoder: JSONDecoder) -> ReviewFilter {
-        guard let data = userDefaults.data(forKey: selectedReviewFilterUserDefaultsKey) else {
+    static func loadSelectedReviewFilter(
+        userDefaults: UserDefaults,
+        decoder: JSONDecoder,
+        workspaceId: String?
+    ) -> ReviewFilter {
+        guard
+            let workspaceId,
+            let data = userDefaults.data(forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
+        else {
             return .allCards
         }
 
@@ -54,7 +74,7 @@ extension FlashcardsStore {
             let persistedReviewFilter = try decoder.decode(PersistedReviewFilter.self, from: data)
             return try makeReviewFilter(persistedReviewFilter: persistedReviewFilter)
         } catch {
-            userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
+            userDefaults.removeObject(forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
             return .allCards
         }
     }

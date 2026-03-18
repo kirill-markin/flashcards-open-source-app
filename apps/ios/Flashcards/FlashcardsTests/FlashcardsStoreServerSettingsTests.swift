@@ -85,7 +85,8 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         let aiChatHistoryStore = AIChatHistoryStore(
             userDefaults: context.store.userDefaults,
             encoder: context.store.encoder,
-            decoder: context.store.decoder
+            decoder: context.store.decoder,
+            workspaceId: context.store.workspace?.workspaceId
         )
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
@@ -114,7 +115,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         )
         try context.store.reload()
 
-        try context.store.disconnectCloudAccount()
+        try context.store.logoutCloudAccount()
 
         await FlashcardsStoreTestSupport.waitUntil(
             timeoutNanoseconds: 2_000_000_000,
@@ -347,7 +348,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         try context.store.reload()
         let originalDeviceId = try testCloudSettings(database: context.database).deviceId
 
-        try context.store.disconnectCloudAccount()
+        try context.store.logoutCloudAccount()
 
         let existingWorkspace = CloudWorkspaceSummary(
             workspaceId: workspaceId,

@@ -221,12 +221,16 @@ extension FlashcardsStore {
     }
 
     func persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
+        guard let workspaceId = self.workspace?.workspaceId else {
+            return
+        }
+
         do {
             let persistedReviewFilter = makePersistedReviewFilter(reviewFilter: reviewFilter)
             let data = try self.encoder.encode(persistedReviewFilter)
-            self.userDefaults.set(data, forKey: selectedReviewFilterUserDefaultsKey)
+            self.userDefaults.set(data, forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
         } catch {
-            self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
+            self.userDefaults.removeObject(forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId))
         }
     }
 

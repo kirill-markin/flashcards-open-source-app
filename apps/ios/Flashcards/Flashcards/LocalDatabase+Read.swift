@@ -5,10 +5,14 @@ extension LocalDatabase {
         let workspace = try self.workspaceSettingsStore.loadWorkspace()
         return AppBootstrapSnapshot(
             workspace: workspace,
-            userSettings: try self.workspaceSettingsStore.loadUserSettings(workspaceId: workspace.workspaceId),
+            userSettings: try self.workspaceSettingsStore.loadUserSettings(),
             schedulerSettings: try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspace.workspaceId),
             cloudSettings: try self.workspaceSettingsStore.loadCloudSettings()
         )
+    }
+
+    func loadCachedWorkspaces() throws -> [Workspace] {
+        try self.workspaceSettingsStore.loadCachedWorkspaces()
     }
 
     func loadAIChatContext() throws -> AIChatContext {
