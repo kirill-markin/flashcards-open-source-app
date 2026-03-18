@@ -710,6 +710,7 @@ final class DatabaseCore {
         DROP TABLE IF EXISTS sync_state;
         DROP TABLE IF EXISTS review_events;
         DROP TABLE IF EXISTS decks;
+        DROP TABLE IF EXISTS card_tags;
         DROP TABLE IF EXISTS cards;
         DROP TABLE IF EXISTS workspace_scheduler_settings;
         DROP TABLE IF EXISTS user_settings;

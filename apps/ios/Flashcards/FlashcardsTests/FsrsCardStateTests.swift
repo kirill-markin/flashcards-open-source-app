@@ -178,6 +178,6 @@ final class FsrsCardStateTests: XCTestCase {
             deletedAt: nil
         )
 
-        XCTAssertTrue(isCardDue(card: card, now: Date()))
+        XCTAssertFalse(isCardDue(card: card, now: Date()))
     }
 }

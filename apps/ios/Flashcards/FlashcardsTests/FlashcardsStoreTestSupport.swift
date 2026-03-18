@@ -94,7 +94,11 @@ enum FlashcardsStoreTestSupport {
         init(runLinkedSyncOutcomes: [MockCloudSyncRunOutcome], isRunLinkedSyncBlocked: Bool) {
             self.runLinkedSyncCallCount = 0
             self.runLinkedSyncSessions = []
-            self.fetchCloudAccountSnapshot = nil
+            self.fetchCloudAccountSnapshot = CloudAccountSnapshot(
+                userId: "user-1",
+                email: "user@example.com",
+                workspaces: []
+            )
             self.createWorkspaceResult = nil
             self.renamedWorkspacesById = [:]
             self.workspaceDeletePreviewById = [:]
@@ -408,16 +412,24 @@ enum FlashcardsStoreTestSupport {
         isRunLinkedSyncBlocked: Bool
     ) throws -> CloudSyncContext {
         let environment = try self.makeStoreEnvironment(testCase: testCase)
-        let store = self.makeStore(environment: environment)
         let cloudSyncService = MockCloudSyncService(
             runLinkedSyncOutcomes: runLinkedSyncOutcomes,
             isRunLinkedSyncBlocked: isRunLinkedSyncBlocked
         )
-
-        store.cloudRuntime = CloudSessionRuntime(
+        let store = FlashcardsStore(
+            userDefaults: environment.userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: environment.database,
             cloudAuthService: CloudAuthService(),
             cloudSyncService: cloudSyncService,
-            credentialStore: environment.credentialStore
+            credentialStore: environment.credentialStore,
+            reviewSubmissionExecutor: ReviewSubmissionExecutor(databaseURL: environment.database.databaseURL),
+            reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: 0),
+            reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: 0),
+            reviewQueueChunkLoader: self.makeDelayedReviewQueueChunkLoader(delayNanoseconds: 0),
+            reviewTimelinePageLoader: self.makeReviewTimelinePageLoader(),
+            initialGlobalErrorMessage: ""
         )
 
         return CloudSyncContext(

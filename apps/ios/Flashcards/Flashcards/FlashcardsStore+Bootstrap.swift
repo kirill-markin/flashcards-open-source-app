@@ -32,9 +32,18 @@ extension FlashcardsStore {
         )
         if let database {
             do {
+                let activeCards = try database.loadActiveCards(workspaceId: snapshot.workspace.workspaceId)
+                let activeDecks = try database.loadActiveDecks(workspaceId: snapshot.workspace.workspaceId)
                 let overviewSnapshot = try database.loadWorkspaceOverviewSnapshot(
                     workspaceId: snapshot.workspace.workspaceId,
                     workspaceName: snapshot.workspace.name,
+                    now: now
+                )
+                self.cards = activeCards
+                self.decks = activeDecks
+                self.deckItems = makeDeckListItems(
+                    decks: activeDecks,
+                    cards: activeCards,
                     now: now
                 )
                 self.homeSnapshot = HomeSnapshot(
@@ -57,6 +66,9 @@ extension FlashcardsStore {
     func refreshBootstrapSnapshotWithoutReset(now: Date) throws -> Bool {
         let database = try requireLocalDatabase(database: self.database)
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
+        let nextCards = try database.loadActiveCards(workspaceId: bootstrapSnapshot.workspace.workspaceId)
+        let nextDecks = try database.loadActiveDecks(workspaceId: bootstrapSnapshot.workspace.workspaceId)
+        let nextDeckItems = makeDeckListItems(decks: nextDecks, cards: nextCards, now: now)
         let nextHomeSnapshot = try database.loadWorkspaceOverviewSnapshot(
             workspaceId: bootstrapSnapshot.workspace.workspaceId,
             workspaceName: bootstrapSnapshot.workspace.name,
@@ -74,12 +86,18 @@ extension FlashcardsStore {
             || self.userSettings != bootstrapSnapshot.userSettings
             || self.schedulerSettings != bootstrapSnapshot.schedulerSettings
             || self.cloudSettings != bootstrapSnapshot.cloudSettings
+            || self.cards != nextCards
+            || self.decks != nextDecks
+            || self.deckItems != nextDeckItems
             || self.homeSnapshot != resolvedHomeSnapshot
 
         self.workspace = bootstrapSnapshot.workspace
         self.userSettings = bootstrapSnapshot.userSettings
         self.schedulerSettings = bootstrapSnapshot.schedulerSettings
         self.cloudSettings = bootstrapSnapshot.cloudSettings
+        self.cards = nextCards
+        self.decks = nextDecks
+        self.deckItems = nextDeckItems
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
 
