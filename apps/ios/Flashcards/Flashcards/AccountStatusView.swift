@@ -92,12 +92,8 @@ struct AccountStatusView: View {
                             self.isCloudSignInPresented = true
                         }
                     case .guest:
-                        Button("Create account") {
+                        Button("Create account or Log in") {
                             self.isCloudSignInPresented = true
-                        }
-
-                        Button("Log out", role: .destructive) {
-                            self.isLogoutConfirmationPresented = true
                         }
                     case .linked:
                         Button("Sync now") {
