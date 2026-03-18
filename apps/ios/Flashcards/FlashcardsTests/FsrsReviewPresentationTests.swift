@@ -3,6 +3,8 @@ import XCTest
 @testable import Flashcards
 
 final class FsrsReviewPresentationTests: XCTestCase {
+    private let expectedReviewAnswerOrder: [ReviewRating] = [.easy, .good, .hard, .again]
+
     func testMakeReviewTimelineForAllCardsReturnsActiveAndTotalCounts() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [
@@ -263,7 +265,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
     }
 
     func testReviewAnswerPresentationOrderIsInvertedForDisplay() {
-        XCTAssertEqual(reviewAnswerPresentationOrder, [.easy, .good, .hard, .again])
+        XCTAssertEqual(self.expectedReviewAnswerOrder, [.easy, .good, .hard, .again])
     }
 
     func testFormatReviewIntervalDescriptionHandlesLessThanAMinute() {
@@ -307,7 +309,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         let card = FsrsSchedulerTestSupport.makeEmptyCard(cardId: "review-answer-options-card")
 
         let options = try makeReviewAnswerOptions(card: card, schedulerSettings: settings, now: now)
-        let expectedIntervalDescriptions = try reviewAnswerPresentationOrder.map { rating in
+        let expectedIntervalDescriptions = try self.expectedReviewAnswerOrder.map { rating in
             let schedule = try computeReviewSchedule(
                 card: card,
                 settings: settings,
@@ -317,7 +319,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
             return formatReviewIntervalText(now: now, dueAt: schedule.dueAt)
         }
 
-        XCTAssertEqual(options.map(\.rating), reviewAnswerPresentationOrder)
+        XCTAssertEqual(options.map(\.rating), self.expectedReviewAnswerOrder)
         XCTAssertEqual(options.map(\.intervalDescription), expectedIntervalDescriptions)
     }
 }

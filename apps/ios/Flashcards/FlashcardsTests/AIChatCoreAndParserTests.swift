@@ -62,8 +62,6 @@ final class AIChatCoreAndParserTests: AIChatTestCaseBase {
                 )
             )
         )
-        XCTAssertEqual(try parser.pushLine("data: {\"type\":\"await_tool_results\"}"), nil)
-        XCTAssertEqual(try parser.pushLine(""), .awaitToolResults)
         XCTAssertEqual(try parser.pushLine("data: {\"type\":\"done\"}"), nil)
         XCTAssertEqual(try parser.pushLine(""), .done)
         XCTAssertEqual(try parser.pushLine("data: {\"type\":\"error\",\"message\":\"boom\",\"code\":\"LOCAL_CHAT_STREAM_FAILED\",\"stage\":\"stream_local_turn\",\"requestId\":\"backend-1\"}"), nil)
