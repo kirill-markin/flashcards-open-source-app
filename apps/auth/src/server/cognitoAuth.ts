@@ -73,6 +73,11 @@ const cognitoFetch = async (
   return response.json() as Promise<Record<string, unknown>>;
 };
 
+type CognitoFetchFunction = (
+  target: string,
+  body: Record<string, unknown>,
+) => Promise<Record<string, unknown>>;
+
 const signUpUser = async (email: string): Promise<void> => {
   await cognitoFetch("SignUp", {
     ClientId: getClientId(),
@@ -199,12 +204,13 @@ export const verifyEmailOtp = async (
   return extractTokenResult(result, "Cognito RespondToAuthChallenge");
 };
 
-export const signInWithPassword = async (
+async function signInWithPasswordViaCognito(
+  cognitoFetchFn: CognitoFetchFunction,
   email: string,
   password: string,
-): Promise<TokenResult> => {
+): Promise<TokenResult> {
   const clientId = getClientId();
-  const initialResult = await cognitoFetch("InitiateAuth", {
+  const initialResult = await cognitoFetchFn("InitiateAuth", {
     AuthFlow: "USER_AUTH",
     ClientId: clientId,
     AuthParameters: {
@@ -222,13 +228,14 @@ export const signInWithPassword = async (
   let passwordChallengeSession = initialChallenge.session;
 
   if (initialChallenge.challengeName === "SELECT_CHALLENGE") {
-    const selectedChallengeResult = await cognitoFetch("RespondToAuthChallenge", {
+    const selectedChallengeResult = await cognitoFetchFn("RespondToAuthChallenge", {
       ClientId: clientId,
       ChallengeName: "SELECT_CHALLENGE",
       Session: initialChallenge.session,
       ChallengeResponses: {
         USERNAME: email,
         ANSWER: "PASSWORD",
+        PASSWORD: password,
       },
     });
 
@@ -249,7 +256,7 @@ export const signInWithPassword = async (
     throw new Error(`Unexpected Cognito password challenge: ${initialChallenge.challengeName}`);
   }
 
-  const passwordResult = await cognitoFetch("RespondToAuthChallenge", {
+  const passwordResult = await cognitoFetchFn("RespondToAuthChallenge", {
     ClientId: clientId,
     ChallengeName: "PASSWORD",
     Session: passwordChallengeSession,
@@ -261,6 +268,15 @@ export const signInWithPassword = async (
 
   log({ domain: "auth", action: "sign_in_password", maskedEmail: maskEmail(email) });
   return extractTokenResult(passwordResult, "Cognito RespondToAuthChallenge");
+}
+
+export const signInWithPassword = async (
+  email: string,
+  password: string,
+): Promise<TokenResult> => signInWithPasswordViaCognito(cognitoFetch, email, password);
+
+export const __internal = {
+  signInWithPasswordViaCognito,
 };
 
 export const refreshTokens = async (refreshToken: string): Promise<RefreshResult> => {
