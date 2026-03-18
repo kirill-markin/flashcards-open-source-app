@@ -63,6 +63,19 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 - A separate migration runner Lambda applies SQL migrations and views, then configures runtime role passwords for `backend_app` and `auth_app`.
 - Monitoring, backups, and CI/CD are provisioned from the same CDK stack.
 
+### Database roles
+
+- The migration runner connects with the database owner credentials and is the only component that applies schema migrations and view updates.
+- `backend_app` is the main runtime database role for `apps/backend`.
+  - It has the runtime grants needed for human API traffic, sync, cards, workspaces, account deletion, and agent SQL execution.
+  - Its row-level-security policies are the canonical runtime policies for app data in `org`, `content`, and `sync`.
+- `auth_app` is the narrower runtime database role for `apps/auth`.
+  - It is limited to the auth and bootstrap paths needed for OTP verification, token refresh side effects, user bootstrap, and initial device/workspace creation.
+- Legacy `app` was the original shared runtime database role before the split into `backend_app` and `auth_app`.
+  - It was removed by [`db/migrations/0025_remove_legacy_app_role.sql`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/db/migrations/0025_remove_legacy_app_role.sql).
+  - Older migrations still mention `app` because they are historical schema steps.
+  - New migrations must not add grants, policies, or dependencies for `app`.
+
 ## Backend runtime structure
 
 `apps/backend/src/app.ts` mounts six route groups:
@@ -235,6 +248,10 @@ The SQL dialect is not full PostgreSQL. It is a constrained contract implemented
 - The backend derives the browser CSRF token from the session JWT using a dedicated secret, so it does not need extra CSRF database state.
 - PostgreSQL row-level security is enabled for the runtime tables.
 - Backend and auth DB access is scoped through runtime roles plus `app.user_id` and `app.workspace_id` session settings.
+- Runtime role split:
+  - `backend_app` is the default runtime role for application reads and writes.
+  - `auth_app` is the restricted runtime role for auth-service flows.
+  - Legacy `app` is not a valid runtime role anymore and exists only in historical migrations.
 
 ## Local development entrypoints
 
