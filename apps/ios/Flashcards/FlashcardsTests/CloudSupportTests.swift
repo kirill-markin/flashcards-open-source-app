@@ -748,6 +748,356 @@ final class CloudSupportTests: XCTestCase {
         )
     }
 
+    /// Guards the `/sync/bootstrap` pull response shape consumed by
+    /// `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`.
+    @MainActor
+    func testRunLinkedSyncBootstrapPullAppliesBackendEntryEnvelopeShape() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        let workspaceId = try testWorkspaceId(database: database)
+
+        let recorder = CloudSupportRequestRecorder()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            recorder.appendPath(url.path)
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+
+            if url.path.hasSuffix("/sync/bootstrap") {
+                let data = """
+                {"mode":"pull","entries":[{"entityType":"card","entityId":"remote-card-1","action":"upsert","payload":{"cardId":"remote-card-1","frontText":"Remote front","backText":"Remote back","tags":["remote"],"effortLevel":"medium","dueAt":null,"createdAt":"2026-03-09T10:00:00.000Z","reps":0,"lapses":0,"fsrsCardState":"new","fsrsStepIndex":null,"fsrsStability":null,"fsrsDifficulty":null,"fsrsLastReviewedAt":null,"fsrsScheduledDays":null,"clientUpdatedAt":"2026-03-09T10:00:00.000Z","lastModifiedByDeviceId":"remote-device","lastOperationId":"remote-operation","updatedAt":"2026-03-09T10:00:00.000Z","deletedAt":null}}],"nextCursor":null,"hasMore":false,"bootstrapHotChangeId":9,"remoteIsEmpty":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            if url.path.hasSuffix("/sync/pull") {
+                let data = """
+                {"changes":[],"nextHotChangeId":9,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            let data = """
+            {"reviewEvents":[],"nextReviewSequenceId":0,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+
+        _ = try await service.runLinkedSync(linkedSession: self.makeLinkedSession(workspaceId: workspaceId))
+
+        let cards = try testActiveCards(database: database)
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards[0].cardId, "remote-card-1")
+        XCTAssertEqual(cards[0].frontText, "Remote front")
+        XCTAssertEqual(try database.loadLastAppliedHotChangeId(workspaceId: workspaceId), 9)
+        XCTAssertEqual(
+            recorder.requestPaths,
+            [
+                "/v1/workspaces/\(workspaceId)/sync/bootstrap",
+                "/v1/workspaces/\(workspaceId)/sync/pull",
+                "/v1/workspaces/\(workspaceId)/sync/review-history/pull"
+            ]
+        )
+    }
+
+    /// Guards the `/sync/push` wire format used by the iOS outbox sender.
+    ///
+    /// Keep this test aligned with `apps/backend/src/sync.ts`
+    /// `syncPushInputSchema`.
+    @MainActor
+    func testRunLinkedSyncPushRequestIncludesSharedEnvelopeFields() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        let workspaceId = try testWorkspaceId(database: database)
+        _ = try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+
+        let expectedDeviceId = try database.loadBootstrapSnapshot().cloudSettings.deviceId
+        let recorder = CloudSupportRequestRecorder()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            recorder.appendPath(url.path)
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+
+            if url.path.hasSuffix("/sync/push") {
+                let bodyObject = try self.requestBodyObject(request: request)
+                XCTAssertEqual(bodyObject["deviceId"] as? String, expectedDeviceId)
+                XCTAssertEqual(bodyObject["platform"] as? String, "ios")
+                XCTAssertEqual(bodyObject["appVersion"] as? String, "1.0.0")
+
+                let operations = try XCTUnwrap(bodyObject["operations"] as? [[String: Any]])
+                XCTAssertEqual(operations.count, 1)
+                XCTAssertEqual(operations[0]["entityType"] as? String, "card")
+                XCTAssertEqual(operations[0]["action"] as? String, "upsert")
+                let payload = try XCTUnwrap(operations[0]["payload"] as? [String: Any])
+                XCTAssertEqual(payload["frontText"] as? String, "Front")
+                XCTAssertEqual(payload["backText"] as? String, "Back")
+
+                let data = try JSONSerialization.data(
+                    withJSONObject: [
+                        "operations": [
+                            [
+                                "operationId": try XCTUnwrap(operations[0]["operationId"] as? String),
+                                "entityType": "card",
+                                "entityId": try XCTUnwrap(operations[0]["entityId"] as? String),
+                                "status": "applied",
+                                "resultingHotChangeId": 1,
+                                "error": NSNull()
+                            ]
+                        ]
+                    ]
+                )
+                return (response, data)
+            }
+
+            if url.path.hasSuffix("/sync/pull") {
+                let data = """
+                {"changes":[],"nextHotChangeId":1,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            let data = """
+            {"reviewEvents":[],"nextReviewSequenceId":0,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+        try database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        try database.setHasHydratedReviewHistory(workspaceId: workspaceId, hasHydratedReviewHistory: true)
+
+        _ = try await service.runLinkedSync(linkedSession: self.makeLinkedSession(workspaceId: workspaceId))
+
+        XCTAssertEqual(
+            recorder.requestPaths,
+            [
+                "/v1/workspaces/\(workspaceId)/sync/push",
+                "/v1/workspaces/\(workspaceId)/sync/pull",
+                "/v1/workspaces/\(workspaceId)/sync/review-history/pull"
+            ]
+        )
+    }
+
+    /// Guards the `/sync/pull` request and response envelopes together.
+    @MainActor
+    func testRunLinkedSyncPullRequestIncludesHotCursorAndAppliesBackendResponse() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        let workspaceId = try testWorkspaceId(database: database)
+
+        let expectedDeviceId = try database.loadBootstrapSnapshot().cloudSettings.deviceId
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+
+            if url.path.hasSuffix("/sync/pull") {
+                let bodyObject = try self.requestBodyObject(request: request)
+                XCTAssertEqual(bodyObject["deviceId"] as? String, expectedDeviceId)
+                XCTAssertEqual(bodyObject["platform"] as? String, "ios")
+                XCTAssertEqual(bodyObject["afterHotChangeId"] as? Int64, 33)
+                XCTAssertEqual(bodyObject["limit"] as? Int, 200)
+
+                let data = """
+                {"changes":[{"changeId":34,"entityType":"card","entityId":"remote-card-2","action":"upsert","payload":{"cardId":"remote-card-2","frontText":"Pulled front","backText":"Pulled back","tags":["pulled"],"effortLevel":"medium","dueAt":null,"createdAt":"2026-03-09T10:00:00.000Z","reps":0,"lapses":0,"fsrsCardState":"new","fsrsStepIndex":null,"fsrsStability":null,"fsrsDifficulty":null,"fsrsLastReviewedAt":null,"fsrsScheduledDays":null,"clientUpdatedAt":"2026-03-09T10:00:00.000Z","lastModifiedByDeviceId":"remote-device","lastOperationId":"remote-operation","updatedAt":"2026-03-09T10:00:00.000Z","deletedAt":null}}],"nextHotChangeId":34,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            let data = """
+            {"reviewEvents":[],"nextReviewSequenceId":0,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+        try database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        try database.setHasHydratedReviewHistory(workspaceId: workspaceId, hasHydratedReviewHistory: true)
+        try database.setLastAppliedHotChangeId(workspaceId: workspaceId, changeId: 33)
+
+        _ = try await service.runLinkedSync(linkedSession: self.makeLinkedSession(workspaceId: workspaceId))
+
+        let cards = try testActiveCards(database: database)
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards[0].cardId, "remote-card-2")
+        XCTAssertEqual(cards[0].frontText, "Pulled front")
+        XCTAssertEqual(try database.loadLastAppliedHotChangeId(workspaceId: workspaceId), 34)
+    }
+
+    /// Guards the dedicated `/sync/review-history/pull` lane request and response.
+    @MainActor
+    func testRunLinkedSyncReviewHistoryPullRequestIncludesCursorAndAppliesBackendResponse() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        let workspaceId = try testWorkspaceId(database: database)
+        let savedCard = try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+        let existingEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
+        try database.deleteOutboxEntries(operationIds: existingEntries.map(\.operationId))
+
+        let expectedDeviceId = try database.loadBootstrapSnapshot().cloudSettings.deviceId
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+
+            if url.path.hasSuffix("/sync/pull") {
+                let data = """
+                {"changes":[],"nextHotChangeId":0,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            let bodyObject = try self.requestBodyObject(request: request)
+            XCTAssertEqual(bodyObject["deviceId"] as? String, expectedDeviceId)
+            XCTAssertEqual(bodyObject["platform"] as? String, "ios")
+            XCTAssertEqual(bodyObject["afterReviewSequenceId"] as? Int64, 44)
+            XCTAssertEqual(bodyObject["limit"] as? Int, 200)
+
+            let data = """
+            {"reviewEvents":[{"reviewEventId":"remote-review-1","workspaceId":"\(workspaceId)","cardId":"\(savedCard.cardId)","deviceId":"remote-device","clientEventId":"remote-client-event","rating":2,"reviewedAtClient":"2026-03-09T10:00:00.000Z","reviewedAtServer":"2026-03-09T10:00:01.000Z"}],"nextReviewSequenceId":45,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+        try database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        try database.setHasHydratedReviewHistory(workspaceId: workspaceId, hasHydratedReviewHistory: true)
+        try database.setLastAppliedReviewSequenceId(workspaceId: workspaceId, reviewSequenceId: 44)
+
+        _ = try await service.runLinkedSync(linkedSession: self.makeLinkedSession(workspaceId: workspaceId))
+
+        let reviewEvents = try database.loadReviewEvents(workspaceId: workspaceId)
+        XCTAssertEqual(reviewEvents.count, 1)
+        XCTAssertEqual(reviewEvents[0].reviewEventId, "remote-review-1")
+        XCTAssertEqual(try database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId), 45)
+    }
+
+    /// Guards the empty-remote bootstrap upload contracts for both hot state and
+    /// review-history import.
+    @MainActor
+    func testRunLinkedSyncEmptyRemoteBootstrapEncodesBootstrapPushAndReviewHistoryImport() async throws {
+        let (_, database) = try self.makeDatabaseWithURL()
+        let workspaceId = try testWorkspaceId(database: database)
+
+        let savedCard = try database.saveCard(
+            workspaceId: workspaceId,
+            input: self.makeCardInput(frontText: "Front", backText: "Back"),
+            cardId: nil
+        )
+        _ = try database.createDeck(
+            workspaceId: workspaceId,
+            input: DeckEditorInput(name: "Deck")
+        )
+        _ = try database.submitReview(
+            workspaceId: workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: savedCard.cardId,
+                rating: .good,
+                reviewedAtClient: "2026-03-08T10:00:00.000Z"
+            )
+        )
+
+        let expectedDeviceId = try database.loadBootstrapSnapshot().cloudSettings.deviceId
+        let recorder = CloudSupportRequestRecorder()
+        CloudSupportMockUrlProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            recorder.appendPath(url.path)
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+
+            if url.path.hasSuffix("/sync/bootstrap") {
+                let bodyObject = try self.requestBodyObject(request: request)
+                let mode = bodyObject["mode"] as? String
+                if mode == "pull" {
+                    XCTAssertTrue(bodyObject["cursor"] is NSNull)
+                    let data = """
+                    {"mode":"pull","entries":[],"nextCursor":null,"hasMore":false,"bootstrapHotChangeId":0,"remoteIsEmpty":true}
+                    """.data(using: .utf8)!
+                    return (response, data)
+                }
+
+                XCTAssertEqual(bodyObject["deviceId"] as? String, expectedDeviceId)
+                XCTAssertEqual(bodyObject["platform"] as? String, "ios")
+                let entries = try XCTUnwrap(bodyObject["entries"] as? [[String: Any]])
+                let entityTypes = Set(entries.compactMap { $0["entityType"] as? String })
+                XCTAssertEqual(entityTypes, ["card", "deck", "workspace_scheduler_settings"])
+                let data = """
+                {"mode":"push","appliedEntriesCount":\(entries.count),"bootstrapHotChangeId":12}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            if url.path.hasSuffix("/sync/review-history/import") {
+                let bodyObject = try self.requestBodyObject(request: request)
+                XCTAssertEqual(bodyObject["deviceId"] as? String, expectedDeviceId)
+                XCTAssertEqual(bodyObject["platform"] as? String, "ios")
+                let reviewEvents = try XCTUnwrap(bodyObject["reviewEvents"] as? [[String: Any]])
+                XCTAssertEqual(reviewEvents.count, 1)
+                XCTAssertEqual(reviewEvents[0]["cardId"] as? String, savedCard.cardId)
+                let data = """
+                {"importedCount":1,"duplicateCount":0,"nextReviewSequenceId":7}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            if url.path.hasSuffix("/sync/pull") {
+                let data = """
+                {"changes":[],"nextHotChangeId":12,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            let data = """
+            {"reviewEvents":[],"nextReviewSequenceId":7,"hasMore":false}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudSyncService(database: database, session: self.makeSession())
+
+        _ = try await service.runLinkedSync(linkedSession: self.makeLinkedSession(workspaceId: workspaceId))
+
+        XCTAssertEqual(
+            recorder.requestPaths,
+            [
+                "/v1/workspaces/\(workspaceId)/sync/bootstrap",
+                "/v1/workspaces/\(workspaceId)/sync/bootstrap",
+                "/v1/workspaces/\(workspaceId)/sync/review-history/import",
+                "/v1/workspaces/\(workspaceId)/sync/pull",
+                "/v1/workspaces/\(workspaceId)/sync/review-history/pull"
+            ]
+        )
+    }
+
     @MainActor
     func testRunLinkedSyncDropsStaleReviewEventOperationsBeforePush() async throws {
         let (databaseURL, database) = try self.makeDatabaseWithURL()
@@ -1105,10 +1455,26 @@ final class CloudSupportTests: XCTestCase {
         )
     }
 
+    private func makeLinkedSession(workspaceId: String) -> CloudLinkedSession {
+        CloudLinkedSession(
+            userId: "user-id",
+            workspaceId: workspaceId,
+            email: "user@example.com",
+            configurationMode: .official,
+            apiBaseUrl: "https://api.example.com/v1",
+            bearerToken: "id-token"
+        )
+    }
+
     private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [CloudSupportMockUrlProtocol.self]
         return URLSession(configuration: configuration)
+    }
+
+    private func requestBodyObject(request: URLRequest) throws -> [String: Any] {
+        let bodyData = try XCTUnwrap(request.httpBody)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
     }
 
     private func updateStoredDeviceId(databaseURL: URL, deviceId: String) throws {

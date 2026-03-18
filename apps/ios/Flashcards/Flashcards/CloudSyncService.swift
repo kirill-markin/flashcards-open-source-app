@@ -75,6 +75,10 @@ private struct DeleteAccountResponse: Decodable {
     let ok: Bool
 }
 
+/// Wire contract for `POST /sync/push`.
+///
+/// Keep this request aligned with `apps/backend/src/sync.ts`
+/// `syncPushInputSchema` and `apps/backend/src/sync.test.ts`.
 private struct PushRequest: Encodable {
     let deviceId: String
     let platform: String
@@ -82,6 +86,11 @@ private struct PushRequest: Encodable {
     let operations: [SyncOperationEnvelope]
 }
 
+/// Wire contract for `POST /sync/pull`.
+///
+/// Keep this request aligned with `apps/backend/src/sync.ts`
+/// `syncPullInputSchema` and the sync contract tests in
+/// `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`.
 private struct PullRequest: Encodable {
     let deviceId: String
     let platform: String
@@ -134,6 +143,11 @@ private struct BootstrapPullRequest: Encodable {
     }
 }
 
+/// Wire contract for `POST /sync/bootstrap` when the client uploads the current
+/// hot workspace winners into an empty remote workspace.
+///
+/// Keep this request aligned with `apps/backend/src/sync.ts`
+/// `syncBootstrapPushInputSchema`.
 private struct BootstrapPushRequest: Encodable {
     let mode: String
     let deviceId: String
@@ -142,6 +156,10 @@ private struct BootstrapPushRequest: Encodable {
     let entries: [SyncBootstrapEntryEnvelope]
 }
 
+/// Wire contract for `POST /sync/review-history/pull`.
+///
+/// Keep this request aligned with `apps/backend/src/sync.ts`
+/// `syncReviewHistoryPullInputSchema`.
 private struct ReviewHistoryPullRequest: Encodable {
     let deviceId: String
     let platform: String
@@ -150,6 +168,10 @@ private struct ReviewHistoryPullRequest: Encodable {
     let limit: Int
 }
 
+/// Wire contract for `POST /sync/review-history/import`.
+///
+/// Keep this request aligned with `apps/backend/src/sync.ts`
+/// `syncReviewHistoryImportInputSchema`.
 private struct ReviewHistoryImportRequest: Encodable {
     let deviceId: String
     let platform: String
@@ -159,6 +181,10 @@ private struct ReviewHistoryImportRequest: Encodable {
 
 private let collectionPageLimit: Int = 100
 
+/// Encodes one `/sync/push` operation using the shared backend field names.
+///
+/// If you change this envelope, update `apps/backend/src/sync.ts` and the sync
+/// contract tests in `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`.
 private struct SyncOperationEnvelope: Encodable {
     let operation: SyncOperation
 
@@ -192,6 +218,7 @@ private struct SyncOperationEnvelope: Encodable {
     }
 }
 
+/// Encodes one `/sync/bootstrap` push entry using the shared backend field names.
 private struct SyncBootstrapEntryEnvelope: Encodable {
     let entry: SyncBootstrapEntry
 
@@ -354,12 +381,14 @@ private struct RemoteSyncChangeEnvelope: Decodable {
     }
 }
 
+/// Decodes `/sync/pull` responses returned by `apps/backend/src/sync.ts`.
 private struct RemotePullResponseEnvelope: Decodable {
     let changes: [RemoteSyncChangeEnvelope]
     let nextHotChangeId: Int64
     let hasMore: Bool
 }
 
+/// Decodes `/sync/bootstrap` pull responses returned by `apps/backend/src/sync.ts`.
 private struct RemoteBootstrapPullResponseEnvelope: Decodable {
     let entries: [RemoteSyncBootstrapEntryEnvelope]
     let nextCursor: String?
@@ -368,17 +397,20 @@ private struct RemoteBootstrapPullResponseEnvelope: Decodable {
     let remoteIsEmpty: Bool
 }
 
+/// Decodes `/sync/bootstrap` push responses returned by `apps/backend/src/sync.ts`.
 private struct RemoteBootstrapPushResponseEnvelope: Decodable {
     let appliedEntriesCount: Int
     let bootstrapHotChangeId: Int64?
 }
 
+/// Decodes `/sync/review-history/pull` responses returned by `apps/backend/src/sync.ts`.
 private struct RemoteReviewHistoryPullResponseEnvelope: Decodable {
     let reviewEvents: [RemoteReviewEventEnvelope]
     let nextReviewSequenceId: Int64
     let hasMore: Bool
 }
 
+/// Decodes `/sync/review-history/import` responses returned by `apps/backend/src/sync.ts`.
 private struct RemoteReviewHistoryImportResponseEnvelope: Decodable {
     let importedCount: Int
     let duplicateCount: Int
@@ -480,6 +512,10 @@ private func makeReviewEvent(payload: RemoteReviewEventEnvelope) -> ReviewEvent 
     )
 }
 
+/// Maps one backend bootstrap entry into the local hot-state model.
+///
+/// Keep this converter aligned with `apps/backend/src/sync.ts`
+/// `SyncBootstrapPullResult`.
 private func makeSyncBootstrapEntry(
     workspaceId: String,
     entry: RemoteSyncBootstrapEntryEnvelope
@@ -509,6 +545,10 @@ private func makeSyncBootstrapEntry(
     }
 }
 
+/// Maps one backend hot pull change into the local hot-state model.
+///
+/// Hot pull must never contain review events. If that ever changes in the
+/// backend, update both this function and `RemoteSyncChangeEnvelope`.
 private func makeSyncChange(workspaceId: String, change: RemoteSyncChangeEnvelope) -> SyncChange {
     switch change.payload {
     case .card(let payload):

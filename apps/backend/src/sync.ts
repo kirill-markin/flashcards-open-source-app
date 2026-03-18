@@ -218,6 +218,13 @@ const reviewEventOperationSchema = baseOperationSchema.extend({
   payload: reviewEventPushPayloadSchema,
 });
 
+/**
+ * Validates `/sync/push` requests from iOS/web clients.
+ *
+ * Keep this schema aligned with the request builders in
+ * `apps/ios/Flashcards/Flashcards/CloudSyncService.swift` and the parser tests in
+ * `apps/backend/src/sync.test.ts`.
+ */
 const syncPushInputSchema = z.object({
   deviceId: z.string().min(1),
   platform: platformSchema,
@@ -232,6 +239,12 @@ const syncPushInputSchema = z.object({
   ),
 });
 
+/**
+ * Validates `/sync/pull` requests for the hot mutable state lane.
+ *
+ * The matching iOS sender and decoder live in
+ * `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`.
+ */
 const syncPullInputSchema = z.object({
   deviceId: z.string().min(1),
   platform: platformSchema,
@@ -258,6 +271,11 @@ const syncBootstrapPullInputSchema = z.object({
   limit: z.number().int().positive().max(500),
 });
 
+/**
+ * Validates `/sync/bootstrap` push requests used only for empty-remote
+ * bootstrap. This shape must stay aligned with the iOS empty-remote bootstrap
+ * sender in `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`.
+ */
 const syncBootstrapPushInputSchema = z.object({
   mode: z.literal("push"),
   deviceId: z.string().min(1),
@@ -287,6 +305,11 @@ const syncBootstrapPushInputSchema = z.object({
   ),
 });
 
+/**
+ * Validates `/sync/review-history/pull` requests for the append-only history
+ * lane. Keep this schema aligned with the dedicated review-history sender in
+ * `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`.
+ */
 const syncReviewHistoryPullInputSchema = z.object({
   deviceId: z.string().min(1),
   platform: platformSchema,
@@ -295,6 +318,11 @@ const syncReviewHistoryPullInputSchema = z.object({
   limit: z.number().int().positive().max(500),
 });
 
+/**
+ * Validates `/sync/review-history/import` requests used by empty-remote
+ * bootstrap. Keep this schema aligned with the import sender in
+ * `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`.
+ */
 const syncReviewHistoryImportInputSchema = z.object({
   deviceId: z.string().min(1),
   platform: platformSchema,
@@ -346,16 +374,25 @@ export type SyncPushOperationResult = Readonly<{
   error: string | null;
 }>;
 
+/**
+ * Response shape returned by `/sync/push`.
+ *
+ * Keep this result aligned with the decoders in
+ * `apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift` and the request/response
+ * handling in `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`.
+ */
 export type SyncPushResult = Readonly<{
   operations: ReadonlyArray<SyncPushOperationResult>;
 }>;
 
+/** Response shape returned by `/sync/pull` for hot mutable state only. */
 export type SyncPullResult = Readonly<{
   changes: ReadonlyArray<Readonly<SyncBootstrapEntry & { changeId: number }>>;
   nextHotChangeId: number;
   hasMore: boolean;
 }>;
 
+/** Response shape returned by `/sync/bootstrap` in pull mode. */
 export type SyncBootstrapPullResult = Readonly<{
   mode: "pull";
   entries: ReadonlyArray<SyncBootstrapEntry>;
@@ -365,18 +402,21 @@ export type SyncBootstrapPullResult = Readonly<{
   remoteIsEmpty: boolean;
 }>;
 
+/** Response shape returned by `/sync/bootstrap` in push mode. */
 export type SyncBootstrapPushResult = Readonly<{
   mode: "push";
   appliedEntriesCount: number;
   bootstrapHotChangeId: number;
 }>;
 
+/** Response shape returned by `/sync/review-history/pull`. */
 export type SyncReviewHistoryPullResult = Readonly<{
   reviewEvents: ReadonlyArray<ReviewEvent>;
   nextReviewSequenceId: number;
   hasMore: boolean;
 }>;
 
+/** Response shape returned by `/sync/review-history/import`. */
 export type SyncReviewHistoryImportResult = Readonly<{
   importedCount: number;
   duplicateCount: number;
