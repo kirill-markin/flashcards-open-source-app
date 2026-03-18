@@ -607,15 +607,29 @@ final class FsrsSchedulerParityTests: XCTestCase {
 }
 
 private extension FsrsSchedulerParityTests {
-    static func fixtureURL() -> URL {
+    static func fixtureURL() throws -> URL {
+        if let bundledFixtureURL = Bundle(for: Self.self).url(
+            forResource: "fsrs-full-vectors",
+            withExtension: "json"
+        ) {
+            return bundledFixtureURL
+        }
+
         let currentFileURL = URL(fileURLWithPath: #filePath)
-        return currentFileURL
+        let repositoryFixtureURL = currentFileURL
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("tests/fsrs-full-vectors.json")
+        guard FileManager.default.fileExists(atPath: repositoryFixtureURL.path) else {
+            throw LocalStoreError.uninitialized(
+                "Missing FSRS fixture at bundled resource and repository path: \(repositoryFixtureURL.path)"
+            )
+        }
+
+        return repositoryFixtureURL
     }
 
     static func loadFixtures() throws -> [FsrsFixture] {
