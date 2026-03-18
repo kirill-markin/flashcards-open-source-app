@@ -1,6 +1,6 @@
 import Foundation
 
-private let aiChatHistoryStorageKey: String = "ai-chat-history"
+let aiChatHistoryStorageKey: String = "ai-chat-history"
 private let aiChatMaxMessages: Int = 200
 
 final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
