@@ -2,6 +2,100 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+typealias AILocalChatRequestBody = AIChatTurnRequestBody
+typealias AILocalChatWireMessage = AIChatWireMessage
+typealias AILocalChatUserContext = AIChatUserContext
+typealias AIChatLocalContext = AIChatContext
+
+protocol AIToolExecuting: Sendable {
+    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult
+}
+
+struct AIToolExecutionResult: Equatable, Sendable {
+    let output: String
+    let didMutateAppState: Bool
+}
+
+protocol AIChatLocalContextLoading: AIChatContextLoading {
+    func loadLocalContext() async throws -> AIChatLocalContext
+}
+
+extension AIChatLocalContextLoading {
+    func loadContext() async throws -> AIChatContext {
+        try await self.loadLocalContext()
+    }
+}
+
+extension AIChatPersistedState {
+    init(messages: [AIChatMessage], selectedModelId: String) {
+        self.init(
+            messages: messages,
+            selectedModelId: selectedModelId,
+            chatSessionId: makeAIChatSessionId(),
+            codeInterpreterContainerId: nil
+        )
+    }
+}
+
+extension AITurnStreamOutcome {
+    init(
+        awaitsToolResults: Bool,
+        requestedToolCalls: [AIToolCallRequest],
+        requestId: String?
+    ) {
+        _ = awaitsToolResults
+        _ = requestedToolCalls
+        self.init(requestId: requestId, codeInterpreterContainerId: nil)
+    }
+
+    var awaitsToolResults: Bool {
+        false
+    }
+
+    var requestedToolCalls: [AIToolCallRequest] {
+        []
+    }
+}
+
+@MainActor
+extension AIChatStore {
+    convenience init(
+        flashcardsStore: FlashcardsStore,
+        historyStore: any AIChatHistoryStoring,
+        chatService: any AIChatStreaming,
+        toolExecutor: any AIToolExecuting,
+        localContextLoader: any AIChatContextLoading
+    ) {
+        _ = toolExecutor
+        self.init(
+            flashcardsStore: flashcardsStore,
+            historyStore: historyStore,
+            chatService: chatService,
+            contextLoader: localContextLoader
+        )
+    }
+
+    convenience init(
+        flashcardsStore: FlashcardsStore,
+        historyStore: any AIChatHistoryStoring,
+        chatService: any AIChatStreaming,
+        toolExecutor: any AIToolExecuting,
+        localContextLoader: any AIChatContextLoading,
+        voiceRecorder: any AIChatVoiceRecording,
+        audioTranscriber: any AIChatAudioTranscribing
+    ) {
+        _ = toolExecutor
+        self.init(
+            flashcardsStore: flashcardsStore,
+            historyStore: historyStore,
+            chatService: chatService,
+            contextLoader: localContextLoader,
+            voiceRecorder: voiceRecorder,
+            audioTranscriber: audioTranscriber
+        )
+    }
+}
+
 final class InMemoryHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     var savedState: AIChatPersistedState
     private(set) var saveCallCount: Int
@@ -400,8 +494,6 @@ actor MutatingChatService: AIChatStreaming {
 }
 
 actor DelayedToolCompletionChatService: AIChatStreaming {
-    private var callCount: Int = 0
-
     func streamTurn(
         session: CloudLinkedSession,
         request: AILocalChatRequestBody,
@@ -414,24 +506,28 @@ actor DelayedToolCompletionChatService: AIChatStreaming {
     ) async throws -> AITurnStreamOutcome {
         _ = tapStartedAt
         _ = onLatencyReported
-        self.callCount += 1
-
-        if self.callCount == 1 {
-            let toolCallRequest = AIToolCallRequest(
-                toolCallId: "tool-delayed-1",
+        _ = onToolCallRequest
+        await onToolCall(
+            AIChatToolCall(
+                id: "tool-delayed-1",
                 name: "sql",
-                input: "{\"sql\":\"SHOW TABLES\"}"
+                status: .started,
+                input: "{\"sql\":\"SHOW TABLES\"}",
+                output: nil
             )
-            await onToolCallRequest(toolCallRequest)
-            return AITurnStreamOutcome(
-                awaitsToolResults: true,
-                requestedToolCalls: [toolCallRequest],
-                requestId: "request-delayed-tool-1"
+        )
+        try await Task.sleep(nanoseconds: 150_000_000)
+        await onToolCall(
+            AIChatToolCall(
+                id: "tool-delayed-1",
+                name: "sql",
+                status: .completed,
+                input: "{\"sql\":\"SHOW TABLES\"}",
+                output: "{\"ok\":true}"
             )
-        }
-
+        )
         await onDelta("Done")
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-delayed-tool-2")
+        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-delayed-tool")
     }
 
     func reportFailureDiagnostics(
@@ -754,11 +850,20 @@ extension AILocalChatWireMessage {
 
         self.init(
             role: role,
-            content: contentParts,
-            toolCallId: toolCallId,
-            name: name,
-            output: output
+            content: contentParts ?? []
         )
+    }
+
+    var toolCallId: String? {
+        nil
+    }
+
+    var name: String? {
+        nil
+    }
+
+    var output: String? {
+        nil
     }
 }
 
@@ -769,6 +874,8 @@ extension AILocalChatRequestBody {
             model: model,
             timezone: timezone,
             devicePlatform: "ios",
+            chatSessionId: makeAIChatSessionId(),
+            codeInterpreterContainerId: nil,
             userContext: AILocalChatUserContext(totalCards: 0)
         )
     }

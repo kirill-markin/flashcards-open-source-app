@@ -72,7 +72,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncSessions.last?.workspaceId, replacementWorkspace.workspaceId)
     }
 
-    func testDisconnectCloudAccountResetsLocalStateAndRegeneratesDeviceId() throws {
+    func testDisconnectCloudAccountResetsLocalStateAndRegeneratesDeviceId() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
             runLinkedSyncOutcomes: [],

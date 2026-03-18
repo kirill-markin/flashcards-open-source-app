@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-final class CloudSupportTests: XCTestCase {
+final class CloudSupportTests: XCTestCase, @unchecked Sendable {
     override func tearDown() {
         CloudSupportMockUrlProtocol.requestHandler = nil
         super.tearDown()
@@ -1011,7 +1011,10 @@ final class CloudSupportTests: XCTestCase {
         )
         _ = try database.createDeck(
             workspaceId: workspaceId,
-            input: DeckEditorInput(name: "Deck")
+            input: DeckEditorInput(
+                name: "Deck",
+                filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: [])
+            )
         )
         _ = try database.submitReview(
             workspaceId: workspaceId,

@@ -5,7 +5,7 @@ import XCTest
 final class AIChatServiceStreamingTests: AIChatTestCaseBase {
     func testAIChatServiceFormatsApiErrorsWithRequestId() async throws {
         AIChatMockUrlProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/local-turn")
+            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/turn")
             XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
             XCTAssertEqual(try readTotalCards(from: request), 3)
 
@@ -73,7 +73,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
 
     func testAIChatServiceReadsSequentialSSEEventsWithoutFramingFailure() async throws {
         AIChatMockUrlProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/local-turn")
+            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/turn")
             XCTAssertEqual(try readTotalCards(from: request), 3)
 
             let response = HTTPURLResponse(
@@ -196,16 +196,17 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
 
     private func makeRequestBody(text: String) -> AILocalChatRequestBody {
         AILocalChatRequestBody(
-            messages: [AILocalChatWireMessage(
-                role: "user",
-                content: [.text(text)],
-                toolCallId: nil,
-                name: nil,
-                output: nil
-            )],
+            messages: [
+                AILocalChatWireMessage(
+                    role: "user",
+                    content: [.text(text)]
+                )
+            ],
             model: aiChatDefaultModelId,
             timezone: "Europe/Madrid",
             devicePlatform: "ios",
+            chatSessionId: "session-1",
+            codeInterpreterContainerId: nil,
             userContext: AILocalChatUserContext(totalCards: 3)
         )
     }

@@ -149,59 +149,6 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
-    func testAIChatStoreFailsLocallyWhenPersistedContinuationHistoryIsMalformed() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let historyStore = InMemoryHistoryStore(
-            savedState: AIChatPersistedState(
-                messages: [
-                    AIChatMessage(
-                        id: "message-user-1",
-                        role: .user,
-                        content: [.text("hello")],
-                        timestamp: "2026-03-16T18:40:00.000Z",
-                        isError: false
-                    ),
-                    AIChatMessage(
-                        id: "message-assistant-1",
-                        role: .assistant,
-                        content: [
-                            .toolCall(
-                                AIChatToolCall(
-                                    id: "tool-broken-1",
-                                    name: "sql",
-                                    status: .started,
-                                    input: "{\"sql\":\"SHOW TABLES\"}",
-                                    output: nil
-                                )
-                            )
-                        ],
-                        timestamp: "2026-03-16T18:40:01.000Z",
-                        isError: false
-                    ),
-                ],
-                selectedModelId: aiChatDefaultModelId
-            )
-        )
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: historyStore,
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "continue"
-        chatStore.sendMessage()
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        XCTAssertEqual(chatStore.messages.last?.role, .assistant)
-        XCTAssertEqual(chatStore.messages.last?.text, "The local chat session became inconsistent. Please try again.")
-        XCTAssertEqual(chatStore.messages.last?.isError, true)
-    }
-
-    @MainActor
     func testAIChatStoreWarmUpPreparesSessionWithoutMutatingMessages() async throws {
         let requestRecorder = RequestRecorder()
         AIChatMockUrlProtocol.requestHandler = { request in
@@ -603,37 +550,6 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
-    func testAIChatStoreAppliesSnapshotAfterChatMutation() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let databaseURL = try XCTUnwrap(flashcardsStore.localDatabaseURL)
-        let workspaceRuntime = LocalAIToolExecutor(
-            databaseURL: databaseURL,
-            encoder: JSONEncoder(),
-            decoder: JSONDecoder()
-        )
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: MutatingChatService(),
-            toolExecutor: workspaceRuntime,
-            localContextLoader: workspaceRuntime
-        )
-
-        chatStore.inputText = "create a card"
-        chatStore.sendMessage()
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        XCTAssertEqual(flashcardsStore.cards.count, 1)
-        XCTAssertEqual(flashcardsStore.cards.first?.frontText, "Front")
-        XCTAssertEqual(chatStore.messages[1].text, "Saved")
-        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .completed)
-    }
-
-    @MainActor
     func testAIChatStoreShowsStartedToolCallBeforeCompletion() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let chatStore = AIChatStore(
@@ -664,84 +580,6 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .completed)
         XCTAssertEqual(chatStore.messages[1].toolCalls.first?.output, #"{"ok":true}"#)
         XCTAssertEqual(chatStore.messages[1].text, "Done")
-    }
-
-    @MainActor
-    func testAIChatStoreFeedsFailedToolOutputIntoFollowUpRequest() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let chatService = RecoveringToolFailureChatService()
-        let toolExecutor = RecoveringToolFailureExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: chatService,
-            toolExecutor: toolExecutor,
-            localContextLoader: toolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        let requests = await chatService.snapshotRequests()
-        XCTAssertEqual(requests.count, 2)
-        XCTAssertEqual(requests[0].userContext.totalCards, 1)
-        XCTAssertEqual(requests[1].userContext.totalCards, 1)
-        XCTAssertEqual(requests[1].messages.count, 3)
-        XCTAssertEqual(requests[1].messages[1].role, "assistant")
-        XCTAssertEqual(requests[1].messages[1].content?.count, 1)
-        XCTAssertEqual(requests[1].messages[1].content?.first?.toolCallValue?.name, "sql")
-        XCTAssertEqual(requests[1].messages[2].role, "tool")
-        XCTAssertEqual(requests[1].messages[2].toolCallId, "tool-recover-1")
-        XCTAssertEqual(
-            requests[1].messages[2].output,
-            #"{"ok":false,"error":{"code":"LOCAL_TOOL_EXECUTION_FAILED","message":"Unsupported SELECT statement"}}"#
-        )
-        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .completed)
-        XCTAssertEqual(
-            chatStore.messages[1].toolCalls.first?.output,
-            #"{"ok":false,"error":{"code":"LOCAL_TOOL_EXECUTION_FAILED","message":"Unsupported SELECT statement"}}"#
-        )
-        XCTAssertEqual(chatStore.messages[1].text, "Recovered")
-        XCTAssertFalse(chatStore.messages[1].isError)
-    }
-
-    @MainActor
-    func testAIChatStoreStopsAfterThreeConsecutiveToolExecutionFailures() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let chatService = RepeatingToolFailureChatService()
-        let toolExecutor = AlwaysFailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: chatService,
-            toolExecutor: toolExecutor,
-            localContextLoader: toolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        XCTAssertEqual(chatStore.messages.count, 2)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 3)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.map(\.status), [.completed, .completed, .completed])
-        XCTAssertEqual(
-            chatStore.messages[1].toolCalls.last?.output,
-            #"{"ok":false,"error":{"code":"LOCAL_TOOL_EXECUTION_FAILED","message":"Unsupported SELECT statement"}}"#
-        )
-        XCTAssertEqual(
-            chatStore.messages[1].text,
-            "Tool execution failed 3 times in a row. Last error: Unsupported SELECT statement"
-        )
-        XCTAssertTrue(chatStore.messages[1].isError)
     }
 
     @MainActor
