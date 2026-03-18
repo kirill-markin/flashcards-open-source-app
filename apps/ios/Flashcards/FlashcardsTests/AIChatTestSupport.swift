@@ -985,9 +985,9 @@ class AIChatTestCaseBase: XCTestCase {
                 store.shutdownForTests()
                 try store.database?.close()
             }
+            try await Task.sleep(nanoseconds: 50_000_000)
             await Task.yield()
             await Task.yield()
-            try? FileManager.default.removeItem(at: databaseDirectory)
         }
         return store
     }
@@ -1067,9 +1067,9 @@ class AIChatTestCaseBase: XCTestCase {
                 store.shutdownForTests()
                 try store.database?.close()
             }
+            try await Task.sleep(nanoseconds: 50_000_000)
             await Task.yield()
             await Task.yield()
-            try? FileManager.default.removeItem(at: databaseDirectory)
         }
         return store
     }

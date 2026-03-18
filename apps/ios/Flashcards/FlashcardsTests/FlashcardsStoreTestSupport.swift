@@ -401,9 +401,6 @@ enum FlashcardsStoreTestSupport {
     static func makeStoreEnvironment(testCase: XCTestCase) throws -> StoreEnvironment {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
-        testCase.addTeardownBlock {
-            try? FileManager.default.removeItem(at: databaseDirectory)
-        }
 
         let suiteName = "flashcards-store-tests-\(UUID().uuidString)"
         let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -473,6 +470,7 @@ enum FlashcardsStoreTestSupport {
                 store.shutdownForTests()
                 try store.database?.close()
             }
+            try await Task.sleep(nanoseconds: 50_000_000)
             await Task.yield()
             await Task.yield()
         }

@@ -1420,9 +1420,6 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
 
         let databaseURL = databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
-        self.addTeardownBlock {
-            try? FileManager.default.removeItem(at: databaseDirectory)
-        }
         return (databaseURL, try LocalDatabase(databaseURL: databaseURL))
     }
 

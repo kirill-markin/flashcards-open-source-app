@@ -171,7 +171,6 @@ final class AIChatCoreAndParserTests: AIChatTestCaseBase {
         self.addTeardownBlock {
             try secondary.close()
             try primary.close()
-            try? FileManager.default.removeItem(at: databaseDirectory)
         }
 
         XCTAssertEqual(try primary.loadJournalMode().lowercased(), "wal")

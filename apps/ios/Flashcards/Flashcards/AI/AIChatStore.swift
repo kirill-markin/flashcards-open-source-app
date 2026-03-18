@@ -105,6 +105,7 @@ final class AIChatStore {
     @ObservationIgnored private var codeInterpreterContainerId: String?
     @ObservationIgnored private var activeSendTask: Task<Void, Never>?
     @ObservationIgnored private var activeDictationTask: Task<Void, Never>?
+    @ObservationIgnored private var activeWarmUpTask: Task<Void, Never>?
     @ObservationIgnored private var activeConversationId: String?
 
     convenience init(
@@ -157,6 +158,7 @@ final class AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeDictationTask = nil
+        self.activeWarmUpTask = nil
         self.activeConversationId = nil
     }
 
@@ -282,6 +284,8 @@ final class AIChatStore {
     }
 
     func shutdownForTests() {
+        self.activeWarmUpTask?.cancel()
+        self.activeWarmUpTask = nil
         self.cancelStreaming()
         self.cancelDictation()
     }
@@ -316,7 +320,14 @@ final class AIChatStore {
             return
         }
 
-        Task {
+        guard self.activeWarmUpTask == nil else {
+            return
+        }
+
+        self.activeWarmUpTask = Task {
+            defer {
+                self.activeWarmUpTask = nil
+            }
             await self.flashcardsStore.warmUpAuthenticatedCloudSessionForAI()
         }
     }
