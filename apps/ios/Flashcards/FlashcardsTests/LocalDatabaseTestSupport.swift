@@ -12,9 +12,6 @@ enum LocalDatabaseTestSupport {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
         let databaseURL = databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
-        testCase.addTeardownBlock {
-            try? FileManager.default.removeItem(at: databaseDirectory)
-        }
         return (databaseURL, try LocalDatabase(databaseURL: databaseURL))
     }
 

@@ -118,6 +118,29 @@ final class ReviewQueryDatabaseTests: XCTestCase {
                 reviewedAtClient: nowIsoTimestamp()
             )
         )
+        try database.core.execute(
+            sql: """
+            UPDATE cards
+            SET created_at = CASE card_id
+                WHEN ? THEN ?
+                WHEN ? THEN ?
+                WHEN ? THEN ?
+                ELSE created_at
+            END
+            WHERE card_id IN (?, ?, ?)
+            """,
+            values: [
+                .text(firstCard.cardId),
+                .text("2026-03-09T10:00:00.000Z"),
+                .text(secondCard.cardId),
+                .text("2026-03-09T11:00:00.000Z"),
+                .text(thirdCard.cardId),
+                .text("2026-03-09T12:00:00.000Z"),
+                .text(firstCard.cardId),
+                .text(secondCard.cardId),
+                .text(thirdCard.cardId)
+            ]
+        )
 
         let firstPage = try database.loadReviewTimelinePage(
             workspaceId: workspaceId,
