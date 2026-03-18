@@ -145,6 +145,7 @@ final class AIChatStore {
             historyCheckpointInterval: 2.0
         )
 
+        historyStore.activateWorkspace(workspaceId: flashcardsStore.workspace?.workspaceId)
         let persistedState = historyStore.loadState()
         self.inputText = ""
         self.messages = persistedState.messages
@@ -250,6 +251,37 @@ final class AIChatStore {
         Task {
             await self.historyStore.saveState(state: clearedState)
         }
+    }
+
+    func prepareForWorkspaceChange() {
+        self.activeWarmUpTask?.cancel()
+        self.activeWarmUpTask = nil
+        self.cancelStreaming()
+        self.cancelDictation()
+        self.activeAlert = nil
+        self.repairStatus = nil
+        self.completedDictationTranscript = nil
+        self.activeConversationId = nil
+        self.pendingAttachments = []
+        self.inputText = ""
+    }
+
+    func activateWorkspace() {
+        self.historyStore.activateWorkspace(workspaceId: self.flashcardsStore.workspace?.workspaceId)
+        let persistedState = self.historyStore.loadState()
+        self.inputText = ""
+        self.messages = persistedState.messages
+        self.pendingAttachments = []
+        self.selectedModelId = persistedState.selectedModelId
+        self.chatSessionId = persistedState.chatSessionId
+        self.codeInterpreterContainerId = persistedState.codeInterpreterContainerId
+        self.isStreaming = false
+        self.dictationState = .idle
+        self.activeAlert = nil
+        self.repairStatus = nil
+        self.completedDictationTranscript = nil
+        self.activeConversationId = nil
+        self.enforceAllowedSelectedModelIfNeeded()
     }
 
     func cancelStreaming() {

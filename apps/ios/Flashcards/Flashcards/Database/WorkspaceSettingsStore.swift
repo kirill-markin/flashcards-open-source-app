@@ -13,6 +13,32 @@ struct WorkspaceSettingsStore {
     let core: DatabaseCore
 
     func loadWorkspace() throws -> Workspace {
+        let activeWorkspaceId = try self.core.scalarOptionalText(
+            sql: "SELECT active_workspace_id FROM app_local_settings WHERE settings_id = 1",
+            values: []
+        )
+        if let activeWorkspaceId, activeWorkspaceId.isEmpty == false {
+            let activeWorkspaces = try self.core.query(
+                sql: """
+                SELECT workspace_id, name, created_at
+                FROM workspaces
+                WHERE workspace_id = ?
+                LIMIT 1
+                """,
+                values: [.text(activeWorkspaceId)]
+            ) { statement in
+                Workspace(
+                    workspaceId: DatabaseCore.columnText(statement: statement, index: 0),
+                    name: DatabaseCore.columnText(statement: statement, index: 1),
+                    createdAt: DatabaseCore.columnText(statement: statement, index: 2)
+                )
+            }
+
+            if let activeWorkspace = activeWorkspaces.first {
+                return activeWorkspace
+            }
+        }
+
         let workspaces = try self.core.query(
             sql: """
             SELECT workspace_id, name, created_at
@@ -36,16 +62,37 @@ struct WorkspaceSettingsStore {
         return workspace
     }
 
-    func loadUserSettings(workspaceId: String) throws -> UserSettings {
+    func loadCachedWorkspaces() throws -> [Workspace] {
+        let activeWorkspaceId = try self.core.scalarOptionalText(
+            sql: "SELECT active_workspace_id FROM app_local_settings WHERE settings_id = 1",
+            values: []
+        )
+
+        return try self.core.query(
+            sql: """
+            SELECT workspace_id, name, created_at
+            FROM workspaces
+            ORDER BY CASE WHEN workspace_id = ? THEN 0 ELSE 1 END, created_at ASC
+            """,
+            values: [activeWorkspaceId.map(SQLiteValue.text) ?? .null]
+        ) { statement in
+            Workspace(
+                workspaceId: DatabaseCore.columnText(statement: statement, index: 0),
+                name: DatabaseCore.columnText(statement: statement, index: 1),
+                createdAt: DatabaseCore.columnText(statement: statement, index: 2)
+            )
+        }
+    }
+
+    func loadUserSettings() throws -> UserSettings {
         let rows = try self.core.query(
             sql: """
             SELECT user_id, workspace_id, email, locale, created_at
             FROM user_settings
-            WHERE workspace_id = ?
             ORDER BY created_at ASC
             LIMIT 1
             """,
-            values: [.text(workspaceId)]
+            values: []
         ) { statement in
             UserSettings(
                 userId: DatabaseCore.columnText(statement: statement, index: 0),
@@ -119,7 +166,7 @@ struct WorkspaceSettingsStore {
     func loadCloudSettings() throws -> CloudSettings {
         let settings = try self.core.query(
             sql: """
-            SELECT device_id, cloud_state, linked_user_id, linked_workspace_id, linked_email, onboarding_completed, updated_at
+            SELECT device_id, cloud_state, linked_user_id, linked_workspace_id, active_workspace_id, linked_email, onboarding_completed, updated_at
             FROM app_local_settings
             WHERE settings_id = 1
             LIMIT 1
@@ -136,9 +183,10 @@ struct WorkspaceSettingsStore {
                 cloudState: cloudState,
                 linkedUserId: DatabaseCore.columnOptionalText(statement: statement, index: 2),
                 linkedWorkspaceId: DatabaseCore.columnOptionalText(statement: statement, index: 3),
-                linkedEmail: DatabaseCore.columnOptionalText(statement: statement, index: 4),
-                onboardingCompleted: DatabaseCore.columnInt64(statement: statement, index: 5) == 1,
-                updatedAt: DatabaseCore.columnText(statement: statement, index: 6)
+                activeWorkspaceId: DatabaseCore.columnOptionalText(statement: statement, index: 4),
+                linkedEmail: DatabaseCore.columnOptionalText(statement: statement, index: 5),
+                onboardingCompleted: DatabaseCore.columnInt64(statement: statement, index: 6) == 1,
+                updatedAt: DatabaseCore.columnText(statement: statement, index: 7)
             )
         }
 
@@ -173,19 +221,40 @@ struct WorkspaceSettingsStore {
         cloudState: CloudAccountState,
         linkedUserId: String?,
         linkedWorkspaceId: String?,
+        activeWorkspaceId: String?,
         linkedEmail: String?
     ) throws {
         let updatedRows = try self.core.execute(
             sql: """
             UPDATE app_local_settings
-            SET cloud_state = ?, linked_user_id = ?, linked_workspace_id = ?, linked_email = ?, updated_at = ?
+            SET cloud_state = ?, linked_user_id = ?, linked_workspace_id = ?, active_workspace_id = ?, linked_email = ?, updated_at = ?
             WHERE settings_id = 1
             """,
             values: [
                 .text(cloudState.rawValue),
                 linkedUserId.map(SQLiteValue.text) ?? .null,
                 linkedWorkspaceId.map(SQLiteValue.text) ?? .null,
+                activeWorkspaceId.map(SQLiteValue.text) ?? .null,
                 linkedEmail.map(SQLiteValue.text) ?? .null,
+                .text(nowIsoTimestamp())
+            ]
+        )
+
+        if updatedRows == 0 {
+            throw LocalStoreError.database("App local settings row is missing")
+        }
+    }
+
+    func updateActiveWorkspaceId(activeWorkspaceId: String) throws {
+        let updatedRows = try self.core.execute(
+            sql: """
+            UPDATE app_local_settings
+            SET active_workspace_id = ?, linked_workspace_id = ?, updated_at = ?
+            WHERE settings_id = 1
+            """,
+            values: [
+                .text(activeWorkspaceId),
+                .text(activeWorkspaceId),
                 .text(nowIsoTimestamp())
             ]
         )

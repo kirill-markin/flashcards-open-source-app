@@ -24,10 +24,10 @@ extension FlashcardsStore {
         self.cloudRuntime.cancelForAccountDeletion()
         try self.cloudRuntime.clearCredentials()
         try self.dependencies.guestCredentialStore.clearGuestSession()
-        self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
+        clearStoredReviewFilters(userDefaults: self.userDefaults)
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
-        self.aiChatStore.clearHistory()
-        self.userDefaults.removeObject(forKey: aiChatHistoryStorageKey)
+        self.cachedAIChatStore?.clearHistory()
+        clearStoredAIChatHistories(userDefaults: self.userDefaults)
         self.reviewRuntime = ReviewQueueRuntime(
             initialSelectedReviewFilter: .allCards,
             reviewSeedQueueSize: reviewSeedQueueSize,
@@ -241,7 +241,7 @@ extension FlashcardsStore {
         self.globalErrorMessage = ""
     }
 
-    func disconnectCloudAccount() throws {
+    func logoutCloudAccount() throws {
         try self.resetLocalStateForCloudIdentityChange()
     }
 
@@ -308,7 +308,7 @@ extension FlashcardsStore {
             let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
             if self.cloudRuntime.activeCloudSession() == nil && hasStoredCredentials == false {
                 if self.cloudSettings?.cloudState == .linked {
-                    try self.disconnectCloudAccount()
+                    try self.logoutCloudAccount()
                 }
 
                 return
@@ -380,6 +380,7 @@ extension FlashcardsStore {
             cloudState: .guest,
             linkedUserId: session.userId,
             linkedWorkspaceId: session.workspaceId,
+            activeWorkspaceId: session.workspaceId,
             linkedEmail: nil
         )
         try self.reload()
@@ -442,6 +443,89 @@ extension FlashcardsStore {
                 bearerToken: session.bearerToken,
                 connectionId: connectionId
             )
+        }
+    }
+
+    func listLinkedWorkspaces() async throws -> [CloudWorkspaceSummary] {
+        guard self.cloudSettings?.cloudState == .linked else {
+            throw LocalStoreError.validation("Workspace switching is available only for linked cloud workspaces")
+        }
+
+        if self.cloudRuntime.activeCloudSession() == nil {
+            try await self.restoreCloudLinkFromStoredCredentials()
+        }
+
+        return try await self.withAuthenticatedCloudSession { session in
+            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+            let account = try await cloudSyncService.fetchCloudAccount(
+                apiBaseUrl: session.apiBaseUrl,
+                bearerToken: session.bearerToken
+            )
+            return account.workspaces
+        }
+    }
+
+    func switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection) async throws {
+        guard self.cloudSettings?.cloudState == .linked else {
+            throw LocalStoreError.validation("Workspace switching is available only for linked cloud workspaces")
+        }
+
+        if self.cloudRuntime.activeCloudSession() == nil {
+            try await self.restoreCloudLinkFromStoredCredentials()
+        }
+
+        let currentWorkspaceId = self.workspace?.workspaceId
+        let selectedWorkspace = try await self.withAuthenticatedCloudSession { session in
+            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+            switch selection {
+            case .existing(let workspaceId):
+                return try await cloudSyncService.selectWorkspace(
+                    apiBaseUrl: session.apiBaseUrl,
+                    bearerToken: session.bearerToken,
+                    workspaceId: workspaceId
+                )
+            case .createNew:
+                return try await cloudSyncService.createWorkspace(
+                    apiBaseUrl: session.apiBaseUrl,
+                    bearerToken: session.bearerToken,
+                    name: "Personal"
+                )
+            }
+        }
+
+        if currentWorkspaceId == selectedWorkspace.workspaceId {
+            return
+        }
+
+        let activeSession = try await self.withAuthenticatedCloudSession { session in
+            CloudLinkedSession(
+                userId: session.userId,
+                workspaceId: selectedWorkspace.workspaceId,
+                email: session.email,
+                configurationMode: session.configurationMode,
+                apiBaseUrl: session.apiBaseUrl,
+                authorization: session.authorization
+            )
+        }
+
+        self.cloudRuntime.cancelForWorkspaceSwitch()
+        self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: selectedWorkspace.workspaceId)
+        let database = try requireLocalDatabase(database: self.database)
+        try database.switchActiveWorkspace(
+            workspace: selectedWorkspace,
+            linkedSession: activeSession
+        )
+        self.cloudRuntime.setActiveCloudSession(linkedSession: activeSession)
+        try self.reload()
+        self.syncStatus = .syncing
+
+        do {
+            let syncResult = try await self.runLinkedSync(linkedSession: activeSession)
+            try await self.applySyncResultWithoutBlockingReset(syncResult: syncResult, now: Date())
+        } catch {
+            self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            throw error
         }
     }
 
@@ -529,6 +613,8 @@ extension FlashcardsStore {
                 authorization: deleteResult.0.authorization
             )
             let database = try requireLocalDatabase(database: self.database)
+            self.cloudRuntime.cancelForWorkspaceSwitch()
+            self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: replacementSession.workspaceId)
             try database.replaceLocalWorkspaceAfterRemoteDelete(
                 localWorkspaceId: localWorkspaceId,
                 replacementWorkspace: deleteResult.1.workspace,
@@ -555,6 +641,25 @@ extension FlashcardsStore {
     }
 
     private func performCloudLink(linkedSession: CloudLinkedSession) async throws {
+        if self.cloudSettings?.cloudState == .linked
+            && self.cloudSettings?.linkedUserId == linkedSession.userId {
+            let database = try requireLocalDatabase(database: self.database)
+            if self.workspace?.workspaceId == linkedSession.workspaceId {
+                try database.updateCloudSettings(
+                    cloudState: .linked,
+                    linkedUserId: linkedSession.userId,
+                    linkedWorkspaceId: linkedSession.workspaceId,
+                    activeWorkspaceId: linkedSession.workspaceId,
+                    linkedEmail: linkedSession.email
+                )
+                try self.reload()
+                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
+            } else {
+                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession)
+            }
+            return
+        }
+
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
 
         self.syncStatus = .syncing
@@ -643,6 +748,26 @@ extension FlashcardsStore {
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
+    }
+
+    private func performActiveWorkspaceCloudRestore(linkedSession: CloudLinkedSession) async throws {
+        let database = try requireLocalDatabase(database: self.database)
+        let cachedWorkspace = try database.loadCachedWorkspaces().first { workspace in
+            workspace.workspaceId == linkedSession.workspaceId
+        }
+        let workspaceSummary = CloudWorkspaceSummary(
+            workspaceId: linkedSession.workspaceId,
+            name: cachedWorkspace?.name ?? "Personal",
+            createdAt: cachedWorkspace?.createdAt ?? nowIsoTimestamp(),
+            isSelected: true
+        )
+
+        self.cloudRuntime.cancelForWorkspaceSwitch()
+        self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: linkedSession.workspaceId)
+        try database.switchActiveWorkspace(workspace: workspaceSummary, linkedSession: linkedSession)
+        self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
+        try self.reload()
+        try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
     }
 
     /**
@@ -735,7 +860,7 @@ extension FlashcardsStore {
             if self.workspace?.workspaceId == linkedSession.workspaceId {
                 try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
             } else {
-                try await self.performCloudLink(linkedSession: linkedSession)
+                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession)
             }
             return
         } catch {
@@ -765,7 +890,7 @@ extension FlashcardsStore {
             if self.workspace?.workspaceId == linkedSession.workspaceId {
                 try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
             } else {
-                try await self.performCloudLink(linkedSession: linkedSession)
+                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession)
             }
         } catch {
             if self.isCloudAccountDeletedError(error) {
@@ -774,7 +899,7 @@ extension FlashcardsStore {
             }
 
             if self.isCloudAuthorizationError(error) {
-                try self.disconnectCloudAccount()
+                try self.logoutCloudAccount()
             }
 
             throw error
@@ -810,7 +935,7 @@ extension FlashcardsStore {
             }
 
             if self.isCloudAuthorizationError(error) {
-                try self.disconnectCloudAccount()
+                try self.logoutCloudAccount()
             }
 
             throw error
@@ -897,6 +1022,7 @@ extension FlashcardsStore {
             cloudState: .disconnected,
             linkedUserId: nil,
             linkedWorkspaceId: nil,
+            activeWorkspaceId: context.workspaceId,
             linkedEmail: nil
         )
 

@@ -2,6 +2,29 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
+    private func resetReviewRuntimeForWorkspace(nextWorkspaceId: String) {
+        let nextReviewFilter = FlashcardsStore.loadSelectedReviewFilter(
+            userDefaults: self.userDefaults,
+            decoder: self.decoder,
+            workspaceId: nextWorkspaceId
+        )
+        self.reviewRuntime.cancelForAccountDeletion()
+        self.reviewRuntime = ReviewQueueRuntime(
+            initialSelectedReviewFilter: nextReviewFilter,
+            reviewSeedQueueSize: reviewSeedQueueSize,
+            reviewQueueReplenishmentThreshold: reviewQueueReplenishmentThreshold
+        )
+        self.applyReviewPublishedState(
+            reviewState: ReviewQueueRuntime.makeInitialPublishedState(selectedReviewFilter: nextReviewFilter)
+        )
+        self.reviewOverlayBanner = nil
+    }
+
+    func prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: String) {
+        self.cachedAIChatStore?.prepareForWorkspaceChange()
+        self.resetReviewRuntimeForWorkspace(nextWorkspaceId: nextWorkspaceId)
+    }
+
     func reload() throws {
         guard let database else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
@@ -16,6 +39,11 @@ extension FlashcardsStore {
     }
 
     func applyLoadedBootstrapSnapshot(snapshot: AppBootstrapSnapshot, now: Date) {
+        let didSwitchWorkspace = self.workspace?.workspaceId != snapshot.workspace.workspaceId
+        if didSwitchWorkspace {
+            self.resetReviewRuntimeForWorkspace(nextWorkspaceId: snapshot.workspace.workspaceId)
+        }
+
         self.workspace = snapshot.workspace
         self.userSettings = snapshot.userSettings
         self.schedulerSettings = snapshot.schedulerSettings
@@ -59,6 +87,9 @@ extension FlashcardsStore {
         }
         self.globalErrorMessage = ""
         self.localReadVersion += 1
+        if didSwitchWorkspace {
+            self.cachedAIChatStore?.activateWorkspace()
+        }
         self.refreshReviewState(now: now)
     }
 
@@ -167,7 +198,8 @@ extension FlashcardsStore {
         let historyStore = AIChatHistoryStore(
             userDefaults: self.userDefaults,
             encoder: self.encoder,
-            decoder: self.decoder
+            decoder: self.decoder,
+            workspaceId: self.workspace?.workspaceId
         )
         let chatService = AIChatService(
             session: URLSession.shared,

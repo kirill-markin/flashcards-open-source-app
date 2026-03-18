@@ -100,7 +100,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         )
         environment.userDefaults.set(
             Data("{\"kind\":\"tag\",\"tag\":\"grammar\"}".utf8),
-            forKey: "selected-review-filter"
+            forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: workspaceId)
         )
 
         let store = FlashcardsStoreTestSupport.makeStore(environment: environment)
@@ -119,7 +119,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         let environment = try FlashcardsStoreTestSupport.makeStoreEnvironment(testCase: self)
         environment.userDefaults.set(
             Data("{\"kind\":\"tag\",\"tag\":\"missing-tag\"}".utf8),
-            forKey: "selected-review-filter"
+            forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: try testWorkspaceId(database: environment.database))
         )
 
         let store = FlashcardsStoreTestSupport.makeStore(environment: environment)

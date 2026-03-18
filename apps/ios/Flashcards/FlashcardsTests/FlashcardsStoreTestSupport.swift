@@ -528,6 +528,7 @@ enum FlashcardsStoreTestSupport {
             cloudState: .linked,
             linkedUserId: "user-1",
             linkedWorkspaceId: workspaceId,
+            activeWorkspaceId: workspaceId,
             linkedEmail: "user@example.com"
         )
     }

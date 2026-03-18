@@ -161,6 +161,8 @@ final class InMemoryHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
         self.saveCallCount = 0
     }
 
+    func activateWorkspace(workspaceId: String?) {}
+
     func loadState() -> AIChatPersistedState {
         self.savedState
     }
@@ -1031,6 +1033,7 @@ class AIChatTestCaseBase: XCTestCase {
             cloudState: .linked,
             linkedUserId: "user-1",
             linkedWorkspaceId: "workspace-1",
+            activeWorkspaceId: "workspace-1",
             linkedEmail: "user@example.com"
         )
 

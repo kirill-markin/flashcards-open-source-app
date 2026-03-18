@@ -84,10 +84,20 @@ final class FlashcardsStore {
     @ObservationIgnored var reviewRuntime: ReviewQueueRuntime
     @ObservationIgnored var cloudRuntime: CloudSessionRuntime
     @ObservationIgnored var isAccountDeletionRunning: Bool
-    @ObservationIgnored lazy var aiChatStore: AIChatStore = self.makeAIChatStore()
+    @ObservationIgnored var cachedAIChatStore: AIChatStore?
+
+    var aiChatStore: AIChatStore {
+        if let cachedAIChatStore {
+            return cachedAIChatStore
+        }
+
+        let aiChatStore = self.makeAIChatStore()
+        self.cachedAIChatStore = aiChatStore
+        return aiChatStore
+    }
 
     func shutdownForTests() {
-        self.aiChatStore.shutdownForTests()
+        self.cachedAIChatStore?.shutdownForTests()
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
     }
@@ -214,7 +224,8 @@ final class FlashcardsStore {
     ) {
         let initialSelectedReviewFilter = FlashcardsStore.loadSelectedReviewFilter(
             userDefaults: userDefaults,
-            decoder: decoder
+            decoder: decoder,
+            workspaceId: nil
         )
         let initialReviewPublishedState = ReviewQueueRuntime.makeInitialPublishedState(
             selectedReviewFilter: initialSelectedReviewFilter

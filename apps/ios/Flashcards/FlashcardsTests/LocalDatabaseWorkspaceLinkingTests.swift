@@ -65,7 +65,7 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
         XCTAssertEqual(try database.loadLastAppliedReviewSequenceId(workspaceId: linkedSession.workspaceId), 0)
     }
 
-    func testReplaceLocalWorkspaceAfterRemoteDeleteUsesReplacementWorkspaceAndClearsLocalData() throws {
+    func testReplaceLocalWorkspaceAfterRemoteDeleteUsesReplacementWorkspaceAndPreservesCachedReplacementState() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
         let localWorkspaceId = try testWorkspaceId(database: database)
         _ = try database.saveCard(
@@ -149,11 +149,62 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
         XCTAssertTrue(try testActiveCards(database: database).isEmpty)
         XCTAssertTrue(try testActiveDecks(database: database).isEmpty)
         XCTAssertTrue(try database.loadOutboxEntries(workspaceId: replacementWorkspace.workspaceId, limit: 100).isEmpty)
-        XCTAssertEqual(try database.loadLastAppliedHotChangeId(workspaceId: replacementWorkspace.workspaceId), 0)
+        XCTAssertEqual(try database.loadLastAppliedHotChangeId(workspaceId: replacementWorkspace.workspaceId), 99)
         XCTAssertEqual(try database.loadLastAppliedReviewSequenceId(workspaceId: replacementWorkspace.workspaceId), 0)
         XCTAssertEqual(
             try self.workspaceIds(database: database),
             [replacementWorkspace.workspaceId]
+        )
+    }
+
+    func testSwitchActiveWorkspacePreservesCachedWorkspaceData() throws {
+        let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
+        let originalWorkspaceId = try testWorkspaceId(database: database)
+        let originalCard = try database.saveCard(
+            workspaceId: originalWorkspaceId,
+            input: LocalDatabaseTestSupport.makeCardInput(frontText: "Original", backText: "Back"),
+            cardId: nil
+        )
+
+        let replacementWorkspace = CloudWorkspaceSummary(
+            workspaceId: "workspace-second",
+            name: "Second",
+            createdAt: "2026-03-17T10:00:00.000Z",
+            isSelected: true
+        )
+        try self.insertWorkspace(
+            database: database,
+            workspaceId: replacementWorkspace.workspaceId,
+            name: replacementWorkspace.name,
+            createdAt: replacementWorkspace.createdAt,
+            settings: try testSchedulerSettings(database: database)
+        )
+        let replacementCard = try database.saveCard(
+            workspaceId: replacementWorkspace.workspaceId,
+            input: LocalDatabaseTestSupport.makeCardInput(frontText: "Replacement", backText: "Back"),
+            cardId: nil
+        )
+
+        let linkedSession = FlashcardsStoreTestSupport.makeLinkedSession(
+            userId: "user-linked",
+            workspaceId: replacementWorkspace.workspaceId,
+            email: "linked@example.com"
+        )
+
+        try database.switchActiveWorkspace(
+            workspace: replacementWorkspace,
+            linkedSession: linkedSession
+        )
+
+        let bootstrapSnapshot = try testBootstrapSnapshot(database: database)
+        XCTAssertEqual(bootstrapSnapshot.workspace.workspaceId, replacementWorkspace.workspaceId)
+        XCTAssertEqual(bootstrapSnapshot.cloudSettings.linkedWorkspaceId, replacementWorkspace.workspaceId)
+        XCTAssertEqual(bootstrapSnapshot.cloudSettings.activeWorkspaceId, replacementWorkspace.workspaceId)
+        XCTAssertEqual(try database.loadActiveCards(workspaceId: originalWorkspaceId).map(\.cardId), [originalCard.cardId])
+        XCTAssertEqual(try database.loadActiveCards(workspaceId: replacementWorkspace.workspaceId).map(\.cardId), [replacementCard.cardId])
+        XCTAssertEqual(
+            try self.workspaceIds(database: database),
+            [originalWorkspaceId, replacementWorkspace.workspaceId].sorted()
         )
     }
 

@@ -9,7 +9,7 @@ enum SQLiteValue {
 }
 
 let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-let localDatabaseSchemaVersion: Int = 9
+let localDatabaseSchemaVersion: Int = 10
 let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 final class DatabaseCore {
@@ -137,6 +137,18 @@ final class DatabaseCore {
 
         guard let value = results.first else {
             throw LocalStoreError.database("Expected a text result for SQL query")
+        }
+
+        return value
+    }
+
+    func scalarOptionalText(sql: String, values: [SQLiteValue]) throws -> String? {
+        let results = try self.query(sql: sql, values: values) { statement in
+            Self.columnOptionalText(statement: statement, index: 0)
+        }
+
+        guard let value = results.first else {
+            throw LocalStoreError.database("Expected an optional text result for SQL query")
         }
 
         return value
@@ -293,6 +305,9 @@ final class DatabaseCore {
             case 8:
                 try self.migrateSchemaVersion8To9()
                 schemaVersion = 9
+            case 9:
+                try self.migrateSchemaVersion9To10()
+                schemaVersion = 10
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -419,6 +434,7 @@ final class DatabaseCore {
             cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
             linked_user_id TEXT,
             linked_workspace_id TEXT,
+            active_workspace_id TEXT,
             linked_email TEXT,
             onboarding_completed INTEGER NOT NULL DEFAULT 0,
             updated_at TEXT NOT NULL
@@ -588,6 +604,54 @@ final class DatabaseCore {
         try self.execute(sql: "ALTER TABLE app_local_settings_v9 RENAME TO app_local_settings", values: [])
     }
 
+    private func migrateSchemaVersion9To10() throws {
+        try self.execute(
+            sql: """
+            CREATE TABLE app_local_settings_v10 (
+                settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
+                device_id TEXT NOT NULL,
+                cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
+                linked_user_id TEXT,
+                linked_workspace_id TEXT,
+                active_workspace_id TEXT,
+                linked_email TEXT,
+                onboarding_completed INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            values: []
+        )
+        try self.execute(
+            sql: """
+            INSERT INTO app_local_settings_v10 (
+                settings_id,
+                device_id,
+                cloud_state,
+                linked_user_id,
+                linked_workspace_id,
+                active_workspace_id,
+                linked_email,
+                onboarding_completed,
+                updated_at
+            )
+            SELECT
+                settings_id,
+                device_id,
+                cloud_state,
+                linked_user_id,
+                linked_workspace_id,
+                linked_workspace_id,
+                linked_email,
+                onboarding_completed,
+                updated_at
+            FROM app_local_settings
+            """,
+            values: []
+        )
+        try self.execute(sql: "DROP TABLE app_local_settings", values: [])
+        try self.execute(sql: "ALTER TABLE app_local_settings_v10 RENAME TO app_local_settings", values: [])
+    }
+
     /**
      Rebuilds the normalized tag read model from canonical card rows so future
      local queries can use indexed tag filtering without hydrating all cards.
@@ -628,11 +692,12 @@ final class DatabaseCore {
                     cloud_state,
                     linked_user_id,
                     linked_workspace_id,
+                    active_workspace_id,
                     linked_email,
                     onboarding_completed,
                     updated_at
                 )
-                VALUES (1, ?, 'disconnected', NULL, NULL, NULL, 0, ?)
+                VALUES (1, ?, 'disconnected', NULL, NULL, NULL, NULL, 0, ?)
                 """,
                 values: [
                     .text(deviceId),
@@ -679,10 +744,54 @@ final class DatabaseCore {
                     .text(now)
                 ]
             )
+            try self.execute(
+                sql: """
+                UPDATE app_local_settings
+                SET active_workspace_id = ?, updated_at = ?
+                WHERE settings_id = 1
+                """,
+                values: [
+                    .text(workspaceId),
+                    .text(nowIsoTimestamp())
+                ]
+            )
         } else {
             workspaceId = try self.scalarText(
-                sql: "SELECT workspace_id FROM workspaces ORDER BY created_at ASC LIMIT 1",
+                sql: """
+                SELECT workspace_id
+                FROM workspaces
+                ORDER BY created_at ASC
+                LIMIT 1
+                """,
                 values: []
+            )
+        }
+
+        let activeWorkspaceId = try self.scalarOptionalText(
+            sql: "SELECT active_workspace_id FROM app_local_settings WHERE settings_id = 1",
+            values: []
+        )
+        let hasActiveWorkspace: Bool
+        if let activeWorkspaceId {
+            hasActiveWorkspace = try self.scalarInt(
+                sql: "SELECT COUNT(*) FROM workspaces WHERE workspace_id = ?",
+                values: [.text(activeWorkspaceId)]
+            ) > 0
+        } else {
+            hasActiveWorkspace = false
+        }
+
+        if hasActiveWorkspace == false {
+            try self.execute(
+                sql: """
+                UPDATE app_local_settings
+                SET active_workspace_id = ?, updated_at = ?
+                WHERE settings_id = 1
+                """,
+                values: [
+                    .text(workspaceId),
+                    .text(nowIsoTimestamp())
+                ]
             )
         }
 

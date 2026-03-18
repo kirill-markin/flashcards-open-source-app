@@ -769,6 +769,7 @@ struct CloudSettings: Codable, Hashable, Sendable {
     let cloudState: CloudAccountState
     let linkedUserId: String?
     let linkedWorkspaceId: String?
+    let activeWorkspaceId: String?
     let linkedEmail: String?
     let onboardingCompleted: Bool
     let updatedAt: String

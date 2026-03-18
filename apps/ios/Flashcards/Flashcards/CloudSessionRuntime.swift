@@ -223,13 +223,14 @@ final class CloudSessionRuntime {
         guard let linkedUserId = cloudSettings.linkedUserId, linkedUserId.isEmpty == false else {
             throw LocalStoreError.uninitialized("Linked user is unavailable")
         }
-        guard let linkedWorkspaceId = cloudSettings.linkedWorkspaceId, linkedWorkspaceId.isEmpty == false else {
+        let activeWorkspaceId = cloudSettings.activeWorkspaceId ?? cloudSettings.linkedWorkspaceId
+        guard let activeWorkspaceId, activeWorkspaceId.isEmpty == false else {
             throw LocalStoreError.uninitialized("Linked workspace is unavailable")
         }
 
         let linkedSession = CloudLinkedSession(
             userId: linkedUserId,
-            workspaceId: linkedWorkspaceId,
+            workspaceId: activeWorkspaceId,
             email: cloudSettings.linkedEmail,
             configurationMode: configuration.mode,
             apiBaseUrl: configuration.apiBaseUrl,
@@ -322,6 +323,14 @@ final class CloudSessionRuntime {
 
     func disconnectSession() {
         self.state.activeCloudSession = nil
+    }
+
+    func cancelForWorkspaceSwitch() {
+        self.state.activeCloudSyncTask?.cancel()
+        self.state.activeCloudSyncTask = nil
+        self.state.pendingCloudResync = false
+        self.state.activeAIChatSessionPreparation?.task.cancel()
+        self.state.activeAIChatSessionPreparation = nil
     }
 
     func cancelForAccountDeletion() {
