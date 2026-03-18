@@ -16,6 +16,11 @@ type InitiateAuthResult = Readonly<{
   session: string;
 }>;
 
+type ChallengeResponse = Readonly<{
+  challengeName: string;
+  session: string;
+}>;
+
 export type TokenResult = Readonly<{
   idToken: string;
   accessToken: string;
@@ -77,6 +82,63 @@ const signUpUser = async (email: string): Promise<void> => {
   });
 };
 
+function extractRequiredStringField(
+  value: unknown,
+  fieldName: string,
+  context: string,
+): string {
+  if (typeof value !== "string" || value === "") {
+    throw new Error(`${context} did not return ${fieldName}`);
+  }
+
+  return value;
+}
+
+function extractTokenResult(
+  result: Record<string, unknown>,
+  context: string,
+): TokenResult {
+  const authResult = result.AuthenticationResult as Record<string, unknown> | undefined;
+  if (authResult === undefined) {
+    throw new Error(`${context} did not return AuthenticationResult`);
+  }
+
+  return {
+    idToken: extractRequiredStringField(authResult.IdToken, "IdToken", context),
+    accessToken: extractRequiredStringField(authResult.AccessToken, "AccessToken", context),
+    refreshToken: extractRequiredStringField(authResult.RefreshToken, "RefreshToken", context),
+    expiresIn: authResult.ExpiresIn as number,
+  };
+}
+
+function extractRefreshResult(
+  result: Record<string, unknown>,
+  context: string,
+): RefreshResult {
+  const authResult = result.AuthenticationResult as Record<string, unknown> | undefined;
+  if (authResult === undefined) {
+    throw new Error(`${context} did not return AuthenticationResult`);
+  }
+
+  return {
+    idToken: extractRequiredStringField(authResult.IdToken, "IdToken", context),
+    accessToken: extractRequiredStringField(authResult.AccessToken, "AccessToken", context),
+    expiresIn: authResult.ExpiresIn as number,
+  };
+}
+
+function extractChallengeResponse(
+  result: Record<string, unknown>,
+  context: string,
+): ChallengeResponse {
+  const challengeName = extractRequiredStringField(result.ChallengeName, "ChallengeName", context);
+  const session = extractRequiredStringField(result.Session, "Session", context);
+  return {
+    challengeName,
+    session,
+  };
+}
+
 export const initiateEmailOtp = async (email: string): Promise<InitiateAuthResult> => {
   const clientId = getClientId();
 
@@ -132,19 +194,73 @@ export const verifyEmailOtp = async (
     },
   });
 
-  const authResult = result.AuthenticationResult as Record<string, unknown> | undefined;
-  if (authResult === undefined) {
-    throw new Error("Cognito RespondToAuthChallenge did not return AuthenticationResult");
-  }
-
   log({ domain: "auth", action: "verify_code", maskedEmail: maskEmail(email) });
 
-  return {
-    idToken: authResult.IdToken as string,
-    accessToken: authResult.AccessToken as string,
-    refreshToken: authResult.RefreshToken as string,
-    expiresIn: authResult.ExpiresIn as number,
-  };
+  return extractTokenResult(result, "Cognito RespondToAuthChallenge");
+};
+
+export const signInWithPassword = async (
+  email: string,
+  password: string,
+): Promise<TokenResult> => {
+  const clientId = getClientId();
+  const initialResult = await cognitoFetch("InitiateAuth", {
+    AuthFlow: "USER_AUTH",
+    ClientId: clientId,
+    AuthParameters: {
+      USERNAME: email,
+      PREFERRED_CHALLENGE: "PASSWORD",
+    },
+  });
+
+  if (initialResult.AuthenticationResult !== undefined) {
+    log({ domain: "auth", action: "sign_in_password", maskedEmail: maskEmail(email) });
+    return extractTokenResult(initialResult, "Cognito InitiateAuth");
+  }
+
+  const initialChallenge = extractChallengeResponse(initialResult, "Cognito InitiateAuth");
+  let passwordChallengeSession = initialChallenge.session;
+
+  if (initialChallenge.challengeName === "SELECT_CHALLENGE") {
+    const selectedChallengeResult = await cognitoFetch("RespondToAuthChallenge", {
+      ClientId: clientId,
+      ChallengeName: "SELECT_CHALLENGE",
+      Session: initialChallenge.session,
+      ChallengeResponses: {
+        USERNAME: email,
+        ANSWER: "PASSWORD",
+      },
+    });
+
+    if (selectedChallengeResult.AuthenticationResult !== undefined) {
+      log({ domain: "auth", action: "sign_in_password", maskedEmail: maskEmail(email) });
+      return extractTokenResult(selectedChallengeResult, "Cognito RespondToAuthChallenge");
+    }
+
+    const selectedChallenge = extractChallengeResponse(
+      selectedChallengeResult,
+      "Cognito RespondToAuthChallenge",
+    );
+    if (selectedChallenge.challengeName !== "PASSWORD") {
+      throw new Error(`Unexpected Cognito password challenge: ${selectedChallenge.challengeName}`);
+    }
+    passwordChallengeSession = selectedChallenge.session;
+  } else if (initialChallenge.challengeName !== "PASSWORD") {
+    throw new Error(`Unexpected Cognito password challenge: ${initialChallenge.challengeName}`);
+  }
+
+  const passwordResult = await cognitoFetch("RespondToAuthChallenge", {
+    ClientId: clientId,
+    ChallengeName: "PASSWORD",
+    Session: passwordChallengeSession,
+    ChallengeResponses: {
+      USERNAME: email,
+      PASSWORD: password,
+    },
+  });
+
+  log({ domain: "auth", action: "sign_in_password", maskedEmail: maskEmail(email) });
+  return extractTokenResult(passwordResult, "Cognito RespondToAuthChallenge");
 };
 
 export const refreshTokens = async (refreshToken: string): Promise<RefreshResult> => {
@@ -156,18 +272,9 @@ export const refreshTokens = async (refreshToken: string): Promise<RefreshResult
     },
   });
 
-  const authResult = result.AuthenticationResult as Record<string, unknown> | undefined;
-  if (authResult === undefined) {
-    throw new Error("Cognito REFRESH_TOKEN_AUTH did not return AuthenticationResult");
-  }
-
   log({ domain: "auth", action: "refresh_token" });
 
-  return {
-    idToken: authResult.IdToken as string,
-    accessToken: authResult.AccessToken as string,
-    expiresIn: authResult.ExpiresIn as number,
-  };
+  return extractRefreshResult(result, "Cognito REFRESH_TOKEN_AUTH");
 };
 
 export const revokeToken = async (refreshToken: string): Promise<void> => {

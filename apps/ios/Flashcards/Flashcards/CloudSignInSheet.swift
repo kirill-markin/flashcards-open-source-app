@@ -20,6 +20,16 @@ private struct CloudOtpSheetState: Identifiable, Hashable {
     }
 }
 
+private struct CloudPasswordSheetState: Identifiable, Hashable {
+    let id: String
+    let email: String
+
+    init(email: String) {
+        self.id = UUID().uuidString
+        self.email = email
+    }
+}
+
 enum CloudPostAuthRetryAction: Hashable {
     case prepareLink(verifiedContext: CloudVerifiedAuthContext)
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
@@ -138,6 +148,7 @@ struct CloudSignInSheet: View {
 
     @State private var email: String = ""
     @State private var otpSheetState: CloudOtpSheetState?
+    @State private var passwordSheetState: CloudPasswordSheetState?
     @State private var postAuthLoadingState: CloudPostAuthLoadingState?
     @State private var postAuthSyncState: CloudPostAuthSyncState?
     @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
@@ -180,6 +191,12 @@ struct CloudSignInSheet: View {
                             self.sendCode()
                         }
                         .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
+
+                        Button("Use email and password") {
+                            self.presentPasswordSignIn()
+                        }
+                        .font(.footnote)
+                        .disabled(self.isSendingCode)
                     }
                 }
             }
@@ -205,6 +222,19 @@ struct CloudSignInSheet: View {
                         self.postAuthSyncState = nil
                         self.workspaceLinkContext = nil
                         self.postAuthFailureState = nil
+                        self.scheduleEmailFieldFocus()
+                    }
+                )
+                .environment(self.store)
+            }
+            .sheet(item: self.$passwordSheetState) { passwordState in
+                CloudPasswordSignInSheet(
+                    passwordSheetState: self.$passwordSheetState,
+                    onVerified: { verifiedContext in
+                        self.handleVerifiedAuthContext(verifiedContext)
+                    },
+                    onReturnToEmail: {
+                        self.passwordSheetState = nil
                         self.scheduleEmailFieldFocus()
                     }
                 )
@@ -307,6 +337,11 @@ struct CloudSignInSheet: View {
         }
     }
 
+    private func presentPasswordSignIn() {
+        self.isEmailFieldFocused = false
+        self.passwordSheetState = CloudPasswordSheetState(email: normalizedCloudEmail(self.email))
+    }
+
     private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
         self.errorMessage = ""
         self.postAuthLoadingState = nil
@@ -321,6 +356,7 @@ struct CloudSignInSheet: View {
 
     private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
         self.otpSheetState = nil
+        self.passwordSheetState = nil
         self.postAuthLoadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
         self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
@@ -454,7 +490,154 @@ struct CloudSignInSheet: View {
         self.postAuthFailureState = nil
         self.workspaceLinkContext = nil
         self.otpSheetState = nil
+        self.passwordSheetState = nil
         self.dismiss()
+    }
+}
+
+private struct CloudPasswordSignInSheet: View {
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+
+    @Binding var passwordSheetState: CloudPasswordSheetState?
+    let onVerified: (CloudVerifiedAuthContext) -> Void
+    let onReturnToEmail: () -> Void
+
+    @State private var email: String
+    @State private var password: String
+    @State private var errorMessage: String
+    @State private var isSigningIn: Bool
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case email
+        case password
+    }
+
+    init(
+        passwordSheetState: Binding<CloudPasswordSheetState?>,
+        onVerified: @escaping (CloudVerifiedAuthContext) -> Void,
+        onReturnToEmail: @escaping () -> Void
+    ) {
+        self._passwordSheetState = passwordSheetState
+        self.onVerified = onVerified
+        self.onReturnToEmail = onReturnToEmail
+        self._email = State(initialValue: passwordSheetState.wrappedValue?.email ?? "")
+        self._password = State(initialValue: "")
+        self._errorMessage = State(initialValue: "")
+        self._isSigningIn = State(initialValue: false)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ReadableContentLayout(
+                maxWidth: flashcardsReadableFormMaxWidth,
+                horizontalPadding: 0
+            ) {
+                Form {
+                    if self.errorMessage.isEmpty == false {
+                        Section {
+                            CopyableErrorMessageView(message: self.errorMessage)
+                        }
+                    }
+
+                    Section("Password sign-in") {
+                        Text("Use this only if your account already has a password.")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Section("Account") {
+                        TextField("Email", text: self.$email)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.emailAddress)
+                            .textContentType(.emailAddress)
+                            .submitLabel(.next)
+                            .focused(self.$focusedField, equals: .email)
+                            .onSubmit {
+                                self.focusedField = .password
+                            }
+
+                        SecureField("Password", text: self.$password)
+                            .textContentType(.password)
+                            .submitLabel(.go)
+                            .focused(self.$focusedField, equals: .password)
+                            .onSubmit {
+                                self.signInWithPassword()
+                            }
+
+                        Button("Sign in") {
+                            self.signInWithPassword()
+                        }
+                        .disabled(
+                            self.isSigningIn
+                                || isValidCloudEmail(self.email) == false
+                                || self.password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
+                    }
+                }
+            }
+            .navigationTitle("Sign in")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Back") {
+                        self.onReturnToEmail()
+                    }
+                    .disabled(self.isSigningIn)
+                }
+
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+
+                    Button("Done") {
+                        self.focusedField = nil
+                    }
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.async {
+                    self.focusedField = self.email.isEmpty ? .email : .password
+                }
+            }
+        }
+    }
+
+    private func signInWithPassword() {
+        self.focusedField = nil
+
+        guard isValidCloudEmail(self.email) else {
+            self.errorMessage = "Enter a valid email address"
+            return
+        }
+
+        if self.password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            self.errorMessage = "Enter your password"
+            return
+        }
+
+        let nextEmail = normalizedCloudEmail(self.email)
+        let nextPassword = self.password
+        self.email = nextEmail
+
+        Task { @MainActor in
+            self.isSigningIn = true
+            defer {
+                self.isSigningIn = false
+            }
+
+            do {
+                let verifiedContext = try await self.store.signInCloudWithPassword(
+                    email: nextEmail,
+                    password: nextPassword
+                )
+                self.errorMessage = ""
+                self.password = ""
+                self.passwordSheetState = nil
+                self.onVerified(verifiedContext)
+            } catch {
+                self.errorMessage = Flashcards.errorMessage(error: error)
+            }
+        }
     }
 }
 

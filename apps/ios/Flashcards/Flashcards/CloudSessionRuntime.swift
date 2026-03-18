@@ -40,6 +40,23 @@ final class CloudSessionRuntime {
         )
     }
 
+    func signInWithPassword(
+        email: String,
+        password: String,
+        configuration: CloudServiceConfiguration
+    ) async throws -> CloudVerifiedAuthContext {
+        let credentials = try await self.cloudAuthService.signInWithPassword(
+            email: email,
+            password: password,
+            authBaseUrl: configuration.authBaseUrl
+        )
+
+        return CloudVerifiedAuthContext(
+            apiBaseUrl: configuration.apiBaseUrl,
+            credentials: credentials
+        )
+    }
+
     func verifyCode(
         challenge: CloudOtpChallenge,
         code: String,
