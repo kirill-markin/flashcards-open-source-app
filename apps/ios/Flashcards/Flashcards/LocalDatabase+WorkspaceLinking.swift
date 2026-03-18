@@ -65,7 +65,17 @@ extension LocalDatabase {
             )
             if syncStateCount == 0 {
                 try self.core.execute(
-                    sql: "INSERT INTO sync_state (workspace_id, last_applied_change_id, updated_at) VALUES (?, 0, ?)",
+                    sql: """
+                    INSERT INTO sync_state (
+                        workspace_id,
+                        last_applied_hot_change_id,
+                        last_applied_review_sequence_id,
+                        has_hydrated_hot_state,
+                        has_hydrated_review_history,
+                        updated_at
+                    )
+                    VALUES (?, 0, 0, 0, 0, ?)
+                    """,
                     values: [
                         .text(linkedSession.workspaceId),
                         .text(nowIsoTimestamp())
@@ -146,8 +156,15 @@ extension LocalDatabase {
 
             try self.core.execute(
                 sql: """
-                INSERT OR REPLACE INTO sync_state (workspace_id, last_applied_change_id, updated_at)
-                VALUES (?, 0, ?)
+                INSERT OR REPLACE INTO sync_state (
+                    workspace_id,
+                    last_applied_hot_change_id,
+                    last_applied_review_sequence_id,
+                    has_hydrated_hot_state,
+                    has_hydrated_review_history,
+                    updated_at
+                )
+                VALUES (?, 0, 0, 0, 0, ?)
                 """,
                 values: [
                     .text(replacementWorkspace.workspaceId),

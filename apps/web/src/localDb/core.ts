@@ -37,9 +37,12 @@ export type WorkspaceSettingsRecord = Readonly<{
 
 export type WorkspaceSyncStateRecord = Readonly<{
   workspaceId: string;
-  lastAppliedChangeId: number;
-  hasHydrated: boolean;
-  hydratedAt: string | null;
+  lastAppliedHotChangeId: number;
+  lastAppliedReviewSequenceId: number;
+  hasHydratedHotState: boolean;
+  hasHydratedReviewHistory: boolean;
+  hotStateHydratedAt: string | null;
+  reviewHistoryHydratedAt: string | null;
   updatedAt: string;
 }>;
 
@@ -59,7 +62,7 @@ export type DatabaseStores =
   | "meta";
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 4;
+const databaseVersion = 6;
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
@@ -146,6 +149,15 @@ function upgradeToVersion4(database: IDBDatabase): void {
   createMetaStore(database);
 }
 
+function upgradeToVersion5(database: IDBDatabase): void {
+  deleteExistingStore(database, "workspaceSyncState");
+  createWorkspaceSyncStateStore(database);
+}
+
+function upgradeToVersion6(database: IDBDatabase): void {
+  upgradeToVersion4(database);
+}
+
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
@@ -154,8 +166,20 @@ export function openDatabase(): Promise<IDBDatabase> {
       reject(describeIndexedDbError("Failed to open IndexedDB", request.error));
     };
 
-    request.onupgradeneeded = () => {
-      upgradeToVersion4(request.result);
+    request.onupgradeneeded = (event) => {
+      const oldVersion = event.oldVersion;
+
+      if (oldVersion < 4) {
+        upgradeToVersion4(request.result);
+      }
+
+      if (oldVersion < 5) {
+        upgradeToVersion5(request.result);
+      }
+
+      if (oldVersion < 6) {
+        upgradeToVersion6(request.result);
+      }
     };
 
     request.onsuccess = () => {
@@ -245,6 +269,24 @@ export async function closeDatabaseAfterWrite(
   } finally {
     database.close();
   }
+}
+
+export function deleteDatabase(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(databaseName);
+
+    request.onerror = () => {
+      reject(describeIndexedDbError("Failed to delete IndexedDB", request.error));
+    };
+
+    request.onsuccess = () => {
+      resolve();
+    };
+
+    request.onblocked = () => {
+      reject(new Error("Failed to delete IndexedDB: delete request was blocked"));
+    };
+  });
 }
 
 export type StoredEntity = StoredCard | Deck | ReviewEvent;

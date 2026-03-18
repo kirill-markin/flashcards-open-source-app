@@ -9,10 +9,13 @@ import { loadDeckById, replaceDecks } from "./decks";
 import { putOutboxRecord, listOutboxRecords } from "./outbox";
 import { loadReviewEventsForSql, replaceReviewEvents } from "./reviews";
 import {
-  loadLastAppliedChangeId,
+  hasHydratedHotState,
+  loadLastAppliedHotChangeId,
+  loadLastAppliedReviewSequenceId,
   loadWorkspaceSettings,
-  setLastAppliedChangeId,
-  setWorkspaceHydrated,
+  setHotStateHydrated,
+  setLastAppliedHotChangeId,
+  setLastAppliedReviewSequenceId,
   putWorkspaceSettings,
 } from "./workspace";
 import { makeCard, makeDeck, workspaceId } from "./testSupport";
@@ -67,8 +70,9 @@ describe("localDb cache", () => {
       lastOperationId: "settings-1",
       updatedAt: "2025-01-01T00:00:00.000Z",
     });
-    await setLastAppliedChangeId(workspaceId, 12);
-    await setWorkspaceHydrated(workspaceId, true);
+    await setLastAppliedHotChangeId(workspaceId, 12);
+    await setLastAppliedReviewSequenceId(workspaceId, 34);
+    await setHotStateHydrated(workspaceId, true);
     await putOutboxRecord({
       operationId: "op-1",
       workspaceId,
@@ -117,7 +121,9 @@ describe("localDb cache", () => {
     expect(await loadCloudSettings()).toBeNull();
     expect(await loadReviewEventsForSql(workspaceId)).toEqual([]);
     expect(await loadWorkspaceSettings(workspaceId)).toBeNull();
-    expect(await loadLastAppliedChangeId(workspaceId)).toBe(0);
+    expect(await loadLastAppliedHotChangeId(workspaceId)).toBe(0);
+    expect(await loadLastAppliedReviewSequenceId(workspaceId)).toBe(0);
+    expect(await hasHydratedHotState(workspaceId)).toBe(false);
   });
 
   it("keeps data isolated across workspaces until the full cache is cleared", async () => {
@@ -186,15 +192,15 @@ describe("localDb cache", () => {
       lastOperationId: "settings-2",
       updatedAt: "2025-01-03T00:00:00.000Z",
     });
-    await setLastAppliedChangeId(workspaceId, 7);
-    await setLastAppliedChangeId(workspaceTwoId, 19);
+    await setLastAppliedHotChangeId(workspaceId, 7);
+    await setLastAppliedHotChangeId(workspaceTwoId, 19);
 
     expect((await loadCardById(workspaceId, "card-1"))?.frontText).toBe("Workspace one");
     expect((await loadCardById(workspaceTwoId, "card-1"))?.frontText).toBe("Workspace two");
     expect((await loadDeckById(workspaceId, "deck-1"))?.workspaceId).toBe(workspaceId);
     expect((await loadDeckById(workspaceTwoId, "deck-1"))?.workspaceId).toBe(workspaceTwoId);
     expect((await loadReviewEventsForSql(workspaceTwoId)).length).toBe(1);
-    expect(await loadLastAppliedChangeId(workspaceId)).toBe(7);
-    expect(await loadLastAppliedChangeId(workspaceTwoId)).toBe(19);
+    expect(await loadLastAppliedHotChangeId(workspaceId)).toBe(7);
+    expect(await loadLastAppliedHotChangeId(workspaceTwoId)).toBe(19);
   });
 });

@@ -9,7 +9,7 @@ enum SQLiteValue {
 }
 
 let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-let localDatabaseSchemaVersion: Int = 7
+let localDatabaseSchemaVersion: Int = 8
 let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 final class DatabaseCore {
@@ -270,6 +270,9 @@ final class DatabaseCore {
             case 6:
                 try self.migrateSchemaVersion6To7()
                 schemaVersion = 7
+            case 7:
+                try self.migrateSchemaVersion7To8()
+                schemaVersion = 8
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -382,8 +385,11 @@ final class DatabaseCore {
         );
 
         CREATE TABLE IF NOT EXISTS sync_state (
-            workspace_id TEXT PRIMARY KEY REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace scope for the global change-feed checkpoint
-            last_applied_change_id INTEGER NOT NULL DEFAULT 0, -- highest global sync.changes checkpoint already pulled into the local mirror
+            workspace_id TEXT PRIMARY KEY REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace scope for hot-state and review-history sync progress
+            last_applied_hot_change_id INTEGER NOT NULL DEFAULT 0, -- highest hot-state change already merged into the local mirror
+            last_applied_review_sequence_id INTEGER NOT NULL DEFAULT 0, -- highest append-only review-history sequence already imported locally
+            has_hydrated_hot_state INTEGER NOT NULL DEFAULT 0, -- whether the blocking current-state bootstrap already completed locally
+            has_hydrated_review_history INTEGER NOT NULL DEFAULT 0, -- whether the background review-history backfill already completed locally
             updated_at TEXT NOT NULL -- last time the local pull cursor state changed
         );
 
@@ -473,6 +479,49 @@ final class DatabaseCore {
     }
 
     private func migrateSchemaVersion6To7() throws {}
+
+    /// The old single-feed sync cursor cannot be translated into the new hot-state
+    /// cursor safely because the backend no longer replays the legacy change log.
+    /// We preserve all local canonical tables and outbox rows, but force the first
+    /// sync on the new app version to start from a fresh hot bootstrap.
+    private func migrateSchemaVersion7To8() throws {
+        try self.execute(
+            sql: """
+            CREATE TABLE sync_state_v8 (
+                workspace_id TEXT PRIMARY KEY REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+                last_applied_hot_change_id INTEGER NOT NULL DEFAULT 0,
+                last_applied_review_sequence_id INTEGER NOT NULL DEFAULT 0,
+                has_hydrated_hot_state INTEGER NOT NULL DEFAULT 0,
+                has_hydrated_review_history INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            values: []
+        )
+        try self.execute(
+            sql: """
+            INSERT INTO sync_state_v8 (
+                workspace_id,
+                last_applied_hot_change_id,
+                last_applied_review_sequence_id,
+                has_hydrated_hot_state,
+                has_hydrated_review_history,
+                updated_at
+            )
+            SELECT
+                workspace_id,
+                0,
+                0,
+                0,
+                0,
+                updated_at
+            FROM sync_state
+            """,
+            values: []
+        )
+        try self.execute(sql: "DROP TABLE sync_state", values: [])
+        try self.execute(sql: "ALTER TABLE sync_state_v8 RENAME TO sync_state", values: [])
+    }
 
     /**
      Rebuilds the normalized tag read model from canonical card rows so future
@@ -581,10 +630,13 @@ final class DatabaseCore {
                 sql: """
                 INSERT INTO sync_state (
                     workspace_id,
-                    last_applied_change_id,
+                    last_applied_hot_change_id,
+                    last_applied_review_sequence_id,
+                    has_hydrated_hot_state,
+                    has_hydrated_review_history,
                     updated_at
                 )
-                VALUES (?, 0, ?)
+                VALUES (?, 0, 0, 0, 0, ?)
                 """,
                 values: [
                     .text(workspaceId),

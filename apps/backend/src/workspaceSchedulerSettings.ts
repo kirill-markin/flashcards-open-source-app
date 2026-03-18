@@ -174,10 +174,6 @@ function toWorkspaceSchedulerLwwMetadata(
   };
 }
 
-function toWorkspaceSchedulerPayloadJson(settings: WorkspaceSchedulerSettings): string {
-  return JSON.stringify(settings);
-}
-
 async function recordWorkspaceSchedulerSyncChange(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -191,7 +187,7 @@ async function recordWorkspaceSchedulerSyncChange(
     "upsert",
     settings.lastModifiedByDeviceId,
     settings.lastOperationId,
-    toWorkspaceSchedulerPayloadJson(settings),
+    settings.clientUpdatedAt,
   );
 }
 

@@ -132,7 +132,7 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
         return makeQueryResult<Row>([]);
       }
 
-      if (text.includes("INSERT INTO sync.changes")) {
+      if (text.includes("INSERT INTO sync.hot_changes")) {
         syncChangeInsertCount += 1;
         return makeQueryResult<Row>([{
           change_id: 1,
@@ -206,7 +206,7 @@ test("ensureUserProfileInExecutor repairs missing selected workspace with earlie
         text.includes("INSERT INTO org.workspaces")
         || text.includes("INSERT INTO sync.devices")
         || text.includes("INSERT INTO org.workspace_memberships")
-        || text.includes("INSERT INTO sync.changes")
+        || text.includes("INSERT INTO sync.hot_changes")
       ) {
         throw new Error("Workspace auto-provisioning should not run for users with existing memberships");
       }
@@ -313,7 +313,7 @@ test("ensureUserProfileInExecutor reuses existing membership when selection is e
         text.includes("INSERT INTO org.workspaces")
         || text.includes("INSERT INTO sync.devices")
         || text.includes("INSERT INTO org.workspace_memberships")
-        || text.includes("INSERT INTO sync.changes")
+        || text.includes("INSERT INTO sync.hot_changes")
       ) {
         throw new Error("Workspace auto-provisioning should not run when a membership already exists");
       }

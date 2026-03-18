@@ -108,14 +108,6 @@ export function toCardLwwMetadata(card: Card): CardMutationMetadata {
   };
 }
 
-export function toReviewEventPayloadJson(reviewEvent: ReviewEvent): string {
-  return JSON.stringify(reviewEvent);
-}
-
-export function toCardPayloadJson(card: Card): string {
-  return JSON.stringify(card);
-}
-
 export async function recordCardSyncChange(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -129,7 +121,7 @@ export async function recordCardSyncChange(
     "upsert",
     card.lastModifiedByDeviceId,
     card.lastOperationId,
-    toCardPayloadJson(card),
+    card.clientUpdatedAt,
   );
 }
 

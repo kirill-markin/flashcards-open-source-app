@@ -654,14 +654,28 @@ final class CloudSupportTests: XCTestCase {
                         "entityType": entityType,
                         "entityId": entityId,
                         "status": "applied",
-                        "resultingChangeId": 1
+                        "resultingHotChangeId": 1,
+                        "error": NSNull()
                     ]
                 }
                 let data = try JSONSerialization.data(withJSONObject: ["operations": results])
                 return (response, data)
             }
 
-            XCTAssertTrue(url.path.hasSuffix("/sync/pull"))
+            if url.path.hasSuffix("/sync/pull") {
+                let response = HTTPURLResponse(
+                    url: url,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                let data = """
+                {"changes":[],"nextHotChangeId":0,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            XCTAssertTrue(url.path.hasSuffix("/sync/review-history/pull"))
             let response = HTTPURLResponse(
                 url: url,
                 statusCode: 200,
@@ -669,12 +683,14 @@ final class CloudSupportTests: XCTestCase {
                 headerFields: ["Content-Type": "application/json"]
             )!
             let data = """
-            {"changes":[],"nextChangeId":0,"hasMore":false}
+            {"reviewEvents":[],"nextReviewSequenceId":0,"hasMore":false}
             """.data(using: .utf8)!
             return (response, data)
         }
 
         let service = CloudSyncService(database: database, session: self.makeSession())
+        try database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        try database.setHasHydratedReviewHistory(workspaceId: workspaceId, hasHydratedReviewHistory: true)
 
         _ = try await service.runLinkedSync(
             linkedSession: CloudLinkedSession(
@@ -693,7 +709,8 @@ final class CloudSupportTests: XCTestCase {
             requestPaths,
             [
                 "/v1/workspaces/\(workspaceId)/sync/push",
-                "/v1/workspaces/\(workspaceId)/sync/pull"
+                "/v1/workspaces/\(workspaceId)/sync/pull",
+                "/v1/workspaces/\(workspaceId)/sync/review-history/pull"
             ]
         )
         XCTAssertEqual(pushedEntityTypes.filter { $0 == "review_event" }.count, 0)
@@ -736,7 +753,20 @@ final class CloudSupportTests: XCTestCase {
             let url = try XCTUnwrap(request.url)
             recorder.appendPath(url.path)
 
-            XCTAssertTrue(url.path.hasSuffix("/sync/pull"))
+            if url.path.hasSuffix("/sync/pull") {
+                let response = HTTPURLResponse(
+                    url: url,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                let data = """
+                {"changes":[],"nextHotChangeId":0,"hasMore":false}
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            XCTAssertTrue(url.path.hasSuffix("/sync/review-history/pull"))
             let response = HTTPURLResponse(
                 url: url,
                 statusCode: 200,
@@ -744,12 +774,14 @@ final class CloudSupportTests: XCTestCase {
                 headerFields: ["Content-Type": "application/json"]
             )!
             let data = """
-            {"changes":[],"nextChangeId":0,"hasMore":false}
+            {"reviewEvents":[],"nextReviewSequenceId":0,"hasMore":false}
             """.data(using: .utf8)!
             return (response, data)
         }
 
         let service = CloudSyncService(database: database, session: self.makeSession())
+        try database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        try database.setHasHydratedReviewHistory(workspaceId: workspaceId, hasHydratedReviewHistory: true)
 
         _ = try await service.runLinkedSync(
             linkedSession: CloudLinkedSession(
@@ -763,7 +795,10 @@ final class CloudSupportTests: XCTestCase {
         )
 
         let requestPaths = recorder.requestPaths
-        XCTAssertEqual(requestPaths, ["/v1/workspaces/\(workspaceId)/sync/pull"])
+        XCTAssertEqual(requestPaths, [
+            "/v1/workspaces/\(workspaceId)/sync/pull",
+            "/v1/workspaces/\(workspaceId)/sync/review-history/pull",
+        ])
         XCTAssertEqual(try database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).count, 0)
         XCTAssertEqual(try database.loadReviewEvents(workspaceId: workspaceId).count, 1)
     }
@@ -805,7 +840,8 @@ final class CloudSupportTests: XCTestCase {
                         "entityType": entityType,
                         "entityId": entityId,
                         "status": "applied",
-                        "resultingChangeId": 1
+                        "resultingHotChangeId": 1,
+                        "error": NSNull()
                     ]
                 }
 
@@ -813,13 +849,19 @@ final class CloudSupportTests: XCTestCase {
                 return (response, data)
             }
 
-            let data = """
-            {"changes":[],"nextChangeId":0,"hasMore":false}
-            """.data(using: .utf8)!
+            let data = url.path.hasSuffix("/sync/pull")
+                ? """
+                {"changes":[],"nextHotChangeId":0,"hasMore":false}
+                """.data(using: .utf8)!
+                : """
+                {"reviewEvents":[],"nextReviewSequenceId":0,"hasMore":false}
+                """.data(using: .utf8)!
             return (response, data)
         }
 
         let service = CloudSyncService(database: database, session: self.makeSession())
+        try database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        try database.setHasHydratedReviewHistory(workspaceId: workspaceId, hasHydratedReviewHistory: true)
 
         _ = try await Task.detached {
             try await service.runLinkedSync(

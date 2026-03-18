@@ -86,8 +86,40 @@ private struct PullRequest: Encodable {
     let deviceId: String
     let platform: String
     let appVersion: String
-    let afterChangeId: Int64
+    let afterHotChangeId: Int64
     let limit: Int
+}
+
+private struct BootstrapPullRequest: Encodable {
+    let mode: String
+    let deviceId: String
+    let platform: String
+    let appVersion: String
+    let cursor: String?
+    let limit: Int
+}
+
+private struct BootstrapPushRequest: Encodable {
+    let mode: String
+    let deviceId: String
+    let platform: String
+    let appVersion: String
+    let entries: [SyncBootstrapEntryEnvelope]
+}
+
+private struct ReviewHistoryPullRequest: Encodable {
+    let deviceId: String
+    let platform: String
+    let appVersion: String
+    let afterReviewSequenceId: Int64
+    let limit: Int
+}
+
+private struct ReviewHistoryImportRequest: Encodable {
+    let deviceId: String
+    let platform: String
+    let appVersion: String
+    let reviewEvents: [ReviewEvent]
 }
 
 private let collectionPageLimit: Int = 100
@@ -120,6 +152,33 @@ private struct SyncOperationEnvelope: Encodable {
         case .workspaceSchedulerSettings(let payload):
             try container.encode(payload, forKey: .payload)
         case .reviewEvent(let payload):
+            try container.encode(payload, forKey: .payload)
+        }
+    }
+}
+
+private struct SyncBootstrapEntryEnvelope: Encodable {
+    let entry: SyncBootstrapEntry
+
+    enum CodingKeys: String, CodingKey {
+        case entityType
+        case entityId
+        case action
+        case payload
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(entry.entityType, forKey: .entityType)
+        try container.encode(entry.entityId, forKey: .entityId)
+        try container.encode(entry.action, forKey: .action)
+
+        switch entry.payload {
+        case .card(let payload):
+            try container.encode(payload, forKey: .payload)
+        case .deck(let payload):
+            try container.encode(payload, forKey: .payload)
+        case .workspaceSchedulerSettings(let payload):
             try container.encode(payload, forKey: .payload)
         }
     }
@@ -183,11 +242,44 @@ private struct RemoteReviewEventChangePayload: Decodable {
     let reviewedAtServer: String
 }
 
-private enum RemoteSyncChangePayload {
+private enum RemoteSyncBootstrapEntryPayload {
     case card(RemoteCardChangePayload)
     case deck(RemoteDeckChangePayload)
     case workspaceSchedulerSettings(RemoteWorkspaceSchedulerSettingsChangePayload)
-    case reviewEvent(RemoteReviewEventChangePayload)
+}
+
+private struct RemoteSyncBootstrapEntryEnvelope: Decodable {
+    let entityType: SyncEntityType
+    let entityId: String
+    let action: SyncAction
+    let payload: RemoteSyncBootstrapEntryPayload
+
+    enum CodingKeys: String, CodingKey {
+        case entityType
+        case entityId
+        case action
+        case payload
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.entityType = try container.decode(SyncEntityType.self, forKey: .entityType)
+        self.entityId = try container.decode(String.self, forKey: .entityId)
+        self.action = try container.decode(SyncAction.self, forKey: .action)
+
+        switch self.entityType {
+        case .card:
+            self.payload = .card(try container.decode(RemoteCardChangePayload.self, forKey: .payload))
+        case .deck:
+            self.payload = .deck(try container.decode(RemoteDeckChangePayload.self, forKey: .payload))
+        case .workspaceSchedulerSettings:
+            self.payload = .workspaceSchedulerSettings(
+                try container.decode(RemoteWorkspaceSchedulerSettingsChangePayload.self, forKey: .payload)
+            )
+        case .reviewEvent:
+            throw LocalStoreError.validation("Hot-state sync payload unexpectedly contained review_event")
+        }
+    }
 }
 
 private struct RemoteSyncChangeEnvelope: Decodable {
@@ -195,7 +287,7 @@ private struct RemoteSyncChangeEnvelope: Decodable {
     let entityType: SyncEntityType
     let entityId: String
     let action: SyncAction
-    let payload: RemoteSyncChangePayload
+    let payload: RemoteSyncBootstrapEntryPayload
 
     enum CodingKeys: String, CodingKey {
         case changeId
@@ -222,17 +314,51 @@ private struct RemoteSyncChangeEnvelope: Decodable {
                 try container.decode(RemoteWorkspaceSchedulerSettingsChangePayload.self, forKey: .payload)
             )
         case .reviewEvent:
-            self.payload = .reviewEvent(
-                try container.decode(RemoteReviewEventChangePayload.self, forKey: .payload)
-            )
+            throw LocalStoreError.validation("Hot-state sync payload unexpectedly contained review_event")
         }
     }
 }
 
 private struct RemotePullResponseEnvelope: Decodable {
     let changes: [RemoteSyncChangeEnvelope]
-    let nextChangeId: Int64
+    let nextHotChangeId: Int64
     let hasMore: Bool
+}
+
+private struct RemoteBootstrapPullResponseEnvelope: Decodable {
+    let entries: [RemoteSyncBootstrapEntryEnvelope]
+    let nextCursor: String?
+    let hasMore: Bool
+    let bootstrapHotChangeId: Int64
+    let remoteIsEmpty: Bool
+}
+
+private struct RemoteBootstrapPushResponseEnvelope: Decodable {
+    let appliedEntriesCount: Int
+    let bootstrapHotChangeId: Int64?
+}
+
+private struct RemoteReviewHistoryPullResponseEnvelope: Decodable {
+    let reviewEvents: [RemoteReviewEventEnvelope]
+    let nextReviewSequenceId: Int64
+    let hasMore: Bool
+}
+
+private struct RemoteReviewHistoryImportResponseEnvelope: Decodable {
+    let importedCount: Int
+    let duplicateCount: Int
+    let nextReviewSequenceId: Int64?
+}
+
+private struct RemoteReviewEventEnvelope: Decodable {
+    let reviewEventId: String
+    let workspaceId: String
+    let cardId: String
+    let deviceId: String
+    let clientEventId: String
+    let rating: ReviewRating
+    let reviewedAtClient: String
+    let reviewedAtServer: String
 }
 
 private func makeCard(workspaceId: String, payload: RemoteCardChangePayload) -> Card {
@@ -306,6 +432,48 @@ private func makeReviewEvent(workspaceId: String, payload: RemoteReviewEventChan
     )
 }
 
+private func makeReviewEvent(payload: RemoteReviewEventEnvelope) -> ReviewEvent {
+    ReviewEvent(
+        reviewEventId: payload.reviewEventId,
+        workspaceId: payload.workspaceId,
+        cardId: payload.cardId,
+        deviceId: payload.deviceId,
+        clientEventId: payload.clientEventId,
+        rating: payload.rating,
+        reviewedAtClient: payload.reviewedAtClient,
+        reviewedAtServer: payload.reviewedAtServer
+    )
+}
+
+private func makeSyncBootstrapEntry(
+    workspaceId: String,
+    entry: RemoteSyncBootstrapEntryEnvelope
+) -> SyncBootstrapEntry {
+    switch entry.payload {
+    case .card(let payload):
+        return SyncBootstrapEntry(
+            entityType: entry.entityType,
+            entityId: entry.entityId,
+            action: entry.action,
+            payload: .card(makeCard(workspaceId: workspaceId, payload: payload))
+        )
+    case .deck(let payload):
+        return SyncBootstrapEntry(
+            entityType: entry.entityType,
+            entityId: entry.entityId,
+            action: entry.action,
+            payload: .deck(makeDeck(workspaceId: workspaceId, payload: payload))
+        )
+    case .workspaceSchedulerSettings(let payload):
+        return SyncBootstrapEntry(
+            entityType: entry.entityType,
+            entityId: entry.entityId,
+            action: entry.action,
+            payload: .workspaceSchedulerSettings(makeWorkspaceSchedulerSettings(payload: payload))
+        )
+    }
+}
+
 private func makeSyncChange(workspaceId: String, change: RemoteSyncChangeEnvelope) -> SyncChange {
     switch change.payload {
     case .card(let payload):
@@ -331,14 +499,6 @@ private func makeSyncChange(workspaceId: String, change: RemoteSyncChangeEnvelop
             entityId: change.entityId,
             action: change.action,
             payload: .workspaceSchedulerSettings(makeWorkspaceSchedulerSettings(payload: payload))
-        )
-    case .reviewEvent(let payload):
-        return SyncChange(
-            changeId: change.changeId,
-            entityType: change.entityType,
-            entityId: change.entityId,
-            action: change.action,
-            payload: .reviewEvent(makeReviewEvent(workspaceId: workspaceId, payload: payload))
         )
     }
 }
@@ -516,23 +676,22 @@ final class CloudSyncService: @unchecked Sendable {
         workspaceId: String,
         deviceId: String
     ) async throws -> Bool {
-        let pullEnvelope: RemotePullResponseEnvelope = try await self.request(
+        let bootstrapEnvelope: RemoteBootstrapPullResponseEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
             bearerToken: bearerToken,
-            path: "/workspaces/\(workspaceId)/sync/pull",
+            path: "/workspaces/\(workspaceId)/sync/bootstrap",
             method: "POST",
-            body: PullRequest(
+            body: BootstrapPullRequest(
+                mode: "pull",
                 deviceId: deviceId,
                 platform: "ios",
                 appVersion: self.appVersion(),
-                afterChangeId: 0,
+                cursor: nil,
                 limit: 1
             )
         )
 
-        return pullEnvelope.changes.isEmpty
-            && pullEnvelope.nextChangeId == 0
-            && pullEnvelope.hasMore == false
+        return bootstrapEnvelope.remoteIsEmpty
     }
 
     func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws {
@@ -555,46 +714,272 @@ final class CloudSyncService: @unchecked Sendable {
         let syncBasePath = "/workspaces/\(workspaceId)/sync"
         var syncResult = CloudSyncResult.noChanges
 
-        while true {
-            let removedReviewEventCount = try self.database.deleteStaleReviewEventOutboxEntries(workspaceId: workspaceId)
-            if removedReviewEventCount > 0 {
-                syncResult = syncResult.merging(
-                    CloudSyncResult(
-                        appliedPullChangeCount: 0,
-                        changedEntityTypes: [],
-                        acknowledgedOperationCount: 0,
-                        cleanedUpOperationCount: removedReviewEventCount
-                    )
+        let removedReviewEventCount = try self.database.deleteStaleReviewEventOutboxEntries(workspaceId: workspaceId)
+        if removedReviewEventCount > 0 {
+            syncResult = syncResult.merging(
+                CloudSyncResult(
+                    appliedPullChangeCount: 0,
+                    changedEntityTypes: [],
+                    acknowledgedOperationCount: 0,
+                    cleanedUpOperationCount: removedReviewEventCount
                 )
-                logCloudFlowPhase(
-                    phase: .initialPush,
-                    outcome: "self_heal",
+            )
+            logCloudFlowPhase(
+                phase: .initialPush,
+                outcome: "self_heal",
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                operationsCount: removedReviewEventCount
+            )
+        }
+
+        if try self.database.hasHydratedHotState(workspaceId: workspaceId) == false {
+            syncResult = syncResult.merging(
+                try await self.performInitialHotStateSync(
+                    linkedSession: linkedSession,
                     workspaceId: workspaceId,
                     deviceId: cloudSettings.deviceId,
-                    operationsCount: removedReviewEventCount
+                    syncBasePath: syncBasePath
+                )
+            )
+        }
+
+        syncResult = syncResult.merging(
+            try await self.pushOutboxBatches(
+                linkedSession: linkedSession,
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                syncBasePath: syncBasePath
+            )
+        )
+        syncResult = syncResult.merging(
+            try await self.pullHotChanges(
+                linkedSession: linkedSession,
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                syncBasePath: syncBasePath
+            )
+        )
+        syncResult = syncResult.merging(
+            try await self.pullReviewHistory(
+                linkedSession: linkedSession,
+                workspaceId: workspaceId,
+                deviceId: cloudSettings.deviceId,
+                syncBasePath: syncBasePath
+            )
+        )
+
+        return syncResult
+    }
+
+    /// Bootstraps the blocking mutable current state first. If the remote workspace
+    /// is empty, the local workspace becomes the source of truth through bootstrap
+    /// push/import instead of replaying the entire outbox through normal sync/push.
+    private func performInitialHotStateSync(
+        linkedSession: CloudLinkedSession,
+        workspaceId: String,
+        deviceId: String,
+        syncBasePath: String
+    ) async throws -> CloudSyncResult {
+        let firstPage: RemoteBootstrapPullResponseEnvelope = try await self.request(
+            apiBaseUrl: linkedSession.apiBaseUrl,
+            bearerToken: linkedSession.bearerToken,
+            path: "\(syncBasePath)/bootstrap",
+            method: "POST",
+            body: BootstrapPullRequest(
+                mode: "pull",
+                deviceId: deviceId,
+                platform: "ios",
+                appVersion: self.appVersion(),
+                cursor: nil,
+                limit: 200
+            )
+        )
+
+        if firstPage.remoteIsEmpty {
+            return try await self.bootstrapEmptyRemoteWorkspace(
+                linkedSession: linkedSession,
+                workspaceId: workspaceId,
+                deviceId: deviceId,
+                syncBasePath: syncBasePath
+            )
+        }
+
+        var appliedPullChangeCount = 0
+        var changedEntityTypes = Set<SyncEntityType>()
+        var currentPage = firstPage
+
+        while true {
+            for entry in currentPage.entries {
+                try self.database.applySyncBootstrapEntry(
+                    workspaceId: workspaceId,
+                    entry: makeSyncBootstrapEntry(workspaceId: workspaceId, entry: entry)
+                )
+                appliedPullChangeCount += 1
+                changedEntityTypes.insert(entry.entityType)
+            }
+
+            if currentPage.hasMore == false {
+                try self.database.setLastAppliedHotChangeId(
+                    workspaceId: workspaceId,
+                    changeId: currentPage.bootstrapHotChangeId
+                )
+                try self.database.setHasHydratedHotState(
+                    workspaceId: workspaceId,
+                    hasHydratedHotState: true
+                )
+                return CloudSyncResult(
+                    appliedPullChangeCount: appliedPullChangeCount,
+                    changedEntityTypes: changedEntityTypes,
+                    acknowledgedOperationCount: 0,
+                    cleanedUpOperationCount: 0
                 )
             }
 
+            guard let nextCursor = currentPage.nextCursor else {
+                throw LocalStoreError.database("Bootstrap cursor is missing while more bootstrap pages remain")
+            }
+
+            currentPage = try await self.request(
+                apiBaseUrl: linkedSession.apiBaseUrl,
+                bearerToken: linkedSession.bearerToken,
+                path: "\(syncBasePath)/bootstrap",
+                method: "POST",
+                body: BootstrapPullRequest(
+                    mode: "pull",
+                    deviceId: deviceId,
+                    platform: "ios",
+                    appVersion: self.appVersion(),
+                    cursor: nextCursor,
+                    limit: 200
+                )
+            )
+        }
+    }
+
+    private func bootstrapEmptyRemoteWorkspace(
+        linkedSession: CloudLinkedSession,
+        workspaceId: String,
+        deviceId: String,
+        syncBasePath: String
+    ) async throws -> CloudSyncResult {
+        let bootstrapEntries = try self.database.loadHotBootstrapEntries(workspaceId: workspaceId)
+        let reviewEvents = try self.database.loadReviewEvents(workspaceId: workspaceId)
+        let pendingOutboxCount = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max).count
+
+        var bootstrapHotChangeId: Int64 = 0
+        if bootstrapEntries.isEmpty == false {
+            var startIndex = 0
+            while startIndex < bootstrapEntries.count {
+                let endIndex = min(startIndex + 200, bootstrapEntries.count)
+                let response: RemoteBootstrapPushResponseEnvelope = try await self.request(
+                    apiBaseUrl: linkedSession.apiBaseUrl,
+                    bearerToken: linkedSession.bearerToken,
+                    path: "\(syncBasePath)/bootstrap",
+                    method: "POST",
+                    body: BootstrapPushRequest(
+                        mode: "push",
+                        deviceId: deviceId,
+                        platform: "ios",
+                        appVersion: self.appVersion(),
+                        entries: bootstrapEntries[startIndex..<endIndex].map { entry in
+                            SyncBootstrapEntryEnvelope(entry: entry)
+                        }
+                    )
+                )
+                guard let responseHotChangeId = response.bootstrapHotChangeId else {
+                    throw LocalStoreError.validation("Bootstrap push response is missing bootstrapHotChangeId")
+                }
+
+                bootstrapHotChangeId = responseHotChangeId
+                startIndex = endIndex
+            }
+        }
+
+        var nextReviewSequenceId: Int64 = 0
+        if reviewEvents.isEmpty == false {
+            var startIndex = 0
+            while startIndex < reviewEvents.count {
+                let endIndex = min(startIndex + 200, reviewEvents.count)
+                let response: RemoteReviewHistoryImportResponseEnvelope = try await self.request(
+                    apiBaseUrl: linkedSession.apiBaseUrl,
+                    bearerToken: linkedSession.bearerToken,
+                    path: "\(syncBasePath)/review-history/import",
+                    method: "POST",
+                    body: ReviewHistoryImportRequest(
+                        deviceId: deviceId,
+                        platform: "ios",
+                        appVersion: self.appVersion(),
+                        reviewEvents: Array(reviewEvents[startIndex..<endIndex])
+                    )
+                )
+                guard let responseReviewSequenceId = response.nextReviewSequenceId else {
+                    throw LocalStoreError.validation("Review history import response is missing nextReviewSequenceId")
+                }
+
+                nextReviewSequenceId = responseReviewSequenceId
+                startIndex = endIndex
+            }
+        }
+
+        try self.database.deleteAllOutboxEntries(workspaceId: workspaceId)
+        try self.database.setLastAppliedHotChangeId(
+            workspaceId: workspaceId,
+            changeId: bootstrapHotChangeId
+        )
+        try self.database.setLastAppliedReviewSequenceId(
+            workspaceId: workspaceId,
+            reviewSequenceId: nextReviewSequenceId
+        )
+        try self.database.setHasHydratedHotState(workspaceId: workspaceId, hasHydratedHotState: true)
+        try self.database.setHasHydratedReviewHistory(
+            workspaceId: workspaceId,
+            hasHydratedReviewHistory: true
+        )
+
+        var changedEntityTypes = Set<SyncEntityType>()
+        if bootstrapEntries.isEmpty == false {
+            changedEntityTypes.formUnion(bootstrapEntries.map(\.entityType))
+        }
+        if reviewEvents.isEmpty == false {
+            changedEntityTypes.insert(.reviewEvent)
+        }
+
+        return CloudSyncResult(
+            appliedPullChangeCount: 0,
+            changedEntityTypes: changedEntityTypes,
+            acknowledgedOperationCount: 0,
+            cleanedUpOperationCount: pendingOutboxCount
+        )
+    }
+
+    private func pushOutboxBatches(
+        linkedSession: CloudLinkedSession,
+        workspaceId: String,
+        deviceId: String,
+        syncBasePath: String
+    ) async throws -> CloudSyncResult {
+        var acknowledgedOperationCount = 0
+
+        while true {
             let outboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
             if outboxEntries.isEmpty {
-                break
+                return CloudSyncResult(
+                    appliedPullChangeCount: 0,
+                    changedEntityTypes: [],
+                    acknowledgedOperationCount: acknowledgedOperationCount,
+                    cleanedUpOperationCount: 0
+                )
             }
 
             do {
-                logCloudFlowPhase(
-                    phase: .initialPush,
-                    outcome: "start",
-                    workspaceId: workspaceId,
-                    deviceId: cloudSettings.deviceId,
-                    operationsCount: outboxEntries.count
-                )
                 let pushResponse: SyncPushResponse = try await self.request(
                     apiBaseUrl: linkedSession.apiBaseUrl,
                     bearerToken: linkedSession.bearerToken,
                     path: "\(syncBasePath)/push",
                     method: "POST",
                     body: PushRequest(
-                        deviceId: cloudSettings.deviceId,
+                        deviceId: deviceId,
                         platform: "ios",
                         appVersion: self.appVersion(),
                         operations: outboxEntries.map { entry in
@@ -603,63 +988,67 @@ final class CloudSyncService: @unchecked Sendable {
                     )
                 )
 
-                try self.database.deleteOutboxEntries(
-                    operationIds: pushResponse.operations.map { result in
-                        result.operationId
+                let acknowledgedOperationIds = pushResponse.operations.compactMap { result -> String? in
+                    switch result.status {
+                    case "applied", "ignored", "duplicate":
+                        return result.operationId
+                    case "rejected":
+                        return nil
+                    default:
+                        return nil
                     }
-                )
-                syncResult = syncResult.merging(
-                    CloudSyncResult(
-                        appliedPullChangeCount: 0,
-                        changedEntityTypes: [],
-                        acknowledgedOperationCount: pushResponse.operations.count,
-                        cleanedUpOperationCount: 0
+                }
+                let rejectedResults = pushResponse.operations.filter { result in
+                    result.status == "rejected"
+                }
+
+                if acknowledgedOperationIds.isEmpty == false {
+                    try self.database.deleteOutboxEntries(operationIds: acknowledgedOperationIds)
+                    acknowledgedOperationCount += acknowledgedOperationIds.count
+                }
+
+                if rejectedResults.isEmpty == false {
+                    let rejectionMessage = rejectedResults.map { result in
+                        let errorMessage = result.error ?? "Unknown rejection"
+                        return "\(result.operationId): \(errorMessage)"
+                    }.joined(separator: "; ")
+                    try self.database.markOutboxEntriesFailed(
+                        operationIds: rejectedResults.map(\.operationId),
+                        message: rejectionMessage
                     )
-                )
-                logCloudFlowPhase(
-                    phase: .initialPush,
-                    outcome: "success",
-                    workspaceId: workspaceId,
-                    deviceId: cloudSettings.deviceId,
-                    operationsCount: pushResponse.operations.count
-                )
+                    throw LocalStoreError.validation("Cloud sync rejected one or more operations: \(rejectionMessage)")
+                }
             } catch {
                 try self.database.markOutboxEntriesFailed(
-                    operationIds: outboxEntries.map { entry in
-                        entry.operationId
-                    },
+                    operationIds: outboxEntries.map(\.operationId),
                     message: error.localizedDescription
-                )
-                logCloudFlowPhase(
-                    phase: .initialPush,
-                    outcome: "failure",
-                    workspaceId: workspaceId,
-                    deviceId: cloudSettings.deviceId,
-                    operationsCount: outboxEntries.count,
-                    errorMessage: Flashcards.errorMessage(error: error)
                 )
                 throw error
             }
         }
+    }
 
-        var afterChangeId = try self.database.loadLastAppliedChangeId(workspaceId: workspaceId)
+    private func pullHotChanges(
+        linkedSession: CloudLinkedSession,
+        workspaceId: String,
+        deviceId: String,
+        syncBasePath: String
+    ) async throws -> CloudSyncResult {
+        var afterHotChangeId = try self.database.loadLastAppliedHotChangeId(workspaceId: workspaceId)
+        var appliedPullChangeCount = 0
+        var changedEntityTypes = Set<SyncEntityType>()
+
         while true {
-            logCloudFlowPhase(
-                phase: .initialPull,
-                outcome: "start",
-                workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId
-            )
             let pullEnvelope: RemotePullResponseEnvelope = try await self.request(
                 apiBaseUrl: linkedSession.apiBaseUrl,
                 bearerToken: linkedSession.bearerToken,
                 path: "\(syncBasePath)/pull",
                 method: "POST",
                 body: PullRequest(
-                    deviceId: cloudSettings.deviceId,
+                    deviceId: deviceId,
                     platform: "ios",
                     appVersion: self.appVersion(),
-                    afterChangeId: afterChangeId,
+                    afterHotChangeId: afterHotChangeId,
                     limit: 200
                 )
             )
@@ -669,32 +1058,81 @@ final class CloudSyncService: @unchecked Sendable {
                     workspaceId: workspaceId,
                     change: makeSyncChange(workspaceId: workspaceId, change: change)
                 )
+                changedEntityTypes.insert(change.entityType)
             }
-            syncResult = syncResult.merging(
-                CloudSyncResult(
-                    appliedPullChangeCount: pullEnvelope.changes.count,
-                    changedEntityTypes: Set(pullEnvelope.changes.map(\.entityType)),
-                    acknowledgedOperationCount: 0,
-                    cleanedUpOperationCount: 0
-                )
-            )
 
-            afterChangeId = pullEnvelope.nextChangeId
-            try self.database.setLastAppliedChangeId(workspaceId: workspaceId, changeId: afterChangeId)
-            logCloudFlowPhase(
-                phase: .initialPull,
-                outcome: "success",
+            appliedPullChangeCount += pullEnvelope.changes.count
+            afterHotChangeId = pullEnvelope.nextHotChangeId
+            try self.database.setLastAppliedHotChangeId(
                 workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
-                changesCount: pullEnvelope.changes.count
+                changeId: afterHotChangeId
             )
 
             if pullEnvelope.hasMore == false {
-                break
+                return CloudSyncResult(
+                    appliedPullChangeCount: appliedPullChangeCount,
+                    changedEntityTypes: changedEntityTypes,
+                    acknowledgedOperationCount: 0,
+                    cleanedUpOperationCount: 0
+                )
             }
         }
+    }
 
-        return syncResult
+    private func pullReviewHistory(
+        linkedSession: CloudLinkedSession,
+        workspaceId: String,
+        deviceId: String,
+        syncBasePath: String
+    ) async throws -> CloudSyncResult {
+        var afterReviewSequenceId = try self.database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId)
+        var appliedReviewEventCount = 0
+
+        while true {
+            let reviewHistoryEnvelope: RemoteReviewHistoryPullResponseEnvelope = try await self.request(
+                apiBaseUrl: linkedSession.apiBaseUrl,
+                bearerToken: linkedSession.bearerToken,
+                path: "\(syncBasePath)/review-history/pull",
+                method: "POST",
+                body: ReviewHistoryPullRequest(
+                    deviceId: deviceId,
+                    platform: "ios",
+                    appVersion: self.appVersion(),
+                    afterReviewSequenceId: afterReviewSequenceId,
+                    limit: 200
+                )
+            )
+
+            for reviewEvent in reviewHistoryEnvelope.reviewEvents {
+                try self.database.applyReviewHistoryEvent(
+                    workspaceId: workspaceId,
+                    reviewEvent: makeReviewEvent(payload: reviewEvent)
+                )
+            }
+
+            appliedReviewEventCount += reviewHistoryEnvelope.reviewEvents.count
+            afterReviewSequenceId = reviewHistoryEnvelope.nextReviewSequenceId
+            try self.database.setLastAppliedReviewSequenceId(
+                workspaceId: workspaceId,
+                reviewSequenceId: afterReviewSequenceId
+            )
+
+            if reviewHistoryEnvelope.hasMore == false {
+                if try self.database.hasHydratedReviewHistory(workspaceId: workspaceId) == false {
+                    try self.database.setHasHydratedReviewHistory(
+                        workspaceId: workspaceId,
+                        hasHydratedReviewHistory: true
+                    )
+                }
+
+                return CloudSyncResult(
+                    appliedPullChangeCount: appliedReviewEventCount,
+                    changedEntityTypes: appliedReviewEventCount == 0 ? [] : [.reviewEvent],
+                    acknowledgedOperationCount: 0,
+                    cleanedUpOperationCount: 0
+                )
+            }
+        }
     }
 
     private func appVersion() -> String {
@@ -795,6 +1233,18 @@ final class CloudSyncService: @unchecked Sendable {
 
         if path.hasSuffix("/sync/push") {
             return .initialPush
+        }
+
+        if path.hasSuffix("/sync/bootstrap") {
+            return .initialPull
+        }
+
+        if path.hasSuffix("/sync/review-history/import") {
+            return .initialPush
+        }
+
+        if path.hasSuffix("/sync/review-history/pull") {
+            return .initialPull
         }
 
         if path.hasSuffix("/sync/pull") {

@@ -5,7 +5,6 @@ import {
   computeReviewSchedule,
   type ReviewableCardScheduleState,
 } from "../schedule";
-import { findLatestSyncChangeId, insertSyncChange } from "../syncChanges";
 import { getWorkspaceSchedulerConfig } from "../workspaceSchedulerSettings";
 import { validateOrResetReviewableCardRow } from "./fsrs";
 import {
@@ -16,7 +15,6 @@ import {
   normalizeCardMutationMetadata,
   recordCardSyncChange,
   toDate,
-  toReviewEventPayloadJson,
 } from "./shared";
 import type {
   CardMutationMetadata,
@@ -101,21 +99,11 @@ export async function appendReviewEventSnapshotInExecutor(
   const insertedRow = insertResult.rows[0];
   if (insertedRow !== undefined) {
     const insertedReviewEvent = mapReviewHistoryItem(insertedRow);
-    const changeId = await insertSyncChange(
-      executor,
-      workspaceId,
-      "review_event",
-      insertedReviewEvent.reviewEventId,
-      "append",
-      insertedReviewEvent.deviceId,
-      operationId,
-      toReviewEventPayloadJson(insertedReviewEvent),
-    );
 
     return {
       reviewEvent: insertedReviewEvent,
       applied: true,
-      changeId,
+      changeId: null,
     };
   }
 
@@ -140,12 +128,7 @@ export async function appendReviewEventSnapshotInExecutor(
   return {
     reviewEvent: existingReviewEvent,
     applied: false,
-    changeId: await findLatestSyncChangeId(
-      executor,
-      workspaceId,
-      "review_event",
-      existingReviewEvent.reviewEventId,
-    ),
+    changeId: null,
   };
 }
 

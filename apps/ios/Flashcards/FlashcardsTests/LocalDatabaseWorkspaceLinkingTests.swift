@@ -60,7 +60,8 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
             try self.workspaceIds(database: database),
             [linkedSession.workspaceId]
         )
-        XCTAssertEqual(try database.loadLastAppliedChangeId(workspaceId: linkedSession.workspaceId), 0)
+        XCTAssertEqual(try database.loadLastAppliedHotChangeId(workspaceId: linkedSession.workspaceId), 0)
+        XCTAssertEqual(try database.loadLastAppliedReviewSequenceId(workspaceId: linkedSession.workspaceId), 0)
     }
 
     func testReplaceLocalWorkspaceAfterRemoteDeleteUsesReplacementWorkspaceAndClearsLocalData() throws {
@@ -100,8 +101,15 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
         )
         try database.core.execute(
             sql: """
-            INSERT INTO sync_state (workspace_id, last_applied_change_id, updated_at)
-            VALUES (?, ?, ?)
+            INSERT INTO sync_state (
+                workspace_id,
+                last_applied_hot_change_id,
+                last_applied_review_sequence_id,
+                has_hydrated_hot_state,
+                has_hydrated_review_history,
+                updated_at
+            )
+            VALUES (?, ?, 0, 0, 0, ?)
             """,
             values: [
                 .text(replacementWorkspace.workspaceId),
@@ -140,7 +148,8 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
         XCTAssertTrue(try testActiveCards(database: database).isEmpty)
         XCTAssertTrue(try testActiveDecks(database: database).isEmpty)
         XCTAssertTrue(try database.loadOutboxEntries(workspaceId: replacementWorkspace.workspaceId, limit: 100).isEmpty)
-        XCTAssertEqual(try database.loadLastAppliedChangeId(workspaceId: replacementWorkspace.workspaceId), 0)
+        XCTAssertEqual(try database.loadLastAppliedHotChangeId(workspaceId: replacementWorkspace.workspaceId), 0)
+        XCTAssertEqual(try database.loadLastAppliedReviewSequenceId(workspaceId: replacementWorkspace.workspaceId), 0)
         XCTAssertEqual(
             try self.workspaceIds(database: database),
             [replacementWorkspace.workspaceId]

@@ -326,7 +326,9 @@ async function createWorkspaceInExecutor(
     "upsert",
     workspaceRow.fsrs_last_modified_by_device_id,
     workspaceRow.fsrs_last_operation_id,
-    toWorkspaceSchedulerSyncPayloadJson(workspaceRow),
+    workspaceRow.fsrs_client_updated_at instanceof Date
+      ? workspaceRow.fsrs_client_updated_at.toISOString()
+      : new Date(workspaceRow.fsrs_client_updated_at).toISOString(),
   );
 
   return workspaceId;

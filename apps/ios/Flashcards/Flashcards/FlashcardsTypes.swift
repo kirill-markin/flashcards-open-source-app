@@ -622,18 +622,31 @@ struct SyncOperationResult: Codable, Hashable {
     let entityType: SyncEntityType
     let entityId: String
     let status: String
-    let resultingChangeId: Int64?
+    let resultingHotChangeId: Int64?
+    let error: String?
 }
 
 struct SyncPushResponse: Codable, Hashable {
     let operations: [SyncOperationResult]
 }
 
+enum SyncBootstrapEntryPayload: Hashable {
+    case card(Card)
+    case deck(Deck)
+    case workspaceSchedulerSettings(WorkspaceSchedulerSettings)
+}
+
+struct SyncBootstrapEntry: Hashable {
+    let entityType: SyncEntityType
+    let entityId: String
+    let action: SyncAction
+    let payload: SyncBootstrapEntryPayload
+}
+
 enum SyncChangePayload: Hashable {
     case card(Card)
     case deck(Deck)
     case workspaceSchedulerSettings(WorkspaceSchedulerSettings)
-    case reviewEvent(ReviewEvent)
 }
 
 struct SyncChange: Hashable {
@@ -646,8 +659,33 @@ struct SyncChange: Hashable {
 
 struct SyncPullResponse: Hashable {
     let changes: [SyncChange]
-    let nextChangeId: Int64
+    let nextHotChangeId: Int64
     let hasMore: Bool
+}
+
+struct SyncBootstrapPullResponse: Hashable {
+    let entries: [SyncBootstrapEntry]
+    let nextCursor: String?
+    let hasMore: Bool
+    let bootstrapHotChangeId: Int64
+    let remoteIsEmpty: Bool
+}
+
+struct SyncBootstrapPushResponse: Codable, Hashable {
+    let appliedEntriesCount: Int
+    let bootstrapHotChangeId: Int64?
+}
+
+struct SyncReviewHistoryPullResponse: Hashable {
+    let reviewEvents: [ReviewEvent]
+    let nextReviewSequenceId: Int64
+    let hasMore: Bool
+}
+
+struct SyncReviewHistoryImportResponse: Codable, Hashable {
+    let importedCount: Int
+    let duplicateCount: Int
+    let nextReviewSequenceId: Int64?
 }
 
 struct PersistedOutboxEntry: Hashable {

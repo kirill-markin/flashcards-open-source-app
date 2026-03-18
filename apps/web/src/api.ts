@@ -7,10 +7,16 @@ import type {
   DeleteWorkspaceResponse,
   QueryCardsInput,
   QueryCardsPage,
+  ReviewEvent,
   SessionInfo,
+  SyncBootstrapEntry,
+  SyncBootstrapPullResult,
+  SyncBootstrapPushResult,
   SyncPullResult,
   SyncPushOperation,
   SyncPushResult,
+  SyncReviewHistoryImportResult,
+  SyncReviewHistoryPullResult,
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
   AgentApiKeyRevokeResponse,
@@ -502,7 +508,7 @@ export async function pullSyncChanges(
   deviceId: string,
   platform: "web",
   appVersion: string,
-  afterChangeId: number,
+  afterHotChangeId: number,
   limit: number,
 ): Promise<SyncPullResult> {
   const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/pull`, {
@@ -511,12 +517,98 @@ export async function pullSyncChanges(
       deviceId,
       platform,
       appVersion,
-      afterChangeId,
+      afterHotChangeId,
       limit,
     }),
   }, allowAuthRecovery));
 
   return payload as unknown as SyncPullResult;
+}
+
+export async function bootstrapPullSyncState(
+  workspaceId: string,
+  deviceId: string,
+  platform: "web",
+  appVersion: string,
+  cursor: string | null,
+  limit: number,
+): Promise<SyncBootstrapPullResult> {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
+    method: "POST",
+    body: JSON.stringify({
+      mode: "pull",
+      deviceId,
+      platform,
+      appVersion,
+      cursor,
+      limit,
+    }),
+  }, allowAuthRecovery));
+
+  return payload as unknown as SyncBootstrapPullResult;
+}
+
+export async function bootstrapPushSyncState(
+  workspaceId: string,
+  deviceId: string,
+  platform: "web",
+  appVersion: string,
+  entries: ReadonlyArray<SyncBootstrapEntry>,
+): Promise<SyncBootstrapPushResult> {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
+    method: "POST",
+    body: JSON.stringify({
+      mode: "push",
+      deviceId,
+      platform,
+      appVersion,
+      entries,
+    }),
+  }, allowAuthRecovery));
+
+  return payload as unknown as SyncBootstrapPushResult;
+}
+
+export async function pullReviewHistorySync(
+  workspaceId: string,
+  deviceId: string,
+  platform: "web",
+  appVersion: string,
+  afterReviewSequenceId: number,
+  limit: number,
+): Promise<SyncReviewHistoryPullResult> {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/review-history/pull`, {
+    method: "POST",
+    body: JSON.stringify({
+      deviceId,
+      platform,
+      appVersion,
+      afterReviewSequenceId,
+      limit,
+    }),
+  }, allowAuthRecovery));
+
+  return payload as unknown as SyncReviewHistoryPullResult;
+}
+
+export async function importReviewHistorySync(
+  workspaceId: string,
+  deviceId: string,
+  platform: "web",
+  appVersion: string,
+  reviewEvents: ReadonlyArray<ReviewEvent>,
+): Promise<SyncReviewHistoryImportResult> {
+  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/review-history/import`, {
+    method: "POST",
+    body: JSON.stringify({
+      deviceId,
+      platform,
+      appVersion,
+      reviewEvents,
+    }),
+  }, allowAuthRecovery));
+
+  return payload as unknown as SyncReviewHistoryImportResult;
 }
 
 export async function queryCards(

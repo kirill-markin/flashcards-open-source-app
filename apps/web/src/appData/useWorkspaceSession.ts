@@ -18,7 +18,7 @@ import {
 import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
 import { getStableDeviceIdForUser } from "../clientIdentity";
 import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
-import { hasHydratedWorkspace } from "../localDb/workspace";
+import { hasHydratedHotState } from "../localDb/workspace";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
 import {
   findWorkspaceById,
@@ -162,7 +162,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setSessionErrorMessage("");
     setErrorMessage("");
 
-    const isHydrated = await hasHydratedWorkspace(workspace.workspaceId);
+    const isHydrated = await hasHydratedHotState(workspace.workspaceId);
     publishSelectedWorkspace(currentSession, currentWorkspaces, workspace, isHydrated ? "ready" : "loading_workspace");
 
     try {

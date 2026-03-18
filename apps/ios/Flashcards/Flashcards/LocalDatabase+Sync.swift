@@ -1,6 +1,7 @@
 import Foundation
 
 extension LocalDatabase {
+    /// Loads the next FIFO outbox page for one batched push request.
     func loadOutboxEntries(workspaceId: String, limit: Int) throws -> [PersistedOutboxEntry] {
         try self.outboxStore.loadOutboxEntries(workspaceId: workspaceId, limit: limit)
     }
@@ -9,17 +10,23 @@ extension LocalDatabase {
         try self.outboxStore.deleteOutboxEntries(operationIds: operationIds)
     }
 
+    func deleteAllOutboxEntries(workspaceId: String) throws {
+        try self.outboxStore.deleteAllOutboxEntries(workspaceId: workspaceId)
+    }
+
     func clearCloudSyncState(workspaceId: String) throws {
         try self.core.inTransaction {
-            _ = try self.core.execute(
-                sql: "DELETE FROM outbox WHERE workspace_id = ?",
-                values: [.text(workspaceId)]
-            )
+            try self.outboxStore.deleteAllOutboxEntries(workspaceId: workspaceId)
 
             let updatedRows = try self.core.execute(
                 sql: """
                 UPDATE sync_state
-                SET last_applied_change_id = 0, updated_at = ?
+                SET
+                    last_applied_hot_change_id = 0,
+                    last_applied_review_sequence_id = 0,
+                    has_hydrated_hot_state = 0,
+                    has_hydrated_review_history = 0,
+                    updated_at = ?
                 WHERE workspace_id = ?
                 """,
                 values: [
@@ -31,8 +38,15 @@ extension LocalDatabase {
             if updatedRows == 0 {
                 try self.core.execute(
                     sql: """
-                    INSERT INTO sync_state (workspace_id, last_applied_change_id, updated_at)
-                    VALUES (?, 0, ?)
+                    INSERT INTO sync_state (
+                        workspace_id,
+                        last_applied_hot_change_id,
+                        last_applied_review_sequence_id,
+                        has_hydrated_hot_state,
+                        has_hydrated_review_history,
+                        updated_at
+                    )
+                    VALUES (?, 0, 0, 0, 0, ?)
                     """,
                     values: [
                         .text(workspaceId),
@@ -57,12 +71,45 @@ extension LocalDatabase {
         try self.outboxStore.markOutboxEntriesFailed(operationIds: operationIds, message: message)
     }
 
-    func loadLastAppliedChangeId(workspaceId: String) throws -> Int64 {
-        try self.outboxStore.loadLastAppliedChangeId(workspaceId: workspaceId)
+    func loadLastAppliedHotChangeId(workspaceId: String) throws -> Int64 {
+        try self.outboxStore.loadLastAppliedHotChangeId(workspaceId: workspaceId)
     }
 
-    func setLastAppliedChangeId(workspaceId: String, changeId: Int64) throws {
-        try self.outboxStore.setLastAppliedChangeId(workspaceId: workspaceId, changeId: changeId)
+    func setLastAppliedHotChangeId(workspaceId: String, changeId: Int64) throws {
+        try self.outboxStore.setLastAppliedHotChangeId(workspaceId: workspaceId, changeId: changeId)
+    }
+
+    func loadLastAppliedReviewSequenceId(workspaceId: String) throws -> Int64 {
+        try self.outboxStore.loadLastAppliedReviewSequenceId(workspaceId: workspaceId)
+    }
+
+    func setLastAppliedReviewSequenceId(workspaceId: String, reviewSequenceId: Int64) throws {
+        try self.outboxStore.setLastAppliedReviewSequenceId(
+            workspaceId: workspaceId,
+            reviewSequenceId: reviewSequenceId
+        )
+    }
+
+    func hasHydratedHotState(workspaceId: String) throws -> Bool {
+        try self.outboxStore.hasHydratedHotState(workspaceId: workspaceId)
+    }
+
+    func setHasHydratedHotState(workspaceId: String, hasHydratedHotState: Bool) throws {
+        try self.outboxStore.setHasHydratedHotState(
+            workspaceId: workspaceId,
+            hasHydratedHotState: hasHydratedHotState
+        )
+    }
+
+    func hasHydratedReviewHistory(workspaceId: String) throws -> Bool {
+        try self.outboxStore.hasHydratedReviewHistory(workspaceId: workspaceId)
+    }
+
+    func setHasHydratedReviewHistory(workspaceId: String, hasHydratedReviewHistory: Bool) throws {
+        try self.outboxStore.setHasHydratedReviewHistory(
+            workspaceId: workspaceId,
+            hasHydratedReviewHistory: hasHydratedReviewHistory
+        )
     }
 
     func loadReviewEvents(workspaceId: String) throws -> [ReviewEvent] {
@@ -73,67 +120,46 @@ extension LocalDatabase {
         try self.core.scalarText(sql: "PRAGMA journal_mode;", values: [])
     }
 
-    func bootstrapOutbox(workspaceId: String) throws {
-        let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
-        let pendingOperations = try self.outboxStore.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
-        let pendingOperationIds = Set(pendingOperations.map { entry in
-            entry.operation.operationId
-        })
-        let pendingReviewEventIds = Set(pendingOperations.compactMap { entry in
-            entry.operation.entityType == .reviewEvent ? entry.operation.entityId : nil
-        })
-
-        for card in try self.cardStore.loadCardsIncludingDeleted(workspaceId: workspaceId) {
-            if pendingOperationIds.contains(card.lastOperationId) == false {
-                try self.outboxStore.enqueueCardUpsertOperation(
-                    workspaceId: workspaceId,
-                    deviceId: cloudSettings.deviceId,
-                    operationId: card.lastOperationId,
-                    clientUpdatedAt: card.clientUpdatedAt,
-                    card: card
-                )
-            }
+    /// Exports the current mutable workspace winners for empty-remote bootstrap.
+    func loadHotBootstrapEntries(workspaceId: String) throws -> [SyncBootstrapEntry] {
+        let cards = try self.cardStore.loadCardsIncludingDeleted(workspaceId: workspaceId).map { card in
+            SyncBootstrapEntry(
+                entityType: .card,
+                entityId: card.cardId,
+                action: .upsert,
+                payload: .card(card)
+            )
         }
-
-        for deck in try self.deckStore.loadDecksIncludingDeleted(workspaceId: workspaceId) {
-            if pendingOperationIds.contains(deck.lastOperationId) == false {
-                try self.outboxStore.enqueueDeckUpsertOperation(
-                    workspaceId: workspaceId,
-                    deviceId: cloudSettings.deviceId,
-                    operationId: deck.lastOperationId,
-                    clientUpdatedAt: deck.clientUpdatedAt,
-                    deck: deck
-                )
-            }
+        let decks = try self.deckStore.loadDecksIncludingDeleted(workspaceId: workspaceId).map { deck in
+            SyncBootstrapEntry(
+                entityType: .deck,
+                entityId: deck.deckId,
+                action: .upsert,
+                payload: .deck(deck)
+            )
         }
-
         let schedulerSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
-        if pendingOperationIds.contains(schedulerSettings.lastOperationId) == false {
-            try self.outboxStore.enqueueWorkspaceSchedulerSettingsUpsertOperation(
-                workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
-                operationId: schedulerSettings.lastOperationId,
-                clientUpdatedAt: schedulerSettings.clientUpdatedAt,
-                settings: schedulerSettings
-            )
+        let schedulerEntry = SyncBootstrapEntry(
+            entityType: .workspaceSchedulerSettings,
+            entityId: workspaceId,
+            action: .upsert,
+            payload: .workspaceSchedulerSettings(schedulerSettings)
+        )
+
+        return cards + decks + [schedulerEntry]
+    }
+
+    /// Applies one bootstrap entry from the hot current-state lane.
+    func applySyncBootstrapEntry(workspaceId: String, entry: SyncBootstrapEntry) throws {
+        try self.core.inTransaction {
+            try self.syncApplier.applySyncBootstrapEntry(workspaceId: workspaceId, entry: entry)
         }
+    }
 
-        for reviewEvent in try self.cardStore.loadReviewEvents(workspaceId: workspaceId) {
-            if reviewEvent.deviceId != cloudSettings.deviceId {
-                continue
-            }
-
-            if pendingReviewEventIds.contains(reviewEvent.reviewEventId) {
-                continue
-            }
-
-            try self.outboxStore.enqueueReviewEventAppendOperation(
-                workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
-                operationId: reviewEvent.reviewEventId,
-                clientUpdatedAt: reviewEvent.reviewedAtClient,
-                reviewEvent: reviewEvent
-            )
+    /// Applies one immutable review-history event from background pull/import.
+    func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
+        try self.core.inTransaction {
+            try self.syncApplier.applyReviewHistoryEvent(workspaceId: workspaceId, reviewEvent: reviewEvent)
         }
     }
 
