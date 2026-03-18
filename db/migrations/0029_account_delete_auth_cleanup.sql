@@ -1,3 +1,8 @@
+-- Migration status: Current / canonical.
+-- Introduces: auth-side cleanup for account deletion without broad runtime DELETE grants.
+-- Current guidance: this migration refines the account-deletion lineage introduced around db/migrations/0019_account_delete_tombstones.sql and aligned with the runtime-role split.
+-- Replaces or corrects: db/migrations/0019_account_delete_tombstones.sql.
+-- See also: db/migrations/0024_auth_runtime_roles.sql, docs/architecture.md.
 -- Delete auth-side state for one account without broad runtime DELETE grants.
 
 CREATE OR REPLACE FUNCTION auth.delete_user_auth_artifacts(

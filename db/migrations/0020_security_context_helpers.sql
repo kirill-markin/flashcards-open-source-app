@@ -1,3 +1,8 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: the security schema and request-scoped helper functions used by runtime database isolation.
+-- Current guidance: the helper functions remain canonical, but the legacy app-role grants are historical after the runtime-role split.
+-- Replaced or refined by: db/migrations/0024_auth_runtime_roles.sql, db/migrations/0025_remove_legacy_app_role.sql.
+-- See also: docs/architecture.md.
 -- Helper schema and functions for request-scoped database isolation.
 
 CREATE SCHEMA IF NOT EXISTS security;

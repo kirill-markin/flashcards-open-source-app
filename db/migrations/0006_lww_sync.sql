@@ -1,3 +1,9 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: LWW metadata on mutable rows and the per-table server-cursor sync model.
+-- Current guidance: the per-table cursor model is historical, but the LWW row metadata added here remained relevant beyond this migration.
+-- Replaced or refined by: db/migrations/0007_global_sync_changes.sql, db/migrations/0028_sync_hot_state_rewrite.sql.
+-- Replaces or corrects: db/migrations/0001_initial_schema.sql.
+-- See also: docs/architecture.md.
 -- LWW sync metadata and per-table server cursors.
 -- This migration makes cards, decks, and workspace scheduler settings
 -- row-authoritative sync roots. review_events stay append-only history and

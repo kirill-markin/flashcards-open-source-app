@@ -1,3 +1,8 @@
+-- Migration status: Current / canonical.
+-- Introduces: persisted FSRS card state and workspace scheduler settings.
+-- Current guidance: this migration remains part of the canonical scheduling model, together with docs/fsrs-scheduling-logic.md and docs/architecture.md.
+-- Replaced or refined by: db/migrations/0018_auto_provision_workspaces_and_scheduler_seed.sql.
+-- See also: docs/fsrs-scheduling-logic.md, docs/architecture.md.
 -- Full FSRS card state and workspace-row scheduler settings.
 -- Source-of-truth docs: docs/fsrs-scheduling-logic.md
 

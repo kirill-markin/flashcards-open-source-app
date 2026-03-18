@@ -1,3 +1,8 @@
+-- Migration status: Superseded / corrective.
+-- Introduces: the schema-qualified corrective drop for the legacy web-device uniqueness index.
+-- Current guidance: this is the corrective follow-up to db/migrations/0008_allow_multiple_web_sync_devices.sql and remains historical context for the web-device lineage.
+-- Replaces or corrects: db/migrations/0008_allow_multiple_web_sync_devices.sql.
+-- See also: docs/architecture.md.
 -- The original web-only unique index was created in the sync schema.
 -- A previous cleanup migration used an unqualified DROP INDEX statement,
 -- which can be a no-op when the session search_path does not include sync.

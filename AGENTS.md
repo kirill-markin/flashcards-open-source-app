@@ -51,6 +51,8 @@ Use Postgres as the primary backend database because flashcards data is relation
   3. apply updates locally
   4. advance the sync cursor and clear acknowledged outbox rows
 
+The sync approach and the data model changed multiple times during development. To understand how the system works now, read `docs/architecture.md` together with the full relevant migration chain in `db/migrations`, and do not infer current behavior from only one or two isolated migrations.
+
 ## Data Modeling Notes
 
 - Prefer UUID/ULID identifiers for offline entity creation.

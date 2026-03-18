@@ -1,3 +1,9 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: the backend_app/auth_app runtime-role split and the main replacement for legacy shared app-role access.
+-- Current guidance: this migration defines the core runtime-role cutover, but its sync.changes and sync.applied_operations policy sections became historical after the hot-state rewrite.
+-- Replaces or corrects: db/migrations/0003_sequence_grants.sql, db/migrations/0019_account_delete_tombstones.sql, db/migrations/0020_security_context_helpers.sql, db/migrations/0021_row_level_security.sql, db/migrations/0022_rls_policy_hardening.sql.
+-- Replaced or refined by: db/migrations/0025_remove_legacy_app_role.sql, db/migrations/0028_sync_hot_state_rewrite.sql, db/migrations/0030_agent_api_key_selected_workspace_rls.sql.
+-- See also: docs/architecture.md.
 -- Split runtime database access by service and narrow auth schema privileges.
 
 DO $$

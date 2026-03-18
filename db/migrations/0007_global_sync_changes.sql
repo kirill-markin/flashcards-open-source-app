@@ -1,3 +1,9 @@
+-- Migration status: Superseded / corrective.
+-- Introduces: the sync.changes global change-feed model with one workspace checkpoint.
+-- Current guidance: this global-feed design is no longer canonical; current sync behavior is defined by docs/architecture.md and db/migrations/0028_sync_hot_state_rewrite.sql.
+-- Replaced or refined by: db/migrations/0010_normalize_sync_change_timestamps.sql, db/migrations/0018_auto_provision_workspaces_and_scheduler_seed.sql, db/migrations/0027_sync_card_created_at_and_device_rls.sql, db/migrations/0028_sync_hot_state_rewrite.sql.
+-- Replaces or corrects: db/migrations/0006_lww_sync.sql.
+-- See also: docs/architecture.md.
 -- Global workspace checkpoint sync through sync.changes.
 -- This migration removes per-table server cursors and replaces them with one
 -- append-only change feed ordered by sync.changes.change_id.

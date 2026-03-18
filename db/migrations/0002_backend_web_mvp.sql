@@ -1,3 +1,8 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: backend/web MVP adjustments, including card server-version sequencing and early web device handling.
+-- Current guidance: the web-device uniqueness assumptions in this migration were corrected later and should not be treated as canonical sync behavior.
+-- Replaced or refined by: db/migrations/0008_allow_multiple_web_sync_devices.sql, db/migrations/0009_drop_sync_web_device_index.sql, db/migrations/0028_sync_hot_state_rewrite.sql.
+-- See also: docs/architecture.md.
 CREATE SEQUENCE IF NOT EXISTS content.cards_server_version_seq AS BIGINT;
 
 DO $$

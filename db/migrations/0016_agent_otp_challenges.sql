@@ -1,3 +1,9 @@
+-- Migration status: Current / canonical.
+-- Introduces: opaque OTP challenge storage for the terminal-first auth flow.
+-- Current guidance: this migration remains part of the canonical auth flow and builds on the auth schema introduced in db/migrations/0014_agent_api_keys.sql.
+-- Replaces or corrects: db/migrations/0014_agent_api_keys.sql.
+-- Replaced or refined by: db/migrations/0023_otp_verify_attempt_lockout.sql, db/migrations/0024_auth_runtime_roles.sql.
+-- See also: docs/architecture.md.
 -- Opaque OTP handles for terminal-first auth.
 --
 -- The client only receives a short handle. The backing Cognito session remains

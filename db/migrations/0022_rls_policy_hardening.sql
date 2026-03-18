@@ -1,3 +1,9 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: stricter RLS helper functions and policy hardening for selected-workspace updates and workspace deletion.
+-- Current guidance: the hardening logic remains relevant, but this migration still belongs to the legacy app-role phase before the runtime-role split.
+-- Replaced or refined by: db/migrations/0024_auth_runtime_roles.sql, db/migrations/0025_remove_legacy_app_role.sql.
+-- Replaces or corrects: db/migrations/0021_row_level_security.sql.
+-- See also: docs/architecture.md.
 -- Harden row-level security policies for selected workspace updates and workspace deletion.
 
 CREATE OR REPLACE FUNCTION security.current_user_is_workspace_owner(target_workspace_id UUID)

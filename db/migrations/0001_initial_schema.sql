@@ -1,3 +1,8 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: the initial org/content/sync schemas, the original single-workspace model, and the original sync ledger tables.
+-- Current guidance: do not infer current workspace or sync behavior from this file alone; read docs/architecture.md and the full related migration chain.
+-- Replaced or refined by: db/migrations/0011_workspace_memberships.sql, db/migrations/0006_lww_sync.sql, db/migrations/0007_global_sync_changes.sql, db/migrations/0028_sync_hot_state_rewrite.sql.
+-- See also: docs/architecture.md.
 -- Initial schema for flashcards-open-source-app (v1)
 -- Three schemas: org (users & workspaces), content (cards & reviews), sync (devices & replication state).
 

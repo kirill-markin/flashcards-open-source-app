@@ -1,3 +1,9 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: selected_workspace_id as the structural basis for per-connection agent workspace selection.
+-- Current guidance: this migration adds the data shape, but database-enforced selected-workspace access is hardened later.
+-- Replaced or refined by: db/migrations/0030_agent_api_key_selected_workspace_rls.sql.
+-- Replaces or corrects: db/migrations/0014_agent_api_keys.sql.
+-- See also: docs/architecture.md.
 -- Persist per-connection selected workspace for long-lived agent API keys.
 
 ALTER TABLE auth.agent_api_keys

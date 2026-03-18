@@ -1,3 +1,9 @@
+-- Migration status: Current / canonical.
+-- Introduces: the current sync architecture with hot mutable state, separate review-history cursors, and direct bootstrap from canonical tables.
+-- Current guidance: this is the canonical sync migration and replaces the earlier sync.changes global-feed model and its dependent follow-ups.
+-- Replaces or corrects: db/migrations/0007_global_sync_changes.sql, db/migrations/0010_normalize_sync_change_timestamps.sql, sync-related parts of db/migrations/0018_auto_provision_workspaces_and_scheduler_seed.sql, sync-related parts of db/migrations/0027_sync_card_created_at_and_device_rls.sql, sync.applied_operations policy assumptions in db/migrations/0024_auth_runtime_roles.sql.
+-- Ordering note: migration filenames execute lexicographically, so db/migrations/0028_created_at_ordering_indexes.sql runs before db/migrations/0028_sync_hot_state_rewrite.sql.
+-- See also: docs/architecture.md.
 -- Replace the legacy global replay log with separate hot-state and review
 -- history sync lanes. Current-state bootstrap now reads canonical tables
 -- directly, while incremental pull reads a compact metadata-only hot log.

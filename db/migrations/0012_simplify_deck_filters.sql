@@ -1,3 +1,9 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: the canonical deck filter-definition shape that remains current for deck filtering.
+-- Current guidance: the deck filter simplification remains relevant, but the sync.changes payload rewrite in this file is historical after db/migrations/0028_sync_hot_state_rewrite.sql.
+-- Replaced or refined by: db/migrations/0028_sync_hot_state_rewrite.sql.
+-- Replaces or corrects: db/migrations/0004_decks.sql.
+-- See also: docs/architecture.md.
 -- Simplify deck filters to one canonical model:
 -- - effortLevels are OR inside one array
 -- - tags are AND inside one array
