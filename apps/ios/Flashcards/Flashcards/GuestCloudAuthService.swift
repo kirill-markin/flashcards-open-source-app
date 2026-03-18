@@ -61,7 +61,10 @@ final class GuestCloudAuthService {
         self.session = session
     }
 
-    func createGuestSession(apiBaseUrl: String) async throws -> StoredGuestCloudSession {
+    func createGuestSession(
+        apiBaseUrl: String,
+        configurationMode: CloudServiceConfigurationMode
+    ) async throws -> StoredGuestCloudSession {
         let response: GuestSessionEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: nil,
@@ -72,7 +75,9 @@ final class GuestCloudAuthService {
         return StoredGuestCloudSession(
             guestToken: response.guestToken,
             userId: response.userId,
-            workspaceId: response.workspaceId
+            workspaceId: response.workspaceId,
+            configurationMode: configurationMode,
+            apiBaseUrl: apiBaseUrl
         )
     }
 

@@ -109,7 +109,10 @@ final class FlashcardsStore {
         let cloudAuthService = CloudAuthService()
         let credentialStore = CloudCredentialStore()
         let guestCloudAuthService = GuestCloudAuthService()
-        let guestCredentialStore = GuestCloudCredentialStore()
+        let guestCredentialStore = GuestCloudCredentialStore(
+            bundle: .main,
+            userDefaults: userDefaults
+        )
         let database: LocalDatabase?
         let initialGlobalErrorMessage: String
 

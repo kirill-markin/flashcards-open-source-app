@@ -431,6 +431,8 @@ struct StoredGuestCloudSession: Codable, Hashable, Sendable {
     let guestToken: String
     let userId: String
     let workspaceId: String
+    let configurationMode: CloudServiceConfigurationMode
+    let apiBaseUrl: String
 }
 
 enum CloudGuestUpgradeMode: String, Codable, Hashable, Sendable {

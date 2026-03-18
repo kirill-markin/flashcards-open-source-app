@@ -286,7 +286,10 @@ extension FlashcardsStore {
     func syncCloudNow() async throws {
         if self.cloudRuntime.activeCloudSession() == nil {
             if self.cloudSettings?.cloudState == .guest {
-                _ = try await self.prepareGuestCloudSessionForAI()
+                let restoredGuestSession = try await self.restoreGuestCloudSessionIfNeeded()
+                if restoredGuestSession.didRunSync {
+                    return
+                }
             } else {
                 try await self.restoreCloudLinkFromStoredCredentials()
                 return
@@ -381,13 +384,14 @@ extension FlashcardsStore {
     }
 
     private func loadOrCreateGuestCloudSession() async throws -> CloudLinkedSession {
-        let configuration = try self.currentCloudServiceConfiguration()
         let storedGuestSession: StoredGuestCloudSession
         if let existingGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() {
             storedGuestSession = existingGuestSession
         } else {
+            let configuration = try self.currentCloudServiceConfiguration()
             let createdGuestSession = try await self.dependencies.guestCloudAuthService.createGuestSession(
-                apiBaseUrl: configuration.apiBaseUrl
+                apiBaseUrl: configuration.apiBaseUrl,
+                configurationMode: configuration.mode
             )
             try self.dependencies.guestCredentialStore.saveGuestSession(session: createdGuestSession)
             storedGuestSession = createdGuestSession
@@ -397,8 +401,8 @@ extension FlashcardsStore {
             userId: storedGuestSession.userId,
             workspaceId: storedGuestSession.workspaceId,
             email: nil,
-            configurationMode: configuration.mode,
-            apiBaseUrl: configuration.apiBaseUrl,
+            configurationMode: storedGuestSession.configurationMode,
+            apiBaseUrl: storedGuestSession.apiBaseUrl,
             authorization: .guest(storedGuestSession.guestToken)
         )
     }
@@ -416,6 +420,11 @@ extension FlashcardsStore {
     }
 
     private func prepareGuestCloudSessionForAI() async throws -> CloudLinkedSession {
+        let restoredGuestSession = try await self.restoreGuestCloudSessionIfNeeded()
+        return restoredGuestSession.session
+    }
+
+    private func restoreGuestCloudSessionIfNeeded() async throws -> (session: CloudLinkedSession, didRunSync: Bool) {
         let guestSession = try await self.loadOrCreateGuestCloudSession()
         let isAlreadyGuestLinked = self.cloudSettings?.cloudState == .guest
             && self.workspace?.workspaceId == guestSession.workspaceId
@@ -423,12 +432,12 @@ extension FlashcardsStore {
 
         if isAlreadyGuestLinked {
             self.cloudRuntime.setActiveCloudSession(linkedSession: guestSession)
-            return guestSession
+            return (guestSession, false)
         }
 
         try await self.finishCloudLink(linkedSession: guestSession)
         try self.markLocalCloudStateAsGuest(session: guestSession)
-        return guestSession
+        return (guestSession, true)
     }
 
     private func prepareGuestUpgradeModeIfNeeded(
@@ -1046,6 +1055,7 @@ extension FlashcardsStore {
 
         self.cloudRuntime.cancelForAccountDeletion()
         try self.cloudRuntime.clearCredentials()
+        try self.dependencies.guestCredentialStore.clearGuestSession()
         try context.database.clearCloudSyncState(workspaceId: context.workspaceId)
         try context.database.updateCloudSettings(
             cloudState: .disconnected,

@@ -83,6 +83,62 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(configuration.authBaseUrl, "https://auth.self-hosted.example.com")
     }
 
+    func testGuestCloudCredentialStoreMigratesLegacyStoredSessionUsingCurrentConfiguration() throws {
+        struct LegacySession: Codable {
+            let guestToken: String
+            let userId: String
+            let workspaceId: String
+        }
+
+        let bundle = try self.makeBundle(
+            infoDictionary: [
+                "FLASHCARDS_API_BASE_URL": "https://api.example.com/v1/",
+                "FLASHCARDS_AUTH_BASE_URL": "https://auth.example.com/"
+            ]
+        )
+        let userDefaults = try self.makeUserDefaults()
+        let service = "tests-\(UUID().uuidString)"
+        let account = "primary"
+        let fileUrl = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "\(service)-\(account)-guest-cloud-session.json".replacingOccurrences(of: "/", with: "-"),
+            isDirectory: false
+        )
+        self.addTeardownBlock {
+            try? FileManager.default.removeItem(at: fileUrl)
+        }
+
+        let legacySession = LegacySession(
+            guestToken: "guest-token-1",
+            userId: "guest-user-1",
+            workspaceId: "guest-workspace-1"
+        )
+        let legacyData = try JSONEncoder().encode(legacySession)
+        try legacyData.write(to: fileUrl, options: .atomic)
+
+        let store = GuestCloudCredentialStore(
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            service: service,
+            account: account,
+            bundle: bundle,
+            userDefaults: userDefaults
+        )
+
+        let migratedSession = try XCTUnwrap(store.loadGuestSession())
+
+        XCTAssertEqual(
+            migratedSession,
+            StoredGuestCloudSession(
+                guestToken: legacySession.guestToken,
+                userId: legacySession.userId,
+                workspaceId: legacySession.workspaceId,
+                configurationMode: .official,
+                apiBaseUrl: "https://api.example.com/v1"
+            )
+        )
+        XCTAssertEqual(try XCTUnwrap(store.loadGuestSession()), migratedSession)
+    }
+
     func testLoadCloudServiceConfigurationThrowsMissingValueWhenApiBaseUrlIsAbsent() throws {
         let bundle = try self.makeBundle(
             infoDictionary: [
