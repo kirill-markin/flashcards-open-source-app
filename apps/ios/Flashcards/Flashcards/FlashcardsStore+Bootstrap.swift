@@ -165,7 +165,7 @@ extension FlashcardsStore {
 
     func makeAIChatStore() -> AIChatStore {
         let historyStore = AIChatHistoryStore(
-            userDefaults: UserDefaults.standard,
+            userDefaults: self.userDefaults,
             encoder: self.encoder,
             decoder: self.decoder
         )

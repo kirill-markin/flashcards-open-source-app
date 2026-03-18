@@ -4,7 +4,7 @@ import XCTest
 
 @MainActor
 final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
-    func testSaveCardUpdatesPublishedStateImmediately() throws {
+    func testSaveCardUpdatesPublishedStateImmediately() async throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
 
         try store.saveCard(
@@ -17,6 +17,12 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         XCTAssertEqual(store.cards.first?.backText, "Back")
         XCTAssertEqual(store.homeSnapshot.totalCards, 1)
         XCTAssertEqual(store.homeSnapshot.dueCount, 1)
+        await FlashcardsStoreTestSupport.waitForEffectiveReviewQueueCount(
+            store: store,
+            count: 1,
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        )
         XCTAssertEqual(store.reviewQueue.count, 1)
     }
 
@@ -84,7 +90,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         XCTAssertTrue(store.reviewQueue.isEmpty)
     }
 
-    func testReloadLoadsPersistedTagReviewFilterWhenTagExists() throws {
+    func testReloadLoadsPersistedTagReviewFilterWhenTagExists() async throws {
         let environment = try FlashcardsStoreTestSupport.makeStoreEnvironment(testCase: self)
         let workspaceId = try testWorkspaceId(database: environment.database)
         let card = try environment.database.saveCard(
@@ -100,6 +106,12 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         let store = FlashcardsStoreTestSupport.makeStore(environment: environment)
 
         XCTAssertEqual(store.selectedReviewFilter, .tag(tag: "grammar"))
+        await FlashcardsStoreTestSupport.waitForEffectiveReviewQueueCount(
+            store: store,
+            count: 1,
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        )
         XCTAssertEqual(store.reviewQueue.map(\.cardId), [card.cardId])
     }
 
@@ -112,7 +124,8 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
 
         let store = FlashcardsStoreTestSupport.makeStore(environment: environment)
 
-        XCTAssertEqual(store.selectedReviewFilter, .allCards)
+        XCTAssertEqual(store.selectedReviewFilter, .tag(tag: "missing-tag"))
+        XCTAssertTrue(store.reviewQueue.isEmpty)
     }
 
     func testSelectReviewFilterExtendsTemporaryFastCloudSyncPolling() throws {

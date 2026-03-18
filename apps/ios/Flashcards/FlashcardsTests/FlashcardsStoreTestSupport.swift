@@ -548,6 +548,20 @@ enum FlashcardsStoreTestSupport {
         XCTFail("Timed out waiting for condition")
     }
 
+    static func waitForEffectiveReviewQueueCount(
+        store: FlashcardsStore,
+        count: Int,
+        timeoutNanoseconds: UInt64,
+        pollNanoseconds: UInt64
+    ) async {
+        await self.waitUntil(
+            timeoutNanoseconds: timeoutNanoseconds,
+            pollNanoseconds: pollNanoseconds
+        ) {
+            store.effectiveReviewQueue.count == count
+        }
+    }
+
     private static func makeDelayedReviewHeadLoader(delayNanoseconds: UInt64) -> ReviewHeadLoader {
         return { databaseURL, workspaceId, resolvedReviewFilter, reviewQueryDefinition, now, seedQueueSize in
             if delayNanoseconds > 0 {
