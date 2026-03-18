@@ -1418,11 +1418,11 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
     private func makeDatabaseWithURL() throws -> (URL, LocalDatabase) {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
+
+        let databaseURL = databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
         self.addTeardownBlock {
             try? FileManager.default.removeItem(at: databaseDirectory)
         }
-
-        let databaseURL = databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
         return (databaseURL, try LocalDatabase(databaseURL: databaseURL))
     }
 

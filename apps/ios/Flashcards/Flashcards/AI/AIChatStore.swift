@@ -281,6 +281,11 @@ final class AIChatStore {
         self.completedDictationTranscript = nil
     }
 
+    func shutdownForTests() {
+        self.cancelStreaming()
+        self.cancelDictation()
+    }
+
     func dismissAlert() {
         self.activeAlert = nil
     }

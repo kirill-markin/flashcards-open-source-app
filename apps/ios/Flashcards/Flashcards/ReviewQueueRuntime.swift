@@ -18,6 +18,7 @@ struct ReviewQueueRuntimeState {
     var activeReviewCountsRequestId: String?
     var activeReviewQueueChunkTask: Task<Void, Never>?
     var activeReviewQueueChunkRequestId: String?
+    var activeReviewProcessorTask: Task<Void, Never>?
     var pendingReviewRequests: [ReviewSubmissionRequest]
     var isReviewProcessorRunning: Bool
     var reviewSourceVersion: Int
@@ -81,6 +82,7 @@ struct ReviewQueueRuntime {
             activeReviewCountsRequestId: nil,
             activeReviewQueueChunkTask: nil,
             activeReviewQueueChunkRequestId: nil,
+            activeReviewProcessorTask: nil,
             pendingReviewRequests: [],
             isReviewProcessorRunning: false,
             reviewSourceVersion: 0,
@@ -479,8 +481,13 @@ struct ReviewQueueRuntime {
     }
 
     mutating func finishReviewProcessor() -> Bool {
+        self.state.activeReviewProcessorTask = nil
         self.state.isReviewProcessorRunning = false
         return self.state.pendingReviewRequests.isEmpty == false
+    }
+
+    mutating func setActiveReviewProcessorTask(task: Task<Void, Never>) {
+        self.state.activeReviewProcessorTask = task
     }
 
     mutating func dequeuePendingReviewRequest() -> ReviewSubmissionRequest? {
@@ -537,6 +544,8 @@ struct ReviewQueueRuntime {
 
     mutating func cancelForAccountDeletion() {
         self.cancelActiveReviewLoads()
+        self.state.activeReviewProcessorTask?.cancel()
+        self.state.activeReviewProcessorTask = nil
         self.state.pendingReviewRequests = []
         self.state.isReviewProcessorRunning = false
         self.state.loadedReviewCardIds = []

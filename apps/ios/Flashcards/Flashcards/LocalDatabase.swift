@@ -43,4 +43,8 @@ final class LocalDatabase {
         self.syncApplier = SyncApplier(core: core)
         self.workspaceSettingsStore = WorkspaceSettingsStore(core: core)
     }
+
+    func close() throws {
+        try self.core.close()
+    }
 }

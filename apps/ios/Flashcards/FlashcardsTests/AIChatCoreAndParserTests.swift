@@ -164,13 +164,15 @@ final class AIChatCoreAndParserTests: AIChatTestCaseBase {
     func testLocalDatabaseEnablesWALForConcurrentConnections() throws {
         let databaseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: databaseDirectory, withIntermediateDirectories: true)
-        self.addTeardownBlock {
-            try? FileManager.default.removeItem(at: databaseDirectory)
-        }
 
         let databaseURL = databaseDirectory.appendingPathComponent("flashcards.sqlite", isDirectory: false)
         let primary = try LocalDatabase(databaseURL: databaseURL)
         let secondary = try LocalDatabase(databaseURL: databaseURL)
+        self.addTeardownBlock {
+            try secondary.close()
+            try primary.close()
+            try? FileManager.default.removeItem(at: databaseDirectory)
+        }
 
         XCTAssertEqual(try primary.loadJournalMode().lowercased(), "wal")
         XCTAssertEqual(try secondary.loadJournalMode().lowercased(), "wal")

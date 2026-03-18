@@ -235,9 +235,10 @@ extension FlashcardsStore {
             return
         }
 
-        Task { @MainActor in
+        let processorTask = Task { @MainActor in
             await self.processPendingReviewRequests()
         }
+        self.reviewRuntime.setActiveReviewProcessorTask(task: processorTask)
     }
 
     func processPendingReviewRequests() async {
