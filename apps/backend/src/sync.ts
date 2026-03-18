@@ -240,6 +240,15 @@ const syncPullInputSchema = z.object({
   limit: z.number().int().positive().max(500),
 });
 
+/**
+ * Bootstrap pull requires an explicit nullable `cursor` key on every page.
+ *
+ * The iOS sender in `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`
+ * intentionally serializes `"cursor": null` on the first page instead of
+ * omitting the key. Keep this validator aligned with:
+ * - `apps/ios/Flashcards/Flashcards/CloudSyncService.swift` `BootstrapPullRequest`
+ * - `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`
+ */
 const syncBootstrapPullInputSchema = z.object({
   mode: z.literal("pull"),
   deviceId: z.string().min(1),
@@ -909,6 +918,12 @@ export function parseSyncPullInput(value: unknown): SyncPullInput {
 }
 
 export function parseSyncBootstrapInput(value: unknown): SyncBootstrapInput {
+  /**
+   * Keep bootstrap mode dispatch in sync with the client-side request builders in
+   * `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`. If you change how
+   * pull requests are detected here, update the iOS sender and
+   * `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift` together.
+   */
   const record = typeof value === "object" && value !== null && Array.isArray(value) === false
     ? value as Record<string, unknown>
     : null;

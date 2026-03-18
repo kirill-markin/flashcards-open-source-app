@@ -157,12 +157,22 @@ extension LocalDatabase {
     }
 
     /// Applies one immutable review-history event from background pull/import.
+    ///
+    /// Review history is no longer part of hot change replay. Keep this path
+    /// aligned with:
+    /// - `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`
+    /// - `apps/ios/Flashcards/FlashcardsTests/LocalDatabaseSyncApplicationTests.swift`
     func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
         try self.core.inTransaction {
             try self.syncApplier.applyReviewHistoryEvent(workspaceId: workspaceId, reviewEvent: reviewEvent)
         }
     }
 
+    /// Applies one hot current-state change from `/sync/pull`.
+    ///
+    /// If you add another hot entity type here, update the pull contract in
+    /// `apps/backend/src/sync.ts` and the iOS sync tests that assert hot-state
+    /// application semantics.
     func applySyncChange(workspaceId: String, change: SyncChange) throws {
         try self.core.inTransaction {
             try self.syncApplier.applySyncChange(workspaceId: workspaceId, change: change)

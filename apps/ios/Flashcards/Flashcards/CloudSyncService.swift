@@ -90,6 +90,13 @@ private struct PullRequest: Encodable {
     let limit: Int
 }
 
+/// Wire contract for `POST /sync/bootstrap` pull pages.
+///
+/// The backend parser in `apps/backend/src/sync.ts` expects the `cursor` key to
+/// exist on every request. The first page must therefore send `"cursor": null`
+/// instead of omitting the key entirely. Keep this struct aligned with:
+/// - `apps/backend/src/sync.ts` `syncBootstrapPullInputSchema`
+/// - `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`
 private struct BootstrapPullRequest: Encodable {
     let mode: String
     let deviceId: String
@@ -97,6 +104,34 @@ private struct BootstrapPullRequest: Encodable {
     let appVersion: String
     let cursor: String?
     let limit: Int
+
+    enum CodingKeys: String, CodingKey {
+        case mode
+        case deviceId
+        case platform
+        case appVersion
+        case cursor
+        case limit
+    }
+
+    /// Encodes `cursor` explicitly as JSON `null` on the first bootstrap page.
+    ///
+    /// If you change this payload shape, update the matching backend validator in
+    /// `apps/backend/src/sync.ts` and the contract tests in
+    /// `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.mode, forKey: .mode)
+        try container.encode(self.deviceId, forKey: .deviceId)
+        try container.encode(self.platform, forKey: .platform)
+        try container.encode(self.appVersion, forKey: .appVersion)
+        if let cursor = self.cursor {
+            try container.encode(cursor, forKey: .cursor)
+        } else {
+            try container.encodeNil(forKey: .cursor)
+        }
+        try container.encode(self.limit, forKey: .limit)
+    }
 }
 
 private struct BootstrapPushRequest: Encodable {
@@ -772,9 +807,17 @@ final class CloudSyncService: @unchecked Sendable {
         return syncResult
     }
 
-    /// Bootstraps the blocking mutable current state first. If the remote workspace
-    /// is empty, the local workspace becomes the source of truth through bootstrap
-    /// push/import instead of replaying the entire outbox through normal sync/push.
+    /// Bootstraps the blocking mutable current state first.
+    ///
+    /// Every request to `\(syncBasePath)/bootstrap` must use the same explicit
+    /// nullable `cursor` contract documented in `BootstrapPullRequest` above and
+    /// accepted by `apps/backend/src/sync.ts`. Keep this flow aligned with:
+    /// - `apps/backend/src/sync.ts` `syncBootstrapPullInputSchema`
+    /// - `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`
+    ///
+    /// If the remote workspace is empty, the local workspace becomes the source
+    /// of truth through bootstrap push/import instead of replaying the entire
+    /// outbox through normal sync/push.
     private func performInitialHotStateSync(
         linkedSession: CloudLinkedSession,
         workspaceId: String,
