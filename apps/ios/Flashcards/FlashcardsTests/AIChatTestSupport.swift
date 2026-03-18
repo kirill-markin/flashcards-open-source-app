@@ -2,6 +2,62 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+private enum RequestBodyReadError: LocalizedError {
+    case unableToOpenStream
+    case failedToReadStream
+
+    var errorDescription: String? {
+        switch self {
+        case .unableToOpenStream:
+            return "Failed to open request body stream"
+        case .failedToReadStream:
+            return "Failed to read request body stream"
+        }
+    }
+}
+
+func materializedRequest(_ request: URLRequest) throws -> URLRequest {
+    guard request.httpBody == nil, let bodyStream = request.httpBodyStream else {
+        return request
+    }
+
+    var materialized = request
+    materialized.httpBody = try readRequestBodyData(stream: bodyStream)
+    return materialized
+}
+
+private func readRequestBodyData(stream: InputStream) throws -> Data {
+    stream.open()
+    defer {
+        stream.close()
+    }
+
+    if stream.streamStatus == .error {
+        throw RequestBodyReadError.unableToOpenStream
+    }
+
+    var data = Data()
+    let bufferSize = 4_096
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+    defer {
+        buffer.deallocate()
+    }
+
+    while stream.hasBytesAvailable {
+        let bytesRead = stream.read(buffer, maxLength: bufferSize)
+        if bytesRead < 0 {
+            throw RequestBodyReadError.failedToReadStream
+        }
+        if bytesRead == 0 {
+            break
+        }
+
+        data.append(buffer, count: bytesRead)
+    }
+
+    return data
+}
+
 typealias AILocalChatRequestBody = AIChatTurnRequestBody
 typealias AILocalChatWireMessage = AIChatWireMessage
 typealias AILocalChatUserContext = AIChatUserContext
@@ -990,6 +1046,17 @@ class AIChatTestCaseBase: XCTestCase {
             credentialStore: credentialStore,
             initialGlobalErrorMessage: ""
         )
+        store.cloudRuntime = CloudSessionRuntime(
+            cloudAuthService: cloudAuthService,
+            cloudSyncService: FlashcardsStoreTestSupport.MockCloudSyncService(
+                runLinkedSyncOutcomes: [],
+                isRunLinkedSyncBlocked: false
+            ),
+            credentialStore: credentialStore
+        )
+        store.cloudRuntime.setActiveCloudSession(
+            linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: "workspace-1")
+        )
         grantAIChatExternalProviderConsent(userDefaults: userDefaults)
         return store
     }
@@ -1002,9 +1069,27 @@ class AIChatTestCaseBase: XCTestCase {
     }
 
     @MainActor
+    func waitForChatStart(chatStore: AIChatStore) async throws {
+        for _ in 0..<100 {
+            if chatStore.isStreaming || chatStore.messages.isEmpty == false || chatStore.activeAlert != nil {
+                return
+            }
+
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTFail("Timed out waiting for chat start")
+    }
+
+    @MainActor
     func waitForChatCompletion(chatStore: AIChatStore) async throws {
-        for _ in 0..<50 {
-            if chatStore.isStreaming == false {
+        var didStart = chatStore.isStreaming || chatStore.messages.isEmpty == false || chatStore.activeAlert != nil
+
+        for _ in 0..<150 {
+            let hasStarted = chatStore.isStreaming || chatStore.messages.isEmpty == false || chatStore.activeAlert != nil
+            didStart = didStart || hasStarted
+
+            if didStart && chatStore.isStreaming == false {
                 return
             }
 
@@ -1016,7 +1101,7 @@ class AIChatTestCaseBase: XCTestCase {
 
     @MainActor
     func waitForRepairStatus(chatStore: AIChatStore) async throws {
-        for _ in 0..<50 {
+        for _ in 0..<150 {
             if chatStore.repairStatus != nil {
                 return
             }
@@ -1052,7 +1137,7 @@ final class AIChatMockUrlProtocol: URLProtocol {
         }
 
         do {
-            let (response, data) = try handler(self.request)
+            let (response, data) = try handler(materializedRequest(self.request))
             self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             self.client?.urlProtocol(self, didLoad: data)
             self.client?.urlProtocolDidFinishLoading(self)
