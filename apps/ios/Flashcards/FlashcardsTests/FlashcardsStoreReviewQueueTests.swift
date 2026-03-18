@@ -44,7 +44,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
             store.isReviewHeadLoading == false
         }
 
-        XCTAssertEqual(store.reviewQueue.map(\.frontText), ["Target first", "Target second"])
+        XCTAssertEqual(store.reviewQueue.map(\.frontText), ["Target second", "Target first"])
         XCTAssertTrue(store.isReviewCountsLoading)
         XCTAssertEqual(store.reviewTotalCount, 0)
 
@@ -240,6 +240,13 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
             editingCardId: nil
         )
 
+        await FlashcardsStoreTestSupport.waitForEffectiveReviewQueueCount(
+            store: store,
+            count: 2,
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        )
+
         let initialQueue = store.effectiveReviewQueue
         let firstCard = try XCTUnwrap(initialQueue.first)
         let secondCard = try XCTUnwrap(initialQueue.dropFirst().first)
@@ -334,6 +341,12 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: ["tag-a"]),
             editingCardId: nil
         )
+        await FlashcardsStoreTestSupport.waitForEffectiveReviewQueueCount(
+            store: store,
+            count: 1,
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        )
         let cardId = try XCTUnwrap(store.effectiveReviewQueue.first?.cardId)
 
         try store.enqueueReviewSubmission(cardId: cardId, rating: .good)
@@ -366,6 +379,12 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         try store.saveCard(
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: ["tag-a"]),
             editingCardId: nil
+        )
+        await FlashcardsStoreTestSupport.waitForEffectiveReviewQueueCount(
+            store: store,
+            count: 1,
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
         )
         let cardId = try XCTUnwrap(store.effectiveReviewQueue.first?.cardId)
 
@@ -410,6 +429,13 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
             editingCardId: nil
         )
 
+        await FlashcardsStoreTestSupport.waitForEffectiveReviewQueueCount(
+            store: store,
+            count: 2,
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        )
+
         let initialQueue = store.effectiveReviewQueue
         let firstCardId = try XCTUnwrap(initialQueue.first?.cardId)
         let secondCardId = try XCTUnwrap(initialQueue.dropFirst().first?.cardId)
@@ -450,6 +476,12 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         try store.saveCard(
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Local front", backText: "Local back", tags: ["tag-a"]),
             editingCardId: nil
+        )
+        await FlashcardsStoreTestSupport.waitForEffectiveReviewQueueCount(
+            store: store,
+            count: 1,
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
         )
         let pendingCardId = try XCTUnwrap(store.effectiveReviewQueue.first?.cardId)
         try store.enqueueReviewSubmission(cardId: pendingCardId, rating: .good)

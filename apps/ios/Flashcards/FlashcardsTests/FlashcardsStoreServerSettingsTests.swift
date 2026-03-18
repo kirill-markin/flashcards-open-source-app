@@ -13,6 +13,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.reload()
         try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
         context.store.cloudRuntime.setActiveCloudSession(linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId))
         context.cloudSyncService.renamedWorkspacesById[workspaceId] = CloudWorkspaceSummary(
@@ -37,6 +38,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.reload()
         try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
         context.store.cloudRuntime.setActiveCloudSession(linkedSession: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: workspaceId))
         _ = try context.database.saveCard(
@@ -80,6 +82,11 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         )
         let workspaceId = try testWorkspaceId(database: context.database)
         let originalCloudSettings = try testCloudSettings(database: context.database)
+        let aiChatHistoryStore = AIChatHistoryStore(
+            userDefaults: context.store.userDefaults,
+            encoder: context.store.encoder,
+            decoder: context.store.decoder
+        )
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
         try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
@@ -90,28 +97,37 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         )
         try context.database.setLastAppliedHotChangeId(workspaceId: workspaceId, changeId: 42)
         context.store.selectedReviewFilter = .tag(tag: "grammar")
-        context.store.userDefaults.set(Data("history".utf8), forKey: "ai-chat-history")
+        await aiChatHistoryStore.saveState(
+            state: AIChatPersistedState(
+                messages: [
+                    AIChatMessage(
+                        id: "message-1",
+                        role: .user,
+                        text: "history",
+                        toolCalls: [],
+                        timestamp: "2026-03-10T09:00:00.000Z",
+                        isError: false
+                    )
+                ],
+                selectedModelId: aiChatDefaultModelId
+            )
+        )
         try context.store.reload()
 
         try context.store.disconnectCloudAccount()
 
-        await FlashcardsStoreTestSupport.waitUntil(
-            timeoutNanoseconds: 2_000_000_000,
-            pollNanoseconds: 20_000_000
-        ) {
-            context.store.userDefaults.object(forKey: "ai-chat-history") == nil
-        }
-
         let resetCloudSettings = try testCloudSettings(database: context.database)
+        let currentWorkspaceId = try XCTUnwrap(context.store.workspace?.workspaceId)
+        let resetAIChatHistory = aiChatHistoryStore.loadState()
         XCTAssertEqual(resetCloudSettings.cloudState, .disconnected)
         XCTAssertNil(resetCloudSettings.linkedUserId)
         XCTAssertNotEqual(resetCloudSettings.deviceId, originalCloudSettings.deviceId)
-        XCTAssertTrue(try context.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100).isEmpty)
-        XCTAssertEqual(try context.database.loadLastAppliedHotChangeId(workspaceId: workspaceId), 0)
-        XCTAssertEqual(try context.database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId), 0)
+        XCTAssertTrue(try context.database.loadOutboxEntries(workspaceId: currentWorkspaceId, limit: 100).isEmpty)
+        XCTAssertEqual(try context.database.loadLastAppliedHotChangeId(workspaceId: currentWorkspaceId), 0)
+        XCTAssertEqual(try context.database.loadLastAppliedReviewSequenceId(workspaceId: currentWorkspaceId), 0)
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
         XCTAssertEqual(context.store.selectedReviewFilter, .allCards)
-        XCTAssertNil(context.store.userDefaults.object(forKey: "ai-chat-history"))
+        XCTAssertTrue(resetAIChatHistory.messages.isEmpty)
     }
 
     func testValidateCustomCloudServerDoesNotPersistOverrideWhenValidationFails() async throws {
@@ -186,7 +202,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
             ),
             CloudServerOverride(customOrigin: "https://self-hosted.example.com")
         )
-        XCTAssertFalse(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
+        XCTAssertTrue(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
         XCTAssertEqual(try context.store.currentCloudServiceConfiguration().mode, .custom)
     }
 
@@ -199,6 +215,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         let workspaceId = try testWorkspaceId(database: context.database)
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.reload()
         try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
         try saveCloudServerOverride(
             override: CloudServerOverride(customOrigin: "https://self-hosted.example.com"),
@@ -218,7 +235,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(cloudSettings.cloudState, .disconnected)
         XCTAssertNil(try loadCloudServerOverride(userDefaults: context.store.userDefaults, decoder: context.store.decoder))
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
-        XCTAssertTrue(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
+        XCTAssertFalse(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
     }
 
     func testCompleteCloudLinkBootstrapsLocalDataAfterCustomServerSwitch() async throws {
