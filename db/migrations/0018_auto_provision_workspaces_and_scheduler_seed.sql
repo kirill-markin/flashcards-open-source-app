@@ -1,3 +1,9 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: historical data repair for workspace bootstrap state and scheduler seed rows in sync.changes.
+-- Current guidance: the workspace/bootstrap repair remains relevant as historical backfill context, but the sync.changes scheduler-seed path was superseded by the hot-state rewrite.
+-- Replaced or refined by: db/migrations/0028_sync_hot_state_rewrite.sql.
+-- Replaces or corrects: db/migrations/0011_workspace_memberships.sql, db/migrations/0007_global_sync_changes.sql.
+-- See also: docs/architecture.md.
 -- Auto-provision missing workspace structures for existing users and ensure
 -- every workspace has a scheduler-settings seed row in sync.changes.
 

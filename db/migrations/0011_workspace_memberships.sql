@@ -1,3 +1,8 @@
+-- Migration status: Current / canonical.
+-- Introduces: explicit workspace memberships and replaces the original implicit single-workspace model.
+-- Current guidance: this migration is the key lineage point for current multi-workspace access behavior.
+-- Replaces or corrects: db/migrations/0001_initial_schema.sql.
+-- See also: docs/architecture.md.
 -- Explicit workspace memberships replace the old implicit single-workspace model.
 -- user_settings.workspace_id now acts as the selected/default workspace pointer.
 

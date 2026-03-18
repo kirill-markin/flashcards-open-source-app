@@ -1,3 +1,9 @@
+-- Migration status: Superseded / corrective.
+-- Introduces: timestamp normalization for sync.changes payloads in the global-feed sync model.
+-- Current guidance: this migration is tied to the now-removed sync.changes architecture and is no longer canonical on its own.
+-- Replaced or refined by: db/migrations/0028_sync_hot_state_rewrite.sql.
+-- Replaces or corrects: db/migrations/0007_global_sync_changes.sql.
+-- See also: docs/architecture.md.
 -- The original sync.changes backfill stored Postgres timestamp text inside
 -- JSON payloads. The sync API later validates those payloads as canonical UTC
 -- ISO strings, so existing rows must be rewritten to the same wire format used

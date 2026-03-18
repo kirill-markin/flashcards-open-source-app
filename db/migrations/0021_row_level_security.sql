@@ -1,3 +1,8 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: the first broad row-level security policy set for runtime tables.
+-- Current guidance: this migration is an important RLS lineage point, but it still targets the legacy app role and older sync tables.
+-- Replaced or refined by: db/migrations/0022_rls_policy_hardening.sql, db/migrations/0024_auth_runtime_roles.sql, db/migrations/0025_remove_legacy_app_role.sql, db/migrations/0028_sync_hot_state_rewrite.sql.
+-- See also: docs/architecture.md.
 -- Row-level security for user- and workspace-scoped tables.
 
 ALTER TABLE org.user_settings ENABLE ROW LEVEL SECURITY;

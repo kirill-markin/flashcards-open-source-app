@@ -1,3 +1,8 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: cards query indexes, including trigram search support and the original active-cards default ordering index.
+-- Current guidance: the trigram/search indexing remains relevant, but the old active ordering index was replaced later.
+-- Replaced or refined by: db/migrations/0028_created_at_ordering_indexes.sql.
+-- See also: docs/architecture.md.
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
 -- Supports the default paged Cards screen ordering for active cards.

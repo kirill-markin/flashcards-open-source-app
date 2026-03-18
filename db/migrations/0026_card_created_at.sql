@@ -1,3 +1,8 @@
+-- Migration status: Current / canonical.
+-- Introduces: content.cards.created_at as the canonical original card creation timestamp.
+-- Current guidance: this column remains canonical and is followed by sync backfill and ordering-index updates in later migrations.
+-- Replaced or refined by: db/migrations/0027_sync_card_created_at_and_device_rls.sql, db/migrations/0028_created_at_ordering_indexes.sql.
+-- See also: docs/architecture.md.
 ALTER TABLE content.cards
   ADD COLUMN created_at TIMESTAMPTZ;
 

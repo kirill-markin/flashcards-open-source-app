@@ -1,3 +1,8 @@
+-- Migration status: Current / canonical.
+-- Introduces: OTP verification attempt lockout storage for the auth flow.
+-- Current guidance: this migration remains part of the canonical auth schema and builds on the OTP lineage introduced in db/migrations/0014_agent_api_keys.sql and db/migrations/0016_agent_otp_challenges.sql.
+-- Replaced or refined by: db/migrations/0024_auth_runtime_roles.sql.
+-- See also: docs/architecture.md.
 CREATE TABLE IF NOT EXISTS auth.otp_verify_attempts (
   challenge_key_hash    TEXT        PRIMARY KEY,
   email                 TEXT        NOT NULL,

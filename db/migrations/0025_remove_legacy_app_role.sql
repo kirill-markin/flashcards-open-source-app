@@ -1,3 +1,8 @@
+-- Migration status: Current / canonical.
+-- Introduces: the cleanup and finalization step that removes the legacy shared app role after the runtime-role cutover.
+-- Current guidance: this migration is the canonical finalization of the runtime-role split introduced in db/migrations/0024_auth_runtime_roles.sql.
+-- Replaces or corrects: db/migrations/0024_auth_runtime_roles.sql.
+-- See also: db/migrations/0024_auth_runtime_roles.sql, docs/architecture.md.
 -- Remove the legacy shared runtime role after backend_app and auth_app cut over.
 
 DROP POLICY IF EXISTS user_settings_self_select ON org.user_settings;

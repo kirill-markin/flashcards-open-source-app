@@ -1,3 +1,8 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: the auth schema, agent API keys, and the original agent OTP send-event storage.
+-- Current guidance: this is the foundation of the auth lineage, but later migrations renamed some tables and hardened selected-workspace behavior.
+-- Replaced or refined by: db/migrations/0015_rename_otp_send_events.sql, db/migrations/0016_agent_otp_challenges.sql, db/migrations/0017_agent_api_key_selected_workspace.sql, db/migrations/0024_auth_runtime_roles.sql, db/migrations/0030_agent_api_key_selected_workspace_rls.sql.
+-- See also: docs/architecture.md.
 -- Agent-facing auth state for terminal/API-key connections.
 
 CREATE SCHEMA IF NOT EXISTS auth;

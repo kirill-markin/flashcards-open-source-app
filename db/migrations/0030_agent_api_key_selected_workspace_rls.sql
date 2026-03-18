@@ -1,3 +1,8 @@
+-- Migration status: Current / canonical.
+-- Introduces: database-enforced selected-workspace access for agent API keys.
+-- Current guidance: this is the current enforcement layer for the selected-workspace feature that was structurally introduced earlier.
+-- Replaces or corrects: db/migrations/0017_agent_api_key_selected_workspace.sql.
+-- See also: db/migrations/0017_agent_api_key_selected_workspace.sql, db/migrations/0024_auth_runtime_roles.sql, docs/architecture.md.
 -- Enforce API-key selected workspace access at the database boundary.
 
 DROP POLICY IF EXISTS agent_api_keys_insert_runtime ON auth.agent_api_keys;

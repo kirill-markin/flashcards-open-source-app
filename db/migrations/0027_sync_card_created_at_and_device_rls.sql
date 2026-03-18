@@ -1,3 +1,9 @@
+-- Migration status: Historical / partially superseded.
+-- Introduces: a sync.changes createdAt backfill and device RLS adjustments for workspace moves.
+-- Current guidance: the sync.changes createdAt backfill is historical after db/migrations/0028_sync_hot_state_rewrite.sql, while the device RLS hardening remains relevant lineage.
+-- Replaced or refined by: db/migrations/0028_sync_hot_state_rewrite.sql.
+-- Replaces or corrects: db/migrations/0026_card_created_at.sql, db/migrations/0024_auth_runtime_roles.sql.
+-- See also: docs/architecture.md.
 -- Backfill missing card createdAt values in sync.changes payloads and allow
 -- backend_app to move a device row between workspaces the same user can access.
 
