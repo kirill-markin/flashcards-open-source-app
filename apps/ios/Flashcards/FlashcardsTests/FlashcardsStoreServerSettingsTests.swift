@@ -182,6 +182,13 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
 
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
         try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        try context.guestCredentialStore.saveGuestSession(
+            session: FlashcardsStoreTestSupport.makeStoredGuestCloudSession(
+                userId: "guest-user-1",
+                workspaceId: "guest-workspace-1",
+                guestToken: "guest-token-1"
+            )
+        )
         _ = try context.database.saveCard(
             workspaceId: workspaceId,
             input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
@@ -203,6 +210,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(try context.database.loadLastAppliedHotChangeId(workspaceId: workspaceId), 0)
         XCTAssertEqual(try context.database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId), 0)
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
+        XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
         XCTAssertEqual(
             try loadCloudServerOverride(
                 userDefaults: context.store.userDefaults,
@@ -225,6 +233,13 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
         try context.store.reload()
         try context.store.cloudRuntime.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        try context.guestCredentialStore.saveGuestSession(
+            session: FlashcardsStoreTestSupport.makeStoredGuestCloudSession(
+                userId: "guest-user-2",
+                workspaceId: "guest-workspace-2",
+                guestToken: "guest-token-2"
+            )
+        )
         try saveCloudServerOverride(
             override: CloudServerOverride(customOrigin: "https://self-hosted.example.com"),
             userDefaults: context.store.userDefaults,
@@ -243,6 +258,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(cloudSettings.cloudState, .disconnected)
         XCTAssertNil(try loadCloudServerOverride(userDefaults: context.store.userDefaults, decoder: context.store.decoder))
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
+        XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
         XCTAssertFalse(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
     }
 

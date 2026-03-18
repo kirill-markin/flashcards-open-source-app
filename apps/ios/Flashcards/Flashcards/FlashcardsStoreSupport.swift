@@ -72,7 +72,10 @@ protocol GuestCredentialStoring {
 
 @MainActor
 protocol GuestCloudAuthServing {
-    func createGuestSession(apiBaseUrl: String) async throws -> StoredGuestCloudSession
+    func createGuestSession(
+        apiBaseUrl: String,
+        configurationMode: CloudServiceConfigurationMode
+    ) async throws -> StoredGuestCloudSession
     func prepareGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,

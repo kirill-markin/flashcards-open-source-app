@@ -1,9 +1,16 @@
 import Foundation
 import Security
 
+private struct LegacyStoredGuestCloudSession: Codable {
+    let guestToken: String
+    let userId: String
+    let workspaceId: String
+}
+
 enum GuestCloudCredentialStoreError: LocalizedError {
     case encodingFailed
     case decodingFailed
+    case migrationFailed(String)
     case unexpectedStatus(OSStatus, String)
 
     var errorDescription: String? {
@@ -12,6 +19,8 @@ enum GuestCloudCredentialStoreError: LocalizedError {
             return "Guest AI credentials could not be encoded for secure storage"
         case .decodingFailed:
             return "Guest AI credentials stored in Keychain are invalid"
+        case .migrationFailed(let message):
+            return "Guest AI credentials could not be migrated: \(message)"
         case .unexpectedStatus(let status, let operation):
             return "Keychain \(operation) failed with status \(status)"
         }
@@ -23,17 +32,23 @@ final class GuestCloudCredentialStore {
     private let decoder: JSONDecoder
     private let service: String
     private let account: String
+    private let bundle: Bundle
+    private let userDefaults: UserDefaults
 
     init(
         encoder: JSONEncoder = JSONEncoder(),
         decoder: JSONDecoder = JSONDecoder(),
         service: String = (Bundle.main.bundleIdentifier ?? "flashcards-open-source-app") + ".guest-cloud-auth",
-        account: String = "primary"
+        account: String = "primary",
+        bundle: Bundle = .main,
+        userDefaults: UserDefaults = .standard
     ) {
         self.encoder = encoder
         self.decoder = decoder
         self.service = service
         self.account = account
+        self.bundle = bundle
+        self.userDefaults = userDefaults
     }
 
     private var usesTestFileStorage: Bool {
@@ -74,11 +89,7 @@ final class GuestCloudCredentialStore {
             throw GuestCloudCredentialStoreError.decodingFailed
         }
 
-        do {
-            return try self.decoder.decode(StoredGuestCloudSession.self, from: data)
-        } catch {
-            throw GuestCloudCredentialStoreError.decodingFailed
-        }
+        return try self.decodeGuestSession(data: data)
     }
 
     func saveGuestSession(session: StoredGuestCloudSession) throws {
@@ -145,11 +156,7 @@ final class GuestCloudCredentialStore {
         }
 
         let data = try Data(contentsOf: fileUrl)
-        do {
-            return try self.decoder.decode(StoredGuestCloudSession.self, from: data)
-        } catch {
-            throw GuestCloudCredentialStoreError.decodingFailed
-        }
+        return try self.decodeGuestSession(data: data)
     }
 
     private func saveGuestSessionToTestFile(session: StoredGuestCloudSession) throws {
@@ -170,5 +177,46 @@ final class GuestCloudCredentialStore {
         }
 
         try FileManager.default.removeItem(at: fileUrl)
+    }
+
+    private func decodeGuestSession(data: Data) throws -> StoredGuestCloudSession {
+        do {
+            return try self.decoder.decode(StoredGuestCloudSession.self, from: data)
+        } catch {
+            guard let legacySession = try? self.decoder.decode(LegacyStoredGuestCloudSession.self, from: data) else {
+                throw GuestCloudCredentialStoreError.decodingFailed
+            }
+
+            return try self.migrateLegacyGuestSession(session: legacySession)
+        }
+    }
+
+    private func migrateLegacyGuestSession(session: LegacyStoredGuestCloudSession) throws -> StoredGuestCloudSession {
+        let configuration: CloudServiceConfiguration
+        do {
+            configuration = try loadCloudServiceConfiguration(
+                bundle: self.bundle,
+                userDefaults: self.userDefaults,
+                decoder: self.decoder
+            )
+        } catch {
+            throw GuestCloudCredentialStoreError.migrationFailed(Flashcards.errorMessage(error: error))
+        }
+
+        let migratedSession = StoredGuestCloudSession(
+            guestToken: session.guestToken,
+            userId: session.userId,
+            workspaceId: session.workspaceId,
+            configurationMode: configuration.mode,
+            apiBaseUrl: configuration.apiBaseUrl
+        )
+
+        do {
+            try self.saveGuestSession(session: migratedSession)
+        } catch {
+            throw GuestCloudCredentialStoreError.migrationFailed(Flashcards.errorMessage(error: error))
+        }
+
+        return migratedSession
     }
 }

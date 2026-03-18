@@ -434,7 +434,8 @@ enum FlashcardsStoreTestSupport {
                 encoder: JSONEncoder(),
                 decoder: JSONDecoder(),
                 service: "tests-\(UUID().uuidString)",
-                account: "primary"
+                account: "primary",
+                userDefaults: userDefaults
             )
         )
     }
@@ -540,7 +541,9 @@ enum FlashcardsStoreTestSupport {
         StoredGuestCloudSession(
             guestToken: guestToken,
             userId: userId,
-            workspaceId: workspaceId
+            workspaceId: workspaceId,
+            configurationMode: .official,
+            apiBaseUrl: "https://api.example.com/v1"
         )
     }
 
