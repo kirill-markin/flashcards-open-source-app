@@ -503,6 +503,16 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         )
         store.refreshLocalReadModels(now: Date())
 
+        await FlashcardsStoreTestSupport.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.isReviewHeadLoading == false
+                && store.effectiveReviewQueue.contains(where: { card in
+                    card.cardId == "remote-due-card"
+                })
+        }
+
         XCTAssertTrue(store.effectiveReviewQueue.contains(where: { card in
             card.cardId == "remote-due-card"
         }))

@@ -116,6 +116,13 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
 
         try context.store.disconnectCloudAccount()
 
+        await FlashcardsStoreTestSupport.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            aiChatHistoryStore.loadState().messages.isEmpty
+        }
+
         let resetCloudSettings = try testCloudSettings(database: context.database)
         let currentWorkspaceId = try XCTUnwrap(context.store.workspace?.workspaceId)
         let resetAIChatHistory = aiChatHistoryStore.loadState()
