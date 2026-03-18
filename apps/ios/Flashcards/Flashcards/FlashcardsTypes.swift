@@ -617,6 +617,7 @@ struct SyncOperation: Hashable {
     let payload: SyncOperationPayload
 }
 
+/// Mirrors one `/sync/push` operation result from `apps/backend/src/sync.ts`.
 struct SyncOperationResult: Codable, Hashable {
     let operationId: String
     let entityType: SyncEntityType
@@ -626,16 +627,19 @@ struct SyncOperationResult: Codable, Hashable {
     let error: String?
 }
 
+/// Mirrors the `/sync/push` response from `apps/backend/src/sync.ts`.
 struct SyncPushResponse: Codable, Hashable {
     let operations: [SyncOperationResult]
 }
 
+/// Local hot-state bootstrap entry derived from backend bootstrap responses.
 enum SyncBootstrapEntryPayload: Hashable {
     case card(Card)
     case deck(Deck)
     case workspaceSchedulerSettings(WorkspaceSchedulerSettings)
 }
 
+/// Local hot-state bootstrap entry derived from `/sync/bootstrap`.
 struct SyncBootstrapEntry: Hashable {
     let entityType: SyncEntityType
     let entityId: String
@@ -643,12 +647,14 @@ struct SyncBootstrapEntry: Hashable {
     let payload: SyncBootstrapEntryPayload
 }
 
+/// Local hot-state delta payload derived from `/sync/pull`.
 enum SyncChangePayload: Hashable {
     case card(Card)
     case deck(Deck)
     case workspaceSchedulerSettings(WorkspaceSchedulerSettings)
 }
 
+/// Local hot-state delta derived from `/sync/pull`.
 struct SyncChange: Hashable {
     let changeId: Int64
     let entityType: SyncEntityType
@@ -657,12 +663,14 @@ struct SyncChange: Hashable {
     let payload: SyncChangePayload
 }
 
+/// Local representation of the `/sync/pull` response.
 struct SyncPullResponse: Hashable {
     let changes: [SyncChange]
     let nextHotChangeId: Int64
     let hasMore: Bool
 }
 
+/// Local representation of the `/sync/bootstrap` pull response.
 struct SyncBootstrapPullResponse: Hashable {
     let entries: [SyncBootstrapEntry]
     let nextCursor: String?
@@ -671,17 +679,20 @@ struct SyncBootstrapPullResponse: Hashable {
     let remoteIsEmpty: Bool
 }
 
+/// Local representation of the `/sync/bootstrap` push response.
 struct SyncBootstrapPushResponse: Codable, Hashable {
     let appliedEntriesCount: Int
     let bootstrapHotChangeId: Int64?
 }
 
+/// Local representation of the `/sync/review-history/pull` response.
 struct SyncReviewHistoryPullResponse: Hashable {
     let reviewEvents: [ReviewEvent]
     let nextReviewSequenceId: Int64
     let hasMore: Bool
 }
 
+/// Local representation of the `/sync/review-history/import` response.
 struct SyncReviewHistoryImportResponse: Codable, Hashable {
     let importedCount: Int
     let duplicateCount: Int
