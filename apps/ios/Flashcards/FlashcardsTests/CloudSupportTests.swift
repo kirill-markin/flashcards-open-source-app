@@ -653,7 +653,7 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
                 email: "user@example.com",
                 configurationMode: .official,
                 apiBaseUrl: "https://api.example.com/v1",
-                bearerToken: "id-token"
+                authorization: .bearer("id-token")
             )
         )
 
@@ -733,7 +733,7 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
                 email: "user@example.com",
                 configurationMode: .official,
                 apiBaseUrl: "https://api.example.com/v1",
-                bearerToken: "id-token"
+                authorization: .bearer("id-token")
             )
         )
 
@@ -1205,7 +1205,7 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
                 email: "user@example.com",
                 configurationMode: .official,
                 apiBaseUrl: "https://api.example.com/v1",
-                bearerToken: "id-token"
+                authorization: .bearer("id-token")
             )
         )
 
@@ -1296,7 +1296,7 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
                 email: "user@example.com",
                 configurationMode: .official,
                 apiBaseUrl: "https://api.example.com/v1",
-                bearerToken: "id-token"
+                authorization: .bearer("id-token")
             )
         )
 
@@ -1377,7 +1377,7 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
                     email: "user@example.com",
                     configurationMode: .official,
                     apiBaseUrl: "https://api.example.com/v1",
-                    bearerToken: "id-token"
+                    authorization: .bearer("id-token")
                 )
             )
         }.value
@@ -1451,7 +1451,8 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
                 idToken: "id-token",
                 idTokenExpiresAt: "2026-03-12T12:00:00.000Z"
             ),
-            workspaces: workspaces
+            workspaces: workspaces,
+            guestUpgradeMode: nil
         )
     }
 
@@ -1462,7 +1463,7 @@ final class CloudSupportTests: XCTestCase, @unchecked Sendable {
             email: "user@example.com",
             configurationMode: .official,
             apiBaseUrl: "https://api.example.com/v1",
-            bearerToken: "id-token"
+            authorization: .bearer("id-token")
         )
     }
 

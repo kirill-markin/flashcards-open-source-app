@@ -37,6 +37,7 @@ test("authenticateRequest returns local auth only for explicitly gated insecure 
     userId: "local",
     email: null,
     cognitoUsername: null,
+    subjectUserId: "local",
     transport: "none",
     connectionId: null,
     selectedWorkspaceId: null,

@@ -9,6 +9,7 @@ import { createAgentRoutes } from "./routes/agent";
 import { createCardsRoutes } from "./routes/cards";
 import { createSyncRoutes } from "./routes/sync";
 import { createSystemRoutes } from "./routes/system";
+import { createGuestAuthRoutes } from "./routes/guestAuth";
 import { createWorkspaceRoutes } from "./routes/workspaces";
 import {
   createAgentConnectionManagementErrorEnvelope,
@@ -223,6 +224,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createAgentRoutes({ allowedOrigins }));
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
+  app.route("/", createGuestAuthRoutes());
   app.route("/", createChatRoutes({ allowedOrigins }));
   app.route("/", createSyncRoutes({ allowedOrigins }));
 

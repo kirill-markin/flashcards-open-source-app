@@ -36,7 +36,22 @@ final class CloudCredentialStore {
         self.account = account
     }
 
+    private var usesTestFileStorage: Bool {
+        self.service.hasPrefix("tests-")
+    }
+
+    private var testStorageUrl: URL {
+        let fileName = "\(self.service)-\(self.account)-cloud-credentials.json"
+            .replacingOccurrences(of: "/", with: "-")
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent(fileName, isDirectory: false)
+    }
+
     func loadCredentials() throws -> StoredCloudCredentials? {
+        if self.usesTestFileStorage {
+            return try self.loadCredentialsFromTestFile()
+        }
+
         var result: CFTypeRef?
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
@@ -67,6 +82,11 @@ final class CloudCredentialStore {
     }
 
     func saveCredentials(credentials: StoredCloudCredentials) throws {
+        if self.usesTestFileStorage {
+            try self.saveCredentialsToTestFile(credentials: credentials)
+            return
+        }
+
         let data: Data
         do {
             data = try self.encoder.encode(credentials)
@@ -99,6 +119,11 @@ final class CloudCredentialStore {
     }
 
     func clearCredentials() throws {
+        if self.usesTestFileStorage {
+            try self.clearCredentialsFromTestFile()
+            return
+        }
+
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.service,
@@ -111,5 +136,39 @@ final class CloudCredentialStore {
         }
 
         throw CloudCredentialStoreError.unexpectedStatus(status, "delete")
+    }
+
+    private func loadCredentialsFromTestFile() throws -> StoredCloudCredentials? {
+        let fileUrl = self.testStorageUrl
+        guard FileManager.default.fileExists(atPath: fileUrl.path) else {
+            return nil
+        }
+
+        let data = try Data(contentsOf: fileUrl)
+        do {
+            return try self.decoder.decode(StoredCloudCredentials.self, from: data)
+        } catch {
+            throw CloudCredentialStoreError.decodingFailed
+        }
+    }
+
+    private func saveCredentialsToTestFile(credentials: StoredCloudCredentials) throws {
+        let data: Data
+        do {
+            data = try self.encoder.encode(credentials)
+        } catch {
+            throw CloudCredentialStoreError.encodingFailed
+        }
+
+        try data.write(to: self.testStorageUrl, options: .atomic)
+    }
+
+    private func clearCredentialsFromTestFile() throws {
+        let fileUrl = self.testStorageUrl
+        guard FileManager.default.fileExists(atPath: fileUrl.path) else {
+            return
+        }
+
+        try FileManager.default.removeItem(at: fileUrl)
     }
 }

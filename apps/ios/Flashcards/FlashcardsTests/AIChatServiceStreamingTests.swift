@@ -39,7 +39,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
                     email: "user@example.com",
                     configurationMode: .official,
                     apiBaseUrl: "https://api.example.com",
-                    bearerToken: "test-token"
+                    authorization: .bearer("test-token")
                 ),
                 request: self.makeRequestBody(text: "hello"),
                 tapStartedAt: Date(timeIntervalSince1970: 0),
@@ -111,7 +111,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
                 email: "user@example.com",
                 configurationMode: .official,
                 apiBaseUrl: "https://api.example.com",
-                bearerToken: "test-token"
+                authorization: .bearer("test-token")
             ),
             request: self.makeRequestBody(text: "say hi"),
             tapStartedAt: Date(timeIntervalSince1970: 0),
@@ -171,7 +171,7 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
                     email: "user@example.com",
                     configurationMode: .custom,
                     apiBaseUrl: "https://api.example.com",
-                    bearerToken: "test-token"
+                    authorization: .bearer("test-token")
                 ),
                 request: self.makeRequestBody(text: "hello"),
                 tapStartedAt: nil,

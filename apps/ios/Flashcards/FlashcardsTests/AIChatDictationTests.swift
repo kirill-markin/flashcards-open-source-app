@@ -328,7 +328,8 @@ private final class StubVoiceRecorder: AIChatVoiceRecording {
         return AIChatRecordedAudio(
             fileUrl: fileUrl,
             fileName: "chat-dictation.m4a",
-            mediaType: "audio/mp4"
+            mediaType: "audio/mp4",
+            durationSeconds: 1.0
         )
     }
 

@@ -23,11 +23,13 @@ private struct CloudOtpSheetState: Identifiable, Hashable {
 enum CloudPostAuthRetryAction: Hashable {
     case prepareLink(verifiedContext: CloudVerifiedAuthContext)
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
+    case completeGuestLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case syncOnly
 }
 
 enum CloudPostAuthSyncOperation: Hashable {
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
+    case completeGuestLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case syncOnly
 }
 
@@ -52,6 +54,11 @@ func makeCloudPostAuthFailurePresentation(
         return CloudPostAuthFailurePresentation(
             title: "Signed in, but cloud setup failed.",
             retryAction: .completeLink(linkContext: linkContext, selection: selection)
+        )
+    case .completeGuestLink(let linkContext, let selection):
+        return CloudPostAuthFailurePresentation(
+            title: "Signed in, but account upgrade failed.",
+            retryAction: .completeGuestLink(linkContext: linkContext, selection: selection)
         )
     case .syncOnly:
         return CloudPostAuthFailurePresentation(
@@ -340,7 +347,9 @@ struct CloudSignInSheet: View {
 
     private func completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection) {
         self.presentPostAuthSync(
-            operation: .completeLink(linkContext: linkContext, selection: selection)
+            operation: linkContext.guestUpgradeMode == .mergeRequired
+                ? .completeGuestLink(linkContext: linkContext, selection: selection)
+                : .completeLink(linkContext: linkContext, selection: selection)
         )
     }
 
@@ -352,6 +361,8 @@ struct CloudSignInSheet: View {
             self.prepareCloudLink(verifiedContext: verifiedContext)
         case .completeLink(let linkContext, let selection):
             self.completeLink(linkContext: linkContext, selection: selection)
+        case .completeGuestLink(let linkContext, let selection):
+            self.presentPostAuthSync(operation: .completeGuestLink(linkContext: linkContext, selection: selection))
         case .syncOnly:
             self.presentPostAuthSync(operation: .syncOnly)
         }
@@ -377,6 +388,11 @@ struct CloudSignInSheet: View {
                 switch syncState.operation {
                 case .completeLink(let linkContext, let selection):
                     try await self.store.completeCloudLink(
+                        linkContext: linkContext,
+                        selection: selection
+                    )
+                case .completeGuestLink(let linkContext, let selection):
+                    try await self.store.completeGuestCloudLink(
                         linkContext: linkContext,
                         selection: selection
                     )

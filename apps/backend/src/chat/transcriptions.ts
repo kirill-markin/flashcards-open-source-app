@@ -26,6 +26,7 @@ type OpenAITranscriptionClient = Readonly<{
 export type ChatTranscriptionUpload = Readonly<{
   file: File;
   source: ChatTranscriptionSource;
+  durationSeconds: number;
 }>;
 
 const CHAT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
@@ -107,9 +108,24 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
     throw new HttpError(400, "source must be either ios or web", "CHAT_TRANSCRIPTION_SOURCE_INVALID");
   }
 
+  const durationValue = formData.get("durationSeconds");
+  if (typeof durationValue !== "string" || durationValue.trim() === "") {
+    throw new HttpError(400, "durationSeconds is required", "CHAT_TRANSCRIPTION_DURATION_REQUIRED");
+  }
+
+  const durationSeconds = Number.parseFloat(durationValue);
+  if (Number.isFinite(durationSeconds) === false || durationSeconds <= 0) {
+    throw new HttpError(
+      400,
+      "durationSeconds must be a positive number",
+      "CHAT_TRANSCRIPTION_DURATION_INVALID",
+    );
+  }
+
   return {
     file: fileValue,
     source: sourceValue,
+    durationSeconds,
   };
 }
 

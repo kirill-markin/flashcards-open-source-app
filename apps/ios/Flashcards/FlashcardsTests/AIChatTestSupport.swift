@@ -978,6 +978,13 @@ class AIChatTestCaseBase: XCTestCase {
                 service: "tests-\(UUID().uuidString)",
                 account: "primary"
             ),
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: GuestCloudCredentialStore(
+                encoder: JSONEncoder(),
+                decoder: JSONDecoder(),
+                service: "tests-\(UUID().uuidString)",
+                account: "primary"
+            ),
             initialGlobalErrorMessage: ""
         )
         self.addTeardownBlock {
@@ -1048,6 +1055,13 @@ class AIChatTestCaseBase: XCTestCase {
             database: database,
             cloudAuthService: cloudAuthService,
             credentialStore: credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: GuestCloudCredentialStore(
+                encoder: encoder,
+                decoder: decoder,
+                service: "tests-\(UUID().uuidString)",
+                account: "linked-guest"
+            ),
             initialGlobalErrorMessage: ""
         )
         store.cloudRuntime = CloudSessionRuntime(

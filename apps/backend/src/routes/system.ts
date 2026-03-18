@@ -90,7 +90,8 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
 
     try {
       await deleteAccountForAuthenticatedUser({
-        userId: auth.userId,
+        appUserId: auth.userId,
+        authSubjectUserId: auth.subjectUserId,
         cognitoUsername: auth.cognitoUsername,
         confirmationText: body.confirmationText,
       });

@@ -220,10 +220,24 @@ actor AIChatSessionRuntime {
         await self.flushPendingAssistantText(eventHandler: eventHandler)
         let failureReportBody = self.makeFailureReportBody(error: error)
         let message = Flashcards.errorMessage(error: error)
-        self.persistedState = markAssistantError(state: self.persistedState, message: message)
-        await self.historyStore.saveState(state: self.persistedState)
-        await eventHandler(.setRepairStatus(nil))
-        await eventHandler(.fail(message))
+        if isGuestAiLimitError(error: error) {
+            self.persistedState = markAssistantAccountUpgradePrompt(
+                state: self.persistedState,
+                message: aiChatGuestQuotaReachedMessage,
+                buttonTitle: aiChatGuestQuotaButtonTitle
+            )
+            await self.historyStore.saveState(state: self.persistedState)
+            await eventHandler(.setRepairStatus(nil))
+            await eventHandler(.appendAssistantAccountUpgradePrompt(
+                message: aiChatGuestQuotaReachedMessage,
+                buttonTitle: aiChatGuestQuotaButtonTitle
+            ))
+        } else {
+            self.persistedState = markAssistantError(state: self.persistedState, message: message)
+            await self.historyStore.saveState(state: self.persistedState)
+            await eventHandler(.setRepairStatus(nil))
+            await eventHandler(.fail(message))
+        }
         return AIChatRuntimeResult(
             failureReportBody: failureReportBody,
             latencyReportBody: latencyReportBody
@@ -442,6 +456,53 @@ private func markAssistantError(state: AIChatPersistedState, message: String) ->
         chatSessionId: state.chatSessionId,
         codeInterpreterContainerId: state.codeInterpreterContainerId
     )
+}
+
+private func markAssistantAccountUpgradePrompt(
+    state: AIChatPersistedState,
+    message: String,
+    buttonTitle: String
+) -> AIChatPersistedState {
+    var messages = state.messages
+
+    if let lastIndex = messages.indices.last, messages[lastIndex].role == .assistant {
+        let lastMessage = messages[lastIndex]
+        messages[lastIndex] = AIChatMessage(
+            id: lastMessage.id,
+            role: lastMessage.role,
+            content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
+            timestamp: lastMessage.timestamp,
+            isError: false
+        )
+    } else {
+        messages.append(
+            AIChatMessage(
+                id: UUID().uuidString.lowercased(),
+                role: .assistant,
+                content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
+                timestamp: nowIsoTimestamp(),
+                isError: false
+            )
+        )
+    }
+
+    return AIChatPersistedState(
+        messages: messages,
+        selectedModelId: state.selectedModelId,
+        chatSessionId: state.chatSessionId,
+        codeInterpreterContainerId: state.codeInterpreterContainerId
+    )
+}
+
+private func isGuestAiLimitError(error: Error) -> Bool {
+    guard let serviceError = error as? AIChatServiceError else {
+        return false
+    }
+    guard case .backendError(let backendError, _) = serviceError else {
+        return false
+    }
+
+    return backendError.code == "GUEST_AI_LIMIT_REACHED"
 }
 
 private func isOptimisticAssistantStatus(content: [AIChatContentPart]) -> Bool {

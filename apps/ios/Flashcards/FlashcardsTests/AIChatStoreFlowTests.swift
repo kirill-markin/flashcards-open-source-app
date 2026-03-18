@@ -15,7 +15,7 @@ private func requireMessageCount(
 
 final class AIChatStoreFlowTests: AIChatTestCaseBase {
     @MainActor
-    func testAIChatStoreBlocksSendWhenCloudIsNotLinked() throws {
+    func testAIChatStoreRequiresConsentBeforeGuestAIChatCanStart() throws {
         let flashcardsStore = try self.makeStore()
         let failingToolExecutor = FailingToolExecutor()
         let chatStore = AIChatStore(
@@ -32,7 +32,10 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         chatStore.sendMessage()
 
         XCTAssertEqual(chatStore.messages.count, 0)
-        XCTAssertEqual(chatStore.activeAlert, .generalError(message: "AI chat requires cloud sign-in."))
+        XCTAssertEqual(
+            chatStore.activeAlert,
+            .generalError(message: aiChatExternalProviderConsentRequiredMessage)
+        )
     }
 
     @MainActor

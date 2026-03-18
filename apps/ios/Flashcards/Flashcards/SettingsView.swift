@@ -78,6 +78,8 @@ func makeSyncStatusPresentation(status: SyncStatus, cloudState: CloudAccountStat
         switch cloudState {
         case .linked:
             return SyncStatusPresentation(title: "Successfully synced", tone: .success)
+        case .guest:
+            return SyncStatusPresentation(title: "Guest AI is active", tone: .neutral)
         case .disconnected, .linkingReady:
             return SyncStatusPresentation(title: "Not syncing", tone: .neutral)
         }
@@ -91,6 +93,8 @@ func makeSyncStatusPresentation(status: SyncStatus, cloudState: CloudAccountStat
 func displayCloudAccountStateTitle(cloudState: CloudAccountState) -> String {
     switch cloudState {
     case .linked:
+        return cloudState.title
+    case .guest:
         return cloudState.title
     case .disconnected, .linkingReady:
         return CloudAccountState.disconnected.title

@@ -23,6 +23,7 @@ extension FlashcardsStore {
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
         try self.cloudRuntime.clearCredentials()
+        try self.dependencies.guestCredentialStore.clearGuestSession()
         self.userDefaults.removeObject(forKey: selectedReviewFilterUserDefaultsKey)
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
         self.aiChatStore.clearHistory()
@@ -44,6 +45,10 @@ extension FlashcardsStore {
     }
 
     private func resetLocalStateIfLinkedUserDiffers(nextUserId: String) throws {
+        guard self.cloudSettings?.cloudState == .linked else {
+            return
+        }
+
         guard let linkedUserId = self.cloudSettings?.linkedUserId, linkedUserId.isEmpty == false else {
             return
         }
@@ -74,6 +79,10 @@ extension FlashcardsStore {
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration
     ) async throws -> Bool {
+        guard self.cloudSettings?.cloudState == .linked else {
+            return false
+        }
+
         let authenticatedAccount = try await self.loadAuthenticatedCloudAccountSnapshot(
             credentials: credentials,
             configuration: configuration
@@ -134,6 +143,7 @@ extension FlashcardsStore {
     }
 
     func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) async throws -> CloudWorkspaceLinkContext {
+        let guestUpgradeMode = try await self.prepareGuestUpgradeModeIfNeeded(verifiedContext: verifiedContext)
         let account = try await self.cloudRuntime.fetchCloudAccount(verifiedContext: verifiedContext)
         try self.resetLocalStateIfLinkedUserDiffers(nextUserId: account.userId)
 
@@ -143,7 +153,8 @@ extension FlashcardsStore {
             email: account.email,
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
-            workspaces: account.workspaces
+            workspaces: account.workspaces,
+            guestUpgradeMode: guestUpgradeMode
         )
     }
 
@@ -184,9 +195,49 @@ extension FlashcardsStore {
                 email: linkContext.email,
                 configurationMode: configuration.mode,
                 apiBaseUrl: linkContext.apiBaseUrl,
-                bearerToken: linkContext.credentials.idToken
+                authorization: .bearer(linkContext.credentials.idToken)
             )
         )
+        try self.clearGuestSessionIfNeeded()
+        self.globalErrorMessage = ""
+    }
+
+    func completeGuestCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ) async throws {
+        guard let guestSession = try self.dependencies.guestCredentialStore.loadGuestSession() else {
+            throw LocalStoreError.uninitialized("Guest AI session is unavailable")
+        }
+
+        let guestSelection: CloudGuestUpgradeSelection
+        switch selection {
+        case .existing(let workspaceId):
+            guestSelection = .existing(workspaceId: workspaceId)
+        case .createNew:
+            guestSelection = .createNew
+        }
+
+        let linkedWorkspace = try await self.dependencies.guestCloudAuthService.completeGuestUpgrade(
+            apiBaseUrl: linkContext.apiBaseUrl,
+            bearerToken: linkContext.credentials.idToken,
+            guestToken: guestSession.guestToken,
+            selection: guestSelection
+        )
+
+        try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+        let configuration = try self.currentCloudServiceConfiguration()
+        try await self.finishCloudLink(
+            linkedSession: CloudLinkedSession(
+                userId: linkContext.userId,
+                workspaceId: linkedWorkspace.workspaceId,
+                email: linkContext.email,
+                configurationMode: configuration.mode,
+                apiBaseUrl: linkContext.apiBaseUrl,
+                authorization: .bearer(linkContext.credentials.idToken)
+            )
+        )
+        try self.clearGuestSessionIfNeeded()
         self.globalErrorMessage = ""
     }
 
@@ -274,8 +325,12 @@ extension FlashcardsStore {
         }
     }
 
-    func authenticatedCloudSessionForAI() async throws -> CloudLinkedSession {
-        try await self.prepareAuthenticatedCloudSessionForAI()
+    func cloudSessionForAI() async throws -> CloudLinkedSession {
+        if self.cloudSettings?.cloudState == .linked {
+            return try await self.prepareAuthenticatedCloudSessionForAI()
+        }
+
+        return try await self.prepareGuestCloudSessionForAI()
     }
 
     func warmUpAuthenticatedCloudSessionForAI() async {
@@ -293,6 +348,79 @@ extension FlashcardsStore {
                     "message": Flashcards.errorMessage(error: error),
                 ]
             )
+        }
+    }
+
+    private func loadOrCreateGuestCloudSession() async throws -> CloudLinkedSession {
+        let configuration = try self.currentCloudServiceConfiguration()
+        let storedGuestSession: StoredGuestCloudSession
+        if let existingGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() {
+            storedGuestSession = existingGuestSession
+        } else {
+            let createdGuestSession = try await self.dependencies.guestCloudAuthService.createGuestSession(
+                apiBaseUrl: configuration.apiBaseUrl
+            )
+            try self.dependencies.guestCredentialStore.saveGuestSession(session: createdGuestSession)
+            storedGuestSession = createdGuestSession
+        }
+
+        return CloudLinkedSession(
+            userId: storedGuestSession.userId,
+            workspaceId: storedGuestSession.workspaceId,
+            email: nil,
+            configurationMode: configuration.mode,
+            apiBaseUrl: configuration.apiBaseUrl,
+            authorization: .guest(storedGuestSession.guestToken)
+        )
+    }
+
+    private func markLocalCloudStateAsGuest(session: CloudLinkedSession) throws {
+        let database = try requireLocalDatabase(database: self.database)
+        try database.updateCloudSettings(
+            cloudState: .guest,
+            linkedUserId: session.userId,
+            linkedWorkspaceId: session.workspaceId,
+            linkedEmail: nil
+        )
+        try self.reload()
+    }
+
+    private func prepareGuestCloudSessionForAI() async throws -> CloudLinkedSession {
+        let guestSession = try await self.loadOrCreateGuestCloudSession()
+        let isAlreadyGuestLinked = self.cloudSettings?.cloudState == .guest
+            && self.workspace?.workspaceId == guestSession.workspaceId
+            && self.cloudSettings?.linkedUserId == guestSession.userId
+
+        if isAlreadyGuestLinked {
+            self.cloudRuntime.setActiveCloudSession(linkedSession: guestSession)
+            return guestSession
+        }
+
+        try await self.finishCloudLink(linkedSession: guestSession)
+        try self.markLocalCloudStateAsGuest(session: guestSession)
+        return guestSession
+    }
+
+    private func prepareGuestUpgradeModeIfNeeded(
+        verifiedContext: CloudVerifiedAuthContext
+    ) async throws -> CloudGuestUpgradeMode? {
+        guard self.cloudSettings?.cloudState == .guest else {
+            return nil
+        }
+        guard let guestSession = try self.dependencies.guestCredentialStore.loadGuestSession() else {
+            return nil
+        }
+
+        return try await self.dependencies.guestCloudAuthService.prepareGuestUpgrade(
+            apiBaseUrl: verifiedContext.apiBaseUrl,
+            bearerToken: verifiedContext.credentials.idToken,
+            guestToken: guestSession.guestToken
+        )
+    }
+
+    private func clearGuestSessionIfNeeded() throws {
+        if try self.dependencies.guestCredentialStore.loadGuestSession() != nil {
+            try self.dependencies.guestCredentialStore.clearGuestSession()
         }
     }
 
@@ -398,7 +526,7 @@ extension FlashcardsStore {
                 email: deleteResult.0.email,
                 configurationMode: deleteResult.0.configurationMode,
                 apiBaseUrl: deleteResult.0.apiBaseUrl,
-                bearerToken: deleteResult.0.bearerToken
+                authorization: deleteResult.0.authorization
             )
             let database = try requireLocalDatabase(database: self.database)
             try database.replaceLocalWorkspaceAfterRemoteDelete(

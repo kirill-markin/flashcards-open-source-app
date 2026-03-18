@@ -375,6 +375,11 @@ test("deleteWorkspaceInExecutor auto-creates a replacement workspace when the de
         return makeQueryResult<Row>([]);
       }
 
+      if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
+        assert.equal(params[0], createdWorkspaceId);
+        return makeQueryResult<Row>([]);
+      }
+
       if (text.includes("INSERT INTO sync.hot_changes")) {
         assert.equal(params[0], createdWorkspaceId);
         return makeQueryResult<Row>([{ change_id: 1 }]);

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { AuthTransport } from "../auth";
 import {
   createAgentConnectionListEnvelope,
   createAgentConnectionRevokeEnvelope,
@@ -351,8 +352,12 @@ function parseConnectionId(value: string | undefined): string {
   return trimmedValue;
 }
 
-function requireHumanManagedConnectionAccess(transport: "none" | "bearer" | "session" | "api_key"): void {
+function requireHumanManagedConnectionAccess(transport: AuthTransport): void {
   if (transport === "api_key") {
     throw new HttpError(403, "Agent connections must be managed from a human session", "AGENT_API_KEY_HUMAN_SESSION_REQUIRED");
+  }
+
+  if (transport === "guest") {
+    throw new HttpError(403, "Sign in with an account before managing workspaces or agent connections.", "ACCOUNT_SIGN_IN_REQUIRED");
   }
 }

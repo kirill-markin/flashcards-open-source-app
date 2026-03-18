@@ -6,7 +6,8 @@ import { HttpError } from "./errors";
 export const deleteAccountConfirmationText: string = "delete my account";
 
 type AccountDeletionInput = Readonly<{
-  userId: string;
+  appUserId: string;
+  authSubjectUserId: string;
   cognitoUsername: string | null;
   confirmationText: string;
 }>;
@@ -60,15 +61,16 @@ function assertCognitoUsername(cognitoUsername: string | null): string {
 
 async function deleteAccountDataInExecutor(
   executor: DatabaseExecutor,
-  userId: string,
+  appUserId: string,
+  authSubjectUserId: string,
 ): Promise<void> {
   const userSettingsResult = await executor.query<UserSettingsEmailRow>(
     "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
-    [userId],
+    [appUserId],
   );
   const workspaceRows = await executor.query<WorkspaceIdRow>(
     "SELECT workspace_id FROM org.workspace_memberships WHERE user_id = $1 FOR UPDATE",
-    [userId],
+    [appUserId],
   );
   const workspaceIds = workspaceRows.rows.map((row) => row.workspace_id);
   const email = userSettingsResult.rows[0]?.email ?? null;
@@ -108,10 +110,10 @@ async function deleteAccountDataInExecutor(
 
   await executor.query(
     "SELECT auth.delete_user_auth_artifacts($1, $2)",
-    [userId, email],
+    [appUserId, email],
   );
-  await executor.query("DELETE FROM org.user_settings WHERE user_id = $1", [userId]);
-  await markDeletedSubjectInExecutor(executor, userId);
+  await executor.query("DELETE FROM org.user_settings WHERE user_id = $1", [appUserId]);
+  await markDeletedSubjectInExecutor(executor, authSubjectUserId);
 }
 
 export async function deleteAccountForAuthenticatedUser(
@@ -121,7 +123,7 @@ export async function deleteAccountForAuthenticatedUser(
   assertValidConfirmationText(input.confirmationText);
   const cognitoUsername = assertCognitoUsername(input.cognitoUsername);
 
-  if (await dependencies.isDeletedSubject(input.userId)) {
+  if (await dependencies.isDeletedSubject(input.authSubjectUserId)) {
     try {
       await dependencies.deleteCognitoUser(cognitoUsername);
       return;
@@ -135,8 +137,8 @@ export async function deleteAccountForAuthenticatedUser(
     }
   }
 
-  await dependencies.transactionWithUserScope({ userId: input.userId }, async (executor) => {
-    await deleteAccountDataInExecutor(executor, input.userId);
+  await dependencies.transactionWithUserScope({ userId: input.appUserId }, async (executor) => {
+    await deleteAccountDataInExecutor(executor, input.appUserId, input.authSubjectUserId);
   });
 
   try {

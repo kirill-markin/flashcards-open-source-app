@@ -293,7 +293,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         ))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.setValue("Bearer \(session.bearerToken)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(session.authorization.headerValue, forHTTPHeaderField: "Authorization")
         urlRequest.httpBody = try self.encoder.encode(request)
 
         do {
@@ -519,7 +519,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
             ))
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("Bearer \(session.bearerToken)", forHTTPHeaderField: "Authorization")
+            request.setValue(session.authorization.headerValue, forHTTPHeaderField: "Authorization")
             request.httpBody = try self.encoder.encode(body)
 
             let (_, response) = try await self.session.data(for: request)

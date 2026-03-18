@@ -6,6 +6,8 @@ let aiChatOptimisticAssistantStatusText: String = "Looking through your cards...
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
 let aiChatExternalProviderConsentRequiredMessage: String = "Review AI data use and accept it on this device before using AI features."
 let aiChatAccuracyWarningText: String = "AI responses can be inaccurate or incomplete. Review important results before relying on them."
+let aiChatGuestQuotaReachedMessage: String = "Your free monthly AI limit is used up on this device. Create an account to keep using AI."
+let aiChatGuestQuotaButtonTitle: String = "Create account"
 let aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
 let aiChatSupportedFileExtensions: Set<String> = [
     "pdf",
@@ -37,7 +39,6 @@ let aiChatExternalProviderDisclosureItems: [String] = [
 ]
 
 enum AIChatAccessState: Equatable {
-    case signInRequired
     case consentRequired
     case ready
 }
@@ -51,13 +52,8 @@ func grantAIChatExternalProviderConsent(userDefaults: UserDefaults) {
 }
 
 func aiChatAccessState(
-    cloudState: CloudAccountState?,
     hasExternalProviderConsent: Bool
 ) -> AIChatAccessState {
-    guard cloudState == .linked else {
-        return .signInRequired
-    }
-
     guard hasExternalProviderConsent else {
         return .consentRequired
     }
@@ -154,6 +150,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
     case image(mediaType: String, base64Data: String)
     case file(fileName: String, mediaType: String, base64Data: String)
     case toolCall(AIChatToolCall)
+    case accountUpgradePrompt(message: String, buttonTitle: String)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -166,6 +163,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         case status
         case input
         case output
+        case buttonTitle
     }
 
     init(from decoder: Decoder) throws {
@@ -195,6 +193,11 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
                     input: try container.decodeIfPresent(String.self, forKey: .input),
                     output: try container.decodeIfPresent(String.self, forKey: .output)
                 )
+            )
+        case "account_upgrade_prompt":
+            self = .accountUpgradePrompt(
+                message: try container.decode(String.self, forKey: .text),
+                buttonTitle: try container.decode(String.self, forKey: .buttonTitle)
             )
         default:
             throw DecodingError.dataCorruptedError(
@@ -228,6 +231,10 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
             try container.encode(toolCall.status, forKey: .status)
             try container.encodeIfPresent(toolCall.input, forKey: .input)
             try container.encodeIfPresent(toolCall.output, forKey: .output)
+        case .accountUpgradePrompt(let message, let buttonTitle):
+            try container.encode("account_upgrade_prompt", forKey: .type)
+            try container.encode(message, forKey: .text)
+            try container.encode(buttonTitle, forKey: .buttonTitle)
         }
     }
 
@@ -527,6 +534,7 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
 
 enum AIChatRuntimeEvent: Sendable {
     case appendAssistantText(String)
+    case appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String)
     case upsertToolCall(AIChatToolCall)
     case setRepairStatus(AIChatRepairAttemptStatus?)
     case finish

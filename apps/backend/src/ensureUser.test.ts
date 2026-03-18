@@ -132,6 +132,10 @@ test("ensureUserProfileInExecutor auto-provisions workspace and scheduler seed w
         return makeQueryResult<Row>([]);
       }
 
+      if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
+        return makeQueryResult<Row>([]);
+      }
+
       if (text.includes("INSERT INTO sync.hot_changes")) {
         syncChangeInsertCount += 1;
         return makeQueryResult<Row>([{

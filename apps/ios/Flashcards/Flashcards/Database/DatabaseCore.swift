@@ -9,7 +9,7 @@ enum SQLiteValue {
 }
 
 let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-let localDatabaseSchemaVersion: Int = 8
+let localDatabaseSchemaVersion: Int = 9
 let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 final class DatabaseCore {
@@ -290,6 +290,9 @@ final class DatabaseCore {
             case 7:
                 try self.migrateSchemaVersion7To8()
                 schemaVersion = 8
+            case 8:
+                try self.migrateSchemaVersion8To9()
+                schemaVersion = 9
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -413,7 +416,7 @@ final class DatabaseCore {
         CREATE TABLE IF NOT EXISTS app_local_settings (
             settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
             device_id TEXT NOT NULL,
-            cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'linked')),
+            cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
             linked_user_id TEXT,
             linked_workspace_id TEXT,
             linked_email TEXT,
@@ -538,6 +541,51 @@ final class DatabaseCore {
         )
         try self.execute(sql: "DROP TABLE sync_state", values: [])
         try self.execute(sql: "ALTER TABLE sync_state_v8 RENAME TO sync_state", values: [])
+    }
+
+    private func migrateSchemaVersion8To9() throws {
+        try self.execute(
+            sql: """
+            CREATE TABLE app_local_settings_v9 (
+                settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
+                device_id TEXT NOT NULL,
+                cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
+                linked_user_id TEXT,
+                linked_workspace_id TEXT,
+                linked_email TEXT,
+                onboarding_completed INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            values: []
+        )
+        try self.execute(
+            sql: """
+            INSERT INTO app_local_settings_v9 (
+                settings_id,
+                device_id,
+                cloud_state,
+                linked_user_id,
+                linked_workspace_id,
+                linked_email,
+                onboarding_completed,
+                updated_at
+            )
+            SELECT
+                settings_id,
+                device_id,
+                cloud_state,
+                linked_user_id,
+                linked_workspace_id,
+                linked_email,
+                onboarding_completed,
+                updated_at
+            FROM app_local_settings
+            """,
+            values: []
+        )
+        try self.execute(sql: "DROP TABLE app_local_settings", values: [])
+        try self.execute(sql: "ALTER TABLE app_local_settings_v9 RENAME TO app_local_settings", values: [])
     }
 
     /**

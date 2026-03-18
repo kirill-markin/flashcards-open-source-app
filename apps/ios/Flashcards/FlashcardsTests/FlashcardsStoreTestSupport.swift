@@ -8,6 +8,7 @@ enum FlashcardsStoreTestSupport {
         let database: LocalDatabase
         let userDefaults: UserDefaults
         let credentialStore: CloudCredentialStore
+        let guestCredentialStore: GuestCloudCredentialStore
     }
 
     struct StoreContext {
@@ -268,6 +269,8 @@ enum FlashcardsStoreTestSupport {
             database: environment.database,
             cloudAuthService: CloudAuthService(),
             credentialStore: environment.credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: environment.guestCredentialStore,
             reviewSubmissionExecutor: ReviewSubmissionExecutor(databaseURL: environment.database.databaseURL),
             reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: 0),
             reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: 0),
@@ -289,6 +292,8 @@ enum FlashcardsStoreTestSupport {
             database: environment.database,
             cloudAuthService: CloudAuthService(),
             credentialStore: environment.credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: environment.guestCredentialStore,
             reviewSubmissionExecutor: ReviewSubmissionExecutor(databaseURL: environment.database.databaseURL),
             reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: reviewHeadDelayNanoseconds),
             reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: reviewCountsDelayNanoseconds),
@@ -347,6 +352,8 @@ enum FlashcardsStoreTestSupport {
             database: environment.database,
             cloudAuthService: CloudAuthService(),
             credentialStore: environment.credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: environment.guestCredentialStore,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: 0),
             reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: 0),
@@ -380,6 +387,8 @@ enum FlashcardsStoreTestSupport {
             database: environment.database,
             cloudAuthService: CloudAuthService(),
             credentialStore: environment.credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: environment.guestCredentialStore,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: reviewHeadDelayNanoseconds),
             reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: reviewCountsDelayNanoseconds),
@@ -419,6 +428,12 @@ enum FlashcardsStoreTestSupport {
                 decoder: JSONDecoder(),
                 service: "tests-\(UUID().uuidString)",
                 account: "primary"
+            ),
+            guestCredentialStore: GuestCloudCredentialStore(
+                encoder: JSONEncoder(),
+                decoder: JSONDecoder(),
+                service: "tests-\(UUID().uuidString)",
+                account: "primary"
             )
         )
     }
@@ -441,6 +456,8 @@ enum FlashcardsStoreTestSupport {
             cloudAuthService: CloudAuthService(),
             cloudSyncService: cloudSyncService,
             credentialStore: environment.credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: environment.guestCredentialStore,
             reviewSubmissionExecutor: ReviewSubmissionExecutor(databaseURL: environment.database.databaseURL),
             reviewHeadLoader: self.makeDelayedReviewHeadLoader(delayNanoseconds: 0),
             reviewCountsLoader: self.makeDelayedReviewCountsLoader(delayNanoseconds: 0),
@@ -491,7 +508,7 @@ enum FlashcardsStoreTestSupport {
             email: "user@example.com",
             configurationMode: .official,
             apiBaseUrl: "https://api.example.com/v1",
-            bearerToken: "id-token"
+            authorization: .bearer("id-token")
         )
     }
 
@@ -502,7 +519,7 @@ enum FlashcardsStoreTestSupport {
             email: email,
             configurationMode: .official,
             apiBaseUrl: "https://api.example.com/v1",
-            bearerToken: "id-token"
+            authorization: .bearer("id-token")
         )
     }
 
