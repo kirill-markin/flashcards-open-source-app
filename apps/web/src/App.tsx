@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
 import {
@@ -10,7 +10,6 @@ import {
 } from "./accountDeletion";
 import { AppDataProvider, useAppData } from "./appData";
 import { ApiError, buildLoginUrl, buildLogoutLocalUrl, buildLogoutUrl, deleteMyAccount, primeSessionCsrfToken } from "./api";
-import { ChatPanel } from "./chat/ChatPanel";
 import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatToggle } from "./chat/ChatToggle";
 import {
@@ -36,26 +35,93 @@ import {
   settingsTagsRoute,
   workspaceSettingsRoute,
 } from "./routes";
-import { AccessPermissionDetailScreen } from "./screens/AccessPermissionDetailScreen";
-import { AccessSettingsScreen } from "./screens/AccessSettingsScreen";
-import { AccountStatusScreen } from "./screens/AccountStatusScreen";
-import { AccountSettingsScreen } from "./screens/AccountSettingsScreen";
-import { AgentConnectionsScreen } from "./screens/AgentConnectionsScreen";
 import { CardFormScreen } from "./screens/CardFormScreen";
 import { CardsScreen } from "./screens/CardsScreen";
-import { DeckDetailScreen } from "./screens/DeckDetailScreen";
-import { DeckFormScreen } from "./screens/DeckFormScreen";
-import { DecksScreen } from "./screens/DecksScreen";
-import { DangerZoneScreen } from "./screens/DangerZoneScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
-import { SettingsScreen } from "./screens/SettingsScreen";
-import { OpenSourceSettingsScreen } from "./screens/OpenSourceSettingsScreen";
-import { ThisDeviceSettingsScreen } from "./screens/ThisDeviceSettingsScreen";
-import { TagsScreen } from "./screens/TagsScreen";
-import { WorkspaceOverviewScreen } from "./screens/WorkspaceOverviewScreen";
-import { WorkspaceSchedulerScreen } from "./screens/WorkspaceSchedulerScreen";
-import { WorkspaceExportScreen } from "./screens/WorkspaceExportScreen";
-import { WorkspaceSettingsScreen } from "./screens/WorkspaceSettingsScreen";
+
+const ChatPanel = lazy(async () => import("./chat/ChatPanel").then((module) => ({ default: module.ChatPanel })));
+const AccessPermissionDetailScreen = lazy(async () => import("./screens/AccessPermissionDetailScreen").then((module) => ({
+  default: module.AccessPermissionDetailScreen,
+})));
+const AccessSettingsScreen = lazy(async () => import("./screens/AccessSettingsScreen").then((module) => ({
+  default: module.AccessSettingsScreen,
+})));
+const AccountStatusScreen = lazy(async () => import("./screens/AccountStatusScreen").then((module) => ({
+  default: module.AccountStatusScreen,
+})));
+const AccountSettingsScreen = lazy(async () => import("./screens/AccountSettingsScreen").then((module) => ({
+  default: module.AccountSettingsScreen,
+})));
+const AgentConnectionsScreen = lazy(async () => import("./screens/AgentConnectionsScreen").then((module) => ({
+  default: module.AgentConnectionsScreen,
+})));
+const DeckDetailScreen = lazy(async () => import("./screens/DeckDetailScreen").then((module) => ({
+  default: module.DeckDetailScreen,
+})));
+const DeckFormScreen = lazy(async () => import("./screens/DeckFormScreen").then((module) => ({
+  default: module.DeckFormScreen,
+})));
+const DecksScreen = lazy(async () => import("./screens/DecksScreen").then((module) => ({
+  default: module.DecksScreen,
+})));
+const DangerZoneScreen = lazy(async () => import("./screens/DangerZoneScreen").then((module) => ({
+  default: module.DangerZoneScreen,
+})));
+const SettingsScreen = lazy(async () => import("./screens/SettingsScreen").then((module) => ({
+  default: module.SettingsScreen,
+})));
+const OpenSourceSettingsScreen = lazy(async () => import("./screens/OpenSourceSettingsScreen").then((module) => ({
+  default: module.OpenSourceSettingsScreen,
+})));
+const ThisDeviceSettingsScreen = lazy(async () => import("./screens/ThisDeviceSettingsScreen").then((module) => ({
+  default: module.ThisDeviceSettingsScreen,
+})));
+const TagsScreen = lazy(async () => import("./screens/TagsScreen").then((module) => ({
+  default: module.TagsScreen,
+})));
+const WorkspaceOverviewScreen = lazy(async () => import("./screens/WorkspaceOverviewScreen").then((module) => ({
+  default: module.WorkspaceOverviewScreen,
+})));
+const WorkspaceSchedulerScreen = lazy(async () => import("./screens/WorkspaceSchedulerScreen").then((module) => ({
+  default: module.WorkspaceSchedulerScreen,
+})));
+const WorkspaceExportScreen = lazy(async () => import("./screens/WorkspaceExportScreen").then((module) => ({
+  default: module.WorkspaceExportScreen,
+})));
+const WorkspaceSettingsScreen = lazy(async () => import("./screens/WorkspaceSettingsScreen").then((module) => ({
+  default: module.WorkspaceSettingsScreen,
+})));
+
+function RouteContentFallback(props: Readonly<{ message: string }>): ReactElement {
+  const { message } = props;
+
+  return (
+    <main className="container">
+      <section className="panel">
+        <p className="subtitle">{message}</p>
+      </section>
+    </main>
+  );
+}
+
+function SidebarChatFallback(): ReactElement {
+  return (
+    <section className="panel">
+      <p className="subtitle">Loading AI chat…</p>
+    </section>
+  );
+}
+
+function renderDeferredRoute(
+  element: ReactElement,
+  message: string,
+): ReactElement {
+  return (
+    <Suspense fallback={<RouteContentFallback message={message} />}>
+      {element}
+    </Suspense>
+  );
+}
 
 function LegacyDeckDetailRedirect(): ReactElement {
   const { deckId } = useParams();
@@ -84,6 +150,7 @@ export function AppShell(): ReactElement {
     activeWorkspace,
     availableWorkspaces,
     isChoosingWorkspace,
+    isSyncing,
     errorMessage,
     initialize,
     chooseWorkspace,
@@ -160,22 +227,6 @@ export function AppShell(): ReactElement {
     );
   }
 
-  if (sessionLoadState === "loading_workspace" && activeWorkspace !== null) {
-    return (
-      <main className="page-state">
-        <section className="panel panel-center state-panel">
-          <h1 className="title">{activeWorkspace.name}</h1>
-          <p className="subtitle">{sessionErrorMessage === "" ? "Loading workspace…" : sessionErrorMessage}</p>
-          {sessionErrorMessage !== "" ? (
-            <button className="primary-btn" type="button" onClick={() => void chooseWorkspace(activeWorkspace.workspaceId)}>
-              Retry
-            </button>
-          ) : null}
-        </section>
-      </main>
-    );
-  }
-
   if (sessionLoadState === "error") {
     return (
       <main className="page-state">
@@ -238,10 +289,13 @@ export function AppShell(): ReactElement {
         <header className="topbar-shell">
           <div className="topbar">
             <div className="topbar-brand-block">
-              <a className="topbar-brand" href={reviewRoute}>
-                <span className="brand-full">flashcards-open-source-app</span>
-                <span className="brand-short">flashcards</span>
-              </a>
+              <div className="topbar-brand-row">
+                <a className="topbar-brand" href={reviewRoute}>
+                  <span className="brand-full">flashcards-open-source-app</span>
+                  <span className="brand-short">flashcards</span>
+                </a>
+                {isSyncing ? <span className="topbar-sync-status">Syncing...</span> : null}
+              </div>
               <p className="topbar-workspace">{activeWorkspace?.name ?? "Workspace unavailable"}</p>
             </div>
             <nav className="nav" aria-label="Primary">
@@ -319,7 +373,11 @@ export function RoutedShell(): ReactElement {
 
   return (
     <div className={shellClassName}>
-      {!isFullscreenChat && isOpen ? <ChatPanel mode="sidebar" /> : null}
+      {!isFullscreenChat && isOpen ? (
+        <Suspense fallback={<SidebarChatFallback />}>
+          <ChatPanel mode="sidebar" />
+        </Suspense>
+      ) : null}
       <div ref={contentRef} className={contentClassName}>
         <Routes>
           <Route path="/" element={<Navigate replace to={reviewRoute} />} />
@@ -332,31 +390,40 @@ export function RoutedShell(): ReactElement {
           <Route path="/decks/:deckId" element={<LegacyDeckDetailRedirect />} />
           <Route path="/tags" element={<Navigate replace to={settingsTagsRoute} />} />
           <Route path={reviewRoute} element={<ReviewScreen />} />
-          <Route path={settingsHubRoute} element={<SettingsScreen />} />
-          <Route path={settingsAccessRoute} element={<AccessSettingsScreen />} />
-          <Route path={settingsAccessDetailRoutePattern} element={<AccessPermissionDetailScreen />} />
-          <Route path={workspaceSettingsRoute} element={<WorkspaceSettingsScreen />} />
-          <Route path={settingsOverviewRoute} element={<WorkspaceOverviewScreen />} />
-          <Route path={settingsSchedulerRoute} element={<WorkspaceSchedulerScreen />} />
-          <Route path={settingsExportRoute} element={<WorkspaceExportScreen />} />
-          <Route path={settingsDecksRoute} element={<DecksScreen />} />
-          <Route path={settingsDeckNewRoute} element={<DeckFormScreen />} />
-          <Route path={`${settingsDecksRoute}/:deckId/edit`} element={<DeckFormScreen />} />
-          <Route path={`${settingsDecksRoute}/:deckId`} element={<DeckDetailScreen />} />
-          <Route path={settingsTagsRoute} element={<TagsScreen />} />
-          <Route path={settingsDeviceRoute} element={<ThisDeviceSettingsScreen />} />
-          <Route path={accountSettingsRoute} element={<AccountSettingsScreen />} />
-          <Route path={accountStatusRoute} element={<AccountStatusScreen />} />
-          <Route path={accountOpenSourceRoute} element={<OpenSourceSettingsScreen />} />
-          <Route path={accountAgentConnectionsRoute} element={<AgentConnectionsScreen />} />
-          <Route path={accountDangerZoneRoute} element={<DangerZoneScreen />} />
+          <Route path={settingsHubRoute} element={renderDeferredRoute(<SettingsScreen />, "Loading settings…")} />
+          <Route path={settingsAccessRoute} element={renderDeferredRoute(<AccessSettingsScreen />, "Loading access settings…")} />
+          <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "Loading access details…")} />
+          <Route path={workspaceSettingsRoute} element={renderDeferredRoute(<WorkspaceSettingsScreen />, "Loading workspace settings…")} />
+          <Route path={settingsOverviewRoute} element={renderDeferredRoute(<WorkspaceOverviewScreen />, "Loading workspace overview…")} />
+          <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "Loading scheduler settings…")} />
+          <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "Loading export settings…")} />
+          <Route path={settingsDecksRoute} element={renderDeferredRoute(<DecksScreen />, "Loading decks…")} />
+          <Route path={settingsDeckNewRoute} element={renderDeferredRoute(<DeckFormScreen />, "Loading deck editor…")} />
+          <Route path={`${settingsDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "Loading deck editor…")} />
+          <Route path={`${settingsDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "Loading deck details…")} />
+          <Route path={settingsTagsRoute} element={renderDeferredRoute(<TagsScreen />, "Loading tags…")} />
+          <Route path={settingsDeviceRoute} element={renderDeferredRoute(<ThisDeviceSettingsScreen />, "Loading device details…")} />
+          <Route path={accountSettingsRoute} element={renderDeferredRoute(<AccountSettingsScreen />, "Loading account settings…")} />
+          <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "Loading account status…")} />
+          <Route path={accountOpenSourceRoute} element={renderDeferredRoute(<OpenSourceSettingsScreen />, "Loading open-source settings…")} />
+          <Route path={accountAgentConnectionsRoute} element={renderDeferredRoute(<AgentConnectionsScreen />, "Loading agent connections…")} />
+          <Route path={accountDangerZoneRoute} element={renderDeferredRoute(<DangerZoneScreen />, "Loading danger zone…")} />
           <Route
             path={chatRoute}
-            element={
-              <main className="container chat-page">
-                <ChatPanel mode="fullscreen" />
-              </main>
-            }
+            element={(
+              <Suspense fallback={(
+                <main className="container chat-page">
+                  <section className="panel">
+                    <p className="subtitle">Loading AI chat…</p>
+                  </section>
+                </main>
+              )}
+              >
+                <main className="container chat-page">
+                  <ChatPanel mode="fullscreen" />
+                </main>
+              </Suspense>
+            )}
           />
         </Routes>
       </div>

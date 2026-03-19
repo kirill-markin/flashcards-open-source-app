@@ -40,6 +40,13 @@
   gap: 4px;
 }
 
+.topbar-brand-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .topbar-brand {
   display: inline-flex;
   align-items: center;
@@ -58,6 +65,13 @@
   margin: 0;
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+.topbar-sync-status {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .topbar-actions {
