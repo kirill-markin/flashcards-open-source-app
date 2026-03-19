@@ -105,9 +105,67 @@ function RouteContentFallback(props: Readonly<{ message: string }>): ReactElemen
 }
 
 function SidebarChatFallback(): ReactElement {
+  const { chatWidth } = useChatLayout();
+
   return (
-    <section className="panel">
-      <p className="subtitle">Loading AI chat…</p>
+    <section className="chat-sidebar chat-sidebar-loading" style={{ width: chatWidth }}>
+      <div className="chat-loading-shell">
+        <div className="chat-header">
+          <span className="chat-header-title">AI chat</span>
+        </div>
+        <div className="chat-messages">
+          <div className="chat-empty chat-empty-loading">
+            <p className="chat-empty-title">Loading AI chat…</p>
+            <div className="chat-loading-lines" aria-hidden="true">
+              <span className="chat-loading-line chat-loading-line-title" />
+              <span className="chat-loading-line" />
+              <span className="chat-loading-line" />
+              <span className="chat-loading-line chat-loading-line-short" />
+            </div>
+          </div>
+        </div>
+        <div className="chat-input-area chat-input-area-loading" aria-hidden="true">
+          <div className="chat-loading-composer" />
+          <div className="chat-loading-controls">
+            <span className="chat-loading-chip" />
+            <span className="chat-loading-chip chat-loading-chip-round" />
+            <span className="chat-loading-chip chat-loading-chip-round" />
+            <span className="chat-loading-chip chat-loading-chip-accent" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FullscreenChatFallback(): ReactElement {
+  return (
+    <section className="chat-sidebar-fullscreen chat-sidebar-fullscreen-loading">
+      <div className="chat-loading-shell">
+        <div className="chat-header">
+          <span className="chat-header-title">AI chat</span>
+        </div>
+        <div className="chat-messages">
+          <div className="chat-empty chat-empty-loading">
+            <p className="chat-empty-title">Loading AI chat…</p>
+            <div className="chat-loading-lines" aria-hidden="true">
+              <span className="chat-loading-line chat-loading-line-title" />
+              <span className="chat-loading-line" />
+              <span className="chat-loading-line" />
+              <span className="chat-loading-line chat-loading-line-short" />
+            </div>
+          </div>
+        </div>
+        <div className="chat-input-area chat-input-area-loading" aria-hidden="true">
+          <div className="chat-loading-composer" />
+          <div className="chat-loading-controls">
+            <span className="chat-loading-chip" />
+            <span className="chat-loading-chip chat-loading-chip-round" />
+            <span className="chat-loading-chip chat-loading-chip-round" />
+            <span className="chat-loading-chip chat-loading-chip-accent" />
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -413,9 +471,7 @@ export function RoutedShell(): ReactElement {
             element={(
               <Suspense fallback={(
                 <main className="container chat-page">
-                  <section className="panel">
-                    <p className="subtitle">Loading AI chat…</p>
-                  </section>
+                  <FullscreenChatFallback />
                 </main>
               )}
               >

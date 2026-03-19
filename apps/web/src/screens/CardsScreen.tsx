@@ -8,6 +8,11 @@ import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } fr
 import { queryLocalCardsPage } from "../localDb/cards";
 import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion, UpdateCardInput } from "../types";
+import {
+  buildCardsLoadingRowPreview,
+  readCardsLoadingSnapshot,
+  writeCardsLoadingSnapshot,
+} from "./loadingSnapshots";
 
 type CardsQueryState = Readonly<{
   items: ReadonlyArray<Card>;
@@ -149,6 +154,8 @@ export function CardsScreen(): ReactElement {
   const activeFilterDimensionCount = getCardFilterActiveDimensionCount(cardFilter);
   const hasActiveSearchOrFilter = normalizedSearchText !== null || cardFilter !== null;
   const draftFilterValue = draftCardFilter ?? createEmptyCardFilter();
+  const cardsLoadingSnapshot = activeWorkspace === null ? null : readCardsLoadingSnapshot(activeWorkspace.workspaceId);
+  const isInitialCardsLoad = cardsQueryState.isLoading && cardsQueryState.hasLoaded === false;
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -194,6 +201,13 @@ export function CardsScreen(): ReactElement {
         countState: "ready",
         cardsCount: tagSummary.cardsCount,
       })));
+      writeCardsLoadingSnapshot({
+        version: 1,
+        workspaceId: activeWorkspace.workspaceId,
+        totalCount: nextPage.totalCount,
+        rows: nextPage.cards.slice(0, 8).map((card) => buildCardsLoadingRowPreview(card)),
+        savedAt: new Date().toISOString(),
+      });
       setCardsQueryState({
         items: nextPage.cards,
         totalCount: nextPage.totalCount,
@@ -415,43 +429,26 @@ export function CardsScreen(): ReactElement {
   const filterButtonLabel = activeFilterDimensionCount === 0
     ? "Filter"
     : `Filter (${activeFilterDimensionCount})`;
-
-  if (cardsQueryState.isLoading && cardsQueryState.hasLoaded === false) {
-    return (
-      <main className="container">
-        <section className="panel cards-panel">
-          <h1 className="title">Cards</h1>
-          <p className="subtitle">Loading cards…</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (cardsQueryState.errorMessage !== "" && cardsQueryState.hasLoaded === false) {
-    return (
-      <main className="container">
-        <section className="panel cards-panel">
-          <h1 className="title">Cards</h1>
-          <p className="error-banner">{cardsQueryState.errorMessage}</p>
-          <button className="primary-btn" type="button" onClick={() => void loadFirstPage()}>
-            Retry
-          </button>
-        </section>
-      </main>
-    );
-  }
+  const visibleCountLabel = isInitialCardsLoad && cardsLoadingSnapshot !== null
+    ? `${cardsLoadingSnapshot.totalCount} total`
+    : countLabel;
 
   return (
     <main className="container">
       <section className="panel cards-panel">
         {cardsQueryState.errorMessage !== "" ? <p className="error-banner">{cardsQueryState.errorMessage}</p> : null}
+        {cardsQueryState.errorMessage !== "" && cardsQueryState.hasLoaded === false ? (
+          <button className="primary-btn cards-loading-retry-btn" type="button" onClick={() => void loadFirstPage()}>
+            Retry
+          </button>
+        ) : null}
         <div className="screen-head cards-screen-head">
           <div>
             <h1 className="title">Cards</h1>
             <p className="subtitle">Cards are the prompts and answers you review to learn and remember.</p>
           </div>
           <div className="screen-actions">
-            <span className="badge">{countLabel}</span>
+            <span className="badge">{visibleCountLabel}</span>
             <Link className="primary-btn" to="/cards/new">New card</Link>
           </div>
         </div>
@@ -549,7 +546,47 @@ export function CardsScreen(): ReactElement {
               </tr>
             </thead>
             <tbody>
-              {cardsQueryState.items.map((card) => {
+              {isInitialCardsLoad ? (
+                cardsLoadingSnapshot !== null && cardsLoadingSnapshot.rows.length > 0 ? (
+                  cardsLoadingSnapshot.rows.map((card) => (
+                    <tr key={card.cardId} className="txn-row cards-row cards-loading-row">
+                      <td className="txn-cell cards-open-cell cards-col-open">
+                        <span className="row-open-link cards-loading-row-open">Open</span>
+                      </td>
+                      <td className="txn-cell cards-col-front cards-cell-multiline">
+                        <span className="cards-loading-cell-text">{card.frontText}</span>
+                      </td>
+                      <td className="txn-cell cards-col-back cards-cell-multiline">
+                        <span className="cards-loading-cell-text">{card.backText === "" ? "No back text" : card.backText}</span>
+                      </td>
+                      <td className="txn-cell cards-col-tags">
+                        <span className="cards-loading-cell-text">{card.tags.length === 0 ? "—" : card.tags.join(", ")}</span>
+                      </td>
+                      <td className="txn-cell cards-col-effort">{card.effortLevel}</td>
+                      <td className="txn-cell txn-cell-mono cards-col-due">{formatTimestamp(card.dueAt)}</td>
+                      <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
+                      <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
+                      <td className="txn-cell txn-cell-mono cards-col-updated">{formatTimestamp(card.createdAt)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  ["loading-1", "loading-2", "loading-3", "loading-4", "loading-5", "loading-6"].map((key) => (
+                    <tr key={key} className="txn-row cards-row cards-loading-row" aria-hidden="true">
+                      <td className="txn-cell cards-open-cell cards-col-open">
+                        <span className="row-open-link cards-loading-row-open">Open</span>
+                      </td>
+                      <td className="txn-cell cards-col-front"><span className="cards-loading-line cards-loading-line-wide" /></td>
+                      <td className="txn-cell cards-col-back"><span className="cards-loading-line cards-loading-line-wide" /></td>
+                      <td className="txn-cell cards-col-tags"><span className="cards-loading-line cards-loading-line-medium" /></td>
+                      <td className="txn-cell cards-col-effort"><span className="cards-loading-line cards-loading-line-short" /></td>
+                      <td className="txn-cell cards-col-due"><span className="cards-loading-line cards-loading-line-medium" /></td>
+                      <td className="txn-cell cards-col-reps"><span className="cards-loading-line cards-loading-line-shortest" /></td>
+                      <td className="txn-cell cards-col-lapses"><span className="cards-loading-line cards-loading-line-shortest" /></td>
+                      <td className="txn-cell cards-col-updated"><span className="cards-loading-line cards-loading-line-medium" /></td>
+                    </tr>
+                  ))
+                )
+              ) : cardsQueryState.items.map((card) => {
                 const isSaving = savingCardId === card.cardId;
                 return (
                   <tr key={card.cardId} className="txn-row cards-row">
@@ -592,7 +629,7 @@ export function CardsScreen(): ReactElement {
                   </tr>
                 );
               })}
-              {cardsQueryState.items.length === 0 ? (
+              {isInitialCardsLoad ? null : cardsQueryState.items.length === 0 ? (
                 <tr>
                   <td className="txn-cell txn-empty" colSpan={9}>
                     {cardsQueryState.totalCount === 0 && hasActiveSearchOrFilter === false

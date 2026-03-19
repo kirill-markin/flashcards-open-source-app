@@ -1,5 +1,6 @@
 .cards-panel {
   gap: 18px;
+  min-height: min(760px, calc(100dvh - 196px));
 }
 
 .cards-screen-head,
@@ -98,6 +99,7 @@
 }
 
 .cards-scroll {
+  min-height: 420px;
   padding-bottom: 6px;
 }
 
@@ -238,6 +240,51 @@
 .cards-row:hover .row-open-link {
   opacity: 1;
   pointer-events: auto;
+}
+
+.cards-loading-retry-btn {
+  justify-self: start;
+}
+
+.cards-loading-row {
+  pointer-events: none;
+}
+
+.cards-loading-row-open {
+  opacity: 1;
+  pointer-events: none;
+}
+
+.cards-loading-cell-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cards-loading-line {
+  display: block;
+  min-height: 14px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.05));
+}
+
+.cards-loading-line-wide {
+  width: 92%;
+}
+
+.cards-loading-line-medium {
+  width: 68%;
+}
+
+.cards-loading-line-short {
+  width: 52%;
+}
+
+.cards-loading-line-shortest {
+  width: 32%;
 }
 
 .cards-load-more-row .txn-cell {
@@ -555,6 +602,14 @@
 }
 
 @media (max-width: 768px) {
+  .cards-panel {
+    min-height: 0;
+  }
+
+  .cards-scroll {
+    min-height: 0;
+  }
+
   .cards-search-field {
     width: 100%;
   }
