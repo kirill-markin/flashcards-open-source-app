@@ -264,6 +264,50 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    func testAIChatTranscriptionServiceOmitsDurationSecondsFromMultipartRequest() async throws {
+        let recordedAudioFileUrl = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString.lowercased())
+            .appendingPathExtension("m4a")
+        try Data("audio".utf8).write(to: recordedAudioFileUrl)
+        self.addTeardownBlock {
+            try? FileManager.default.removeItem(at: recordedAudioFileUrl)
+        }
+
+        let service = AIChatTranscriptionService(
+            session: self.makeSession(),
+            decoder: JSONDecoder()
+        )
+        let recordedAudio = AIChatRecordedAudio(
+            fileUrl: recordedAudioFileUrl,
+            fileName: "chat-dictation.m4a",
+            mediaType: "audio/mp4"
+        )
+        AIChatMockUrlProtocol.requestHandler = { request in
+            let bodyData = try XCTUnwrap(request.httpBody)
+            let bodyString = String(decoding: bodyData, as: UTF8.self)
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/v1/chat/transcriptions")
+            XCTAssertTrue(bodyString.contains("name=\"source\""))
+            XCTAssertTrue(bodyString.contains("ios\r\n"))
+            XCTAssertTrue(bodyString.contains("name=\"file\"; filename=\"chat-dictation.m4a\""))
+            XCTAssertFalse(bodyString.contains("name=\"durationSeconds\""))
+            let response = try XCTUnwrap(HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            ))
+            return (response, Data(#"{"text":"dictated text"}"#.utf8))
+        }
+
+        let transcript = try await service.transcribe(
+            session: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: "workspace-1"),
+            recordedAudio: recordedAudio
+        )
+
+        XCTAssertEqual(transcript, "dictated text")
+    }
+
     func testMakeAIChatUserFacingErrorMessagePreservesRequestReferences() {
         XCTAssertEqual(
             makeAIChatUserFacingErrorMessage(
@@ -328,8 +372,7 @@ private final class StubVoiceRecorder: AIChatVoiceRecording {
         return AIChatRecordedAudio(
             fileUrl: fileUrl,
             fileName: "chat-dictation.m4a",
-            mediaType: "audio/mp4",
-            durationSeconds: 1.0
+            mediaType: "audio/mp4"
         )
     }
 

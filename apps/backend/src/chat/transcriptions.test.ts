@@ -24,7 +24,6 @@ test("transcribeChatAudioUpload returns a stable not-configured error when the p
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.webm", { type: "audio/webm" }),
       source: "web",
-      durationSeconds: 1,
     }),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 503
@@ -54,7 +53,6 @@ test("transcribeChatAudioUpload maps invalid upstream audio failures to 422", as
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.webm", { type: "audio/webm" }),
       source: "web",
-      durationSeconds: 1,
     }, client),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 422
@@ -79,7 +77,6 @@ test("transcribeChatAudioUpload keeps provider connectivity failures as 503", as
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.m4a", { type: "audio/mp4" }),
       source: "ios",
-      durationSeconds: 1,
     }, client),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 503
@@ -109,7 +106,6 @@ test("transcribeChatAudioUpload maps provider auth failures to a stable 503 erro
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.m4a", { type: "audio/mp4" }),
       source: "ios",
-      durationSeconds: 1,
     }, client),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 503
@@ -139,7 +135,6 @@ test("transcribeChatAudioUpload maps provider rate limits to a stable 429 error"
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.m4a", { type: "audio/mp4" }),
       source: "ios",
-      durationSeconds: 1,
     }, client),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 429

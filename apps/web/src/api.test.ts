@@ -7,9 +7,11 @@ import {
   getSession,
   listWorkspaces,
   loadWorkspaceDeletePreview,
+  primeSessionCsrfToken,
   renameWorkspace,
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
+  transcribeChatAudio,
 } from "./api";
 
 function createJsonResponse(statusCode: number, payload: unknown): Response {
@@ -391,5 +393,45 @@ describe("createAIChatRequestBody", () => {
         totalCards: 3,
       },
     });
+  });
+});
+
+describe("transcribeChatAudio", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+    resetApiClientStateForTests();
+    primeSessionCsrfToken("csrf-dictation");
+  });
+
+  afterEach(() => {
+    resetApiClientStateForTests();
+    vi.unstubAllGlobals();
+  });
+
+  it("sends only file and source in the multipart request", async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("http://localhost:8080/v1/chat/transcriptions");
+      expect(init?.method).toBe("POST");
+      const body = init?.body;
+      expect(body).toBeInstanceOf(FormData);
+      const formData = body as FormData;
+      expect(formData.get("source")).toBe("web");
+      expect(formData.get("durationSeconds")).toBeNull();
+      const file = formData.get("file");
+      expect(file).toBeInstanceOf(File);
+      expect((file as File).name).toBe("chat-dictation.webm");
+      expect((file as File).type).toBe("audio/webm");
+      return createJsonResponse(200, { text: "dictated text" });
+    });
+
+    const transcript = await transcribeChatAudio(
+      new Blob(["dictation"], { type: "audio/webm" }),
+      "web"
+    );
+
+    expect(transcript).toBe("dictated text");
   });
 });
