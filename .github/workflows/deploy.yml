@@ -75,6 +75,9 @@ jobs:
 
       - name: CDK deploy
         working-directory: infra/aws
+        env:
+          DEMO_EMAIL_DOSTIP: ${{ secrets.DEMO_EMAIL_DOSTIP }}
+          DEMO_PASSWORD_DOSTIP: ${{ secrets.DEMO_PASSWORD_DOSTIP }}
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           cat > cdk.context.local.json <<CTXEOF

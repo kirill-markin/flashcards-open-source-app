@@ -38,14 +38,52 @@ final class CloudAuthServiceTests: XCTestCase {
 
         let service = CloudAuthService(session: self.makeSession())
 
-        let challenge = try await service.sendCode(
+        let result = try await service.sendCode(
             email: " User@Example.com ",
             authBaseUrl: "https://auth.example.com"
         )
 
-        XCTAssertEqual(challenge.email, "user@example.com")
-        XCTAssertEqual(challenge.csrfToken, "csrf-token")
-        XCTAssertEqual(challenge.otpSessionToken, "signed-otp-session")
+        switch result {
+        case .otpChallenge(let challenge):
+            XCTAssertEqual(challenge.email, "user@example.com")
+            XCTAssertEqual(challenge.csrfToken, "csrf-token")
+            XCTAssertEqual(challenge.otpSessionToken, "signed-otp-session")
+        case .verifiedCredentials:
+            XCTFail("Expected an OTP challenge result")
+        }
+    }
+
+    func testSendCodeReturnsVerifiedCredentialsForDemoResponse() async throws {
+        MockUrlProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://auth.example.com/api/send-code")
+            XCTAssertEqual(request.httpMethod, "POST")
+
+            let response = HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let data = """
+            {"ok":true,"idToken":"id-token","refreshToken":"refresh-token","expiresIn":3600}
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = CloudAuthService(session: self.makeSession())
+
+        let result = try await service.sendCode(
+            email: "demo-review@example.com",
+            authBaseUrl: "https://auth.example.com"
+        )
+
+        switch result {
+        case .otpChallenge:
+            XCTFail("Expected an immediate verified credentials result")
+        case .verifiedCredentials(let credentials):
+            XCTAssertEqual(credentials.idToken, "id-token")
+            XCTAssertEqual(credentials.refreshToken, "refresh-token")
+        }
     }
 
     func testVerifyCodeSendsOtpSessionTokenInRequestBody() async throws {

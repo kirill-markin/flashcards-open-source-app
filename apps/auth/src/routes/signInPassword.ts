@@ -7,6 +7,7 @@ import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiError
 import { setBrowserSessionCookies } from "../server/browserSession.js";
 import { log } from "../server/logger.js";
 import { signInWithPassword, type TokenResult } from "../server/cognitoAuth.js";
+import { isRejectedPasswordSignIn } from "../server/passwordSignInErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -14,24 +15,6 @@ type SignInPasswordDependencies = Readonly<{
   signInWithPassword: (email: string, password: string) => Promise<TokenResult>;
   setBrowserSessionCookies: (context: Parameters<typeof setBrowserSessionCookies>[0], sessionToken: string, refreshToken: string) => void;
 }>;
-
-function isRejectedPasswordSignIn(error: unknown): boolean {
-  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  const cognitoType = error instanceof Error && "cognitoType" in error && typeof error.cognitoType === "string"
-    ? error.cognitoType.toLowerCase()
-    : "";
-
-  return (
-    cognitoType.includes("notauthorizedexception")
-    || cognitoType.includes("usernotfoundexception")
-    || cognitoType.includes("userdisabledexception")
-    || cognitoType.includes("passwordresetrequiredexception")
-    || message.includes("incorrect username or password")
-    || message.includes("user does not exist")
-    || message.includes("password reset required")
-    || message.includes("user is disabled")
-  );
-}
 
 export function createSignInPasswordApp(dependencies: SignInPasswordDependencies): Hono<AuthAppEnv> {
   const app = new Hono<AuthAppEnv>();

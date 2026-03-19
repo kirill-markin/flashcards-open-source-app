@@ -33,6 +33,12 @@ Open-source offline-first flashcards app for iOS and web.
 - [Backend and web deployment](docs/backend-web-deployment.md)
 - [More architecture details](docs/architecture.md)
 
+## Review Demo Accounts
+
+The optional `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` auth settings only enable insecure instant sign-in for listed review/demo emails in the `example.com` domain. They do not create Cognito users automatically.
+
+If review/demo access is enabled, create the matching `@example.com` Cognito users manually and keep their emails and shared password aligned with the deployed `DEMO_*` environment values. We intentionally do this by hand instead of adding an automated provisioning script for these insecure review-only accounts.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

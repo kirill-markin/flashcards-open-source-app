@@ -4,6 +4,40 @@ import XCTest
 
 @MainActor
 final class CloudSessionRuntimeTests: XCTestCase {
+    func testSendCodeReturnsVerifiedCredentialsWhenDemoBypassSucceeds() async throws {
+        let authService = MockCloudAuthService()
+        authService.sendCodeResult = .verifiedCredentials(
+            StoredCloudCredentials(
+                refreshToken: "refresh-token",
+                idToken: "id-token",
+                idTokenExpiresAt: "2030-01-01T00:00:00.000Z"
+            )
+        )
+        let runtime = CloudSessionRuntime(
+            cloudAuthService: authService,
+            cloudSyncService: nil,
+            credentialStore: InMemoryCredentialStore()
+        )
+
+        let result = try await runtime.sendCode(
+            email: "reviewer@example.com",
+            configuration: CloudServiceConfiguration(
+                mode: .official,
+                customOrigin: nil,
+                apiBaseUrl: "https://api.example.com/v1",
+                authBaseUrl: "https://auth.example.com"
+            )
+        )
+
+        switch result {
+        case .otpChallenge:
+            XCTFail("Expected verified credentials for the demo bypass path")
+        case .verifiedCredentials(let credentials):
+            XCTAssertEqual(credentials.idToken, "id-token")
+            XCTAssertEqual(credentials.refreshToken, "refresh-token")
+        }
+    }
+
     func testSignInWithPasswordReturnsVerifiedAuthContext() async throws {
         let authService = MockCloudAuthService()
         authService.signInWithPasswordResult = StoredCloudCredentials(
@@ -46,14 +80,20 @@ private final class MockCloudAuthService: CloudAuthServing {
 
     var signInWithPasswordCalls: [PasswordCall]
     var signInWithPasswordResult: StoredCloudCredentials?
+    var sendCodeResult: CloudSendCodeResult?
 
     init() {
         self.signInWithPasswordCalls = []
         self.signInWithPasswordResult = nil
+        self.sendCodeResult = nil
     }
 
-    func sendCode(email: String, authBaseUrl: String) async throws -> CloudOtpChallenge {
-        throw LocalStoreError.validation("Unexpected sendCode call in CloudSessionRuntimeTests")
+    func sendCode(email: String, authBaseUrl: String) async throws -> CloudSendCodeResult {
+        guard let sendCodeResult else {
+            throw LocalStoreError.validation("Missing sendCodeResult in CloudSessionRuntimeTests")
+        }
+
+        return sendCodeResult
     }
 
     func signInWithPassword(email: String, password: String, authBaseUrl: String) async throws -> StoredCloudCredentials {

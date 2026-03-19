@@ -13,15 +13,18 @@
 import { randomBytes, randomInt } from "node:crypto";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
-import { initiateEmailOtp } from "../server/cognitoAuth.js";
+import { initiateEmailOtp, signInWithPassword, type TokenResult } from "../server/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
+import { setBrowserSessionCookies } from "../server/browserSession.js";
 import { sign, verify } from "../server/crypto.js";
+import { getDemoEmailPassword } from "../server/demoEmailAccess.js";
 import {
   decideOtpRateLimit,
   loadLatestSentOtpSessionToken,
   recordOtpSendDecision,
 } from "../server/otpRateLimit.js";
 import { log, maskEmail } from "../server/logger.js";
+import { isRejectedPasswordSignIn } from "../server/passwordSignInErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -42,6 +45,7 @@ type OtpPayload = Readonly<{
 
 type SendCodeDependencies = Readonly<{
   initiateEmailOtp: (email: string) => Promise<Readonly<{ session: string }>>;
+  signInWithPassword: (email: string, password: string) => Promise<TokenResult>;
   decideOtpRateLimit: (email: string, ipAddress: string) => Promise<Awaited<ReturnType<typeof decideOtpRateLimit>>>;
   loadLatestSentOtpSessionToken: (email: string, nowMs: number) => Promise<string | null>;
   recordOtpSendDecision: (
@@ -53,6 +57,12 @@ type SendCodeDependencies = Readonly<{
   createCsrfToken: () => string;
   signPayload: (payload: string) => string;
   parseSignedOtpSessionToken: (otpSessionToken: string) => OtpPayload;
+  getDemoEmailPassword: (email: string) => string | null;
+  setBrowserSessionCookies: (
+    context: Parameters<typeof setBrowserSessionCookies>[0],
+    sessionToken: string,
+    refreshToken: string,
+  ) => void;
   jitterDelay: () => Promise<void>;
   now: () => number;
 }>;
@@ -93,6 +103,46 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
     }
 
     const requestId = getRequestId(c);
+    const demoPassword = dependencies.getDemoEmailPassword(email);
+    if (demoPassword !== null) {
+      // This intentionally disables OTP protection for configured review/demo
+      // emails. The allowlist is restricted to synthetic @example.com accounts.
+      // Anyone who knows one of these emails and the shared insecure demo
+      // password can sign in to that account without OTP.
+      try {
+        const tokens = await dependencies.signInWithPassword(email, demoPassword);
+        dependencies.setBrowserSessionCookies(c, tokens.idToken, tokens.refreshToken);
+        log({
+          domain: "auth",
+          action: "send_code_demo_sign_in",
+          requestId,
+          route: c.req.path,
+          maskedEmail: maskEmail(email),
+        });
+        return c.json({
+          ok: true,
+          idToken: tokens.idToken,
+          refreshToken: tokens.refreshToken,
+          expiresIn: tokens.expiresIn,
+        });
+      } catch (error) {
+        if (isRejectedPasswordSignIn(error)) {
+          return jsonAuthError(c, 401, "PASSWORD_SIGN_IN_FAILED", "Email or password is incorrect.");
+        }
+
+        log({
+          domain: "auth",
+          action: "send_code_demo_sign_in_error",
+          requestId,
+          route: c.req.path,
+          statusCode: 500,
+          code: "PASSWORD_SIGN_IN_FAILED",
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return jsonAuthError(c, 500, "PASSWORD_SIGN_IN_FAILED", "Password sign-in failed. Try again.");
+      }
+    }
+
     const ipAddress = getClientIpAddress(c.req.raw);
     const rateLimitDecision = await dependencies.decideOtpRateLimit(email, ipAddress);
 
@@ -171,12 +221,15 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
 
 const app = createSendCodeApp({
   initiateEmailOtp,
+  signInWithPassword,
   decideOtpRateLimit,
   loadLatestSentOtpSessionToken,
   recordOtpSendDecision,
   createCsrfToken: () => randomBytes(32).toString("hex"),
   signPayload: sign,
   parseSignedOtpSessionToken: parseOtpPayload,
+  getDemoEmailPassword,
+  setBrowserSessionCookies,
   jitterDelay,
   now: () => Date.now(),
 });
