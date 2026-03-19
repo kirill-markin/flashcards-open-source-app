@@ -735,11 +735,15 @@ export async function replaceCards(workspaceId: string, cards: ReadonlyArray<Car
   });
 }
 
+export function putCardInTransaction(transaction: IDBTransaction, workspaceId: string, card: Card): void {
+  transaction.objectStore("cards").put(toStoredCard(workspaceId, card));
+  writeCardTagRecords(transaction, workspaceId, card);
+}
+
 export async function putCard(workspaceId: string, card: Card): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     await runReadwrite(database, ["cards", "cardTags"], (transaction) => {
-      transaction.objectStore("cards").put(toStoredCard(workspaceId, card));
-      writeCardTagRecords(transaction, workspaceId, card);
+      putCardInTransaction(transaction, workspaceId, card);
       return null;
     });
   });

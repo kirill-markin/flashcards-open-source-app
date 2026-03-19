@@ -419,8 +419,15 @@ export async function replaceReviewEvents(workspaceId: string, reviewEvents: Rea
   });
 }
 
+export function putReviewEventInTransaction(transaction: IDBTransaction, reviewEvent: ReviewEvent): void {
+  transaction.objectStore("reviewEvents").put(reviewEvent);
+}
+
 export async function putReviewEvent(reviewEvent: ReviewEvent): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
-    await runReadwrite(database, ["reviewEvents"], (transaction) => transaction.objectStore("reviewEvents").put(reviewEvent));
+    await runReadwrite(database, ["reviewEvents"], (transaction) => {
+      putReviewEventInTransaction(transaction, reviewEvent);
+      return null;
+    });
   });
 }

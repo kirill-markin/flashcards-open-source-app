@@ -1,20 +1,34 @@
 import type {
+  ReviewEvent,
+  SyncBootstrapEntry,
   WorkspaceOverviewSnapshot,
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
   WorkspaceTagsSummary,
 } from "../types";
 import { iterateAllCardTags } from "./cardTags";
-import { loadActiveCardCountWithDatabase } from "./cards";
+import { loadActiveCardCountWithDatabase, putCardInTransaction } from "./cards";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
+  type DatabaseStores,
   getFromStore,
   runReadwrite,
   type WorkspaceSettingsRecord,
   type WorkspaceSyncStateRecord,
 } from "./core";
-import { loadDecksListSnapshot } from "./decks";
+import { loadDecksListSnapshot, putDeckInTransaction } from "./decks";
+import { putReviewEventInTransaction } from "./reviews";
+
+type HotSyncStateUpdate = Readonly<{
+  lastAppliedHotChangeId: number;
+  markHotStateHydrated: boolean;
+}>;
+
+type ReviewHistorySyncStateUpdate = Readonly<{
+  lastAppliedReviewSequenceId: number;
+  markReviewHistoryHydrated: boolean;
+}>;
 
 function compareTagSummaries(
   leftTag: Readonly<{ tag: string; cardsCount: number }>,
@@ -51,6 +65,60 @@ function buildWorkspaceSyncStateRecord(
       : null,
     updatedAt: new Date().toISOString(),
   };
+}
+
+function buildHotSyncStateRecord(
+  workspaceId: string,
+  currentRecord: WorkspaceSyncStateRecord | undefined,
+  syncStateUpdate: HotSyncStateUpdate,
+): WorkspaceSyncStateRecord {
+  return buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
+    lastAppliedHotChangeId: syncStateUpdate.lastAppliedHotChangeId,
+    lastAppliedReviewSequenceId: currentRecord?.lastAppliedReviewSequenceId ?? 0,
+    hasHydratedHotState: (currentRecord?.hasHydratedHotState ?? false) || syncStateUpdate.markHotStateHydrated,
+    hasHydratedReviewHistory: currentRecord?.hasHydratedReviewHistory ?? false,
+  });
+}
+
+function buildReviewHistorySyncStateRecord(
+  workspaceId: string,
+  currentRecord: WorkspaceSyncStateRecord | undefined,
+  syncStateUpdate: ReviewHistorySyncStateUpdate,
+): WorkspaceSyncStateRecord {
+  return buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
+    lastAppliedHotChangeId: currentRecord?.lastAppliedHotChangeId ?? 0,
+    lastAppliedReviewSequenceId: syncStateUpdate.lastAppliedReviewSequenceId,
+    hasHydratedHotState: currentRecord?.hasHydratedHotState ?? false,
+    hasHydratedReviewHistory: (currentRecord?.hasHydratedReviewHistory ?? false) || syncStateUpdate.markReviewHistoryHydrated,
+  });
+}
+
+function putWorkspaceSettingsInTransaction(
+  transaction: IDBTransaction,
+  workspaceId: string,
+  settings: WorkspaceSchedulerSettings,
+): void {
+  transaction.objectStore("workspaceSettings").put({
+    workspaceId,
+    settings,
+  } satisfies WorkspaceSettingsRecord);
+}
+
+function putWorkspaceSyncStateInTransaction(
+  transaction: IDBTransaction,
+  nextRecord: WorkspaceSyncStateRecord,
+): void {
+  transaction.objectStore("workspaceSyncState").put(nextRecord);
+}
+
+function createHotSyncStoreNames(syncStateUpdate: HotSyncStateUpdate | null): ReadonlyArray<DatabaseStores> {
+  return syncStateUpdate === null
+    ? ["cards", "cardTags", "decks", "workspaceSettings"]
+    : ["cards", "cardTags", "decks", "workspaceSettings", "workspaceSyncState"];
+}
+
+function createReviewSyncStoreNames(): ReadonlyArray<DatabaseStores> {
+  return ["reviewEvents", "workspaceSyncState"];
 }
 
 export async function loadWorkspaceSettings(workspaceId: string): Promise<WorkspaceSchedulerSettings | null> {
@@ -116,67 +184,138 @@ export async function loadWorkspaceOverviewSnapshot(workspace: WorkspaceSummary)
   };
 }
 
+export async function applyHotSyncPage(
+  workspaceId: string,
+  entries: ReadonlyArray<SyncBootstrapEntry>,
+  syncStateUpdate: HotSyncStateUpdate | null,
+): Promise<void> {
+  await closeDatabaseAfter(async (database) => {
+    const currentRecord = syncStateUpdate === null
+      ? undefined
+      : await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
+
+    await runReadwrite(database, createHotSyncStoreNames(syncStateUpdate), (transaction) => {
+      for (const entry of entries) {
+        if (entry.entityType === "card") {
+          putCardInTransaction(transaction, workspaceId, entry.payload);
+          continue;
+        }
+
+        if (entry.entityType === "deck") {
+          if (entry.payload.workspaceId !== workspaceId) {
+            throw new Error(`Deck sync payload workspace mismatch: ${entry.payload.workspaceId}`);
+          }
+
+          putDeckInTransaction(transaction, entry.payload);
+          continue;
+        }
+
+        putWorkspaceSettingsInTransaction(transaction, workspaceId, entry.payload);
+      }
+
+      if (syncStateUpdate !== null) {
+        putWorkspaceSyncStateInTransaction(
+          transaction,
+          buildHotSyncStateRecord(workspaceId, currentRecord, syncStateUpdate),
+        );
+      }
+
+      return null;
+    });
+  });
+}
+
+export async function applyReviewHistorySyncPage(
+  workspaceId: string,
+  reviewEvents: ReadonlyArray<ReviewEvent>,
+  syncStateUpdate: ReviewHistorySyncStateUpdate,
+): Promise<void> {
+  await closeDatabaseAfter(async (database) => {
+    const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
+
+    await runReadwrite(database, createReviewSyncStoreNames(), (transaction) => {
+      for (const reviewEvent of reviewEvents) {
+        if (reviewEvent.workspaceId !== workspaceId) {
+          throw new Error(`Review event sync payload workspace mismatch: ${reviewEvent.workspaceId}`);
+        }
+
+        putReviewEventInTransaction(transaction, reviewEvent);
+      }
+
+      putWorkspaceSyncStateInTransaction(
+        transaction,
+        buildReviewHistorySyncStateRecord(workspaceId, currentRecord, syncStateUpdate),
+      );
+      return null;
+    });
+  });
+}
+
 export async function putWorkspaceSettings(workspaceId: string, settings: WorkspaceSchedulerSettings): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
-    await runReadwrite(database, ["workspaceSettings"], (transaction) => transaction.objectStore("workspaceSettings").put({
-      workspaceId,
-      settings,
-    } satisfies WorkspaceSettingsRecord));
+    await runReadwrite(database, ["workspaceSettings"], (transaction) => {
+      putWorkspaceSettingsInTransaction(transaction, workspaceId, settings);
+      return null;
+    });
   });
 }
 
 export async function setLastAppliedHotChangeId(workspaceId: string, lastAppliedHotChangeId: number): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
-    await runReadwrite(database, ["workspaceSyncState"], (transaction) => transaction.objectStore("workspaceSyncState").put(
-      buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
+    await runReadwrite(database, ["workspaceSyncState"], (transaction) => {
+      putWorkspaceSyncStateInTransaction(transaction, buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
         lastAppliedHotChangeId,
         lastAppliedReviewSequenceId: currentRecord?.lastAppliedReviewSequenceId ?? 0,
         hasHydratedHotState: currentRecord?.hasHydratedHotState ?? false,
         hasHydratedReviewHistory: currentRecord?.hasHydratedReviewHistory ?? false,
-      }),
-    ));
+      }));
+      return null;
+    });
   });
 }
 
 export async function setLastAppliedReviewSequenceId(workspaceId: string, lastAppliedReviewSequenceId: number): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
-    await runReadwrite(database, ["workspaceSyncState"], (transaction) => transaction.objectStore("workspaceSyncState").put(
-      buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
+    await runReadwrite(database, ["workspaceSyncState"], (transaction) => {
+      putWorkspaceSyncStateInTransaction(transaction, buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
         lastAppliedHotChangeId: currentRecord?.lastAppliedHotChangeId ?? 0,
         lastAppliedReviewSequenceId,
         hasHydratedHotState: currentRecord?.hasHydratedHotState ?? false,
         hasHydratedReviewHistory: currentRecord?.hasHydratedReviewHistory ?? false,
-      }),
-    ));
+      }));
+      return null;
+    });
   });
 }
 
 export async function setHotStateHydrated(workspaceId: string, hasHydratedHotState: boolean): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
-    await runReadwrite(database, ["workspaceSyncState"], (transaction) => transaction.objectStore("workspaceSyncState").put(
-      buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
+    await runReadwrite(database, ["workspaceSyncState"], (transaction) => {
+      putWorkspaceSyncStateInTransaction(transaction, buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
         lastAppliedHotChangeId: currentRecord?.lastAppliedHotChangeId ?? 0,
         lastAppliedReviewSequenceId: currentRecord?.lastAppliedReviewSequenceId ?? 0,
         hasHydratedHotState,
         hasHydratedReviewHistory: currentRecord?.hasHydratedReviewHistory ?? false,
-      }),
-    ));
+      }));
+      return null;
+    });
   });
 }
 
 export async function setReviewHistoryHydrated(workspaceId: string, hasHydratedReviewHistory: boolean): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
-    await runReadwrite(database, ["workspaceSyncState"], (transaction) => transaction.objectStore("workspaceSyncState").put(
-      buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
+    await runReadwrite(database, ["workspaceSyncState"], (transaction) => {
+      putWorkspaceSyncStateInTransaction(transaction, buildWorkspaceSyncStateRecord(workspaceId, currentRecord, {
         lastAppliedHotChangeId: currentRecord?.lastAppliedHotChangeId ?? 0,
         lastAppliedReviewSequenceId: currentRecord?.lastAppliedReviewSequenceId ?? 0,
         hasHydratedHotState: currentRecord?.hasHydratedHotState ?? false,
         hasHydratedReviewHistory,
-      }),
-    ));
+      }));
+      return null;
+    });
   });
 }
