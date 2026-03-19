@@ -9,21 +9,10 @@ enum CloudAuthError: LocalizedError {
         switch self {
         case .invalidBaseUrl:
             return "Cloud sign-in is unavailable. Check the app configuration."
-        case .invalidResponse(let details, let statusCode):
+        case .invalidResponse(let details, _):
             switch details.code {
             case "INVALID_EMAIL":
                 return "Enter a valid email address."
-            case "PASSWORD_REQUIRED":
-                return "Enter your password."
-            case "PASSWORD_SIGN_IN_FAILED":
-                if statusCode == 401 {
-                    return "Email or password is incorrect."
-                }
-
-                return appendCloudRequestIdReference(
-                    message: "Could not sign in with password. Try again.",
-                    requestId: details.requestId
-                )
             case "OTP_SESSION_EXPIRED":
                 return "Code expired. Request a new one."
             case "OTP_CHALLENGE_CONSUMED":
@@ -82,11 +71,6 @@ private struct VerifyCodeRequest: Encodable {
     // iOS sends the signed OTP session back in the body instead of relying on
     // cookie persistence between send-code and verify-code.
     let otpSessionToken: String
-}
-
-private struct SignInPasswordRequest: Encodable {
-    let email: String
-    let password: String
 }
 
 private struct AuthSuccessResponse: Decodable {
@@ -207,30 +191,6 @@ final class CloudAuthService {
         )
     }
 
-    func signInWithPassword(email: String, password: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
-        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        logCloudFlowPhase(phase: .authSignInPassword, outcome: "start")
-        let response: AuthSuccessResponse = try await self.request(
-            authBaseUrl: authBaseUrl,
-            path: "/api/sign-in-password",
-            method: "POST",
-            body: SignInPasswordRequest(
-                email: normalizedEmail,
-                password: password
-            )
-        )
-
-        guard response.ok else {
-            throw CloudAuthError.invalidResponseBody("sign-in-password did not return ok=true")
-        }
-
-        return makeStoredCloudCredentials(
-            refreshToken: response.refreshToken,
-            idToken: response.idToken,
-            expiresIn: response.expiresIn
-        )
-    }
-
     func refreshIdToken(refreshToken: String, authBaseUrl: String) async throws -> CloudIdentityToken {
         let response: RefreshTokenResponse = try await self.request(
             authBaseUrl: authBaseUrl,
@@ -272,8 +232,6 @@ final class CloudAuthService {
             return .authSendCode
         case "/api/verify-code":
             return .authVerifyCode
-        case "/api/sign-in-password":
-            return .authSignInPassword
         default:
             return .authVerifyCode
         }
