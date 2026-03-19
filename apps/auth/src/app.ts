@@ -21,6 +21,7 @@ import logoutPage from "./routes/logoutPage.js";
 import logoutLocalPage from "./routes/logoutLocalPage.js";
 import robots from "./routes/robots.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
+import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
 import { createAgentErrorEnvelope } from "./server/agentEnvelope.js";
 import { log } from "./server/logger.js";
 
@@ -66,6 +67,7 @@ function setApiCorsHeaders(c: Context<AuthAppEnv>, origin: string): void {
 }
 
 function createMountedApp(basePath: string): Hono<AuthAppEnv> {
+  getDemoEmailAccessConfig();
   const app = new Hono<AuthAppEnv>().basePath(basePath);
   const allowedApiOrigins = getAllowedApiOrigins();
 

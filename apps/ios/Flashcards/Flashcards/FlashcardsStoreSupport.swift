@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 protocol CloudAuthServing {
-    func sendCode(email: String, authBaseUrl: String) async throws -> CloudOtpChallenge
+    func sendCode(email: String, authBaseUrl: String) async throws -> CloudSendCodeResult
     func signInWithPassword(email: String, password: String, authBaseUrl: String) async throws -> StoredCloudCredentials
     func verifyCode(
         challenge: CloudOtpChallenge,

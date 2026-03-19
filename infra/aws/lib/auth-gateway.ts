@@ -23,6 +23,16 @@ export interface AuthGatewayResult {
   authFn: lambdaNodejs.NodejsFunction;
 }
 
+function getOptionalEnvironmentValue(name: string): string | undefined {
+  const value = process.env[name];
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === "" ? undefined : trimmedValue;
+}
+
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
@@ -79,6 +89,16 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     "SESSION_ENCRYPTION_KEY",
     sessionEncryptionKey.secretValue.unsafeUnwrap(),
   );
+
+  const demoEmailDostip = getOptionalEnvironmentValue("DEMO_EMAIL_DOSTIP");
+  if (demoEmailDostip !== undefined) {
+    authFn.addEnvironment("DEMO_EMAIL_DOSTIP", demoEmailDostip);
+  }
+
+  const demoPasswordDostip = getOptionalEnvironmentValue("DEMO_PASSWORD_DOSTIP");
+  if (demoPasswordDostip !== undefined) {
+    authFn.addEnvironment("DEMO_PASSWORD_DOSTIP", demoPasswordDostip);
+  }
 
   const restApi = new apigw.RestApi(scope, "AuthApi", {
     restApiName: "flashcards-open-source-app-auth",

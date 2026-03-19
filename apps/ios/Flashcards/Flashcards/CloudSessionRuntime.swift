@@ -33,7 +33,7 @@ final class CloudSessionRuntime {
         )
     }
 
-    func sendCode(email: String, configuration: CloudServiceConfiguration) async throws -> CloudOtpChallenge {
+    func sendCode(email: String, configuration: CloudServiceConfiguration) async throws -> CloudSendCodeResult {
         try await self.cloudAuthService.sendCode(
             email: email,
             authBaseUrl: configuration.authBaseUrl

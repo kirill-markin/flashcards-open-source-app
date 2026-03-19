@@ -427,6 +427,11 @@ struct StoredCloudCredentials: Codable, Hashable {
     let idTokenExpiresAt: String
 }
 
+enum CloudSendCodeResult: Hashable {
+    case otpChallenge(CloudOtpChallenge)
+    case verifiedCredentials(StoredCloudCredentials)
+}
+
 struct StoredGuestCloudSession: Codable, Hashable, Sendable {
     let guestToken: String
     let userId: String

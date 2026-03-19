@@ -336,13 +336,27 @@ struct CloudSignInSheet: View {
             }
 
             do {
-                let nextChallenge = try await self.store.sendCloudSignInCode(email: nextEmail)
-                guard self.otpSheetState?.id == nextOtpSheetState.id else {
-                    return
-                }
+                let sendCodeResult = try await self.store.sendCloudSignInCode(email: nextEmail)
 
-                self.email = nextChallenge.email
-                self.otpSheetState = nextOtpSheetState.withChallenge(nextChallenge)
+                switch sendCodeResult {
+                case .otpChallenge(let nextChallenge):
+                    guard self.otpSheetState?.id == nextOtpSheetState.id else {
+                        return
+                    }
+
+                    self.email = nextChallenge.email
+                    self.otpSheetState = nextOtpSheetState.withChallenge(nextChallenge)
+                case .verifiedCredentials(let credentials):
+                    // This intentionally insecure path exists only for
+                    // configured review/demo emails on the auth service.
+                    self.otpSheetState = nil
+                    self.handleVerifiedAuthContext(
+                        CloudVerifiedAuthContext(
+                            apiBaseUrl: try self.store.currentCloudServiceConfiguration().apiBaseUrl,
+                            credentials: credentials
+                        )
+                    )
+                }
             } catch {
                 if self.otpSheetState?.id == nextOtpSheetState.id {
                     self.otpSheetState = nil
@@ -827,11 +841,17 @@ private struct CloudOtpVerificationSheet: View {
             }
 
             do {
-                let nextChallenge = try await self.store.sendCloudSignInCode(email: currentEmail)
-                self.otpSheetState = self.otpSheetState?.withChallenge(nextChallenge)
-                self.code = ""
-                self.errorMessage = ""
-                self.challengeState = .active
+                let sendCodeResult = try await self.store.sendCloudSignInCode(email: currentEmail)
+
+                switch sendCodeResult {
+                case .otpChallenge(let nextChallenge):
+                    self.otpSheetState = self.otpSheetState?.withChallenge(nextChallenge)
+                    self.code = ""
+                    self.errorMessage = ""
+                    self.challengeState = .active
+                case .verifiedCredentials:
+                    throw LocalStoreError.validation("Demo review sign-in cannot resend an OTP challenge")
+                }
             } catch {
                 self.errorMessage = Flashcards.errorMessage(error: error)
             }

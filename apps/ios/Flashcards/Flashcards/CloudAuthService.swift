@@ -71,6 +71,9 @@ private struct SendCodeResponse: Decodable {
     // Native clients cannot safely depend on browser-style cookie replay across
     // OTP requests, so the signed OTP session is returned explicitly as well.
     let otpSessionToken: String?
+    let idToken: String?
+    let refreshToken: String?
+    let expiresIn: Int?
 }
 
 private struct VerifyCodeRequest: Encodable {
@@ -131,7 +134,7 @@ final class CloudAuthService {
         }
     }
 
-    func sendCode(email: String, authBaseUrl: String) async throws -> CloudOtpChallenge {
+    func sendCode(email: String, authBaseUrl: String) async throws -> CloudSendCodeResult {
         self.resetChallengeSession()
 
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -146,6 +149,23 @@ final class CloudAuthService {
         guard response.ok else {
             throw CloudAuthError.invalidResponseBody("send-code did not return ok=true")
         }
+
+        if
+            let idToken = response.idToken,
+            idToken.isEmpty == false,
+            let refreshToken = response.refreshToken,
+            refreshToken.isEmpty == false,
+            let expiresIn = response.expiresIn
+        {
+            return .verifiedCredentials(
+                self.makeStoredCloudCredentials(
+                    refreshToken: refreshToken,
+                    idToken: idToken,
+                    expiresIn: expiresIn
+                )
+            )
+        }
+
         guard let csrfToken = response.csrfToken, csrfToken.isEmpty == false else {
             throw CloudAuthError.invalidResponseBody("send-code did not return csrfToken")
         }
@@ -153,10 +173,12 @@ final class CloudAuthService {
             throw CloudAuthError.invalidResponseBody("send-code did not return otpSessionToken")
         }
 
-        return CloudOtpChallenge(
-            email: normalizedEmail,
-            csrfToken: csrfToken,
-            otpSessionToken: otpSessionToken
+        return .otpChallenge(
+            CloudOtpChallenge(
+                email: normalizedEmail,
+                csrfToken: csrfToken,
+                otpSessionToken: otpSessionToken
+            )
         )
     }
 

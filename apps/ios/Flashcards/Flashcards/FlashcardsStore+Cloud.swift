@@ -125,11 +125,11 @@ extension FlashcardsStore {
         try self.switchCloudServer(override: nil)
     }
 
-    func sendCloudSignInCode(email: String) async throws -> CloudOtpChallenge {
+    func sendCloudSignInCode(email: String) async throws -> CloudSendCodeResult {
         let configuration = try self.currentCloudServiceConfiguration()
-        let challenge = try await self.cloudRuntime.sendCode(email: email, configuration: configuration)
+        let result = try await self.cloudRuntime.sendCode(email: email, configuration: configuration)
         self.globalErrorMessage = ""
-        return challenge
+        return result
     }
 
     func signInCloudWithPassword(email: String, password: String) async throws -> CloudVerifiedAuthContext {

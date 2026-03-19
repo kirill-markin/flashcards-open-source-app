@@ -1,11 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "./app.js";
+import { resetDemoEmailAccessConfigForTests } from "./server/demoEmailAccess.js";
+
+const originalDemoEmailDostip = process.env.DEMO_EMAIL_DOSTIP;
+const originalDemoPasswordDostip = process.env.DEMO_PASSWORD_DOSTIP;
 
 function createAuthApp(): ReturnType<typeof createApp> {
   process.env.ALLOWED_REDIRECT_URIS = "https://flashcards-open-source-app.com,https://app.flashcards-open-source-app.com";
   return createApp("/");
 }
+
+test.afterEach(() => {
+  if (originalDemoEmailDostip === undefined) {
+    delete process.env.DEMO_EMAIL_DOSTIP;
+  } else {
+    process.env.DEMO_EMAIL_DOSTIP = originalDemoEmailDostip;
+  }
+
+  if (originalDemoPasswordDostip === undefined) {
+    delete process.env.DEMO_PASSWORD_DOSTIP;
+  } else {
+    process.env.DEMO_PASSWORD_DOSTIP = originalDemoPasswordDostip;
+  }
+
+  resetDemoEmailAccessConfigForTests();
+});
 
 test("OPTIONS preflight from the app origin returns credentialed CORS headers", async () => {
   const app = createAuthApp();
@@ -92,4 +112,14 @@ test("logout-local clears the browser session and redirects back with account-de
     "https://app.flashcards-open-source-app.com/account?logged_out=1&account_deleted=1",
   );
   assert.match(response.headers.get("Set-Cookie") ?? "", /refresh=;/);
+});
+
+test("app startup fails when demo emails are configured without the shared demo password", () => {
+  process.env.DEMO_EMAIL_DOSTIP = "apple-review@example.com";
+  delete process.env.DEMO_PASSWORD_DOSTIP;
+
+  assert.throws(
+    () => createAuthApp(),
+    /DEMO_PASSWORD_DOSTIP is required when DEMO_EMAIL_DOSTIP is configured/,
+  );
 });
