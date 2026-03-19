@@ -267,6 +267,7 @@
 .container {
   width: 100%;
   min-width: 0;
+  min-height: calc(100dvh - 176px);
   padding: 20px 0 36px;
 }
 
@@ -315,6 +316,10 @@
   .page-state,
   .global-error-wrap {
     width: 100%;
+  }
+
+  .container {
+    min-height: calc(100dvh - 148px);
   }
 
   .brand-full {
