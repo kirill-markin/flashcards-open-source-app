@@ -220,8 +220,15 @@ export async function replaceDecks(workspaceId: string, decks: ReadonlyArray<Dec
   });
 }
 
+export function putDeckInTransaction(transaction: IDBTransaction, deck: Deck): void {
+  transaction.objectStore("decks").put(deck);
+}
+
 export async function putDeck(deck: Deck): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
-    await runReadwrite(database, ["decks"], (transaction) => transaction.objectStore("decks").put(deck));
+    await runReadwrite(database, ["decks"], (transaction) => {
+      putDeckInTransaction(transaction, deck);
+      return null;
+    });
   });
 }

@@ -32,16 +32,13 @@ import {
 } from "../localDb/outbox";
 import { putReviewEvent } from "../localDb/reviews";
 import {
+  applyHotSyncPage,
+  applyReviewHistorySyncPage,
   hasHydratedHotState,
   hasHydratedReviewHistory,
   loadLastAppliedHotChangeId,
   loadLastAppliedReviewSequenceId,
   loadWorkspaceSettings,
-  putWorkspaceSettings,
-  setHotStateHydrated,
-  setLastAppliedHotChangeId,
-  setLastAppliedReviewSequenceId,
-  setReviewHistoryHydrated,
 } from "../localDb/workspace";
 import type {
   Card,
@@ -52,7 +49,6 @@ import type {
   ReviewEvent,
   SessionInfo,
   SyncBootstrapEntry,
-  SyncChange,
   UpdateCardInput,
   UpdateDeckInput,
   WorkspaceSchedulerSettings,
@@ -140,6 +136,20 @@ function requireCloudDeviceId(cloudSettings: CloudSettings | null): string {
   return cloudSettings.deviceId;
 }
 
+function findLastWorkspaceSettingsEntry(
+  entries: ReadonlyArray<SyncBootstrapEntry>,
+): WorkspaceSchedulerSettings | null {
+  let lastSettings: WorkspaceSchedulerSettings | null = null;
+
+  for (const entry of entries) {
+    if (entry.entityType === "workspace_scheduler_settings") {
+      lastSettings = entry.payload;
+    }
+  }
+
+  return lastSettings;
+}
+
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const {
     sessionLoadState,
@@ -192,82 +202,6 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
   }, [bumpLocalReadVersion, isVisibleWorkspace, refreshLocalMetadata]);
 
-  const applyBootstrapEntry = useCallback(async function applyBootstrapEntry(
-    workspaceId: string,
-    entry: SyncBootstrapEntry,
-  ): Promise<void> {
-    if (entry.entityType === "card") {
-      await putCard(workspaceId, entry.payload);
-      if (isVisibleWorkspace(workspaceId)) {
-        bumpLocalReadVersion();
-      }
-      return;
-    }
-
-    if (entry.entityType === "deck") {
-      if (entry.payload.workspaceId !== workspaceId) {
-        throw new Error(`Deck sync payload workspace mismatch: ${entry.payload.workspaceId}`);
-      }
-
-      await putDeck(entry.payload);
-      if (isVisibleWorkspace(workspaceId)) {
-        bumpLocalReadVersion();
-      }
-      return;
-    }
-
-    await putWorkspaceSettings(workspaceId, entry.payload);
-    if (isVisibleWorkspace(workspaceId)) {
-      setWorkspaceSettings(entry.payload);
-    }
-  }, [bumpLocalReadVersion, isVisibleWorkspace, setWorkspaceSettings]);
-
-  const applySyncChange = useCallback(async function applySyncChange(
-    workspaceId: string,
-    change: SyncChange,
-  ): Promise<void> {
-    if (change.entityType === "card") {
-      await applyBootstrapEntry(workspaceId, {
-        entityType: "card",
-        entityId: change.entityId,
-        action: change.action,
-        payload: change.payload,
-      });
-      return;
-    }
-
-    if (change.entityType === "deck") {
-      await applyBootstrapEntry(workspaceId, {
-        entityType: "deck",
-        entityId: change.entityId,
-        action: change.action,
-        payload: change.payload,
-      });
-      return;
-    }
-
-    await applyBootstrapEntry(workspaceId, {
-      entityType: "workspace_scheduler_settings",
-      entityId: change.entityId,
-      action: change.action,
-      payload: change.payload,
-    });
-  }, [applyBootstrapEntry]);
-
-  const applyReviewHistoryRecord = useCallback(async function applyReviewHistoryRecord(
-    workspaceId: string,
-    reviewEvent: ReviewEvent,
-  ): Promise<void> {
-    if (reviewEvent.workspaceId !== workspaceId) {
-      throw new Error(`Review event sync payload workspace mismatch: ${reviewEvent.workspaceId}`);
-    }
-
-    await putReviewEvent(reviewEvent);
-    if (isVisibleWorkspace(workspaceId)) {
-      bumpLocalReadVersion();
-    }
-  }, [bumpLocalReadVersion, isVisibleWorkspace]);
-
   const runSyncForWorkspace = useCallback(async function runSyncForWorkspace(
     workspace: WorkspaceSummary,
   ): Promise<void> {
@@ -292,7 +226,6 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         const hotStateHydrated = await hasHydratedHotState(workspaceId);
         if (hotStateHydrated === false) {
           let bootstrapCursor: string | null = null;
-          let bootstrapHotChangeId = 0;
 
           while (true) {
             const bootstrapResult = await bootstrapPullSyncState(
@@ -303,19 +236,30 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
               bootstrapCursor,
               syncPageSize,
             );
-            for (const entry of bootstrapResult.entries) {
-              await applyBootstrapEntry(workspaceId, entry);
+
+            await applyHotSyncPage(
+              workspaceId,
+              bootstrapResult.entries,
+              bootstrapResult.hasMore
+                ? null
+                : {
+                  lastAppliedHotChangeId: bootstrapResult.bootstrapHotChangeId,
+                  markHotStateHydrated: true,
+                },
+            );
+
+            if (isVisibleWorkspace(workspaceId)) {
+              const lastSettings = findLastWorkspaceSettingsEntry(bootstrapResult.entries);
+              if (lastSettings !== null) {
+                setWorkspaceSettings(lastSettings);
+              }
             }
 
-            bootstrapHotChangeId = bootstrapResult.bootstrapHotChangeId;
             bootstrapCursor = bootstrapResult.nextCursor;
             if (bootstrapResult.hasMore === false) {
               break;
             }
           }
-
-          await setLastAppliedHotChangeId(workspaceId, bootstrapHotChangeId);
-          await setHotStateHydrated(workspaceId, true);
           await refreshWorkspaceView(workspaceId);
         }
 
@@ -361,12 +305,20 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             afterHotChangeId,
             syncPageSize,
           );
-          for (const change of pullResult.changes) {
-            await applySyncChange(workspaceId, change);
+
+          await applyHotSyncPage(workspaceId, pullResult.changes, {
+            lastAppliedHotChangeId: pullResult.nextHotChangeId,
+            markHotStateHydrated: false,
+          });
+
+          if (isVisibleWorkspace(workspaceId)) {
+            const lastSettings = findLastWorkspaceSettingsEntry(pullResult.changes);
+            if (lastSettings !== null) {
+              setWorkspaceSettings(lastSettings);
+            }
           }
 
           afterHotChangeId = pullResult.nextHotChangeId;
-          await setLastAppliedHotChangeId(workspaceId, afterHotChangeId);
 
           if (pullResult.hasMore === false) {
             break;
@@ -374,6 +326,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
 
         let afterReviewSequenceId = await loadLastAppliedReviewSequenceId(workspaceId);
+        const reviewHistoryHydrated = await hasHydratedReviewHistory(workspaceId);
         while (true) {
           const reviewHistoryResult = await pullReviewHistorySync(
             workspaceId,
@@ -384,20 +337,16 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             syncPageSize,
           );
 
-          for (const reviewEvent of reviewHistoryResult.reviewEvents) {
-            await applyReviewHistoryRecord(workspaceId, reviewEvent);
-          }
+          await applyReviewHistorySyncPage(workspaceId, reviewHistoryResult.reviewEvents, {
+            lastAppliedReviewSequenceId: reviewHistoryResult.nextReviewSequenceId,
+            markReviewHistoryHydrated: reviewHistoryHydrated === false && reviewHistoryResult.hasMore === false,
+          });
 
           afterReviewSequenceId = reviewHistoryResult.nextReviewSequenceId;
-          await setLastAppliedReviewSequenceId(workspaceId, afterReviewSequenceId);
 
           if (reviewHistoryResult.hasMore === false) {
             break;
           }
-        }
-
-        if (await hasHydratedReviewHistory(workspaceId) === false) {
-          await setReviewHistoryHydrated(workspaceId, true);
         }
 
         await refreshWorkspaceView(workspaceId);
@@ -424,13 +373,12 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     syncPromisesRef.current.set(workspaceId, syncTask);
     return syncTask;
   }, [
-    applyBootstrapEntry,
-    applyReviewHistoryRecord,
-    applySyncChange,
+    isVisibleWorkspace,
     refreshSyncIndicator,
     refreshWorkspaceView,
     session,
     setErrorMessage,
+    setWorkspaceSettings,
   ]);
 
   const runSync = useCallback(async function runSync(): Promise<void> {
