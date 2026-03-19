@@ -77,6 +77,51 @@ test("chat transcriptions route accepts multipart uploads without durationSecond
   assert.equal(observedFileName, "clip.webm");
 });
 
+test("chat transcriptions route blocks guest uploads immediately when guest AI quota defaults to zero", async () => {
+  const originalGuestAiWeightedMonthlyTokenCap = process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+  delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+
+  let transcribeCallCount = 0;
+  const app = createChatTestApp({
+    requestContext: {
+      userId: "guest-user-1",
+      subjectUserId: "guest-user-1",
+      selectedWorkspaceId: "workspace-1",
+      email: null,
+      locale: "en",
+      userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
+      transport: "guest",
+      connectionId: null,
+    },
+    transcribeAudioFn: async () => {
+      transcribeCallCount += 1;
+      return "ignored";
+    },
+  });
+
+  const formData = new FormData();
+  formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
+  formData.append("source", "web");
+
+  const response = await app.request("https://api.example.com/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (originalGuestAiWeightedMonthlyTokenCap === undefined) {
+    delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+  } else {
+    process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP = originalGuestAiWeightedMonthlyTokenCap;
+  }
+
+  assert.equal(response.status, 429);
+  assert.deepEqual(await response.json(), {
+    error: "Your free monthly AI limit is used up on this device. Create an account to keep going.",
+    code: "GUEST_AI_LIMIT_REACHED",
+  });
+  assert.equal(transcribeCallCount, 0);
+});
+
 test("chat transcriptions route rejects requests without a file upload", async () => {
   const app = createChatTestApp({ transcribeAudioFn: async () => "ignored" });
   const formData = new FormData();

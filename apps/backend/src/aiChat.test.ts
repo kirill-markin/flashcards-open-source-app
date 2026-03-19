@@ -6,7 +6,9 @@ import {
   createAIChatErrorResponse,
   parseAIChatDiagnosticsBody,
   parseAIChatTurnRequestBody,
+  streamAIChatResponse,
 } from "./chat/http";
+import { HttpError } from "./errors";
 import { isSupportedAIChatModel as isSupportedAnthropicAIChatModel } from "./chat/anthropic/aiChatAgent";
 import { isSupportedAIChatModel as isSupportedOpenAIChatModel } from "./chat/openai/aiChatAgent";
 
@@ -142,4 +144,45 @@ test("buildAIChatSystemInstructions prefers existing tags and requires approval 
     instructions,
     /You must create a new tag only when no existing workspace tag is appropriate, and you must ask the user to approve that new tag before proposing or executing it\./i,
   );
+});
+
+test("streamAIChatResponse rejects guest chat immediately when guest AI quota defaults to zero", async () => {
+  const originalGuestAiWeightedMonthlyTokenCap = process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+  delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+
+  await assert.rejects(
+    async () => streamAIChatResponse(
+      {
+        messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],
+        model: "gpt-5.4",
+        timezone: "Europe/Madrid",
+        devicePlatform: "web",
+        chatSessionId: "chat-session-1",
+        codeInterpreterContainerId: null,
+        userContext: { totalCards: 1 },
+      },
+      "request-1",
+      {
+        userId: "guest-user-1",
+        subjectUserId: "guest-user-1",
+        selectedWorkspaceId: "workspace-1",
+        email: null,
+        locale: "en",
+        userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
+        transport: "guest",
+        connectionId: null,
+      },
+      "https://api.example.com/chat/turn",
+    ),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 429
+      && error.code === "GUEST_AI_LIMIT_REACHED"
+      && error.message === "Your free monthly AI limit is used up on this device. Create an account to keep going.",
+  );
+
+  if (originalGuestAiWeightedMonthlyTokenCap === undefined) {
+    delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+  } else {
+    process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP = originalGuestAiWeightedMonthlyTokenCap;
+  }
 });

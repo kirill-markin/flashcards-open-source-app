@@ -90,6 +90,7 @@ jobs:
             "sesSenderEmail": "${{ vars.CDK_SES_SENDER_EMAIL }}",
             "openAiApiKeySecretArn": "${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}",
             "anthropicApiKeySecretArn": "${{ vars.CDK_ANTHROPIC_API_KEY_SECRET_ARN }}",
+            "guestAiWeightedMonthlyTokenCap": "${{ vars.CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP }}",
             "githubOidcProviderArn": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com",
             "alertEmail": "${{ vars.CDK_ALERT_EMAIL }}",
             "githubRepo": "${{ vars.CDK_GITHUB_REPO }}"

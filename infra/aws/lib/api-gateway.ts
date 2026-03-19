@@ -16,6 +16,7 @@ export interface ApiGatewayProps {
   apiCertificateArn: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   anthropicApiKeySecretArn: string | undefined;
+  guestAiWeightedMonthlyTokenCap: string | undefined;
   userPoolId: string;
   userPoolArn: string;
   userPoolClientId: string;
@@ -41,6 +42,7 @@ interface BackendFunctionProps {
   userPoolClientId: string;
   openAiApiKeySecretArn: string | undefined;
   anthropicApiKeySecretArn: string | undefined;
+  guestAiWeightedMonthlyTokenCap: string | undefined;
 }
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
@@ -102,6 +104,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
+      GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: props.guestAiWeightedMonthlyTokenCap ?? "0",
     },
   });
 
@@ -165,6 +168,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });
   const chatStreamingFn = createBackendFunction(scope, {
     constructId: "ChatStreamingHandler",
@@ -181,6 +185,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });
 
   const restApi = new apigw.RestApi(scope, "Api", {

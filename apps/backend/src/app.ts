@@ -15,6 +15,7 @@ import {
   createAgentConnectionManagementErrorEnvelope,
   createAgentSetupErrorEnvelope,
 } from "./agentSetup";
+import { getGuestAiWeightedMonthlyTokenCap } from "./guestAiQuotaConfig";
 import { logRequestError } from "./server/logging";
 import { getAllowedOrigins } from "./server/requestContext";
 
@@ -237,6 +238,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
  */
 export function createApp(basePath: string): Hono<AppEnv> {
   getAuthConfig();
+  getGuestAiWeightedMonthlyTokenCap();
   const allowedOrigins = getAllowedOrigins();
   const routeMountPaths = getRouteMountPaths(basePath);
   if (routeMountPaths.length === 1) {

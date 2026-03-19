@@ -28,6 +28,8 @@ This starts:
 
 By default `AUTH_MODE=none`, so backend accepts local requests as `userId=local`. Set `AUTH_MODE=cognito` and fill the Cognito values in `.env` to test the real OTP flow locally.
 
+Set `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP=400000` in local `.env` if you want guest AI enabled locally. When this variable is missing or empty, backend defaults it to `0`, so guest AI fails closed with the existing limit-reached response.
+
 Stop local services with:
 
 ```bash
@@ -79,3 +81,12 @@ bash scripts/setup-github.sh
 ## CI/CD
 
 GitHub Actions deploys on push to `main` using the stack OIDC role. GitHub stores only optional AI secret ARNs as repository variables; the actual provider keys stay in AWS Secrets Manager.
+
+Guest AI quota is configured separately:
+
+- local dev uses `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` from `.env`
+- GitHub Actions stores `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` as a repo variable
+- the deploy workflow writes that value into `infra/aws/cdk.context.local.json` as `guestAiWeightedMonthlyTokenCap`
+- CDK injects it into both backend Lambdas as `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`
+
+If the GitHub variable is unset, the deployed backend receives `0` and guest AI stays disabled fail-closed.
