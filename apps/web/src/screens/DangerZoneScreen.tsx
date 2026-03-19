@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
+import { useAppData } from "../appData";
 import {
   deleteAccountConfirmationText,
   setAccountDeletionPending,
@@ -8,6 +9,7 @@ import { getCachedSessionCsrfToken } from "../api";
 import { SettingsShell } from "./SettingsShared";
 
 export function DangerZoneScreen(): ReactElement {
+  const { isSessionVerified } = useAppData();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [deleteConfirmationValue, setDeleteConfirmationValue] = useState<string>("");
 
@@ -29,6 +31,10 @@ export function DangerZoneScreen(): ReactElement {
   }, [isDeleteDialogOpen]);
 
   function openDeleteDialog(): void {
+    if (isSessionVerified === false) {
+      return;
+    }
+
     setDeleteConfirmationValue("");
     setIsDeleteDialogOpen(true);
   }
@@ -55,17 +61,26 @@ export function DangerZoneScreen(): ReactElement {
         <section className="content-card settings-danger-card">
           <div className="cell-stack">
             <h2 className="panel-subtitle">Delete account</h2>
-            <p className="subtitle">Permanently delete this account and all cloud data.</p>
+            <p className="subtitle">
+              {isSessionVerified
+                ? "Permanently delete this account and all cloud data."
+                : "Restoring session before account deletion..."}
+            </p>
           </div>
           <div className="screen-actions">
-            <button className="ghost-btn settings-danger-btn" type="button" onClick={openDeleteDialog}>
+            <button
+              className="ghost-btn settings-danger-btn"
+              type="button"
+              onClick={openDeleteDialog}
+              disabled={isSessionVerified === false}
+            >
               Delete my account
             </button>
           </div>
         </section>
       </SettingsShell>
 
-      {isDeleteDialogOpen ? (
+      {isDeleteDialogOpen && isSessionVerified ? (
         <section
           className="settings-delete-dialog-backdrop"
           role="dialog"

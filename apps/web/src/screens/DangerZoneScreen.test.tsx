@@ -10,10 +10,12 @@ const {
   getCachedSessionCsrfTokenMock,
   setAccountDeletionPendingMock,
   storeAccountDeletionCsrfTokenMock,
+  useAppDataMock,
 } = vi.hoisted(() => ({
   getCachedSessionCsrfTokenMock: vi.fn(),
   setAccountDeletionPendingMock: vi.fn(),
   storeAccountDeletionCsrfTokenMock: vi.fn(),
+  useAppDataMock: vi.fn(),
 }));
 
 vi.mock("../api", () => ({
@@ -24,6 +26,10 @@ vi.mock("../accountDeletion", () => ({
   deleteAccountConfirmationText: "delete my account",
   setAccountDeletionPending: setAccountDeletionPendingMock,
   storeAccountDeletionCsrfToken: storeAccountDeletionCsrfTokenMock,
+}));
+
+vi.mock("../appData", () => ({
+  useAppData: useAppDataMock,
 }));
 
 function findButtonByText(container: HTMLDivElement, text: string): HTMLButtonElement {
@@ -61,7 +67,11 @@ describe("DangerZoneScreen", () => {
     getCachedSessionCsrfTokenMock.mockReset();
     setAccountDeletionPendingMock.mockReset();
     storeAccountDeletionCsrfTokenMock.mockReset();
+    useAppDataMock.mockReset();
     getCachedSessionCsrfTokenMock.mockReturnValue("csrf-123");
+    useAppDataMock.mockReturnValue({
+      isSessionVerified: true,
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -117,5 +127,22 @@ describe("DangerZoneScreen", () => {
 
     expect(storeAccountDeletionCsrfTokenMock).toHaveBeenCalledWith("csrf-123");
     expect(setAccountDeletionPendingMock).toHaveBeenCalledWith(true);
+  });
+
+  it("keeps account deletion locked while the session is still restoring", async () => {
+    useAppDataMock.mockReturnValue({
+      isSessionVerified: false,
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <DangerZoneScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("Restoring session before account deletion...");
+    expect(findButtonByText(container, "Delete my account").disabled).toBe(true);
   });
 });

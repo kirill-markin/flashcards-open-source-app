@@ -97,6 +97,8 @@ function throwNotUsed(functionName: string): never {
 function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
   const appData: ReviewScreenAppData = {
     sessionLoadState: "ready",
+    sessionVerificationState: "verified",
+    isSessionVerified: true,
     sessionErrorMessage: "",
     session: null,
     activeWorkspace: {

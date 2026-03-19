@@ -18,6 +18,7 @@ const emptyOverviewSnapshot: WorkspaceOverviewSnapshot = {
 export function WorkspaceOverviewScreen(): ReactElement {
   const {
     activeWorkspace,
+    isSessionVerified,
     localReadVersion,
     refreshLocalData,
     renameWorkspace,
@@ -102,6 +103,11 @@ export function WorkspaceOverviewScreen(): ReactElement {
       return;
     }
 
+    if (isSessionVerified === false) {
+      setRenameErrorMessage("Restoring session. Try again in a moment.");
+      return;
+    }
+
     const trimmedWorkspaceName = workspaceName.trim();
     if (trimmedWorkspaceName === "") {
       setRenameErrorMessage("Workspace name is required");
@@ -128,7 +134,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
   }
 
   async function openDeleteDialog(): Promise<void> {
-    if (activeWorkspace === null) {
+    if (activeWorkspace === null || isSessionVerified === false) {
       return;
     }
 
@@ -209,6 +215,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
 
   const trimmedWorkspaceName = workspaceName.trim();
   const isRenameDisabled = activeWorkspace === null
+    || isSessionVerified === false
     || trimmedWorkspaceName === ""
     || trimmedWorkspaceName === activeWorkspace.name
     || isRenameSubmitting;
@@ -277,6 +284,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
                 />
               </label>
               {renameErrorMessage !== "" ? <p className="error-banner">{renameErrorMessage}</p> : null}
+              {isSessionVerified === false ? <p className="subtitle">Restoring session...</p> : null}
               <div className="screen-actions">
                 <button className="primary-btn" type="submit" disabled={isRenameDisabled}>
                   {isRenameSubmitting ? "Saving..." : "Save name"}
@@ -295,7 +303,12 @@ export function WorkspaceOverviewScreen(): ReactElement {
               </p>
             </div>
             <div className="screen-actions">
-              <button className="ghost-btn settings-danger-btn" type="button" onClick={() => void openDeleteDialog()}>
+              <button
+                className="ghost-btn settings-danger-btn"
+                type="button"
+                onClick={() => void openDeleteDialog()}
+                disabled={isSessionVerified === false}
+              >
                 Delete workspace
               </button>
             </div>

@@ -5,6 +5,7 @@ type Props = Readonly<{
   workspaces: ReadonlyArray<WorkspaceSummary>;
   currentWorkspaceId: string;
   isBusy: boolean;
+  lockedMessage: string;
   accountSettingsUrl: string;
   logoutUrl: string;
   onSelectWorkspace: (workspaceId: string) => Promise<void>;
@@ -16,6 +17,7 @@ export function AccountMenu(props: Props): ReactElement {
     workspaces,
     currentWorkspaceId,
     isBusy,
+    lockedMessage,
     accountSettingsUrl,
     logoutUrl,
     onSelectWorkspace,
@@ -122,6 +124,7 @@ export function AccountMenu(props: Props): ReactElement {
       </button>
       {isOpen ? (
         <div ref={menuRef} className="account-menu-dropdown">
+          {lockedMessage !== "" ? <div className="account-menu-section-label">{lockedMessage}</div> : null}
           {workspaces.length > 0 ? (
             <>
               <div className="account-menu-section-label">Workspaces</div>

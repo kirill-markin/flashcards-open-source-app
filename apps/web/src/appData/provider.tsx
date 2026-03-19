@@ -12,6 +12,8 @@ import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "./domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
 import { useSyncEngine } from "./useSyncEngine";
 import { useWorkspaceSession } from "./useWorkspaceSession";
+import type { SessionVerificationState } from "./warmStart";
+import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "./warmStart";
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 const SELECTED_REVIEW_FILTER_STORAGE_KEY = "selected-review-filter";
@@ -65,11 +67,19 @@ function loadSelectedReviewFilter(): ReviewFilter {
 
 export function AppDataProvider(props: Props): ReactElement {
   const { children } = props;
-  const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>("loading");
+  const [warmStartSnapshot] = useState(loadWarmStartSnapshot);
+  const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(
+    warmStartSnapshot === null ? "loading" : "ready",
+  );
+  const [sessionVerificationState, setSessionVerificationState] = useState<SessionVerificationState>(
+    "unverified",
+  );
   const [sessionErrorMessage, setSessionErrorMessage] = useState<string>("");
-  const [session, setSession] = useState<SessionInfo | null>(null);
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(null);
-  const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>([]);
+  const [session, setSession] = useState<SessionInfo | null>(warmStartSnapshot?.session ?? null);
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(warmStartSnapshot?.activeWorkspace ?? null);
+  const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>(
+    warmStartSnapshot?.availableWorkspaces ?? [],
+  );
   const [isChoosingWorkspace, setIsChoosingWorkspace] = useState<boolean>(false);
   const [workspaceSettings, setWorkspaceSettings] = useState<WorkspaceSchedulerSettings | null>(null);
   const [cloudSettings, setCloudSettings] = useState<CloudSettings | null>(null);
@@ -81,6 +91,7 @@ export function AppDataProvider(props: Props): ReactElement {
 
   const syncEngine = useSyncEngine({
     sessionLoadState,
+    sessionVerificationState,
     session,
     activeWorkspace,
     setWorkspaceSettings,
@@ -93,6 +104,26 @@ export function AppDataProvider(props: Props): ReactElement {
   useEffect(() => {
     window.localStorage.setItem(SELECTED_REVIEW_FILTER_STORAGE_KEY, JSON.stringify(selectedReviewFilterState));
   }, [selectedReviewFilterState]);
+
+  useEffect(() => {
+    if (
+      sessionLoadState !== "ready"
+      || sessionVerificationState !== "verified"
+      || session === null
+      || activeWorkspace === null
+      || availableWorkspaces.length === 0
+    ) {
+      return;
+    }
+
+    storeWarmStartSnapshot({
+      version: 1,
+      session,
+      activeWorkspace,
+      availableWorkspaces,
+      savedAt: new Date().toISOString(),
+    });
+  }, [activeWorkspace, availableWorkspaces, session, sessionLoadState, sessionVerificationState]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -132,10 +163,12 @@ export function AppDataProvider(props: Props): ReactElement {
 
   const { initialize, chooseWorkspace, createWorkspace, renameWorkspace, deleteWorkspace } = useWorkspaceSession({
     sessionLoadState,
+    sessionVerificationState,
     session,
     activeWorkspace,
     availableWorkspaces,
     setSessionLoadState,
+    setSessionVerificationState,
     setSessionErrorMessage,
     setSession,
     setActiveWorkspace,
@@ -150,6 +183,8 @@ export function AppDataProvider(props: Props): ReactElement {
 
   const value: AppDataContextValue = {
     sessionLoadState,
+    sessionVerificationState,
+    isSessionVerified: sessionVerificationState === "verified",
     sessionErrorMessage,
     session,
     activeWorkspace,

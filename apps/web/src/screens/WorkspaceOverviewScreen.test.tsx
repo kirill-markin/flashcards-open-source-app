@@ -18,6 +18,7 @@ const {
       createdAt: "2026-03-10T09:00:00.000Z",
       isSelected: true,
     },
+    isSessionVerified: true,
     localReadVersion: 0,
     refreshLocalData: vi.fn(async () => undefined),
     renameWorkspace: vi.fn(async () => undefined),
@@ -73,6 +74,7 @@ describe("WorkspaceOverviewScreen", () => {
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    mockAppData.isSessionVerified = true;
     mockAppData.renameWorkspace.mockReset();
     mockAppData.deleteWorkspace.mockReset();
     mockAppData.refreshLocalData.mockReset();
@@ -172,5 +174,21 @@ describe("WorkspaceOverviewScreen", () => {
     });
 
     expect(mockAppData.deleteWorkspace).toHaveBeenCalledWith("workspace-1", "delete workspace");
+  });
+
+  it("keeps remote workspace actions disabled while the session is restoring", async () => {
+    mockAppData.isSessionVerified = false;
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <WorkspaceOverviewScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("Restoring session...");
+    expect(findButtonByText(container, "Save name").disabled).toBe(true);
+    expect(findButtonByText(container, "Delete workspace").disabled).toBe(true);
   });
 });
