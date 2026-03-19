@@ -126,40 +126,6 @@ final class CloudAuthServiceTests: XCTestCase {
         XCTAssertEqual(credentials.idToken, "id-token")
     }
 
-    func testSignInWithPasswordSendsPasswordRequestBody() async throws {
-        MockUrlProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "https://auth.example.com/api/sign-in-password")
-            XCTAssertEqual(request.httpMethod, "POST")
-
-            let bodyData = try XCTUnwrap(request.httpBody)
-            let bodyObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: String])
-            XCTAssertEqual(bodyObject["email"], "user@example.com")
-            XCTAssertEqual(bodyObject["password"], "reviewer-password")
-
-            let response = HTTPURLResponse(
-                url: try XCTUnwrap(request.url),
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            let data = """
-            {"ok":true,"idToken":"id-token","refreshToken":"refresh-token","expiresIn":3600}
-            """.data(using: .utf8)!
-            return (response, data)
-        }
-
-        let service = CloudAuthService(session: self.makeSession())
-
-        let credentials = try await service.signInWithPassword(
-            email: " User@Example.com ",
-            password: "reviewer-password",
-            authBaseUrl: "https://auth.example.com"
-        )
-
-        XCTAssertEqual(credentials.refreshToken, "refresh-token")
-        XCTAssertEqual(credentials.idToken, "id-token")
-    }
-
     private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [MockUrlProtocol.self]

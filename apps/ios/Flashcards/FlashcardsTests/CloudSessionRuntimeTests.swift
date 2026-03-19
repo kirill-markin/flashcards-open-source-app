@@ -37,54 +37,13 @@ final class CloudSessionRuntimeTests: XCTestCase {
             XCTAssertEqual(credentials.refreshToken, "refresh-token")
         }
     }
-
-    func testSignInWithPasswordReturnsVerifiedAuthContext() async throws {
-        let authService = MockCloudAuthService()
-        authService.signInWithPasswordResult = StoredCloudCredentials(
-            refreshToken: "refresh-token",
-            idToken: "id-token",
-            idTokenExpiresAt: "2030-01-01T00:00:00.000Z"
-        )
-        let runtime = CloudSessionRuntime(
-            cloudAuthService: authService,
-            cloudSyncService: nil,
-            credentialStore: InMemoryCredentialStore()
-        )
-
-        let verifiedContext = try await runtime.signInWithPassword(
-            email: "reviewer@example.com",
-            password: "reviewer-password",
-            configuration: CloudServiceConfiguration(
-                mode: .official,
-                customOrigin: nil,
-                apiBaseUrl: "https://api.example.com/v1",
-                authBaseUrl: "https://auth.example.com"
-            )
-        )
-
-        XCTAssertEqual(authService.signInWithPasswordCalls.count, 1)
-        XCTAssertEqual(authService.signInWithPasswordCalls[0].email, "reviewer@example.com")
-        XCTAssertEqual(authService.signInWithPasswordCalls[0].password, "reviewer-password")
-        XCTAssertEqual(verifiedContext.apiBaseUrl, "https://api.example.com/v1")
-        XCTAssertEqual(verifiedContext.credentials.idToken, "id-token")
-        XCTAssertEqual(verifiedContext.credentials.refreshToken, "refresh-token")
-    }
 }
 
 @MainActor
 private final class MockCloudAuthService: CloudAuthServing {
-    struct PasswordCall: Hashable {
-        let email: String
-        let password: String
-    }
-
-    var signInWithPasswordCalls: [PasswordCall]
-    var signInWithPasswordResult: StoredCloudCredentials?
     var sendCodeResult: CloudSendCodeResult?
 
     init() {
-        self.signInWithPasswordCalls = []
-        self.signInWithPasswordResult = nil
         self.sendCodeResult = nil
     }
 
@@ -94,16 +53,6 @@ private final class MockCloudAuthService: CloudAuthServing {
         }
 
         return sendCodeResult
-    }
-
-    func signInWithPassword(email: String, password: String, authBaseUrl: String) async throws -> StoredCloudCredentials {
-        self.signInWithPasswordCalls.append(PasswordCall(email: email, password: password))
-
-        guard let signInWithPasswordResult else {
-            throw LocalStoreError.validation("Missing signInWithPasswordResult in CloudSessionRuntimeTests")
-        }
-
-        return signInWithPasswordResult
     }
 
     func verifyCode(
