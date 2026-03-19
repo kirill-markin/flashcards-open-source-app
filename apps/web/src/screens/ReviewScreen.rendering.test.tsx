@@ -3,10 +3,15 @@
 import { act } from "react";
 import { describe, expect, it } from "vitest";
 import { cardsRoute, chatRoute } from "../routes";
+import { readReviewLoadingSnapshot, writeReviewLoadingSnapshot } from "./loadingSnapshots";
 import {
   createCard,
   createDeck,
   clickElement,
+  loadDecksListSnapshotMock,
+  loadReviewQueueSnapshotMock,
+  loadReviewTimelinePageMock,
+  loadWorkspaceTagsSummaryMock,
   reviewStylesContain,
   setupReviewScreenTest,
 } from "./ReviewScreenTestSupport";
@@ -41,6 +46,8 @@ describe("ReviewScreen rendering", () => {
     expect(reviewStylesContain(
       ".review-screen-panel {",
       "grid-template-rows: auto minmax(0, 1fr);",
+      "height: min(760px, calc(100dvh - 176px));",
+      "min-height: min(760px, calc(100dvh - 176px));",
       "max-height: calc(100dvh - 156px);",
       "overflow: hidden;",
     )).toBe(true);
@@ -105,7 +112,100 @@ describe("ReviewScreen rendering", () => {
       "scroll-padding-bottom: 0;",
       "position: static;",
       "scrollbar-gutter: auto;",
+      "height: auto;",
+      "min-height: 0;",
     )).toBe(true);
+  });
+
+  it("renders the full review shell while the first review load is pending without a snapshot", async () => {
+    loadReviewQueueSnapshotMock.mockImplementation(async () => new Promise(() => undefined));
+    loadReviewTimelinePageMock.mockImplementation(async () => new Promise(() => undefined));
+    loadWorkspaceTagsSummaryMock.mockImplementation(async () => new Promise(() => undefined));
+    loadDecksListSnapshotMock.mockImplementation(async () => new Promise(() => undefined));
+
+    await reviewScreen.renderReviewScreen();
+
+    const container = reviewScreen.getContainer();
+
+    expect(container.querySelector(".review-screen-panel")).not.toBeNull();
+    expect(container.querySelector(".review-layout")).not.toBeNull();
+    expect(container.querySelector(".review-loading-card-surface")).not.toBeNull();
+    expect(container.querySelector(".review-queue-panel")).not.toBeNull();
+    expect(container.textContent).toContain("Reveal answer");
+  });
+
+  it("renders a matching review snapshot while the first review load is pending", async () => {
+    loadReviewQueueSnapshotMock.mockImplementation(async () => new Promise(() => undefined));
+    loadReviewTimelinePageMock.mockImplementation(async () => new Promise(() => undefined));
+    loadWorkspaceTagsSummaryMock.mockImplementation(async () => new Promise(() => undefined));
+    loadDecksListSnapshotMock.mockImplementation(async () => new Promise(() => undefined));
+    writeReviewLoadingSnapshot({
+      version: 1,
+      workspaceId: "workspace-1",
+      selectedReviewFilterKey: "allCards",
+      resolvedReviewFilterTitle: "All cards",
+      reviewCounts: {
+        dueCount: 12,
+        totalCount: 18,
+      },
+      currentCard: {
+        cardId: "snapshot-current",
+        frontText: "Snapshot front",
+        tags: ["grammar"],
+        effortLevel: "fast",
+        dueAt: null,
+      },
+      queuePreview: [{
+        cardId: "snapshot-current",
+        frontText: "Snapshot front",
+        tags: ["grammar"],
+        effortLevel: "fast",
+        dueAt: null,
+      }, {
+        cardId: "snapshot-next",
+        frontText: "Snapshot next",
+        tags: ["verbs"],
+        effortLevel: "medium",
+        dueAt: "2026-03-11T09:00:00.000Z",
+      }],
+      savedAt: "2026-03-10T12:00:00.000Z",
+    });
+
+    await reviewScreen.renderReviewScreen();
+
+    const container = reviewScreen.getContainer();
+
+    expect(container.textContent).toContain("12 due • 6 upcoming");
+    expect(container.textContent).toContain("Snapshot front");
+    expect(container.textContent).toContain("Snapshot next");
+    expect(container.querySelectorAll(".review-queue-card")).toHaveLength(2);
+  });
+
+  it("writes the latest review snapshot after a successful load", async () => {
+    const state = reviewScreen.getState();
+    const firstCard = createCard({
+      cardId: "snapshot-card-1",
+      frontText: "Latest front",
+      tags: ["grammar"],
+    });
+    const secondCard = createCard({
+      cardId: "snapshot-card-2",
+      frontText: "Latest second",
+      tags: ["verbs"],
+      updatedAt: "2026-03-10T10:00:00.000Z",
+    });
+    state.cards = [firstCard, secondCard];
+    state.reviewQueue = [firstCard];
+    state.reviewTimeline = [firstCard, secondCard];
+
+    await reviewScreen.renderReviewScreen();
+
+    const snapshot = readReviewLoadingSnapshot("workspace-1", { kind: "allCards" });
+
+    expect(snapshot).not.toBeNull();
+    expect(snapshot?.resolvedReviewFilterTitle).toBe("All cards");
+    expect(snapshot?.currentCard?.frontText).toBe("Latest front");
+    expect(snapshot?.queuePreview.map((card) => card.frontText)).toEqual(["Latest front", "Latest second"]);
   });
 
   it("shows all empty-state review actions for non-All-cards filters", async () => {

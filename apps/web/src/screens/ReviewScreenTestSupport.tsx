@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, vi } from "vitest";
 import type { AppDataContextValue } from "../appData/types";
+import { clearLoadingSnapshotFallbackStorage } from "./loadingSnapshots";
 import type {
   Card,
   Deck,
@@ -282,6 +283,22 @@ export function dispatchKeydown(element: Document | HTMLElement, key: string): v
   element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
 }
 
+function clearWindowLocalStorage(): void {
+  clearLoadingSnapshotFallbackStorage();
+  const storage = window.localStorage;
+  if (typeof storage.clear === "function") {
+    storage.clear();
+    return;
+  }
+
+  for (let index = storage.length - 1; index >= 0; index -= 1) {
+    const key = storage.key(index);
+    if (key !== null) {
+      storage.removeItem(key);
+    }
+  }
+}
+
 const reviewStylesheet = readFileSync(resolve(process.cwd(), "src/styles/features/review.css"), "utf8");
 
 export function reviewStylesContain(...fragments: ReadonlyArray<string>): boolean {
@@ -297,6 +314,7 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-10T12:00:00.000Z"));
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    clearWindowLocalStorage();
 
     state = createDefaultReviewScreenTestState();
     container = document.createElement("div");
@@ -326,6 +344,7 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     if (currentRoot !== null) {
       act(() => currentRoot.unmount());
     }
+    clearWindowLocalStorage();
     container?.remove();
     container = null;
     root = null;

@@ -150,12 +150,28 @@ function createReadyAppData(overrides: Record<string, unknown> = {}): Record<str
   };
 }
 
+function clearWindowLocalStorage(): void {
+  const storage = window.localStorage;
+  if (typeof storage.clear === "function") {
+    storage.clear();
+    return;
+  }
+
+  for (let index = storage.length - 1; index >= 0; index -= 1) {
+    const key = storage.key(index);
+    if (key !== null) {
+      storage.removeItem(key);
+    }
+  }
+}
+
 describe("AppShell", () => {
   let container: HTMLDivElement;
   let root: ReactDOM.Root;
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    clearWindowLocalStorage();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -174,6 +190,7 @@ describe("AppShell", () => {
 
   afterEach(() => {
     act(() => root.unmount());
+    clearWindowLocalStorage();
     container.remove();
   });
 
@@ -229,6 +246,7 @@ describe("RoutedShell", () => {
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    clearWindowLocalStorage();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -237,7 +255,31 @@ describe("RoutedShell", () => {
 
   afterEach(() => {
     act(() => root.unmount());
+    clearWindowLocalStorage();
     container.remove();
+  });
+
+  it("renders a layout-matched sidebar fallback before the lazy chat panel resolves", () => {
+    useChatLayoutMock.mockReturnValue({
+      isOpen: true,
+      setIsOpen: vi.fn(),
+      chatWidth: 560,
+      setChatWidth: vi.fn(),
+    });
+
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={["/cards"]}>
+          <RoutedShell />
+        </MemoryRouter>,
+      );
+    });
+
+    const sidebarFallback = container.querySelector(".chat-sidebar-loading");
+
+    expect(sidebarFallback).not.toBeNull();
+    expect(sidebarFallback?.getAttribute("style")).toContain("width: 560px");
+    expect(container.textContent).toContain("Loading AI chat…");
   });
 
   it("adds sidebar-open layout classes and renders the sidebar chat on desktop routes", async () => {

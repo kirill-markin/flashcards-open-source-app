@@ -42,6 +42,8 @@
 
 .chat-sidebar {
   flex: 0 0 auto;
+  width: 560px;
+  min-width: 320px;
   margin: 20px 0 36px;
   height: calc(100% - 56px);
   align-self: stretch;
@@ -51,6 +53,18 @@
   width: 100%;
   max-width: 980px;
   min-height: 0;
+}
+
+.chat-sidebar-loading,
+.chat-sidebar-fullscreen-loading {
+  pointer-events: none;
+}
+
+.chat-loading-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
 }
 
 .chat-resize-handle {
@@ -139,6 +153,36 @@
 
 .chat-empty-title:not(:first-child) {
   margin-top: 18px;
+}
+
+.chat-empty-loading {
+  min-height: 312px;
+}
+
+.chat-loading-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.chat-loading-line,
+.chat-loading-composer,
+.chat-loading-chip {
+  display: block;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.05));
+}
+
+.chat-loading-line {
+  height: 13px;
+  width: 100%;
+}
+
+.chat-loading-line-title {
+  width: 58%;
+}
+
+.chat-loading-line-short {
+  width: 72%;
 }
 
 .chat-empty-list {
@@ -328,6 +372,36 @@
   background:
     radial-gradient(circle at top, rgba(196, 75, 45, 0.08), transparent 42%),
     rgba(255, 255, 255, 0.02);
+}
+
+.chat-input-area-loading {
+  min-height: 190px;
+}
+
+.chat-loading-composer {
+  min-height: 110px;
+  border-radius: var(--radius-md);
+}
+
+.chat-loading-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-loading-chip {
+  min-height: 40px;
+  width: 120px;
+}
+
+.chat-loading-chip-round {
+  width: 40px;
+}
+
+.chat-loading-chip-accent {
+  margin-inline-start: auto;
+  width: 84px;
+  background: linear-gradient(90deg, rgba(196, 75, 45, 0.5), rgba(196, 75, 45, 0.7), rgba(196, 75, 45, 0.5));
 }
 
 .chat-textarea {

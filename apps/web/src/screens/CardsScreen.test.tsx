@@ -6,6 +6,11 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildNextCardsTableSorts, CardsScreen } from "./CardsScreen";
 import type { Card, QueryCardsPage } from "../types";
+import {
+  clearLoadingSnapshotFallbackStorage,
+  readCardsLoadingSnapshot,
+  writeCardsLoadingSnapshot,
+} from "./loadingSnapshots";
 
 const {
   loadWorkspaceTagsSummaryMock,
@@ -114,6 +119,22 @@ function keyDownElement(element: Element, key: string): void {
   element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
 }
 
+function clearWindowLocalStorage(): void {
+  clearLoadingSnapshotFallbackStorage();
+  const storage = window.localStorage;
+  if (typeof storage.clear === "function") {
+    storage.clear();
+    return;
+  }
+
+  for (let index = storage.length - 1; index >= 0; index -= 1) {
+    const key = storage.key(index);
+    if (key !== null) {
+      storage.removeItem(key);
+    }
+  }
+}
+
 describe("buildNextCardsTableSorts", () => {
   it("adds new sort keys as primary and keeps only three user sorts", () => {
     const initialSorts = [
@@ -149,6 +170,7 @@ describe("CardsScreen", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    clearWindowLocalStorage();
     queryCardsMock.mockReset();
     loadWorkspaceTagsSummaryMock.mockReset();
     loadWorkspaceTagsSummaryMock.mockResolvedValue({
@@ -168,6 +190,7 @@ describe("CardsScreen", () => {
 
   afterEach(() => {
     act(() => root.unmount());
+    clearWindowLocalStorage();
     container.remove();
     vi.unstubAllGlobals();
     vi.useRealTimers();
@@ -249,6 +272,87 @@ describe("CardsScreen", () => {
       sorts: [],
       filter: null,
     });
+  });
+
+  it("renders the full cards shell while the first load is pending without a snapshot", async () => {
+    queryCardsMock.mockImplementation(async () => new Promise(() => undefined));
+    loadWorkspaceTagsSummaryMock.mockImplementation(async () => new Promise(() => undefined));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <CardsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.querySelector(".cards-panel")).not.toBeNull();
+    expect(container.querySelector(".cards-search-bar")).not.toBeNull();
+    expect(container.querySelectorAll(".cards-loading-row")).toHaveLength(6);
+    expect(container.textContent).toContain("Cards");
+  });
+
+  it("renders a matching cards snapshot while the first load is pending", async () => {
+    queryCardsMock.mockImplementation(async () => new Promise(() => undefined));
+    loadWorkspaceTagsSummaryMock.mockImplementation(async () => new Promise(() => undefined));
+    writeCardsLoadingSnapshot({
+      version: 1,
+      workspaceId: "workspace-1",
+      totalCount: 42,
+      rows: [{
+        cardId: "snapshot-card-1",
+        frontText: "Snapshot front",
+        backText: "Snapshot back",
+        tags: ["grammar"],
+        effortLevel: "fast",
+        dueAt: null,
+        reps: 0,
+        lapses: 0,
+        createdAt: "2026-03-10T00:00:00.000Z",
+      }],
+      savedAt: "2026-03-10T12:00:00.000Z",
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <CardsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("42 total");
+    expect(container.textContent).toContain("Snapshot front");
+    expect(container.textContent).toContain("Snapshot back");
+    expect(container.querySelectorAll(".cards-loading-row")).toHaveLength(1);
+  });
+
+  it("writes the latest cards snapshot after a successful first-page load", async () => {
+    queryCardsMock.mockResolvedValue(createCardsPage({
+      cards: [createCard({
+        cardId: "stored-card-1",
+        frontText: "Stored front",
+      }), createCard({
+        cardId: "stored-card-2",
+        frontText: "Stored second",
+        updatedAt: "2026-03-10T10:00:00.000Z",
+      })],
+      totalCount: 2,
+    }));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <CardsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    const snapshot = readCardsLoadingSnapshot("workspace-1");
+
+    expect(snapshot).not.toBeNull();
+    expect(snapshot?.totalCount).toBe(2);
+    expect(snapshot?.rows.map((card) => card.frontText)).toEqual(["Stored front", "Stored second"]);
   });
 
   it("renders fixed-width front and back columns with multiline clamp wrappers", async () => {

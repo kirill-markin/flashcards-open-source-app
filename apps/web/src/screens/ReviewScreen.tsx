@@ -25,6 +25,12 @@ import {
   classifyReviewContentPresentation,
   type ReviewContentPresentationMode,
 } from "./reviewContentPresentation";
+import {
+  buildReviewLoadingCardPreview,
+  readReviewLoadingSnapshot,
+  serializeReviewFilterKey,
+  writeReviewLoadingSnapshot,
+} from "./loadingSnapshots";
 import { cardsRoute, chatRoute, settingsDecksRoute } from "../routes";
 
 type ReviewButtonOption = Readonly<{
@@ -254,6 +260,14 @@ function buildReviewButtonOptions(card: Card, schedulerSettings: WorkspaceSchedu
       intervalDescription: formatReviewIntervalDescription(now, schedule.dueAt),
     };
   });
+}
+
+function isReviewLoadingPreviewDue(dueAt: string | null, nowTimestamp: number): boolean {
+  if (dueAt === null) {
+    return true;
+  }
+
+  return new Date(dueAt).getTime() <= nowTimestamp;
 }
 
 type ReviewCardSideProps = Readonly<{
@@ -487,6 +501,20 @@ export function ReviewScreen(): ReactElement {
   const hasVisibleReviewFilterChoices = visibleReviewDeckFilterMenuItems.length > 0 || visibleReviewTagFilterMenuItems.length > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
   const hasCards = localCardCount > 0;
+  const reviewLoadingSnapshot = activeWorkspace === null
+    ? null
+    : readReviewLoadingSnapshot(activeWorkspace.workspaceId, selectedReviewFilter);
+  const isInitialReviewLoad = isReviewLoading && hasLoadedReviewData === false;
+  const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
+  const visibleReviewCounts = isInitialReviewLoad && reviewLoadingSnapshot !== null
+    ? reviewLoadingSnapshot.reviewCounts
+    : reviewCounts;
+  const visibleSelectedReviewFilterTitle = isInitialReviewLoad && reviewLoadingSnapshot !== null
+    ? reviewLoadingSnapshot.resolvedReviewFilterTitle
+    : selectedReviewFilterTitle;
+  const visibleQueueCardsCount = isInitialReviewLoad && reviewLoadingSnapshot !== null
+    ? reviewLoadingSnapshot.queuePreview.length
+    : queueCards.length;
   const reviewButtonsNow = new Date();
   let reviewButtonOptions: Array<ReviewButtonOption> = [];
   let reviewButtonErrorMessage: string = "";
@@ -557,6 +585,16 @@ export function ReviewScreen(): ReactElement {
           cardsCount: tagSummary.cardsCount,
         })));
         setDeckSummaries(decksSnapshot.deckSummaries);
+        writeReviewLoadingSnapshot({
+          version: 1,
+          workspaceId: activeWorkspace.workspaceId,
+          selectedReviewFilterKey: serializeReviewFilterKey(selectedReviewFilter),
+          resolvedReviewFilterTitle: nextReviewFilterTitle,
+          reviewCounts: reviewQueueSnapshot.reviewCounts,
+          currentCard: reviewQueueSnapshot.cards[0] === undefined ? null : buildReviewLoadingCardPreview(reviewQueueSnapshot.cards[0]),
+          queuePreview: reviewTimelinePage.cards.slice(0, 6).map((card) => buildReviewLoadingCardPreview(card)),
+          savedAt: new Date().toISOString(),
+        });
         setHasLoadedReviewData(true);
       } catch (error) {
         if (isCancelled) {
@@ -765,31 +803,6 @@ export function ReviewScreen(): ReactElement {
     setIsReviewFilterMenuOpen(false);
   }
 
-  if (isReviewLoading && hasLoadedReviewData === false) {
-    return (
-      <main className="container">
-        <section className="panel review-screen-panel">
-          <h1 className="title">Review</h1>
-          <p className="subtitle">Loading review queue…</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (reviewLoadErrorMessage !== "" && hasLoadedReviewData === false) {
-    return (
-      <main className="container">
-        <section className="panel review-screen-panel">
-          <h1 className="title">Review</h1>
-          <p className="error-banner">{reviewLoadErrorMessage}</p>
-          <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
-            Retry
-          </button>
-        </section>
-      </main>
-    );
-  }
-
   return (
     <main className="container">
       <section className="panel review-screen-panel">
@@ -798,11 +811,16 @@ export function ReviewScreen(): ReactElement {
             <h1 className="title">Review</h1>
             <p className="subtitle">Queue table plus a focused flip flow.</p>
             {reviewLoadErrorMessage !== "" ? <p className="error-banner">{reviewLoadErrorMessage}</p> : null}
+            {reviewLoadErrorMessage !== "" && hasLoadedReviewData === false ? (
+              <button className="primary-btn review-loading-retry-btn" type="button" onClick={() => void refreshLocalData()}>
+                Retry
+              </button>
+            ) : null}
           </div>
           <div className="screen-actions review-screen-actions">
             <div className="review-filter-summary-wrap">
               <span className="review-filter-label">Queue</span>
-              <span className="badge review-filter-summary">{formatQueueBadge(reviewCounts.dueCount, reviewCounts.totalCount)}</span>
+              <span className="badge review-filter-summary">{formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount)}</span>
             </div>
             <div ref={reviewFilterMenuWrapRef} className="review-filter-menu-wrap">
               <span className="review-filter-label">Deck</span>
@@ -815,7 +833,7 @@ export function ReviewScreen(): ReactElement {
                 aria-label="Open review filter"
                 onClick={handleReviewFilterMenuToggle}
               >
-                <span className="review-filter-trigger-value">{selectedReviewFilterTitle}</span>
+                <span className="review-filter-trigger-value">{visibleSelectedReviewFilterTitle}</span>
                 <span className="review-filter-trigger-chevron" aria-hidden="true">▾</span>
               </button>
               {isReviewFilterMenuOpen ? (
@@ -908,7 +926,75 @@ export function ReviewScreen(): ReactElement {
 
         <div className="review-layout">
           <section className="review-pane">
-            {selectedCard === null ? (
+            {isInitialReviewLoad ? (
+              <>
+                <div className="review-pane-head">
+                  <div className="review-pane-head-meta">
+                    {loadingReviewCurrentCard !== null ? (
+                      <>
+                        <span className="badge">{loadingReviewCurrentCard.effortLevel}</span>
+                        <span className="badge">{renderTags(loadingReviewCurrentCard.tags)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="badge review-loading-badge">Loading queue</span>
+                        <span className="badge review-loading-badge">Preparing card</span>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="ghost-btn review-pane-edit-btn"
+                    disabled
+                  >
+                    Edit
+                  </button>
+                </div>
+                <div className="review-card-stack">
+                  {loadingReviewCurrentCard !== null ? (
+                    <ReviewCardSide
+                      label="Front"
+                      text={loadingReviewCurrentCard.frontText}
+                      contentClassName="review-front"
+                      surfaceClassName="review-card-surface review-card-surface-front"
+                    />
+                  ) : (
+                    <div className="review-card-surface review-card-surface-front review-loading-card-surface" aria-hidden="true">
+                      <div className="review-label">Front</div>
+                      <div className="review-card-body">
+                        <div className="review-loading-card-lines">
+                          <span className="review-loading-line review-loading-line-title" />
+                          <span className="review-loading-line" />
+                          <span className="review-loading-line review-loading-line-short" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="review-card-surface review-card-answer review-loading-card-surface" aria-hidden="true">
+                    <div className="review-label">Back</div>
+                    <div className="review-card-body">
+                      <div className="review-loading-card-lines">
+                        <span className="review-loading-line" />
+                        <span className="review-loading-line review-loading-line-short" />
+                        <span className="review-loading-line review-loading-line-shorter" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="review-meta review-meta-loading">
+                  <span>{reviewLoadingSnapshot === null ? "Loading review queue…" : "Showing a recent local snapshot…"}</span>
+                </div>
+                <div className="review-actions-dock">
+                  <button
+                    type="button"
+                    className="primary-btn review-reveal-btn"
+                    disabled
+                  >
+                    Reveal answer
+                  </button>
+                </div>
+              </>
+            ) : selectedCard === null ? (
               <div className="review-empty">
                 <h2 className="panel-subtitle">{hasCards ? "Nothing Due" : "No Cards Yet"}</h2>
                 <p className="subtitle">
@@ -1030,9 +1116,45 @@ export function ReviewScreen(): ReactElement {
           <aside className="review-queue-panel">
             <div className="review-queue-head">
               <h2 className="panel-subtitle">Queue</h2>
-              <span className="review-queue-caption">{queueCards.length} cards</span>
+              <span className="review-queue-caption">
+                {isInitialReviewLoad && reviewLoadingSnapshot === null ? "loading" : `${visibleQueueCardsCount} cards`}
+              </span>
             </div>
-            {queueCards.length === 0 ? (
+            {isInitialReviewLoad ? (
+              reviewLoadingSnapshot !== null && reviewLoadingSnapshot.queuePreview.length > 0 ? (
+                <div className="review-queue-list">
+                  {reviewLoadingSnapshot.queuePreview.map((card, index) => {
+                    const isDue = isReviewLoadingPreviewDue(card.dueAt, nowTimestamp);
+                    const isActive = loadingReviewCurrentCard?.cardId === card.cardId || (loadingReviewCurrentCard === null && index === 0);
+
+                    return (
+                      <div
+                        key={card.cardId}
+                        className={`review-queue-card${isDue ? "" : " review-queue-card-upcoming"}${isActive ? " review-queue-card-active" : ""}`}
+                      >
+                        <span className="review-queue-card-title">{card.frontText}</span>
+                        <span className="review-queue-card-tags">{renderTags(card.tags)}</span>
+                        <span className="review-queue-card-meta">
+                          <span>{card.effortLevel}</span>
+                          <span>{formatTimestamp(card.dueAt)}</span>
+                          {isDue ? null : <span>Upcoming</span>}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="review-queue-list review-loading-queue-list" aria-hidden="true">
+                  {["queue-1", "queue-2", "queue-3", "queue-4"].map((key) => (
+                    <div key={key} className="review-queue-card review-loading-queue-card">
+                      <span className="review-loading-line review-loading-line-title" />
+                      <span className="review-loading-line review-loading-line-short" />
+                      <span className="review-loading-line review-loading-line-shorter" />
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : queueCards.length === 0 ? (
               <p className="subtitle">No cards to review right now.</p>
             ) : (
               <div className="review-queue-list">
