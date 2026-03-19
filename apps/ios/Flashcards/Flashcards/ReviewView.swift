@@ -412,13 +412,13 @@ struct ReviewView: View {
     private func reviewAnswerButtonsGrid(cardId: String, options: ReviewAnswerGridOptions) -> some View {
         HStack(alignment: .top, spacing: reviewBottomBarButtonSpacing) {
             VStack(spacing: reviewBottomBarButtonSpacing) {
-                reviewAnswerButton(cardId: cardId, option: options.easy)
+                reviewAnswerButton(cardId: cardId, option: options.again)
                 reviewAnswerButton(cardId: cardId, option: options.good)
             }
 
             VStack(spacing: reviewBottomBarButtonSpacing) {
                 reviewAnswerButton(cardId: cardId, option: options.hard)
-                reviewAnswerButton(cardId: cardId, option: options.again)
+                reviewAnswerButton(cardId: cardId, option: options.easy)
             }
         }
     }

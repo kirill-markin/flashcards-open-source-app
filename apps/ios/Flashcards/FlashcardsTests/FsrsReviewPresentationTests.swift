@@ -3,7 +3,7 @@ import XCTest
 @testable import Flashcards
 
 final class FsrsReviewPresentationTests: XCTestCase {
-    private let expectedReviewAnswerOrder: [ReviewRating] = [.easy, .good, .hard, .again]
+    private let expectedReviewAnswerOrder: [ReviewRating] = [.again, .hard, .good, .easy]
 
     func testMakeReviewTimelineForAllCardsReturnsActiveAndTotalCounts() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
@@ -264,8 +264,8 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertNil(nextReviewCard(reviewQueue: []))
     }
 
-    func testReviewAnswerPresentationOrderIsInvertedForDisplay() {
-        XCTAssertEqual(self.expectedReviewAnswerOrder, [.easy, .good, .hard, .again])
+    func testReviewAnswerPresentationOrderMatchesDisplayLayout() {
+        XCTAssertEqual(self.expectedReviewAnswerOrder, [.again, .hard, .good, .easy])
     }
 
     func testFormatReviewIntervalDescriptionHandlesLessThanAMinute() {

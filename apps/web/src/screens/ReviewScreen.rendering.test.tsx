@@ -144,6 +144,23 @@ describe("ReviewScreen rendering", () => {
     expect(container.textContent).not.toContain("switch to all cards deck");
   });
 
+  it("renders review rating buttons in the requested 2x2 order", async () => {
+    const state = reviewScreen.getState();
+    const card = createCard();
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+
+    await reviewScreen.renderReviewScreen();
+    await reviewScreen.revealAnswer();
+
+    const columns = Array.from(reviewScreen.getContainer().querySelectorAll(".rating-bar-column"));
+
+    expect(columns).toHaveLength(2);
+    expect(Array.from(columns[0]?.querySelectorAll(".rating-btn-title") ?? []).map((element) => element.textContent?.trim())).toEqual(["Again", "Good"]);
+    expect(Array.from(columns[1]?.querySelectorAll(".rating-btn-title") ?? []).map((element) => element.textContent?.trim())).toEqual(["Hard", "Easy"]);
+  });
+
   it("renders short plain front text in centered short mode", async () => {
     const state = reviewScreen.getState();
     state.cards = [createCard({ frontText: "Hola" })];
