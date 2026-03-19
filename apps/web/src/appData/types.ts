@@ -13,7 +13,7 @@ import type {
   WorkspaceSummary,
 } from "../types";
 
-export type SessionLoadState = "loading" | "loading_workspace" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
+export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
 
 export type AppDataContextValue = Readonly<{
   sessionLoadState: SessionLoadState;

@@ -18,7 +18,6 @@ import {
 import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
 import { getStableDeviceIdForUser } from "../clientIdentity";
 import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
-import { hasHydratedHotState } from "../localDb/workspace";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
 import {
   findWorkspaceById,
@@ -131,7 +130,6 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     currentSession: SessionInfo,
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
-    nextSessionLoadState: SessionLoadState,
   ): void {
     const nextWorkspaces = markSelectedWorkspaces(currentWorkspaces, workspace.workspaceId);
     setAvailableWorkspaces(nextWorkspaces);
@@ -143,11 +141,39 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       ...currentSession,
       selectedWorkspaceId: workspace.workspaceId,
     });
-    setSessionLoadState(nextSessionLoadState);
+    setSessionLoadState("ready");
   }, [
     setActiveWorkspace,
     setAvailableWorkspaces,
     setSession,
+    setSessionLoadState,
+  ]);
+
+  const bootstrapWorkspaceInBackground = useCallback(function bootstrapWorkspaceInBackground(
+    workspace: WorkspaceSummary,
+  ): void {
+    void (async (): Promise<void> => {
+      try {
+        await refreshWorkspaceView(workspace.workspaceId);
+        await runSyncForWorkspace(workspace);
+        setSessionErrorMessage("");
+        setErrorMessage("");
+      } catch (error) {
+        if (isAuthRedirectError(error)) {
+          setSessionLoadState("redirecting");
+          return;
+        }
+
+        const nextErrorMessage = getErrorMessage(error);
+        setSessionErrorMessage(nextErrorMessage);
+        setErrorMessage(nextErrorMessage);
+      }
+    })();
+  }, [
+    refreshWorkspaceView,
+    runSyncForWorkspace,
+    setErrorMessage,
+    setSessionErrorMessage,
     setSessionLoadState,
   ]);
 
@@ -161,40 +187,14 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setCloudSettings(linkedCloudSettings);
     setSessionErrorMessage("");
     setErrorMessage("");
-
-    const isHydrated = await hasHydratedHotState(workspace.workspaceId);
-    publishSelectedWorkspace(currentSession, currentWorkspaces, workspace, isHydrated ? "ready" : "loading_workspace");
-
-    try {
-      if (isHydrated) {
-        await refreshWorkspaceView(workspace.workspaceId);
-        void runSyncForWorkspace(workspace);
-        return;
-      }
-
-      await runSyncForWorkspace(workspace);
-      await refreshWorkspaceView(workspace.workspaceId);
-      setSessionLoadState("ready");
-      setSessionErrorMessage("");
-      setErrorMessage("");
-    } catch (error) {
-      if (isAuthRedirectError(error)) {
-        throw error;
-      }
-
-      const nextErrorMessage = getErrorMessage(error);
-      setSessionLoadState("loading_workspace");
-      setSessionErrorMessage(nextErrorMessage);
-      setErrorMessage(nextErrorMessage);
-    }
+    publishSelectedWorkspace(currentSession, currentWorkspaces, workspace);
+    bootstrapWorkspaceInBackground(workspace);
   }, [
+    bootstrapWorkspaceInBackground,
     publishSelectedWorkspace,
-    refreshWorkspaceView,
-    runSyncForWorkspace,
     setCloudSettings,
     setErrorMessage,
     setSessionErrorMessage,
-    setSessionLoadState,
   ]);
 
   const resolveInitialWorkspace = useCallback(async function resolveInitialWorkspace(
@@ -247,8 +247,10 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
         return;
       }
 
-      const currentSession = await getSession();
-      const persistedCloudSettings = await loadCloudSettings();
+      const [currentSession, persistedCloudSettings] = await Promise.all([
+        getSession(),
+        loadCloudSettings(),
+      ]);
       if (
         persistedCloudSettings !== null
         && persistedCloudSettings.linkedUserId !== null

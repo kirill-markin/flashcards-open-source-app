@@ -119,6 +119,37 @@ function LocationProbe(): ReactNode {
   return <div data-testid="location">{location.pathname}</div>;
 }
 
+async function flushLazyRender(): Promise<void> {
+  await Promise.resolve();
+  await new Promise((resolve) => window.setTimeout(resolve, 0));
+}
+
+function createReadyAppData(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    sessionLoadState: "ready",
+    sessionErrorMessage: "",
+    activeWorkspace: {
+      workspaceId: "workspace-1",
+      name: "Workspace One",
+      createdAt: "2026-03-10T09:00:00.000Z",
+    },
+    availableWorkspaces: [{
+      workspaceId: "workspace-1",
+      name: "Workspace One",
+      createdAt: "2026-03-10T09:00:00.000Z",
+    }],
+    isChoosingWorkspace: false,
+    isSyncing: false,
+    errorMessage: "",
+    initialize: vi.fn(async () => undefined),
+    chooseWorkspace: vi.fn(async () => undefined),
+    createWorkspace: vi.fn(async () => undefined),
+    renameWorkspace: vi.fn(async () => undefined),
+    deleteWorkspace: vi.fn(async () => undefined),
+    ...overrides,
+  };
+}
+
 describe("AppShell", () => {
   let container: HTMLDivElement;
   let root: ReactDOM.Root;
@@ -138,27 +169,7 @@ describe("AppShell", () => {
       chatWidth: 560,
       setChatWidth: vi.fn(),
     });
-    useAppDataMock.mockReturnValue({
-      sessionLoadState: "ready",
-      sessionErrorMessage: "",
-      activeWorkspace: {
-        workspaceId: "workspace-1",
-        name: "Workspace One",
-        createdAt: "2026-03-10T09:00:00.000Z",
-      },
-      availableWorkspaces: [{
-        workspaceId: "workspace-1",
-        name: "Workspace One",
-        createdAt: "2026-03-10T09:00:00.000Z",
-      }],
-      isChoosingWorkspace: false,
-      errorMessage: "",
-      initialize: vi.fn(async () => undefined),
-      chooseWorkspace: vi.fn(async () => undefined),
-      createWorkspace: vi.fn(async () => undefined),
-      renameWorkspace: vi.fn(async () => undefined),
-      deleteWorkspace: vi.fn(async () => undefined),
-    });
+    useAppDataMock.mockReturnValue(createReadyAppData());
   });
 
   afterEach(() => {
@@ -179,6 +190,7 @@ describe("AppShell", () => {
     expect(navItems).toEqual(["Review", "Cards", "AI chat", "Settings"]);
     expect(container.textContent).not.toContain("Decks");
     expect(container.textContent).not.toContain("Tags");
+    expect(container.textContent).not.toContain("Syncing...");
 
     const settingsNavLink = Array.from(container.querySelectorAll(".nav-link")).find((element) => element.textContent?.trim() === "Settings");
     expect(settingsNavLink?.getAttribute("href")).toBe("/settings/workspace");
@@ -192,6 +204,22 @@ describe("AppShell", () => {
 
     expect(container.textContent).toContain("Account settings");
     expect(container.querySelector('.account-menu-link[href="/settings/account"]')?.textContent).toBe("Account settings");
+  });
+
+  it("shows syncing status only while a sync is in progress", async () => {
+    useAppDataMock.mockReturnValue(createReadyAppData({
+      isSyncing: true,
+    }));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/review"]}>
+          <AppShell />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("Syncing...");
   });
 });
 
@@ -226,6 +254,7 @@ describe("RoutedShell", () => {
           <RoutedShell />
         </MemoryRouter>,
       );
+      await flushLazyRender();
     });
 
     expect(container.querySelector(".chat-layout-shell-sidebar-open")).not.toBeNull();
@@ -248,6 +277,7 @@ describe("RoutedShell", () => {
           <RoutedShell />
         </MemoryRouter>,
       );
+      await flushLazyRender();
     });
 
     expect(container.querySelector(".chat-layout-shell-sidebar-closed")).not.toBeNull();
@@ -271,6 +301,7 @@ describe("RoutedShell", () => {
           <LocationProbe />
         </MemoryRouter>,
       );
+      await flushLazyRender();
     });
 
     expect(container.textContent).toContain("review-screen");
@@ -292,6 +323,7 @@ describe("RoutedShell", () => {
           <LocationProbe />
         </MemoryRouter>,
       );
+      await flushLazyRender();
     });
 
     expect(container.textContent).toContain("deck-form-screen");
@@ -313,6 +345,7 @@ describe("RoutedShell", () => {
           <LocationProbe />
         </MemoryRouter>,
       );
+      await flushLazyRender();
     });
 
     expect(container.textContent).toContain("tags-screen");
