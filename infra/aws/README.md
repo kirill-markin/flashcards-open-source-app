@@ -28,6 +28,7 @@ Create `infra/aws/cdk.context.local.json` from the example and fill values:
 - `webCertificateArnUsEast1` (optional, only for `app.<domain>` on CloudFront)
 - `apexRedirectCertificateArnUsEast1` (optional, only for apex -> app redirect on CloudFront)
 - `sesSenderEmail` (optional, enables SES-backed Cognito email delivery when set)
+- `guestAiWeightedMonthlyTokenCap` (optional, guest AI monthly quota; defaults to `0` when omitted)
 
 ## Deploy
 
@@ -48,6 +49,8 @@ bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-sour
 
 `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional. If you export them before running the helper, `scripts/setup-ai-secrets.sh` stores them in AWS Secrets Manager and records their ARNs in `infra/aws/cdk.context.local.json`. CDK then injects them into the backend Lambda from AWS secrets. If you skip them, the stack still deploys successfully and chat providers remain unconfigured.
 
+Guest AI quota is configured independently from provider secrets. Set `guestAiWeightedMonthlyTokenCap` in `infra/aws/cdk.context.local.json` and run `bash scripts/setup-github.sh` to sync it to the GitHub repo variable `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`. During deploy, GitHub writes that value back into `cdk.context.local.json`, and CDK injects it into both backend Lambdas as `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`. When the value is omitted, the backend defaults it to `0`, which disables guest AI fail-closed.
+
 `scripts/bootstrap.sh` and `scripts/first-deploy.sh` now also:
 
 - run database migrations through the in-VPC migration Lambda
@@ -64,7 +67,7 @@ bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-sour
 6. **Run migrations manually if needed** — `bash scripts/migrate-aws.sh`.
 7. **Check internal gateway health manually if needed** — `bash scripts/check-api-health.sh`.
 8. **Check public custom domains manually if needed** — `bash scripts/check-public-endpoints.sh`.
-9. **Configure GitHub Actions** — `bash scripts/setup-github.sh` writes the required vars/secrets for this repo using stack outputs and `cdk.context.local.json`. For AI providers it stores only secret ARNs as GitHub variables; the provider keys themselves stay in AWS Secrets Manager.
+9. **Configure GitHub Actions** — `bash scripts/setup-github.sh` writes the required vars/secrets for this repo using stack outputs and `cdk.context.local.json`. For AI providers it stores only secret ARNs as GitHub variables; the provider keys themselves stay in AWS Secrets Manager. Guest AI quota is also synced here as the repo variable `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`.
 10. **Rotate optional AI keys later if needed** — export `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY`, then run `bash scripts/setup-ai-secrets.sh --region <aws-region>` and `bash scripts/setup-github.sh`.
 11. **Create review/demo Cognito users manually if demo bypass is enabled** — `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` only configure the insecure review/demo bypass in the auth Lambda. They do not provision Cognito users. If you enable these variables, every listed demo email must use `@example.com`, and you must create the matching Cognito users by hand and keep their emails and shared password aligned with the deployed env values. We intentionally do not automate this step for review-only insecure accounts.
 

@@ -77,6 +77,7 @@ AUTH_CERT_ARN=$(read_context authCertificateArn)
 WEB_CERT_ARN=$(read_context webCertificateArnUsEast1)
 OPENAI_SECRET_ARN=$(read_context openAiApiKeySecretArn)
 ANTHROPIC_SECRET_ARN=$(read_context anthropicApiKeySecretArn)
+GUEST_AI_QUOTA_CAP=$(read_context guestAiWeightedMonthlyTokenCap)
 SES_SENDER_EMAIL=$(read_context sesSenderEmail)
 DEPLOY_ROLE_ARN=$(get_output GithubDeployRoleArn)
 
@@ -97,6 +98,7 @@ gh variable set CDK_GITHUB_REPO --body "$GITHUB_REPO" --repo "$REPO"
 set_or_delete_variable CDK_SES_SENDER_EMAIL "$SES_SENDER_EMAIL"
 set_or_delete_variable CDK_OPENAI_API_KEY_SECRET_ARN "$OPENAI_SECRET_ARN"
 set_or_delete_variable CDK_ANTHROPIC_API_KEY_SECRET_ARN "$ANTHROPIC_SECRET_ARN"
+set_or_delete_variable CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
 
 gh secret set AWS_DEPLOY_ROLE_ARN --body "$DEPLOY_ROLE_ARN" --repo "$REPO"
 

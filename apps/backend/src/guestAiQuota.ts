@@ -1,7 +1,7 @@
 import { query, transaction, type DatabaseExecutor } from "./db";
 import { HttpError } from "./errors";
+import { getGuestAiWeightedMonthlyTokenCap } from "./guestAiQuotaConfig";
 
-export const guestAiWeightedMonthlyTokenCap: number = 400_000;
 export const guestAiWeightedOutputMultiplier: number = 6;
 export const guestAiWeightedTokensPerUploadedKiB: number = 4;
 export const guestAiLimitReachedCode: string = "GUEST_AI_LIMIT_REACHED";
@@ -82,6 +82,15 @@ export async function assertGuestAiLimitAvailable(
   userId: string,
   now: Date,
 ): Promise<void> {
+  const guestAiWeightedMonthlyTokenCap = getGuestAiWeightedMonthlyTokenCap();
+  if (guestAiWeightedMonthlyTokenCap === 0) {
+    throw new HttpError(
+      429,
+      "Your free monthly AI limit is used up on this device. Create an account to keep going.",
+      guestAiLimitReachedCode,
+    );
+  }
+
   const usageMonth = currentGuestUsageMonth(now);
   const result = await query<GuestAiMonthlyUsageRow>(
     [
@@ -108,6 +117,15 @@ export async function assertGuestAiLimitAllowsTranscription(
   fileSizeBytes: number,
   now: Date,
 ): Promise<void> {
+  const guestAiWeightedMonthlyTokenCap = getGuestAiWeightedMonthlyTokenCap();
+  if (guestAiWeightedMonthlyTokenCap === 0) {
+    throw new HttpError(
+      429,
+      "Your free monthly AI limit is used up on this device. Create an account to keep going.",
+      guestAiLimitReachedCode,
+    );
+  }
+
   const usageMonth = currentGuestUsageMonth(now);
   const nextWeightedTokens = calculateGuestDictationWeightedTokens(fileSizeBytes);
 

@@ -37,6 +37,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
     const anthropicApiKeySecretArn = getOptionalContextValue(this, "anthropicApiKeySecretArn");
+    const guestAiWeightedMonthlyTokenCap = getOptionalContextValue(this, "guestAiWeightedMonthlyTokenCap");
     const sesSenderEmail = getOptionalContextValue(this, "sesSenderEmail");
 
     const net = networking(this);
@@ -74,6 +75,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apiCertificateArn,
       openAiApiKeySecretArn,
       anthropicApiKeySecretArn,
+      guestAiWeightedMonthlyTokenCap,
       userPoolId: authResult.userPool.userPoolId,
       userPoolArn: authResult.userPool.userPoolArn,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,

@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { resetAuthConfigForTests } from "./authConfig";
 import { createApp } from "./app";
+import { resetGuestAiQuotaConfigForTests } from "./guestAiQuotaConfig";
 
 const originalAuthMode = process.env.AUTH_MODE;
 const originalAllowInsecureLocalAuth = process.env.ALLOW_INSECURE_LOCAL_AUTH;
 const originalPublicApiBaseUrl = process.env.PUBLIC_API_BASE_URL;
 const originalPublicAuthBaseUrl = process.env.PUBLIC_AUTH_BASE_URL;
+const originalGuestAiWeightedMonthlyTokenCap = process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
 
 function restoreEnvironment(): void {
   if (originalAuthMode === undefined) {
@@ -33,7 +35,14 @@ function restoreEnvironment(): void {
     process.env.PUBLIC_AUTH_BASE_URL = originalPublicAuthBaseUrl;
   }
 
+  if (originalGuestAiWeightedMonthlyTokenCap === undefined) {
+    delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+  } else {
+    process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP = originalGuestAiWeightedMonthlyTokenCap;
+  }
+
   resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
 }
 
 function setCognitoAuthMode(): void {
@@ -48,11 +57,24 @@ test("createApp rejects missing AUTH_MODE at startup", () => {
   delete process.env.AUTH_MODE;
   delete process.env.ALLOW_INSECURE_LOCAL_AUTH;
   resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
 
   assert.throws(
     () => createApp(""),
     (error: unknown) => error instanceof Error
       && error.message === 'AUTH_MODE is required and must be set to "cognito" or "none"',
+  );
+});
+
+test("createApp rejects invalid guest AI quota env at startup", () => {
+  setCognitoAuthMode();
+  process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP = "10.5";
+  resetGuestAiQuotaConfigForTests();
+
+  assert.throws(
+    () => createApp(""),
+    (error: unknown) => error instanceof Error
+      && error.message === 'GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP must be a non-negative integer when set, got "10.5"',
   );
 });
 
