@@ -31,6 +31,7 @@ export function buildCardSideContractSection(): string {
   return joinLines([
     "Card side contract:",
     "- Front side must contain only a question or recall prompt. Never include the answer on the front side.",
+    "- Do not put the key insight or distinguishing detail on the front side; the front should ask for it, and the back should reveal it.",
     "- Make the front side specific enough that it stays unambiguous among many cards.",
     "- Back side must start with the direct answer.",
     "- After the answer, include one or more concrete examples by default when creating a card.",
