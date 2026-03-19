@@ -12,7 +12,6 @@ struct AIChatRecordedAudio: Sendable {
     let fileUrl: URL
     let fileName: String
     let mediaType: String
-    let durationSeconds: Double
 }
 
 struct AIChatDictationInsertionSelection: Equatable, Sendable {
@@ -142,8 +141,7 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
         return AIChatRecordedAudio(
             fileUrl: fileUrl,
             fileName: "chat-dictation.m4a",
-            mediaType: "audio/mp4",
-            durationSeconds: recorder.currentTime
+            mediaType: "audio/mp4"
         )
     }
 
@@ -276,9 +274,6 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         body.append(Data("--\(boundary)\r\n".utf8))
         body.append(Data("Content-Disposition: form-data; name=\"source\"\r\n\r\n".utf8))
         body.append(Data("ios\r\n".utf8))
-        body.append(Data("--\(boundary)\r\n".utf8))
-        body.append(Data("Content-Disposition: form-data; name=\"durationSeconds\"\r\n\r\n".utf8))
-        body.append(Data("\(recordedAudio.durationSeconds)\r\n".utf8))
         body.append(Data("--\(boundary)\r\n".utf8))
         body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"\(recordedAudio.fileName)\"\r\n".utf8))
         body.append(Data("Content-Type: \(recordedAudio.mediaType)\r\n\r\n".utf8))

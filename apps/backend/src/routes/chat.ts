@@ -65,7 +65,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     if (requestContext.transport === "guest") {
       await assertGuestAiLimitAllowsTranscription(
         requestContext.userId,
-        upload.durationSeconds,
+        upload.file.size,
         new Date(),
       );
     }
@@ -73,7 +73,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     if (requestContext.transport === "guest") {
       await recordGuestDictationUsage(
         requestContext.userId,
-        upload.durationSeconds,
+        upload.file.size,
         new Date(),
       );
     }

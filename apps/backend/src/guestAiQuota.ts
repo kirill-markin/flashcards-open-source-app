@@ -3,7 +3,7 @@ import { HttpError } from "./errors";
 
 export const guestAiWeightedMonthlyTokenCap: number = 400_000;
 export const guestAiWeightedOutputMultiplier: number = 6;
-export const guestAiWeightedTokensPerRecordedSecond: number = 40;
+export const guestAiWeightedTokensPerUploadedKiB: number = 4;
 export const guestAiLimitReachedCode: string = "GUEST_AI_LIMIT_REACHED";
 
 type GuestAiMonthlyUsageRow = Readonly<{
@@ -25,8 +25,8 @@ export function calculateGuestChatWeightedTokens(
   return inputTokens + (guestAiWeightedOutputMultiplier * outputTokens);
 }
 
-export function calculateGuestDictationWeightedTokens(durationSeconds: number): number {
-  return Math.ceil(durationSeconds) * guestAiWeightedTokensPerRecordedSecond;
+export function calculateGuestDictationWeightedTokens(fileSizeBytes: number): number {
+  return Math.ceil(fileSizeBytes / 1024) * guestAiWeightedTokensPerUploadedKiB;
 }
 
 export async function loadGuestAiUsageInExecutor(
@@ -105,11 +105,11 @@ export async function assertGuestAiLimitAvailable(
 
 export async function assertGuestAiLimitAllowsTranscription(
   userId: string,
-  durationSeconds: number,
+  fileSizeBytes: number,
   now: Date,
 ): Promise<void> {
   const usageMonth = currentGuestUsageMonth(now);
-  const nextWeightedTokens = calculateGuestDictationWeightedTokens(durationSeconds);
+  const nextWeightedTokens = calculateGuestDictationWeightedTokens(fileSizeBytes);
 
   await transaction(async (executor) => {
     const currentUsage = await loadGuestAiUsageInExecutor(executor, userId, usageMonth);
@@ -138,10 +138,10 @@ export async function recordGuestChatUsage(
 
 export async function recordGuestDictationUsage(
   userId: string,
-  durationSeconds: number,
+  fileSizeBytes: number,
   now: Date,
 ): Promise<void> {
-  const weightedTokens = calculateGuestDictationWeightedTokens(durationSeconds);
+  const weightedTokens = calculateGuestDictationWeightedTokens(fileSizeBytes);
   const usageMonth = currentGuestUsageMonth(now);
   await transaction(async (executor) => {
     await appendGuestAiUsageInExecutor(executor, userId, usageMonth, weightedTokens);

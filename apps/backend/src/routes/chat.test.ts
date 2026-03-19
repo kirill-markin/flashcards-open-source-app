@@ -51,7 +51,7 @@ function createChatTestApp(
   return app;
 }
 
-test("chat transcriptions route accepts multipart uploads and returns text", async () => {
+test("chat transcriptions route accepts multipart uploads without durationSeconds and returns text", async () => {
   let observedSource: string | null = null;
   let observedFileName: string | null = null;
   const app = createChatTestApp({
@@ -65,7 +65,6 @@ test("chat transcriptions route accepts multipart uploads and returns text", asy
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
   formData.append("source", "web");
-  formData.append("durationSeconds", "1");
 
   const response = await app.request("https://api.example.com/chat/transcriptions", {
     method: "POST",
@@ -100,7 +99,6 @@ test("chat transcriptions route rejects unsupported media types", async () => {
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.mp3", { type: "audio/mpeg" }));
   formData.append("source", "web");
-  formData.append("durationSeconds", "1");
 
   const response = await app.request("https://api.example.com/chat/transcriptions", {
     method: "POST",
@@ -123,7 +121,6 @@ test("chat transcriptions route surfaces upstream failures as 503", async () => 
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.wav", { type: "audio/wav" }));
   formData.append("source", "ios");
-  formData.append("durationSeconds", "1");
 
   const response = await app.request("https://api.example.com/chat/transcriptions", {
     method: "POST",
@@ -146,7 +143,6 @@ test("chat transcriptions route surfaces invalid audio failures as 422", async (
   const formData = new FormData();
   formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
   formData.append("source", "web");
-  formData.append("durationSeconds", "1");
 
   const response = await app.request("https://api.example.com/chat/transcriptions", {
     method: "POST",
