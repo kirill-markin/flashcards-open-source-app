@@ -1,6 +1,6 @@
 import Foundation
 
-private let reviewAnswerPresentationOrder: [ReviewRating] = [.easy, .good, .hard, .again]
+private let reviewAnswerPresentationOrder: [ReviewRating] = [.again, .hard, .good, .easy]
 
 struct ReviewAnswerOption: Hashable, Identifiable {
     let rating: ReviewRating

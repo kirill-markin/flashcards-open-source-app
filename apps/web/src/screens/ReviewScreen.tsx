@@ -65,10 +65,10 @@ const reviewAnswerOptions: ReadonlyArray<Readonly<{
   title: string;
   rating: ReviewRating;
 }>> = [
-  { title: "Easy", rating: 3 },
+  { title: "Again", rating: 0 },
   { title: "Good", rating: 2 },
   { title: "Hard", rating: 1 },
-  { title: "Again", rating: 0 },
+  { title: "Easy", rating: 3 },
 ];
 
 const reviewShortcutRatingsByKey: Readonly<Record<string, ReviewRating>> = {
