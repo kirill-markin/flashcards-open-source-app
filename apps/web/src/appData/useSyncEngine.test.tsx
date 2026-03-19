@@ -13,6 +13,7 @@ import type {
   WorkspaceSummary,
 } from "../types";
 import { useSyncEngine } from "./useSyncEngine";
+import type { SessionVerificationState } from "./warmStart";
 
 const {
   applyHotSyncPageMock,
@@ -195,8 +196,10 @@ const bootstrapSettingsEntry: SyncBootstrapEntry = {
 };
 
 let latestSyncEngine: ReturnType<typeof useSyncEngine> | null = null;
+let currentSessionVerificationState: SessionVerificationState = "verified";
 
 function SyncEngineHarness(): ReactElement {
+  const [sessionVerificationState] = useState<SessionVerificationState>(currentSessionVerificationState);
   const [, setWorkspaceSettings] = useState<WorkspaceSchedulerSettings | null>(null);
   const [, setCloudSettings] = useState<CloudSettings | null>(null);
   const [, setLocalReadVersion] = useState<number>(0);
@@ -205,6 +208,7 @@ function SyncEngineHarness(): ReactElement {
 
   latestSyncEngine = useSyncEngine({
     sessionLoadState: "loading",
+    sessionVerificationState,
     session: sessionFixture,
     activeWorkspace: workspaceFixture,
     setWorkspaceSettings,
@@ -268,6 +272,7 @@ describe("useSyncEngine", () => {
     loadLastAppliedReviewSequenceIdMock.mockResolvedValue(0);
     loadWorkspaceSettingsMock.mockResolvedValue(null);
     pushSyncOperationsMock.mockResolvedValue({ operations: [] });
+    currentSessionVerificationState = "verified";
   });
 
   afterEach(() => {
@@ -432,5 +437,22 @@ describe("useSyncEngine", () => {
     expect(setHotStateHydratedMock).not.toHaveBeenCalled();
     expect(setLastAppliedReviewSequenceIdMock).not.toHaveBeenCalled();
     expect(setReviewHistoryHydratedMock).not.toHaveBeenCalled();
+  });
+
+  it("suppresses remote sync work while the warm-start session is still unverified", async () => {
+    currentSessionVerificationState = "unverified";
+
+    await act(async () => {
+      root.render(<SyncEngineHarness />);
+    });
+
+    await act(async () => {
+      await latestSyncEngine?.runSyncForWorkspace(workspaceFixture);
+    });
+
+    expect(bootstrapPullSyncStateMock).not.toHaveBeenCalled();
+    expect(pushSyncOperationsMock).not.toHaveBeenCalled();
+    expect(pullSyncChangesMock).not.toHaveBeenCalled();
+    expect(pullReviewHistorySyncMock).not.toHaveBeenCalled();
   });
 });

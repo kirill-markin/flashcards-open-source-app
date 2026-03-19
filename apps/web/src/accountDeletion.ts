@@ -1,5 +1,6 @@
 import { clearWebSyncCache } from "./localDb/cache";
 import { DEVICE_ID_MAP_STORAGE_KEY, LEGACY_DEVICE_ID_STORAGE_KEY } from "./clientIdentity";
+import { WARM_START_SNAPSHOT_STORAGE_KEY } from "./appData/warmStart";
 
 export const deleteAccountConfirmationText: string = "delete my account";
 
@@ -16,6 +17,7 @@ const APP_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   "flashcards-chat-open",
   "flashcards-chat-width",
   "flashcards-chat-model",
+  WARM_START_SNAPSHOT_STORAGE_KEY,
 ];
 
 type AccountDeletionListener = () => void;

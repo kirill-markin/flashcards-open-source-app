@@ -531,6 +531,11 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
+    if (appData.isSessionVerified === false) {
+      appData.setErrorMessage("Restoring session. Try again in a moment.");
+      return;
+    }
+
     const tapStartedAt = Date.now();
 
     const contentParts = buildContentParts(inputText, pendingAttachments);
@@ -681,6 +686,7 @@ export function ChatPanel(props: Props): ReactElement {
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
   const isDictationVisible = dictationState !== "idle";
   const isDraftInputBlocked = dictationState !== "idle";
+  const isChatActionLocked = appData.isSessionVerified === false;
   const microphoneAriaLabel = dictationState === "recording" ? "Stop dictation" : "Start dictation";
   const dictationStatusLabel = dictationState === "requesting_permission"
     ? "Waiting for microphone access..."
@@ -842,7 +848,7 @@ export function ChatPanel(props: Props): ReactElement {
               className={`chat-mic-btn${dictationState === "recording" ? " chat-mic-btn-recording" : ""}`}
               aria-label={microphoneAriaLabel}
               onClick={() => void handleMicrophoneClick()}
-              disabled={dictationState === "requesting_permission" || dictationState === "transcribing"}
+              disabled={isChatActionLocked || dictationState === "requesting_permission" || dictationState === "transcribing"}
             >
               {dictationState === "recording" ? (
                 <span className="chat-stop-btn-icon" aria-hidden="true" />
@@ -879,7 +885,7 @@ export function ChatPanel(props: Props): ReactElement {
                 className="chat-send-btn"
                 aria-label="Send message"
                 onClick={() => void sendMessage()}
-                disabled={dictationState !== "idle"}
+                disabled={isChatActionLocked || dictationState !== "idle"}
               >
                 Send
               </button>

@@ -1,18 +1,25 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { listAgentApiKeys, revokeAgentApiKey } from "../api";
+import { useAppData } from "../appData";
 import type { AgentApiKeyConnection } from "../types";
 import { SettingsShell } from "./SettingsShared";
 
 export function AgentConnectionsScreen(): ReactElement {
+  const { isSessionVerified } = useAppData();
   const [connections, setConnections] = useState<ReadonlyArray<AgentApiKeyConnection>>([]);
   const [instructions, setInstructions] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [busyConnectionId, setBusyConnectionId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(isSessionVerified);
 
   useEffect(() => {
+    if (isSessionVerified === false) {
+      setIsLoading(false);
+      return;
+    }
+
     void loadConnections();
-  }, []);
+  }, [isSessionVerified]);
 
   async function loadConnections(): Promise<void> {
     setIsLoading(true);
@@ -29,6 +36,10 @@ export function AgentConnectionsScreen(): ReactElement {
   }
 
   async function handleRevoke(connectionId: string): Promise<void> {
+    if (isSessionVerified === false) {
+      return;
+    }
+
     setBusyConnectionId(connectionId);
     try {
       const result = await revokeAgentApiKey(connectionId);
@@ -50,6 +61,7 @@ export function AgentConnectionsScreen(): ReactElement {
       subtitle="Review and revoke long-lived bot connections for this account."
       activeSection="account"
     >
+      {isSessionVerified === false ? <p className="subtitle">Restoring session...</p> : null}
       {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}
       {instructions !== "" ? <p className="subtitle">{instructions}</p> : null}
 
@@ -86,7 +98,7 @@ export function AgentConnectionsScreen(): ReactElement {
                 className="ghost-btn"
                 type="button"
                 onClick={() => void handleRevoke(connection.connectionId)}
-                disabled={connection.revokedAt !== null || busyConnectionId === connection.connectionId}
+                disabled={isSessionVerified === false || connection.revokedAt !== null || busyConnectionId === connection.connectionId}
               >
                 Revoke
               </button>

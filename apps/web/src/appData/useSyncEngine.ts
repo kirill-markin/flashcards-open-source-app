@@ -76,11 +76,13 @@ import {
   toReviewableCardState,
 } from "./domain";
 import type { SessionLoadState } from "./types";
+import type { SessionVerificationState } from "./warmStart";
 
 const syncPageSize = 200;
 
 type UseSyncEngineParams = Readonly<{
   sessionLoadState: SessionLoadState;
+  sessionVerificationState: SessionVerificationState;
   session: SessionInfo | null;
   activeWorkspace: WorkspaceSummary | null;
   setWorkspaceSettings: Dispatch<SetStateAction<WorkspaceSchedulerSettings | null>>;
@@ -153,6 +155,7 @@ function findLastWorkspaceSettingsEntry(
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const {
     sessionLoadState,
+    sessionVerificationState,
     session,
     activeWorkspace,
     setWorkspaceSettings,
@@ -205,7 +208,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const runSyncForWorkspace = useCallback(async function runSyncForWorkspace(
     workspace: WorkspaceSummary,
   ): Promise<void> {
-    if (session === null) {
+    // Local writes may happen during warm start, but remote sync stays paused
+    // until auth verification confirms which account owns this browser state.
+    if (session === null || sessionVerificationState !== "verified") {
       return;
     }
 
@@ -377,6 +382,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     refreshSyncIndicator,
     refreshWorkspaceView,
     session,
+    sessionVerificationState,
     setErrorMessage,
     setWorkspaceSettings,
   ]);
@@ -390,13 +396,13 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   }, [activeWorkspace, runSyncForWorkspace]);
 
   useEffect(() => {
-    if (sessionLoadState !== "ready" || session === null || activeWorkspace === null) {
+    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null || activeWorkspace === null) {
       return;
     }
 
     void refreshLocalMetadata(activeWorkspace.workspaceId);
     void runSyncForWorkspace(activeWorkspace);
-  }, [activeWorkspace, refreshLocalMetadata, runSyncForWorkspace, session, sessionLoadState]);
+  }, [activeWorkspace, refreshLocalMetadata, runSyncForWorkspace, session, sessionLoadState, sessionVerificationState]);
 
   const refreshLocalData = useCallback(async function refreshLocalData(): Promise<void> {
     if (activeWorkspace === null) {

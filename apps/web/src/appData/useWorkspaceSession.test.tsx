@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
 import type { SessionLoadState } from "./types";
 import { useWorkspaceSession } from "./useWorkspaceSession";
+import type { SessionVerificationState } from "./warmStart";
 
 const {
   clearAllLocalBrowserDataMock,
@@ -83,11 +84,18 @@ const workspaceFixture: WorkspaceSummary = {
   isSelected: true,
 };
 
+let initialSessionLoadState: SessionLoadState = "loading";
+let initialSessionVerificationState: SessionVerificationState = "verified";
+let initialSession: SessionInfo | null = null;
+let initialActiveWorkspace: WorkspaceSummary | null = null;
+let initialAvailableWorkspaces: ReadonlyArray<WorkspaceSummary> = [];
+
 function WorkspaceSessionHarness(): ReactElement {
-  const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>("loading");
-  const [session, setSession] = useState<SessionInfo | null>(null);
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(null);
-  const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>([]);
+  const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(initialSessionLoadState);
+  const [sessionVerificationState, setSessionVerificationState] = useState<SessionVerificationState>(initialSessionVerificationState);
+  const [session, setSession] = useState<SessionInfo | null>(initialSession);
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(initialActiveWorkspace);
+  const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>(initialAvailableWorkspaces);
   const [, setIsChoosingWorkspace] = useState<boolean>(false);
   const [, setSessionErrorMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -108,10 +116,12 @@ function WorkspaceSessionHarness(): ReactElement {
 
   useWorkspaceSession({
     sessionLoadState,
+    sessionVerificationState,
     session,
     activeWorkspace,
     availableWorkspaces,
     setSessionLoadState,
+    setSessionVerificationState,
     setSessionErrorMessage,
     setSession,
     setActiveWorkspace,
@@ -127,6 +137,7 @@ function WorkspaceSessionHarness(): ReactElement {
   return (
     <div
       data-state={sessionLoadState}
+      data-verification-state={sessionVerificationState}
       data-workspace-id={activeWorkspace?.workspaceId ?? ""}
       data-error-message={errorMessage}
     >
@@ -169,6 +180,11 @@ describe("useWorkspaceSession", () => {
     refreshWorkspaceViewMock.mockResolvedValue(undefined);
     revalidateSessionMock.mockResolvedValue(sessionFixture);
     runSyncForWorkspaceMock.mockResolvedValue(undefined);
+    initialSessionLoadState = "loading";
+    initialSessionVerificationState = "verified";
+    initialSession = null;
+    initialActiveWorkspace = null;
+    initialAvailableWorkspaces = [];
   });
 
   afterEach(() => {
@@ -281,5 +297,33 @@ describe("useWorkspaceSession", () => {
     });
 
     expect(clearAllLocalBrowserDataMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the optimistic warm-start shell visible while background auth verification runs", async () => {
+    let resolveSession: ((value: SessionInfo) => void) | null = null;
+    getSessionMock.mockImplementation(() => new Promise<SessionInfo>((resolve) => {
+      resolveSession = resolve;
+    }));
+    initialSessionLoadState = "ready";
+    initialSessionVerificationState = "unverified";
+    initialSession = sessionFixture;
+    initialActiveWorkspace = workspaceFixture;
+    initialAvailableWorkspaces = [workspaceFixture];
+
+    await act(async () => {
+      root.render(<WorkspaceSessionHarness />);
+    });
+
+    expect(container.firstElementChild?.getAttribute("data-state")).toBe("ready");
+    expect(container.firstElementChild?.getAttribute("data-verification-state")).toBe("unverified");
+    expect(container.firstElementChild?.getAttribute("data-workspace-id")).toBe("workspace-1");
+
+    await act(async () => {
+      resolveSession?.(sessionFixture);
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+
+    expect(container.firstElementChild?.getAttribute("data-state")).toBe("ready");
+    expect(container.firstElementChild?.getAttribute("data-verification-state")).toBe("verified");
   });
 });

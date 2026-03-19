@@ -204,6 +204,8 @@ function LegacyDeckEditRedirect(): ReactElement {
 export function AppShell(): ReactElement {
   const {
     sessionLoadState,
+    sessionVerificationState,
+    isSessionVerified,
     sessionErrorMessage,
     activeWorkspace,
     availableWorkspaces,
@@ -217,8 +219,13 @@ export function AppShell(): ReactElement {
   const [isAccountDeletionPendingState, setIsAccountDeletionPendingState] = useState<boolean>(isAccountDeletionPending);
   const [accountDeletionErrorMessage, setAccountDeletionErrorMessage] = useState<string>("");
   const [isAccountDeletionSubmitting, setIsAccountDeletionSubmitting] = useState<boolean>(false);
+  const sessionRestoringMessage = sessionVerificationState === "unverified" ? "Restoring session..." : "";
 
   const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
+    if (isSessionVerified === false) {
+      return;
+    }
+
     setIsAccountDeletionSubmitting(true);
     setAccountDeletionErrorMessage("");
 
@@ -241,17 +248,22 @@ export function AppShell(): ReactElement {
     } finally {
       setIsAccountDeletionSubmitting(false);
     }
-  }, []);
+  }, [isSessionVerified]);
 
   useEffect(() => subscribeToAccountDeletionPending(() => {
     setIsAccountDeletionPendingState(isAccountDeletionPending());
   }), []);
 
   useEffect(() => {
-    if (isAccountDeletionPendingState && !isAccountDeletionSubmitting && accountDeletionErrorMessage === "") {
+    if (
+      isSessionVerified
+      && isAccountDeletionPendingState
+      && !isAccountDeletionSubmitting
+      && accountDeletionErrorMessage === ""
+    ) {
       void completeAccountDeletion();
     }
-  }, [accountDeletionErrorMessage, completeAccountDeletion, isAccountDeletionPendingState, isAccountDeletionSubmitting]);
+  }, [accountDeletionErrorMessage, completeAccountDeletion, isAccountDeletionPendingState, isAccountDeletionSubmitting, isSessionVerified]);
 
   if (isAccountDeletionPendingState) {
     return (
@@ -259,7 +271,9 @@ export function AppShell(): ReactElement {
         <section className="panel panel-center state-panel">
           <h1 className="title">Deleting account</h1>
           <p className="subtitle">
-            Your account deletion is in progress. Do not close this page unless you plan to come back and retry.
+            {isSessionVerified
+              ? "Your account deletion is in progress. Do not close this page unless you plan to come back and retry."
+              : "Restoring session before account deletion..."}
           </p>
           {accountDeletionErrorMessage !== "" ? <p className="error-banner">{accountDeletionErrorMessage}</p> : null}
           <button
@@ -353,6 +367,7 @@ export function AppShell(): ReactElement {
                   <span className="brand-short">flashcards</span>
                 </a>
                 {isSyncing ? <span className="topbar-sync-status">Syncing...</span> : null}
+                {!isSyncing && sessionRestoringMessage !== "" ? <span className="topbar-sync-status">{sessionRestoringMessage}</span> : null}
               </div>
               <p className="topbar-workspace">{activeWorkspace?.name ?? "Workspace unavailable"}</p>
             </div>
@@ -374,7 +389,8 @@ export function AppShell(): ReactElement {
               <AccountMenu
                 workspaces={availableWorkspaces}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
-                isBusy={isChoosingWorkspace}
+                isBusy={isChoosingWorkspace || isSessionVerified === false}
+                lockedMessage={sessionRestoringMessage}
                 accountSettingsUrl={accountSettingsRoute}
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}

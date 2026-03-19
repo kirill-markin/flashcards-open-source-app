@@ -9,14 +9,20 @@ import { AgentConnectionsScreen } from "./AgentConnectionsScreen";
 const {
   listAgentApiKeysMock,
   revokeAgentApiKeyMock,
+  useAppDataMock,
 } = vi.hoisted(() => ({
   listAgentApiKeysMock: vi.fn(),
   revokeAgentApiKeyMock: vi.fn(),
+  useAppDataMock: vi.fn(),
 }));
 
 vi.mock("../api", () => ({
   listAgentApiKeys: listAgentApiKeysMock,
   revokeAgentApiKey: revokeAgentApiKeyMock,
+}));
+
+vi.mock("../appData", () => ({
+  useAppData: useAppDataMock,
 }));
 
 describe("AgentConnectionsScreen", () => {
@@ -27,6 +33,10 @@ describe("AgentConnectionsScreen", () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     listAgentApiKeysMock.mockReset();
     revokeAgentApiKeyMock.mockReset();
+    useAppDataMock.mockReset();
+    useAppDataMock.mockReturnValue({
+      isSessionVerified: true,
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -104,5 +114,22 @@ describe("AgentConnectionsScreen", () => {
     expect(revokeAgentApiKeyMock).toHaveBeenCalledWith("conn-1");
     expect(container.textContent).toContain("2026-03-10T13:30:00.000Z");
     expect(container.textContent).toContain("This bot connection has been revoked.");
+  });
+
+  it("waits for session verification before loading remote agent connections", async () => {
+    useAppDataMock.mockReturnValue({
+      isSessionVerified: false,
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <AgentConnectionsScreen />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("Restoring session...");
+    expect(listAgentApiKeysMock).not.toHaveBeenCalled();
   });
 });

@@ -12,11 +12,14 @@ import type {
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
 } from "../types";
+import type { SessionVerificationState } from "./warmStart";
 
 export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
 
 export type AppDataContextValue = Readonly<{
   sessionLoadState: SessionLoadState;
+  sessionVerificationState: SessionVerificationState;
+  isSessionVerified: boolean;
   sessionErrorMessage: string;
   session: SessionInfo | null;
   activeWorkspace: WorkspaceSummary | null;

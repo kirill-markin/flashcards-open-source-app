@@ -127,6 +127,8 @@ async function flushLazyRender(): Promise<void> {
 function createReadyAppData(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     sessionLoadState: "ready",
+    sessionVerificationState: "verified",
+    isSessionVerified: true,
     sessionErrorMessage: "",
     activeWorkspace: {
       workspaceId: "workspace-1",
@@ -237,6 +239,26 @@ describe("AppShell", () => {
     });
 
     expect(container.textContent).toContain("Syncing...");
+  });
+
+  it("shows the restoring indicator and locks account actions while the session is unverified", async () => {
+    useAppDataMock.mockReturnValue(createReadyAppData({
+      sessionVerificationState: "unverified",
+      isSessionVerified: false,
+    }));
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/review"]}>
+          <AppShell />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("Restoring session...");
+    const accountMenuButton = container.querySelector(".account-menu-button");
+    expect(accountMenuButton).toBeInstanceOf(HTMLButtonElement);
+    expect((accountMenuButton as HTMLButtonElement).disabled).toBe(true);
   });
 });
 

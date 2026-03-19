@@ -25,15 +25,18 @@ import {
   markSelectedWorkspaces,
 } from "./domain";
 import type { SessionLoadState } from "./types";
+import type { SessionVerificationState } from "./warmStart";
 
 const defaultWorkspaceName = "Personal";
 
 type UseWorkspaceSessionParams = Readonly<{
   sessionLoadState: SessionLoadState;
+  sessionVerificationState: SessionVerificationState;
   session: SessionInfo | null;
   activeWorkspace: WorkspaceSummary | null;
   availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
   setSessionLoadState: Dispatch<SetStateAction<SessionLoadState>>;
+  setSessionVerificationState: Dispatch<SetStateAction<SessionVerificationState>>;
   setSessionErrorMessage: Dispatch<SetStateAction<string>>;
   setSession: Dispatch<SetStateAction<SessionInfo | null>>;
   setActiveWorkspace: Dispatch<SetStateAction<WorkspaceSummary | null>>;
@@ -107,13 +110,19 @@ function consumeLoggedOutMarker(): boolean {
   return true;
 }
 
+function createRemoteActionLockedError(): Error {
+  return new Error("Restoring session. Try again in a moment.");
+}
+
 export function useWorkspaceSession(params: UseWorkspaceSessionParams): WorkspaceSession {
   const {
     sessionLoadState,
+    sessionVerificationState,
     session,
     activeWorkspace,
     availableWorkspaces,
     setSessionLoadState,
+    setSessionVerificationState,
     setSessionErrorMessage,
     setSession,
     setActiveWorkspace,
@@ -228,11 +237,24 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   }, [activateWorkspace, setActiveWorkspace, setAvailableWorkspaces, setSession, setSessionLoadState]);
 
   const initialize = useCallback(async function initialize(): Promise<void> {
-    setSessionLoadState("loading");
+    const shouldPreserveWarmStartState = sessionLoadState === "ready"
+      && sessionVerificationState === "unverified"
+      && session !== null
+      && activeWorkspace !== null
+      && availableWorkspaces.length > 0;
+
+    // Warm start intentionally keeps the last known shell visible while the
+    // browser revalidates auth in the background. If verification fails, this
+    // optimistic state is discarded by the mismatch or redirect handling below.
+    if (shouldPreserveWarmStartState === false) {
+      setSessionLoadState("loading");
+      setActiveWorkspace(null);
+      setAvailableWorkspaces([]);
+    }
+
+    setSessionVerificationState("unverified");
     setSessionErrorMessage("");
     setErrorMessage("");
-    setActiveWorkspace(null);
-    setAvailableWorkspaces([]);
 
     try {
       if (consumeLoggedOutMarker()) {
@@ -243,6 +265,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
         await clearAllLocalBrowserData();
         setSession(null);
         setSessionLoadState("deleted");
+        setSessionVerificationState("verified");
         setSessionErrorMessage("Your account has been deleted.");
         return;
       }
@@ -256,6 +279,10 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
         && persistedCloudSettings.linkedUserId !== null
         && persistedCloudSettings.linkedUserId !== currentSession.userId
       ) {
+        setSession(null);
+        setActiveWorkspace(null);
+        setAvailableWorkspaces([]);
+        setSessionLoadState("loading");
         await clearAllLocalBrowserData();
       }
 
@@ -263,6 +290,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       await putCloudSettings(linkingReadyCloudSettings);
       setCloudSettings(linkingReadyCloudSettings);
       await resolveInitialWorkspace(currentSession);
+      setSessionVerificationState("verified");
     } catch (error) {
       if (isAuthRedirectError(error)) {
         setSessionLoadState("redirecting");
@@ -275,6 +303,11 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     }
   }, [
     resolveInitialWorkspace,
+    session,
+    sessionLoadState,
+    sessionVerificationState,
+    activeWorkspace,
+    availableWorkspaces,
     setActiveWorkspace,
     setAvailableWorkspaces,
     setCloudSettings,
@@ -282,11 +315,16 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setSession,
     setSessionErrorMessage,
     setSessionLoadState,
+    setSessionVerificationState,
   ]);
 
   const chooseWorkspace = useCallback(async function chooseWorkspace(workspaceId: string): Promise<void> {
     if (session === null) {
       throw new Error("Session is unavailable");
+    }
+
+    if (sessionVerificationState !== "verified") {
+      throw createRemoteActionLockedError();
     }
 
     setIsChoosingWorkspace(true);
@@ -302,11 +340,15 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     } finally {
       setIsChoosingWorkspace(false);
     }
-  }, [activateWorkspace, availableWorkspaces, session, setErrorMessage, setIsChoosingWorkspace]);
+  }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, setErrorMessage, setIsChoosingWorkspace]);
 
   const createWorkspace = useCallback(async function createWorkspace(name: string): Promise<void> {
     if (session === null) {
       throw new Error("Session is unavailable");
+    }
+
+    if (sessionVerificationState !== "verified") {
+      throw createRemoteActionLockedError();
     }
 
     const trimmedName = name.trim();
@@ -330,7 +372,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     } finally {
       setIsChoosingWorkspace(false);
     }
-  }, [activateWorkspace, availableWorkspaces, session, setErrorMessage, setIsChoosingWorkspace]);
+  }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, setErrorMessage, setIsChoosingWorkspace]);
 
   const renameWorkspace = useCallback(async function renameWorkspace(
     workspaceId: string,
@@ -338,6 +380,10 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   ): Promise<void> {
     if (session === null) {
       throw new Error("Session is unavailable");
+    }
+
+    if (sessionVerificationState !== "verified") {
+      throw createRemoteActionLockedError();
     }
 
     const trimmedName = name.trim();
@@ -372,6 +418,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     activeWorkspace,
     availableWorkspaces,
     session,
+    sessionVerificationState,
     setActiveWorkspace,
     setAvailableWorkspaces,
     setErrorMessage,
@@ -384,6 +431,10 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   ): Promise<void> {
     if (session === null) {
       throw new Error("Session is unavailable");
+    }
+
+    if (sessionVerificationState !== "verified") {
+      throw createRemoteActionLockedError();
     }
 
     setIsChoosingWorkspace(true);
@@ -406,7 +457,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     } finally {
       setIsChoosingWorkspace(false);
     }
-  }, [activateWorkspace, availableWorkspaces, session, setErrorMessage, setIsChoosingWorkspace]);
+  }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, setErrorMessage, setIsChoosingWorkspace]);
 
   const initializeRef = useRef(initialize);
 
@@ -419,7 +470,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   }, []);
 
   const revalidateActiveSession = useCallback(async function revalidateActiveSession(): Promise<boolean> {
-    if (sessionLoadState !== "ready") {
+    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified") {
       return false;
     }
 
@@ -437,10 +488,10 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       setErrorMessage(getErrorMessage(error));
       throw error;
     }
-  }, [sessionLoadState, setErrorMessage, setSession, setSessionErrorMessage]);
+  }, [sessionLoadState, sessionVerificationState, setErrorMessage, setSession, setSessionErrorMessage]);
 
   useEffect(() => {
-    if (sessionLoadState !== "ready" || session === null) {
+    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null) {
       return;
     }
 
@@ -476,7 +527,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [revalidateActiveSession, runSync, session, sessionLoadState]);
+  }, [revalidateActiveSession, runSync, session, sessionLoadState, sessionVerificationState]);
 
   return {
     initialize,
