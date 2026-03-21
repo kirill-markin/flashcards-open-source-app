@@ -38,15 +38,16 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
     const anthropicApiKeySecretArn = getOptionalContextValue(this, "anthropicApiKeySecretArn");
     const guestAiWeightedMonthlyTokenCap = getOptionalContextValue(this, "guestAiWeightedMonthlyTokenCap");
-    const sesSenderEmail = getOptionalContextValue(this, "sesSenderEmail");
+    const resendApiKeySecretArn = getOptionalContextValue(this, "resendApiKeySecretArn");
+    const resendSenderEmail = getOptionalContextValue(this, "resendSenderEmail");
 
     const net = networking(this);
     const dbResult = database(this, { vpc: net.vpc, dbSg: net.dbSg });
     const preSignUpFn = preSignUp(this);
     const authResult = auth(this, {
-      baseDomain,
       preSignUpFn,
-      sesSenderEmail,
+      resendApiKeySecretArn,
+      resendSenderEmail,
     });
     const authApi = authGateway(this, {
       vpc: net.vpc,
@@ -108,7 +109,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
 
     outputs(this, {
       baseDomain,
-      authConfigurationSetName: authResult.configurationSetName,
       db: dbResult.db,
       dbOwnerSecret: dbResult.dbOwnerSecret,
       backendDbSecret: dbResult.backendDbSecret,

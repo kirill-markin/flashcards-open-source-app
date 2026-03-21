@@ -78,7 +78,8 @@ WEB_CERT_ARN=$(read_context webCertificateArnUsEast1)
 OPENAI_SECRET_ARN=$(read_context openAiApiKeySecretArn)
 ANTHROPIC_SECRET_ARN=$(read_context anthropicApiKeySecretArn)
 GUEST_AI_QUOTA_CAP=$(read_context guestAiWeightedMonthlyTokenCap)
-SES_SENDER_EMAIL=$(read_context sesSenderEmail)
+RESEND_SECRET_ARN=$(read_context resendApiKeySecretArn)
+RESEND_SENDER_EMAIL=$(read_context resendSenderEmail)
 DEPLOY_ROLE_ARN=$(get_output GithubDeployRoleArn)
 
 if [[ -z "$REGION" || -z "$DOMAIN_NAME" || -z "$ALERT_EMAIL" || -z "$GITHUB_REPO" ]]; then
@@ -95,7 +96,9 @@ gh variable set AWS_REGION --body "$REGION" --repo "$REPO"
 gh variable set CDK_DOMAIN_NAME --body "$DOMAIN_NAME" --repo "$REPO"
 gh variable set CDK_ALERT_EMAIL --body "$ALERT_EMAIL" --repo "$REPO"
 gh variable set CDK_GITHUB_REPO --body "$GITHUB_REPO" --repo "$REPO"
-set_or_delete_variable CDK_SES_SENDER_EMAIL "$SES_SENDER_EMAIL"
+set_or_delete_variable CDK_SES_SENDER_EMAIL ""
+set_or_delete_variable CDK_RESEND_API_KEY_SECRET_ARN "$RESEND_SECRET_ARN"
+set_or_delete_variable CDK_RESEND_SENDER_EMAIL "$RESEND_SENDER_EMAIL"
 set_or_delete_variable CDK_OPENAI_API_KEY_SECRET_ARN "$OPENAI_SECRET_ARN"
 set_or_delete_variable CDK_ANTHROPIC_API_KEY_SECRET_ARN "$ANTHROPIC_SECRET_ARN"
 set_or_delete_variable CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
