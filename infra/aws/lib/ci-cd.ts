@@ -9,7 +9,9 @@ export interface CiCdProps {
   stackId: string;
   githubRepo: string;
   githubOidcProviderArn: string | undefined;
+  authFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
+  userPoolArn: string;
   webBucket: s3.IBucket;
   webDistribution: cloudfront.Distribution;
 }
@@ -53,6 +55,19 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
             sid: "InvokeMigrationLambda",
             actions: ["lambda:InvokeFunction"],
             resources: [props.migrationFn.functionArn],
+          }),
+          new iam.PolicyStatement({
+            sid: "ReadAuthLambdaConfiguration",
+            actions: ["lambda:GetFunctionConfiguration"],
+            resources: [props.authFn.functionArn],
+          }),
+          new iam.PolicyStatement({
+            sid: "ReadCognitoDemoUserState",
+            actions: [
+              "cognito-idp:DescribeUserPool",
+              "cognito-idp:ListUsers",
+            ],
+            resources: [props.userPoolArn],
           }),
           new iam.PolicyStatement({
             sid: "DeployWebAssets",

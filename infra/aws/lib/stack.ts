@@ -97,7 +97,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       stackId: this.stackId,
       githubRepo,
       githubOidcProviderArn,
+      authFn: authApi.authFn,
       migrationFn,
+      userPoolArn: authResult.userPool.userPoolArn,
       webBucket: web.bucket,
       webDistribution: web.distribution,
     });
