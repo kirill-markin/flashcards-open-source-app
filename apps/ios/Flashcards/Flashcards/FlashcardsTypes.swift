@@ -36,6 +36,8 @@ enum AIChatPresentationRequest: Hashable, Sendable {
 }
 
 enum SettingsNavigationDestination: Hashable, Sendable {
+    case currentWorkspace
+    case device
     case access
     case workspace
     case workspaceOverview
@@ -43,7 +45,6 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case workspaceExport
     case workspaceDecks
     case workspaceTags
-    case workspaceDevice
     case account
     case accountStatus
     case accountLegalSupport

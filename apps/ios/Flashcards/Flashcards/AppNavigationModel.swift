@@ -3,6 +3,10 @@ import Observation
 
 func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
     switch destination {
+    case .currentWorkspace:
+        return [.currentWorkspace]
+    case .device:
+        return [.device]
     case .access:
         return [.access]
     case .workspace:
@@ -17,8 +21,6 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.workspace, .workspaceDecks]
     case .workspaceTags:
         return [.workspace, .workspaceTags]
-    case .workspaceDevice:
-        return [.workspace, .workspaceDevice]
     case .account:
         return [.account]
     case .accountStatus:

@@ -11,7 +11,7 @@ struct AccountSettingsView: View {
                 }
             }
 
-            Section("Account Settings") {
+            Section {
                 NavigationLink(value: SettingsNavigationDestination.accountStatus) {
                     SettingsNavigationRow(
                         title: "Account Status",
@@ -19,7 +19,9 @@ struct AccountSettingsView: View {
                         systemImage: "person.crop.circle"
                     )
                 }
+            }
 
+            Section("Support") {
                 NavigationLink(value: SettingsNavigationDestination.accountLegalSupport) {
                     SettingsNavigationRow(
                         title: "Legal & Support",
@@ -35,7 +37,9 @@ struct AccountSettingsView: View {
                         systemImage: "chevron.left.forwardslash.chevron.right"
                     )
                 }
+            }
 
+            Section {
                 NavigationLink(value: SettingsNavigationDestination.accountAdvanced) {
                     SettingsNavigationRow(
                         title: "Advanced",
@@ -43,7 +47,9 @@ struct AccountSettingsView: View {
                         systemImage: "gearshape.2"
                     )
                 }
+            }
 
+            Section("Connections") {
                 NavigationLink(value: SettingsNavigationDestination.accountAgentConnections) {
                     SettingsNavigationRow(
                         title: "Agent Connections",
@@ -51,7 +57,9 @@ struct AccountSettingsView: View {
                         systemImage: "link"
                     )
                 }
+            }
 
+            Section {
                 NavigationLink(value: SettingsNavigationDestination.accountDangerZone) {
                     SettingsNavigationRow(
                         title: "Danger Zone",

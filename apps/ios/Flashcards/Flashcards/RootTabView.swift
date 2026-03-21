@@ -36,6 +36,10 @@ struct RootTabView: View {
                 SettingsView()
                     .navigationDestination(for: SettingsNavigationDestination.self) { destination in
                         switch destination {
+                        case .currentWorkspace:
+                            CurrentWorkspaceView()
+                        case .device:
+                            ThisDeviceSettingsView()
                         case .access:
                             AccessSettingsView()
                         case .workspace:
@@ -50,8 +54,6 @@ struct RootTabView: View {
                             DecksScreen()
                         case .workspaceTags:
                             TagsScreen()
-                        case .workspaceDevice:
-                            ThisDeviceSettingsView()
                         case .account:
                             AccountSettingsView()
                         case .accountStatus:

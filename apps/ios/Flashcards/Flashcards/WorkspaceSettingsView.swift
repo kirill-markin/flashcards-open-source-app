@@ -13,6 +13,16 @@ struct WorkspaceSettingsView: View {
                 }
             }
 
+            Section {
+                NavigationLink(value: SettingsNavigationDestination.workspaceOverview) {
+                    SettingsNavigationRow(
+                        title: "Overview",
+                        value: store.workspace?.name ?? "Unavailable",
+                        systemImage: "square.text.square"
+                    )
+                }
+            }
+
             Section("Workspace Data") {
                 NavigationLink(value: SettingsNavigationDestination.workspaceDecks) {
                     SettingsNavigationRow(
@@ -32,14 +42,6 @@ struct WorkspaceSettingsView: View {
             }
 
             Section("Settings") {
-                NavigationLink(value: SettingsNavigationDestination.workspaceOverview) {
-                    SettingsNavigationRow(
-                        title: "Overview",
-                        value: store.workspace?.name ?? "Unavailable",
-                        systemImage: "square.text.square"
-                    )
-                }
-
                 NavigationLink(value: SettingsNavigationDestination.workspaceScheduler) {
                     SettingsNavigationRow(
                         title: "Scheduler",
@@ -53,16 +55,6 @@ struct WorkspaceSettingsView: View {
                         title: "Export",
                         value: "CSV",
                         systemImage: "square.and.arrow.up"
-                    )
-                }
-            }
-
-            Section("Device") {
-                NavigationLink(value: SettingsNavigationDestination.workspaceDevice) {
-                    SettingsNavigationRow(
-                        title: "This Device",
-                        value: "SwiftUI + SQLite",
-                        systemImage: "internaldrive"
                     )
                 }
             }
