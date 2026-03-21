@@ -9,7 +9,6 @@ import { Construct } from "constructs";
 
 export interface OutputsProps {
   baseDomain: string;
-  authConfigurationSetName: string | undefined;
   db: rds.DatabaseInstance;
   dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
@@ -109,13 +108,6 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     value: props.userPoolClientId,
     description: "Cognito App Client ID",
   });
-
-  if (props.authConfigurationSetName !== undefined) {
-    new cdk.CfnOutput(scope, "SesAuthConfigurationSetName", {
-      value: props.authConfigurationSetName,
-      description: "SES configuration set used for Cognito OTP email delivery",
-    });
-  }
 
   new cdk.CfnOutput(scope, "WebBucketName", {
     value: props.webBucket.bucketName,

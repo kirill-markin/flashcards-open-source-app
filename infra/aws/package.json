@@ -8,7 +8,8 @@
     "deploy": "cdk deploy --all",
     "destroy": "cdk destroy --all",
     "diff": "cdk diff",
-    "synth": "cdk synth"
+    "synth": "cdk synth",
+    "test": "npm run build && node --test dist/lambda/**/*.test.js"
   },
   "dependencies": {
     "@aws-crypto/client-node": "^4.2.2",
