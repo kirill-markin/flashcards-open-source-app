@@ -181,7 +181,7 @@ extension AIChatView {
             VStack(alignment: .leading, spacing: 12) {
                 Text(message)
                 Button(buttonTitle) {
-                    self.navigation.openSettings(destination: .account)
+                    self.navigation.openSettings(destination: .accountStatus)
                 }
                 .buttonStyle(.glassProminent)
             }

@@ -558,7 +558,15 @@ final class AIChatStore {
             } catch let recorderError as AIChatVoiceRecorderError {
                 self.handleFinishDictationError(recorderError)
             } catch let transcriptionError as AIChatTranscriptionError {
-                self.showGeneralError(message: Flashcards.errorMessage(error: transcriptionError))
+                switch transcriptionError {
+                case .guestLimitReached:
+                    await self.appendStandaloneAssistantAccountUpgradePromptAndPersist(
+                        message: aiChatGuestQuotaReachedMessage,
+                        buttonTitle: aiChatGuestQuotaButtonTitle
+                    )
+                default:
+                    self.showGeneralError(message: Flashcards.errorMessage(error: transcriptionError))
+                }
             } catch {
                 self.showGeneralError(message: Flashcards.errorMessage(error: error))
             }
@@ -749,6 +757,22 @@ final class AIChatStore {
                 isError: false
             )
         )
+    }
+
+    private func appendStandaloneAssistantAccountUpgradePromptAndPersist(
+        message: String,
+        buttonTitle: String
+    ) async {
+        self.messages.append(
+            AIChatMessage(
+                id: UUID().uuidString.lowercased(),
+                role: .assistant,
+                content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
+                timestamp: nowIsoTimestamp(),
+                isError: false
+            )
+        )
+        await self.historyStore.saveState(state: self.currentPersistedState())
     }
 
     private func clearOptimisticAssistantStatusIfNeeded() {

@@ -6,7 +6,7 @@ let aiChatOptimisticAssistantStatusText: String = "Looking through your cards...
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
 let aiChatExternalProviderConsentRequiredMessage: String = "Review AI data use and accept it on this device before using AI features."
 let aiChatAccuracyWarningText: String = "AI responses can be inaccurate or incomplete. Review important results before relying on them."
-let aiChatGuestQuotaReachedMessage: String = "Your free monthly AI limit is used up on this device. Create an account to keep using AI."
+let aiChatGuestQuotaReachedMessage: String = "Your free guest AI limit for this month is used up. Create an account or log in to keep using AI."
 let aiChatGuestQuotaButtonTitle: String = "Create account or Log in"
 let aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
 let aiChatSupportedFileExtensions: Set<String> = [
@@ -59,6 +59,10 @@ func aiChatAccessState(
     }
 
     return .ready
+}
+
+func isGuestAiLimitCode(_ code: String?) -> Bool {
+    code == "GUEST_AI_LIMIT_REACHED"
 }
 
 func aiChatAppVersion() -> String {

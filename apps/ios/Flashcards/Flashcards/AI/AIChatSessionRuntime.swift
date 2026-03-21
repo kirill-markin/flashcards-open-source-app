@@ -498,11 +498,15 @@ private func isGuestAiLimitError(error: Error) -> Bool {
     guard let serviceError = error as? AIChatServiceError else {
         return false
     }
-    guard case .backendError(let backendError, _) = serviceError else {
+
+    switch serviceError {
+    case .backendError(let backendError, _):
+        return isGuestAiLimitCode(backendError.code)
+    case .invalidResponse(let errorDetails, _, _):
+        return isGuestAiLimitCode(errorDetails.code)
+    default:
         return false
     }
-
-    return backendError.code == "GUEST_AI_LIMIT_REACHED"
 }
 
 private func isOptimisticAssistantStatus(content: [AIChatContentPart]) -> Bool {
