@@ -204,6 +204,42 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    func testSyncCloudIfLinkedRestoresGuestSessionFromDisconnectedStateAfterReinstall() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let storedGuestSession = FlashcardsStoreTestSupport.makeStoredGuestCloudSession(
+            userId: "guest-user-reinstall",
+            workspaceId: "guest-workspace-reinstall",
+            guestToken: "guest-token-reinstall"
+        )
+
+        try context.guestCredentialStore.saveGuestSession(session: storedGuestSession)
+        try context.store.reload()
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
+        XCTAssertEqual(
+            context.cloudSyncService.runLinkedSyncSessions,
+            [
+                FlashcardsStoreTestSupport.makeGuestSession(
+                    userId: storedGuestSession.userId,
+                    workspaceId: storedGuestSession.workspaceId,
+                    guestToken: storedGuestSession.guestToken
+                )
+            ]
+        )
+        XCTAssertEqual(context.store.cloudSettings?.cloudState, .guest)
+        XCTAssertEqual(context.store.cloudSettings?.linkedUserId, storedGuestSession.userId)
+        XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, storedGuestSession.workspaceId)
+        XCTAssertTrue(try XCTUnwrap(context.store.cloudRuntime.activeCloudSession()).authorization.isGuest)
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
     func testSyncCloudIfLinkedRestoresStoredGuestSessionWithoutStoredCloudCredentials() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -241,6 +277,122 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         )
         XCTAssertTrue(try XCTUnwrap(context.store.cloudRuntime.activeCloudSession()).authorization.isGuest)
         XCTAssertEqual(context.store.cloudSettings?.cloudState, .guest)
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
+    func testSyncCloudIfLinkedClearsOrphanedStoredCredentialsFromDisconnectedState() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+
+        try context.credentialStore.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        try context.store.reload()
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
+        XCTAssertEqual(context.store.cloudSettings?.cloudState, .disconnected)
+        XCTAssertNil(try context.credentialStore.loadCredentials())
+        XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
+    func testSyncCloudIfLinkedClearsAmbiguousStoredCredentialsAndGuestSessionFromDisconnectedState() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let storedGuestSession = FlashcardsStoreTestSupport.makeStoredGuestCloudSession(
+            userId: "guest-user-ambiguous",
+            workspaceId: "guest-workspace-ambiguous",
+            guestToken: "guest-token-ambiguous"
+        )
+
+        try context.credentialStore.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        try context.guestCredentialStore.saveGuestSession(session: storedGuestSession)
+        try context.store.reload()
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
+        XCTAssertEqual(context.store.cloudSettings?.cloudState, .disconnected)
+        XCTAssertNil(try context.credentialStore.loadCredentials())
+        XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
+    func testSyncCloudIfLinkedResetsGuestStateWhenStoredGuestSessionIsMissing() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let originalDeviceId = try testCloudSettings(database: context.database).deviceId
+
+        try context.database.updateCloudSettings(
+            cloudState: .guest,
+            linkedUserId: "guest-user-missing",
+            linkedWorkspaceId: "guest-workspace-missing",
+            activeWorkspaceId: "guest-workspace-missing",
+            linkedEmail: nil
+        )
+        try context.store.reload()
+
+        await context.store.syncCloudIfLinked()
+
+        let resetCloudSettings = try testCloudSettings(database: context.database)
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
+        XCTAssertEqual(resetCloudSettings.cloudState, .disconnected)
+        XCTAssertNil(resetCloudSettings.linkedUserId)
+        XCTAssertNotEqual(resetCloudSettings.deviceId, originalDeviceId)
+        XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
+    func testSyncCloudIfLinkedResetsLinkedStateWhenStoredCredentialsAreMissing() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+        let originalDeviceId = try testCloudSettings(database: context.database).deviceId
+
+        try FlashcardsStoreTestSupport.linkDatabaseWorkspace(database: context.database, workspaceId: workspaceId)
+        try context.store.reload()
+
+        await context.store.syncCloudIfLinked()
+
+        let resetCloudSettings = try testCloudSettings(database: context.database)
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
+        XCTAssertEqual(resetCloudSettings.cloudState, .disconnected)
+        XCTAssertNil(resetCloudSettings.linkedUserId)
+        XCTAssertNotEqual(resetCloudSettings.deviceId, originalDeviceId)
+        XCTAssertNil(try context.credentialStore.loadCredentials())
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
+    func testSyncCloudIfLinkedNoOpOnFreshInstallWithoutPersistedSecureState() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
+        XCTAssertEqual(context.store.cloudSettings?.cloudState, .disconnected)
+        XCTAssertNil(try context.credentialStore.loadCredentials())
+        XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
         XCTAssertEqual(context.store.syncStatus, .idle)
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
