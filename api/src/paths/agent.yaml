@@ -19,6 +19,7 @@ get:
               service:
                 name: flashcards-open-source-app
                 version: v1
+                description: Offline-first flashcards service with user-owned workspaces and a compact SQL agent surface.
               authentication:
                 type: email_otp_then_api_key
                 sendCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/send-code
@@ -26,19 +27,35 @@ get:
               capabilitiesAfterLogin:
                 - Load account context
                 - Select a workspace
-                - Run SQL reads and writes
-                - Inspect the published SQL surface
+                - Inspect the published SQL surface through OpenAPI and SQL introspection
+                - Read and write cards and decks through /agent/sql
+              authBaseUrl: https://auth.flashcards-open-source-app.com
+              apiBaseUrl: https://api.flashcards-open-source-app.com/v1
               surface:
                 accountUrl: https://api.flashcards-open-source-app.com/v1/agent/me
                 workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
                 sqlUrl: https://api.flashcards-open-source-app.com/v1/agent/sql
             instructions: >-
-              Start with email OTP authentication. First call POST
-              /api/agent/send-code with the user's email. Then call POST
-              /api/agent/verify-code with the email and code to obtain a
-              long-lived API key. After login, call GET /v1/agent/me, then GET
-              /v1/agent/workspaces?limit=100. If no workspace is selected,
-              select one before using POST /v1/agent/sql. Use docs.openapiUrl
-              for the full contract.
+              Start with POST
+              https://auth.flashcards-open-source-app.com/api/agent/send-code
+              using the user's email, then POST
+              https://auth.flashcards-open-source-app.com/api/agent/verify-code
+              to obtain an API key. After login, call GET
+              https://api.flashcards-open-source-app.com/v1/agent/me, then GET
+              https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100.
+              If no workspace is selected for this API key, call POST
+              https://api.flashcards-open-source-app.com/v1/agent/workspaces/{workspaceId}/select
+              or create one with POST
+              https://api.flashcards-open-source-app.com/v1/agent/workspaces
+              using {"name":"Personal"}. After workspace bootstrap, use POST
+              https://api.flashcards-open-source-app.com/v1/agent/sql for all
+              shared card and deck reads and writes. SELECT returns at most 100
+              rows per statement, and INSERT, UPDATE, and DELETE may affect at
+              most 100 rows per statement. If you need more than 100 writes,
+              split the work into multiple batches of at most 100 records
+              across separate SQL statements or separate tool calls. Use
+              https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              for the full contract. The SQL surface is intentionally limited
+              and is not full PostgreSQL.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
