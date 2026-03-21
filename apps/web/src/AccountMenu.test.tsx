@@ -2,9 +2,12 @@
 
 import { act } from "react";
 import ReactDOM from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { AccountMenu } from "./AccountMenu";
 import type { WorkspaceSummary } from "./types";
+
+type SelectWorkspaceHandler = (workspaceId: string) => Promise<void>;
+type CreateWorkspaceHandler = (name: string) => Promise<void>;
 
 function createWorkspaceSummary(overrides: Partial<WorkspaceSummary>): WorkspaceSummary {
   return {
@@ -19,16 +22,16 @@ function createWorkspaceSummary(overrides: Partial<WorkspaceSummary>): Workspace
 describe("AccountMenu", () => {
   let container: HTMLDivElement;
   let root: ReactDOM.Root;
-  let onSelectWorkspace: ReturnType<typeof vi.fn>;
-  let onCreateWorkspace: ReturnType<typeof vi.fn>;
+  let onSelectWorkspace: Mock<SelectWorkspaceHandler>;
+  let onCreateWorkspace: Mock<CreateWorkspaceHandler>;
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
-    onSelectWorkspace = vi.fn(async () => undefined);
-    onCreateWorkspace = vi.fn(async () => undefined);
+    onSelectWorkspace = vi.fn<SelectWorkspaceHandler>(async (_workspaceId: string): Promise<void> => undefined);
+    onCreateWorkspace = vi.fn<CreateWorkspaceHandler>(async (_name: string): Promise<void> => undefined);
   });
 
   afterEach(() => {
