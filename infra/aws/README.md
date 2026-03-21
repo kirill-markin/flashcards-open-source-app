@@ -23,7 +23,7 @@ Deploy-time config is split across three places:
 - AWS Secrets Manager is the source of truth for deployed runtime secrets.
 - GitHub repository variables are the source of truth for non-secret deploy config used by CI/CD.
 
-`infra/aws/cdk.context.local.json` is not a hand-maintained config file. Local scripts generate it right before invoking CDK, and GitHub Actions generates its own copy inside the workflow job.
+Local CDK commands assemble `infra/aws/cdk.context.local.json` immediately before invoking CDK, and GitHub Actions assembles the same context inside the workflow job.
 
 ## Local operator config
 
@@ -65,7 +65,7 @@ That flow:
 - optionally configures Cloudflare DNS
 - syncs deploy config into GitHub Actions variables
 
-You can still run CDK manually from `infra/aws`, but local scripts are the supported path because they generate the transient context file for you.
+You can still run CDK manually from `infra/aws`; the local helper scripts assemble the CDK context file before the CDK step.
 
 ## Secret setup helpers
 
@@ -94,7 +94,7 @@ This script:
 - writes only `AWS_DEPLOY_ROLE_ARN` as a GitHub secret
 - deletes old GitHub secrets that are no longer used for demo auth or certificate ARNs
 
-The deploy workflow then generates its own transient `cdk.context.local.json` from those GitHub variables inside CI.
+The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.
 
 ## Review/demo accounts
 
