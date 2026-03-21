@@ -35,9 +35,9 @@ Open-source offline-first flashcards app for iOS and web.
 
 ## Review Demo Accounts
 
-The optional `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` auth settings only enable insecure instant sign-in for listed review/demo emails in the `example.com` domain. They do not create Cognito users automatically.
+The optional `DEMO_EMAIL_DOSTIP` auth setting only enables insecure instant sign-in for listed review/demo emails in the `example.com` domain. For deployed auth, keep the allowlist as normal deploy config and keep the shared demo password in AWS Secrets Manager.
 
-If review/demo access is enabled, create the matching `@example.com` Cognito users manually and keep their emails and shared password aligned with the deployed `DEMO_*` environment values. We intentionally do this by hand instead of adding an automated provisioning script for these insecure review-only accounts.
+If review/demo access is enabled, create the matching `@example.com` Cognito users manually and keep their emails and shared password aligned with the deployed allowlist and demo password secret. The intended setup flow is: set `demoEmailDostip` in `infra/aws/cdk.context.local.json`, export `DEMO_PASSWORD_DOSTIP=...`, then run `bash scripts/setup-auth-secrets.sh`, then `bash scripts/setup-github.sh`. We intentionally keep Cognito user creation manual instead of adding an automated provisioning script for these insecure review-only accounts.
 
 ## License
 

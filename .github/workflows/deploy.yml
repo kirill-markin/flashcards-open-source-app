@@ -75,9 +75,6 @@ jobs:
 
       - name: CDK deploy
         working-directory: infra/aws
-        env:
-          DEMO_EMAIL_DOSTIP: ${{ secrets.DEMO_EMAIL_DOSTIP }}
-          DEMO_PASSWORD_DOSTIP: ${{ secrets.DEMO_PASSWORD_DOSTIP }}
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           cat > cdk.context.local.json <<CTXEOF
@@ -91,6 +88,8 @@ jobs:
             "resendSenderEmail": "${{ vars.CDK_RESEND_SENDER_EMAIL }}",
             "openAiApiKeySecretArn": "${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}",
             "anthropicApiKeySecretArn": "${{ vars.CDK_ANTHROPIC_API_KEY_SECRET_ARN }}",
+            "demoEmailDostip": "${{ vars.CDK_DEMO_EMAIL_DOSTIP }}",
+            "demoPasswordSecretArn": "${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}",
             "guestAiWeightedMonthlyTokenCap": "${{ vars.CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP }}",
             "githubOidcProviderArn": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com",
             "alertEmail": "${{ vars.CDK_ALERT_EMAIL }}",

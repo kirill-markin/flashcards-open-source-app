@@ -10,6 +10,7 @@ export interface CiCdProps {
   githubRepo: string;
   githubOidcProviderArn: string | undefined;
   authFn: lambda.IFunction;
+  demoPasswordSecretArn: string | undefined;
   migrationFn: lambda.IFunction;
   userPoolArn: string;
   webBucket: s3.IBucket;
@@ -28,6 +29,67 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       props.githubOidcProviderArn,
     );
 
+  const cdkDeployStatements: iam.PolicyStatement[] = [
+    new iam.PolicyStatement({
+      sid: "AssumeCdkRoles",
+      actions: ["sts:AssumeRole"],
+      resources: [`arn:aws:iam::${cdk.Aws.ACCOUNT_ID}:role/cdk-*`],
+    }),
+    new iam.PolicyStatement({
+      sid: "ReadStackOutputs",
+      actions: ["cloudformation:DescribeStacks"],
+      resources: [props.stackId],
+    }),
+    new iam.PolicyStatement({
+      sid: "InvokeMigrationLambda",
+      actions: ["lambda:InvokeFunction"],
+      resources: [props.migrationFn.functionArn],
+    }),
+    new iam.PolicyStatement({
+      sid: "ReadAuthLambdaConfiguration",
+      actions: ["lambda:GetFunctionConfiguration"],
+      resources: [props.authFn.functionArn],
+    }),
+    new iam.PolicyStatement({
+      sid: "ReadCognitoDemoUserState",
+      actions: [
+        "cognito-idp:DescribeUserPool",
+        "cognito-idp:ListUsers",
+      ],
+      resources: [props.userPoolArn],
+    }),
+    new iam.PolicyStatement({
+      sid: "DeployWebAssets",
+      actions: [
+        "s3:GetBucketLocation",
+        "s3:ListBucket",
+      ],
+      resources: [props.webBucket.bucketArn],
+    }),
+    new iam.PolicyStatement({
+      sid: "DeployWebObjects",
+      actions: [
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:PutObject",
+      ],
+      resources: [`${props.webBucket.bucketArn}/*`],
+    }),
+    new iam.PolicyStatement({
+      sid: "InvalidateWebDistribution",
+      actions: ["cloudfront:CreateInvalidation"],
+      resources: [props.webDistribution.distributionArn],
+    }),
+  ];
+
+  if (props.demoPasswordSecretArn !== undefined) {
+    cdkDeployStatements.push(new iam.PolicyStatement({
+      sid: "ReadDemoPasswordSecret",
+      actions: ["secretsmanager:GetSecretValue"],
+      resources: [props.demoPasswordSecretArn],
+    }));
+  }
+
   const deployRole = new iam.Role(scope, "GithubActionsRole", {
     roleName: "flashcards-open-source-app-github-deploy",
     assumedBy: new iam.WebIdentityPrincipal(oidcProvider.openIdConnectProviderArn, {
@@ -40,58 +102,7 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
     }),
     inlinePolicies: {
       CdkDeploy: new iam.PolicyDocument({
-        statements: [
-          new iam.PolicyStatement({
-            sid: "AssumeCdkRoles",
-            actions: ["sts:AssumeRole"],
-            resources: [`arn:aws:iam::${cdk.Aws.ACCOUNT_ID}:role/cdk-*`],
-          }),
-          new iam.PolicyStatement({
-            sid: "ReadStackOutputs",
-            actions: ["cloudformation:DescribeStacks"],
-            resources: [props.stackId],
-          }),
-          new iam.PolicyStatement({
-            sid: "InvokeMigrationLambda",
-            actions: ["lambda:InvokeFunction"],
-            resources: [props.migrationFn.functionArn],
-          }),
-          new iam.PolicyStatement({
-            sid: "ReadAuthLambdaConfiguration",
-            actions: ["lambda:GetFunctionConfiguration"],
-            resources: [props.authFn.functionArn],
-          }),
-          new iam.PolicyStatement({
-            sid: "ReadCognitoDemoUserState",
-            actions: [
-              "cognito-idp:DescribeUserPool",
-              "cognito-idp:ListUsers",
-            ],
-            resources: [props.userPoolArn],
-          }),
-          new iam.PolicyStatement({
-            sid: "DeployWebAssets",
-            actions: [
-              "s3:GetBucketLocation",
-              "s3:ListBucket",
-            ],
-            resources: [props.webBucket.bucketArn],
-          }),
-          new iam.PolicyStatement({
-            sid: "DeployWebObjects",
-            actions: [
-              "s3:DeleteObject",
-              "s3:GetObject",
-              "s3:PutObject",
-            ],
-            resources: [`${props.webBucket.bucketArn}/*`],
-          }),
-          new iam.PolicyStatement({
-            sid: "InvalidateWebDistribution",
-            actions: ["cloudfront:CreateInvalidation"],
-            resources: [props.webDistribution.distributionArn],
-          }),
-        ],
+        statements: cdkDeployStatements,
       }),
     },
   });

@@ -8,6 +8,18 @@ type DatabaseCredentialsSecret = Readonly<{
 const secretsClient = new SecretsManagerClient({});
 
 /**
+ * Resolves a plaintext secret string from Secrets Manager.
+ */
+export async function getPlaintextSecret(secretArn: string): Promise<string> {
+  const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
+  if (response.SecretString === undefined || response.SecretString === "") {
+    throw new Error(`Secret ${secretArn} does not contain SecretString`);
+  }
+
+  return response.SecretString;
+}
+
+/**
  * Resolves the shared database username/password pair from Secrets Manager
  * when the auth service runs in AWS.
  */

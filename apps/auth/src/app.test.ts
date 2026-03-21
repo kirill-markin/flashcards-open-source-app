@@ -5,6 +5,7 @@ import { resetDemoEmailAccessConfigForTests } from "./server/demoEmailAccess.js"
 
 const originalDemoEmailDostip = process.env.DEMO_EMAIL_DOSTIP;
 const originalDemoPasswordDostip = process.env.DEMO_PASSWORD_DOSTIP;
+const originalDemoPasswordSecretArn = process.env.DEMO_PASSWORD_SECRET_ARN;
 
 function createAuthApp(): ReturnType<typeof createApp> {
   process.env.ALLOWED_REDIRECT_URIS = "https://flashcards-open-source-app.com,https://app.flashcards-open-source-app.com";
@@ -22,6 +23,12 @@ test.afterEach(() => {
     delete process.env.DEMO_PASSWORD_DOSTIP;
   } else {
     process.env.DEMO_PASSWORD_DOSTIP = originalDemoPasswordDostip;
+  }
+
+  if (originalDemoPasswordSecretArn === undefined) {
+    delete process.env.DEMO_PASSWORD_SECRET_ARN;
+  } else {
+    process.env.DEMO_PASSWORD_SECRET_ARN = originalDemoPasswordSecretArn;
   }
 
   resetDemoEmailAccessConfigForTests();
@@ -115,11 +122,12 @@ test("logout-local clears the browser session and redirects back with account-de
 });
 
 test("app startup fails when demo emails are configured without the shared demo password", () => {
-  process.env.DEMO_EMAIL_DOSTIP = "apple-review@example.com";
+  process.env.DEMO_EMAIL_DOSTIP = "apple-for-review@example.com";
   delete process.env.DEMO_PASSWORD_DOSTIP;
+  delete process.env.DEMO_PASSWORD_SECRET_ARN;
 
   assert.throws(
     () => createAuthApp(),
-    /DEMO_PASSWORD_DOSTIP is required when DEMO_EMAIL_DOSTIP is configured/,
+    /DEMO_PASSWORD_DOSTIP or DEMO_PASSWORD_SECRET_ARN is required when DEMO_EMAIL_DOSTIP is configured/,
   );
 });

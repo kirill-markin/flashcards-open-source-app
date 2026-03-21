@@ -57,7 +57,7 @@ type SendCodeDependencies = Readonly<{
   createCsrfToken: () => string;
   signPayload: (payload: string) => string;
   parseSignedOtpSessionToken: (otpSessionToken: string) => OtpPayload;
-  getDemoEmailPassword: (email: string) => string | null;
+  getDemoEmailPassword: (email: string) => Promise<string | null>;
   setBrowserSessionCookies: (
     context: Parameters<typeof setBrowserSessionCookies>[0],
     sessionToken: string,
@@ -103,7 +103,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
     }
 
     const requestId = getRequestId(c);
-    const demoPassword = dependencies.getDemoEmailPassword(email);
+    const demoPassword = await dependencies.getDemoEmailPassword(email);
     if (demoPassword !== null) {
       // This intentionally disables OTP protection for configured review/demo
       // emails. The allowlist is restricted to synthetic @example.com accounts.

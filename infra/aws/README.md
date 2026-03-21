@@ -10,7 +10,7 @@ This stack deploys v1 backend infrastructure for `flashcards-open-source-app`.
 - API Gateway (REST API) for backend + API Gateway (REST API) for auth + three Lambdas (backend + auth + Cognito custom email sender)
 - S3 bucket + CloudFront distribution for the web app
 - Secrets Manager — DB credentials (auto-generated), backend/auth DB passwords, session encryption key
-- Optional Secrets Manager secrets for Resend and AI provider API keys, when configured locally before deploy
+- Optional Secrets Manager secrets for Resend, the review/demo auth password, and AI provider API keys, when configured locally before deploy
 - CloudWatch alarms + SNS notifications
 - AWS Backup plan for RDS
 - GitHub Actions OIDC deployment role
@@ -27,6 +27,8 @@ Create `infra/aws/cdk.context.local.json` from the example and fill values:
 - `authCertificateArn` (optional, only for `auth.<domain>`)
 - `webCertificateArnUsEast1` (optional, only for `app.<domain>` on CloudFront)
 - `apexRedirectCertificateArnUsEast1` (optional, only for apex -> app redirect on CloudFront)
+- `demoEmailDostip` (optional, comma-separated insecure review/demo allowlist in `@example.com`)
+- `demoPasswordSecretArn` (optional, enables deployed review/demo password lookup from Secrets Manager)
 - `resendApiKeySecretArn`
 - `resendSenderEmail`
 - `guestAiWeightedMonthlyTokenCap` (optional, guest AI monthly quota; defaults to `0` when omitted)
@@ -52,6 +54,8 @@ bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-sour
 
 `RESEND_API_KEY`, `RESEND_ADMIN_API_KEY`, `OPENAI_API_KEY`, and `ANTHROPIC_API_KEY` are optional at the shell level, but Cognito email delivery now officially depends on Resend. Use `RESEND_API_KEY` only for the deployed runtime secret in AWS Secrets Manager, and use `RESEND_ADMIN_API_KEY` only for the local one-time domain setup script. Run `bash scripts/setup-resend-secret.sh --region <aws-region>` before deploy so `resendApiKeySecretArn` and `resendSenderEmail` are present in `infra/aws/cdk.context.local.json`. `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` remain optional for chat features and can still be stored with `bash scripts/setup-ai-secrets.sh --region <aws-region>`.
 
+If review/demo bypass is enabled, keep `demoEmailDostip` in `infra/aws/cdk.context.local.json` as normal deploy config. Keep `DEMO_PASSWORD_DOSTIP` only in local untracked shell or `.env`, then run `bash scripts/setup-auth-secrets.sh --region <aws-region>` before deploy so `demoPasswordSecretArn` is present in `infra/aws/cdk.context.local.json`.
+
 Guest AI quota is configured independently from provider secrets. Set `guestAiWeightedMonthlyTokenCap` in `infra/aws/cdk.context.local.json` and run `bash scripts/setup-github.sh` to sync it to the GitHub repo variable `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`. During deploy, GitHub writes that value back into `cdk.context.local.json`, and CDK injects it into both backend Lambdas as `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`. When the value is omitted, the backend defaults it to `0`, which disables guest AI fail-closed.
 
 `scripts/bootstrap.sh` and `scripts/first-deploy.sh` now also:
@@ -73,9 +77,9 @@ Guest AI quota is configured independently from provider secrets. Set `guestAiWe
 6. **Run migrations manually if needed** — `bash scripts/migrate-aws.sh`.
 7. **Check internal gateway health manually if needed** — `bash scripts/check-api-health.sh`.
 8. **Check public custom domains manually if needed** — `bash scripts/check-public-endpoints.sh`.
-9. **Configure GitHub Actions** — `bash scripts/setup-github.sh` writes the required vars/secrets for this repo using stack outputs and `cdk.context.local.json`. For Resend and AI providers it stores only secret ARNs as GitHub variables; the raw provider keys stay in AWS Secrets Manager. Guest AI quota is also synced here as the repo variable `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`.
-10. **Rotate provider keys later if needed** — export `RESEND_API_KEY` for the deployed runtime secret, export `RESEND_ADMIN_API_KEY` for domain-management setup, export `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` as needed, then rerun the provider setup scripts and `bash scripts/setup-github.sh`.
-11. **Create review/demo Cognito users manually if demo bypass is enabled** — `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` only configure the insecure review/demo bypass in the auth Lambda. They do not provision Cognito users. If you enable these variables, every listed demo email must use `@example.com`, and you must create the matching Cognito users by hand and keep their emails and shared password aligned with the deployed env values. We intentionally do not automate this step for review-only insecure accounts. Validate the deployed state with `bash scripts/check-demo-cognito-users.sh`.
+9. **Configure GitHub Actions** — `bash scripts/setup-github.sh` writes the required vars/secrets for this repo using stack outputs and `cdk.context.local.json`. It stores non-secret deploy config like `demoEmailDostip` as GitHub variables, and stores only secret ARNs for Resend, the review/demo password, and AI providers; the raw secret values stay in AWS Secrets Manager. Guest AI quota is also synced here as the repo variable `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`.
+10. **Rotate provider keys or the demo password later if needed** — export `RESEND_API_KEY` for the deployed runtime secret, export `RESEND_ADMIN_API_KEY` for domain-management setup, export `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` as needed, then rerun the provider setup scripts and `bash scripts/setup-github.sh`. If review/demo bypass is enabled, export `DEMO_PASSWORD_DOSTIP`, run `bash scripts/setup-auth-secrets.sh --region <aws-region>`, then rerun `bash scripts/setup-github.sh`.
+11. **Create review/demo Cognito users manually if demo bypass is enabled** — `demoEmailDostip` configures the insecure review/demo allowlist in the auth Lambda, and `demoPasswordSecretArn` points the deployed auth Lambda at the shared insecure password in AWS Secrets Manager. They do not provision Cognito users. If you enable review/demo access, every listed demo email must use `@example.com`, and you must create the matching Cognito users by hand and keep their emails and shared password aligned with the deployed allowlist and demo password secret. We intentionally do not automate this step for review-only insecure accounts. Validate the deployed state with `bash scripts/check-demo-cognito-users.sh`.
 
 ## Auth flow
 

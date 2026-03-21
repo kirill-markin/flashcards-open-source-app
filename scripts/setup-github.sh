@@ -77,6 +77,8 @@ AUTH_CERT_ARN=$(read_context authCertificateArn)
 WEB_CERT_ARN=$(read_context webCertificateArnUsEast1)
 OPENAI_SECRET_ARN=$(read_context openAiApiKeySecretArn)
 ANTHROPIC_SECRET_ARN=$(read_context anthropicApiKeySecretArn)
+DEMO_EMAIL_DOSTIP=$(read_context demoEmailDostip)
+DEMO_PASSWORD_SECRET_ARN=$(read_context demoPasswordSecretArn)
 GUEST_AI_QUOTA_CAP=$(read_context guestAiWeightedMonthlyTokenCap)
 RESEND_SECRET_ARN=$(read_context resendApiKeySecretArn)
 RESEND_SENDER_EMAIL=$(read_context resendSenderEmail)
@@ -101,6 +103,8 @@ set_or_delete_variable CDK_RESEND_API_KEY_SECRET_ARN "$RESEND_SECRET_ARN"
 set_or_delete_variable CDK_RESEND_SENDER_EMAIL "$RESEND_SENDER_EMAIL"
 set_or_delete_variable CDK_OPENAI_API_KEY_SECRET_ARN "$OPENAI_SECRET_ARN"
 set_or_delete_variable CDK_ANTHROPIC_API_KEY_SECRET_ARN "$ANTHROPIC_SECRET_ARN"
+set_or_delete_variable CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
+set_or_delete_variable CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
 set_or_delete_variable CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
 
 gh secret set AWS_DEPLOY_ROLE_ARN --body "$DEPLOY_ROLE_ARN" --repo "$REPO"

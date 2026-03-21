@@ -26,7 +26,7 @@ test("browser send-code reuses an existing unlocked token during suppression", a
       csrf: "csrf-1",
       t: 123_000,
     }),
-    getDemoEmailPassword: () => null,
+    getDemoEmailPassword: async () => null,
     setBrowserSessionCookies: () => undefined,
     jitterDelay: async () => Promise.resolve(),
     now: () => 123_456,
@@ -55,7 +55,7 @@ test("browser send-code returns RATE_LIMITED when suppression cannot reuse a cha
     parseSignedOtpSessionToken: () => {
       throw new Error("parseSignedOtpSessionToken should not be called");
     },
-    getDemoEmailPassword: () => null,
+    getDemoEmailPassword: async () => null,
     setBrowserSessionCookies: () => undefined,
     jitterDelay: async () => Promise.resolve(),
     now: () => 123_456,
@@ -77,7 +77,7 @@ test("browser send-code returns tokens immediately for configured demo emails", 
       return { session: "unused" };
     },
     signInWithPassword: async (email: string, password: string) => {
-      assert.equal(email, "apple-review@example.com");
+      assert.equal(email, "apple-for-review@example.com");
       assert.equal(password, "shared-demo-password");
       return {
         idToken: "id-token",
@@ -86,7 +86,7 @@ test("browser send-code returns tokens immediately for configured demo emails", 
         expiresIn: 3600,
       };
     },
-    decideOtpRateLimit: async () => ({ kind: "allow" }),
+    decideOtpRateLimit: async () => ({ kind: "send" }),
     loadLatestSentOtpSessionToken: async () => null,
     recordOtpSendDecision: async () => Promise.resolve(),
     createCsrfToken: () => "unused",
@@ -94,7 +94,7 @@ test("browser send-code returns tokens immediately for configured demo emails", 
     parseSignedOtpSessionToken: () => {
       throw new Error("parseSignedOtpSessionToken should not be called");
     },
-    getDemoEmailPassword: () => "shared-demo-password",
+    getDemoEmailPassword: async () => "shared-demo-password",
     setBrowserSessionCookies: () => {
       cookieCalls += 1;
     },
@@ -102,7 +102,7 @@ test("browser send-code returns tokens immediately for configured demo emails", 
     now: () => 123_456,
   });
 
-  const response = await app.request(makeJsonRequest({ email: "apple-review@example.com" }));
+  const response = await app.request(makeJsonRequest({ email: "apple-for-review@example.com" }));
   const body = await response.json() as { ok: boolean; idToken: string; refreshToken: string; expiresIn: number };
 
   assert.equal(response.status, 200);
