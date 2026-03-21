@@ -887,6 +887,14 @@ extension AIChatMessage {
             return nil
         }
     }
+
+    var accountUpgradePrompt: (message: String, buttonTitle: String)? {
+        self.content.reduce(into: nil) { partialResult, part in
+            if case .accountUpgradePrompt(let message, let buttonTitle) = part {
+                partialResult = (message, buttonTitle)
+            }
+        }
+    }
 }
 
 extension AILocalChatWireMessage {

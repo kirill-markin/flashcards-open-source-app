@@ -182,6 +182,40 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    func testAIChatStoreShowsAccountUpgradePromptForGuestLimitDictationFailures() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let historyStore = InMemoryHistoryStore(
+            savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+        )
+        let recorder = StubVoiceRecorder(mode: .success)
+        let transcriber = StubAudioTranscriber(result: .failure(AIChatTranscriptionError.guestLimitReached))
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: historyStore,
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            localContextLoader: failingToolExecutor,
+            voiceRecorder: recorder,
+            audioTranscriber: transcriber
+        )
+
+        chatStore.toggleDictation()
+        try await self.waitForDictationState(chatStore: chatStore, state: .recording)
+
+        chatStore.toggleDictation()
+        try await self.waitForDictationState(chatStore: chatStore, state: .idle)
+
+        XCTAssertNil(chatStore.activeAlert)
+        XCTAssertNil(chatStore.completedDictationTranscript)
+        XCTAssertEqual(chatStore.messages.count, 1)
+        XCTAssertEqual(chatStore.messages[0].role, .assistant)
+        XCTAssertEqual(chatStore.messages[0].accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
+        XCTAssertEqual(chatStore.messages[0].accountUpgradePrompt?.buttonTitle, aiChatGuestQuotaButtonTitle)
+        XCTAssertEqual(chatStore.messages[0].isError, false)
+        XCTAssertEqual(historyStore.savedState.messages.first?.accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
+    }
+
     func testAIChatStoreAllowsDictationWhileStreaming() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()

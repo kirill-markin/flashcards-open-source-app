@@ -3,7 +3,7 @@ import Foundation
 enum AIChatServiceError: LocalizedError, AIChatFailureDiagnosticProviding {
     case invalidBaseUrl(String, AIChatFailureDiagnostics)
     case invalidStreamResponse(AIChatFailureDiagnostics)
-    case invalidResponse(String, AIChatFailureDiagnostics)
+    case invalidResponse(CloudApiErrorDetails, String, AIChatFailureDiagnostics)
     case invalidStreamContract(String, AIChatFailureDiagnostics)
     case invalidSSEFraming(AIChatFailureDiagnostics)
     case invalidSSEEventJSON(AIChatFailureDiagnostics)
@@ -15,7 +15,7 @@ enum AIChatServiceError: LocalizedError, AIChatFailureDiagnosticProviding {
             return diagnostics
         case .invalidStreamResponse(let diagnostics):
             return diagnostics
-        case .invalidResponse(_, let diagnostics):
+        case .invalidResponse(_, _, let diagnostics):
             return diagnostics
         case .invalidStreamContract(_, let diagnostics):
             return diagnostics
@@ -40,7 +40,7 @@ enum AIChatServiceError: LocalizedError, AIChatFailureDiagnosticProviding {
                 summary: "AI chat did not receive an HTTP response.",
                 diagnostics: diagnostics
             )
-        case .invalidResponse(let message, let diagnostics):
+        case .invalidResponse(_, let message, let diagnostics):
             return formatAIChatUserError(
                 summary: message,
                 diagnostics: diagnostics
@@ -332,6 +332,7 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
 
             if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
                 let body = try await self.readBody(bytes: bytes)
+                let errorDetails = decodeCloudApiErrorDetails(data: Data(body.utf8), requestId: backendRequestId)
                 let diagnostics = AIChatFailureDiagnostics(
                     clientRequestId: clientRequestId,
                     backendRequestId: backendRequestId,
@@ -349,13 +350,12 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
                 )
                 let message = makeRequestFailureMessage(
                     statusCode: httpResponse.statusCode,
-                    body: body,
-                    requestId: backendRequestId,
+                    errorDetails: errorDetails,
                     configurationMode: session.configurationMode
                 )
                 await emitLatencyIfNeeded(result: .responseNotOk)
                 logAIChatFailure(diagnostics: diagnostics, summary: message)
-                throw AIChatServiceError.invalidResponse(message, diagnostics)
+                throw AIChatServiceError.invalidResponse(errorDetails, message, diagnostics)
             }
 
             var parser = AIChatSSEParser(
@@ -905,11 +905,9 @@ private func logAIChatLatency(body: AIChatLatencyReportBody) {
 
 private func makeRequestFailureMessage(
     statusCode: Int,
-    body: String,
-    requestId: String?,
+    errorDetails: CloudApiErrorDetails,
     configurationMode: CloudServiceConfigurationMode
 ) -> String {
-    let errorDetails = decodeCloudApiErrorDetails(data: Data(body.utf8), requestId: requestId)
     let baseMessage = makeAIChatUserFacingErrorMessage(
         rawMessage: errorDetails.message,
         code: errorDetails.code,

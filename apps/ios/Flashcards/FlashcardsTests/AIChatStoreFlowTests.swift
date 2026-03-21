@@ -93,6 +93,118 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testAIChatStoreShowsAccountUpgradePromptForGuestLimitStreamErrors() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let diagnostics = AIChatFailureDiagnostics(
+            clientRequestId: "client-request-1",
+            backendRequestId: "request-guest-limit-stream-1",
+            stage: .backendErrorEvent,
+            errorKind: .backendErrorEvent,
+            statusCode: nil,
+            eventType: "error",
+            toolName: nil,
+            toolCallId: nil,
+            lineNumber: nil,
+            rawSnippet: nil,
+            decoderSummary: nil,
+            continuationAttempt: nil,
+            continuationToolCallIds: []
+        )
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: ThrowingChatService(
+                error: AIChatServiceError.backendError(
+                    AIChatBackendError(
+                        message: aiChatGuestQuotaReachedMessage,
+                        code: "GUEST_AI_LIMIT_REACHED",
+                        stage: "stream_ai_chat_turn",
+                        requestId: "request-guest-limit-stream-1"
+                    ),
+                    diagnostics
+                )
+            ),
+            toolExecutor: failingToolExecutor,
+            localContextLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        XCTAssertNil(chatStore.activeAlert)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
+        XCTAssertEqual(chatStore.messages[0].role, .user)
+        XCTAssertEqual(chatStore.messages[1].role, .assistant)
+        XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
+        XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.buttonTitle, aiChatGuestQuotaButtonTitle)
+        XCTAssertEqual(chatStore.messages[1].isError, false)
+        XCTAssertEqual(chatStore.messages[1].text, "")
+    }
+
+    @MainActor
+    func testAIChatStoreShowsAccountUpgradePromptForGuestLimitPrestreamErrors() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let failingToolExecutor = FailingToolExecutor()
+        let diagnostics = AIChatFailureDiagnostics(
+            clientRequestId: "client-request-2",
+            backendRequestId: "request-guest-limit-prestream-1",
+            stage: .responseNotOk,
+            errorKind: .invalidHttpResponse,
+            statusCode: 429,
+            eventType: nil,
+            toolName: nil,
+            toolCallId: nil,
+            lineNumber: nil,
+            rawSnippet: nil,
+            decoderSummary: nil,
+            continuationAttempt: nil,
+            continuationToolCallIds: []
+        )
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: ThrowingChatService(
+                error: AIChatServiceError.invalidResponse(
+                    CloudApiErrorDetails(
+                        message: aiChatGuestQuotaReachedMessage,
+                        requestId: "request-guest-limit-prestream-1",
+                        code: "GUEST_AI_LIMIT_REACHED"
+                    ),
+                    "AI chat request failed with status 429: \(aiChatGuestQuotaReachedMessage)",
+                    diagnostics
+                )
+            ),
+            toolExecutor: failingToolExecutor,
+            localContextLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        try await self.waitForChatCompletion(chatStore: chatStore)
+
+        XCTAssertNil(chatStore.activeAlert)
+        guard requireMessageCount(chatStore, expectedCount: 2) else {
+            return
+        }
+        XCTAssertEqual(chatStore.messages[0].role, .user)
+        XCTAssertEqual(chatStore.messages[1].role, .assistant)
+        XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
+        XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.buttonTitle, aiChatGuestQuotaButtonTitle)
+        XCTAssertEqual(chatStore.messages[1].isError, false)
+        XCTAssertEqual(chatStore.messages[1].text, "")
+    }
+
+    @MainActor
     func testAIChatStoreClearsRepairStatusAfterSuccessfulTurn() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()

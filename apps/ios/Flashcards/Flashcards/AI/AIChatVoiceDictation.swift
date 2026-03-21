@@ -65,6 +65,7 @@ enum AIChatTranscriptionError: LocalizedError {
     case invalidBaseUrl
     case invalidAudio
     case serviceUnavailable
+    case guestLimitReached
     case serverMessage(String)
 
     var errorDescription: String? {
@@ -75,6 +76,8 @@ enum AIChatTranscriptionError: LocalizedError {
             return "We couldn’t process that recording. Please try again."
         case .serviceUnavailable:
             return "There is a network problem. Fix it and try again."
+        case .guestLimitReached:
+            return aiChatGuestQuotaReachedMessage
         case .serverMessage(let message):
             return message
         }
@@ -248,13 +251,8 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
             return .invalidAudio
         }
 
-        if errorDetails.code == "GUEST_AI_LIMIT_REACHED" {
-            return .serverMessage(
-                appendCloudRequestIdReference(
-                    message: aiChatGuestQuotaReachedMessage,
-                    requestId: errorDetails.requestId
-                )
-            )
+        if isGuestAiLimitCode(errorDetails.code) {
+            return .guestLimitReached
         }
 
         return .serverMessage(
