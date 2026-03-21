@@ -120,7 +120,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.effectiveReviewQueue.first?.cardId, initialCurrentCardId)
         XCTAssertEqual(context.store.localReadVersion, initialReadVersion)
         XCTAssertFalse(context.store.isReviewHeadLoading)
-        XCTAssertNil(context.store.reviewOverlayBanner)
+        XCTAssertNil(context.store.currentTransientBanner)
         XCTAssertEqual(context.store.cloudRuntime.activeCloudSession()?.workspaceId, workspaceId)
     }
 
@@ -170,7 +170,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.effectiveReviewQueue.first?.cardId, initialCurrentCardId)
         XCTAssertEqual(context.store.localReadVersion, initialReadVersion)
         XCTAssertFalse(context.store.isReviewHeadLoading)
-        XCTAssertNil(context.store.reviewOverlayBanner)
+        XCTAssertNil(context.store.currentTransientBanner)
     }
 
     func testSyncCloudIfLinkedUsesActiveGuestSessionWithoutStoredCloudCredentials() async throws {
@@ -304,7 +304,8 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
         XCTAssertEqual(context.store.effectiveReviewQueue.first?.cardId, secondCardId)
-        XCTAssertEqual(context.store.reviewOverlayBanner?.message, "This review updated on another device.")
+        XCTAssertEqual(context.store.currentTransientBanner?.message, reviewUpdatedOnAnotherDeviceBannerMessage)
+        XCTAssertEqual(context.store.currentTransientBanner?.kind, .reviewUpdatedOnAnotherDevice)
         XCTAssertGreaterThan(context.store.localReadVersion, initialReadVersion)
         XCTAssertFalse(context.store.isReviewHeadLoading)
         XCTAssertEqual(context.store.cloudRuntime.activeCloudSession()?.workspaceId, workspaceId)
@@ -371,7 +372,8 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         await context.store.syncCloudIfLinked()
 
         XCTAssertEqual(context.store.effectiveReviewQueue.first?.cardId, secondCardId)
-        XCTAssertEqual(context.store.reviewOverlayBanner?.message, "This review updated on another device.")
+        XCTAssertEqual(context.store.currentTransientBanner?.message, reviewUpdatedOnAnotherDeviceBannerMessage)
+        XCTAssertEqual(context.store.currentTransientBanner?.kind, .reviewUpdatedOnAnotherDevice)
         XCTAssertGreaterThan(context.store.localReadVersion, initialReadVersion)
         XCTAssertFalse(context.store.isReviewHeadLoading)
     }

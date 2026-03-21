@@ -14,7 +14,6 @@ struct SyncStatusPresentation: Equatable {
 
 struct SettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
-    @State private var settingsBanner: SettingsOverlayBanner? = nil
 
     private var isWorkspaceManagementLocked: Bool {
         self.store.cloudSettings?.cloudState != .linked
@@ -31,7 +30,7 @@ struct SettingsView: View {
             Section {
                 if self.isWorkspaceManagementLocked {
                     Button {
-                        self.showSettingsBanner(message: settingsWorkspaceLockedBannerMessage)
+                        self.store.enqueueTransientBanner(banner: makeWorkspaceChangesRequireAccountBanner())
                     } label: {
                         SettingsNavigationRow(
                             title: "Current Workspace",
@@ -90,51 +89,6 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
-        .overlay(alignment: .top) {
-            if let settingsBanner = self.settingsBanner {
-                SettingsOverlayBannerView(
-                    banner: settingsBanner,
-                    onDismiss: {
-                        self.dismissSettingsBanner()
-                    }
-                )
-                .padding(.top, 8)
-                .padding(.horizontal, 16)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .task(id: self.settingsBanner?.id) {
-            guard self.settingsBanner != nil else {
-                return
-            }
-
-            do {
-                try await Task.sleep(nanoseconds: settingsBannerDismissDelayNanoseconds)
-            } catch {
-                return
-            }
-
-            if Task.isCancelled {
-                return
-            }
-
-            self.dismissSettingsBanner()
-        }
-    }
-
-    private func showSettingsBanner(message: String) {
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-            self.settingsBanner = SettingsOverlayBanner(
-                id: UUID().uuidString,
-                message: message
-            )
-        }
-    }
-
-    private func dismissSettingsBanner() {
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-            self.settingsBanner = nil
-        }
     }
 }
 

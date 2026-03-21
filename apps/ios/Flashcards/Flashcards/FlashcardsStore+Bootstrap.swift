@@ -17,7 +17,7 @@ extension FlashcardsStore {
         self.applyReviewPublishedState(
             reviewState: ReviewQueueRuntime.makeInitialPublishedState(selectedReviewFilter: nextReviewFilter)
         )
-        self.reviewOverlayBanner = nil
+        self.clearTransientBanners()
     }
 
     func prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: String) {
@@ -224,9 +224,5 @@ extension FlashcardsStore {
                 decoder: self.decoder
             )
         )
-    }
-
-    func dismissReviewOverlayBanner() {
-        self.reviewOverlayBanner = nil
     }
 }

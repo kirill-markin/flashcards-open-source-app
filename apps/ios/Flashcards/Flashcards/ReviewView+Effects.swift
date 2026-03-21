@@ -72,28 +72,4 @@ extension ReviewView {
 
         return nil
     }
-
-    func autoDismissReviewOverlayBanner() async {
-        guard store.reviewOverlayBanner != nil else {
-            return
-        }
-
-        do {
-            try await Task.sleep(nanoseconds: reviewOverlayBannerDismissDelayNanoseconds)
-        } catch {
-            return
-        }
-
-        if Task.isCancelled {
-            return
-        }
-
-        self.dismissReviewOverlayBanner()
-    }
-
-    func dismissReviewOverlayBanner() {
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-            store.dismissReviewOverlayBanner()
-        }
-    }
 }

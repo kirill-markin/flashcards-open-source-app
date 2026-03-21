@@ -518,11 +518,6 @@ enum ReviewRefreshMode: Hashable, Sendable {
     case backgroundReconcile
 }
 
-struct ReviewOverlayBanner: Identifiable, Hashable, Sendable {
-    let id: String
-    let message: String
-}
-
 struct CardSyncPayload: Codable, Hashable {
     let cardId: String
     let frontText: String

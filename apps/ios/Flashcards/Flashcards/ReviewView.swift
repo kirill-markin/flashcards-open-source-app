@@ -8,7 +8,6 @@ private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = "No back text"
 private let reviewQueuePreviewPageSize: Int = 50
-let reviewOverlayBannerDismissDelayNanoseconds: UInt64 = 3_000_000_000
 
 struct ReviewView: View {
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
@@ -123,27 +122,9 @@ struct ReviewView: View {
         .task(id: store.localReadVersion) {
             await self.reloadReviewMetadata()
         }
-        .task(id: store.reviewOverlayBanner?.id) {
-            await self.autoDismissReviewOverlayBanner()
-        }
         .safeAreaBar(edge: .bottom, spacing: 0) {
             reviewBottomAccessory
         }
-        .overlay(alignment: .top) {
-            if let reviewOverlayBanner = store.reviewOverlayBanner {
-                ReviewOverlayBannerView(
-                    banner: reviewOverlayBanner,
-                    onDismiss: {
-                        self.dismissReviewOverlayBanner()
-                    }
-                )
-                .padding(.top, 12)
-                .padding(.horizontal, 16)
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .zIndex(1)
-            }
-        }
-        .animation(.spring(response: 0.36, dampingFraction: 0.88), value: store.reviewOverlayBanner?.id)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 reviewFilterMenu

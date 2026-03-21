@@ -325,7 +325,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         XCTAssertFalse(store.isReviewHeadLoading)
         XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, secondCard.cardId)
         XCTAssertEqual(store.displayedReviewDueCount, 1)
-        XCTAssertNil(store.reviewOverlayBanner)
+        XCTAssertNil(store.currentTransientBanner)
     }
 
     func testEnqueueReviewSubmissionRejectsDuplicatePendingCard() async throws {

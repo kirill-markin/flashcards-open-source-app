@@ -79,6 +79,9 @@ struct RootTabView: View {
             .tag(AppTab.settings)
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        .overlay {
+            GlobalTransientBannerHost()
+        }
         .onChange(of: navigation.selectedTab) { _, nextTab in
             guard usesFastCloudSyncPolling(tab: nextTab) else {
                 return

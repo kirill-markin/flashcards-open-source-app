@@ -402,10 +402,7 @@ extension FlashcardsStore {
         let nextEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: nextReviewState)
         let nextCardId = currentReviewCard(reviewQueue: nextEffectiveQueue)?.cardId
         if case .cloudSync = trigger, let currentCardId, currentCardId != nextCardId {
-            self.reviewOverlayBanner = ReviewOverlayBanner(
-                id: UUID().uuidString.lowercased(),
-                message: "This review updated on another device."
-            )
+            self.enqueueTransientBanner(banner: makeReviewUpdatedOnAnotherDeviceBanner())
         }
 
         return true
