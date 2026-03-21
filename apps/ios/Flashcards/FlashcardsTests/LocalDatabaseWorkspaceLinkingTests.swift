@@ -208,6 +208,21 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
         )
     }
 
+    func testMissingSyncStateRowIsRecreatedOnRead() throws {
+        let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
+        let workspaceId = try testWorkspaceId(database: database)
+
+        _ = try database.core.execute(
+            sql: "DELETE FROM sync_state WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+
+        XCTAssertEqual(try database.loadLastAppliedHotChangeId(workspaceId: workspaceId), 0)
+        XCTAssertEqual(try database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId), 0)
+        XCTAssertEqual(try database.hasHydratedHotState(workspaceId: workspaceId), false)
+        XCTAssertEqual(try database.hasHydratedReviewHistory(workspaceId: workspaceId), false)
+    }
+
     private func workspaceIds(database: LocalDatabase) throws -> [String] {
         try database.core.query(
             sql: """

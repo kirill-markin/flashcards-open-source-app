@@ -183,6 +183,8 @@ struct OutboxStore {
     }
 
     private func loadSyncState(workspaceId: String) throws -> SyncStateRow {
+        try self.ensureSyncStateExists(workspaceId: workspaceId)
+
         let values = try self.core.query(
             sql: """
             SELECT
@@ -209,6 +211,42 @@ struct OutboxStore {
         }
 
         return syncState
+    }
+
+    private func ensureSyncStateExists(workspaceId: String) throws {
+        let workspaceCount = try self.core.scalarInt(
+            sql: "SELECT COUNT(*) FROM workspaces WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+        guard workspaceCount > 0 else {
+            return
+        }
+
+        let syncStateCount = try self.core.scalarInt(
+            sql: "SELECT COUNT(*) FROM sync_state WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+        if syncStateCount > 0 {
+            return
+        }
+
+        try self.core.execute(
+            sql: """
+            INSERT INTO sync_state (
+                workspace_id,
+                last_applied_hot_change_id,
+                last_applied_review_sequence_id,
+                has_hydrated_hot_state,
+                has_hydrated_review_history,
+                updated_at
+            )
+            VALUES (?, 0, 0, 0, 0, ?)
+            """,
+            values: [
+                .text(workspaceId),
+                .text(nowIsoTimestamp())
+            ]
+        )
     }
 
     func setLastAppliedHotChangeId(workspaceId: String, changeId: Int64) throws {
