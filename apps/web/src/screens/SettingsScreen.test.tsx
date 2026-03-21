@@ -50,7 +50,7 @@ describe("SettingsScreen", () => {
   it("renders the root settings groups in the new order", async () => {
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings"]}>
           <SettingsScreen />
         </MemoryRouter>,
       );
@@ -64,6 +64,20 @@ describe("SettingsScreen", () => {
     expect(container.textContent).toContain("Access");
     expect(container.textContent).not.toContain("Workspace Data");
     expect(container.textContent).not.toContain("Connections");
+
+    const tabLinks = Array.from(container.querySelectorAll(".settings-switcher-link")).map((element) => ({
+      href: element.getAttribute("href"),
+      label: element.textContent,
+    }));
+    expect(tabLinks).toEqual([
+      { href: "/settings", label: "General" },
+      { href: "/settings/current-workspace", label: "Current Workspace" },
+      { href: "/settings/workspace", label: "Workspace" },
+      { href: "/settings/account", label: "Account" },
+      { href: "/settings/device", label: "Device" },
+      { href: "/settings/access", label: "Access" },
+    ]);
+    expect(container.querySelector(".settings-switcher-link-active")?.textContent).toBe("General");
 
     const links = Array.from(container.querySelectorAll(".settings-nav-card")).map((element) => {
       return element.getAttribute("href");
@@ -86,7 +100,7 @@ describe("SettingsScreen", () => {
 
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings"]}>
           <SettingsScreen />
         </MemoryRouter>,
       );

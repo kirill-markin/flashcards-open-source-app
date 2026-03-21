@@ -44,7 +44,7 @@ export function AccessSettingsScreen(): ReactElement {
     <SettingsShell
       title="Access"
       subtitle="Review which browser permissions the chat and attachments can use on this device."
-      activeSection={null}
+      activeTab="access"
     >
       <div className="settings-nav-list">
         <SettingsNavigationCard

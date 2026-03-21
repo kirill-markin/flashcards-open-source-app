@@ -56,7 +56,7 @@ export function DangerZoneScreen(): ReactElement {
       <SettingsShell
         title="Danger Zone"
         subtitle="Delete the account and all cloud data."
-        activeSection="account"
+        activeTab="account"
       >
         <section className="content-card settings-danger-card">
           <div className="cell-stack">

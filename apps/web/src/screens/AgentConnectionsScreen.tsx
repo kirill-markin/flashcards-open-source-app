@@ -59,7 +59,7 @@ export function AgentConnectionsScreen(): ReactElement {
     <SettingsShell
       title="Agent Connections"
       subtitle="Review and revoke long-lived bot connections for this account."
-      activeSection="account"
+      activeTab="account"
     >
       {isSessionVerified === false ? <p className="subtitle">Restoring session...</p> : null}
       {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}

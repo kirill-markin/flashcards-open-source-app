@@ -38,7 +38,7 @@ describe("AccessSettingsScreen", () => {
   it("renders access entries for photos, camera, and microphone", async () => {
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings/access"]}>
           <AccessSettingsScreen />
         </MemoryRouter>,
       );
@@ -51,5 +51,6 @@ describe("AccessSettingsScreen", () => {
     expect(container.textContent).toContain("GRANTED");
     expect(container.textContent).toContain("Microphone");
     expect(container.textContent).toContain("DENIED");
+    expect(container.querySelector(".settings-switcher-link-active")?.textContent).toBe("Access");
   });
 });

@@ -74,11 +74,13 @@ describe("CurrentWorkspaceScreen", () => {
   it("expands the workspace flow for linked users", async () => {
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings/current-workspace"]}>
           <CurrentWorkspaceScreen />
         </MemoryRouter>,
       );
     });
+
+    expect(container.querySelector(".settings-switcher-link-active")?.textContent).toBe("Current Workspace");
 
     const workspaceButton = container.querySelector(".settings-nav-card-button");
     expect(workspaceButton).toBeInstanceOf(HTMLButtonElement);
@@ -108,7 +110,7 @@ describe("CurrentWorkspaceScreen", () => {
 
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings/current-workspace"]}>
           <CurrentWorkspaceScreen />
         </MemoryRouter>,
       );

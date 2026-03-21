@@ -25,7 +25,7 @@ describe("LegalSupportScreen", () => {
   it("renders hosted legal and support links", async () => {
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings/account/legal-support"]}>
           <LegalSupportScreen />
         </MemoryRouter>,
       );
@@ -39,5 +39,6 @@ describe("LegalSupportScreen", () => {
     expect(container.querySelector('a[href="https://flashcards-open-source-app.com/privacy/"]')?.textContent).toBe("Open policy");
     expect(container.querySelector('a[href="https://flashcards-open-source-app.com/terms/"]')?.textContent).toBe("Open terms");
     expect(container.querySelector('a[href="https://flashcards-open-source-app.com/support/"]')?.textContent).toBe("Open support");
+    expect(container.querySelector(".settings-switcher-link-active")?.textContent).toBe("Account");
   });
 });

@@ -191,7 +191,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
       <SettingsShell
         title="Overview"
         subtitle="Review workspace details and today counts."
-        activeSection="workspace"
+        activeTab="workspace"
       >
         <p className="subtitle">Loading workspace overview…</p>
       </SettingsShell>
@@ -203,7 +203,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
       <SettingsShell
         title="Overview"
         subtitle="Review workspace details and today counts."
-        activeSection="workspace"
+        activeTab="workspace"
       >
         <p className="error-banner">{errorMessage}</p>
         <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
@@ -227,7 +227,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
       <SettingsShell
         title="Overview"
         subtitle="Review workspace details and today counts."
-        activeSection="workspace"
+        activeTab="workspace"
       >
         <section className="settings-group">
           <div className="settings-summary-grid">

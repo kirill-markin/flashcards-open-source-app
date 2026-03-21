@@ -53,7 +53,7 @@ describe("ThisDeviceSettingsScreen", () => {
   it("renders technical device details for the current workspace", async () => {
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings/device"]}>
           <ThisDeviceSettingsScreen />
         </MemoryRouter>,
       );
@@ -74,5 +74,6 @@ describe("ThisDeviceSettingsScreen", () => {
     expect(container.textContent).toContain("IndexedDB + localStorage");
     expect(container.textContent).toContain("Device ID");
     expect(container.textContent).toContain("device-123");
+    expect(container.querySelector(".settings-switcher-link-active")?.textContent).toBe("Device");
   });
 });
