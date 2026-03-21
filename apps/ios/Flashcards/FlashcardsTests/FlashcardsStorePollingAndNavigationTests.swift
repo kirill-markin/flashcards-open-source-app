@@ -162,13 +162,14 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
 
     func testSettingsNavigationDestinationsIncludeAccount() {
         let destinations: [SettingsNavigationDestination] = [
+            .currentWorkspace,
+            .device,
             .access,
             .workspace,
             .workspaceOverview,
             .workspaceScheduler,
             .workspaceDecks,
             .workspaceTags,
-            .workspaceDevice,
             .account,
             .accountStatus,
             .accountLegalSupport,
@@ -177,13 +178,14 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         ]
 
         XCTAssertEqual(destinations, [
+            .currentWorkspace,
+            .device,
             .access,
             .workspace,
             .workspaceOverview,
             .workspaceScheduler,
             .workspaceDecks,
             .workspaceTags,
-            .workspaceDevice,
             .account,
             .accountStatus,
             .accountLegalSupport,
