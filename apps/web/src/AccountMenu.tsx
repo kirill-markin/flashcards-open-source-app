@@ -1,11 +1,14 @@
 import { type FormEvent, type ReactElement, useEffect, useRef, useState } from "react";
 import type { WorkspaceSummary } from "./types";
+import { useTransientMessage } from "./useTransientMessage";
 
 type Props = Readonly<{
   workspaces: ReadonlyArray<WorkspaceSummary>;
   currentWorkspaceId: string;
+  currentWorkspaceName: string;
   isBusy: boolean;
-  lockedMessage: string;
+  isWorkspaceManagementLocked: boolean;
+  workspaceManagementLockedMessage: string;
   accountSettingsUrl: string;
   logoutUrl: string;
   onSelectWorkspace: (workspaceId: string) => Promise<void>;
@@ -16,8 +19,10 @@ export function AccountMenu(props: Props): ReactElement {
   const {
     workspaces,
     currentWorkspaceId,
+    currentWorkspaceName,
     isBusy,
-    lockedMessage,
+    isWorkspaceManagementLocked,
+    workspaceManagementLockedMessage,
     accountSettingsUrl,
     logoutUrl,
     onSelectWorkspace,
@@ -30,6 +35,7 @@ export function AccountMenu(props: Props): ReactElement {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { message, showMessage } = useTransientMessage(3000);
 
   useEffect(() => {
     if (!isOpen) {
@@ -78,6 +84,11 @@ export function AccountMenu(props: Props): ReactElement {
   }, [isCreating]);
 
   async function handleWorkspaceSelect(workspaceId: string): Promise<void> {
+    if (isWorkspaceManagementLocked) {
+      showMessage(workspaceManagementLockedMessage);
+      return;
+    }
+
     setErrorMessage("");
     await onSelectWorkspace(workspaceId);
     setIsOpen(false);
@@ -87,6 +98,11 @@ export function AccountMenu(props: Props): ReactElement {
 
   async function handleCreateWorkspace(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+
+    if (isWorkspaceManagementLocked) {
+      showMessage(workspaceManagementLockedMessage);
+      return;
+    }
 
     const trimmedName = newWorkspaceName.trim();
     if (trimmedName === "") {
@@ -115,7 +131,6 @@ export function AccountMenu(props: Props): ReactElement {
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label="Open account menu"
-        disabled={isBusy}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="4" />
@@ -124,10 +139,18 @@ export function AccountMenu(props: Props): ReactElement {
       </button>
       {isOpen ? (
         <div ref={menuRef} className="account-menu-dropdown">
-          {lockedMessage !== "" ? <div className="account-menu-section-label">{lockedMessage}</div> : null}
-          {workspaces.length > 0 ? (
+          {message === "" ? null : <div className="account-menu-banner" role="status">{message}</div>}
+          <div className="account-menu-section-label">Current Workspace</div>
+          {isWorkspaceManagementLocked ? (
+            <button
+              className="account-menu-item account-menu-item-muted"
+              type="button"
+              onClick={() => showMessage(workspaceManagementLockedMessage)}
+            >
+              {currentWorkspaceName}
+            </button>
+          ) : workspaces.length > 0 ? (
             <>
-              <div className="account-menu-section-label">Workspaces</div>
               {workspaces.map((workspace) => (
                 <button
                   key={workspace.workspaceId}
@@ -141,7 +164,7 @@ export function AccountMenu(props: Props): ReactElement {
               ))}
             </>
           ) : null}
-          {!isCreating ? (
+          {isWorkspaceManagementLocked ? null : !isCreating ? (
             <button
               className="account-menu-item account-menu-item-create"
               type="button"

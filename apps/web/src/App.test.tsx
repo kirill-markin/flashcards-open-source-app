@@ -114,6 +114,14 @@ vi.mock("./screens/DangerZoneScreen", () => ({
   DangerZoneScreen: () => <div>danger-zone-screen</div>,
 }));
 
+vi.mock("./screens/CurrentWorkspaceScreen", () => ({
+  CurrentWorkspaceScreen: () => <div>current-workspace-screen</div>,
+}));
+
+vi.mock("./screens/LegalSupportScreen", () => ({
+  LegalSupportScreen: () => <div>legal-support-screen</div>,
+}));
+
 function LocationProbe(): ReactNode {
   const location = useLocation();
   return <div data-testid="location">{location.pathname}</div>;
@@ -142,6 +150,15 @@ function createReadyAppData(overrides: Record<string, unknown> = {}): Record<str
     }],
     isChoosingWorkspace: false,
     isSyncing: false,
+    cloudSettings: {
+      deviceId: "device-1",
+      cloudState: "linked",
+      linkedUserId: "user-1",
+      linkedWorkspaceId: "workspace-1",
+      linkedEmail: "user@example.com",
+      onboardingCompleted: true,
+      updatedAt: "2026-03-10T09:00:00.000Z",
+    },
     errorMessage: "",
     initialize: vi.fn(async () => undefined),
     chooseWorkspace: vi.fn(async () => undefined),
@@ -212,7 +229,7 @@ describe("AppShell", () => {
     expect(container.textContent).not.toContain("Syncing...");
 
     const settingsNavLink = Array.from(container.querySelectorAll(".nav-link")).find((element) => element.textContent?.trim() === "Settings");
-    expect(settingsNavLink?.getAttribute("href")).toBe("/settings/workspace");
+    expect(settingsNavLink?.getAttribute("href")).toBe("/settings");
 
     const accountMenuButton = container.querySelector(".account-menu-button");
     expect(accountMenuButton).not.toBeNull();
@@ -221,6 +238,7 @@ describe("AppShell", () => {
       accountMenuButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
+    expect(container.textContent).toContain("Current Workspace");
     expect(container.textContent).toContain("Account settings");
     expect(container.querySelector('.account-menu-link[href="/settings/account"]')?.textContent).toBe("Account settings");
   });
@@ -241,10 +259,19 @@ describe("AppShell", () => {
     expect(container.textContent).toContain("Syncing...");
   });
 
-  it("shows the restoring indicator and locks account actions while the session is unverified", async () => {
+  it("shows the restoring indicator without disabling the account menu trigger while the session is unverified", async () => {
     useAppDataMock.mockReturnValue(createReadyAppData({
       sessionVerificationState: "unverified",
       isSessionVerified: false,
+      cloudSettings: {
+        deviceId: "device-1",
+        cloudState: "disconnected",
+        linkedUserId: null,
+        linkedWorkspaceId: null,
+        linkedEmail: null,
+        onboardingCompleted: false,
+        updatedAt: "2026-03-10T09:00:00.000Z",
+      },
     }));
 
     await act(async () => {
@@ -258,7 +285,7 @@ describe("AppShell", () => {
     expect(container.textContent).toContain("Restoring session...");
     const accountMenuButton = container.querySelector(".account-menu-button");
     expect(accountMenuButton).toBeInstanceOf(HTMLButtonElement);
-    expect((accountMenuButton as HTMLButtonElement).disabled).toBe(true);
+    expect((accountMenuButton as HTMLButtonElement).disabled).toBe(false);
   });
 });
 
@@ -437,6 +464,27 @@ describe("RoutedShell", () => {
     expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings");
   });
 
+  it("renders the dedicated current workspace route", async () => {
+    useChatLayoutMock.mockReturnValue({
+      isOpen: false,
+      setIsOpen: vi.fn(),
+      chatWidth: 560,
+      setChatWidth: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/settings/current-workspace"]}>
+          <RoutedShell />
+          <LocationProbe />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("current-workspace-screen");
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/current-workspace");
+  });
+
   it("renders the dedicated account settings route", async () => {
     useChatLayoutMock.mockReturnValue({
       isOpen: false,
@@ -456,6 +504,27 @@ describe("RoutedShell", () => {
 
     expect(container.textContent).toContain("account-settings-screen");
     expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/account");
+  });
+
+  it("renders the dedicated legal support route", async () => {
+    useChatLayoutMock.mockReturnValue({
+      isOpen: false,
+      setIsOpen: vi.fn(),
+      chatWidth: 560,
+      setChatWidth: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/settings/account/legal-support"]}>
+          <RoutedShell />
+          <LocationProbe />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("legal-support-screen");
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/settings/account/legal-support");
   });
 
   it("renders the dedicated access settings route", async () => {

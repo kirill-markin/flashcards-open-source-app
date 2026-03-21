@@ -88,8 +88,8 @@ export function ThisDeviceSettingsScreen(): ReactElement {
   return (
     <SettingsShell
       title="This Device"
-      subtitle="Review browser-local behavior for this workspace on this device."
-      activeSection="workspace"
+      subtitle="Review browser-local behavior, storage, and device details for the current workspace."
+      activeSection={null}
     >
       <div className="settings-nav-list">
         <article className="content-card settings-summary-card">
