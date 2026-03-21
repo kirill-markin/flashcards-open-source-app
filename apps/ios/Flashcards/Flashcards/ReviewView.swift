@@ -459,8 +459,10 @@ struct ReviewView: View {
                     navigation.openCardCreation()
                 } label: {
                     Label("Create card", systemImage: "plus")
+                        .font(.body)
+                        .imageScale(.medium)
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.glass)
 
                 Text("or")
                     .font(.footnote)
@@ -470,8 +472,10 @@ struct ReviewView: View {
                     navigation.openAICardCreation()
                 } label: {
                     Label("Create with AI", systemImage: "sparkles")
+                        .font(.body)
+                        .imageScale(.medium)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.glassProminent)
 
                 if shouldShowSwitchToAllCardsAction {
                     Text("or")
