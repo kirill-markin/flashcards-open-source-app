@@ -144,7 +144,7 @@ describe("WorkspaceSettingsScreen", () => {
   it("renders workspace settings entries in grouped order", async () => {
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings/workspace"]}>
           <WorkspaceSettingsScreen />
         </MemoryRouter>,
       );
@@ -159,6 +159,7 @@ describe("WorkspaceSettingsScreen", () => {
     expect(container.textContent).toContain("Scheduler");
     expect(container.textContent).toContain("Export");
     expect(container.textContent).not.toContain("This Device");
+    expect(container.querySelector(".settings-switcher-link-active")?.textContent).toBe("Workspace");
 
     const links = Array.from(container.querySelectorAll(".settings-nav-card")).map((element) => element.getAttribute("href"));
     expect(links).toEqual([

@@ -9,6 +9,7 @@ import {
   type BrowserMediaPermissionKind,
   type BrowserPermissionState,
 } from "../access/browserAccess";
+import { SettingsShell } from "./SettingsShared";
 
 type AccessDetailKind = "camera" | "microphone" | "photos-and-files";
 
@@ -98,30 +99,25 @@ export function AccessPermissionDetailScreen(): ReactElement {
   }
 
   return (
-    <main className="container settings-page">
-      <section className="panel settings-panel">
-        <div className="screen-head">
-          <div>
-            <h1 className="panel-subtitle">{content.title}</h1>
-            <p className="subtitle">{content.description}</p>
-          </div>
+    <SettingsShell
+      title={content.title}
+      subtitle={content.description}
+      activeTab="access"
+    >
+      {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}
+
+      <article className="content-card settings-summary-card">
+        <span className="cell-secondary">Status</span>
+        <strong className="panel-subtitle">{content.status}</strong>
+      </article>
+
+      {content.actionLabel !== null ? (
+        <div className="screen-actions">
+          <button className="primary-btn" type="button" onClick={() => void handleRequestAccess()}>
+            {content.actionLabel}
+          </button>
         </div>
-
-        {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}
-
-        <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Status</span>
-          <strong className="panel-subtitle">{content.status}</strong>
-        </article>
-
-        {content.actionLabel !== null ? (
-          <div className="screen-actions">
-            <button className="primary-btn" type="button" onClick={() => void handleRequestAccess()}>
-              {content.actionLabel}
-            </button>
-          </div>
-        ) : null}
-      </section>
-    </main>
+      ) : null}
+    </SettingsShell>
   );
 }

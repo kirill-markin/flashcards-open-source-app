@@ -24,7 +24,7 @@ export function AccountSettingsScreen(): ReactElement {
     <SettingsShell
       title="Account Settings"
       subtitle="Manage account state, support, connections, and irreversible actions."
-      activeSection="account"
+      activeTab="account"
     >
       <SettingsGroup>
         <div className="settings-nav-list">

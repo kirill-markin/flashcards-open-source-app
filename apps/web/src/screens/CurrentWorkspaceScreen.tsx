@@ -64,7 +64,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
     <SettingsShell
       title="Current Workspace"
       subtitle="Choose which workspace is active in this browser or create a new workspace for this account."
-      activeSection={null}
+      activeTab="current-workspace"
     >
       {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
 

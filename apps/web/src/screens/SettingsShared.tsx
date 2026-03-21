@@ -1,13 +1,20 @@
 import type { ReactElement, ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { accountSettingsRoute, workspaceSettingsRoute } from "../routes";
+import {
+  accountSettingsRoute,
+  settingsAccessRoute,
+  settingsCurrentWorkspaceRoute,
+  settingsDeviceRoute,
+  settingsHubRoute,
+  workspaceSettingsRoute,
+} from "../routes";
 
-type SettingsSection = "workspace" | "account";
+type SettingsTab = "general" | "current-workspace" | "workspace" | "account" | "device" | "access";
 
 type SettingsShellProps = Readonly<{
   title: string;
   subtitle: string;
-  activeSection: SettingsSection | null;
+  activeTab: SettingsTab;
   children: ReactNode;
 }>;
 
@@ -31,28 +38,67 @@ type SettingsGroupProps = Readonly<{
   children: ReactNode;
 }>;
 
+type SettingsTabItem = Readonly<{
+  key: SettingsTab;
+  label: string;
+  to: string;
+  end?: boolean;
+}>;
+
+const settingsTabs: ReadonlyArray<SettingsTabItem> = [
+  {
+    key: "general",
+    label: "General",
+    to: settingsHubRoute,
+    end: true,
+  },
+  {
+    key: "current-workspace",
+    label: "Current Workspace",
+    to: settingsCurrentWorkspaceRoute,
+    end: true,
+  },
+  {
+    key: "workspace",
+    label: "Workspace",
+    to: workspaceSettingsRoute,
+  },
+  {
+    key: "account",
+    label: "Account",
+    to: accountSettingsRoute,
+  },
+  {
+    key: "device",
+    label: "Device",
+    to: settingsDeviceRoute,
+    end: true,
+  },
+  {
+    key: "access",
+    label: "Access",
+    to: settingsAccessRoute,
+  },
+] as const;
+
 export function SettingsShell(props: SettingsShellProps): ReactElement {
-  const { title, subtitle, activeSection, children } = props;
+  const { title, subtitle, activeTab, children } = props;
 
   return (
     <main className="container settings-page">
       <section className="panel settings-panel">
-        {activeSection !== null ? (
-          <nav className="settings-switcher" aria-label="Settings sections">
+        <nav className="settings-switcher" aria-label="Settings tabs" data-active-tab={activeTab}>
+          {settingsTabs.map((tab) => (
             <NavLink
+              key={tab.key}
               className={({ isActive }) => `settings-switcher-link${isActive ? " settings-switcher-link-active" : ""}`}
-              to={workspaceSettingsRoute}
+              to={tab.to}
+              end={tab.end}
             >
-              Workspace
+              {tab.label}
             </NavLink>
-            <NavLink
-              className={({ isActive }) => `settings-switcher-link${isActive ? " settings-switcher-link-active" : ""}`}
-              to={accountSettingsRoute}
-            >
-              Account
-            </NavLink>
-          </nav>
-        ) : null}
+          ))}
+        </nav>
 
         <div className="screen-head">
           <div>

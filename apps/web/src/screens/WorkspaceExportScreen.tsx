@@ -40,7 +40,7 @@ export function WorkspaceExportScreen(): ReactElement {
     <SettingsShell
       title="Export"
       subtitle="Export active cards from this workspace in a standard CSV file."
-      activeSection="workspace"
+      activeTab="workspace"
     >
       <section className="settings-group">
         <h2 className="panel-subtitle">Available formats</h2>

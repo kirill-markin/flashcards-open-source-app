@@ -13,7 +13,7 @@ export function WorkspaceSchedulerScreen(): ReactElement {
     <SettingsShell
       title="Scheduler"
       subtitle="Review the scheduler configuration used for future reviews."
-      activeSection="workspace"
+      activeTab="workspace"
     >
       {workspaceSettings === null ? (
         <article className="content-card settings-summary-card">

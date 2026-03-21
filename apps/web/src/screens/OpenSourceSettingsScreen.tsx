@@ -8,7 +8,7 @@ export function OpenSourceSettingsScreen(): ReactElement {
     <SettingsShell
       title="Open Source"
       subtitle="Review the repository, license, and self-hosting references for the app stack."
-      activeSection="account"
+      activeTab="account"
     >
       <div className="settings-nav-list">
         <article className="content-card settings-summary-card">

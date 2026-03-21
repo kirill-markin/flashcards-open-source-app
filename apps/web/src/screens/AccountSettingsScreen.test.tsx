@@ -54,7 +54,7 @@ describe("AccountSettingsScreen", () => {
   it("renders account settings entries in the unified order", async () => {
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={["/settings/account"]}>
           <AccountSettingsScreen />
         </MemoryRouter>,
       );
@@ -68,6 +68,7 @@ describe("AccountSettingsScreen", () => {
     expect(container.textContent).toContain("Connections");
     expect(container.textContent).toContain("Agent Connections");
     expect(container.textContent).toContain("Danger Zone");
+    expect(container.querySelector(".settings-switcher-link-active")?.textContent).toBe("Account");
 
     const links = Array.from(container.querySelectorAll(".settings-nav-card")).map((element) => element.getAttribute("href"));
     expect(links).toEqual([

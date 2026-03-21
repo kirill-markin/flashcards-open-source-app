@@ -61,7 +61,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
       <SettingsShell
         title="Workspace Settings"
         subtitle="Manage workspace data, study settings, and device details."
-        activeSection="workspace"
+        activeTab="workspace"
       >
         <p className="error-banner">{errorMessage}</p>
         <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
@@ -75,7 +75,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
     <SettingsShell
       title="Workspace Settings"
       subtitle="Manage workspace overview, workspace data, study settings, and export."
-      activeSection="workspace"
+      activeTab="workspace"
     >
       <SettingsGroup>
         <div className="settings-nav-list">

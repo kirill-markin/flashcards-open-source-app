@@ -30,7 +30,7 @@ export function SettingsScreen(): ReactElement {
     <SettingsShell
       title="Settings"
       subtitle="Manage the current workspace, account, this device, and browser access."
-      activeSection={null}
+      activeTab="general"
     >
       {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
 

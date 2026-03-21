@@ -8,20 +8,26 @@
 }
 
 .settings-switcher {
-  display: inline-flex;
+  display: flex;
   gap: 8px;
+  max-width: 100%;
   margin-bottom: 20px;
   padding: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid var(--panel-border);
   border-radius: 999px;
   background: rgba(22, 22, 28, 0.72);
+  -webkit-overflow-scrolling: touch;
 }
 
 .settings-switcher-link {
+  flex: 0 0 auto;
   padding: 8px 14px;
   border-radius: 999px;
   color: var(--text-secondary);
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background 140ms ease,
     color 140ms ease;

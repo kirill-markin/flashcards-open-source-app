@@ -22,7 +22,7 @@ export function AccountStatusScreen(): ReactElement {
     <SettingsShell
       title="Account Status"
       subtitle="Review the current signed-in account and browser session."
-      activeSection="account"
+      activeTab="account"
     >
       <div className="settings-detail-grid">
         <article className="content-card settings-summary-card">

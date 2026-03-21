@@ -12,7 +12,7 @@ export function LegalSupportScreen(): ReactElement {
     <SettingsShell
       title="Legal & Support"
       subtitle="Review policy links and support contact details for the hosted app."
-      activeSection="account"
+      activeTab="account"
     >
       <div className="settings-nav-list">
         <article className="content-card settings-summary-card">
