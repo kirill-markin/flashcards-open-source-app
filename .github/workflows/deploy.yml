@@ -98,6 +98,9 @@ jobs:
           CTXEOF
           npx cdk deploy --all --require-approval never
 
+      - name: Check demo Cognito users
+        run: bash scripts/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
+
       - name: Run database migrations
         run: bash scripts/migrate-aws.sh --stack-name ${{ env.STACK_NAME }}
 
