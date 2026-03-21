@@ -67,7 +67,7 @@ The first deploy flow:
 - stores required runtime secrets in AWS Secrets Manager
 - stores optional AI and demo auth secrets in AWS Secrets Manager when configured
 - requests ACM certificates for API, auth, web, and apex redirect when needed
-- generates `infra/aws/cdk.context.local.json` as a transient local CDK input
+- assembles `infra/aws/cdk.context.local.json` as the local CDK input
 - bootstraps and deploys CDK
 - uploads web assets
 - configures Cloudflare DNS when requested
@@ -100,7 +100,7 @@ GitHub Actions deploys on push to `main` using the stack OIDC role. The reposito
 - GitHub variables for all non-secret deploy config, including certificate ARNs and secret ARNs
 - one GitHub secret for `AWS_DEPLOY_ROLE_ARN`
 
-The deploy workflow generates its own transient `cdk.context.local.json` inside the job and never depends on a committed or hand-maintained local context file.
+The deploy workflow assembles its own `cdk.context.local.json` inside the job from GitHub deploy config.
 
 Guest AI quota is configured separately:
 

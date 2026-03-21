@@ -24,10 +24,10 @@ const getRequiredContext = (key: string, hint: string): string => {
   return value;
 };
 
-const region = getRequiredContext("region", "Generate cdk.context.local.json first or pass via -c region=eu-central-1");
-const domainName = getRequiredContext("domainName", "Generate cdk.context.local.json first or pass via -c domainName=flashcards-open-source-app.com");
-const alertEmail = getRequiredContext("alertEmail", "Generate cdk.context.local.json first or pass via -c alertEmail=alerts@example.com");
-const githubRepo = getRequiredContext("githubRepo", "Generate cdk.context.local.json first or pass via -c githubRepo=kirill-markin/flashcards-open-source-app");
+const region = getRequiredContext("region", "Provide CDK context via the local helper scripts or pass -c region=eu-central-1");
+const domainName = getRequiredContext("domainName", "Provide CDK context via the local helper scripts or pass -c domainName=flashcards-open-source-app.com");
+const alertEmail = getRequiredContext("alertEmail", "Provide CDK context via the local helper scripts or pass -c alertEmail=alerts@example.com");
+const githubRepo = getRequiredContext("githubRepo", "Provide CDK context via the local helper scripts or pass -c githubRepo=kirill-markin/flashcards-open-source-app");
 
 new FlashcardsOpenSourceAppStack(app, "FlashcardsOpenSourceApp", {
   env: {
