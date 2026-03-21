@@ -1,13 +1,15 @@
 /**
  * Keep web settings navigation aligned with iOS:
- * Settings is a hub with separate workspace and account destinations.
+ * Settings is the root settings screen, with workspace/account drill-ins.
  */
 export const reviewRoute: string = "/review";
 export const cardsRoute: string = "/cards";
 export const chatRoute: string = "/chat";
 export const settingsHubRoute: string = "/settings";
+export const settingsCurrentWorkspaceRoute: string = "/settings/current-workspace";
 export const workspaceSettingsRoute: string = "/settings/workspace";
 export const accountSettingsRoute: string = "/settings/account";
+export const settingsDeviceRoute: string = "/settings/device";
 export const settingsAccessRoute: string = "/settings/access";
 export const settingsOverviewRoute: string = "/settings/workspace/overview";
 export const settingsSchedulerRoute: string = "/settings/workspace/scheduler";
@@ -16,8 +18,8 @@ export const settingsAccessDetailRoutePattern: string = "/settings/access/:acces
 export const settingsDecksRoute: string = "/settings/workspace/decks";
 export const settingsDeckNewRoute: string = "/settings/workspace/decks/new";
 export const settingsTagsRoute: string = "/settings/workspace/tags";
-export const settingsDeviceRoute: string = "/settings/workspace/device";
 export const accountStatusRoute: string = "/settings/account/status";
+export const accountLegalSupportRoute: string = "/settings/account/legal-support";
 export const accountOpenSourceRoute: string = "/settings/account/open-source";
 export const accountAgentConnectionsRoute: string = "/settings/account/agent-connections";
 export const accountDangerZoneRoute: string = "/settings/account/danger-zone";

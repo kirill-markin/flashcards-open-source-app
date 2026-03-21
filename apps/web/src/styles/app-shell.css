@@ -205,6 +205,11 @@
   background: var(--accent-soft);
 }
 
+.account-menu-item-muted {
+  color: var(--text-secondary);
+  opacity: 0.72;
+}
+
 .account-menu-item-create {
   color: var(--accent-strong);
 }
@@ -247,6 +252,17 @@
   padding: 8px 4px 0;
   font-size: 12px;
   color: var(--danger);
+}
+
+.account-menu-banner {
+  margin: 2px 2px 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(196, 75, 45, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(196, 75, 45, 0.12);
+  color: #ffd7cb;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .global-error-wrap {

@@ -151,24 +151,22 @@ describe("WorkspaceSettingsScreen", () => {
     });
 
     expect(container.textContent).toContain("Workspace Settings");
+    expect(container.textContent).toContain("Overview");
     expect(container.textContent).toContain("Workspace Data");
     expect(container.textContent).toContain("Decks");
     expect(container.textContent).toContain("Tags");
     expect(container.textContent).toContain("Settings");
-    expect(container.textContent).toContain("Overview");
     expect(container.textContent).toContain("Scheduler");
     expect(container.textContent).toContain("Export");
-    expect(container.textContent).toContain("Device");
-    expect(container.textContent).toContain("This Device");
+    expect(container.textContent).not.toContain("This Device");
 
     const links = Array.from(container.querySelectorAll(".settings-nav-card")).map((element) => element.getAttribute("href"));
     expect(links).toEqual([
+      "/settings/workspace/overview",
       "/settings/workspace/decks",
       "/settings/workspace/tags",
-      "/settings/workspace/overview",
       "/settings/workspace/scheduler",
       "/settings/workspace/export",
-      "/settings/workspace/device",
     ]);
   });
 });

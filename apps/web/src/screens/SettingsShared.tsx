@@ -18,6 +18,19 @@ type SettingsNavigationCardProps = Readonly<{
   to: string;
 }>;
 
+type SettingsActionCardProps = Readonly<{
+  title: string;
+  description: string;
+  value: string;
+  onClick: () => void;
+  isMuted?: boolean;
+}>;
+
+type SettingsGroupProps = Readonly<{
+  title?: string;
+  children: ReactNode;
+}>;
+
 export function SettingsShell(props: SettingsShellProps): ReactElement {
   const { title, subtitle, activeSection, children } = props;
 
@@ -65,5 +78,34 @@ export function SettingsNavigationCard(props: SettingsNavigationCardProps): Reac
       </div>
       <span className="badge">{value}</span>
     </Link>
+  );
+}
+
+export function SettingsActionCard(props: SettingsActionCardProps): ReactElement {
+  const { title, description, value, onClick, isMuted } = props;
+
+  return (
+    <button
+      className={`settings-nav-card settings-nav-card-button content-card${isMuted ? " settings-nav-card-muted" : ""}`}
+      type="button"
+      onClick={onClick}
+    >
+      <div className="settings-nav-card-copy">
+        <strong className="panel-subtitle">{title}</strong>
+        <p className="subtitle">{description}</p>
+      </div>
+      <span className="badge">{value}</span>
+    </button>
+  );
+}
+
+export function SettingsGroup(props: SettingsGroupProps): ReactElement {
+  const { title, children } = props;
+
+  return (
+    <section className="settings-group">
+      {title === undefined ? null : <h2 className="panel-subtitle">{title}</h2>}
+      {children}
+    </section>
   );
 }

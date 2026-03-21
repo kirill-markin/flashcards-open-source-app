@@ -15,6 +15,7 @@ import { ChatToggle } from "./chat/ChatToggle";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
+  accountLegalSupportRoute,
   accountOpenSourceRoute,
   accountSettingsRoute,
   accountStatusRoute,
@@ -25,6 +26,7 @@ import {
   reviewRoute,
   settingsAccessRoute,
   settingsAccessDetailRoutePattern,
+  settingsCurrentWorkspaceRoute,
   settingsDeckNewRoute,
   settingsDecksRoute,
   settingsDeviceRoute,
@@ -35,6 +37,7 @@ import {
   settingsTagsRoute,
   workspaceSettingsRoute,
 } from "./routes";
+import { isWorkspaceManagementLocked, workspaceManagementLockedBannerMessage } from "./workspaceManagement";
 import { CardFormScreen } from "./screens/CardFormScreen";
 import { CardsScreen } from "./screens/CardsScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
@@ -67,8 +70,14 @@ const DecksScreen = lazy(async () => import("./screens/DecksScreen").then((modul
 const DangerZoneScreen = lazy(async () => import("./screens/DangerZoneScreen").then((module) => ({
   default: module.DangerZoneScreen,
 })));
+const CurrentWorkspaceScreen = lazy(async () => import("./screens/CurrentWorkspaceScreen").then((module) => ({
+  default: module.CurrentWorkspaceScreen,
+})));
 const SettingsScreen = lazy(async () => import("./screens/SettingsScreen").then((module) => ({
   default: module.SettingsScreen,
+})));
+const LegalSupportScreen = lazy(async () => import("./screens/LegalSupportScreen").then((module) => ({
+  default: module.LegalSupportScreen,
 })));
 const OpenSourceSettingsScreen = lazy(async () => import("./screens/OpenSourceSettingsScreen").then((module) => ({
   default: module.OpenSourceSettingsScreen,
@@ -215,11 +224,13 @@ export function AppShell(): ReactElement {
     initialize,
     chooseWorkspace,
     createWorkspace,
+    cloudSettings,
   } = useAppData();
   const [isAccountDeletionPendingState, setIsAccountDeletionPendingState] = useState<boolean>(isAccountDeletionPending);
   const [accountDeletionErrorMessage, setAccountDeletionErrorMessage] = useState<string>("");
   const [isAccountDeletionSubmitting, setIsAccountDeletionSubmitting] = useState<boolean>(false);
   const sessionRestoringMessage = sessionVerificationState === "unverified" ? "Restoring session..." : "";
+  const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
 
   const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
     if (isSessionVerified === false) {
@@ -381,7 +392,7 @@ export function AppShell(): ReactElement {
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={chatRoute}>
                 AI chat
               </NavLink>
-              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={workspaceSettingsRoute}>
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={settingsHubRoute}>
                 Settings
               </NavLink>
             </nav>
@@ -389,8 +400,10 @@ export function AppShell(): ReactElement {
               <AccountMenu
                 workspaces={availableWorkspaces}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
-                isBusy={isChoosingWorkspace || isSessionVerified === false}
-                lockedMessage={sessionRestoringMessage}
+                currentWorkspaceName={activeWorkspace?.name ?? "Unavailable"}
+                isBusy={isChoosingWorkspace}
+                isWorkspaceManagementLocked={isWorkspaceLocked}
+                workspaceManagementLockedMessage={workspaceManagementLockedBannerMessage}
                 accountSettingsUrl={accountSettingsRoute}
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}
@@ -465,6 +478,10 @@ export function RoutedShell(): ReactElement {
           <Route path="/tags" element={<Navigate replace to={settingsTagsRoute} />} />
           <Route path={reviewRoute} element={<ReviewScreen />} />
           <Route path={settingsHubRoute} element={renderDeferredRoute(<SettingsScreen />, "Loading settings…")} />
+          <Route
+            path={settingsCurrentWorkspaceRoute}
+            element={renderDeferredRoute(<CurrentWorkspaceScreen />, "Loading current workspace…")}
+          />
           <Route path={settingsAccessRoute} element={renderDeferredRoute(<AccessSettingsScreen />, "Loading access settings…")} />
           <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "Loading access details…")} />
           <Route path={workspaceSettingsRoute} element={renderDeferredRoute(<WorkspaceSettingsScreen />, "Loading workspace settings…")} />
@@ -479,6 +496,7 @@ export function RoutedShell(): ReactElement {
           <Route path={settingsDeviceRoute} element={renderDeferredRoute(<ThisDeviceSettingsScreen />, "Loading device details…")} />
           <Route path={accountSettingsRoute} element={renderDeferredRoute(<AccountSettingsScreen />, "Loading account settings…")} />
           <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "Loading account status…")} />
+          <Route path={accountLegalSupportRoute} element={renderDeferredRoute(<LegalSupportScreen />, "Loading legal support…")} />
           <Route path={accountOpenSourceRoute} element={renderDeferredRoute(<OpenSourceSettingsScreen />, "Loading open-source settings…")} />
           <Route path={accountAgentConnectionsRoute} element={renderDeferredRoute(<AgentConnectionsScreen />, "Loading agent connections…")} />
           <Route path={accountDangerZoneRoute} element={renderDeferredRoute(<DangerZoneScreen />, "Loading danger zone…")} />

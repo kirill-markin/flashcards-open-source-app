@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import {
   settingsDecksRoute,
-  settingsDeviceRoute,
   settingsExportRoute,
   settingsOverviewRoute,
   settingsSchedulerRoute,
@@ -10,7 +9,7 @@ import {
 } from "../routes";
 import { loadDecksListSnapshot } from "../localDb/decks";
 import { loadWorkspaceTagsSummary } from "../localDb/workspace";
-import { SettingsNavigationCard, SettingsShell } from "./SettingsShared";
+import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 export function WorkspaceSettingsScreen(): ReactElement {
   const { activeWorkspace, localReadVersion, refreshLocalData, workspaceSettings } = useAppData();
@@ -75,11 +74,21 @@ export function WorkspaceSettingsScreen(): ReactElement {
   return (
     <SettingsShell
       title="Workspace Settings"
-      subtitle="Manage workspace data, study settings, and device details."
+      subtitle="Manage workspace overview, workspace data, study settings, and export."
       activeSection="workspace"
     >
-      <section className="settings-group">
-        <h2 className="panel-subtitle">Workspace Data</h2>
+      <SettingsGroup>
+        <div className="settings-nav-list">
+          <SettingsNavigationCard
+            title="Overview"
+            description="Review workspace name, counts, and today stats."
+            value={`${activeCardCount} cards`}
+            to={settingsOverviewRoute}
+          />
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup title="Workspace Data">
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title="Decks"
@@ -94,17 +103,10 @@ export function WorkspaceSettingsScreen(): ReactElement {
             to={settingsTagsRoute}
           />
         </div>
-      </section>
+      </SettingsGroup>
 
-      <section className="settings-group">
-        <h2 className="panel-subtitle">Settings</h2>
+      <SettingsGroup title="Settings">
         <div className="settings-nav-list">
-          <SettingsNavigationCard
-            title="Overview"
-            description="Review workspace name, counts, and today stats."
-            value={`${activeCardCount} cards`}
-            to={settingsOverviewRoute}
-          />
           <SettingsNavigationCard
             title="Scheduler"
             description="Review the active scheduler configuration for future reviews."
@@ -118,19 +120,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
             to={settingsExportRoute}
           />
         </div>
-      </section>
-
-      <section className="settings-group">
-        <h2 className="panel-subtitle">Device</h2>
-        <div className="settings-nav-list">
-          <SettingsNavigationCard
-            title="This Device"
-            description="Review browser, app version, build, and local-storage details for this device."
-            value="Technical info"
-            to={settingsDeviceRoute}
-          />
-        </div>
-      </section>
+      </SettingsGroup>
     </SettingsShell>
   );
 }
