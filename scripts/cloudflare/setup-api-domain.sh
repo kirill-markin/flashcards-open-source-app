@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 # Create an ACM public certificate for the API Gateway custom domain and validate via Cloudflare DNS.
-# Run once before CDK deploy (only if you want a custom API domain like api.yourdomain.com).
+# Run once before CDK deploy when you want a custom API domain like api.yourdomain.com.
 #
-# API Gateway custom domains require a publicly trusted certificate (Cloudflare Origin
-# Certificates are not accepted). ACM public certificates are free and auto-renew.
-#
-# Required env vars:
+# Required env vars from root .env or the current shell:
 #   CLOUDFLARE_API_TOKEN  — API token with Zone:DNS:Edit
 #   CLOUDFLARE_ZONE_ID    — Zone ID from Cloudflare
-#   AWS_PROFILE           — AWS CLI profile for the target account
 #
 # Usage:
-#   export CLOUDFLARE_API_TOKEN="..." CLOUDFLARE_ZONE_ID="..." AWS_PROFILE=flashcards-open-source-app
 #   bash scripts/cloudflare/setup-api-domain.sh --domain flashcards-open-source-app.com --region eu-central-1
 
 set -euo pipefail
@@ -20,19 +15,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/load-env.sh"
 
-# --- Parse arguments ---
 DOMAIN=""
 REGION=""
 API_SUBDOMAIN="api"
-CONTEXT_FILE=""
-CONTEXT_KEY="apiCertificateArn"
+CERTIFICATE_PURPOSE="api-domain"
+
 while [[ $# -gt 0 ]]; do
   case $1 in
     --domain) DOMAIN="$2"; shift 2 ;;
     --region) REGION="$2"; shift 2 ;;
     --api-subdomain) API_SUBDOMAIN="$2"; shift 2 ;;
-    --context-file) CONTEXT_FILE="$2"; shift 2 ;;
-    --context-key) CONTEXT_KEY="$2"; shift 2 ;;
+    --certificate-purpose) CERTIFICATE_PURPOSE="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -47,19 +40,19 @@ fi
 
 API_DOMAIN="${API_SUBDOMAIN}.${DOMAIN}"
 
-# --- Step 1: Request ACM certificate ---
-# API Gateway regional custom domain requires the certificate in the same region as the API.
 echo "Requesting ACM certificate for ${API_DOMAIN} in ${REGION}..."
 
 CERT_ARN=$(aws acm request-certificate \
   --region "$REGION" \
   --domain-name "$API_DOMAIN" \
   --validation-method DNS \
-  --query "CertificateArn" --output text)
+  --tags \
+    Key=flashcards:project,Value=flashcards-open-source-app \
+    Key=flashcards:purpose,Value="${CERTIFICATE_PURPOSE}" \
+  --query "CertificateArn" \
+  --output text)
 
 echo "Certificate ARN: ${CERT_ARN}"
-
-# --- Step 2: Wait for validation record to appear ---
 echo "Waiting for ACM to generate validation DNS record..."
 
 VALIDATION_JSON=""
@@ -82,13 +75,10 @@ if [[ "$VALIDATION_JSON" == "null" || -z "$VALIDATION_JSON" ]]; then
   exit 1
 fi
 
-# Strip trailing dots (Cloudflare API does not want them)
 VALIDATION_NAME=$(echo "$VALIDATION_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['Name'].rstrip('.'))")
 VALIDATION_VALUE=$(echo "$VALIDATION_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['Value'].rstrip('.'))")
 
 echo "Validation CNAME: ${VALIDATION_NAME} -> ${VALIDATION_VALUE}"
-
-# --- Step 3: Create validation CNAME in Cloudflare (DNS-only, not proxied) ---
 echo "Creating ACM validation CNAME in Cloudflare (DNS-only)..."
 
 EXISTING=$(curl -s "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records?name=${VALIDATION_NAME}&type=CNAME" \
@@ -122,7 +112,6 @@ else
     }" | python3 -c 'import sys,json; r=json.load(sys.stdin); print("OK" if r["success"] else json.dumps(r["errors"], indent=2))'
 fi
 
-# --- Step 4: Wait for certificate to be ISSUED ---
 echo "Waiting for ACM certificate validation (this may take 5-30 minutes)..."
 
 aws acm wait certificate-validated \
@@ -132,31 +121,10 @@ aws acm wait certificate-validated \
 echo ""
 echo "Certificate ISSUED."
 echo "ARN: ${CERT_ARN}"
-
-if [[ -n "$CONTEXT_FILE" ]]; then
-  python3 - "$CONTEXT_FILE" "$CERT_ARN" "$CONTEXT_KEY" <<'PY'
-import json
-import pathlib
-import sys
-
-path = pathlib.Path(sys.argv[1])
-certificate_arn = sys.argv[2]
-context_key = sys.argv[3]
-context = {}
-if path.exists():
-    context = json.loads(path.read_text())
-context[context_key] = certificate_arn
-path.write_text(json.dumps(context, indent=2) + "\n")
-PY
-  echo "Updated ${CONTEXT_FILE} with ${CONTEXT_KEY}."
-fi
-echo ""
-echo "Add this to cdk.context.local.json:"
-echo "  \"${CONTEXT_KEY}\": \"${CERT_ARN}\""
+echo "This certificate can now be rediscovered by setup-github.sh and generate-cdk-context.sh."
 echo ""
 echo "Do NOT delete the validation CNAME record — ACM needs it for automatic renewal."
 echo ""
 echo "Next steps:"
-echo "  1. Add ${CONTEXT_KEY} to cdk.context.local.json"
-echo "  2. Run: npx cdk deploy"
-echo "  3. Run: bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain ${DOMAIN}"
+echo "  1. Run: bash scripts/bootstrap.sh --region ${REGION}"
+echo "  2. Run: bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain ${DOMAIN}"

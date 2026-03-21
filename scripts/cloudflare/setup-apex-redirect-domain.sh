@@ -9,18 +9,16 @@ source "${SCRIPT_DIR}/load-env.sh"
 
 DOMAIN=""
 REGION="us-east-1"
-CONTEXT_FILE=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --domain) DOMAIN="$2"; shift 2 ;;
-    --context-file) CONTEXT_FILE="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
 
 if [[ -z "$DOMAIN" ]]; then
-  echo "Usage: $0 --domain <domain> [--context-file <path>]" >&2
+  echo "Usage: $0 --domain <domain>" >&2
   exit 1
 fi
 
@@ -33,7 +31,11 @@ CERT_ARN=$(aws acm request-certificate \
   --region "$REGION" \
   --domain-name "$DOMAIN" \
   --validation-method DNS \
-  --query "CertificateArn" --output text)
+  --tags \
+    Key=flashcards:project,Value=flashcards-open-source-app \
+    Key=flashcards:purpose,Value=apex-redirect-domain \
+  --query "CertificateArn" \
+  --output text)
 
 echo "Certificate ARN: ${CERT_ARN}"
 echo "Waiting for ACM to generate validation DNS record..."
@@ -99,24 +101,4 @@ aws acm wait certificate-validated \
 echo ""
 echo "Certificate ISSUED."
 echo "ARN: ${CERT_ARN}"
-
-if [[ -n "$CONTEXT_FILE" ]]; then
-  python3 - "$CONTEXT_FILE" "$CERT_ARN" <<'PY'
-import json
-import pathlib
-import sys
-
-path = pathlib.Path(sys.argv[1])
-certificate_arn = sys.argv[2]
-context = {}
-if path.exists():
-    context = json.loads(path.read_text())
-context["apexRedirectCertificateArnUsEast1"] = certificate_arn
-path.write_text(json.dumps(context, indent=2) + "\n")
-PY
-  echo "Updated ${CONTEXT_FILE} with apexRedirectCertificateArnUsEast1."
-fi
-
-echo ""
-echo "Add this to cdk.context.local.json:"
-echo "  \"apexRedirectCertificateArnUsEast1\": \"${CERT_ARN}\""
+echo "This certificate can now be rediscovered by setup-github.sh and generate-cdk-context.sh."

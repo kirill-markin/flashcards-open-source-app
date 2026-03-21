@@ -7,8 +7,13 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CDK_DIR="${ROOT_DIR}/infra/aws"
 
-REGION=""
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/root-env.sh"
+load_root_env
+
+REGION="${AWS_REGION:-}"
 STACK_NAME="FlashcardsOpenSourceApp"
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --region) REGION="$2"; shift 2 ;;
@@ -22,12 +27,6 @@ if [[ -z "$REGION" ]]; then
   exit 1
 fi
 
-if [[ ! -f "${CDK_DIR}/cdk.context.local.json" ]]; then
-  echo "ERROR: ${CDK_DIR}/cdk.context.local.json not found." >&2
-  echo "Copy cdk.context.local.example.json and fill values first." >&2
-  exit 1
-fi
-
 echo "=== Install dependencies ==="
 npm ci --silent --prefix "${ROOT_DIR}/api"
 npm ci --silent --prefix "${ROOT_DIR}/apps/backend"
@@ -37,9 +36,20 @@ npm ci --silent --prefix "$CDK_DIR"
 echo "=== Bundle OpenAPI spec ==="
 npm run bundle --silent --prefix "${ROOT_DIR}/api"
 
+echo "=== Configure required Resend secret ==="
+bash "${ROOT_DIR}/scripts/setup-resend-secret.sh" --region "$REGION"
+
 echo "=== Configure optional AI secrets ==="
-bash "${ROOT_DIR}/scripts/setup-ai-secrets.sh" \
-  --context-file "${CDK_DIR}/cdk.context.local.json" \
+bash "${ROOT_DIR}/scripts/setup-ai-secrets.sh" --region "$REGION"
+
+if [[ -n "${DEMO_PASSWORD_DOSTIP:-}" ]]; then
+  echo "=== Configure optional demo auth secret ==="
+  bash "${ROOT_DIR}/scripts/setup-auth-secrets.sh" --region "$REGION"
+fi
+
+echo "=== Generate CDK context ==="
+bash "${ROOT_DIR}/scripts/generate-cdk-context.sh" \
+  --output "${CDK_DIR}/cdk.context.local.json" \
   --region "$REGION"
 
 echo "=== CDK bootstrap ==="
