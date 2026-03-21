@@ -60,6 +60,8 @@ jobs:
               - '.github/workflows/ci.yml'
             web:
               - 'apps/web/**'
+              - 'apps/backend/src/schedule.ts'
+              - 'apps/backend/src/workspaceSchedulerConfig.ts'
               - '.github/workflows/ci.yml'
             infra:
               - 'infra/**'
