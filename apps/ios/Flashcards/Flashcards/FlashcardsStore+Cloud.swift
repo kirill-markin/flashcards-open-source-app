@@ -36,7 +36,7 @@ extension FlashcardsStore {
         self.applyReviewPublishedState(
             reviewState: ReviewQueueRuntime.makeInitialPublishedState(selectedReviewFilter: .allCards)
         )
-        self.reviewOverlayBanner = nil
+        self.clearTransientBanners()
         self.lastSuccessfulCloudSyncAt = nil
         self.syncStatus = .idle
         self.globalErrorMessage = ""

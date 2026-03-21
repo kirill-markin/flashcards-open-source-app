@@ -7,7 +7,6 @@ struct CurrentWorkspaceView: View {
     @State private var linkedWorkspaces: [CloudWorkspaceSummary]? = nil
     @State private var isWorkspacePickerPresented: Bool = false
     @State private var isWorkspacePickerLoading: Bool = false
-    @State private var settingsBanner: SettingsOverlayBanner? = nil
 
     private var currentWorkspaceName: String {
         self.store.workspace?.name ?? "Unavailable"
@@ -53,41 +52,11 @@ struct CurrentWorkspaceView: View {
                 .environment(self.store)
             }
         }
-        .overlay(alignment: .top) {
-            if let settingsBanner = self.settingsBanner {
-                SettingsOverlayBannerView(
-                    banner: settingsBanner,
-                    onDismiss: {
-                        self.dismissSettingsBanner()
-                    }
-                )
-                .padding(.top, 8)
-                .padding(.horizontal, 16)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .task(id: self.settingsBanner?.id) {
-            guard self.settingsBanner != nil else {
-                return
-            }
-
-            do {
-                try await Task.sleep(nanoseconds: settingsBannerDismissDelayNanoseconds)
-            } catch {
-                return
-            }
-
-            if Task.isCancelled {
-                return
-            }
-
-            self.dismissSettingsBanner()
-        }
     }
 
     private func handleWorkspaceRowTap() {
         guard self.isWorkspaceManagementLocked == false else {
-            self.showSettingsBanner(message: settingsWorkspaceLockedBannerMessage)
+            self.store.enqueueTransientBanner(banner: makeWorkspaceChangesRequireAccountBanner())
             return
         }
 
@@ -108,21 +77,6 @@ struct CurrentWorkspaceView: View {
             } catch {
                 self.screenErrorMessage = Flashcards.errorMessage(error: error)
             }
-        }
-    }
-
-    private func showSettingsBanner(message: String) {
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-            self.settingsBanner = SettingsOverlayBanner(
-                id: UUID().uuidString,
-                message: message
-            )
-        }
-    }
-
-    private func dismissSettingsBanner() {
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-            self.settingsBanner = nil
         }
     }
 }

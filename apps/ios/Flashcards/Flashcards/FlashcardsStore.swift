@@ -70,7 +70,8 @@ final class FlashcardsStore {
     var cloudSyncFastPollingUntil: Date?
     var pendingReviewCardIds: Set<String>
     var reviewSubmissionFailure: ReviewSubmissionFailure?
-    var reviewOverlayBanner: ReviewOverlayBanner?
+    var currentTransientBanner: TransientBanner?
+    var queuedTransientBanners: [TransientBanner]
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
     var localReadVersion: Int
@@ -272,7 +273,8 @@ final class FlashcardsStore {
         self.cloudSyncFastPollingUntil = nil
         self.pendingReviewCardIds = initialReviewPublishedState.pendingReviewCardIds
         self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
-        self.reviewOverlayBanner = nil
+        self.currentTransientBanner = nil
+        self.queuedTransientBanners = []
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
         self.localReadVersion = 0
