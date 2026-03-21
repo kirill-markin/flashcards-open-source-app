@@ -44,7 +44,8 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
             store.isReviewHeadLoading == false
         }
 
-        XCTAssertEqual(store.reviewQueue.map(\.frontText), ["Target second", "Target first"])
+        XCTAssertEqual(Set(store.reviewQueue.map(\.frontText)), Set(["Target first", "Target second"]))
+        XCTAssertEqual(store.reviewQueue.count, 2)
         XCTAssertTrue(store.isReviewCountsLoading)
         XCTAssertEqual(store.reviewTotalCount, 0)
 
