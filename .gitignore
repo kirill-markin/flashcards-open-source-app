@@ -13,6 +13,7 @@
 !**/.env.example
 
 # AWS CDK local context and synth outputs
+infra/aws/cdk.context.json
 infra/aws/cdk.context.local.json
 infra/aws/cdk.out/
 api/dist/
