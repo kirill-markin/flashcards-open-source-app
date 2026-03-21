@@ -11,6 +11,7 @@
     "synth": "cdk synth"
   },
   "dependencies": {
+    "@aws-crypto/client-node": "^4.2.2",
     "aws-cdk-lib": "^2.243.0",
     "constructs": "^10.5.1"
   },
