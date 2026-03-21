@@ -131,6 +131,7 @@ extension AIChatView {
                             aiChatComposerAccessoryIcon(systemName: "paperclip")
                         }
                         .buttonStyle(.glass)
+                        .tint(.accentColor)
                         .disabled(self.chatStore.dictationState != .idle)
                         .accessibilityLabel("Add attachment")
                         .accessibilityHint("Take a photo, choose a photo, or select a file")
