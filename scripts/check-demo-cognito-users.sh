@@ -62,7 +62,7 @@ fi
 
 LAMBDA_CONFIG_JSON="$(aws "${AWS_REGION_ARGS[@]}" lambda get-function-configuration \
   --function-name "$AUTH_FUNCTION_NAME" \
-  --query '{demoEmails: Environment.Variables.DEMO_EMAIL_DOSTIP, demoPassword: Environment.Variables.DEMO_PASSWORD_DOSTIP, userPoolId: Environment.Variables.COGNITO_USER_POOL_ID, cognitoRegion: Environment.Variables.COGNITO_REGION}' \
+  --query '{demoEmails: Environment.Variables.DEMO_EMAIL_DOSTIP, demoPassword: Environment.Variables.DEMO_PASSWORD_DOSTIP, demoPasswordSecretArn: Environment.Variables.DEMO_PASSWORD_SECRET_ARN, userPoolId: Environment.Variables.COGNITO_USER_POOL_ID, cognitoRegion: Environment.Variables.COGNITO_REGION}' \
   --output json)"
 
 readarray -t CONFIG_LINES < <(python3 - <<'PY' "$LAMBDA_CONFIG_JSON"
@@ -74,6 +74,7 @@ demo_emails = config.get("demoEmails") or ""
 emails = [value.strip().lower() for value in demo_emails.split(",") if value.strip()]
 
 print(config.get("demoPassword") or "")
+print(config.get("demoPasswordSecretArn") or "")
 print(config.get("userPoolId") or "")
 print(config.get("cognitoRegion") or "")
 for email in emails:
@@ -82,17 +83,18 @@ PY
 )
 
 DEMO_PASSWORD="${CONFIG_LINES[0]:-}"
-USER_POOL_ID="${CONFIG_LINES[1]:-}"
-COGNITO_REGION="${CONFIG_LINES[2]:-}"
-DEMO_EMAILS=("${CONFIG_LINES[@]:3}")
+DEMO_PASSWORD_SECRET_ARN="${CONFIG_LINES[1]:-}"
+USER_POOL_ID="${CONFIG_LINES[2]:-}"
+COGNITO_REGION="${CONFIG_LINES[3]:-}"
+DEMO_EMAILS=("${CONFIG_LINES[@]:4}")
 
 if [[ "${#DEMO_EMAILS[@]}" -eq 0 ]]; then
   echo "No review/demo Cognito users are configured in auth Lambda."
   exit 0
 fi
 
-if [[ -z "$DEMO_PASSWORD" ]]; then
-  echo "ERROR: DEMO_PASSWORD_DOSTIP is empty while DEMO_EMAIL_DOSTIP is configured on ${AUTH_FUNCTION_NAME}." >&2
+if [[ -n "$DEMO_PASSWORD" && -n "$DEMO_PASSWORD_SECRET_ARN" ]]; then
+  echo "ERROR: Configure only one of DEMO_PASSWORD_DOSTIP or DEMO_PASSWORD_SECRET_ARN on ${AUTH_FUNCTION_NAME}." >&2
   exit 1
 fi
 
@@ -108,6 +110,18 @@ fi
 if [[ -z "$COGNITO_REGION" ]]; then
   echo "ERROR: Could not determine Cognito region. Pass --region or configure it in ${CONTEXT_FILE}." >&2
   exit 1
+fi
+
+if [[ -z "$DEMO_PASSWORD" && -z "$DEMO_PASSWORD_SECRET_ARN" ]]; then
+  echo "ERROR: DEMO_PASSWORD_DOSTIP and DEMO_PASSWORD_SECRET_ARN are empty while DEMO_EMAIL_DOSTIP is configured on ${AUTH_FUNCTION_NAME}." >&2
+  exit 1
+fi
+
+if [[ -n "$DEMO_PASSWORD_SECRET_ARN" ]]; then
+  DEMO_PASSWORD="$(aws --region "$COGNITO_REGION" secretsmanager get-secret-value \
+    --secret-id "$DEMO_PASSWORD_SECRET_ARN" \
+    --query 'SecretString' \
+    --output text)"
 fi
 
 PASSWORD_POLICY_JSON="$(aws --region "$COGNITO_REGION" cognito-idp describe-user-pool \

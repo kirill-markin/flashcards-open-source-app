@@ -1,11 +1,16 @@
+import { getPlaintextSecret } from "./secrets.js";
+
 type DemoEmailAccessConfig = Readonly<{
   emailAllowlist: ReadonlySet<string>;
   sharedPassword: string | null;
+  passwordSecretArn: string | null;
 }>;
 
 const demoEmailGuardianDomain = "example.com";
 
 let resolvedDemoEmailAccessConfig: DemoEmailAccessConfig | undefined;
+let cachedDemoPasswordLoaders = new Map<string, Promise<string>>();
+let plaintextSecretLoader: (secretArn: string) => Promise<string> = getPlaintextSecret;
 
 /**
  * Normalizes one configured review/demo email before validation and lookup.
@@ -61,25 +66,44 @@ export function getDemoEmailAccessConfig(): DemoEmailAccessConfig {
   const rawAllowlist = process.env.DEMO_EMAIL_DOSTIP ?? "";
   const emailAllowlist = parseDemoEmailAllowlist(rawAllowlist);
   const sharedPassword = process.env.DEMO_PASSWORD_DOSTIP ?? "";
+  const passwordSecretArn = process.env.DEMO_PASSWORD_SECRET_ARN ?? "";
 
-  if (emailAllowlist.size > 0 && sharedPassword === "") {
+  if (sharedPassword !== "" && passwordSecretArn !== "") {
     throw new Error(
-      "DEMO_PASSWORD_DOSTIP is required when DEMO_EMAIL_DOSTIP is configured for insecure review/demo access",
+      "Configure only one of DEMO_PASSWORD_DOSTIP or DEMO_PASSWORD_SECRET_ARN for insecure review/demo access",
+    );
+  }
+
+  if (emailAllowlist.size > 0 && sharedPassword === "" && passwordSecretArn === "") {
+    throw new Error(
+      "DEMO_PASSWORD_DOSTIP or DEMO_PASSWORD_SECRET_ARN is required when DEMO_EMAIL_DOSTIP is configured for insecure review/demo access",
     );
   }
 
   resolvedDemoEmailAccessConfig = {
     emailAllowlist,
     sharedPassword: sharedPassword === "" ? null : sharedPassword,
+    passwordSecretArn: passwordSecretArn === "" ? null : passwordSecretArn,
   };
   return resolvedDemoEmailAccessConfig;
+}
+
+function getCachedDemoPassword(secretArn: string): Promise<string> {
+  const cachedPromise = cachedDemoPasswordLoaders.get(secretArn);
+  if (cachedPromise !== undefined) {
+    return cachedPromise;
+  }
+
+  const nextPromise = plaintextSecretLoader(secretArn);
+  cachedDemoPasswordLoaders.set(secretArn, nextPromise);
+  return nextPromise;
 }
 
 /**
  * Returns the shared insecure demo password only for emails that are both
  * allowlisted and protected by the `@example.com` guardian restriction.
  */
-export function getDemoEmailPassword(email: string): string | null {
+export async function getDemoEmailPassword(email: string): Promise<string | null> {
   const config = getDemoEmailAccessConfig();
   const normalizedEmail = normalizeDemoEmailAccessValue(email);
 
@@ -87,11 +111,22 @@ export function getDemoEmailPassword(email: string): string | null {
     return null;
   }
 
-  if (config.sharedPassword === null) {
-    throw new Error("DEMO_PASSWORD_DOSTIP is unavailable for configured demo email access");
+  if (config.sharedPassword !== null) {
+    return config.sharedPassword;
   }
 
-  return config.sharedPassword;
+  if (config.passwordSecretArn === null) {
+    throw new Error("DEMO_PASSWORD_DOSTIP and DEMO_PASSWORD_SECRET_ARN are unavailable for configured demo email access");
+  }
+
+  return getCachedDemoPassword(config.passwordSecretArn);
+}
+
+export function setPlaintextSecretLoaderForTests(
+  loader: ((secretArn: string) => Promise<string>) | null,
+): void {
+  plaintextSecretLoader = loader ?? getPlaintextSecret;
+  cachedDemoPasswordLoaders = new Map<string, Promise<string>>();
 }
 
 /**
@@ -99,4 +134,6 @@ export function getDemoEmailPassword(email: string): string | null {
  */
 export function resetDemoEmailAccessConfigForTests(): void {
   resolvedDemoEmailAccessConfig = undefined;
+  cachedDemoPasswordLoaders = new Map<string, Promise<string>>();
+  plaintextSecretLoader = getPlaintextSecret;
 }

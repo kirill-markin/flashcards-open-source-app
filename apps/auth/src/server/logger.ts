@@ -4,6 +4,8 @@
 type AuthAction =
   | "send_code"
   | "send_code_error"
+  | "send_code_demo_sign_in"
+  | "send_code_demo_sign_in_error"
   | "agent_send_code_blocked_ip_limit"
   | "agent_send_code_error"
   | "verify_code"

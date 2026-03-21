@@ -14,6 +14,8 @@ export interface AuthGatewayProps {
   authDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   authCertificateArn: string | undefined;
+  demoEmailDostip: string | undefined;
+  demoPasswordSecretArn: string | undefined;
   userPoolId: string;
   userPoolClientId: string;
 }
@@ -31,6 +33,22 @@ function getOptionalEnvironmentValue(name: string): string | undefined {
 
   const trimmedValue = value.trim();
   return trimmedValue === "" ? undefined : trimmedValue;
+}
+
+function addLambdaSecretArnEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  secretArn: string | undefined,
+  constructId: string,
+  environmentVariableName: string,
+): void {
+  if (secretArn === undefined || secretArn === "") {
+    return;
+  }
+
+  const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(scope, constructId, secretArn);
+  secret.grantRead(fn);
+  fn.addEnvironment(environmentVariableName, secret.secretArn);
 }
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
@@ -90,15 +108,17 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     sessionEncryptionKey.secretValue.unsafeUnwrap(),
   );
 
-  const demoEmailDostip = getOptionalEnvironmentValue("DEMO_EMAIL_DOSTIP");
-  if (demoEmailDostip !== undefined) {
-    authFn.addEnvironment("DEMO_EMAIL_DOSTIP", demoEmailDostip);
+  if (props.demoEmailDostip !== undefined && props.demoEmailDostip !== "") {
+    authFn.addEnvironment("DEMO_EMAIL_DOSTIP", props.demoEmailDostip);
   }
 
-  const demoPasswordDostip = getOptionalEnvironmentValue("DEMO_PASSWORD_DOSTIP");
-  if (demoPasswordDostip !== undefined) {
-    authFn.addEnvironment("DEMO_PASSWORD_DOSTIP", demoPasswordDostip);
-  }
+  addLambdaSecretArnEnvironment(
+    scope,
+    authFn,
+    props.demoPasswordSecretArn,
+    "DemoPasswordSecret",
+    "DEMO_PASSWORD_SECRET_ARN",
+  );
 
   const restApi = new apigw.RestApi(scope, "AuthApi", {
     restApiName: "flashcards-open-source-app-auth",
