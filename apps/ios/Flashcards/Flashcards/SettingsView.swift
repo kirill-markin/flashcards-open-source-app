@@ -29,16 +29,11 @@ struct SettingsView: View {
 
             Section {
                 if self.isWorkspaceManagementLocked {
-                    Button {
-                        self.store.enqueueTransientBanner(banner: makeWorkspaceChangesRequireAccountBanner())
-                    } label: {
-                        SettingsNavigationRow(
-                            title: "Current Workspace",
-                            value: store.workspace?.name ?? "Unavailable",
-                            systemImage: "square.stack"
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    SettingsNavigationRow(
+                        title: "Current Workspace",
+                        value: store.workspace?.name ?? "Unavailable",
+                        systemImage: "square.stack"
+                    )
                     .foregroundStyle(.secondary)
                 } else {
                     NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
