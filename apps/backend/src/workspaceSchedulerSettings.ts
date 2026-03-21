@@ -23,51 +23,25 @@ import {
   type LwwMetadata,
 } from "./lww";
 import { findLatestSyncChangeId, insertSyncChange } from "./syncChanges";
+import {
+  defaultWorkspaceSchedulerConfig,
+  type SchedulerAlgorithm,
+  type UpdateWorkspaceSchedulerSettingsInput,
+  type WorkspaceSchedulerConfig,
+  type WorkspaceSchedulerSettings,
+  type WorkspaceSchedulerSettingsSnapshotInput,
+} from "./workspaceSchedulerConfig";
 
-export type SchedulerAlgorithm = "fsrs-6";
+export {
+  defaultWorkspaceSchedulerConfig,
+  type SchedulerAlgorithm,
+  type UpdateWorkspaceSchedulerSettingsInput,
+  type WorkspaceSchedulerConfig,
+  type WorkspaceSchedulerSettings,
+  type WorkspaceSchedulerSettingsSnapshotInput,
+};
 
 export type WorkspaceSchedulerSettingsMutationMetadata = LwwMetadata;
-
-// Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::WorkspaceSchedulerSettings.
-export type WorkspaceSchedulerSettings = Readonly<{
-  algorithm: SchedulerAlgorithm;
-  desiredRetention: number;
-  learningStepsMinutes: ReadonlyArray<number>;
-  relearningStepsMinutes: ReadonlyArray<number>;
-  maximumIntervalDays: number;
-  enableFuzz: boolean;
-  clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
-  lastOperationId: string;
-  updatedAt: string;
-}>;
-
-// Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::ValidatedWorkspaceSchedulerSettingsInput and validation flow.
-export type WorkspaceSchedulerConfig = Readonly<{
-  algorithm: SchedulerAlgorithm;
-  desiredRetention: number;
-  learningStepsMinutes: ReadonlyArray<number>;
-  relearningStepsMinutes: ReadonlyArray<number>;
-  maximumIntervalDays: number;
-  enableFuzz: boolean;
-}>;
-
-export type UpdateWorkspaceSchedulerSettingsInput = Readonly<{
-  desiredRetention: number;
-  learningStepsMinutes: ReadonlyArray<number>;
-  relearningStepsMinutes: ReadonlyArray<number>;
-  maximumIntervalDays: number;
-  enableFuzz: boolean;
-}>;
-
-export type WorkspaceSchedulerSettingsSnapshotInput = Readonly<{
-  algorithm: SchedulerAlgorithm;
-  desiredRetention: number;
-  learningStepsMinutes: ReadonlyArray<number>;
-  relearningStepsMinutes: ReadonlyArray<number>;
-  maximumIntervalDays: number;
-  enableFuzz: boolean;
-}>;
 
 export type WorkspaceSchedulerSettingsMutationResult = Readonly<{
   settings: WorkspaceSchedulerSettings;
@@ -87,15 +61,6 @@ type WorkspaceSchedulerSettingsRow = Readonly<{
   fsrs_last_operation_id: string;
   fsrs_updated_at: Date | string;
 }>;
-
-export const defaultWorkspaceSchedulerConfig: WorkspaceSchedulerConfig = Object.freeze({
-  algorithm: "fsrs-6",
-  desiredRetention: 0.9,
-  learningStepsMinutes: Object.freeze([1, 10]),
-  relearningStepsMinutes: Object.freeze([10]),
-  maximumIntervalDays: 36_500,
-  enableFuzz: true,
-});
 
 function toIsoString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();

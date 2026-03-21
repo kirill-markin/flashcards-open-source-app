@@ -15,7 +15,7 @@
  *   https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm
  * - product source of truth: docs/fsrs-scheduling-logic.md
  */
-import type { WorkspaceSchedulerConfig } from "./workspaceSchedulerSettings";
+import type { WorkspaceSchedulerConfig } from "./workspaceSchedulerConfig";
 
 export type ReviewRating = 0 | 1 | 2 | 3;
 
