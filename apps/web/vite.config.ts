@@ -13,6 +13,9 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
   },
+  build: {
+    chunkSizeWarningLimit: 2800,
+  },
   test: {
     environment: "jsdom",
     environmentOptions: {
