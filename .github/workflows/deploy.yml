@@ -66,9 +66,10 @@ jobs:
           {
             "region": "${{ vars.AWS_REGION }}",
             "domainName": "${{ vars.CDK_DOMAIN_NAME }}",
-            "apiCertificateArn": "${{ secrets.CDK_API_CERTIFICATE_ARN }}",
-            "authCertificateArn": "${{ secrets.CDK_AUTH_CERTIFICATE_ARN }}",
-            "webCertificateArnUsEast1": "${{ secrets.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}",
+            "apiCertificateArn": "${{ vars.CDK_API_CERTIFICATE_ARN }}",
+            "authCertificateArn": "${{ vars.CDK_AUTH_CERTIFICATE_ARN }}",
+            "webCertificateArnUsEast1": "${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}",
+            "apexRedirectCertificateArnUsEast1": "${{ vars.CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 }}",
             "resendApiKeySecretArn": "${{ vars.CDK_RESEND_API_KEY_SECRET_ARN }}",
             "resendSenderEmail": "${{ vars.CDK_RESEND_SENDER_EMAIL }}",
             "openAiApiKeySecretArn": "${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}",

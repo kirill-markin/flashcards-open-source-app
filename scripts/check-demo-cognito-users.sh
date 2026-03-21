@@ -3,41 +3,16 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CONTEXT_FILE="${ROOT_DIR}/infra/aws/cdk.context.local.json"
 STACK_NAME="FlashcardsOpenSourceApp"
-REGION=""
+REGION="${AWS_REGION:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --context-file) CONTEXT_FILE="$2"; shift 2 ;;
     --stack-name) STACK_NAME="$2"; shift 2 ;;
     --region) REGION="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
-
-read_context_region() {
-  if [[ ! -f "$CONTEXT_FILE" ]]; then
-    return 0
-  fi
-
-  python3 - "$CONTEXT_FILE" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1], "r", encoding="utf-8") as fh:
-    data = json.load(fh)
-
-value = data.get("region", "")
-print("" if value is None else value)
-PY
-}
-
-if [[ -z "$REGION" ]]; then
-  REGION="$(read_context_region)"
-fi
 
 AWS_REGION_ARGS=()
 if [[ -n "$REGION" ]]; then
@@ -108,7 +83,7 @@ if [[ -z "$COGNITO_REGION" ]]; then
 fi
 
 if [[ -z "$COGNITO_REGION" ]]; then
-  echo "ERROR: Could not determine Cognito region. Pass --region or configure it in ${CONTEXT_FILE}." >&2
+  echo "ERROR: Could not determine Cognito region. Pass --region or set AWS_REGION." >&2
   exit 1
 fi
 

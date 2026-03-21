@@ -38,27 +38,40 @@ make db-down
 
 ## First AWS deploy
 
+Keep the operator config in root `.env`. The important deploy-time values are:
+
+- `AWS_REGION`
+- `DOMAIN_NAME`
+- `ALERT_EMAIL`
+- `GITHUB_REPO`
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ZONE_ID`
+- `RESEND_API_KEY`
+- `RESEND_ADMIN_API_KEY`
+- optional `OPENAI_API_KEY`
+- optional `ANTHROPIC_API_KEY`
+- optional `DEMO_EMAIL_DOSTIP`
+- optional `DEMO_PASSWORD_DOSTIP`
+
+Then run:
+
 ```bash
-export AWS_PROFILE=flashcards-open-source-app
-export OPENAI_API_KEY="..."
-export ANTHROPIC_API_KEY="..."
 bash scripts/first-deploy.sh \
   --region eu-central-1 \
   --domain flashcards-open-source-app.com \
   --alert-email alerts@example.com
 ```
 
-`OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional. When present, the deploy flow writes them to AWS Secrets Manager, stores the resulting secret ARNs in `infra/aws/cdk.context.local.json`, and injects them into the backend Lambda. When absent, infrastructure still deploys and AI features return stable not-configured or temporary-unavailable errors.
-
 The first deploy flow:
 
-- creates or updates `infra/aws/cdk.context.local.json`
-- optionally creates or updates AI provider secrets
-- requests ACM certificates for API, auth, web, and apex redirect
+- stores required runtime secrets in AWS Secrets Manager
+- stores optional AI and demo auth secrets in AWS Secrets Manager when configured
+- requests ACM certificates for API, auth, web, and apex redirect when needed
+- generates `infra/aws/cdk.context.local.json` as a transient local CDK input
 - bootstraps and deploys CDK
 - uploads web assets
-- configures Cloudflare DNS from `scripts/cloudflare/.env` when present
-- configures GitHub Actions vars and secrets for the repo
+- configures Cloudflare DNS when requested
+- syncs deploy config to GitHub Actions variables
 
 Public domains after deploy:
 
@@ -69,24 +82,30 @@ Public domains after deploy:
 
 If the apex domain already points to an existing site, bootstrap leaves it untouched and manages only `app.<domain>`, `api.<domain>`, and `auth.<domain>`.
 
-## Later AI key updates
+## Later secret updates
 
 ```bash
-export OPENAI_API_KEY="..."
-export ANTHROPIC_API_KEY="..."
+bash scripts/setup-resend-secret.sh --region eu-central-1
 bash scripts/setup-ai-secrets.sh --region eu-central-1
+bash scripts/setup-auth-secrets.sh --region eu-central-1
 bash scripts/setup-github.sh
 ```
 
+Run only the secret setup scripts you actually need. `setup-github.sh` rediscovers the current AWS ARNs and syncs the matching GitHub variables afterward.
+
 ## CI/CD
 
-GitHub Actions deploys on push to `main` using the stack OIDC role. GitHub stores only optional AI secret ARNs as repository variables; the actual provider keys stay in AWS Secrets Manager.
+GitHub Actions deploys on push to `main` using the stack OIDC role. The repository stores:
+
+- GitHub variables for all non-secret deploy config, including certificate ARNs and secret ARNs
+- one GitHub secret for `AWS_DEPLOY_ROLE_ARN`
+
+The deploy workflow generates its own transient `cdk.context.local.json` inside the job and never depends on a committed or hand-maintained local context file.
 
 Guest AI quota is configured separately:
 
-- local dev uses `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` from `.env`
+- local dev uses `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` from root `.env`
 - GitHub Actions stores `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` as a repo variable
-- the deploy workflow writes that value into `infra/aws/cdk.context.local.json` as `guestAiWeightedMonthlyTokenCap`
 - CDK injects it into both backend Lambdas as `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`
 
 If the GitHub variable is unset, the deployed backend receives `0` and guest AI stays disabled fail-closed.

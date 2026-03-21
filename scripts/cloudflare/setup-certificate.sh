@@ -2,13 +2,12 @@
 # Create a Cloudflare Origin Certificate and import it into AWS ACM.
 # Run once before the first CDK deploy.
 #
-# Required env vars:
+# Required env vars from root .env or the current shell:
 #   CLOUDFLARE_API_TOKEN  — API token with Zone:SSL and Certificates:Edit permissions
 #   CLOUDFLARE_ZONE_ID    — Zone ID from Cloudflare dashboard
 #   AWS_PROFILE           — AWS CLI profile for the target account
 #
 # Usage:
-#   export CLOUDFLARE_API_TOKEN="..." CLOUDFLARE_ZONE_ID="..." AWS_PROFILE=flashcards-open-source-app
 #   bash scripts/cloudflare/setup-certificate.sh --domain flashcards-open-source-app.com --region eu-central-1
 
 set -euo pipefail
@@ -93,6 +92,4 @@ rm -rf "$TMPDIR_CERT"
 echo ""
 echo "Certificate imported into ACM."
 echo "ARN: ${CERT_ARN}"
-echo ""
-echo "Add this to cdk.context.local.json:"
-echo "  \"certificateArn\": \"${CERT_ARN}\""
+echo "Use this ARN as deploy config if you wire this certificate into a CDK custom domain."

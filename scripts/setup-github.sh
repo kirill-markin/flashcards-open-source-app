@@ -4,42 +4,28 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CONTEXT_FILE="${ROOT_DIR}/infra/aws/cdk.context.local.json"
 STACK_NAME="FlashcardsOpenSourceApp"
 REPO=""
 
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/deploy-config.sh"
+load_root_env
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --context-file) CONTEXT_FILE="$2"; shift 2 ;;
     --stack-name) STACK_NAME="$2"; shift 2 ;;
     --repo) REPO="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
 
-if [[ ! -f "$CONTEXT_FILE" ]]; then
-  echo "ERROR: Context file not found: $CONTEXT_FILE" >&2
-  exit 1
+if [[ -z "$REPO" ]]; then
+  REPO="${GITHUB_REPO:-}"
 fi
 
 if [[ -z "$REPO" ]]; then
-  REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+  REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 fi
-
-read_context() {
-  python3 - "$CONTEXT_FILE" "$1" <<'PY'
-import json
-import sys
-
-path = sys.argv[1]
-key = sys.argv[2]
-with open(path, "r", encoding="utf-8") as fh:
-    data = json.load(fh)
-value = data.get(key, "")
-print("" if value is None else value)
-PY
-}
 
 has_variable() {
   local variable_name="$1"
@@ -61,33 +47,51 @@ set_or_delete_variable() {
   fi
 }
 
+has_secret() {
+  local secret_name="$1"
+
+  gh secret list --repo "$REPO" --json name --jq ".[] | select(.name == \"${secret_name}\") | .name" | grep -qx "$secret_name"
+}
+
+delete_secret_if_exists() {
+  local secret_name="$1"
+
+  if has_secret "$secret_name"; then
+    gh secret delete "$secret_name" --repo "$REPO"
+  fi
+}
+
 get_output() {
-  aws cloudformation describe-stacks \
+  local output_key="$1"
+
+  aws --region "$REGION" cloudformation describe-stacks \
     --stack-name "$STACK_NAME" \
-    --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" \
+    --query "Stacks[0].Outputs[?OutputKey=='${output_key}'].OutputValue" \
     --output text
 }
 
-REGION=$(read_context region)
-DOMAIN_NAME=$(read_context domainName)
-ALERT_EMAIL=$(read_context alertEmail)
-GITHUB_REPO=$(read_context githubRepo)
-API_CERT_ARN=$(read_context apiCertificateArn)
-AUTH_CERT_ARN=$(read_context authCertificateArn)
-WEB_CERT_ARN=$(read_context webCertificateArnUsEast1)
-OPENAI_SECRET_ARN=$(read_context openAiApiKeySecretArn)
-ANTHROPIC_SECRET_ARN=$(read_context anthropicApiKeySecretArn)
-DEMO_EMAIL_DOSTIP=$(read_context demoEmailDostip)
-DEMO_PASSWORD_SECRET_ARN=$(read_context demoPasswordSecretArn)
-GUEST_AI_QUOTA_CAP=$(read_context guestAiWeightedMonthlyTokenCap)
-RESEND_SECRET_ARN=$(read_context resendApiKeySecretArn)
-RESEND_SENDER_EMAIL=$(read_context resendSenderEmail)
-DEPLOY_ROLE_ARN=$(get_output GithubDeployRoleArn)
+REGION="$(require_non_empty_value "${AWS_REGION:-}" "Set AWS_REGION in root .env before running setup-github.sh.")"
+DOMAIN_NAME="$(require_non_empty_value "${DOMAIN_NAME:-}" "Set DOMAIN_NAME in root .env before running setup-github.sh.")"
+ALERT_EMAIL="$(require_non_empty_value "${ALERT_EMAIL:-}" "Set ALERT_EMAIL in root .env before running setup-github.sh.")"
+GITHUB_REPO_VALUE="$(require_non_empty_value "${GITHUB_REPO:-$REPO}" "Set GITHUB_REPO in root .env or pass --repo.")"
 
-if [[ -z "$REGION" || -z "$DOMAIN_NAME" || -z "$ALERT_EMAIL" || -z "$GITHUB_REPO" ]]; then
-  echo "ERROR: Context file must contain region, domainName, alertEmail, and githubRepo." >&2
-  exit 1
+API_CERT_ARN="$(find_certificate_arn "$REGION" "api.${DOMAIN_NAME}" "api-domain")"
+AUTH_CERT_ARN="$(find_certificate_arn "$REGION" "auth.${DOMAIN_NAME}" "auth-domain")"
+WEB_CERT_ARN="$(find_certificate_arn "us-east-1" "app.${DOMAIN_NAME}" "web-domain")"
+APEX_REDIRECT_CERT_ARN="$(find_certificate_arn "us-east-1" "${DOMAIN_NAME}" "apex-redirect-domain")"
+OPENAI_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/openai-api-key")"
+ANTHROPIC_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/anthropic-api-key")"
+RESEND_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/resend-api-key")"
+DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/demo-password-dostip")"
+DEMO_EMAIL_DOSTIP="${DEMO_EMAIL_DOSTIP:-}"
+GUEST_AI_QUOTA_CAP="${GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:-}"
+RESEND_SENDER_EMAIL=""
+
+if [[ -n "$RESEND_SECRET_ARN" ]]; then
+  RESEND_SENDER_EMAIL="$(build_resend_sender_email "$DOMAIN_NAME")"
 fi
+
+DEPLOY_ROLE_ARN="$(get_output "GithubDeployRoleArn")"
 
 if [[ -z "$DEPLOY_ROLE_ARN" || "$DEPLOY_ROLE_ARN" == "None" ]]; then
   echo "ERROR: GithubDeployRoleArn output not found. Deploy the stack first." >&2
@@ -97,7 +101,11 @@ fi
 gh variable set AWS_REGION --body "$REGION" --repo "$REPO"
 gh variable set CDK_DOMAIN_NAME --body "$DOMAIN_NAME" --repo "$REPO"
 gh variable set CDK_ALERT_EMAIL --body "$ALERT_EMAIL" --repo "$REPO"
-gh variable set CDK_GITHUB_REPO --body "$GITHUB_REPO" --repo "$REPO"
+gh variable set CDK_GITHUB_REPO --body "$GITHUB_REPO_VALUE" --repo "$REPO"
+set_or_delete_variable CDK_API_CERTIFICATE_ARN "$API_CERT_ARN"
+set_or_delete_variable CDK_AUTH_CERTIFICATE_ARN "$AUTH_CERT_ARN"
+set_or_delete_variable CDK_WEB_CERTIFICATE_ARN_US_EAST_1 "$WEB_CERT_ARN"
+set_or_delete_variable CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 "$APEX_REDIRECT_CERT_ARN"
 set_or_delete_variable CDK_SES_SENDER_EMAIL ""
 set_or_delete_variable CDK_RESEND_API_KEY_SECRET_ARN "$RESEND_SECRET_ARN"
 set_or_delete_variable CDK_RESEND_SENDER_EMAIL "$RESEND_SENDER_EMAIL"
@@ -109,16 +117,10 @@ set_or_delete_variable CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_
 
 gh secret set AWS_DEPLOY_ROLE_ARN --body "$DEPLOY_ROLE_ARN" --repo "$REPO"
 
-if [[ -n "$API_CERT_ARN" ]]; then
-  gh secret set CDK_API_CERTIFICATE_ARN --body "$API_CERT_ARN" --repo "$REPO"
-fi
-
-if [[ -n "$AUTH_CERT_ARN" ]]; then
-  gh secret set CDK_AUTH_CERTIFICATE_ARN --body "$AUTH_CERT_ARN" --repo "$REPO"
-fi
-
-if [[ -n "$WEB_CERT_ARN" ]]; then
-  gh secret set CDK_WEB_CERTIFICATE_ARN_US_EAST_1 --body "$WEB_CERT_ARN" --repo "$REPO"
-fi
+delete_secret_if_exists "CDK_API_CERTIFICATE_ARN"
+delete_secret_if_exists "CDK_AUTH_CERTIFICATE_ARN"
+delete_secret_if_exists "CDK_WEB_CERTIFICATE_ARN_US_EAST_1"
+delete_secret_if_exists "DEMO_EMAIL_DOSTIP"
+delete_secret_if_exists "DEMO_PASSWORD_DOSTIP"
 
 echo "GitHub Actions variables and secrets configured for ${REPO}."

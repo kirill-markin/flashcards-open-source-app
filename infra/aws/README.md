@@ -10,76 +10,115 @@ This stack deploys v1 backend infrastructure for `flashcards-open-source-app`.
 - API Gateway (REST API) for backend + API Gateway (REST API) for auth + three Lambdas (backend + auth + Cognito custom email sender)
 - S3 bucket + CloudFront distribution for the web app
 - Secrets Manager — DB credentials (auto-generated), backend/auth DB passwords, session encryption key
-- Optional Secrets Manager secrets for Resend, the review/demo auth password, and AI provider API keys, when configured locally before deploy
+- Optional Secrets Manager secrets for Resend, the review/demo auth password, and AI provider API keys
 - CloudWatch alarms + SNS notifications
 - AWS Backup plan for RDS
 - GitHub Actions OIDC deployment role
 
-## Required context
+## Deploy config model
 
-Create `infra/aws/cdk.context.local.json` from the example and fill values:
+Deploy-time config is split across three places:
 
-- `region`
-- `domainName`
-- `alertEmail`
-- `githubRepo`
-- `apiCertificateArn` (optional, only for custom domain)
-- `authCertificateArn` (optional, only for `auth.<domain>`)
-- `webCertificateArnUsEast1` (optional, only for `app.<domain>` on CloudFront)
-- `apexRedirectCertificateArnUsEast1` (optional, only for apex -> app redirect on CloudFront)
-- `demoEmailDostip` (optional, comma-separated insecure review/demo allowlist in `@example.com`)
-- `demoPasswordSecretArn` (optional, enables deployed review/demo password lookup from Secrets Manager)
-- `resendApiKeySecretArn`
-- `resendSenderEmail`
-- `guestAiWeightedMonthlyTokenCap` (optional, guest AI monthly quota; defaults to `0` when omitted)
+- Root `.env` is the local operator input for scripts.
+- AWS Secrets Manager is the source of truth for deployed runtime secrets.
+- GitHub repository variables are the source of truth for non-secret deploy config used by CI/CD.
+
+`infra/aws/cdk.context.local.json` is not a hand-maintained config file. Local scripts generate it right before invoking CDK, and GitHub Actions generates its own copy inside the workflow job.
+
+## Local operator config
+
+Keep these values in root `.env` before running setup or deploy scripts:
+
+- `AWS_REGION`
+- `DOMAIN_NAME`
+- `ALERT_EMAIL`
+- `GITHUB_REPO`
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ZONE_ID`
+- `RESEND_API_KEY`
+- `RESEND_ADMIN_API_KEY`
+- `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` when needed
+- `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
+- `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` when you want deployed guest AI enabled
+
+Certificate ARNs and secret ARNs are discovered from AWS. They are not meant to be typed into local context by hand.
 
 ## Deploy
 
-```bash
-cd infra/aws
-npm ci
-npx cdk bootstrap --region eu-central-1
-npx cdk deploy --all --require-approval never
-```
-
-Or from the repo root, use the higher-level helper:
+Preferred flow from the repo root:
 
 ```bash
-export RESEND_API_KEY="..."
-export RESEND_ADMIN_API_KEY="..."
-export OPENAI_API_KEY="..."
-export ANTHROPIC_API_KEY="..."
-bash scripts/first-deploy.sh --region eu-central-1 --domain flashcards-open-source-app.com --alert-email alerts@example.com
+bash scripts/first-deploy.sh \
+  --region eu-central-1 \
+  --domain flashcards-open-source-app.com \
+  --alert-email alerts@example.com
 ```
 
-`RESEND_API_KEY`, `RESEND_ADMIN_API_KEY`, `OPENAI_API_KEY`, and `ANTHROPIC_API_KEY` are optional at the shell level, but Cognito email delivery now officially depends on Resend. Use `RESEND_API_KEY` only for the deployed runtime secret in AWS Secrets Manager, and use `RESEND_ADMIN_API_KEY` only for the local one-time domain setup script. Run `bash scripts/setup-resend-secret.sh --region <aws-region>` before deploy so `resendApiKeySecretArn` and `resendSenderEmail` are present in `infra/aws/cdk.context.local.json`. `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` remain optional for chat features and can still be stored with `bash scripts/setup-ai-secrets.sh --region <aws-region>`.
+That flow:
 
-If review/demo bypass is enabled, keep `demoEmailDostip` in `infra/aws/cdk.context.local.json` as normal deploy config. Keep `DEMO_PASSWORD_DOSTIP` only in local untracked shell or `.env`, then run `bash scripts/setup-auth-secrets.sh --region <aws-region>` before deploy so `demoPasswordSecretArn` is present in `infra/aws/cdk.context.local.json`.
+- creates or updates the required AWS Secrets Manager secrets from root `.env`
+- stores optional AI and demo auth secrets when configured
+- requests ACM certificates for API, auth, web, and apex redirect when needed
+- generates `infra/aws/cdk.context.local.json` for the local CDK invocation
+- bootstraps and deploys CDK
+- uploads web assets
+- optionally configures Cloudflare DNS
+- syncs deploy config into GitHub Actions variables
 
-Guest AI quota is configured independently from provider secrets. Set `guestAiWeightedMonthlyTokenCap` in `infra/aws/cdk.context.local.json` and run `bash scripts/setup-github.sh` to sync it to the GitHub repo variable `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`. During deploy, GitHub writes that value back into `cdk.context.local.json`, and CDK injects it into both backend Lambdas as `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`. When the value is omitted, the backend defaults it to `0`, which disables guest AI fail-closed.
+You can still run CDK manually from `infra/aws`, but local scripts are the supported path because they generate the transient context file for you.
 
-`scripts/bootstrap.sh` and `scripts/first-deploy.sh` now also:
+## Secret setup helpers
 
-- run database migrations through the in-VPC migration Lambda
-- verify the public API health endpoint before deploying web assets
+- `bash scripts/setup-resend-secret.sh --region <aws-region>`
+  Stores `RESEND_API_KEY` in AWS Secrets Manager and derives `no-reply@mail.<domain>` from `DOMAIN_NAME`.
+- `bash scripts/setup-ai-secrets.sh --region <aws-region>`
+  Stores optional AI provider keys in AWS Secrets Manager.
+- `bash scripts/setup-auth-secrets.sh --region <aws-region>`
+  Stores the shared insecure review/demo password in AWS Secrets Manager when `DEMO_PASSWORD_DOSTIP` is set.
+
+These scripts do not write back into repo config files. They only update AWS state.
+
+## GitHub Actions config
+
+Run:
+
+```bash
+bash scripts/setup-github.sh
+```
+
+This script:
+
+- reads operator config from root `.env`
+- discovers AWS secret ARNs and ACM certificate ARNs
+- writes non-secret deploy config to GitHub repository variables
+- writes only `AWS_DEPLOY_ROLE_ARN` as a GitHub secret
+- deletes old GitHub secrets that are no longer used for demo auth or certificate ARNs
+
+The deploy workflow then generates its own transient `cdk.context.local.json` from those GitHub variables inside CI.
+
+## Review/demo accounts
+
+`DEMO_EMAIL_DOSTIP` configures the insecure review/demo allowlist in the auth Lambda, and the deployed auth Lambda reads the shared password from the AWS secret `flashcards-open-source-app/demo-password-dostip`.
+
+These settings do not provision Cognito users. If review/demo bypass is enabled:
+
+- every listed email must use `@example.com`
+- the matching Cognito users must be created manually
+- the Cognito user passwords must match the shared demo password stored in Secrets Manager
+
+Validate deployed state with:
+
+```bash
+bash scripts/check-demo-cognito-users.sh --stack-name FlashcardsOpenSourceApp --region eu-central-1
+```
 
 ## Post-deploy
 
-1. **Confirm SNS email** — check `alertEmail` inbox and confirm the subscription.
-2. **Session encryption key** — CDK auto-generates a random 64-char hex key in Secrets Manager (`flashcards-open-source-app/session-encryption-key`). It signs OTP session cookies during login. No manual action needed.
-3. **Runtime DB role secrets** — CDK now creates separate Secrets Manager entries for `backend_app` and `auth_app` so the API and auth Lambdas do not share one database role.
-4. **Resend for OTP emails** — this repository officially supports Resend for Cognito OTP email delivery. Configure the one-time provider setup with:
-   - `bash scripts/setup-resend-secret.sh --region <aws-region>`
-   - `bash scripts/setup-resend-domain.sh --domain <base-domain> --subdomain mail`
-   See [docs/resend-setup.md](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/docs/resend-setup.md).
-5. **Deploy web assets manually if needed** — `bash scripts/deploy-web.sh`.
-   Do not use a web-only deploy when the browser API contract changed. Run `bash scripts/check-public-endpoints.sh` after the API/CDK deploy and before publishing web assets.
-6. **Run migrations manually if needed** — `bash scripts/migrate-aws.sh`.
-7. **Check internal gateway health manually if needed** — `bash scripts/check-api-health.sh`.
-8. **Check public custom domains manually if needed** — `bash scripts/check-public-endpoints.sh`.
-9. **Configure GitHub Actions** — `bash scripts/setup-github.sh` writes the required vars/secrets for this repo using stack outputs and `cdk.context.local.json`. It stores non-secret deploy config like `demoEmailDostip` as GitHub variables, and stores only secret ARNs for Resend, the review/demo password, and AI providers; the raw secret values stay in AWS Secrets Manager. Guest AI quota is also synced here as the repo variable `CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP`.
-10. **Rotate provider keys or the demo password later if needed** — export `RESEND_API_KEY` for the deployed runtime secret, export `RESEND_ADMIN_API_KEY` for domain-management setup, export `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` as needed, then rerun the provider setup scripts and `bash scripts/setup-github.sh`. If review/demo bypass is enabled, export `DEMO_PASSWORD_DOSTIP`, run `bash scripts/setup-auth-secrets.sh --region <aws-region>`, then rerun `bash scripts/setup-github.sh`.
-11. **Create review/demo Cognito users manually if demo bypass is enabled** — `demoEmailDostip` configures the insecure review/demo allowlist in the auth Lambda, and `demoPasswordSecretArn` points the deployed auth Lambda at the shared insecure password in AWS Secrets Manager. They do not provision Cognito users. If you enable review/demo access, every listed demo email must use `@example.com`, and you must create the matching Cognito users by hand and keep their emails and shared password aligned with the deployed allowlist and demo password secret. We intentionally do not automate this step for review-only insecure accounts. Validate the deployed state with `bash scripts/check-demo-cognito-users.sh`.
+1. Confirm the SNS subscription in the `ALERT_EMAIL` inbox.
+2. Configure Resend DNS with `bash scripts/setup-resend-domain.sh --domain <base-domain> --subdomain mail`.
+3. Configure Cloudflare public DNS with `bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain <base-domain>`.
+4. Sync GitHub Actions config with `bash scripts/setup-github.sh`.
+5. Run `bash scripts/check-public-endpoints.sh --stack-name FlashcardsOpenSourceApp` after DNS changes.
 
 ## Auth flow
 
@@ -93,30 +132,6 @@ Guest AI quota is configured independently from provider secrets. Set `guestAiWe
 8. Mobile app stores tokens locally, sends `Authorization: Bearer <idToken>` on sync requests.
 9. Backend Lambda verifies JWT via `aws-jwt-verify`, extracts `sub` as userId.
 10. Host-only `__Host-` app cookies are intentionally not used in v1 because `app.<domain>` is served as a static CloudFront/S3 SPA and `api.<domain>` cannot set an `app.<domain>` host-only cookie without adding a proxy or edge layer.
-11. `POST https://auth.<domain>/api/refresh-token` — exchange refresh token for new id token.
-12. `POST https://auth.<domain>/api/revoke-token` — logout (revoke refresh token).
-13. `GET https://auth.<domain>/login?redirect_uri=...` — browser-based login page.
-
-## Resend setup
-
-Use the repeatable provider scripts instead of console clicks:
-
-```bash
-export RESEND_API_KEY="..."
-export RESEND_ADMIN_API_KEY="..."
-bash scripts/setup-resend-secret.sh --region eu-central-1
-bash scripts/setup-resend-domain.sh --domain flashcards-open-source-app.com --subdomain mail
-bash scripts/setup-github.sh
-```
-
-The transactional auth sender is intentionally fixed to `mail.<domain>`. Reserve a separate subdomain such as `updates.<domain>` for future marketing traffic.
-
-## DNS (Cloudflare)
-
-If custom API domain is enabled (`apiCertificateArn` set), run:
-
-```bash
-bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp
-```
-
-This creates/updates `api.<domain>`, `auth.<domain>`, and `app.<domain>` CNAME records in Cloudflare from stack outputs when the corresponding certificates are configured. If the stack exposes an apex redirect target and the apex DNS is free, the script also creates the apex CNAME for the redirect distribution. If the apex is already occupied, it prints a skip message and leaves the existing setup untouched.
+11. `POST https://auth.<domain>/api/refresh-token` exchanges refresh token for a new id token.
+12. `POST https://auth.<domain>/api/revoke-token` revokes the refresh token.
+13. `GET https://auth.<domain>/login?redirect_uri=...` serves the browser login page.

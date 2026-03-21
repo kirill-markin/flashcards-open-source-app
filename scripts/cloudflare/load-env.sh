@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-# Load Cloudflare credentials from scripts/cloudflare/.env if present.
+# Load the shared root .env so Cloudflare scripts use the same local operator config.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/.env"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/../lib/root-env.sh"
 
-if [[ -f "$ENV_FILE" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
-fi
+load_root_env

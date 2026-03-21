@@ -7,5 +7,5 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 bash "${SCRIPT_DIR}/setup-api-domain.sh" \
   --api-subdomain auth \
-  --context-key authCertificateArn \
+  --certificate-purpose auth-domain \
   "$@"
