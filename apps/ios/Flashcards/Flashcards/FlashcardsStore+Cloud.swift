@@ -340,6 +340,10 @@ extension FlashcardsStore {
                 return
             }
 
+            if try await self.cloudRuntime.waitForActiveCloudLinkTransitionIfNeeded() {
+                return
+            }
+
             if self.cloudRuntime.activeCloudSession() == nil
                 && hasStoredCredentials == false
                 && hasStoredGuestSession == false {

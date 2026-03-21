@@ -209,6 +209,15 @@ final class CloudSessionRuntime {
         }
     }
 
+    func waitForActiveCloudLinkTransitionIfNeeded() async throws -> Bool {
+        guard let activeCloudLinkTask = self.state.activeCloudLinkTask else {
+            return false
+        }
+
+        try await activeCloudLinkTask.task.value
+        return true
+    }
+
     func storedLinkedSession(
         cloudSettings: CloudSettings?,
         configuration: CloudServiceConfiguration,
