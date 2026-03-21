@@ -1,17 +1,10 @@
 name: Deploy to AWS
 
 on:
-  push:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
     branches: [main]
-    paths:
-      - 'api/**'
-      - 'apps/auth/**'
-      - 'apps/backend/**'
-      - 'apps/web/**'
-      - 'db/**'
-      - 'infra/**'
-      - 'scripts/**'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 concurrency:
@@ -28,22 +21,14 @@ env:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Detect changed paths
-        id: changes
-        if: github.event_name == 'push'
-        uses: dorny/paths-filter@v3
         with:
-          filters: |
-            migrations:
-              - 'db/migrations/**'
-              - 'db/views/**'
-              - 'scripts/migrate.sh'
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -120,5 +105,5 @@ jobs:
         run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Migration reminder
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.migrations == 'true'
+        if: github.event_name == 'workflow_dispatch'
         run: echo "::warning::Migrations changed. Run scripts/migrate.sh against target database manually or via your migration pipeline."
