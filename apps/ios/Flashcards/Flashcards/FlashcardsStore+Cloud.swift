@@ -11,6 +11,11 @@ enum CloudBootstrapEligibilityError: LocalizedError {
     }
 }
 
+private enum PersistedCloudStateReconciliationOutcome {
+    case continueSync(hasStoredCredentials: Bool, hasStoredGuestSession: Bool)
+    case stopSync
+}
+
 @MainActor
 extension FlashcardsStore {
     /**
@@ -324,8 +329,17 @@ extension FlashcardsStore {
         }
 
         do {
-            let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
-            let hasStoredGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() != nil
+            let reconciliationOutcome = try await self.reconcilePersistedCloudStateBeforeSync()
+            let hasStoredCredentials: Bool
+            let hasStoredGuestSession: Bool
+            switch reconciliationOutcome {
+            case .continueSync(let resolvedHasStoredCredentials, let resolvedHasStoredGuestSession):
+                hasStoredCredentials = resolvedHasStoredCredentials
+                hasStoredGuestSession = resolvedHasStoredGuestSession
+            case .stopSync:
+                return
+            }
+
             if self.cloudRuntime.activeCloudSession() == nil
                 && hasStoredCredentials == false
                 && hasStoredGuestSession == false {
@@ -344,6 +358,67 @@ extension FlashcardsStore {
             }
 
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
+        }
+    }
+
+    private func reconcilePersistedCloudStateBeforeSync() async throws -> PersistedCloudStateReconciliationOutcome {
+        let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
+        let hasStoredGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() != nil
+        guard let cloudState = self.cloudSettings?.cloudState else {
+            return .continueSync(
+                hasStoredCredentials: hasStoredCredentials,
+                hasStoredGuestSession: hasStoredGuestSession
+            )
+        }
+
+        switch cloudState {
+        case .linked:
+            if hasStoredCredentials {
+                return .continueSync(
+                    hasStoredCredentials: hasStoredCredentials,
+                    hasStoredGuestSession: hasStoredGuestSession
+                )
+            }
+
+            try self.resetLocalStateForCloudIdentityChange()
+            self.globalErrorMessage = ""
+            return .stopSync
+        case .guest:
+            let hasActiveGuestSession = self.cloudRuntime.activeCloudSession()?.authorization.isGuest == true
+            if hasStoredGuestSession || hasActiveGuestSession {
+                return .continueSync(
+                    hasStoredCredentials: hasStoredCredentials,
+                    hasStoredGuestSession: hasStoredGuestSession
+                )
+            }
+
+            try self.resetLocalStateForCloudIdentityChange()
+            self.globalErrorMessage = ""
+            return .stopSync
+        case .disconnected, .linkingReady:
+            if hasStoredGuestSession && hasStoredCredentials == false {
+                _ = try await self.restoreGuestCloudSessionIfNeeded()
+                self.globalErrorMessage = ""
+                return .stopSync
+            }
+
+            if hasStoredCredentials && hasStoredGuestSession == false {
+                try self.cloudRuntime.clearCredentials()
+                self.globalErrorMessage = ""
+                return .stopSync
+            }
+
+            if hasStoredCredentials && hasStoredGuestSession {
+                try self.cloudRuntime.clearCredentials()
+                try self.dependencies.guestCredentialStore.clearGuestSession()
+                self.globalErrorMessage = ""
+                return .stopSync
+            }
+
+            return .continueSync(
+                hasStoredCredentials: hasStoredCredentials,
+                hasStoredGuestSession: hasStoredGuestSession
+            )
         }
     }
 
