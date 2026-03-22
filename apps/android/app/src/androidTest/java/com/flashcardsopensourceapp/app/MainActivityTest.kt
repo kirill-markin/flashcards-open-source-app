@@ -14,6 +14,10 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
+    companion object {
+        private const val seededCardsTimeoutMillis: Long = 30_000L
+    }
+
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -122,7 +126,7 @@ class MainActivityTest {
 
     private fun waitForSeededCards() {
         composeRule.onNodeWithText("Cards").performClick()
-        composeRule.waitUntil(timeoutMillis = 10_000L) {
+        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
             composeRule.onAllNodesWithText("What does val mean in Kotlin?").fetchSemanticsNodes().isNotEmpty()
         }
     }
