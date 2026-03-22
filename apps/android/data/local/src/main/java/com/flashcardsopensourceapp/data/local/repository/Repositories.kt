@@ -1,6 +1,9 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
+import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
@@ -93,4 +96,19 @@ interface CloudAccountRepository {
     suspend fun validateCustomServer(customOrigin: String): CloudServiceConfiguration
     suspend fun applyCustomServer(configuration: CloudServiceConfiguration)
     suspend fun resetToOfficialServer()
+}
+
+interface AiChatRepository {
+    fun observeConsent(): Flow<Boolean>
+    fun hasConsent(): Boolean
+    fun updateConsent(hasConsent: Boolean)
+    suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
+    suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
+    suspend fun clearPersistedState(workspaceId: String?)
+    suspend fun streamTurn(
+        workspaceId: String?,
+        state: AiChatPersistedState,
+        totalCards: Int,
+        onEvent: suspend (AiChatStreamEvent) -> Unit
+    ): AiChatStreamOutcome
 }

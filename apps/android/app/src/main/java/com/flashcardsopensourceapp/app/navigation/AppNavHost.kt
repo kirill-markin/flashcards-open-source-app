@@ -324,14 +324,25 @@ fun AppNavHost(
 
         composable(route = AiDestination.route) {
             val aiViewModel = viewModel<com.flashcardsopensourceapp.feature.ai.AiViewModel>(
-                factory = createAiViewModelFactory()
+                factory = createAiViewModelFactory(
+                    aiChatRepository = appGraph.aiChatRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository
+                )
             )
             val uiState by aiViewModel.uiState.collectAsStateWithLifecycle()
 
             AiRoute(
                 uiState = uiState,
+                onAcceptConsent = aiViewModel::acceptConsent,
                 onDraftMessageChange = aiViewModel::updateDraftMessage,
-                onSendDraftMessage = aiViewModel::sendDraftMessage
+                onSendMessage = aiViewModel::sendMessage,
+                onSelectModel = aiViewModel::selectModel,
+                onNewChat = aiViewModel::clearConversation,
+                onOpenSignIn = {
+                    navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                },
+                onDismissErrorMessage = aiViewModel::dismissErrorMessage
             )
         }
 

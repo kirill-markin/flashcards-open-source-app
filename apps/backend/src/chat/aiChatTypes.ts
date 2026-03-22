@@ -1,4 +1,4 @@
-export type AIChatDevicePlatform = "ios" | "web";
+export type AIChatDevicePlatform = "ios" | "android" | "web";
 
 /**
  * High-level user facts injected into the system prompt before the model
