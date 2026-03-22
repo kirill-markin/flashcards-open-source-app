@@ -1,0 +1,14 @@
+# Xcode and local iOS build state
+DerivedData/
+**/DerivedData/
+build/
+**/build/
+.build/
+
+# Xcode user-specific files
+**/*.xcuserstate
+**/*.xcodeproj/xcuserdata/
+**/*.xcworkspace/xcuserdata/
+
+# Local iOS configuration
+**/Local.xcconfig
