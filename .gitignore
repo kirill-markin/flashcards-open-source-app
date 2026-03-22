@@ -18,12 +18,6 @@ infra/aws/cdk.context.local.json
 infra/aws/cdk.out/
 api/dist/
 
-# Terraform/Terragrunt local state
-**/.terraform/
-**/.terragrunt-cache/
-**/*.tfstate
-**/*.tfstate.*
-
 # Logs
 **/*.log
 npm-debug.log*
@@ -33,10 +27,3 @@ pnpm-debug.log*
 
 # macOS
 .DS_Store
-
-# Xcode
-**/DerivedData/
-**/*.xcuserstate
-**/*.xcodeproj/xcuserdata/
-**/*.xcworkspace/xcuserdata/
-**/Local.xcconfig
