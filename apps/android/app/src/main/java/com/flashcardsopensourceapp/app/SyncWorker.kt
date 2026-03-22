@@ -13,9 +13,12 @@ class SyncWorker(
     override suspend fun doWork(): Result {
         val application = applicationContext as FlashcardsApplication
 
-        // TODO: Port outbox drain, remote pull, and sync cursor logic from apps/ios/Flashcards/Flashcards/CloudSync.
-        application.appGraph.syncRepository.scheduleDraftSync()
-        return Result.success()
+        return try {
+            application.appGraph.syncRepository.scheduleSync()
+            Result.success()
+        } catch (error: Exception) {
+            Result.retry()
+        }
     }
 }
 

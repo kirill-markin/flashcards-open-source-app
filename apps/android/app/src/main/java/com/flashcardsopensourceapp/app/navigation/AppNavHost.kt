@@ -22,6 +22,7 @@ import com.flashcardsopensourceapp.feature.ai.createAiViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.AccessDetailRoute
 import com.flashcardsopensourceapp.feature.settings.AccessRoute
+import com.flashcardsopensourceapp.feature.settings.AccountAdvancedRoute
 import com.flashcardsopensourceapp.feature.settings.AccountLegalSupportRoute
 import com.flashcardsopensourceapp.feature.settings.AccountOpenSourceRoute
 import com.flashcardsopensourceapp.feature.settings.AccountRoute
@@ -33,14 +34,20 @@ import com.flashcardsopensourceapp.feature.cards.CardsRoute
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.cards.createCardsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createAccountStatusViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createCloudSignInViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createCurrentWorkspaceViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDeviceDiagnosticsViewModelFactory
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.CloudSignInCodeRoute
+import com.flashcardsopensourceapp.feature.settings.CloudSignInEmailRoute
+import com.flashcardsopensourceapp.feature.settings.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.DeckDetailRoute
 import com.flashcardsopensourceapp.feature.settings.DeckEditorRoute
 import com.flashcardsopensourceapp.feature.settings.DecksRoute
 import com.flashcardsopensourceapp.feature.settings.DeviceDiagnosticsRoute
+import com.flashcardsopensourceapp.feature.settings.ServerSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SchedulerSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceExportRoute
@@ -51,6 +58,7 @@ import com.flashcardsopensourceapp.feature.settings.createDeckDetailViewModelFac
 import com.flashcardsopensourceapp.feature.settings.createDeckEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDecksViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSchedulerSettingsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createServerSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceOverviewViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceExportViewModelFactory
@@ -329,12 +337,18 @@ fun AppNavHost(
 
         composable(route = SettingsDestination.route) {
             val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
-                factory = createSettingsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+                factory = createSettingsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository
+                )
             )
             val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
             SettingsRoute(
                 uiState = uiState,
+                onOpenCurrentWorkspace = {
+                    navController.navigate(route = SettingsCurrentWorkspaceDestination.route)
+                },
                 onOpenWorkspace = {
                     navController.navigate(route = SettingsWorkspaceDestination.route)
                 },
@@ -346,6 +360,45 @@ fun AppNavHost(
                 },
                 onOpenAccess = {
                     navController.navigate(route = SettingsAccessDestination.route)
+                }
+            )
+        }
+
+        composable(route = SettingsCurrentWorkspaceDestination.route) {
+            val currentWorkspaceViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CurrentWorkspaceViewModel>(
+                factory = createCurrentWorkspaceViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    syncRepository = appGraph.syncRepository
+                )
+            )
+            val uiState by currentWorkspaceViewModel.uiState.collectAsStateWithLifecycle()
+
+            CurrentWorkspaceRoute(
+                uiState = uiState,
+                onReload = {
+                    coroutineScope.launch {
+                        currentWorkspaceViewModel.loadWorkspaces()
+                    }
+                },
+                onSwitchToExistingWorkspace = { workspaceId ->
+                    coroutineScope.launch {
+                        currentWorkspaceViewModel.switchWorkspace(
+                            selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.Existing(
+                                workspaceId = workspaceId
+                            )
+                        )
+                    }
+                },
+                onCreateWorkspace = {
+                    coroutineScope.launch {
+                        currentWorkspaceViewModel.switchWorkspace(
+                            selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.CreateNew
+                        )
+                    }
+                },
+                onOpenSignIn = {
+                    navController.navigate(route = SettingsAccountSignInEmailDestination.route)
                 }
             )
         }
@@ -551,7 +604,10 @@ fun AppNavHost(
             }
             val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
                 viewModelStoreOwner = settingsBackStackEntry,
-                factory = createSettingsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+                factory = createSettingsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository
+                )
             )
             val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -565,17 +621,148 @@ fun AppNavHost(
                 },
                 onOpenOpenSource = {
                     navController.navigate(route = SettingsAccountOpenSourceDestination.route)
+                },
+                onOpenAdvanced = {
+                    navController.navigate(route = SettingsAccountAdvancedDestination.route)
                 }
             )
         }
 
         composable(route = SettingsAccountStatusDestination.route) {
             val accountStatusViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AccountStatusViewModel>(
-                factory = createAccountStatusViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+                factory = createAccountStatusViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    syncRepository = appGraph.syncRepository
+                )
             )
             val uiState by accountStatusViewModel.uiState.collectAsStateWithLifecycle()
 
-            AccountStatusRoute(uiState = uiState)
+            AccountStatusRoute(
+                uiState = uiState,
+                onOpenSignIn = {
+                    navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                },
+                onSyncNow = {
+                    coroutineScope.launch {
+                        accountStatusViewModel.syncNow()
+                    }
+                },
+                onLogout = {
+                    coroutineScope.launch {
+                        accountStatusViewModel.logout()
+                    }
+                }
+            )
+        }
+
+        composable(route = SettingsAccountAdvancedDestination.route) {
+            AccountAdvancedRoute(
+                onOpenServer = {
+                    navController.navigate(route = SettingsAccountServerDestination.route)
+                }
+            )
+        }
+
+        composable(route = SettingsAccountServerDestination.route) {
+            val serverSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.ServerSettingsViewModel>(
+                factory = createServerSettingsViewModelFactory(
+                    cloudAccountRepository = appGraph.cloudAccountRepository
+                )
+            )
+            val uiState by serverSettingsViewModel.uiState.collectAsStateWithLifecycle()
+
+            ServerSettingsRoute(
+                uiState = uiState,
+                onCustomOriginChange = serverSettingsViewModel::updateCustomOrigin,
+                onValidateCustomServer = {
+                    coroutineScope.launch {
+                        serverSettingsViewModel.validateCustomServer()
+                    }
+                },
+                onApplyPreviewConfiguration = {
+                    coroutineScope.launch {
+                        serverSettingsViewModel.applyPreviewConfiguration()
+                    }
+                },
+                onResetToOfficialServer = {
+                    coroutineScope.launch {
+                        serverSettingsViewModel.resetToOfficialServer()
+                    }
+                }
+            )
+        }
+
+        composable(route = SettingsAccountSignInEmailDestination.route) {
+            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CloudSignInViewModel>(
+                factory = createCloudSignInViewModelFactory(
+                    cloudAccountRepository = appGraph.cloudAccountRepository
+                )
+            )
+            val uiState by signInViewModel.uiState.collectAsStateWithLifecycle()
+
+            CloudSignInEmailRoute(
+                uiState = uiState,
+                onEmailChange = signInViewModel::updateEmail,
+                onSendCode = {
+                    coroutineScope.launch {
+                        val didCreateChallenge = signInViewModel.sendCode()
+                        if (didCreateChallenge) {
+                            navController.navigate(route = SettingsAccountSignInCodeDestination.route)
+                        }
+                    }
+                }
+            )
+        }
+
+        composable(route = SettingsAccountSignInCodeDestination.route) {
+            val emailRouteBackStackEntry = remember(navController) {
+                navController.getBackStackEntry(SettingsAccountSignInEmailDestination.route)
+            }
+            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CloudSignInViewModel>(
+                viewModelStoreOwner = emailRouteBackStackEntry,
+                factory = createCloudSignInViewModelFactory(
+                    cloudAccountRepository = appGraph.cloudAccountRepository
+                )
+            )
+            val uiState by signInViewModel.uiState.collectAsStateWithLifecycle()
+
+            CloudSignInCodeRoute(
+                uiState = uiState,
+                onCodeChange = signInViewModel::updateCode,
+                onVerifyCode = {
+                    coroutineScope.launch {
+                        val workspaces = signInViewModel.verifyCode()
+                        when {
+                            workspaces.isEmpty() -> {
+                                appGraph.cloudAccountRepository.switchLinkedWorkspace(
+                                    selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.CreateNew
+                                )
+                                appGraph.syncRepository.syncNow()
+                                navController.popBackStack(route = SettingsAccountDestination.route, inclusive = false)
+                            }
+
+                            workspaces.size == 1 -> {
+                                appGraph.cloudAccountRepository.switchLinkedWorkspace(
+                                    selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.Existing(
+                                        workspaceId = workspaces.first().workspaceId
+                                    )
+                                )
+                                appGraph.syncRepository.syncNow()
+                                navController.popBackStack(route = SettingsAccountDestination.route, inclusive = false)
+                            }
+
+                            else -> {
+                                navController.navigate(route = SettingsCurrentWorkspaceDestination.route) {
+                                    popUpTo(route = SettingsAccountSignInEmailDestination.route) {
+                                        inclusive = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            )
         }
 
         composable(route = SettingsAccountLegalSupportDestination.route) {

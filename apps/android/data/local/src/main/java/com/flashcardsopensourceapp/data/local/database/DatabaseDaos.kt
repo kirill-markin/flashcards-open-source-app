@@ -21,6 +21,15 @@ interface WorkspaceDao {
 
     @Query("SELECT * FROM workspaces ORDER BY createdAtMillis ASC LIMIT 1")
     suspend fun loadWorkspace(): WorkspaceEntity?
+
+    @Update
+    suspend fun updateWorkspace(workspace: WorkspaceEntity)
+
+    @Query("DELETE FROM workspaces")
+    suspend fun deleteAllWorkspaces()
+
+    @Query("DELETE FROM workspaces WHERE workspaceId = :workspaceId")
+    suspend fun deleteWorkspace(workspaceId: String)
 }
 
 @Dao
@@ -36,6 +45,9 @@ interface WorkspaceSchedulerSettingsDao {
 
     @Query("SELECT * FROM workspace_scheduler_settings WHERE workspaceId = :workspaceId LIMIT 1")
     suspend fun loadWorkspaceSchedulerSettings(workspaceId: String): WorkspaceSchedulerSettingsEntity?
+
+    @Query("UPDATE workspace_scheduler_settings SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
+    suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }
 
 @Dao
@@ -63,6 +75,12 @@ interface DeckDao {
 
     @Query("SELECT COUNT(*) FROM decks")
     fun observeDeckCount(): Flow<Int>
+
+    @Query("DELETE FROM decks")
+    suspend fun deleteAllDecks()
+
+    @Query("UPDATE decks SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
+    suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }
 
 @Dao
@@ -96,6 +114,12 @@ interface CardDao {
 
     @Query("SELECT COUNT(*) FROM cards")
     fun observeCardCount(): Flow<Int>
+
+    @Query("DELETE FROM cards")
+    suspend fun deleteAllCards()
+
+    @Query("UPDATE cards SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
+    suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }
 
 @Dao
@@ -120,6 +144,15 @@ interface TagDao {
 
     @Query("SELECT COUNT(*) FROM tags")
     suspend fun countTags(): Int
+
+    @Query("DELETE FROM tags")
+    suspend fun deleteAllTags()
+
+    @Query("DELETE FROM card_tags")
+    suspend fun deleteAllCardTags()
+
+    @Query("UPDATE tags SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
+    suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }
 
 @Dao
@@ -135,6 +168,15 @@ interface ReviewLogDao {
 
     @Query("SELECT * FROM review_logs ORDER BY reviewedAtMillis DESC")
     suspend fun loadReviewLogs(): List<ReviewLogEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertReviewLogs(reviewLogs: List<ReviewLogEntity>)
+
+    @Query("DELETE FROM review_logs")
+    suspend fun deleteAllReviewLogs()
+
+    @Query("UPDATE review_logs SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
+    suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }
 
 @Dao
@@ -142,11 +184,35 @@ interface OutboxDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOutboxEntries(entries: List<OutboxEntryEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOutboxEntry(entry: OutboxEntryEntity)
+
     @Query("SELECT COUNT(*) FROM outbox_entries")
     fun observeOutboxEntriesCount(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM outbox_entries")
     suspend fun countOutboxEntries(): Int
+
+    @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC LIMIT :limit")
+    suspend fun loadOutboxEntries(workspaceId: String, limit: Int): List<OutboxEntryEntity>
+
+    @Query("DELETE FROM outbox_entries WHERE workspaceId = :workspaceId")
+    suspend fun deleteOutboxEntriesForWorkspace(workspaceId: String)
+
+    @Query("DELETE FROM outbox_entries WHERE outboxEntryId IN (:operationIds)")
+    suspend fun deleteOutboxEntries(operationIds: List<String>)
+
+    @Query(
+        """
+        UPDATE outbox_entries
+        SET attemptCount = attemptCount + 1, lastError = :errorMessage
+        WHERE outboxEntryId IN (:operationIds)
+        """
+    )
+    suspend fun markOutboxEntriesFailed(operationIds: List<String>, errorMessage: String)
+
+    @Query("UPDATE outbox_entries SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
+    suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }
 
 @Dao
@@ -159,4 +225,10 @@ interface SyncStateDao {
 
     @Query("SELECT * FROM sync_state WHERE workspaceId = :workspaceId LIMIT 1")
     suspend fun loadSyncState(workspaceId: String): SyncStateEntity?
+
+    @Query("DELETE FROM sync_state")
+    suspend fun deleteAllSyncState()
+
+    @Query("UPDATE sync_state SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
+    suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }

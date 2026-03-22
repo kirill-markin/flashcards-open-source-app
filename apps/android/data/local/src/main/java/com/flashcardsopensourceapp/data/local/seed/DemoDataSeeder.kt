@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 
 private const val demoWorkspaceId: String = "workspace-demo"
 
@@ -60,9 +61,24 @@ class DemoDataSeeder(
                     OutboxEntryEntity(
                         outboxEntryId = "outbox-demo-bootstrap",
                         workspaceId = demoWorkspaceId,
-                        operationType = "bootstrap-placeholder",
-                        payloadJson = """{"status":"draft"}""",
-                        createdAtMillis = currentTimeMillis
+                        deviceId = "android-draft-device",
+                        entityType = "workspace_scheduler_settings",
+                        entityId = demoWorkspaceId,
+                        operationType = "upsert",
+                        payloadJson = """
+                            {
+                              "algorithm": "fsrs-6",
+                              "desiredRetention": 0.9,
+                              "learningStepsMinutes": [1, 10],
+                              "relearningStepsMinutes": [10],
+                              "maximumIntervalDays": 36500,
+                              "enableFuzz": true
+                            }
+                        """.trimIndent(),
+                        clientUpdatedAtIso = formatIsoTimestamp(timestampMillis = currentTimeMillis),
+                        createdAtMillis = currentTimeMillis,
+                        attemptCount = 0,
+                        lastError = null
                     )
                 )
             )
@@ -70,7 +86,12 @@ class DemoDataSeeder(
                 syncState = SyncStateEntity(
                     workspaceId = demoWorkspaceId,
                     lastSyncCursor = null,
-                    lastSyncAttemptAtMillis = null
+                    lastReviewSequenceId = 0,
+                    hasHydratedHotState = false,
+                    hasHydratedReviewHistory = false,
+                    lastSyncAttemptAtMillis = null,
+                    lastSuccessfulSyncAtMillis = null,
+                    lastSyncError = null
                 )
             )
         }
@@ -91,7 +112,8 @@ private fun buildDemoDecks(currentTimeMillis: Long): List<DeckEntity> {
                 )
             ),
             createdAtMillis = currentTimeMillis,
-            updatedAtMillis = currentTimeMillis
+            updatedAtMillis = currentTimeMillis,
+            deletedAtMillis = null
         ),
         DeckEntity(
             deckId = "deck-android",
@@ -105,7 +127,8 @@ private fun buildDemoDecks(currentTimeMillis: Long): List<DeckEntity> {
                 )
             ),
             createdAtMillis = currentTimeMillis + 1,
-            updatedAtMillis = currentTimeMillis + 1
+            updatedAtMillis = currentTimeMillis + 1,
+            deletedAtMillis = null
         ),
         DeckEntity(
             deckId = "deck-study",
@@ -119,7 +142,8 @@ private fun buildDemoDecks(currentTimeMillis: Long): List<DeckEntity> {
                 )
             ),
             createdAtMillis = currentTimeMillis + 2,
-            updatedAtMillis = currentTimeMillis + 2
+            updatedAtMillis = currentTimeMillis + 2,
+            deletedAtMillis = null
         )
     )
 }
@@ -171,7 +195,8 @@ private fun demoCard(
         fsrsStability = null,
         fsrsDifficulty = null,
         fsrsLastReviewedAtMillis = null,
-        fsrsScheduledDays = null
+        fsrsScheduledDays = null,
+        deletedAtMillis = null
     )
 }
 

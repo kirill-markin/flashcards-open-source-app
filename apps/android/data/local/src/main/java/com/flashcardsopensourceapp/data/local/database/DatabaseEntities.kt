@@ -36,7 +36,8 @@ data class DeckEntity(
     val name: String,
     val filterDefinitionJson: String,
     val createdAtMillis: Long,
-    val updatedAtMillis: Long
+    val updatedAtMillis: Long,
+    val deletedAtMillis: Long?
 )
 
 @Entity(
@@ -67,7 +68,8 @@ data class CardEntity(
     val fsrsStability: Double?,
     val fsrsDifficulty: Double?,
     val fsrsLastReviewedAtMillis: Long?,
-    val fsrsScheduledDays: Int?
+    val fsrsScheduledDays: Int?,
+    val deletedAtMillis: Long?
 )
 
 @Entity(
@@ -134,8 +136,11 @@ data class ReviewLogEntity(
     @PrimaryKey val reviewLogId: String,
     val workspaceId: String,
     val cardId: String,
+    val deviceId: String,
+    val clientEventId: String,
     val rating: ReviewRating,
-    val reviewedAtMillis: Long
+    val reviewedAtMillis: Long,
+    val reviewedAtServerIso: String
 )
 
 @Entity(
@@ -176,16 +181,27 @@ data class WorkspaceSchedulerSettingsEntity(
 data class OutboxEntryEntity(
     @PrimaryKey val outboxEntryId: String,
     val workspaceId: String,
+    val deviceId: String,
+    val entityType: String,
+    val entityId: String,
     val operationType: String,
     val payloadJson: String,
-    val createdAtMillis: Long
+    val clientUpdatedAtIso: String,
+    val createdAtMillis: Long,
+    val attemptCount: Int,
+    val lastError: String?
 )
 
 @Entity(tableName = "sync_state")
 data class SyncStateEntity(
     @PrimaryKey val workspaceId: String,
     val lastSyncCursor: String?,
-    val lastSyncAttemptAtMillis: Long?
+    val lastReviewSequenceId: Long,
+    val hasHydratedHotState: Boolean,
+    val hasHydratedReviewHistory: Boolean,
+    val lastSyncAttemptAtMillis: Long?,
+    val lastSuccessfulSyncAtMillis: Long?,
+    val lastSyncError: String?
 )
 
 data class CardWithRelations(

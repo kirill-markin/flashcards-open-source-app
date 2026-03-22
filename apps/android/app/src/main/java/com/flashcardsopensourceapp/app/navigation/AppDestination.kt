@@ -76,6 +76,10 @@ data object SettingsWorkspaceDestination {
     const val route: String = "settings/workspace"
 }
 
+data object SettingsCurrentWorkspaceDestination {
+    const val route: String = "settings/current-workspace"
+}
+
 data object SettingsWorkspaceOverviewDestination {
     const val route: String = "settings/workspace/overview"
 }
@@ -120,8 +124,24 @@ data object SettingsAccountDestination {
     const val route: String = "settings/account"
 }
 
+data object SettingsAccountAdvancedDestination {
+    const val route: String = "settings/account/advanced"
+}
+
+data object SettingsAccountServerDestination {
+    const val route: String = "settings/account/advanced/server"
+}
+
 data object SettingsAccountStatusDestination {
     const val route: String = "settings/account/status"
+}
+
+data object SettingsAccountSignInEmailDestination {
+    const val route: String = "settings/account/sign-in"
+}
+
+data object SettingsAccountSignInCodeDestination {
+    const val route: String = "settings/account/sign-in/code"
 }
 
 data object SettingsAccountLegalSupportDestination {

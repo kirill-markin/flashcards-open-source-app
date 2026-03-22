@@ -78,7 +78,8 @@ class SchedulerSupportTest {
             fsrsStability = null,
             fsrsDifficulty = null,
             fsrsLastReviewedAtMillis = null,
-            fsrsScheduledDays = null
+            fsrsScheduledDays = null,
+            deletedAtMillis = null
         )
     }
 
@@ -100,7 +101,8 @@ class SchedulerSupportTest {
             fsrsStability = 3.0,
             fsrsDifficulty = 5.0,
             fsrsLastReviewedAtMillis = 0L,
-            fsrsScheduledDays = 3
+            fsrsScheduledDays = 3,
+            deletedAtMillis = null
         )
     }
 }

@@ -100,7 +100,9 @@ data class DeviceDiagnosticsUiState(
     val storageLabel: String,
     val outboxEntriesCount: Int,
     val lastSyncCursor: String,
-    val lastSyncAttempt: String
+    val lastSyncAttempt: String,
+    val lastSuccessfulSync: String,
+    val lastSyncError: String
 )
 
 data class WorkspaceExportUiState(
