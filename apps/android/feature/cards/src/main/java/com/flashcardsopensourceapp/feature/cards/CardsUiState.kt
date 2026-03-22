@@ -19,7 +19,12 @@ data class CardEditorUiState(
     val isEditing: Boolean,
     val frontText: String,
     val backText: String,
-    val tagsText: String,
+    val selectedTags: List<String>,
+    val availableTagSuggestions: List<WorkspaceTagSummary>,
     val effortLevel: EffortLevel,
-    val errorMessage: String
+    val frontTextErrorMessage: String,
+    val backTextErrorMessage: String,
+    val tagsErrorMessage: String,
+    val errorMessage: String,
+    val isDirty: Boolean
 )

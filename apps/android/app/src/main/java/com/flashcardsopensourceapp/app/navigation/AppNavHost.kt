@@ -27,6 +27,8 @@ import com.flashcardsopensourceapp.feature.settings.AccountOpenSourceRoute
 import com.flashcardsopensourceapp.feature.settings.AccountRoute
 import com.flashcardsopensourceapp.feature.settings.AccountStatusRoute
 import com.flashcardsopensourceapp.feature.cards.CardEditorRoute
+import com.flashcardsopensourceapp.feature.cards.CardTagsRoute
+import com.flashcardsopensourceapp.feature.cards.CardTextEditorRoute
 import com.flashcardsopensourceapp.feature.cards.CardsRoute
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.cards.createCardsViewModelFactory
@@ -85,6 +87,12 @@ fun AppNavHost(
                 onOpenPreview = {
                     navController.navigate(route = ReviewPreviewDestination.route)
                 },
+                onOpenCurrentCard = { cardId ->
+                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
+                },
+                onOpenDeckManagement = {
+                    navController.navigate(route = SettingsWorkspaceDecksDestination.route)
+                },
                 onRevealAnswer = reviewViewModel::revealAnswer,
                 onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.AGAIN) },
                 onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.HARD) },
@@ -109,6 +117,9 @@ fun AppNavHost(
                 onStartPreview = reviewViewModel::startPreview,
                 onLoadNextPreviewPageIfNeeded = reviewViewModel::loadNextPreviewPageIfNeeded,
                 onRetryPreview = reviewViewModel::retryPreview,
+                onOpenCard = { cardId ->
+                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
+                },
                 onBack = {
                     navController.popBackStack()
                 }
@@ -156,6 +167,7 @@ fun AppNavHost(
             val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
                 factory = createCardEditorViewModelFactory(
                     cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
                     editingCardId = editingCardId
                 )
             )
@@ -163,9 +175,26 @@ fun AppNavHost(
 
             CardEditorRoute(
                 uiState = uiState,
-                onFrontTextChange = editorViewModel::updateFrontText,
-                onBackTextChange = editorViewModel::updateBackText,
-                onTagsTextChange = editorViewModel::updateTagsText,
+                onOpenFrontTextEditor = {
+                    navController.navigate(
+                        route = CardEditorTextDestination.createRoute(
+                            cardId = editingArgument,
+                            field = "front"
+                        )
+                    )
+                },
+                onOpenBackTextEditor = {
+                    navController.navigate(
+                        route = CardEditorTextDestination.createRoute(
+                            cardId = editingArgument,
+                            field = "back"
+                        )
+                    )
+                },
+                onOpenTagsEditor = {
+                    navController.navigate(route = CardEditorTagsDestination.createRoute(cardId = editingArgument))
+                },
+                onRemoveTag = editorViewModel::removeTag,
                 onEffortLevelChange = editorViewModel::updateEffortLevel,
                 onSave = {
                     coroutineScope.launch {
@@ -191,6 +220,94 @@ fun AppNavHost(
                         }
                     }
                 },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = CardEditorTextDestination.routePattern,
+            arguments = listOf(
+                navArgument(name = CardEditorTextDestination.cardIdArgument) {
+                    type = NavType.StringType
+                },
+                navArgument(name = CardEditorTextDestination.fieldArgument) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val editingArgument = requireNotNull(
+                backStackEntry.arguments?.getString(CardEditorTextDestination.cardIdArgument)
+            ) {
+                "Card text editor route requires cardId."
+            }
+            val field = requireNotNull(
+                backStackEntry.arguments?.getString(CardEditorTextDestination.fieldArgument)
+            ) {
+                "Card text editor route requires field."
+            }
+            val editorBackStackEntry = remember(navController, editingArgument) {
+                navController.getBackStackEntry(CardEditorDestination.createRoute(cardId = editingArgument))
+            }
+            val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
+                viewModelStoreOwner = editorBackStackEntry,
+                factory = createCardEditorViewModelFactory(
+                    cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
+                    editingCardId = if (editingArgument == "new") null else editingArgument
+                )
+            )
+            val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
+
+            CardTextEditorRoute(
+                title = if (field == "front") "Front" else "Back",
+                supportingText = if (field == "front") {
+                    "Keep this side focused on the question or review prompt."
+                } else {
+                    "Keep this side focused on the answer."
+                },
+                text = if (field == "front") uiState.frontText else uiState.backText,
+                onTextChange = if (field == "front") {
+                    editorViewModel::updateFrontText
+                } else {
+                    editorViewModel::updateBackText
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = CardEditorTagsDestination.routePattern,
+            arguments = listOf(navArgument(name = CardEditorTagsDestination.routeArgument) {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val editingArgument = requireNotNull(
+                backStackEntry.arguments?.getString(CardEditorTagsDestination.routeArgument)
+            ) {
+                "Card tags route requires cardId."
+            }
+            val editorBackStackEntry = remember(navController, editingArgument) {
+                navController.getBackStackEntry(CardEditorDestination.createRoute(cardId = editingArgument))
+            }
+            val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
+                viewModelStoreOwner = editorBackStackEntry,
+                factory = createCardEditorViewModelFactory(
+                    cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
+                    editingCardId = if (editingArgument == "new") null else editingArgument
+                )
+            )
+            val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
+
+            CardTagsRoute(
+                uiState = uiState,
+                onToggleSuggestedTag = editorViewModel::toggleTag,
+                onAddTag = editorViewModel::addTag,
+                onRemoveTag = editorViewModel::removeTag,
                 onBack = {
                     navController.popBackStack()
                 }
@@ -307,6 +424,9 @@ fun AppNavHost(
                 uiState = uiState,
                 onEditDeck = { editingDeckId ->
                     navController.navigate(route = SettingsWorkspaceDeckEditorDestination.createRoute(deckId = editingDeckId))
+                },
+                onOpenCard = { cardId ->
+                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
                 },
                 onDeleteDeck = { deletingDeckId ->
                     coroutineScope.launch {

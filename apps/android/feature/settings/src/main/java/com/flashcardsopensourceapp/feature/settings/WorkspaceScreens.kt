@@ -452,6 +452,7 @@ fun DecksRoute(
 fun DeckDetailRoute(
     uiState: DeckDetailUiState,
     onEditDeck: (String) -> Unit,
+    onOpenCard: (String) -> Unit,
     onDeleteDeck: (String) -> Unit
 ) {
     val deck = uiState.deck
@@ -543,7 +544,10 @@ fun DeckDetailRoute(
             }
         } else {
             items(uiState.cards, key = { card -> card.cardId }) { card ->
-                DeckCardRow(card = card)
+                DeckCardRow(
+                    card = card,
+                    onOpenCard = onOpenCard
+                )
             }
         }
     }
@@ -823,8 +827,17 @@ private fun DeckRow(
 }
 
 @Composable
-private fun DeckCardRow(card: CardSummary) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun DeckCardRow(
+    card: CardSummary,
+    onOpenCard: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                onOpenCard(card.cardId)
+            }
+    ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(16.dp)

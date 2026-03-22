@@ -16,6 +16,8 @@ data class ReviewUiState(
     val isAnswerVisible: Boolean,
     val cards: List<ReviewCard>,
     val currentCard: ReviewCard?,
+    val currentCardIdForEditing: String?,
+    val preparedNextCard: ReviewCard?,
     val answerOptions: List<ReviewAnswerOption>,
     val availableDeckFilters: List<ReviewDeckFilterOption>,
     val availableTagFilters: List<ReviewTagFilterOption>,

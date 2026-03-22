@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.app
 
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -46,9 +47,14 @@ class MainActivityTest {
         composeRule.onNodeWithText("Cards").performClick()
         composeRule.onNodeWithContentDescription("Add card").performClick()
 
-        composeRule.onNodeWithText("Front text").performTextInput("Draft Android card")
-        composeRule.onNodeWithText("Back text").performTextInput("This came from the Android prototype.")
-        composeRule.onNodeWithText("Tags").performTextInput("draft, android")
+        updateCardText(fieldTitle = "Front", value = "Draft Android card")
+        updateCardText(fieldTitle = "Back", value = "This came from the Android prototype.")
+        composeRule.onNodeWithText("Tags").performClick()
+        composeRule.onNodeWithText("Add a tag").performTextInput("draft")
+        composeRule.onNodeWithText("Add tag").performClick()
+        composeRule.onNodeWithText("Add a tag").performTextInput("android")
+        composeRule.onNodeWithText("Add tag").performClick()
+        pressBack()
         composeRule.onNodeWithText("Save").performClick()
 
         composeRule.waitUntil(timeoutMillis = 10_000L) {
@@ -65,7 +71,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("Clear").performClick()
 
         composeRule.onNodeWithText("Draft Android card").performClick()
-        composeRule.onNodeWithText("Front text").performTextReplacement("Updated Android draft card")
+        updateCardText(fieldTitle = "Front", value = "Updated Android draft card")
         composeRule.onNodeWithText("Save").performClick()
 
         composeRule.waitUntil(timeoutMillis = 10_000L) {
@@ -97,6 +103,12 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = 10_000L) {
             composeRule.onAllNodesWithText("SQLite Focus").fetchSemanticsNodes().isNotEmpty()
         }
+
+        composeRule.onNodeWithText("SQLite Focus").performClick()
+        composeRule.onNodeWithText("What does Room wrap on Android?").performClick()
+        composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
+        pressBack()
+        pressBack()
 
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Workspace").performClick()
@@ -155,8 +167,14 @@ class MainActivityTest {
         composeRule.onNodeWithContentDescription("Choose review filter").performClick()
         composeRule.onNodeWithText("Android UI (3)").performClick()
         composeRule.onNodeWithText("What is Compose used for?").fetchSemanticsNode()
+        composeRule.onNodeWithText("Edit card").performClick()
+        composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
+        pressBack()
         composeRule.onNodeWithText("3 / 3").performClick()
         composeRule.onNodeWithText("Review queue").fetchSemanticsNode()
+        composeRule.onNodeWithText("What is Compose used for?").performClick()
+        composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
+        pressBack()
         composeRule.onNodeWithContentDescription("Back").performClick()
 
         composeRule.onNodeWithText("Show answer").performClick()
@@ -172,5 +190,11 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
             composeRule.onAllNodesWithText("What does val mean in Kotlin?").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun updateCardText(fieldTitle: String, value: String) {
+        composeRule.onNodeWithText(fieldTitle).performClick()
+        composeRule.onNode(hasSetTextAction()).performTextReplacement(value)
+        pressBack()
     }
 }

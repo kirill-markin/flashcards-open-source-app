@@ -9,10 +9,11 @@ import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
+import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,7 +23,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CardsViewModel(
@@ -90,20 +91,36 @@ class CardsViewModel(
     }
 }
 
+private data class CardEditorDraftState(
+    val frontText: String,
+    val backText: String,
+    val selectedTags: List<String>,
+    val effortLevel: EffortLevel,
+    val frontTextErrorMessage: String,
+    val backTextErrorMessage: String,
+    val tagsErrorMessage: String,
+    val errorMessage: String,
+    val isDirty: Boolean,
+    val hasLoadedInitialValues: Boolean
+)
+
 class CardEditorViewModel(
     private val cardsRepository: CardsRepository,
+    private val workspaceRepository: WorkspaceRepository,
     editingCardId: String?
 ) : ViewModel() {
     private val inputState = MutableStateFlow(
-        value = CardEditorUiState(
-            isLoading = true,
-            title = if (editingCardId == null) "New card" else "Edit card",
-            isEditing = editingCardId != null,
+        value = CardEditorDraftState(
             frontText = "",
             backText = "",
-            tagsText = "",
+            selectedTags = emptyList(),
             effortLevel = EffortLevel.FAST,
-            errorMessage = ""
+            frontTextErrorMessage = "",
+            backTextErrorMessage = "",
+            tagsErrorMessage = "",
+            errorMessage = "",
+            isDirty = false,
+            hasLoadedInitialValues = editingCardId == null
         )
     )
 
@@ -116,74 +133,190 @@ class CardEditorViewModel(
             cardsRepository.observeCard(cardId = editingCardId)
         }
 
+        viewModelScope.launch {
+            cardFlow.collect { card ->
+                if (card == null || inputState.value.hasLoadedInitialValues) {
+                    return@collect
+                }
+
+                inputState.update { state ->
+                    state.copy(
+                        frontText = card.frontText,
+                        backText = card.backText,
+                        selectedTags = card.tags,
+                        effortLevel = card.effortLevel,
+                        hasLoadedInitialValues = true
+                    )
+                }
+            }
+        }
+
         uiState = combine(
             cardFlow,
+            workspaceRepository.observeWorkspaceTagsSummary(),
             inputState
-        ) { card, currentState ->
-            currentState.copy(
-                isLoading = false,
-                frontText = if (currentState.frontText.isEmpty() && card != null) card.frontText else currentState.frontText,
-                backText = if (currentState.backText.isEmpty() && card != null) card.backText else currentState.backText,
-                tagsText = if (currentState.tagsText.isEmpty() && card != null) card.tags.joinToString(separator = ", ") else currentState.tagsText,
-                effortLevel = if (currentState.frontText.isEmpty() && currentState.backText.isEmpty() && card != null) card.effortLevel else currentState.effortLevel
+        ) { card, tagsSummary, currentState ->
+            CardEditorUiState(
+                isLoading = editingCardId != null && card != null && currentState.hasLoadedInitialValues.not(),
+                title = if (editingCardId == null) "New card" else "Edit card",
+                isEditing = editingCardId != null,
+                frontText = currentState.frontText,
+                backText = currentState.backText,
+                selectedTags = normalizeTags(
+                    values = currentState.selectedTags,
+                    referenceTags = tagsSummary.tags.map(WorkspaceTagSummary::tag)
+                ),
+                availableTagSuggestions = tagsSummary.tags,
+                effortLevel = currentState.effortLevel,
+                frontTextErrorMessage = currentState.frontTextErrorMessage,
+                backTextErrorMessage = currentState.backTextErrorMessage,
+                tagsErrorMessage = currentState.tagsErrorMessage,
+                errorMessage = currentState.errorMessage,
+                isDirty = currentState.isDirty
             )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-            initialValue = inputState.value
+            initialValue = CardEditorUiState(
+                isLoading = true,
+                title = if (editingCardId == null) "New card" else "Edit card",
+                isEditing = editingCardId != null,
+                frontText = "",
+                backText = "",
+                selectedTags = emptyList(),
+                availableTagSuggestions = emptyList(),
+                effortLevel = EffortLevel.FAST,
+                frontTextErrorMessage = "",
+                backTextErrorMessage = "",
+                tagsErrorMessage = "",
+                errorMessage = "",
+                isDirty = false
+            )
         )
     }
 
     fun updateFrontText(frontText: String) {
         inputState.update { state ->
-            state.copy(frontText = frontText, errorMessage = "")
+            state.copy(
+                frontText = frontText,
+                frontTextErrorMessage = "",
+                errorMessage = "",
+                isDirty = true
+            )
         }
     }
 
     fun updateBackText(backText: String) {
         inputState.update { state ->
-            state.copy(backText = backText, errorMessage = "")
+            state.copy(
+                backText = backText,
+                backTextErrorMessage = "",
+                errorMessage = "",
+                isDirty = true
+            )
         }
     }
 
-    fun updateTagsText(tagsText: String) {
+    fun toggleTag(tag: String) {
+        val referenceTags = currentReferenceTags()
         inputState.update { state ->
-            state.copy(tagsText = tagsText, errorMessage = "")
+            state.copy(
+                selectedTags = normalizeTags(
+                    values = toggleTagSelection(
+                        selectedTags = state.selectedTags,
+                        tag = tag
+                    ),
+                    referenceTags = referenceTags
+                ),
+                tagsErrorMessage = "",
+                errorMessage = "",
+                isDirty = true
+            )
+        }
+    }
+
+    fun addTag(rawValue: String) {
+        val referenceTags = currentReferenceTags()
+        val normalizedTag = normalizeTags(
+            values = listOf(rawValue),
+            referenceTags = referenceTags + uiState.value.selectedTags
+        ).firstOrNull()
+
+        if (normalizedTag == null) {
+            inputState.update { state ->
+                state.copy(
+                    tagsErrorMessage = "Enter a tag before adding it.",
+                    errorMessage = "",
+                    isDirty = true
+                )
+            }
+            return
+        }
+
+        inputState.update { state ->
+            state.copy(
+                selectedTags = normalizeTags(
+                    values = state.selectedTags + normalizedTag,
+                    referenceTags = referenceTags
+                ),
+                tagsErrorMessage = "",
+                errorMessage = "",
+                isDirty = true
+            )
+        }
+    }
+
+    fun removeTag(tag: String) {
+        inputState.update { state ->
+            state.copy(
+                selectedTags = state.selectedTags.filter { value ->
+                    value != tag
+                },
+                tagsErrorMessage = "",
+                errorMessage = "",
+                isDirty = true
+            )
         }
     }
 
     fun updateEffortLevel(effortLevel: EffortLevel) {
         inputState.update { state ->
-            state.copy(effortLevel = effortLevel, errorMessage = "")
+            state.copy(
+                effortLevel = effortLevel,
+                errorMessage = "",
+                isDirty = true
+            )
         }
     }
 
     suspend fun save(editingCardId: String?): Boolean {
         val state = uiState.value
-        val trimmedFront = state.frontText.trim()
-        val trimmedBack = state.backText.trim()
+        val validation = validateCardEditorInput(
+            frontText = state.frontText,
+            backText = state.backText
+        )
 
-        if (trimmedFront.isEmpty()) {
+        if (validation.isValid.not()) {
             inputState.update { currentState ->
-                currentState.copy(errorMessage = "Front text is required.")
-            }
-            return false
-        }
-        if (trimmedBack.isEmpty()) {
-            inputState.update { currentState ->
-                currentState.copy(errorMessage = "Back text is required.")
+                currentState.copy(
+                    frontTextErrorMessage = validation.frontTextErrorMessage,
+                    backTextErrorMessage = validation.backTextErrorMessage,
+                    errorMessage = validation.errorMessage
+                )
             }
             return false
         }
 
         val cardDraft = CardDraft(
-            frontText = trimmedFront,
-            backText = trimmedBack,
-            tags = parseTags(tagsText = state.tagsText),
+            frontText = state.frontText.trim(),
+            backText = state.backText.trim(),
+            tags = normalizeTags(
+                values = state.selectedTags,
+                referenceTags = currentReferenceTags()
+            ),
             effortLevel = state.effortLevel
         )
 
-        // TODO: Port advanced card editor parity from apps/ios/Flashcards/Flashcards/CardEditorScreen.swift.
         return if (editingCardId == null) {
             cardsRepository.createCard(cardDraft = cardDraft)
             true
@@ -194,9 +327,12 @@ class CardEditorViewModel(
     }
 
     suspend fun delete(editingCardId: String): Boolean {
-        // TODO: Port swipe/detail parity decisions from apps/ios/Flashcards/Flashcards/CardsScreen.swift.
         cardsRepository.deleteCard(cardId = editingCardId)
         return true
+    }
+
+    private fun currentReferenceTags(): List<String> {
+        return uiState.value.availableTagSuggestions.map(WorkspaceTagSummary::tag)
     }
 }
 
@@ -216,21 +352,56 @@ fun createCardsViewModelFactory(
 
 fun createCardEditorViewModelFactory(
     cardsRepository: CardsRepository,
+    workspaceRepository: WorkspaceRepository,
     editingCardId: String?
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             CardEditorViewModel(
                 cardsRepository = cardsRepository,
+                workspaceRepository = workspaceRepository,
                 editingCardId = editingCardId
             )
         }
     }
 }
 
-private fun parseTags(tagsText: String): List<String> {
-    return normalizeTags(
-        values = tagsText.split(","),
-        referenceTags = emptyList()
+private data class CardEditorValidationResult(
+    val isValid: Boolean,
+    val frontTextErrorMessage: String,
+    val backTextErrorMessage: String,
+    val errorMessage: String
+)
+
+private fun validateCardEditorInput(
+    frontText: String,
+    backText: String
+): CardEditorValidationResult {
+    val frontTextErrorMessage = if (frontText.trim().isEmpty()) {
+        "Front text is required."
+    } else {
+        ""
+    }
+    val backTextErrorMessage = if (backText.trim().isEmpty()) {
+        "Back text is required."
+    } else {
+        ""
+    }
+
+    return CardEditorValidationResult(
+        isValid = frontTextErrorMessage.isEmpty() && backTextErrorMessage.isEmpty(),
+        frontTextErrorMessage = frontTextErrorMessage,
+        backTextErrorMessage = backTextErrorMessage,
+        errorMessage = frontTextErrorMessage.ifEmpty { backTextErrorMessage }
     )
+}
+
+private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<String> {
+    if (selectedTags.contains(tag)) {
+        return selectedTags.filter { value ->
+            value != tag
+        }
+    }
+
+    return selectedTags + tag
 }

@@ -86,6 +86,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals("card-2", reviewViewModel.uiState.value.currentCard?.cardId)
+        assertEquals("card-2", reviewViewModel.uiState.value.preparedNextCard?.cardId)
         assertEquals(2, reviewViewModel.uiState.value.remainingCount)
         assertEquals(0, reviewViewModel.uiState.value.reviewedInSessionCount)
 
@@ -93,6 +94,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, reviewViewModel.uiState.value.reviewedInSessionCount)
+        assertEquals(null, reviewViewModel.uiState.value.preparedNextCard)
         collectionJob.cancel()
     }
 
