@@ -281,13 +281,68 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
-    func testSyncCloudIfLinkedClearsOrphanedStoredCredentialsFromDisconnectedState() async throws {
+    func testSyncCloudIfLinkedRestoresAuthenticatedSessionFromDisconnectedStateAfterReinstall() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
             runLinkedSyncOutcomes: [.succeed],
             isRunLinkedSyncBlocked: false
         )
+        let selectedWorkspace = CloudWorkspaceSummary(
+            workspaceId: "cloud-workspace-reinstall",
+            name: "Remote Personal",
+            createdAt: "2026-03-10T10:00:00.000Z",
+            isSelected: true
+        )
 
+        try context.credentialStore.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        context.cloudSyncService.fetchCloudAccountSnapshot = CloudAccountSnapshot(
+            userId: "user-1",
+            email: "user@example.com",
+            workspaces: [selectedWorkspace]
+        )
+        try context.store.reload()
+
+        await context.store.syncCloudIfLinked()
+
+        let configuration = try context.store.currentCloudServiceConfiguration()
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
+        XCTAssertEqual(
+            context.cloudSyncService.runLinkedSyncSessions,
+            [
+                CloudLinkedSession(
+                    userId: "user-1",
+                    workspaceId: selectedWorkspace.workspaceId,
+                    email: "user@example.com",
+                    configurationMode: .official,
+                    apiBaseUrl: configuration.apiBaseUrl,
+                    authorization: .bearer("id-token")
+                )
+            ]
+        )
+        XCTAssertEqual(context.store.cloudSettings?.cloudState, .linked)
+        XCTAssertEqual(context.store.cloudSettings?.linkedUserId, "user-1")
+        XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, selectedWorkspace.workspaceId)
+        XCTAssertEqual(context.store.cloudSettings?.activeWorkspaceId, selectedWorkspace.workspaceId)
+        XCTAssertEqual(context.store.cloudSettings?.linkedEmail, "user@example.com")
+        XCTAssertEqual(try context.credentialStore.loadCredentials(), FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        XCTAssertEqual(try context.database.loadCachedWorkspaces().map(\.workspaceId), [selectedWorkspace.workspaceId])
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
+    func testSyncCloudIfLinkedClearsOrphanedStoredCredentialsFromDisconnectedStateWhenLocalStateIsNotPristine() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+        let workspaceId = try testWorkspaceId(database: context.database)
+
+        _ = try context.database.saveCard(
+            workspaceId: workspaceId,
+            input: FlashcardsStoreTestSupport.makeCardInput(frontText: "Front", backText: "Back", tags: []),
+            cardId: nil
+        )
         try context.credentialStore.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
         try context.store.reload()
 
@@ -296,7 +351,54 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
         XCTAssertEqual(context.store.cloudSettings?.cloudState, .disconnected)
         XCTAssertNil(try context.credentialStore.loadCredentials())
-        XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
+        XCTAssertEqual(try context.database.loadActiveCards(workspaceId: workspaceId).count, 1)
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
+    func testSyncCloudIfLinkedDropsAuthenticatedStoredCredentialsWhenSilentRestoreFails() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+
+        try context.credentialStore.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        context.cloudSyncService.fetchCloudAccountError = URLError(.notConnectedToInternet)
+        try context.store.reload()
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
+        XCTAssertEqual(context.store.cloudSettings?.cloudState, .disconnected)
+        XCTAssertNil(try context.credentialStore.loadCredentials())
+        XCTAssertNil(context.store.cloudRuntime.activeCloudSession())
+        XCTAssertEqual(context.store.workspace?.name, "Personal")
+        XCTAssertEqual(context.store.userSettings?.userId, "local-user")
+        XCTAssertEqual(context.store.syncStatus, .idle)
+        XCTAssertEqual(context.store.globalErrorMessage, "")
+    }
+
+    func testSyncCloudIfLinkedDoesNotRestoreAuthenticatedSessionAfterReinstallForCustomServer() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [.succeed],
+            isRunLinkedSyncBlocked: false
+        )
+
+        try saveCloudServerOverride(
+            override: CloudServerOverride(customOrigin: "https://self-hosted.example.com"),
+            userDefaults: context.store.userDefaults,
+            encoder: context.store.encoder
+        )
+        try context.credentialStore.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
+        try context.store.reload()
+
+        await context.store.syncCloudIfLinked()
+
+        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
+        XCTAssertEqual(context.store.cloudSettings?.cloudState, .disconnected)
+        XCTAssertNil(try context.credentialStore.loadCredentials())
         XCTAssertEqual(context.store.syncStatus, .idle)
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }

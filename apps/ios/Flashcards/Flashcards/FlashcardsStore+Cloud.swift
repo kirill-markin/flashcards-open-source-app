@@ -75,6 +75,99 @@ extension FlashcardsStore {
         )
     }
 
+    private func isAuthenticatedSilentRestoreEligible(
+        configuration: CloudServiceConfiguration,
+        hasStoredCredentials: Bool,
+        hasStoredGuestSession: Bool
+    ) throws -> Bool {
+        guard configuration.mode == .official else {
+            return false
+        }
+        guard hasStoredCredentials else {
+            return false
+        }
+        guard hasStoredGuestSession == false else {
+            return false
+        }
+        guard self.cloudSettings?.cloudState == .disconnected || self.cloudSettings?.cloudState == .linkingReady else {
+            return false
+        }
+
+        let database = try requireLocalDatabase(database: self.database)
+        return try database.isSafeForAuthenticatedSilentRestore()
+    }
+
+    private func selectedWorkspaceForAuthenticatedSilentRestore(
+        account: CloudAccountSnapshot
+    ) throws -> CloudWorkspaceSummary {
+        guard let selectedWorkspace = account.workspaces.first(where: { workspace in
+            workspace.isSelected
+        }) else {
+            throw LocalStoreError.validation("Authenticated cloud account is missing a selected workspace")
+        }
+
+        return selectedWorkspace
+    }
+
+    private func performAuthenticatedSilentRestore(
+        credentials: StoredCloudCredentials,
+        configuration: CloudServiceConfiguration
+    ) async throws {
+        let account = try await self.loadAuthenticatedCloudAccountSnapshot(
+            credentials: credentials,
+            configuration: configuration
+        )
+        let selectedWorkspace = try self.selectedWorkspaceForAuthenticatedSilentRestore(account: account)
+
+        try await self.finishCloudLink(
+            linkedSession: CloudLinkedSession(
+                userId: account.userId,
+                workspaceId: selectedWorkspace.workspaceId,
+                email: account.email,
+                configurationMode: configuration.mode,
+                apiBaseUrl: configuration.apiBaseUrl,
+                authorization: .bearer(credentials.idToken)
+            )
+        )
+    }
+
+    private func restoreAuthenticatedCloudSessionAfterReinstall(
+        configuration: CloudServiceConfiguration
+    ) async throws {
+        do {
+            let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
+            try await self.performAuthenticatedSilentRestore(
+                credentials: credentials,
+                configuration: configuration
+            )
+            return
+        } catch {
+            if self.isCloudAuthorizationError(error) == false {
+                throw error
+            }
+        }
+
+        let refreshedCredentials = try await self.refreshCloudCredentials(forceRefresh: true)
+        try await self.performAuthenticatedSilentRestore(
+            credentials: refreshedCredentials,
+            configuration: configuration
+        )
+    }
+
+    private func shouldResetLocalStateAfterAuthenticatedSilentRestoreFailure(error: Error) -> Bool {
+        if error is URLError {
+            return true
+        }
+        if error is CloudAuthError {
+            return true
+        }
+        if error is CloudSyncError {
+            return true
+        }
+
+        return false
+    }
+
     /**
      Prevents stored credentials from silently restoring a different cloud
      account into local state that still belongs to the previous user.
@@ -407,6 +500,29 @@ extension FlashcardsStore {
             }
 
             if hasStoredCredentials && hasStoredGuestSession == false {
+                let configuration = try self.currentCloudServiceConfiguration()
+                if try self.isAuthenticatedSilentRestoreEligible(
+                    configuration: configuration,
+                    hasStoredCredentials: hasStoredCredentials,
+                    hasStoredGuestSession: hasStoredGuestSession
+                ) {
+                    do {
+                        try await self.restoreAuthenticatedCloudSessionAfterReinstall(
+                            configuration: configuration
+                        )
+                        self.globalErrorMessage = ""
+                        return .stopSync
+                    } catch {
+                        if self.shouldResetLocalStateAfterAuthenticatedSilentRestoreFailure(error: error) {
+                            try self.resetLocalStateForCloudIdentityChange()
+                            self.globalErrorMessage = ""
+                            return .stopSync
+                        }
+
+                        throw error
+                    }
+                }
+
                 try self.cloudRuntime.clearCredentials()
                 self.globalErrorMessage = ""
                 return .stopSync
