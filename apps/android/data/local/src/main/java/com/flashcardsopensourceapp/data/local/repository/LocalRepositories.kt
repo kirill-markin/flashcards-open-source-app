@@ -16,10 +16,13 @@ import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
+import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
+import com.flashcardsopensourceapp.data.local.model.WorkspaceExportCard
+import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSummary
@@ -318,6 +321,48 @@ class LocalWorkspaceRepository(
         return database.cardDao().observeCardsWithRelations().map { cards ->
             makeWorkspaceTagsSummary(cards = cards.map(::toCardSummary))
         }
+    }
+
+    override fun observeDeviceDiagnostics(): Flow<DeviceDiagnosticsSummary?> {
+        return database.workspaceDao().observeWorkspace().flatMapLatest { workspace ->
+            if (workspace == null) {
+                return@flatMapLatest flowOf(null)
+            }
+
+            combine(
+                flowOf(workspace),
+                database.outboxDao().observeOutboxEntriesCount(),
+                database.syncStateDao().observeSyncState(workspaceId = workspace.workspaceId)
+            ) { currentWorkspace, outboxEntriesCount, syncState ->
+                DeviceDiagnosticsSummary(
+                    workspaceId = currentWorkspace.workspaceId,
+                    workspaceName = currentWorkspace.name,
+                    outboxEntriesCount = outboxEntriesCount,
+                    lastSyncCursor = syncState?.lastSyncCursor,
+                    lastSyncAttemptAtMillis = syncState?.lastSyncAttemptAtMillis
+                )
+            }
+        }
+    }
+
+    override suspend fun loadWorkspaceExportData(): WorkspaceExportData? {
+        val workspace = database.workspaceDao().loadWorkspace() ?: return null
+        val cards = database.cardDao().observeCardsWithRelations().first().map(::toCardSummary)
+        val activeCards = cards.filter { card ->
+            card.workspaceId == workspace.workspaceId
+        }
+
+        return WorkspaceExportData(
+            workspaceId = workspace.workspaceId,
+            workspaceName = workspace.name,
+            cards = activeCards.map { card ->
+                WorkspaceExportCard(
+                    frontText = card.frontText,
+                    backText = card.backText,
+                    tags = card.tags
+                )
+            }
+        )
     }
 
     override suspend fun updateWorkspaceSchedulerSettings(

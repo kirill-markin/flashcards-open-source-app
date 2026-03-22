@@ -6,10 +6,12 @@ import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
+import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
+import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSummary
@@ -39,6 +41,8 @@ interface WorkspaceRepository {
     fun observeWorkspaceOverview(): Flow<WorkspaceOverviewSummary?>
     fun observeWorkspaceSchedulerSettings(): Flow<WorkspaceSchedulerSettings?>
     fun observeWorkspaceTagsSummary(): Flow<WorkspaceTagsSummary>
+    fun observeDeviceDiagnostics(): Flow<DeviceDiagnosticsSummary?>
+    suspend fun loadWorkspaceExportData(): WorkspaceExportData?
     suspend fun updateWorkspaceSchedulerSettings(
         desiredRetention: Double,
         learningStepsMinutes: List<Int>,

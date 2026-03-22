@@ -6,12 +6,37 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 
+enum class AccessCapability {
+    CAMERA,
+    MICROPHONE,
+    PHOTOS,
+    FILES
+}
+
+enum class AccessStatus {
+    ALLOWED,
+    ASK_EVERY_TIME,
+    BLOCKED,
+    SYSTEM_PICKER,
+    UNAVAILABLE
+}
+
+data class AccessCapabilityUiState(
+    val capability: AccessCapability,
+    val title: String,
+    val summary: String,
+    val status: AccessStatus,
+    val guidance: String,
+    val primaryActionLabel: String?
+)
+
 data class WorkspaceSettingsUiState(
     val workspaceName: String,
     val deckCount: Int,
     val totalCards: Int,
     val tagCount: Int,
-    val schedulerSummary: String
+    val schedulerSummary: String,
+    val exportSummary: String
 )
 
 data class WorkspaceOverviewUiState(
@@ -62,4 +87,25 @@ data class SchedulerSettingsUiState(
     val updatedAtLabel: String,
     val errorMessage: String,
     val showSaveConfirmation: Boolean
+)
+
+data class DeviceDiagnosticsUiState(
+    val workspaceName: String,
+    val workspaceId: String,
+    val appVersion: String,
+    val buildNumber: String,
+    val operatingSystem: String,
+    val deviceModel: String,
+    val clientLabel: String,
+    val storageLabel: String,
+    val outboxEntriesCount: Int,
+    val lastSyncCursor: String,
+    val lastSyncAttempt: String
+)
+
+data class WorkspaceExportUiState(
+    val workspaceName: String,
+    val activeCardsCount: Int,
+    val isExporting: Boolean,
+    val errorMessage: String
 )

@@ -91,8 +91,24 @@ data object SettingsWorkspaceSchedulerDestination {
     const val route: String = "settings/workspace/scheduler"
 }
 
+data object SettingsWorkspaceExportDestination {
+    const val route: String = "settings/workspace/export"
+}
+
 data object SettingsAccountDestination {
     const val route: String = "settings/account"
+}
+
+data object SettingsAccountStatusDestination {
+    const val route: String = "settings/account/status"
+}
+
+data object SettingsAccountLegalSupportDestination {
+    const val route: String = "settings/account/legal-support"
+}
+
+data object SettingsAccountOpenSourceDestination {
+    const val route: String = "settings/account/open-source"
 }
 
 data object SettingsDeviceDestination {
@@ -101,6 +117,16 @@ data object SettingsDeviceDestination {
 
 data object SettingsAccessDestination {
     const val route: String = "settings/access"
+}
+
+data object SettingsAccessDetailDestination {
+    const val routePrefix: String = "settings/access/detail"
+    const val routeArgument: String = "capability"
+    const val routePattern: String = "$routePrefix/{$routeArgument}"
+
+    fun createRoute(capability: String): String {
+        return "$routePrefix/$capability"
+    }
 }
 
 val topLevelDestinations: List<TopLevelDestination> = listOf(

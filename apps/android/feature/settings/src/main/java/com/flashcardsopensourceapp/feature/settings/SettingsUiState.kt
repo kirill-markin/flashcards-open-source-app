@@ -7,3 +7,9 @@ data class SettingsUiState(
     val storageLabel: String,
     val syncStatusText: String
 )
+
+data class AccountStatusUiState(
+    val workspaceName: String,
+    val cloudStatusTitle: String,
+    val syncStatusText: String
+)

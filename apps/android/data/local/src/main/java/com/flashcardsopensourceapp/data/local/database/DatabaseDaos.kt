@@ -143,6 +143,9 @@ interface OutboxDao {
     suspend fun insertOutboxEntries(entries: List<OutboxEntryEntity>)
 
     @Query("SELECT COUNT(*) FROM outbox_entries")
+    fun observeOutboxEntriesCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM outbox_entries")
     suspend fun countOutboxEntries(): Int
 }
 
@@ -150,6 +153,9 @@ interface OutboxDao {
 interface SyncStateDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncState(syncState: SyncStateEntity)
+
+    @Query("SELECT * FROM sync_state WHERE workspaceId = :workspaceId LIMIT 1")
+    fun observeSyncState(workspaceId: String): Flow<SyncStateEntity?>
 
     @Query("SELECT * FROM sync_state WHERE workspaceId = :workspaceId LIMIT 1")
     suspend fun loadSyncState(workspaceId: String): SyncStateEntity?

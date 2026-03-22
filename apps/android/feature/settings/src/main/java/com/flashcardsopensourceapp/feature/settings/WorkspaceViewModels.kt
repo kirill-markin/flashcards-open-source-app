@@ -37,7 +37,8 @@ class WorkspaceSettingsViewModel(
             deckCount = overview?.deckCount ?: 0,
             totalCards = overview?.totalCards ?: 0,
             tagCount = overview?.tagsCount ?: 0,
-            schedulerSummary = schedulerSettings?.let(::formatSchedulerSummary) ?: "Unavailable"
+            schedulerSummary = schedulerSettings?.let(::formatSchedulerSummary) ?: "Unavailable",
+            exportSummary = "CSV"
         )
     }.stateIn(
         scope = viewModelScope,
@@ -47,7 +48,8 @@ class WorkspaceSettingsViewModel(
             deckCount = 0,
             totalCards = 0,
             tagCount = 0,
-            schedulerSummary = "Loading..."
+            schedulerSummary = "Loading...",
+            exportSummary = "CSV"
         )
     )
 }

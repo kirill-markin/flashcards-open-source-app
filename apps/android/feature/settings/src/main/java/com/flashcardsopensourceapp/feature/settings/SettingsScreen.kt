@@ -32,7 +32,7 @@ fun SettingsRoute(
         item {
             DraftNoticeCard(
                 title = "Android draft settings",
-                body = "Workspace management is now wired to aligned local data. Account, device permissions, export, and advanced server flows are still pending porting.",
+                body = "Workspace management, account surfaces, device diagnostics, Android-native access, and CSV export now sit on top of the local-first Android draft.",
                 modifier = Modifier
             )
         }
@@ -58,7 +58,7 @@ fun SettingsRoute(
                         Text("Account")
                     },
                     supportingContent = {
-                        Text("Draft local shell")
+                        Text("Local-first Android account hub")
                     },
                     modifier = Modifier.clickable(onClick = onOpenAccount)
                 )
@@ -86,7 +86,7 @@ fun SettingsRoute(
                         Text("Access")
                     },
                     supportingContent = {
-                        Text(uiState.syncStatusText)
+                        Text("Camera, microphone, photos, and files")
                     },
                     modifier = Modifier.clickable(onClick = onOpenAccess)
                 )

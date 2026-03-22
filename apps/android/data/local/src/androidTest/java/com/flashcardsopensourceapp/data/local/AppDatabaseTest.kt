@@ -148,4 +148,24 @@ class AppDatabaseTest {
         assertEquals(listOf("card-1", "card-2"), page.cards.takeLast(2).map { card -> card.cardId })
         assertTrue(page.hasMoreCards.not())
     }
+
+    @Test
+    fun workspaceRepositoryExposesDeviceDiagnosticsAndExportData(): Unit = runBlocking {
+        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+        val workspaceRepository = LocalWorkspaceRepository(database = database)
+
+        val diagnostics = workspaceRepository.observeDeviceDiagnostics().first()
+        val exportData = workspaceRepository.loadWorkspaceExportData()
+
+        assertEquals("workspace-demo", diagnostics?.workspaceId)
+        assertEquals("Personal Workspace", diagnostics?.workspaceName)
+        assertEquals(1, diagnostics?.outboxEntriesCount)
+        assertEquals(null, diagnostics?.lastSyncCursor)
+        assertEquals(null, diagnostics?.lastSyncAttemptAtMillis)
+
+        assertEquals("workspace-demo", exportData?.workspaceId)
+        assertEquals("Personal Workspace", exportData?.workspaceName)
+        assertEquals(10, exportData?.cards?.size)
+        assertEquals("What does val mean in Kotlin?", exportData?.cards?.first()?.frontText)
+    }
 }

@@ -1,0 +1,7 @@
+<resources>
+    <string name="flashcards_privacy_policy_url">https://flashcards-open-source-app.com/privacy/</string>
+    <string name="flashcards_terms_of_service_url">https://flashcards-open-source-app.com/terms/</string>
+    <string name="flashcards_support_url">https://flashcards-open-source-app.com/support/</string>
+    <string name="flashcards_repository_url">https://github.com/kirill-markin/flashcards-open-source-app</string>
+    <string name="flashcards_support_email_address">kirill+flashcards@kirill-markin.com</string>
+</resources>
