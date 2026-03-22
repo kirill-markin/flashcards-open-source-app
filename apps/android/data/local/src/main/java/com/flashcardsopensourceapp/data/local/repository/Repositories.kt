@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
+import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import kotlinx.coroutines.flow.Flow
@@ -36,7 +37,15 @@ interface WorkspaceRepository {
     fun observeWorkspace(): Flow<WorkspaceSummary?>
     fun observeAppMetadata(): Flow<AppMetadataSummary>
     fun observeWorkspaceOverview(): Flow<WorkspaceOverviewSummary?>
+    fun observeWorkspaceSchedulerSettings(): Flow<WorkspaceSchedulerSettings?>
     fun observeWorkspaceTagsSummary(): Flow<WorkspaceTagsSummary>
+    suspend fun updateWorkspaceSchedulerSettings(
+        desiredRetention: Double,
+        learningStepsMinutes: List<Int>,
+        relearningStepsMinutes: List<Int>,
+        maximumIntervalDays: Int,
+        enableFuzz: Boolean
+    )
 }
 
 interface ReviewRepository {

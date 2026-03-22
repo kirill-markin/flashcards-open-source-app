@@ -105,6 +105,22 @@ class MainActivityTest {
     }
 
     @Test
+    fun schedulerSettingsFlowUpdatesWorkspaceSummary() {
+        waitForSeededCards()
+
+        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.onNodeWithText("Workspace").performClick()
+        composeRule.onNodeWithText("Scheduler").performClick()
+        composeRule.onNodeWithText("Desired retention").performTextReplacement("0.85")
+        composeRule.onNodeWithText("Save").performClick()
+        composeRule.onNodeWithText("Apply").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 10_000L) {
+            composeRule.onAllNodesWithText("FSRS-6 0.85").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    @Test
     fun reviewFilterPreviewAndRatingFlowWorks() {
         waitForSeededCards()
 

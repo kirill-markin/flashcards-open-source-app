@@ -24,6 +24,21 @@ interface WorkspaceDao {
 }
 
 @Dao
+interface WorkspaceSchedulerSettingsDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWorkspaceSchedulerSettings(settings: WorkspaceSchedulerSettingsEntity)
+
+    @Update
+    suspend fun updateWorkspaceSchedulerSettings(settings: WorkspaceSchedulerSettingsEntity)
+
+    @Query("SELECT * FROM workspace_scheduler_settings WHERE workspaceId = :workspaceId LIMIT 1")
+    fun observeWorkspaceSchedulerSettings(workspaceId: String): Flow<WorkspaceSchedulerSettingsEntity?>
+
+    @Query("SELECT * FROM workspace_scheduler_settings WHERE workspaceId = :workspaceId LIMIT 1")
+    suspend fun loadWorkspaceSchedulerSettings(workspaceId: String): WorkspaceSchedulerSettingsEntity?
+}
+
+@Dao
 interface DeckDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertDeck(deck: DeckEntity)
@@ -117,6 +132,9 @@ interface ReviewLogDao {
 
     @Query("SELECT COUNT(*) FROM review_logs")
     suspend fun countReviewLogs(): Int
+
+    @Query("SELECT * FROM review_logs ORDER BY reviewedAtMillis DESC")
+    suspend fun loadReviewLogs(): List<ReviewLogEntity>
 }
 
 @Dao

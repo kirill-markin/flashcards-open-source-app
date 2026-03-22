@@ -28,12 +28,14 @@ import com.flashcardsopensourceapp.feature.settings.DeckEditorRoute
 import com.flashcardsopensourceapp.feature.settings.DecksRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsPlaceholderRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
+import com.flashcardsopensourceapp.feature.settings.SchedulerSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceOverviewRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceTagsRoute
 import com.flashcardsopensourceapp.feature.settings.createDeckDetailViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDeckEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDecksViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createSchedulerSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceOverviewViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceSettingsViewModelFactory
@@ -229,6 +231,9 @@ fun AppNavHost(
                 },
                 onOpenTags = {
                     navController.navigate(route = SettingsWorkspaceTagsDestination.route)
+                },
+                onOpenScheduler = {
+                    navController.navigate(route = SettingsWorkspaceSchedulerDestination.route)
                 }
             )
         }
@@ -356,6 +361,38 @@ fun AppNavHost(
             WorkspaceTagsRoute(
                 uiState = uiState,
                 onSearchQueryChange = workspaceTagsViewModel::updateSearchQuery
+            )
+        }
+
+        composable(route = SettingsWorkspaceSchedulerDestination.route) {
+            val schedulerSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SchedulerSettingsViewModel>(
+                factory = createSchedulerSettingsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+            )
+            val uiState by schedulerSettingsViewModel.uiState.collectAsStateWithLifecycle()
+
+            SchedulerSettingsRoute(
+                uiState = uiState,
+                onDesiredRetentionChange = schedulerSettingsViewModel::updateDesiredRetention,
+                onLearningStepsChange = schedulerSettingsViewModel::updateLearningSteps,
+                onRelearningStepsChange = schedulerSettingsViewModel::updateRelearningSteps,
+                onMaximumIntervalDaysChange = schedulerSettingsViewModel::updateMaximumIntervalDays,
+                onEnableFuzzChange = schedulerSettingsViewModel::updateEnableFuzz,
+                onRequestSave = schedulerSettingsViewModel::requestSave,
+                onDismissSaveConfirmation = schedulerSettingsViewModel::dismissSaveConfirmation,
+                onConfirmSave = {
+                    coroutineScope.launch {
+                        val didSave = schedulerSettingsViewModel.save()
+                        if (didSave) {
+                            withContext(Dispatchers.Main.immediate) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                },
+                onResetToDefaults = schedulerSettingsViewModel::resetToDefaults,
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
 

@@ -9,8 +9,11 @@ import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.TagEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 
 private const val demoWorkspaceId: String = "workspace-demo"
 
@@ -28,6 +31,18 @@ class DemoDataSeeder(
                     workspaceId = demoWorkspaceId,
                     name = "Personal Workspace",
                     createdAtMillis = currentTimeMillis
+                )
+            )
+            database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(
+                settings = WorkspaceSchedulerSettingsEntity(
+                    workspaceId = demoWorkspaceId,
+                    algorithm = "fsrs-6",
+                    desiredRetention = 0.90,
+                    learningStepsMinutesJson = encodeSchedulerStepListJson(values = listOf(1, 10)),
+                    relearningStepsMinutesJson = encodeSchedulerStepListJson(values = listOf(10)),
+                    maximumIntervalDays = 36_500,
+                    enableFuzz = true,
+                    updatedAtMillis = currentTimeMillis
                 )
             )
 
@@ -146,8 +161,17 @@ private fun demoCard(
         frontText = frontText,
         backText = backText,
         effortLevel = effortLevel,
+        dueAtMillis = null,
         createdAtMillis = currentTimeMillis,
-        updatedAtMillis = currentTimeMillis
+        updatedAtMillis = currentTimeMillis,
+        reps = 0,
+        lapses = 0,
+        fsrsCardState = FsrsCardState.NEW,
+        fsrsStepIndex = null,
+        fsrsStability = null,
+        fsrsDifficulty = null,
+        fsrsLastReviewedAtMillis = null,
+        fsrsScheduledDays = null
     )
 }
 

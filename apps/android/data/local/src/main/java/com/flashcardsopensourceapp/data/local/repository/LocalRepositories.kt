@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.database.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.TagEntity
+import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
@@ -20,18 +21,31 @@ import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
+import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
+import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
-import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.computeReviewSchedule
+import com.flashcardsopensourceapp.data.local.model.decodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.isCardDue
+import com.flashcardsopensourceapp.data.local.model.isNewCard
+import com.flashcardsopensourceapp.data.local.model.isReviewedCard
+import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.makeReviewAnswerOptions
 import com.flashcardsopensourceapp.data.local.model.matchesDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.queryCards
+import com.flashcardsopensourceapp.data.local.model.validateWorkspaceSchedulerSettingsInput
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
@@ -68,8 +82,17 @@ class LocalCardsRepository(
             frontText = cardDraft.frontText,
             backText = cardDraft.backText,
             effortLevel = cardDraft.effortLevel,
+            dueAtMillis = null,
             createdAtMillis = currentTimeMillis,
-            updatedAtMillis = currentTimeMillis
+            updatedAtMillis = currentTimeMillis,
+            reps = 0,
+            lapses = 0,
+            fsrsCardState = com.flashcardsopensourceapp.data.local.model.FsrsCardState.NEW,
+            fsrsStepIndex = null,
+            fsrsStability = null,
+            fsrsDifficulty = null,
+            fsrsLastReviewedAtMillis = null,
+            fsrsScheduledDays = null
         )
 
         database.withTransaction {
@@ -124,19 +147,16 @@ class LocalDecksRepository(
     override fun observeDecks(): Flow<List<DeckSummary>> {
         return combine(
             database.deckDao().observeDecks(),
-            database.cardDao().observeCardsWithRelations(),
-            database.reviewLogDao().observeReviewLogs()
-        ) { decks, cards, reviewLogs ->
+            database.cardDao().observeCardsWithRelations()
+        ) { decks, cards ->
             val cardSummaries = cards.map(::toCardSummary)
-            val reviewedCardIds = reviewLogs.map { reviewLog ->
-                reviewLog.cardId
-            }.toSet()
+            val nowMillis = System.currentTimeMillis()
 
             decks.map { deck ->
                 toDeckSummary(
                     deck = deck,
                     cards = cardSummaries,
-                    reviewedCardIds = reviewedCardIds
+                    nowMillis = nowMillis
                 )
             }
         }
@@ -216,6 +236,7 @@ class LocalDecksRepository(
     }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class LocalWorkspaceRepository(
     private val database: AppDatabase
 ) : WorkspaceRepository {
@@ -250,17 +271,14 @@ class LocalWorkspaceRepository(
         return combine(
             database.workspaceDao().observeWorkspace(),
             database.deckDao().observeDecks(),
-            database.cardDao().observeCardsWithRelations(),
-            database.reviewLogDao().observeReviewLogs()
-        ) { workspace, decks, cards, reviewLogs ->
+            database.cardDao().observeCardsWithRelations()
+        ) { workspace, decks, cards ->
             if (workspace == null) {
                 return@combine null
             }
 
             val cardSummaries = cards.map(::toCardSummary)
-            val reviewedCardIds = reviewLogs.map { reviewLog ->
-                reviewLog.cardId
-            }.toSet()
+            val nowMillis = System.currentTimeMillis()
             val tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries)
 
             WorkspaceOverviewSummary(
@@ -269,12 +287,30 @@ class LocalWorkspaceRepository(
                 totalCards = cardSummaries.size,
                 deckCount = decks.size,
                 tagsCount = tagsSummary.tags.size,
-                dueCount = cardSummaries.size,
-                newCount = cardSummaries.count { card ->
-                    reviewedCardIds.contains(card.cardId).not()
+                dueCount = cardSummaries.count { card ->
+                    isCardDue(card = card, nowMillis = nowMillis)
                 },
-                reviewedCount = reviewedCardIds.size
+                newCount = cardSummaries.count(::isNewCard),
+                reviewedCount = cardSummaries.count(::isReviewedCard)
             )
+        }
+    }
+
+    override fun observeWorkspaceSchedulerSettings(): Flow<WorkspaceSchedulerSettings?> {
+        return database.workspaceDao().observeWorkspace().flatMapLatest { workspace ->
+            if (workspace == null) {
+                return@flatMapLatest flowOf(null)
+            }
+
+            database.workspaceSchedulerSettingsDao().observeWorkspaceSchedulerSettings(
+                workspaceId = workspace.workspaceId
+            ).map { settings ->
+                settings?.let(::toWorkspaceSchedulerSettings)
+                    ?: makeDefaultWorkspaceSchedulerSettings(
+                        workspaceId = workspace.workspaceId,
+                        updatedAtMillis = workspace.createdAtMillis
+                    )
+            }
         }
     }
 
@@ -283,8 +319,34 @@ class LocalWorkspaceRepository(
             makeWorkspaceTagsSummary(cards = cards.map(::toCardSummary))
         }
     }
+
+    override suspend fun updateWorkspaceSchedulerSettings(
+        desiredRetention: Double,
+        learningStepsMinutes: List<Int>,
+        relearningStepsMinutes: List<Int>,
+        maximumIntervalDays: Int,
+        enableFuzz: Boolean
+    ) {
+        val workspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+            "Workspace is required before updating scheduler settings."
+        }
+        val updatedSettings = validateWorkspaceSchedulerSettingsInput(
+            workspaceId = workspace.workspaceId,
+            desiredRetention = desiredRetention,
+            learningStepsMinutes = learningStepsMinutes,
+            relearningStepsMinutes = relearningStepsMinutes,
+            maximumIntervalDays = maximumIntervalDays,
+            enableFuzz = enableFuzz,
+            updatedAtMillis = System.currentTimeMillis()
+        )
+
+        database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(
+            settings = toWorkspaceSchedulerSettingsEntity(settings = updatedSettings)
+        )
+    }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class LocalReviewRepository(
     private val database: AppDatabase
 ) : ReviewRepository {
@@ -295,25 +357,40 @@ class LocalReviewRepository(
         return combine(
             database.deckDao().observeDecks(),
             database.cardDao().observeCardsWithRelations(),
-            database.reviewLogDao().observeReviewLogs()
-        ) { decks, cards, reviewLogs ->
+            database.workspaceDao().observeWorkspace().flatMapLatest { workspace ->
+                if (workspace == null) {
+                    return@flatMapLatest flowOf(null)
+                }
+
+                database.workspaceSchedulerSettingsDao().observeWorkspaceSchedulerSettings(
+                    workspaceId = workspace.workspaceId
+                )
+            }
+        ) { decks, cards, settingsEntity ->
+            val nowMillis = System.currentTimeMillis()
             val cardSummaries = cards.map(::toCardSummary)
             val deckSummaries = decks.map { deck ->
                 toDeckSummary(
                     deck = deck,
                     cards = cardSummaries,
-                    reviewedCardIds = reviewLogs.map { reviewLog ->
-                        reviewLog.cardId
-                    }.toSet()
+                    nowMillis = nowMillis
                 )
             }
+            val workspaceId = cardSummaries.firstOrNull()?.workspaceId ?: "workspace-demo"
+            val settings = settingsEntity?.let(::toWorkspaceSchedulerSettings)
+                ?: makeDefaultWorkspaceSchedulerSettings(
+                    workspaceId = workspaceId,
+                    updatedAtMillis = nowMillis
+                )
 
             buildReviewSessionSnapshot(
                 selectedFilter = selectedFilter,
                 pendingReviewedCardIds = pendingReviewedCardIds,
                 decks = deckSummaries,
                 cards = cardSummaries,
-                tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries)
+                tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries),
+                settings = settings,
+                reviewedAtMillis = nowMillis
             )
         }
     }
@@ -326,16 +403,12 @@ class LocalReviewRepository(
     ): ReviewTimelinePage {
         val cards = database.cardDao().observeCardsWithRelations().first()
         val decks = database.deckDao().observeDecks().first()
-        val reviewLogs = database.reviewLogDao().observeReviewLogs().first()
         val cardSummaries = cards.map(::toCardSummary)
-        val reviewedCardIds = reviewLogs.map { reviewLog ->
-            reviewLog.cardId
-        }.toSet()
         val deckSummaries = decks.map { deck ->
             toDeckSummary(
                 deck = deck,
                 cards = cardSummaries,
-                reviewedCardIds = reviewedCardIds
+                nowMillis = System.currentTimeMillis()
             )
         }
 
@@ -345,27 +418,61 @@ class LocalReviewRepository(
             decks = deckSummaries,
             cards = cardSummaries,
             tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries),
+            reviewedAtMillis = System.currentTimeMillis(),
             offset = offset,
             limit = limit
         )
     }
 
     override suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long) {
-        val card = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
-            "Cannot review missing card: $cardId"
-        }
-
-        // TODO: Port FSRS scheduling logic from apps/ios/Flashcards/Flashcards/FsrsScheduler.swift.
-        // TODO: Port review submission failure handling from apps/ios/Flashcards/Flashcards/ReviewSubmissionExecutor.swift.
-        database.reviewLogDao().insertReviewLog(
-            reviewLog = ReviewLogEntity(
-                reviewLogId = UUID.randomUUID().toString(),
-                workspaceId = card.workspaceId,
-                cardId = cardId,
+        database.withTransaction {
+            val card = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
+                "Cannot review missing card: $cardId"
+            }
+            val schedulerSettingsEntity = requireNotNull(
+                database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(
+                    workspaceId = card.workspaceId
+                )
+            ) {
+                "Scheduler settings are required before reviewing card: $cardId"
+            }
+            val cardWithRelations = requireNotNull(
+                database.cardDao().observeCardWithRelations(cardId = cardId).first()
+            ) {
+                "Cannot load review card relations for card: $cardId"
+            }
+            val cardSummary = toCardSummary(cardWithRelations)
+            val schedule = computeReviewSchedule(
+                card = cardSummary,
+                settings = toWorkspaceSchedulerSettings(schedulerSettingsEntity),
                 rating = rating,
                 reviewedAtMillis = reviewedAtMillis
             )
-        )
+
+            database.cardDao().updateCard(
+                card = card.copy(
+                    dueAtMillis = schedule.dueAtMillis,
+                    updatedAtMillis = reviewedAtMillis,
+                    reps = schedule.reps,
+                    lapses = schedule.lapses,
+                    fsrsCardState = schedule.fsrsCardState,
+                    fsrsStepIndex = schedule.fsrsStepIndex,
+                    fsrsStability = schedule.fsrsStability,
+                    fsrsDifficulty = schedule.fsrsDifficulty,
+                    fsrsLastReviewedAtMillis = schedule.fsrsLastReviewedAtMillis,
+                    fsrsScheduledDays = schedule.fsrsScheduledDays
+                )
+            )
+            database.reviewLogDao().insertReviewLog(
+                reviewLog = ReviewLogEntity(
+                    reviewLogId = UUID.randomUUID().toString(),
+                    workspaceId = card.workspaceId,
+                    cardId = cardId,
+                    rating = rating,
+                    reviewedAtMillis = reviewedAtMillis
+                )
+            )
+        }
     }
 }
 
@@ -386,8 +493,43 @@ private fun toCardSummary(card: CardWithRelations): CardSummary {
             referenceTags = emptyList()
         ),
         effortLevel = card.card.effortLevel,
+        dueAtMillis = card.card.dueAtMillis,
         createdAtMillis = card.card.createdAtMillis,
-        updatedAtMillis = card.card.updatedAtMillis
+        updatedAtMillis = card.card.updatedAtMillis,
+        reps = card.card.reps,
+        lapses = card.card.lapses,
+        fsrsCardState = card.card.fsrsCardState,
+        fsrsStepIndex = card.card.fsrsStepIndex,
+        fsrsStability = card.card.fsrsStability,
+        fsrsDifficulty = card.card.fsrsDifficulty,
+        fsrsLastReviewedAtMillis = card.card.fsrsLastReviewedAtMillis,
+        fsrsScheduledDays = card.card.fsrsScheduledDays
+    )
+}
+
+private fun toWorkspaceSchedulerSettingsEntity(settings: WorkspaceSchedulerSettings): WorkspaceSchedulerSettingsEntity {
+    return WorkspaceSchedulerSettingsEntity(
+        workspaceId = settings.workspaceId,
+        algorithm = settings.algorithm,
+        desiredRetention = settings.desiredRetention,
+        learningStepsMinutesJson = encodeSchedulerStepListJson(values = settings.learningStepsMinutes),
+        relearningStepsMinutesJson = encodeSchedulerStepListJson(values = settings.relearningStepsMinutes),
+        maximumIntervalDays = settings.maximumIntervalDays,
+        enableFuzz = settings.enableFuzz,
+        updatedAtMillis = settings.updatedAtMillis
+    )
+}
+
+private fun toWorkspaceSchedulerSettings(entity: WorkspaceSchedulerSettingsEntity): WorkspaceSchedulerSettings {
+    return WorkspaceSchedulerSettings(
+        workspaceId = entity.workspaceId,
+        algorithm = entity.algorithm,
+        desiredRetention = entity.desiredRetention,
+        learningStepsMinutes = decodeSchedulerStepListJson(json = entity.learningStepsMinutesJson),
+        relearningStepsMinutes = decodeSchedulerStepListJson(json = entity.relearningStepsMinutesJson),
+        maximumIntervalDays = entity.maximumIntervalDays,
+        enableFuzz = entity.enableFuzz,
+        updatedAtMillis = entity.updatedAtMillis
     )
 }
 
@@ -465,7 +607,7 @@ private fun normalizeDeckDraft(deckDraft: DeckDraft): DeckDraft {
 private fun toDeckSummary(
     deck: DeckEntity,
     cards: List<CardSummary>,
-    reviewedCardIds: Set<String>
+    nowMillis: Long
 ): DeckSummary {
     val filterDefinition = decodeDeckFilterDefinition(filterDefinitionJson = deck.filterDefinitionJson)
     val matchingCards = cards.filter { card ->
@@ -478,13 +620,11 @@ private fun toDeckSummary(
         name = deck.name,
         filterDefinition = filterDefinition,
         totalCards = matchingCards.size,
-        dueCards = matchingCards.size,
-        newCards = matchingCards.count { card ->
-            reviewedCardIds.contains(card.cardId).not()
+        dueCards = matchingCards.count { card ->
+            isCardDue(card = card, nowMillis = nowMillis)
         },
-        reviewedCards = matchingCards.count { card ->
-            reviewedCardIds.contains(card.cardId)
-        },
+        newCards = matchingCards.count(::isNewCard),
+        reviewedCards = matchingCards.count(::isReviewedCard),
         createdAtMillis = deck.createdAtMillis,
         updatedAtMillis = deck.updatedAtMillis
     )

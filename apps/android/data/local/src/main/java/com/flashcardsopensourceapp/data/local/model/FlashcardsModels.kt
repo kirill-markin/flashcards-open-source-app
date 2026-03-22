@@ -6,6 +6,13 @@ data class WorkspaceSummary(
     val createdAtMillis: Long
 )
 
+enum class FsrsCardState {
+    NEW,
+    LEARNING,
+    REVIEW,
+    RELEARNING
+}
+
 enum class EffortLevel {
     FAST,
     MEDIUM,
@@ -36,6 +43,17 @@ data class DeckSummary(
     val updatedAtMillis: Long
 )
 
+data class WorkspaceSchedulerSettings(
+    val workspaceId: String,
+    val algorithm: String,
+    val desiredRetention: Double,
+    val learningStepsMinutes: List<Int>,
+    val relearningStepsMinutes: List<Int>,
+    val maximumIntervalDays: Int,
+    val enableFuzz: Boolean,
+    val updatedAtMillis: Long
+)
+
 data class CardSummary(
     val cardId: String,
     val workspaceId: String,
@@ -43,8 +61,17 @@ data class CardSummary(
     val backText: String,
     val tags: List<String>,
     val effortLevel: EffortLevel,
+    val dueAtMillis: Long?,
     val createdAtMillis: Long,
-    val updatedAtMillis: Long
+    val updatedAtMillis: Long,
+    val reps: Int,
+    val lapses: Int,
+    val fsrsCardState: FsrsCardState,
+    val fsrsStepIndex: Int?,
+    val fsrsStability: Double?,
+    val fsrsDifficulty: Double?,
+    val fsrsLastReviewedAtMillis: Long?,
+    val fsrsScheduledDays: Int?
 )
 
 data class CardDraft(
@@ -87,6 +114,23 @@ data class ReviewCard(
     val createdAtMillis: Long
 )
 
+data class ReviewSchedule(
+    val dueAtMillis: Long?,
+    val reps: Int,
+    val lapses: Int,
+    val fsrsCardState: FsrsCardState,
+    val fsrsStepIndex: Int?,
+    val fsrsStability: Double?,
+    val fsrsDifficulty: Double?,
+    val fsrsLastReviewedAtMillis: Long?,
+    val fsrsScheduledDays: Int?
+)
+
+data class ReviewAnswerOption(
+    val rating: ReviewRating,
+    val intervalDescription: String
+)
+
 data class ReviewDeckFilterOption(
     val deckId: String,
     val title: String,
@@ -102,6 +146,7 @@ data class ReviewSessionSnapshot(
     val selectedFilter: ReviewFilter,
     val selectedFilterTitle: String,
     val cards: List<ReviewCard>,
+    val answerOptions: List<ReviewAnswerOption>,
     val remainingCount: Int,
     val totalCount: Int,
     val availableDeckFilters: List<ReviewDeckFilterOption>,

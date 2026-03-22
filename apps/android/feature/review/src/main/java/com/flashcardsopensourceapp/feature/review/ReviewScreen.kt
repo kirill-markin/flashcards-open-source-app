@@ -45,10 +45,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
+import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -171,7 +171,7 @@ private fun ReviewContent(
         item {
             DraftNoticeCard(
                 title = "Android draft review flow",
-                body = "This review flow now supports filters, remaining counts, preview, and optimistic session progress, while FSRS and cloud sync remain out of this wave.",
+                body = "This review flow now uses local scheduler state for queue counts, answer intervals, preview, and optimistic session progress, while cloud sync remains out of scope.",
                 modifier = Modifier
             )
         }
@@ -194,6 +194,7 @@ private fun ReviewContent(
                     ReviewCardContent(
                         currentCard = uiState.currentCard,
                         isAnswerVisible = uiState.isAnswerVisible,
+                        answerOptions = uiState.answerOptions,
                         reviewedInSessionCount = uiState.reviewedInSessionCount,
                         onRevealAnswer = onRevealAnswer,
                         onRateAgain = onRateAgain,
@@ -294,6 +295,7 @@ private fun EmptyReviewState(title: String, body: String) {
 private fun ReviewCardContent(
     currentCard: ReviewCard,
     isAnswerVisible: Boolean,
+    answerOptions: List<ReviewAnswerOption>,
     reviewedInSessionCount: Int,
     onRevealAnswer: () -> Unit,
     onRateAgain: () -> Unit,
@@ -342,10 +344,17 @@ private fun ReviewCardContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            RatingButton(label = "Again", onClick = onRateAgain)
-            RatingButton(label = "Hard", onClick = onRateHard)
-            RatingButton(label = "Good", onClick = onRateGood)
-            RatingButton(label = "Easy", onClick = onRateEasy)
+            answerOptions.forEach { answerOption ->
+                RatingButton(
+                    option = answerOption,
+                    onClick = when (answerOption.rating) {
+                        com.flashcardsopensourceapp.data.local.model.ReviewRating.AGAIN -> onRateAgain
+                        com.flashcardsopensourceapp.data.local.model.ReviewRating.HARD -> onRateHard
+                        com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD -> onRateGood
+                        com.flashcardsopensourceapp.data.local.model.ReviewRating.EASY -> onRateEasy
+                    }
+                )
+            }
         }
     } else {
         Button(
@@ -358,9 +367,22 @@ private fun ReviewCardContent(
 }
 
 @Composable
-private fun RatingButton(label: String, onClick: () -> Unit) {
+private fun RatingButton(option: ReviewAnswerOption, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick) {
-        Text(label)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = option.rating.name.lowercase().replaceFirstChar { character ->
+                    character.uppercase()
+                }
+            )
+            Text(
+                text = option.intervalDescription,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

@@ -8,6 +8,7 @@ import androidx.room.Junction
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 
 @Entity(tableName = "workspaces")
@@ -56,8 +57,17 @@ data class CardEntity(
     val frontText: String,
     val backText: String,
     val effortLevel: EffortLevel,
+    val dueAtMillis: Long?,
     val createdAtMillis: Long,
-    val updatedAtMillis: Long
+    val updatedAtMillis: Long,
+    val reps: Int,
+    val lapses: Int,
+    val fsrsCardState: FsrsCardState,
+    val fsrsStepIndex: Int?,
+    val fsrsStability: Double?,
+    val fsrsDifficulty: Double?,
+    val fsrsLastReviewedAtMillis: Long?,
+    val fsrsScheduledDays: Int?
 )
 
 @Entity(
@@ -126,6 +136,29 @@ data class ReviewLogEntity(
     val cardId: String,
     val rating: ReviewRating,
     val reviewedAtMillis: Long
+)
+
+@Entity(
+    tableName = "workspace_scheduler_settings",
+    foreignKeys = [
+        ForeignKey(
+            entity = WorkspaceEntity::class,
+            parentColumns = ["workspaceId"],
+            childColumns = ["workspaceId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("workspaceId")]
+)
+data class WorkspaceSchedulerSettingsEntity(
+    @PrimaryKey val workspaceId: String,
+    val algorithm: String,
+    val desiredRetention: Double,
+    val learningStepsMinutesJson: String,
+    val relearningStepsMinutesJson: String,
+    val maximumIntervalDays: Int,
+    val enableFuzz: Boolean,
+    val updatedAtMillis: Long
 )
 
 @Entity(
