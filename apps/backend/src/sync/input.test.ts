@@ -21,7 +21,7 @@ test("parseSyncPushInput accepts card operations with empty backText", () => {
   const result = parseSyncPushInput({
     deviceId: "device-1",
     platform: "ios",
-    appVersion: "1.0.0",
+    appVersion: "1.0.1",
     operations: [
       {
         operationId: "operation-1",
@@ -62,7 +62,7 @@ test("parseSyncPullInput accepts hot change cursors", () => {
   const result = parseSyncPullInput({
     deviceId: "device-1",
     platform: "ios",
-    appVersion: "1.0.0",
+    appVersion: "1.0.1",
     afterHotChangeId: 17,
     limit: 200,
   });
@@ -76,7 +76,7 @@ test("parseSyncBootstrapInput accepts explicit null bootstrap cursor on first pa
     mode: "pull",
     deviceId: "device-1",
     platform: "ios",
-    appVersion: "1.0.0",
+    appVersion: "1.0.1",
     cursor: null,
     limit: 200,
   });
@@ -95,7 +95,7 @@ test("parseSyncBootstrapInput rejects bootstrap pull requests that omit cursor",
       mode: "pull",
       deviceId: "device-1",
       platform: "ios",
-      appVersion: "1.0.0",
+      appVersion: "1.0.1",
       limit: 200,
     });
   }, (error: unknown) => {
@@ -112,7 +112,7 @@ test("parseSyncBootstrapInput accepts bootstrap push entries for hot current sta
     mode: "push",
     deviceId: "device-1",
     platform: "ios",
-    appVersion: "1.0.0",
+    appVersion: "1.0.1",
     entries: [
       {
         entityType: "workspace_scheduler_settings",
@@ -145,7 +145,7 @@ test("parseSyncReviewHistoryPullInput accepts independent review history cursors
   const result = parseSyncReviewHistoryPullInput({
     deviceId: "device-1",
     platform: "ios",
-    appVersion: "1.0.0",
+    appVersion: "1.0.1",
     afterReviewSequenceId: 42,
     limit: 100,
   });
@@ -158,7 +158,7 @@ test("parseSyncReviewHistoryImportInput accepts append-only review events", () =
   const result = parseSyncReviewHistoryImportInput({
     deviceId: "device-1",
     platform: "ios",
-    appVersion: "1.0.0",
+    appVersion: "1.0.1",
     reviewEvents: [
       {
         reviewEventId: "review-1",

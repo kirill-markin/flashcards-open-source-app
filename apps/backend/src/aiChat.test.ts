@@ -111,7 +111,7 @@ test("parseAIChatDiagnosticsBody accepts failure payloads without continuation t
     decoderSummary: "boom",
     selectedModel: "gpt-5.4",
     messageCount: 2,
-    appVersion: "1.0.0",
+    appVersion: "1.0.1",
     devicePlatform: "web",
   });
 
