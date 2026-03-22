@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import androidx.room.withTransaction
+import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
+import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.CardTagEntity
@@ -13,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
@@ -34,6 +37,7 @@ import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.computeReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.decodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.isCardDue
 import com.flashcardsopensourceapp.data.local.model.isNewCard
 import com.flashcardsopensourceapp.data.local.model.isReviewedCard
@@ -55,12 +59,13 @@ import org.json.JSONObject
 import java.util.UUID
 
 class LocalCardsRepository(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val syncLocalStore: SyncLocalStore
 ) : CardsRepository {
     override fun observeCards(searchQuery: String, filter: CardFilter): Flow<List<CardSummary>> {
         return database.cardDao().observeCardsWithRelations().map { cards ->
             queryCards(
-                cards = cards.map(::toCardSummary),
+                cards = cards.map(::toCardSummary).filter { card -> card.deletedAtMillis == null },
                 searchText = searchQuery,
                 filter = filter
             )
@@ -95,7 +100,8 @@ class LocalCardsRepository(
             fsrsStability = null,
             fsrsDifficulty = null,
             fsrsLastReviewedAtMillis = null,
-            fsrsScheduledDays = null
+            fsrsScheduledDays = null,
+            deletedAtMillis = null
         )
 
         database.withTransaction {
@@ -106,6 +112,7 @@ class LocalCardsRepository(
                 cardId = cardId,
                 tags = cardDraft.tags
             )
+            syncLocalStore.enqueueCardUpsert(card = card, tags = cardDraft.tags)
         }
     }
 
@@ -117,7 +124,8 @@ class LocalCardsRepository(
             frontText = cardDraft.frontText,
             backText = cardDraft.backText,
             effortLevel = cardDraft.effortLevel,
-            updatedAtMillis = System.currentTimeMillis()
+            updatedAtMillis = System.currentTimeMillis(),
+            deletedAtMillis = null
         )
 
         database.withTransaction {
@@ -128,6 +136,7 @@ class LocalCardsRepository(
                 cardId = cardId,
                 tags = cardDraft.tags
             )
+            syncLocalStore.enqueueCardUpsert(card = updatedCard, tags = cardDraft.tags)
         }
     }
 
@@ -137,15 +146,20 @@ class LocalCardsRepository(
         }
 
         database.withTransaction {
-            database.tagDao().deleteCardTags(cardId = cardId)
-            database.cardDao().deleteCard(cardId = cardId)
-            database.tagDao().deleteUnusedTags(workspaceId = card.workspaceId)
+            val deletedCard = card.copy(
+                updatedAtMillis = System.currentTimeMillis(),
+                deletedAtMillis = System.currentTimeMillis()
+            )
+            val cardTags = database.cardDao().observeCardWithRelations(cardId = cardId).first()?.tags?.map(TagEntity::name) ?: emptyList()
+            database.cardDao().updateCard(card = deletedCard)
+            syncLocalStore.enqueueCardUpsert(card = deletedCard, tags = cardTags)
         }
     }
 }
 
 class LocalDecksRepository(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val syncLocalStore: SyncLocalStore
 ) : DecksRepository {
     override fun observeDecks(): Flow<List<DeckSummary>> {
         return combine(
@@ -155,10 +169,10 @@ class LocalDecksRepository(
             val cardSummaries = cards.map(::toCardSummary)
             val nowMillis = System.currentTimeMillis()
 
-            decks.map { deck ->
+            decks.filter { deck -> deck.deletedAtMillis == null }.map { deck ->
                 toDeckSummary(
                     deck = deck,
-                    cards = cardSummaries,
+                    cards = cardSummaries.filter { card -> card.deletedAtMillis == null },
                     nowMillis = nowMillis
                 )
             }
@@ -184,6 +198,7 @@ class LocalDecksRepository(
 
             val filterDefinition = decodeDeckFilterDefinition(filterDefinitionJson = deck.filterDefinitionJson)
             cards.map(::toCardSummary).filter { card ->
+                card.deletedAtMillis == null &&
                 matchesDeckFilterDefinition(
                     filterDefinition = filterDefinition,
                     card = card
@@ -198,19 +213,20 @@ class LocalDecksRepository(
         }
         val normalizedDeckDraft = normalizeDeckDraft(deckDraft = deckDraft)
         val currentTimeMillis = System.currentTimeMillis()
-
-        database.deckDao().insertDeck(
-            deck = DeckEntity(
-                deckId = UUID.randomUUID().toString(),
-                workspaceId = workspace.workspaceId,
-                name = normalizedDeckDraft.name,
-                filterDefinitionJson = encodeDeckFilterDefinition(
-                    filterDefinition = normalizedDeckDraft.filterDefinition
-                ),
-                createdAtMillis = currentTimeMillis,
-                updatedAtMillis = currentTimeMillis
-            )
+        val deck = DeckEntity(
+            deckId = UUID.randomUUID().toString(),
+            workspaceId = workspace.workspaceId,
+            name = normalizedDeckDraft.name,
+            filterDefinitionJson = encodeDeckFilterDefinition(
+                filterDefinition = normalizedDeckDraft.filterDefinition
+            ),
+            createdAtMillis = currentTimeMillis,
+            updatedAtMillis = currentTimeMillis,
+            deletedAtMillis = null
         )
+
+        database.deckDao().insertDeck(deck = deck)
+        syncLocalStore.enqueueDeckUpsert(deck)
     }
 
     override suspend fun updateDeck(deckId: String, deckDraft: DeckDraft) {
@@ -218,16 +234,17 @@ class LocalDecksRepository(
             "Cannot update missing deck: $deckId"
         }
         val normalizedDeckDraft = normalizeDeckDraft(deckDraft = deckDraft)
-
-        database.deckDao().updateDeck(
-            deck = currentDeck.copy(
-                name = normalizedDeckDraft.name,
-                filterDefinitionJson = encodeDeckFilterDefinition(
-                    filterDefinition = normalizedDeckDraft.filterDefinition
-                ),
-                updatedAtMillis = System.currentTimeMillis()
-            )
+        val updatedDeck = currentDeck.copy(
+            name = normalizedDeckDraft.name,
+            filterDefinitionJson = encodeDeckFilterDefinition(
+                filterDefinition = normalizedDeckDraft.filterDefinition
+            ),
+            updatedAtMillis = System.currentTimeMillis(),
+            deletedAtMillis = null
         )
+
+        database.deckDao().updateDeck(deck = updatedDeck)
+        syncLocalStore.enqueueDeckUpsert(updatedDeck)
     }
 
     override suspend fun deleteDeck(deckId: String) {
@@ -235,13 +252,21 @@ class LocalDecksRepository(
             "Cannot delete missing deck: $deckId"
         }
 
-        database.deckDao().deleteDeck(deckId = existingDeck.deckId)
+        val deletedDeck = existingDeck.copy(
+            updatedAtMillis = System.currentTimeMillis(),
+            deletedAtMillis = System.currentTimeMillis()
+        )
+        database.deckDao().updateDeck(deck = deletedDeck)
+        syncLocalStore.enqueueDeckUpsert(deletedDeck)
     }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LocalWorkspaceRepository(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val preferencesStore: CloudPreferencesStore,
+    private val syncRepository: SyncRepository,
+    private val syncLocalStore: SyncLocalStore
 ) : WorkspaceRepository {
     override fun observeWorkspace(): Flow<WorkspaceSummary?> {
         return database.workspaceDao().observeWorkspace().map { workspace ->
@@ -258,14 +283,26 @@ class LocalWorkspaceRepository(
     override fun observeAppMetadata(): Flow<AppMetadataSummary> {
         return combine(
             observeWorkspaceOverview(),
-            database.cardDao().observeCardCount()
-        ) { overview, cardCount ->
+            database.cardDao().observeCardCount(),
+            preferencesStore.observeCloudSettings(),
+            syncRepository.observeSyncStatus()
+        ) { overview, cardCount, cloudSettings, syncStatusSnapshot ->
             AppMetadataSummary(
+                currentWorkspaceName = overview?.workspaceName ?: "Unavailable",
                 workspaceName = overview?.workspaceName ?: "Unavailable",
                 deckCount = overview?.deckCount ?: 0,
                 cardCount = cardCount,
                 localStorageLabel = "Room + SQLite",
-                syncStatusText = "Draft local-only shell"
+                syncStatusText = when (cloudSettings.cloudState) {
+                    CloudAccountState.DISCONNECTED -> "Not connected"
+                    CloudAccountState.LINKING_READY -> "Sign-in complete, choose a workspace"
+                    CloudAccountState.GUEST -> "Guest"
+                    CloudAccountState.LINKED -> when (val syncStatus = syncStatusSnapshot.status) {
+                        is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> syncStatus.message
+                        com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> "Synced"
+                        com.flashcardsopensourceapp.data.local.model.SyncStatus.Syncing -> "Syncing"
+                    }
+                }
             )
         }
     }
@@ -287,14 +324,14 @@ class LocalWorkspaceRepository(
             WorkspaceOverviewSummary(
                 workspaceId = workspace.workspaceId,
                 workspaceName = workspace.name,
-                totalCards = cardSummaries.size,
-                deckCount = decks.size,
+                totalCards = cardSummaries.count { card -> card.deletedAtMillis == null },
+                deckCount = decks.count { deck -> deck.deletedAtMillis == null },
                 tagsCount = tagsSummary.tags.size,
                 dueCount = cardSummaries.count { card ->
-                    isCardDue(card = card, nowMillis = nowMillis)
+                    card.deletedAtMillis == null && isCardDue(card = card, nowMillis = nowMillis)
                 },
-                newCount = cardSummaries.count(::isNewCard),
-                reviewedCount = cardSummaries.count(::isReviewedCard)
+                newCount = cardSummaries.count { card -> card.deletedAtMillis == null && isNewCard(card) },
+                reviewedCount = cardSummaries.count { card -> card.deletedAtMillis == null && isReviewedCard(card) }
             )
         }
     }
@@ -339,7 +376,9 @@ class LocalWorkspaceRepository(
                     workspaceName = currentWorkspace.name,
                     outboxEntriesCount = outboxEntriesCount,
                     lastSyncCursor = syncState?.lastSyncCursor,
-                    lastSyncAttemptAtMillis = syncState?.lastSyncAttemptAtMillis
+                    lastSyncAttemptAtMillis = syncState?.lastSyncAttemptAtMillis,
+                    lastSuccessfulSyncAtMillis = syncState?.lastSuccessfulSyncAtMillis,
+                    lastSyncErrorMessage = syncState?.lastSyncError
                 )
             }
         }
@@ -350,6 +389,7 @@ class LocalWorkspaceRepository(
         val cards = database.cardDao().observeCardsWithRelations().first().map(::toCardSummary)
         val activeCards = cards.filter { card ->
             card.workspaceId == workspace.workspaceId
+                && card.deletedAtMillis == null
         }
 
         return WorkspaceExportData(
@@ -388,12 +428,17 @@ class LocalWorkspaceRepository(
         database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(
             settings = toWorkspaceSchedulerSettingsEntity(settings = updatedSettings)
         )
+        syncLocalStore.enqueueWorkspaceSchedulerSettingsUpsert(
+            settings = toWorkspaceSchedulerSettingsEntity(settings = updatedSettings)
+        )
     }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LocalReviewRepository(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val preferencesStore: CloudPreferencesStore,
+    private val syncLocalStore: SyncLocalStore
 ) : ReviewRepository {
     override fun observeReviewSession(
         selectedFilter: ReviewFilter,
@@ -413,8 +458,8 @@ class LocalReviewRepository(
             }
         ) { decks, cards, settingsEntity ->
             val nowMillis = System.currentTimeMillis()
-            val cardSummaries = cards.map(::toCardSummary)
-            val deckSummaries = decks.map { deck ->
+            val cardSummaries = cards.map(::toCardSummary).filter { card -> card.deletedAtMillis == null }
+            val deckSummaries = decks.filter { deck -> deck.deletedAtMillis == null }.map { deck ->
                 toDeckSummary(
                     deck = deck,
                     cards = cardSummaries,
@@ -448,8 +493,8 @@ class LocalReviewRepository(
     ): ReviewTimelinePage {
         val cards = database.cardDao().observeCardsWithRelations().first()
         val decks = database.deckDao().observeDecks().first()
-        val cardSummaries = cards.map(::toCardSummary)
-        val deckSummaries = decks.map { deck ->
+        val cardSummaries = cards.map(::toCardSummary).filter { card -> card.deletedAtMillis == null }
+        val deckSummaries = decks.filter { deck -> deck.deletedAtMillis == null }.map { deck ->
             toDeckSummary(
                 deck = deck,
                 cards = cardSummaries,
@@ -513,17 +558,31 @@ class LocalReviewRepository(
                     reviewLogId = UUID.randomUUID().toString(),
                     workspaceId = card.workspaceId,
                     cardId = cardId,
+                    deviceId = preferencesStore.currentCloudSettings().deviceId,
+                    clientEventId = UUID.randomUUID().toString(),
                     rating = rating,
-                    reviewedAtMillis = reviewedAtMillis
+                    reviewedAtMillis = reviewedAtMillis,
+                    reviewedAtServerIso = formatIsoTimestamp(reviewedAtMillis)
                 )
             )
+            val insertedReviewLog = database.reviewLogDao().loadReviewLogs().first()
+            syncLocalStore.enqueueReviewEventAppend(insertedReviewLog)
+            syncLocalStore.enqueueCardUpsert(
+                card = card.copy(
+                    dueAtMillis = schedule.dueAtMillis,
+                    updatedAtMillis = reviewedAtMillis,
+                    reps = schedule.reps,
+                    lapses = schedule.lapses,
+                    fsrsCardState = schedule.fsrsCardState,
+                    fsrsStepIndex = schedule.fsrsStepIndex,
+                    fsrsStability = schedule.fsrsStability,
+                    fsrsDifficulty = schedule.fsrsDifficulty,
+                    fsrsLastReviewedAtMillis = schedule.fsrsLastReviewedAtMillis,
+                    fsrsScheduledDays = schedule.fsrsScheduledDays
+                ),
+                tags = cardSummary.tags
+            )
         }
-    }
-}
-
-class LocalSyncRepository : SyncRepository {
-    override suspend fun scheduleDraftSync() {
-        // TODO: Port outbox drain and sync cursor logic from apps/ios/Flashcards/Flashcards/CloudSync.
     }
 }
 
@@ -548,7 +607,8 @@ private fun toCardSummary(card: CardWithRelations): CardSummary {
         fsrsStability = card.card.fsrsStability,
         fsrsDifficulty = card.card.fsrsDifficulty,
         fsrsLastReviewedAtMillis = card.card.fsrsLastReviewedAtMillis,
-        fsrsScheduledDays = card.card.fsrsScheduledDays
+        fsrsScheduledDays = card.card.fsrsScheduledDays,
+        deletedAtMillis = card.card.deletedAtMillis
     )
 }
 

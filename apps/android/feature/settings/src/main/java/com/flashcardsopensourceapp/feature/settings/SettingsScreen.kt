@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
 @Composable
 fun SettingsRoute(
     uiState: SettingsUiState,
+    onOpenCurrentWorkspace: () -> Unit,
     onOpenWorkspace: () -> Unit,
     onOpenAccount: () -> Unit,
     onOpenDevice: () -> Unit,
@@ -35,6 +36,20 @@ fun SettingsRoute(
                 body = "Workspace management, account surfaces, device diagnostics, Android-native access, and CSV export now sit on top of the local-first Android draft.",
                 modifier = Modifier
             )
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Current Workspace")
+                    },
+                    supportingContent = {
+                        Text(uiState.currentWorkspaceName)
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenCurrentWorkspace)
+                )
+            }
         }
 
         item {
@@ -58,7 +73,7 @@ fun SettingsRoute(
                         Text("Account")
                     },
                     supportingContent = {
-                        Text("Local-first Android account hub")
+                        Text(uiState.accountStatusTitle)
                     },
                     modifier = Modifier.clickable(onClick = onOpenAccount)
                 )

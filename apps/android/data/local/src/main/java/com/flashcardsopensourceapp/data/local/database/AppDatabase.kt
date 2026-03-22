@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OutboxEntryEntity::class,
         SyncStateEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -40,7 +40,7 @@ fun buildAppDatabase(context: Context): AppDatabase {
         context = context,
         klass = AppDatabase::class.java,
         name = "flashcards-android-draft.db"
-    ).addMigrations(migration2To3).build()
+    ).addMigrations(migration2To3, migration3To4).build()
 }
 
 val migration2To3: Migration = object : Migration(2, 3) {
@@ -96,5 +96,150 @@ val migration2To3: Migration = object : Migration(2, 3) {
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_workspace_scheduler_settings_workspaceId ON workspace_scheduler_settings(workspaceId)"
         )
+    }
+}
+
+val migration3To4: Migration = object : Migration(3, 4) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE cards ADD COLUMN deletedAtMillis INTEGER")
+        database.execSQL("ALTER TABLE decks ADD COLUMN deletedAtMillis INTEGER")
+
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS review_logs_v4 (
+                reviewLogId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                cardId TEXT NOT NULL,
+                deviceId TEXT NOT NULL,
+                clientEventId TEXT NOT NULL,
+                rating TEXT NOT NULL,
+                reviewedAtMillis INTEGER NOT NULL,
+                reviewedAtServerIso TEXT NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE,
+                FOREIGN KEY(cardId) REFERENCES cards(cardId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            """
+            INSERT INTO review_logs_v4 (
+                reviewLogId,
+                workspaceId,
+                cardId,
+                deviceId,
+                clientEventId,
+                rating,
+                reviewedAtMillis,
+                reviewedAtServerIso
+            )
+            SELECT
+                reviewLogId,
+                workspaceId,
+                cardId,
+                'android-draft-device',
+                reviewLogId,
+                rating,
+                reviewedAtMillis,
+                '1970-01-01T00:00:00Z'
+            FROM review_logs
+            """.trimIndent()
+        )
+        database.execSQL("DROP TABLE review_logs")
+        database.execSQL("ALTER TABLE review_logs_v4 RENAME TO review_logs")
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_workspaceId ON review_logs(workspaceId)")
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_cardId ON review_logs(cardId)")
+
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS outbox_entries_v4 (
+                outboxEntryId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                deviceId TEXT NOT NULL,
+                entityType TEXT NOT NULL,
+                entityId TEXT NOT NULL,
+                operationType TEXT NOT NULL,
+                payloadJson TEXT NOT NULL,
+                clientUpdatedAtIso TEXT NOT NULL,
+                createdAtMillis INTEGER NOT NULL,
+                attemptCount INTEGER NOT NULL,
+                lastError TEXT,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            """
+            INSERT INTO outbox_entries_v4 (
+                outboxEntryId,
+                workspaceId,
+                deviceId,
+                entityType,
+                entityId,
+                operationType,
+                payloadJson,
+                clientUpdatedAtIso,
+                createdAtMillis,
+                attemptCount,
+                lastError
+            )
+            SELECT
+                outboxEntryId,
+                workspaceId,
+                'android-draft-device',
+                'workspace_scheduler_settings',
+                workspaceId,
+                operationType,
+                payloadJson,
+                '1970-01-01T00:00:00Z',
+                createdAtMillis,
+                0,
+                NULL
+            FROM outbox_entries
+            """.trimIndent()
+        )
+        database.execSQL("DROP TABLE outbox_entries")
+        database.execSQL("ALTER TABLE outbox_entries_v4 RENAME TO outbox_entries")
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_outbox_entries_workspaceId ON outbox_entries(workspaceId)")
+
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sync_state_v4 (
+                workspaceId TEXT NOT NULL PRIMARY KEY,
+                lastSyncCursor TEXT,
+                lastReviewSequenceId INTEGER NOT NULL,
+                hasHydratedHotState INTEGER NOT NULL,
+                hasHydratedReviewHistory INTEGER NOT NULL,
+                lastSyncAttemptAtMillis INTEGER,
+                lastSuccessfulSyncAtMillis INTEGER,
+                lastSyncError TEXT
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            """
+            INSERT INTO sync_state_v4 (
+                workspaceId,
+                lastSyncCursor,
+                lastReviewSequenceId,
+                hasHydratedHotState,
+                hasHydratedReviewHistory,
+                lastSyncAttemptAtMillis,
+                lastSuccessfulSyncAtMillis,
+                lastSyncError
+            )
+            SELECT
+                workspaceId,
+                lastSyncCursor,
+                0,
+                CASE WHEN lastSyncCursor IS NULL THEN 0 ELSE 1 END,
+                0,
+                lastSyncAttemptAtMillis,
+                NULL,
+                NULL
+            FROM sync_state
+            """.trimIndent()
+        )
+        database.execSQL("DROP TABLE sync_state")
+        database.execSQL("ALTER TABLE sync_state_v4 RENAME TO sync_state")
     }
 }

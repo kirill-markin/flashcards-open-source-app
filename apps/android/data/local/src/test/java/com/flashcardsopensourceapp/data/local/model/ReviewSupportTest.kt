@@ -96,7 +96,8 @@ class ReviewSupportTest {
                 fsrsStability = null,
                 fsrsDifficulty = null,
                 fsrsLastReviewedAtMillis = null,
-                fsrsScheduledDays = null
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
             ),
             CardSummary(
                 cardId = "card-2",
@@ -115,7 +116,8 @@ class ReviewSupportTest {
                 fsrsStability = null,
                 fsrsDifficulty = null,
                 fsrsLastReviewedAtMillis = null,
-                fsrsScheduledDays = null
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
             ),
             CardSummary(
                 cardId = "card-3",
@@ -134,7 +136,8 @@ class ReviewSupportTest {
                 fsrsStability = null,
                 fsrsDifficulty = null,
                 fsrsLastReviewedAtMillis = null,
-                fsrsScheduledDays = null
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
             ),
             CardSummary(
                 cardId = "card-4",
@@ -153,7 +156,8 @@ class ReviewSupportTest {
                 fsrsStability = null,
                 fsrsDifficulty = null,
                 fsrsLastReviewedAtMillis = null,
-                fsrsScheduledDays = null
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
             )
         )
     }

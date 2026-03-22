@@ -23,6 +23,8 @@ import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.SaveAlt
+import androidx.compose.material.icons.outlined.SettingsEthernet
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -55,7 +58,8 @@ fun AccountRoute(
     workspaceName: String,
     onOpenStatus: () -> Unit,
     onOpenLegalSupport: () -> Unit,
-    onOpenOpenSource: () -> Unit
+    onOpenOpenSource: () -> Unit,
+    onOpenAdvanced: () -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -64,8 +68,8 @@ fun AccountRoute(
     ) {
         item {
             DraftNoticeCard(
-                title = "Android local-first account",
-                body = "This account area stays intentionally honest in the Android draft. Workspace data is local-first, while cloud account flows arrive in a later wave.",
+                title = "Android cloud account foundation",
+                body = "This account area now covers linked sign-in, manual sync, linked workspace switching, and custom server configuration while keeping the UI native to Android.",
                 modifier = Modifier
             )
         }
@@ -129,16 +133,53 @@ fun AccountRoute(
                 )
             }
         }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Advanced")
+                    },
+                    supportingContent = {
+                        Text("Server configuration")
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.SettingsEthernet,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenAdvanced)
+                )
+            }
+        }
     }
 }
 
 @Composable
-fun AccountStatusRoute(uiState: AccountStatusUiState) {
+fun AccountStatusRoute(
+    uiState: AccountStatusUiState,
+    onOpenSignIn: () -> Unit,
+    onSyncNow: () -> Unit,
+    onLogout: () -> Unit
+) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {
+        if (uiState.errorMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 ListItem(
@@ -159,38 +200,409 @@ fun AccountStatusRoute(uiState: AccountStatusUiState) {
         }
 
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Workspace")
-                    },
-                    supportingContent = {
-                        Text(uiState.workspaceName)
+            DeviceInfoCard(
+                title = "Account",
+                rows = buildList {
+                    add("Workspace" to uiState.workspaceName)
+                    add("Device ID" to uiState.deviceId)
+                    add("Sync" to uiState.syncStatusText)
+                    add("Last successful sync" to uiState.lastSuccessfulSync)
+                    if (uiState.linkedEmail != null) {
+                        add("Linked email" to uiState.linkedEmail)
                     }
-                )
+                }
+            )
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Actions",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (uiState.isLinked || uiState.isLinkingReady.not()) {
+                        Button(
+                            onClick = onOpenSignIn,
+                            enabled = uiState.isSubmitting.not(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (uiState.isLinked) "Switch account" else "Sign in for sync")
+                        }
+                    }
+                    if (uiState.isLinked) {
+                        Button(
+                            onClick = onSyncNow,
+                            enabled = uiState.isSubmitting.not(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (uiState.isSubmitting) "Syncing..." else "Sync now")
+                        }
+                        OutlinedButton(
+                            onClick = onLogout,
+                            enabled = uiState.isSubmitting.not(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Log out")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CurrentWorkspaceRoute(
+    uiState: CurrentWorkspaceUiState,
+    onReload: () -> Unit,
+    onSwitchToExistingWorkspace: (String) -> Unit,
+    onCreateWorkspace: () -> Unit,
+    onOpenSignIn: () -> Unit
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Current workspace",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(uiState.currentWorkspaceName)
+                    Text(
+                        text = "Cloud status: ${uiState.cloudStatusTitle}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (uiState.linkedEmail != null) {
+                        Text(
+                            text = uiState.linkedEmail,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        if (uiState.errorMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
             }
         }
 
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Linked workspaces",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    when {
+                        uiState.isLinked.not() && uiState.isLinkingReady.not() -> {
+                            Text(
+                                text = "Sign in first to load linked cloud workspaces.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Button(
+                                onClick = onOpenSignIn,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Sign in")
+                            }
+                        }
+
+                        uiState.isLoading -> {
+                            Text("Loading linked workspaces...")
+                        }
+
+                        uiState.workspaces.isEmpty() -> {
+                            Button(
+                                onClick = onReload,
+                                enabled = uiState.isSwitching.not(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Load linked workspaces")
+                            }
+                        }
+
+                        else -> {
+                            uiState.workspaces.forEach { workspace ->
+                                OutlinedButton(
+                                    onClick = {
+                                        if (workspace.isCreateNew) {
+                                            onCreateWorkspace()
+                                        } else {
+                                            onSwitchToExistingWorkspace(workspace.workspaceId)
+                                        }
+                                    },
+                                    enabled = uiState.isSwitching.not(),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        if (workspace.isSelected) {
+                                            "${workspace.title} (Current)"
+                                        } else {
+                                            workspace.title
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AccountAdvancedRoute(onOpenServer: () -> Unit) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 ListItem(
                     headlineContent = {
-                        Text("Sync")
+                        Text("Server")
                     },
                     supportingContent = {
-                        Text(uiState.syncStatusText)
-                    }
+                        Text("Official or self-hosted server configuration")
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.SettingsEthernet,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenServer)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ServerSettingsRoute(
+    uiState: ServerSettingsUiState,
+    onCustomOriginChange: (String) -> Unit,
+    onValidateCustomServer: () -> Unit,
+    onApplyPreviewConfiguration: () -> Unit,
+    onResetToOfficialServer: () -> Unit
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            DeviceInfoCard(
+                title = "Current server",
+                rows = listOf(
+                    "Mode" to uiState.modeTitle,
+                    "API" to uiState.apiBaseUrl,
+                    "Auth" to uiState.authBaseUrl
+                )
+            )
+        }
+
+        if (uiState.errorMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        item {
+            OutlinedTextField(
+                value = uiState.customOrigin,
+                onValueChange = onCustomOriginChange,
+                label = {
+                    Text("Custom origin")
+                },
+                supportingText = {
+                    Text("Use a base HTTPS URL like https://example.com")
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (uiState.previewApiBaseUrl != null && uiState.previewAuthBaseUrl != null) {
+            item {
+                DeviceInfoCard(
+                    title = "Preview",
+                    rows = listOf(
+                        "API" to uiState.previewApiBaseUrl,
+                        "Auth" to uiState.previewAuthBaseUrl
+                    )
                 )
             }
         }
 
+        item {
+            Button(
+                onClick = onValidateCustomServer,
+                enabled = uiState.isApplying.not(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (uiState.isApplying) "Validating..." else "Validate custom server")
+            }
+        }
+
+        item {
+            Button(
+                onClick = onApplyPreviewConfiguration,
+                enabled = uiState.previewApiBaseUrl != null && uiState.isApplying.not(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Apply custom server")
+            }
+        }
+
+        item {
+            OutlinedButton(
+                onClick = onResetToOfficialServer,
+                enabled = uiState.isApplying.not(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Reset to official server")
+            }
+        }
+    }
+}
+
+@Composable
+fun CloudSignInEmailRoute(
+    uiState: CloudSignInUiState,
+    onEmailChange: (String) -> Unit,
+    onSendCode: () -> Unit
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Cloud login, sync-now, custom servers, agent connections, and destructive account actions are intentionally out of scope for this Android wave.",
+                    text = "Sign in with email to link Android to your cloud workspace.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(20.dp)
                 )
+            }
+        }
+
+        if (uiState.errorMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        item {
+            OutlinedTextField(
+                value = uiState.email,
+                onValueChange = onEmailChange,
+                label = {
+                    Text("Email")
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        item {
+            Button(
+                onClick = onSendCode,
+                enabled = uiState.isSendingCode.not(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (uiState.isSendingCode) "Sending..." else "Send one-time code")
+            }
+        }
+    }
+}
+
+@Composable
+fun CloudSignInCodeRoute(
+    uiState: CloudSignInUiState,
+    onCodeChange: (String) -> Unit,
+    onVerifyCode: () -> Unit
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"}.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp)
+                )
+            }
+        }
+
+        if (uiState.errorMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        item {
+            OutlinedTextField(
+                value = uiState.code,
+                onValueChange = onCodeChange,
+                label = {
+                    Text("One-time code")
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        item {
+            Button(
+                onClick = onVerifyCode,
+                enabled = uiState.isVerifyingCode.not(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (uiState.isVerifyingCode) "Verifying..." else "Verify code")
             }
         }
     }
@@ -353,7 +765,9 @@ fun DeviceDiagnosticsRoute(uiState: DeviceDiagnosticsUiState) {
                 rows = listOf(
                     "Outbox entries" to uiState.outboxEntriesCount.toString(),
                     "Last sync cursor" to uiState.lastSyncCursor,
-                    "Last sync attempt" to uiState.lastSyncAttempt
+                    "Last sync attempt" to uiState.lastSyncAttempt,
+                    "Last successful sync" to uiState.lastSuccessfulSync,
+                    "Last sync error" to uiState.lastSyncError
                 )
             )
         }
