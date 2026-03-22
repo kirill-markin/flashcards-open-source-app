@@ -76,6 +76,21 @@ The goal of the first iteration is a working draft that can run in an emulator a
 
 Missing business logic is acceptable in the draft as long as the UI structure, navigation, and local storage foundation are in place.
 
+## Local Commands
+
+Run commands from `apps/android/`.
+
+- Build the debug app: `./gradlew :app:assembleDebug`
+- Build AndroidTest APKs: `./gradlew :app:assembleDebugAndroidTest :data:local:assembleDebugAndroidTest`
+
+The first local draft uses:
+
+- `compileSdk = 36`
+- `targetSdk = 36`
+- `minSdk = 34`
+- Room on top of SQLite for local storage
+- Material 3 + Compose + Navigation Compose + `NavigationSuiteScaffold`
+
 ## Partial Implementation Rule
 
 When work is intentionally incomplete, leave explicit comments in English using this format:

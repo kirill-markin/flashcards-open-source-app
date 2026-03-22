@@ -1,0 +1,24 @@
+# Android SDK and Gradle local state
+.gradle/
+.kotlin/
+local.properties
+
+# Module build outputs
+build/
+**/build/
+
+# Android Studio and IntelliJ
+.idea/
+*.iml
+captures/
+
+# Native build outputs
+.externalNativeBuild/
+.cxx/
+
+# Profiling and heap dumps
+*.hprof
+
+# Local signing files
+*.jks
+*.keystore

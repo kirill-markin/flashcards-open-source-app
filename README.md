@@ -9,9 +9,9 @@ Open-source offline-first flashcards app for iOS and web.
 ## Clients
 
 - iOS app in `apps/ios`
+- Android app draft in `apps/android`
 - Web client in `apps/web`
 - AI agents support through the external agent API: [https://api.flashcards-open-source-app.com/v1/](https://api.flashcards-open-source-app.com/v1/)
-- Android app planned later
 
 ## Features
 
