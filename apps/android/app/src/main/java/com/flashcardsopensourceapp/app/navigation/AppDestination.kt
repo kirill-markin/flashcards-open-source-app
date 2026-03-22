@@ -51,6 +51,38 @@ data object SettingsWorkspaceDestination {
     const val route: String = "settings/workspace"
 }
 
+data object SettingsWorkspaceOverviewDestination {
+    const val route: String = "settings/workspace/overview"
+}
+
+data object SettingsWorkspaceDecksDestination {
+    const val route: String = "settings/workspace/decks"
+}
+
+data object SettingsWorkspaceDeckDetailDestination {
+    const val routePrefix: String = "settings/workspace/decks/detail"
+    const val routeArgument: String = "deckId"
+    const val routePattern: String = "$routePrefix/{$routeArgument}"
+
+    fun createRoute(deckId: String): String {
+        return "$routePrefix/$deckId"
+    }
+}
+
+data object SettingsWorkspaceDeckEditorDestination {
+    const val routePrefix: String = "settings/workspace/decks/editor"
+    const val routeArgument: String = "deckId"
+    const val routePattern: String = "$routePrefix/{$routeArgument}"
+
+    fun createRoute(deckId: String): String {
+        return "$routePrefix/$deckId"
+    }
+}
+
+data object SettingsWorkspaceTagsDestination {
+    const val route: String = "settings/workspace/tags"
+}
+
 data object SettingsAccountDestination {
     const val route: String = "settings/account"
 }

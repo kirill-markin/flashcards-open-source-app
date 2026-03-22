@@ -6,9 +6,13 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.CardDraft
+import com.flashcardsopensourceapp.data.local.model.CardFilter
+import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.repository.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalDecksRepository
+import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepository
 import com.flashcardsopensourceapp.data.local.seed.DemoDataSeeder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -51,25 +55,45 @@ class AppDatabaseTest {
     }
 
     @Test
-    fun cardsCrudAndDeckRelationsWork(): Unit = runBlocking {
+    fun cardsDecksAndWorkspaceSummariesFollowAlignedContract(): Unit = runBlocking {
         DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
         val cardsRepository = LocalCardsRepository(database = database)
         val decksRepository = LocalDecksRepository(database = database)
+        val workspaceRepository = LocalWorkspaceRepository(database = database)
 
         cardsRepository.createCard(
             cardDraft = CardDraft(
-                deckId = "deck-android",
                 frontText = "What is a ViewModel?",
                 backText = "A lifecycle-aware state holder for a screen.",
                 tags = listOf("ui", "state"),
                 effortLevel = EffortLevel.FAST
             )
         )
+        decksRepository.createDeck(
+            deckDraft = DeckDraft(
+                name = "SQLite Cards",
+                filterDefinition = buildDeckFilterDefinition(
+                    effortLevels = emptyList(),
+                    tags = listOf("sqlite")
+                )
+            )
+        )
 
-        val cards = cardsRepository.observeCards().first()
+        val cards = cardsRepository.observeCards(
+            searchQuery = "",
+            filter = CardFilter(
+                tags = emptyList(),
+                effort = emptyList()
+            )
+        ).first()
         val decks = decksRepository.observeDecks().first()
+        val tagsSummary = workspaceRepository.observeWorkspaceTagsSummary().first()
+        val overview = workspaceRepository.observeWorkspaceOverview().first()
 
-        assertTrue(cards.any { card -> card.frontText == "What is a ViewModel?" && card.deckName == "Android" })
-        assertEquals(3, decks.size)
+        assertTrue(cards.any { card -> card.frontText == "What is a ViewModel?" })
+        assertTrue(decks.any { deck -> deck.name == "SQLite Cards" && deck.totalCards == 2 })
+        assertTrue(tagsSummary.tags.any { tag -> tag.tag == "ui" && tag.cardsCount >= 3 })
+        assertEquals(11, overview?.totalCards)
+        assertEquals(4, overview?.deckCount)
     }
 }

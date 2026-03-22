@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.TagEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 
 private const val demoWorkspaceId: String = "workspace-demo"
@@ -66,23 +67,44 @@ private fun buildDemoDecks(currentTimeMillis: Long): List<DeckEntity> {
         DeckEntity(
             deckId = "deck-kotlin",
             workspaceId = demoWorkspaceId,
-            name = "Kotlin",
-            position = 0,
-            createdAtMillis = currentTimeMillis
+            name = "Kotlin Basics",
+            filterDefinitionJson = encodeDeckFilterDefinition(
+                filterDefinition = DeckFilterDefinition(
+                    version = 2,
+                    effortLevels = emptyList(),
+                    tags = listOf("basics")
+                )
+            ),
+            createdAtMillis = currentTimeMillis,
+            updatedAtMillis = currentTimeMillis
         ),
         DeckEntity(
             deckId = "deck-android",
             workspaceId = demoWorkspaceId,
-            name = "Android",
-            position = 1,
-            createdAtMillis = currentTimeMillis
+            name = "Android UI",
+            filterDefinitionJson = encodeDeckFilterDefinition(
+                filterDefinition = DeckFilterDefinition(
+                    version = 2,
+                    effortLevels = emptyList(),
+                    tags = listOf("ui")
+                )
+            ),
+            createdAtMillis = currentTimeMillis + 1,
+            updatedAtMillis = currentTimeMillis + 1
         ),
         DeckEntity(
-            deckId = "deck-spanish",
+            deckId = "deck-study",
             workspaceId = demoWorkspaceId,
-            name = "Spanish",
-            position = 2,
-            createdAtMillis = currentTimeMillis
+            name = "Long-form Study",
+            filterDefinitionJson = encodeDeckFilterDefinition(
+                filterDefinition = DeckFilterDefinition(
+                    version = 2,
+                    effortLevels = listOf(EffortLevel.LONG),
+                    tags = emptyList()
+                )
+            ),
+            createdAtMillis = currentTimeMillis + 2,
+            updatedAtMillis = currentTimeMillis + 2
         )
     )
 }
@@ -98,22 +120,21 @@ private fun buildDemoTags(): List<TagEntity> {
 
 private fun buildDemoCards(currentTimeMillis: Long): List<CardEntity> {
     return listOf(
-        demoCard("card-1", "deck-kotlin", "What does val mean in Kotlin?", "A read-only reference.", EffortLevel.FAST, currentTimeMillis),
-        demoCard("card-2", "deck-kotlin", "What is a data class?", "A class optimized for immutable value-like data.", EffortLevel.FAST, currentTimeMillis + 1),
-        demoCard("card-3", "deck-android", "What does Room wrap on Android?", "SQLite with typed DAO and entity APIs.", EffortLevel.DEEP, currentTimeMillis + 2),
-        demoCard("card-4", "deck-android", "What is Compose used for?", "Building Android UI declaratively.", EffortLevel.FAST, currentTimeMillis + 3),
-        demoCard("card-5", "deck-android", "What is WorkManager for?", "Reliable background work and deferred sync tasks.", EffortLevel.DEEP, currentTimeMillis + 4),
-        demoCard("card-6", "deck-spanish", "How do you say 'orange' in Spanish?", "naranja", EffortLevel.FAST, currentTimeMillis + 5),
-        demoCard("card-7", "deck-spanish", "How do you say 'to learn' in Spanish?", "aprender", EffortLevel.FAST, currentTimeMillis + 6),
-        demoCard("card-8", "deck-spanish", "What is a simple greeting in Spanish?", "Hola", EffortLevel.FAST, currentTimeMillis + 7),
-        demoCard("card-9", "deck-kotlin", "What is a suspend function?", "A function that can suspend without blocking a thread.", EffortLevel.DEEP, currentTimeMillis + 8),
-        demoCard("card-10", "deck-android", "What does Material 3 provide?", "Default Android design tokens and components.", EffortLevel.FAST, currentTimeMillis + 9)
+        demoCard("card-1", "What does val mean in Kotlin?", "A read-only reference.", EffortLevel.FAST, currentTimeMillis),
+        demoCard("card-2", "What is a data class?", "A class optimized for immutable value-like data.", EffortLevel.MEDIUM, currentTimeMillis + 1),
+        demoCard("card-3", "What does Room wrap on Android?", "SQLite with typed DAO and entity APIs.", EffortLevel.LONG, currentTimeMillis + 2),
+        demoCard("card-4", "What is Compose used for?", "Building Android UI declaratively.", EffortLevel.FAST, currentTimeMillis + 3),
+        demoCard("card-5", "What is WorkManager for?", "Reliable background work and deferred sync tasks.", EffortLevel.LONG, currentTimeMillis + 4),
+        demoCard("card-6", "How do you say 'orange' in Spanish?", "naranja", EffortLevel.FAST, currentTimeMillis + 5),
+        demoCard("card-7", "How do you say 'to learn' in Spanish?", "aprender", EffortLevel.MEDIUM, currentTimeMillis + 6),
+        demoCard("card-8", "What is a simple greeting in Spanish?", "Hola", EffortLevel.FAST, currentTimeMillis + 7),
+        demoCard("card-9", "What is a suspend function?", "A function that can suspend without blocking a thread.", EffortLevel.LONG, currentTimeMillis + 8),
+        demoCard("card-10", "What does Material 3 provide?", "Default Android design tokens and components.", EffortLevel.FAST, currentTimeMillis + 9)
     )
 }
 
 private fun demoCard(
     cardId: String,
-    deckId: String,
     frontText: String,
     backText: String,
     effortLevel: EffortLevel,
@@ -122,7 +143,6 @@ private fun demoCard(
     return CardEntity(
         cardId = cardId,
         workspaceId = demoWorkspaceId,
-        deckId = deckId,
         frontText = frontText,
         backText = backText,
         effortLevel = effortLevel,

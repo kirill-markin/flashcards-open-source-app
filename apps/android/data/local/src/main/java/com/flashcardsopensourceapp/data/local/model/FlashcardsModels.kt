@@ -6,23 +6,39 @@ data class WorkspaceSummary(
     val createdAtMillis: Long
 )
 
+enum class EffortLevel {
+    FAST,
+    MEDIUM,
+    LONG
+}
+
+data class DeckFilterDefinition(
+    val version: Int,
+    val effortLevels: List<EffortLevel>,
+    val tags: List<String>
+)
+
+data class DeckDraft(
+    val name: String,
+    val filterDefinition: DeckFilterDefinition
+)
+
 data class DeckSummary(
     val deckId: String,
     val workspaceId: String,
     val name: String,
-    val position: Int
+    val filterDefinition: DeckFilterDefinition,
+    val totalCards: Int,
+    val dueCards: Int,
+    val newCards: Int,
+    val reviewedCards: Int,
+    val createdAtMillis: Long,
+    val updatedAtMillis: Long
 )
-
-enum class EffortLevel {
-    FAST,
-    DEEP
-}
 
 data class CardSummary(
     val cardId: String,
     val workspaceId: String,
-    val deckId: String,
-    val deckName: String,
     val frontText: String,
     val backText: String,
     val tags: List<String>,
@@ -32,11 +48,15 @@ data class CardSummary(
 )
 
 data class CardDraft(
-    val deckId: String,
     val frontText: String,
     val backText: String,
     val tags: List<String>,
     val effortLevel: EffortLevel
+)
+
+data class CardFilter(
+    val tags: List<String>,
+    val effort: List<EffortLevel>
 )
 
 enum class ReviewRating {
@@ -48,10 +68,10 @@ enum class ReviewRating {
 
 data class ReviewCard(
     val cardId: String,
-    val deckName: String,
     val frontText: String,
     val backText: String,
-    val tags: List<String>
+    val tags: List<String>,
+    val effortLevel: EffortLevel
 )
 
 data class AppMetadataSummary(
@@ -60,4 +80,25 @@ data class AppMetadataSummary(
     val cardCount: Int,
     val localStorageLabel: String,
     val syncStatusText: String
+)
+
+data class WorkspaceTagSummary(
+    val tag: String,
+    val cardsCount: Int
+)
+
+data class WorkspaceTagsSummary(
+    val tags: List<WorkspaceTagSummary>,
+    val totalCards: Int
+)
+
+data class WorkspaceOverviewSummary(
+    val workspaceId: String,
+    val workspaceName: String,
+    val totalCards: Int,
+    val deckCount: Int,
+    val tagsCount: Int,
+    val dueCount: Int,
+    val newCount: Int,
+    val reviewedCount: Int
 )

@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.cards
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,17 +11,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -28,6 +33,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,30 +46,54 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
+import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
+import com.flashcardsopensourceapp.data.local.model.buildCardFilter
+import com.flashcardsopensourceapp.data.local.model.cardFilterActiveDimensionCount
+import com.flashcardsopensourceapp.data.local.model.formatCardFilterSummary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CardsRoute(
     uiState: CardsUiState,
     onSearchQueryChange: (String) -> Unit,
+    onApplyFilter: (CardFilter) -> Unit,
+    onClearFilter: () -> Unit,
     onCreateCard: () -> Unit,
     onOpenCard: (String) -> Unit,
     onDeleteCard: (String) -> Unit
 ) {
+    var isFilterSheetVisible by remember { mutableStateOf(value = false) }
+    var draftFilter by remember(uiState.activeFilter) {
+        mutableStateOf(uiState.activeFilter)
+    }
+    val activeFilterCount = cardFilterActiveDimensionCount(filter = uiState.activeFilter)
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text("Cards")
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            draftFilter = uiState.activeFilter
+                            isFilterSheetVisible = true
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Tune,
+                            contentDescription = if (activeFilterCount == 0) {
+                                "Filter cards"
+                            } else {
+                                "Filter cards ($activeFilterCount active)"
+                            }
+                        )
+                    }
                 }
             )
         },
@@ -93,8 +123,8 @@ fun CardsRoute(
         ) {
             item {
                 DraftNoticeCard(
-                    title = "Android draft cards flow",
-                    body = "Cards already use Room-backed CRUD. Search is intentionally simple in this first Android-native pass.",
+                    title = "Android cards aligned to filtered decks",
+                    body = "Cards now match the iOS domain model: card content stays independent, while deck rules live separately in workspace settings.",
                     modifier = Modifier
                 )
             }
@@ -110,14 +140,44 @@ fun CardsRoute(
                 )
             }
 
+            if (activeFilterCount > 0) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Active filters",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                text = formatCardFilterSummary(filter = uiState.activeFilter),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(
+                                onClick = onClearFilter,
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text("Clear")
+                            }
+                        }
+                    }
+                }
+            }
+
             if (uiState.cards.isEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = if (uiState.searchQuery.isEmpty()) {
-                                "No cards yet. Tap the add button to create the first card."
-                            } else {
-                                "No cards match this search."
+                            text = when {
+                                uiState.searchQuery.isEmpty() && activeFilterCount == 0 ->
+                                    "No cards yet. Tap the add button to create the first card."
+                                activeFilterCount > 0 ->
+                                    "No cards match the current filters."
+                                else ->
+                                    "No cards match this search."
                             },
                             modifier = Modifier.padding(20.dp)
                         )
@@ -133,6 +193,29 @@ fun CardsRoute(
                 }
             }
         }
+    }
+
+    if (isFilterSheetVisible) {
+        CardsFilterSheet(
+            draftFilter = draftFilter,
+            availableTags = uiState.availableTagSuggestions,
+            onDismiss = {
+                isFilterSheetVisible = false
+            },
+            onApply = { nextFilter ->
+                onApplyFilter(nextFilter)
+                isFilterSheetVisible = false
+            },
+            onClear = {
+                draftFilter = CardFilter(
+                    tags = emptyList(),
+                    effort = emptyList()
+                )
+            },
+            onDraftFilterChange = { nextFilter ->
+                draftFilter = nextFilter
+            }
+        )
     }
 }
 
@@ -159,21 +242,12 @@ private fun CardRow(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                Text(
+                    text = card.frontText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = card.frontText,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = card.deckName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                )
                 IconButton(
                     onClick = {
                         isDeleteDialogVisible = true
@@ -189,6 +263,11 @@ private fun CardRow(
                 text = card.backText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Effort: ${card.effortLevel.name.lowercase().replaceFirstChar { character -> character.uppercase() }}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
             )
             if (card.tags.isNotEmpty()) {
                 Text(
@@ -235,19 +314,132 @@ private fun CardRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun CardsFilterSheet(
+    draftFilter: CardFilter,
+    availableTags: List<WorkspaceTagSummary>,
+    onDismiss: () -> Unit,
+    onApply: (CardFilter) -> Unit,
+    onClear: () -> Unit,
+    onDraftFilterChange: (CardFilter) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 32.dp)
+        ) {
+            Text(
+                text = "Filters",
+                style = MaterialTheme.typography.headlineSmall
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Effort",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    EffortLevel.entries.forEach { effortLevel ->
+                        FilterChip(
+                            selected = draftFilter.effort.contains(effortLevel),
+                            onClick = {
+                                onDraftFilterChange(
+                                    draftFilter.copy(
+                                        effort = toggleEffortSelection(
+                                            selectedEffort = draftFilter.effort,
+                                            effortLevel = effortLevel
+                                        )
+                                    )
+                                )
+                            },
+                            label = {
+                                Text(effortLevel.name.lowercase().replaceFirstChar { character -> character.uppercase() })
+                            }
+                        )
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Tags",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                if (availableTags.isEmpty()) {
+                    Text(
+                        text = "No tags have been used yet.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        availableTags.forEach { tagSummary ->
+                            FilterChip(
+                                selected = draftFilter.tags.contains(tagSummary.tag),
+                                onClick = {
+                                    onDraftFilterChange(
+                                        buildCardFilter(
+                                            tags = toggleTagSelection(
+                                                selectedTags = draftFilter.tags,
+                                                tag = tagSummary.tag
+                                            ),
+                                            effort = draftFilter.effort,
+                                            referenceTags = availableTags.map { tag -> tag.tag }
+                                        )
+                                    )
+                                },
+                                label = {
+                                    Text("${tagSummary.tag} (${tagSummary.cardsCount})")
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedButton(
+                    onClick = onClear,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Clear")
+                }
+                Button(
+                    onClick = {
+                        onApply(draftFilter)
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Apply")
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun CardEditorRoute(
     uiState: CardEditorUiState,
     onFrontTextChange: (String) -> Unit,
     onBackTextChange: (String) -> Unit,
     onTagsTextChange: (String) -> Unit,
-    onDeckChange: (String) -> Unit,
     onEffortLevelChange: (EffortLevel) -> Unit,
     onSave: () -> Unit,
     onDelete: (() -> Unit)?,
     onBack: () -> Unit
 ) {
-    var isDeckMenuExpanded by remember { mutableStateOf(value = false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -303,52 +495,6 @@ fun CardEditorRoute(
             }
 
             item {
-                ExposedDropdownMenuBox(
-                    expanded = isDeckMenuExpanded,
-                    onExpandedChange = { expanded ->
-                        isDeckMenuExpanded = expanded
-                    }
-                ) {
-                    val selectedDeckName = uiState.availableDecks.firstOrNull { deck ->
-                        deck.deckId == uiState.selectedDeckId
-                    }?.name ?: ""
-
-                    OutlinedTextField(
-                        value = selectedDeckName,
-                        onValueChange = { },
-                        readOnly = true,
-                        label = {
-                            Text("Deck")
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDeckMenuExpanded)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = isDeckMenuExpanded,
-                        onDismissRequest = {
-                            isDeckMenuExpanded = false
-                        }
-                    ) {
-                        uiState.availableDecks.forEach { deck ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(deck.name)
-                                },
-                                onClick = {
-                                    isDeckMenuExpanded = false
-                                    onDeckChange(deck.deckId)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
                 OutlinedTextField(
                     value = uiState.tagsText,
                     onValueChange = onTagsTextChange,
@@ -373,7 +519,7 @@ fun CardEditorRoute(
                 SingleChoiceSegmentedButtonRow(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val options = listOf(EffortLevel.FAST, EffortLevel.DEEP)
+                    val options = EffortLevel.entries
                     options.forEachIndexed { index, option ->
                         SegmentedButton(
                             selected = uiState.effortLevel == option,
@@ -427,4 +573,24 @@ fun CardEditorRoute(
             }
         }
     }
+}
+
+private fun toggleEffortSelection(selectedEffort: List<EffortLevel>, effortLevel: EffortLevel): List<EffortLevel> {
+    if (selectedEffort.contains(effortLevel)) {
+        return selectedEffort.filter { value ->
+            value != effortLevel
+        }
+    }
+
+    return selectedEffort + effortLevel
+}
+
+private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<String> {
+    if (selectedTags.contains(tag)) {
+        return selectedTags.filter { value ->
+            value != tag
+        }
+    }
+
+    return selectedTags + tag
 }
