@@ -87,6 +87,10 @@ data object SettingsWorkspaceTagsDestination {
     const val route: String = "settings/workspace/tags"
 }
 
+data object SettingsWorkspaceSchedulerDestination {
+    const val route: String = "settings/workspace/scheduler"
+}
+
 data object SettingsAccountDestination {
     const val route: String = "settings/account"
 }

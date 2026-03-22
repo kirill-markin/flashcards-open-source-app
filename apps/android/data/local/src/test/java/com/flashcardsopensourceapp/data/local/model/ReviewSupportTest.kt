@@ -12,7 +12,9 @@ class ReviewSupportTest {
             pendingReviewedCardIds = emptySet(),
             decks = sampleDecks(),
             cards = sampleCards(),
-            tagsSummary = sampleTagsSummary()
+            tagsSummary = sampleTagsSummary(),
+            settings = sampleSchedulerSettings(),
+            reviewedAtMillis = 1_000L
         )
 
         assertEquals(ReviewFilter.AllCards, snapshot.selectedFilter)
@@ -28,7 +30,9 @@ class ReviewSupportTest {
             pendingReviewedCardIds = setOf("card-1"),
             decks = sampleDecks(),
             cards = sampleCards(),
-            tagsSummary = sampleTagsSummary()
+            tagsSummary = sampleTagsSummary(),
+            settings = sampleSchedulerSettings(),
+            reviewedAtMillis = 1_000L
         )
 
         assertEquals(ReviewFilter.Deck(deckId = "deck-kotlin"), snapshot.selectedFilter)
@@ -44,7 +48,9 @@ class ReviewSupportTest {
             pendingReviewedCardIds = emptySet(),
             decks = sampleDecks(),
             cards = sampleCards(),
-            tagsSummary = sampleTagsSummary()
+            tagsSummary = sampleTagsSummary(),
+            settings = sampleSchedulerSettings(),
+            reviewedAtMillis = 1_000L
         )
 
         assertEquals(ReviewFilter.AllCards, snapshot.selectedFilter)
@@ -59,6 +65,7 @@ class ReviewSupportTest {
             decks = sampleDecks(),
             cards = sampleCards(),
             tagsSummary = sampleTagsSummary(),
+            reviewedAtMillis = 1_000L,
             offset = 0,
             limit = 10
         )
@@ -79,8 +86,17 @@ class ReviewSupportTest {
                 backText = "A read-only reference.",
                 tags = listOf("basics"),
                 effortLevel = EffortLevel.FAST,
+                dueAtMillis = null,
                 createdAtMillis = 100L,
-                updatedAtMillis = 100L
+                updatedAtMillis = 100L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null
             ),
             CardSummary(
                 cardId = "card-2",
@@ -89,8 +105,17 @@ class ReviewSupportTest {
                 backText = "A class optimized for immutable value-like data.",
                 tags = listOf("basics"),
                 effortLevel = EffortLevel.MEDIUM,
+                dueAtMillis = null,
                 createdAtMillis = 101L,
-                updatedAtMillis = 101L
+                updatedAtMillis = 101L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null
             ),
             CardSummary(
                 cardId = "card-3",
@@ -99,8 +124,17 @@ class ReviewSupportTest {
                 backText = "SQLite with typed DAO and entity APIs.",
                 tags = listOf("sqlite"),
                 effortLevel = EffortLevel.LONG,
+                dueAtMillis = null,
                 createdAtMillis = 102L,
-                updatedAtMillis = 102L
+                updatedAtMillis = 102L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null
             ),
             CardSummary(
                 cardId = "card-4",
@@ -109,8 +143,17 @@ class ReviewSupportTest {
                 backText = "Building Android UI declaratively.",
                 tags = listOf("ui"),
                 effortLevel = EffortLevel.FAST,
+                dueAtMillis = null,
                 createdAtMillis = 103L,
-                updatedAtMillis = 103L
+                updatedAtMillis = 103L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null
             )
         )
     }
@@ -160,6 +203,13 @@ class ReviewSupportTest {
                 WorkspaceTagSummary(tag = "ui", cardsCount = 1)
             ),
             totalCards = 4
+        )
+    }
+
+    private fun sampleSchedulerSettings(): WorkspaceSchedulerSettings {
+        return makeDefaultWorkspaceSchedulerSettings(
+            workspaceId = "workspace-demo",
+            updatedAtMillis = 100L
         )
     }
 }

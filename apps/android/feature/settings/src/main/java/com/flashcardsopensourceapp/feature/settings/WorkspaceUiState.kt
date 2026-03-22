@@ -3,13 +3,15 @@ package com.flashcardsopensourceapp.feature.settings
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 
 data class WorkspaceSettingsUiState(
     val workspaceName: String,
     val deckCount: Int,
     val totalCards: Int,
-    val tagCount: Int
+    val tagCount: Int,
+    val schedulerSummary: String
 )
 
 data class WorkspaceOverviewUiState(
@@ -47,4 +49,17 @@ data class WorkspaceTagsUiState(
     val searchQuery: String,
     val tags: List<WorkspaceTagSummary>,
     val totalCards: Int
+)
+
+data class SchedulerSettingsUiState(
+    val isLoading: Boolean,
+    val algorithm: String,
+    val desiredRetentionText: String,
+    val learningStepsText: String,
+    val relearningStepsText: String,
+    val maximumIntervalDaysText: String,
+    val enableFuzz: Boolean,
+    val updatedAtLabel: String,
+    val errorMessage: String,
+    val showSaveConfirmation: Boolean
 )

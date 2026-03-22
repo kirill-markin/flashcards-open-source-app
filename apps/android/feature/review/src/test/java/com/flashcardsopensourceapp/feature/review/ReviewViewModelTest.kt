@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
+import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -233,7 +234,12 @@ class ReviewViewModelTest {
                     pendingReviewedCardIds = pendingReviewedCardIds,
                     decks = sampleDecks(),
                     cards = cards,
-                    tagsSummary = sampleTagsSummary(cards = cards)
+                    tagsSummary = sampleTagsSummary(cards = cards),
+                    settings = makeDefaultWorkspaceSchedulerSettings(
+                        workspaceId = "workspace-demo",
+                        updatedAtMillis = 100L
+                    ),
+                    reviewedAtMillis = 1_000L
                 )
             )
         }
@@ -276,8 +282,17 @@ class ReviewViewModelTest {
                     backText = "Back $index",
                     tags = if (index % 2 == 0) listOf("ui") else listOf("basics"),
                     effortLevel = EffortLevel.FAST,
+                    dueAtMillis = null,
                     createdAtMillis = index.toLong(),
-                    updatedAtMillis = index.toLong()
+                    updatedAtMillis = index.toLong(),
+                    reps = 0,
+                    lapses = 0,
+                    fsrsCardState = com.flashcardsopensourceapp.data.local.model.FsrsCardState.NEW,
+                    fsrsStepIndex = null,
+                    fsrsStability = null,
+                    fsrsDifficulty = null,
+                    fsrsLastReviewedAtMillis = null,
+                    fsrsScheduledDays = null
                 )
             }
         }
@@ -345,6 +360,7 @@ class ReviewViewModelTest {
                 decks = sampleDecks(),
                 cards = cards,
                 tagsSummary = sampleTagsSummary(cards = cards),
+                reviewedAtMillis = 1_000L,
                 offset = offset,
                 limit = limit
             )

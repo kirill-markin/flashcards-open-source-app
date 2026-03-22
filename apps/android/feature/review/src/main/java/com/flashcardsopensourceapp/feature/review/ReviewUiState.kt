@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
@@ -15,6 +16,7 @@ data class ReviewUiState(
     val isAnswerVisible: Boolean,
     val cards: List<ReviewCard>,
     val currentCard: ReviewCard?,
+    val answerOptions: List<ReviewAnswerOption>,
     val availableDeckFilters: List<ReviewDeckFilterOption>,
     val availableTagFilters: List<ReviewTagFilterOption>,
     val isPreviewLoading: Boolean,

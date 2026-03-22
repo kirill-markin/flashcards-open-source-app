@@ -54,6 +54,9 @@ class AppDatabaseTest {
         assertEquals(1, database.workspaceDao().countWorkspaces())
         assertEquals(1, database.outboxDao().countOutboxEntries())
         assertNotNull(database.syncStateDao().loadSyncState(workspaceId = "workspace-demo"))
+        assertNotNull(
+            database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(workspaceId = "workspace-demo")
+        )
     }
 
     @Test
@@ -97,6 +100,8 @@ class AppDatabaseTest {
         assertTrue(tagsSummary.tags.any { tag -> tag.tag == "ui" && tag.cardsCount >= 3 })
         assertEquals(11, overview?.totalCards)
         assertEquals(4, overview?.deckCount)
+        assertEquals(11, overview?.dueCount)
+        assertEquals(11, overview?.newCount)
     }
 
     @Test
@@ -122,6 +127,9 @@ class AppDatabaseTest {
         assertEquals(9, pendingSnapshot.remainingCount)
         assertEquals(10, pendingSnapshot.totalCount)
         assertEquals(3, tagSnapshot.totalCount)
+        assertEquals("in 10 minutes", tagSnapshot.answerOptions.first { option ->
+            option.rating == com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD
+        }.intervalDescription)
     }
 
     @Test
