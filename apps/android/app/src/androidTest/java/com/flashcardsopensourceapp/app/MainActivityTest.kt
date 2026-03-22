@@ -100,6 +100,26 @@ class MainActivityTest {
         composeRule.onNodeWithText("ui").fetchSemanticsNode()
     }
 
+    @Test
+    fun reviewFilterPreviewAndRatingFlowWorks() {
+        waitForSeededCards()
+
+        composeRule.onNodeWithText("Review").performClick()
+        composeRule.onNodeWithContentDescription("Choose review filter").performClick()
+        composeRule.onNodeWithText("Android UI (3)").performClick()
+        composeRule.onNodeWithText("What is Compose used for?").fetchSemanticsNode()
+        composeRule.onNodeWithText("3 / 3").performClick()
+        composeRule.onNodeWithText("Review queue").fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription("Back").performClick()
+
+        composeRule.onNodeWithText("Show answer").performClick()
+        composeRule.onNodeWithText("Good").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000L) {
+            composeRule.onAllNodesWithText("What is Compose used for?").fetchSemanticsNodes().isEmpty()
+        }
+        composeRule.onNodeWithText("What is WorkManager for?").fetchSemanticsNode()
+    }
+
     private fun waitForSeededCards() {
         composeRule.onNodeWithText("Cards").performClick()
         composeRule.waitUntil(timeoutMillis = 10_000L) {

@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -19,6 +20,7 @@ import com.flashcardsopensourceapp.feature.cards.CardEditorRoute
 import com.flashcardsopensourceapp.feature.cards.CardsRoute
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.cards.createCardsViewModelFactory
+import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.DeckDetailRoute
@@ -59,11 +61,37 @@ fun AppNavHost(
 
             ReviewRoute(
                 uiState = uiState,
+                onSelectFilter = reviewViewModel::selectFilter,
+                onOpenPreview = {
+                    navController.navigate(route = ReviewPreviewDestination.route)
+                },
                 onRevealAnswer = reviewViewModel::revealAnswer,
                 onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.AGAIN) },
                 onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.HARD) },
                 onRateGood = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD) },
-                onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.EASY) }
+                onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.EASY) },
+                onDismissErrorMessage = reviewViewModel::dismissErrorMessage
+            )
+        }
+
+        composable(route = ReviewPreviewDestination.route) {
+            val reviewBackStackEntry = remember(navController) {
+                navController.getBackStackEntry(ReviewDestination.route)
+            }
+            val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
+                viewModelStoreOwner = reviewBackStackEntry,
+                factory = createReviewViewModelFactory(reviewRepository = appGraph.reviewRepository)
+            )
+            val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+
+            ReviewPreviewRoute(
+                uiState = uiState,
+                onStartPreview = reviewViewModel::startPreview,
+                onLoadNextPreviewPageIfNeeded = reviewViewModel::loadNextPreviewPageIfNeeded,
+                onRetryPreview = reviewViewModel::retryPreview,
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
 

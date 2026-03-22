@@ -31,6 +31,8 @@ dependencies {
     implementation(libs.org.jetbrains.kotlinx.coroutines.android)
     ksp(libs.androidx.room.compiler)
 
+    testImplementation(libs.junit4)
+
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }
