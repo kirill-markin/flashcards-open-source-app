@@ -127,6 +127,26 @@ jobs:
           name: android-debug-apks
           path: /tmp/android-debug-apks
 
+      - name: Resolve debug APK paths
+        run: |
+          app_apk_path="$(find /tmp/android-debug-apks -type f -name 'app-debug.apk' | head -n 1)"
+          test_apk_path="$(find /tmp/android-debug-apks -type f -name 'app-debug-androidTest.apk' | head -n 1)"
+
+          if [[ -z "${app_apk_path}" ]]; then
+            echo "App APK not found in downloaded artifact." >&2
+            find /tmp/android-debug-apks -maxdepth 5 -type f >&2
+            exit 1
+          fi
+
+          if [[ -z "${test_apk_path}" ]]; then
+            echo "Android test APK not found in downloaded artifact." >&2
+            find /tmp/android-debug-apks -maxdepth 5 -type f >&2
+            exit 1
+          fi
+
+          printf 'APP_APK_PATH=%s\n' "${app_apk_path}" >> "${GITHUB_ENV}"
+          printf 'TEST_APK_PATH=%s\n' "${test_apk_path}" >> "${GITHUB_ENV}"
+
       - name: Run instrumentation tests in Firebase Test Lab
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
@@ -139,7 +159,7 @@ jobs:
             --project-id "${GCP_PROJECT_ID}" \
             --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
             --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
-            --app-path "/tmp/android-debug-apks/app-debug.apk" \
-            --test-path "/tmp/android-debug-apks/app-debug-androidTest.apk" \
+            --app-path "${APP_APK_PATH}" \
+            --test-path "${TEST_APK_PATH}" \
             --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
             --results-dir "${ANDROID_FTL_RESULTS_DIR}"
