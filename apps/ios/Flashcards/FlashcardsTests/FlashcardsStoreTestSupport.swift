@@ -83,6 +83,7 @@ enum FlashcardsStoreTestSupport {
         private(set) var runLinkedSyncCallCount: Int
         private(set) var runLinkedSyncSessions: [CloudLinkedSession]
         var fetchCloudAccountSnapshot: CloudAccountSnapshot?
+        var fetchCloudAccountError: Error?
         var createWorkspaceResult: CloudWorkspaceSummary?
         var renamedWorkspacesById: [String: CloudWorkspaceSummary]
         var workspaceDeletePreviewById: [String: CloudWorkspaceDeletePreview]
@@ -101,6 +102,7 @@ enum FlashcardsStoreTestSupport {
                 email: "user@example.com",
                 workspaces: []
             )
+            self.fetchCloudAccountError = nil
             self.createWorkspaceResult = nil
             self.renamedWorkspacesById = [:]
             self.workspaceDeletePreviewById = [:]
@@ -112,6 +114,9 @@ enum FlashcardsStoreTestSupport {
         }
 
         func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
+            if let fetchCloudAccountError {
+                throw fetchCloudAccountError
+            }
             guard let fetchCloudAccountSnapshot else {
                 throw LocalStoreError.validation("Unexpected fetchCloudAccount call in FlashcardsStoreTests")
             }

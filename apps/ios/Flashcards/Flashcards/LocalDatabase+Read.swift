@@ -216,4 +216,40 @@ extension LocalDatabase {
             filterDefinition: filterDefinition
         )
     }
+
+    func isSafeForAuthenticatedSilentRestore() throws -> Bool {
+        let bootstrapSnapshot = try self.loadBootstrapSnapshot()
+        let workspaces = try self.loadCachedWorkspaces()
+        guard workspaces.count == 1 else {
+            return false
+        }
+        guard bootstrapSnapshot.userSettings.userId == "local-user" else {
+            return false
+        }
+
+        let workspaceId = bootstrapSnapshot.workspace.workspaceId
+        let activeCardCount = try self.loadActiveCardCount(workspaceId: workspaceId)
+        guard activeCardCount == 0 else {
+            return false
+        }
+
+        let activeDeckCount = try self.loadActiveDecks(workspaceId: workspaceId).count
+        guard activeDeckCount == 0 else {
+            return false
+        }
+
+        let reviewEventCount = try self.core.scalarInt(
+            sql: "SELECT COUNT(*) FROM review_events WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+        guard reviewEventCount == 0 else {
+            return false
+        }
+
+        let outboxEntryCount = try self.core.scalarInt(
+            sql: "SELECT COUNT(*) FROM outbox WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+        return outboxEntryCount == 0
+    }
 }
