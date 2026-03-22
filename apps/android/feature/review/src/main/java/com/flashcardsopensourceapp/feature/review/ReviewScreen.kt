@@ -57,6 +57,8 @@ fun ReviewRoute(
     uiState: ReviewUiState,
     onSelectFilter: (ReviewFilter) -> Unit,
     onOpenPreview: () -> Unit,
+    onOpenCurrentCard: (String) -> Unit,
+    onOpenDeckManagement: () -> Unit,
     onRevealAnswer: () -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
@@ -123,6 +125,7 @@ fun ReviewRoute(
     ) { innerPadding ->
         ReviewContent(
             uiState = uiState,
+            onOpenCurrentCard = onOpenCurrentCard,
             onRevealAnswer = onRevealAnswer,
             onRateAgain = onRateAgain,
             onRateHard = onRateHard,
@@ -148,6 +151,10 @@ fun ReviewRoute(
             onSelectFilter = { nextFilter ->
                 onSelectFilter(nextFilter)
                 isFilterSheetVisible = false
+            },
+            onManageDecks = {
+                isFilterSheetVisible = false
+                onOpenDeckManagement()
             }
         )
     }
@@ -156,6 +163,7 @@ fun ReviewRoute(
 @Composable
 private fun ReviewContent(
     uiState: ReviewUiState,
+    onOpenCurrentCard: (String) -> Unit,
     onRevealAnswer: () -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
@@ -193,9 +201,13 @@ private fun ReviewContent(
                 uiState.currentCard != null -> {
                     ReviewCardContent(
                         currentCard = uiState.currentCard,
+                        preparedNextCard = uiState.preparedNextCard,
                         isAnswerVisible = uiState.isAnswerVisible,
                         answerOptions = uiState.answerOptions,
                         reviewedInSessionCount = uiState.reviewedInSessionCount,
+                        onOpenCurrentCard = {
+                            uiState.currentCardIdForEditing?.let(onOpenCurrentCard)
+                        },
                         onRevealAnswer = onRevealAnswer,
                         onRateAgain = onRateAgain,
                         onRateHard = onRateHard,
@@ -294,9 +306,11 @@ private fun EmptyReviewState(title: String, body: String) {
 @Composable
 private fun ReviewCardContent(
     currentCard: ReviewCard,
+    preparedNextCard: ReviewCard?,
     isAnswerVisible: Boolean,
     answerOptions: List<ReviewAnswerOption>,
     reviewedInSessionCount: Int,
+    onOpenCurrentCard: () -> Unit,
     onRevealAnswer: () -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
@@ -335,10 +349,23 @@ private fun ReviewCardContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (preparedNextCard != null && preparedNextCard.cardId != currentCard.cardId) {
+                Text(
+                    text = "Next card prepared: ${preparedNextCard.frontText}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 
     if (isAnswerVisible) {
+        OutlinedButton(
+            onClick = onOpenCurrentCard,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Edit card")
+        }
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -357,11 +384,22 @@ private fun ReviewCardContent(
             }
         }
     } else {
-        Button(
-            onClick = onRevealAnswer,
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Show answer")
+            OutlinedButton(
+                onClick = onOpenCurrentCard,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Edit card")
+            }
+            Button(
+                onClick = onRevealAnswer,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Show answer")
+            }
         }
     }
 }
@@ -393,7 +431,8 @@ private fun ReviewFilterSheet(
     availableDeckFilters: List<ReviewDeckFilterOption>,
     availableTagFilters: List<ReviewTagFilterOption>,
     onDismiss: () -> Unit,
-    onSelectFilter: (ReviewFilter) -> Unit
+    onSelectFilter: (ReviewFilter) -> Unit,
+    onManageDecks: () -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(
@@ -463,6 +502,19 @@ private fun ReviewFilterSheet(
                     )
                 }
             }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+            }
+
+            item {
+                TextButton(
+                    onClick = onManageDecks,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                ) {
+                    Text("Manage filtered decks")
+                }
+            }
         }
     }
 }
@@ -498,6 +550,7 @@ fun ReviewPreviewRoute(
     onStartPreview: () -> Unit,
     onLoadNextPreviewPageIfNeeded: (String) -> Unit,
     onRetryPreview: () -> Unit,
+    onOpenCard: (String) -> Unit,
     onBack: () -> Unit
 ) {
     LaunchedEffect(Unit) {
@@ -571,7 +624,8 @@ fun ReviewPreviewRoute(
                     PreviewCardRow(
                         card = card,
                         isCurrent = card.cardId == uiState.currentCard?.cardId,
-                        isAlreadyRated = index >= uiState.remainingCount
+                        isAlreadyRated = index >= uiState.remainingCount,
+                        onOpenCard = onOpenCard
                     )
 
                     LaunchedEffect(
@@ -625,7 +679,8 @@ private fun PreviewSectionSeparator() {
 private fun PreviewCardRow(
     card: ReviewCard,
     isCurrent: Boolean,
-    isAlreadyRated: Boolean
+    isAlreadyRated: Boolean,
+    onOpenCard: (String) -> Unit
 ) {
     val containerColor = when {
         isCurrent -> MaterialTheme.colorScheme.secondaryContainer
@@ -634,7 +689,11 @@ private fun PreviewCardRow(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                onOpenCard(card.cardId)
+            }
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),

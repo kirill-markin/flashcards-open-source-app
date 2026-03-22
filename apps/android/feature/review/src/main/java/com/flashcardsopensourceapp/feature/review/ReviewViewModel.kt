@@ -26,6 +26,7 @@ private data class ReviewDraftState(
     val revealedCardId: String?,
     val reviewedInSessionCount: Int,
     val pendingReviewedCardIds: Set<String>,
+    val preparedNextCard: ReviewCard?,
     val previewCards: List<ReviewCard>,
     val nextPreviewOffset: Int,
     val hasMorePreviewCards: Boolean,
@@ -44,6 +45,7 @@ class ReviewViewModel(
             revealedCardId = null,
             reviewedInSessionCount = 0,
             pendingReviewedCardIds = emptySet(),
+            preparedNextCard = null,
             previewCards = emptyList(),
             nextPreviewOffset = 0,
             hasMorePreviewCards = true,
@@ -64,7 +66,15 @@ class ReviewViewModel(
         reviewSession,
         draftState
     ) { sessionSnapshot, state ->
-        val currentCard = sessionSnapshot.cards.firstOrNull()
+        val sessionCurrentCard = sessionSnapshot.cards.firstOrNull()
+        val currentCard = if (
+            state.preparedNextCard != null
+            && sessionCurrentCard?.cardId != state.preparedNextCard.cardId
+        ) {
+            state.preparedNextCard
+        } else {
+            sessionCurrentCard
+        }
 
         ReviewUiState(
             isLoading = sessionSnapshot.isLoading,
@@ -76,6 +86,8 @@ class ReviewViewModel(
             isAnswerVisible = state.revealedCardId == currentCard?.cardId,
             cards = sessionSnapshot.cards,
             currentCard = currentCard,
+            currentCardIdForEditing = currentCard?.cardId,
+            preparedNextCard = state.preparedNextCard,
             answerOptions = sessionSnapshot.answerOptions,
             availableDeckFilters = sessionSnapshot.availableDeckFilters,
             availableTagFilters = sessionSnapshot.availableTagFilters,
@@ -98,6 +110,8 @@ class ReviewViewModel(
             isAnswerVisible = false,
             cards = emptyList(),
             currentCard = null,
+            currentCardIdForEditing = null,
+            preparedNextCard = null,
             answerOptions = emptyList(),
             availableDeckFilters = emptyList(),
             availableTagFilters = emptyList(),
@@ -114,6 +128,7 @@ class ReviewViewModel(
             state.copy(
                 requestedFilter = reviewFilter,
                 revealedCardId = null,
+                preparedNextCard = null,
                 previewCards = emptyList(),
                 nextPreviewOffset = 0,
                 hasMorePreviewCards = true,
@@ -189,11 +204,15 @@ class ReviewViewModel(
     fun rateCard(rating: ReviewRating) {
         val currentCard = uiState.value.currentCard ?: return
         val cardId = currentCard.cardId
+        val preparedNextCard = uiState.value.cards.firstOrNull { card ->
+            card.cardId != cardId
+        }
 
         draftState.update { state ->
             state.copy(
                 revealedCardId = null,
                 pendingReviewedCardIds = state.pendingReviewedCardIds + cardId,
+                preparedNextCard = preparedNextCard,
                 previewCards = emptyList(),
                 nextPreviewOffset = 0,
                 hasMorePreviewCards = true,
@@ -212,13 +231,15 @@ class ReviewViewModel(
                 )
                 draftState.update { state ->
                     state.copy(
-                        reviewedInSessionCount = state.reviewedInSessionCount + 1
+                        reviewedInSessionCount = state.reviewedInSessionCount + 1,
+                        preparedNextCard = null
                     )
                 }
             } catch (error: Throwable) {
                 draftState.update { state ->
                     state.copy(
                         pendingReviewedCardIds = state.pendingReviewedCardIds - cardId,
+                        preparedNextCard = null,
                         errorMessage = error.message ?: "Review could not be saved."
                     )
                 }
