@@ -33,8 +33,9 @@ data class DeckEntity(
     @PrimaryKey val deckId: String,
     val workspaceId: String,
     val name: String,
-    val position: Int,
-    val createdAtMillis: Long
+    val filterDefinitionJson: String,
+    val createdAtMillis: Long,
+    val updatedAtMillis: Long
 )
 
 @Entity(
@@ -45,20 +46,13 @@ data class DeckEntity(
             parentColumns = ["workspaceId"],
             childColumns = ["workspaceId"],
             onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = DeckEntity::class,
-            parentColumns = ["deckId"],
-            childColumns = ["deckId"],
-            onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("workspaceId"), Index("deckId")]
+    indices = [Index("workspaceId")]
 )
 data class CardEntity(
     @PrimaryKey val cardId: String,
     val workspaceId: String,
-    val deckId: String,
     val frontText: String,
     val backText: String,
     val effortLevel: EffortLevel,
@@ -163,11 +157,6 @@ data class SyncStateEntity(
 
 data class CardWithRelations(
     @Embedded val card: CardEntity,
-    @Relation(
-        parentColumn = "deckId",
-        entityColumn = "deckId"
-    )
-    val deck: DeckEntity,
     @Relation(
         parentColumn = "cardId",
         entityColumn = "tagId",

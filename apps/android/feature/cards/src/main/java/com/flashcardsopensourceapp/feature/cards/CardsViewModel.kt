@@ -6,33 +6,61 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.CardDraft
+import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
+import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
-import com.flashcardsopensourceapp.data.local.repository.DecksRepository
+import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CardsViewModel(
-    cardsRepository: CardsRepository
+    private val cardsRepository: CardsRepository,
+    workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow(value = "")
+    private val activeFilter = MutableStateFlow(
+        value = CardFilter(
+            tags = emptyList(),
+            effort = emptyList()
+        )
+    )
+
+    private val cardsFlow = combine(
+        searchQuery,
+        activeFilter
+    ) { query, filter ->
+        query to filter
+    }.flatMapLatest { (query, filter) ->
+        cardsRepository.observeCards(
+            searchQuery = query,
+            filter = filter
+        )
+    }
 
     val uiState: StateFlow<CardsUiState> = combine(
-        cardsRepository.observeCards(),
-        searchQuery
-    ) { cards, query ->
+        cardsFlow,
+        workspaceRepository.observeWorkspaceTagsSummary(),
+        searchQuery,
+        activeFilter
+    ) { cards, tagsSummary, query, filter ->
         CardsUiState(
             isLoading = false,
             searchQuery = query,
-            cards = filterCards(cards = cards, query = query)
+            activeFilter = filter,
+            availableTagSuggestions = tagsSummary.tags,
+            cards = cards
         )
     }.stateIn(
         scope = viewModelScope,
@@ -40,6 +68,8 @@ class CardsViewModel(
         initialValue = CardsUiState(
             isLoading = true,
             searchQuery = "",
+            activeFilter = CardFilter(tags = emptyList(), effort = emptyList()),
+            availableTagSuggestions = emptyList(),
             cards = emptyList()
         )
     )
@@ -47,11 +77,21 @@ class CardsViewModel(
     fun updateSearchQuery(query: String) {
         searchQuery.value = query
     }
+
+    fun applyFilter(filter: CardFilter) {
+        activeFilter.value = filter
+    }
+
+    fun clearFilter() {
+        activeFilter.value = CardFilter(
+            tags = emptyList(),
+            effort = emptyList()
+        )
+    }
 }
 
 class CardEditorViewModel(
     private val cardsRepository: CardsRepository,
-    decksRepository: DecksRepository,
     editingCardId: String?
 ) : ViewModel() {
     private val inputState = MutableStateFlow(
@@ -59,8 +99,6 @@ class CardEditorViewModel(
             isLoading = true,
             title = if (editingCardId == null) "New card" else "Edit card",
             isEditing = editingCardId != null,
-            availableDecks = emptyList(),
-            selectedDeckId = "",
             frontText = "",
             backText = "",
             tagsText = "",
@@ -79,20 +117,11 @@ class CardEditorViewModel(
         }
 
         uiState = combine(
-            decksRepository.observeDecks(),
             cardFlow,
             inputState
-        ) { decks, card, currentState ->
-            val selectedDeckId = resolveSelectedDeckId(
-                currentState = currentState,
-                decks = decks,
-                card = card
-            )
-
+        ) { card, currentState ->
             currentState.copy(
                 isLoading = false,
-                availableDecks = decks,
-                selectedDeckId = selectedDeckId,
                 frontText = if (currentState.frontText.isEmpty() && card != null) card.frontText else currentState.frontText,
                 backText = if (currentState.backText.isEmpty() && card != null) card.backText else currentState.backText,
                 tagsText = if (currentState.tagsText.isEmpty() && card != null) card.tags.joinToString(separator = ", ") else currentState.tagsText,
@@ -123,12 +152,6 @@ class CardEditorViewModel(
         }
     }
 
-    fun updateDeck(deckId: String) {
-        inputState.update { state ->
-            state.copy(selectedDeckId = deckId, errorMessage = "")
-        }
-    }
-
     fun updateEffortLevel(effortLevel: EffortLevel) {
         inputState.update { state ->
             state.copy(effortLevel = effortLevel, errorMessage = "")
@@ -140,12 +163,6 @@ class CardEditorViewModel(
         val trimmedFront = state.frontText.trim()
         val trimmedBack = state.backText.trim()
 
-        if (state.selectedDeckId.isEmpty()) {
-            inputState.update { currentState ->
-                currentState.copy(errorMessage = "Choose a deck before saving.")
-            }
-            return false
-        }
         if (trimmedFront.isEmpty()) {
             inputState.update { currentState ->
                 currentState.copy(errorMessage = "Front text is required.")
@@ -160,7 +177,6 @@ class CardEditorViewModel(
         }
 
         val cardDraft = CardDraft(
-            deckId = state.selectedDeckId,
             frontText = trimmedFront,
             backText = trimmedBack,
             tags = parseTags(tagsText = state.tagsText),
@@ -184,63 +200,37 @@ class CardEditorViewModel(
     }
 }
 
-fun createCardsViewModelFactory(cardsRepository: CardsRepository): ViewModelProvider.Factory {
+fun createCardsViewModelFactory(
+    cardsRepository: CardsRepository,
+    workspaceRepository: WorkspaceRepository
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            CardsViewModel(cardsRepository = cardsRepository)
+            CardsViewModel(
+                cardsRepository = cardsRepository,
+                workspaceRepository = workspaceRepository
+            )
         }
     }
 }
 
 fun createCardEditorViewModelFactory(
     cardsRepository: CardsRepository,
-    decksRepository: DecksRepository,
     editingCardId: String?
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             CardEditorViewModel(
                 cardsRepository = cardsRepository,
-                decksRepository = decksRepository,
                 editingCardId = editingCardId
             )
         }
     }
 }
 
-private fun filterCards(cards: List<CardSummary>, query: String): List<CardSummary> {
-    val normalizedQuery = query.trim().lowercase()
-
-    if (normalizedQuery.isEmpty()) {
-        return cards
-    }
-
-    return cards.filter { card ->
-        card.frontText.lowercase().contains(other = normalizedQuery)
-            || card.backText.lowercase().contains(other = normalizedQuery)
-            || card.deckName.lowercase().contains(other = normalizedQuery)
-            || card.tags.any { tag -> tag.lowercase().contains(other = normalizedQuery) }
-    }
-}
-
 private fun parseTags(tagsText: String): List<String> {
-    return tagsText.split(",").map { tag ->
-        tag.trim()
-    }.filter { tag ->
-        tag.isNotEmpty()
-    }.distinct()
-}
-
-private fun resolveSelectedDeckId(
-    currentState: CardEditorUiState,
-    decks: List<DeckSummary>,
-    card: CardSummary?
-): String {
-    if (currentState.selectedDeckId.isNotEmpty()) {
-        return currentState.selectedDeckId
-    }
-    if (card != null) {
-        return card.deckId
-    }
-    return decks.firstOrNull()?.deckId ?: ""
+    return normalizeTags(
+        values = tagsText.split(","),
+        referenceTags = emptyList()
+    )
 }

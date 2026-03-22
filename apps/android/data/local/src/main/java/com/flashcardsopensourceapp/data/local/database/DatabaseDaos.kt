@@ -25,11 +25,26 @@ interface WorkspaceDao {
 
 @Dao
 interface DeckDao {
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertDeck(deck: DeckEntity)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDecks(decks: List<DeckEntity>)
 
-    @Query("SELECT * FROM decks ORDER BY position ASC, name ASC")
+    @Update
+    suspend fun updateDeck(deck: DeckEntity)
+
+    @Query("DELETE FROM decks WHERE deckId = :deckId")
+    suspend fun deleteDeck(deckId: String)
+
+    @Query("SELECT * FROM decks ORDER BY createdAtMillis DESC, deckId DESC")
     fun observeDecks(): Flow<List<DeckEntity>>
+
+    @Query("SELECT * FROM decks WHERE deckId = :deckId LIMIT 1")
+    fun observeDeck(deckId: String): Flow<DeckEntity?>
+
+    @Query("SELECT * FROM decks WHERE deckId = :deckId LIMIT 1")
+    suspend fun loadDeck(deckId: String): DeckEntity?
 
     @Query("SELECT COUNT(*) FROM decks")
     fun observeDeckCount(): Flow<Int>
@@ -82,6 +97,12 @@ interface TagDao {
     @Query("SELECT * FROM tags WHERE workspaceId = :workspaceId AND name IN (:names)")
     suspend fun loadTagsByNames(workspaceId: String, names: List<String>): List<TagEntity>
 
+    @Query("SELECT * FROM tags WHERE workspaceId = :workspaceId")
+    suspend fun loadTagsForWorkspace(workspaceId: String): List<TagEntity>
+
+    @Query("DELETE FROM tags WHERE workspaceId = :workspaceId AND tagId NOT IN (SELECT DISTINCT tagId FROM card_tags)")
+    suspend fun deleteUnusedTags(workspaceId: String)
+
     @Query("SELECT COUNT(*) FROM tags")
     suspend fun countTags(): Int
 }
@@ -90,6 +111,9 @@ interface TagDao {
 interface ReviewLogDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertReviewLog(reviewLog: ReviewLogEntity)
+
+    @Query("SELECT * FROM review_logs")
+    fun observeReviewLogs(): Flow<List<ReviewLogEntity>>
 
     @Query("SELECT COUNT(*) FROM review_logs")
     suspend fun countReviewLogs(): Int

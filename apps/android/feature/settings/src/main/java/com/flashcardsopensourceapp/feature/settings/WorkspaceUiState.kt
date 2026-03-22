@@ -1,0 +1,50 @@
+package com.flashcardsopensourceapp.feature.settings
+
+import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.DeckSummary
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
+
+data class WorkspaceSettingsUiState(
+    val workspaceName: String,
+    val deckCount: Int,
+    val totalCards: Int,
+    val tagCount: Int
+)
+
+data class WorkspaceOverviewUiState(
+    val workspaceName: String,
+    val totalCards: Int,
+    val deckCount: Int,
+    val tagCount: Int,
+    val dueCount: Int,
+    val newCount: Int,
+    val reviewedCount: Int
+)
+
+data class DecksUiState(
+    val searchQuery: String,
+    val decks: List<DeckSummary>
+)
+
+data class DeckDetailUiState(
+    val deck: DeckSummary?,
+    val cards: List<com.flashcardsopensourceapp.data.local.model.CardSummary>
+)
+
+data class DeckEditorUiState(
+    val isLoading: Boolean,
+    val title: String,
+    val isEditing: Boolean,
+    val name: String,
+    val selectedEffortLevels: List<EffortLevel>,
+    val selectedTags: List<String>,
+    val availableTags: List<WorkspaceTagSummary>,
+    val errorMessage: String
+)
+
+data class WorkspaceTagsUiState(
+    val searchQuery: String,
+    val tags: List<WorkspaceTagSummary>,
+    val totalCards: Int
+)

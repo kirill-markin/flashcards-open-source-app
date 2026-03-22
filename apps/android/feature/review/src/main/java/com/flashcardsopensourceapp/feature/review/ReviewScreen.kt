@@ -38,7 +38,7 @@ fun ReviewRoute(
         item {
             DraftNoticeCard(
                 title = "Android draft review flow",
-                body = "This screen is already wired to local Room data, but scheduling and queue behavior still use a simplified draft flow.",
+                body = "This screen stays intentionally simple in this wave: cards are now deck-independent, while scheduling and queue behavior still use a simplified draft flow.",
                 modifier = Modifier
             )
         }
@@ -97,7 +97,7 @@ private fun ReviewCardContent(
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
-                text = currentCard.deckName,
+                text = "Effort: ${currentCard.effortLevel.name.lowercase().replaceFirstChar { character -> character.uppercase() }}",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )

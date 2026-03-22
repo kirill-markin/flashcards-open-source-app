@@ -32,7 +32,7 @@ fun SettingsRoute(
         item {
             DraftNoticeCard(
                 title = "Android draft settings",
-                body = "This screen already reflects local Room metadata. Account, export, advanced server settings, and destructive flows are still pending porting.",
+                body = "Workspace management is now wired to aligned local data. Account, device permissions, export, and advanced server flows are still pending porting.",
                 modifier = Modifier
             )
         }

@@ -17,7 +17,7 @@ import androidx.room.TypeConverters
         OutboxEntryEntity::class,
         SyncStateEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -36,5 +36,5 @@ fun buildAppDatabase(context: Context): AppDatabase {
         context = context,
         klass = AppDatabase::class.java,
         name = "flashcards-android-draft.db"
-    ).build()
+    ).fallbackToDestructiveMigration(dropAllTables = true).build()
 }

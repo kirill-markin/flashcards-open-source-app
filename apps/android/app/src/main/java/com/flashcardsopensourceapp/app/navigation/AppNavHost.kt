@@ -21,9 +21,21 @@ import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactor
 import com.flashcardsopensourceapp.feature.cards.createCardsViewModelFactory
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.DeckDetailRoute
+import com.flashcardsopensourceapp.feature.settings.DeckEditorRoute
+import com.flashcardsopensourceapp.feature.settings.DecksRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsPlaceholderRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
+import com.flashcardsopensourceapp.feature.settings.WorkspaceOverviewRoute
+import com.flashcardsopensourceapp.feature.settings.WorkspaceSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.WorkspaceTagsRoute
+import com.flashcardsopensourceapp.feature.settings.createDeckDetailViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createDeckEditorViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createDecksViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createWorkspaceOverviewViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createWorkspaceSettingsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createWorkspaceTagsViewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,13 +69,18 @@ fun AppNavHost(
 
         composable(route = CardsDestination.route) {
             val cardsViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardsViewModel>(
-                factory = createCardsViewModelFactory(cardsRepository = appGraph.cardsRepository)
+                factory = createCardsViewModelFactory(
+                    cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository
+                )
             )
             val uiState by cardsViewModel.uiState.collectAsStateWithLifecycle()
 
             CardsRoute(
                 uiState = uiState,
                 onSearchQueryChange = cardsViewModel::updateSearchQuery,
+                onApplyFilter = cardsViewModel::applyFilter,
+                onClearFilter = cardsViewModel::clearFilter,
                 onCreateCard = {
                     navController.navigate(route = CardEditorDestination.createRoute(cardId = "new"))
                 },
@@ -91,7 +108,6 @@ fun AppNavHost(
             val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
                 factory = createCardEditorViewModelFactory(
                     cardsRepository = appGraph.cardsRepository,
-                    decksRepository = appGraph.decksRepository,
                     editingCardId = editingCardId
                 )
             )
@@ -102,7 +118,6 @@ fun AppNavHost(
                 onFrontTextChange = editorViewModel::updateFrontText,
                 onBackTextChange = editorViewModel::updateBackText,
                 onTagsTextChange = editorViewModel::updateTagsText,
-                onDeckChange = editorViewModel::updateDeck,
                 onEffortLevelChange = editorViewModel::updateEffortLevel,
                 onSave = {
                     coroutineScope.launch {
@@ -171,9 +186,148 @@ fun AppNavHost(
         }
 
         composable(route = SettingsWorkspaceDestination.route) {
-            SettingsPlaceholderRoute(
-                title = "Workspace",
-                body = "TODO: Port workspace management flows from apps/ios/Flashcards/Flashcards/WorkspaceSettingsView.swift."
+            val workspaceSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceSettingsViewModel>(
+                factory = createWorkspaceSettingsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+            )
+            val uiState by workspaceSettingsViewModel.uiState.collectAsStateWithLifecycle()
+
+            WorkspaceSettingsRoute(
+                uiState = uiState,
+                onOpenOverview = {
+                    navController.navigate(route = SettingsWorkspaceOverviewDestination.route)
+                },
+                onOpenDecks = {
+                    navController.navigate(route = SettingsWorkspaceDecksDestination.route)
+                },
+                onOpenTags = {
+                    navController.navigate(route = SettingsWorkspaceTagsDestination.route)
+                }
+            )
+        }
+
+        composable(route = SettingsWorkspaceOverviewDestination.route) {
+            val workspaceOverviewViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceOverviewViewModel>(
+                factory = createWorkspaceOverviewViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+            )
+            val uiState by workspaceOverviewViewModel.uiState.collectAsStateWithLifecycle()
+
+            WorkspaceOverviewRoute(uiState = uiState)
+        }
+
+        composable(route = SettingsWorkspaceDecksDestination.route) {
+            val decksViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DecksViewModel>(
+                factory = createDecksViewModelFactory(decksRepository = appGraph.decksRepository)
+            )
+            val uiState by decksViewModel.uiState.collectAsStateWithLifecycle()
+
+            DecksRoute(
+                uiState = uiState,
+                onSearchQueryChange = decksViewModel::updateSearchQuery,
+                onOpenDeck = { deckId ->
+                    navController.navigate(route = SettingsWorkspaceDeckDetailDestination.createRoute(deckId = deckId))
+                },
+                onCreateDeck = {
+                    navController.navigate(route = SettingsWorkspaceDeckEditorDestination.createRoute(deckId = "new"))
+                }
+            )
+        }
+
+        composable(
+            route = SettingsWorkspaceDeckDetailDestination.routePattern,
+            arguments = listOf(navArgument(name = SettingsWorkspaceDeckDetailDestination.routeArgument) {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val deckId = requireNotNull(backStackEntry.arguments?.getString(SettingsWorkspaceDeckDetailDestination.routeArgument)) {
+                "Deck detail route requires deckId."
+            }
+            val deckDetailViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DeckDetailViewModel>(
+                factory = createDeckDetailViewModelFactory(
+                    decksRepository = appGraph.decksRepository,
+                    deckId = deckId
+                )
+            )
+            val uiState by deckDetailViewModel.uiState.collectAsStateWithLifecycle()
+
+            DeckDetailRoute(
+                uiState = uiState,
+                onEditDeck = { editingDeckId ->
+                    navController.navigate(route = SettingsWorkspaceDeckEditorDestination.createRoute(deckId = editingDeckId))
+                },
+                onDeleteDeck = { deletingDeckId ->
+                    coroutineScope.launch {
+                        appGraph.decksRepository.deleteDeck(deckId = deletingDeckId)
+                        withContext(Dispatchers.Main.immediate) {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = SettingsWorkspaceDeckEditorDestination.routePattern,
+            arguments = listOf(navArgument(name = SettingsWorkspaceDeckEditorDestination.routeArgument) {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val editingArgument = requireNotNull(backStackEntry.arguments?.getString(SettingsWorkspaceDeckEditorDestination.routeArgument)) {
+                "Deck editor route requires deckId."
+            }
+            val editingDeckId = if (editingArgument == "new") null else editingArgument
+            val deckEditorViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DeckEditorViewModel>(
+                factory = createDeckEditorViewModelFactory(
+                    decksRepository = appGraph.decksRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
+                    editingDeckId = editingDeckId
+                )
+            )
+            val uiState by deckEditorViewModel.uiState.collectAsStateWithLifecycle()
+
+            DeckEditorRoute(
+                uiState = uiState,
+                onNameChange = deckEditorViewModel::updateName,
+                onToggleEffortLevel = deckEditorViewModel::toggleEffortLevel,
+                onToggleTag = deckEditorViewModel::toggleTag,
+                onSave = {
+                    coroutineScope.launch {
+                        val didSave = deckEditorViewModel.save(editingDeckId = editingDeckId)
+                        if (didSave) {
+                            withContext(Dispatchers.Main.immediate) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                },
+                onDelete = if (editingDeckId == null) {
+                    null
+                } else {
+                    {
+                        coroutineScope.launch {
+                            val didDelete = deckEditorViewModel.delete(editingDeckId = editingDeckId)
+                            if (didDelete) {
+                                withContext(Dispatchers.Main.immediate) {
+                                    navController.popBackStack(route = SettingsWorkspaceDecksDestination.route, inclusive = false)
+                                }
+                            }
+                        }
+                    }
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = SettingsWorkspaceTagsDestination.route) {
+            val workspaceTagsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceTagsViewModel>(
+                factory = createWorkspaceTagsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+            )
+            val uiState by workspaceTagsViewModel.uiState.collectAsStateWithLifecycle()
+
+            WorkspaceTagsRoute(
+                uiState = uiState,
+                onSearchQueryChange = workspaceTagsViewModel::updateSearchQuery
             )
         }
 
