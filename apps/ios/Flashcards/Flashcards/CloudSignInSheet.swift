@@ -562,6 +562,21 @@ private struct CloudOtpVerificationSheet: View {
             }
             .navigationTitle("Verify code")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: self.currentChallenge) { _, nextChallenge in
+                guard nextChallenge != nil, self.challengeState == .active else {
+                    return
+                }
+
+                self.scheduleCodeFieldFocus()
+            }
+            .onChange(of: self.challengeState) { _, nextChallengeState in
+                guard nextChallengeState == .active, self.currentChallenge != nil else {
+                    self.isCodeFieldFocused = false
+                    return
+                }
+
+                self.scheduleCodeFieldFocus()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Back") {
@@ -597,6 +612,12 @@ private struct CloudOtpVerificationSheet: View {
             return "This code was already used. Request a new code to continue."
         case .expired:
             return "This code expired. Request a new code to continue."
+        }
+    }
+
+    private func scheduleCodeFieldFocus() {
+        DispatchQueue.main.async {
+            self.isCodeFieldFocused = true
         }
     }
 
