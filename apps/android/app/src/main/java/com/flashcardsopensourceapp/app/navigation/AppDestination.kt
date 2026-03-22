@@ -19,6 +19,10 @@ data object ReviewDestination : TopLevelDestination {
     override val icon: ImageVector = Icons.Outlined.PlayCircle
 }
 
+data object ReviewPreviewDestination {
+    const val route: String = "review/preview"
+}
+
 data object CardsDestination : TopLevelDestination {
     override val route: String = "cards"
     override val label: String = "Cards"

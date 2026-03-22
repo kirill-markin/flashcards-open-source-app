@@ -66,12 +66,52 @@ enum class ReviewRating {
     EASY
 }
 
+sealed interface ReviewFilter {
+    data object AllCards : ReviewFilter
+
+    data class Deck(
+        val deckId: String
+    ) : ReviewFilter
+
+    data class Tag(
+        val tag: String
+    ) : ReviewFilter
+}
+
 data class ReviewCard(
     val cardId: String,
     val frontText: String,
     val backText: String,
     val tags: List<String>,
-    val effortLevel: EffortLevel
+    val effortLevel: EffortLevel,
+    val createdAtMillis: Long
+)
+
+data class ReviewDeckFilterOption(
+    val deckId: String,
+    val title: String,
+    val totalCount: Int
+)
+
+data class ReviewTagFilterOption(
+    val tag: String,
+    val totalCount: Int
+)
+
+data class ReviewSessionSnapshot(
+    val selectedFilter: ReviewFilter,
+    val selectedFilterTitle: String,
+    val cards: List<ReviewCard>,
+    val remainingCount: Int,
+    val totalCount: Int,
+    val availableDeckFilters: List<ReviewDeckFilterOption>,
+    val availableTagFilters: List<ReviewTagFilterOption>,
+    val isLoading: Boolean
+)
+
+data class ReviewTimelinePage(
+    val cards: List<ReviewCard>,
+    val hasMoreCards: Boolean
 )
 
 data class AppMetadataSummary(

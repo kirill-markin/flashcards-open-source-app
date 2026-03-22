@@ -6,8 +6,10 @@ import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
@@ -38,7 +40,18 @@ interface WorkspaceRepository {
 }
 
 interface ReviewRepository {
-    fun observeReviewCards(): Flow<List<ReviewCard>>
+    fun observeReviewSession(
+        selectedFilter: ReviewFilter,
+        pendingReviewedCardIds: Set<String>
+    ): Flow<ReviewSessionSnapshot>
+
+    suspend fun loadReviewTimelinePage(
+        selectedFilter: ReviewFilter,
+        pendingReviewedCardIds: Set<String>,
+        offset: Int,
+        limit: Int
+    ): ReviewTimelinePage
+
     suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long)
 }
 

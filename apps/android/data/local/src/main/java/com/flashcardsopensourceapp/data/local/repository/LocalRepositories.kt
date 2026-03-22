@@ -15,18 +15,23 @@ import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
+import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.matchesDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.queryCards
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
@@ -283,18 +288,66 @@ class LocalWorkspaceRepository(
 class LocalReviewRepository(
     private val database: AppDatabase
 ) : ReviewRepository {
-    override fun observeReviewCards(): Flow<List<ReviewCard>> {
-        return database.cardDao().observeReviewCards().map { cards ->
-            cards.map { card ->
-                ReviewCard(
-                    cardId = card.card.cardId,
-                    frontText = card.card.frontText,
-                    backText = card.card.backText,
-                    tags = card.tags.map { it.name },
-                    effortLevel = card.card.effortLevel
+    override fun observeReviewSession(
+        selectedFilter: ReviewFilter,
+        pendingReviewedCardIds: Set<String>
+    ): Flow<ReviewSessionSnapshot> {
+        return combine(
+            database.deckDao().observeDecks(),
+            database.cardDao().observeCardsWithRelations(),
+            database.reviewLogDao().observeReviewLogs()
+        ) { decks, cards, reviewLogs ->
+            val cardSummaries = cards.map(::toCardSummary)
+            val deckSummaries = decks.map { deck ->
+                toDeckSummary(
+                    deck = deck,
+                    cards = cardSummaries,
+                    reviewedCardIds = reviewLogs.map { reviewLog ->
+                        reviewLog.cardId
+                    }.toSet()
                 )
             }
+
+            buildReviewSessionSnapshot(
+                selectedFilter = selectedFilter,
+                pendingReviewedCardIds = pendingReviewedCardIds,
+                decks = deckSummaries,
+                cards = cardSummaries,
+                tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries)
+            )
         }
+    }
+
+    override suspend fun loadReviewTimelinePage(
+        selectedFilter: ReviewFilter,
+        pendingReviewedCardIds: Set<String>,
+        offset: Int,
+        limit: Int
+    ): ReviewTimelinePage {
+        val cards = database.cardDao().observeCardsWithRelations().first()
+        val decks = database.deckDao().observeDecks().first()
+        val reviewLogs = database.reviewLogDao().observeReviewLogs().first()
+        val cardSummaries = cards.map(::toCardSummary)
+        val reviewedCardIds = reviewLogs.map { reviewLog ->
+            reviewLog.cardId
+        }.toSet()
+        val deckSummaries = decks.map { deck ->
+            toDeckSummary(
+                deck = deck,
+                cards = cardSummaries,
+                reviewedCardIds = reviewedCardIds
+            )
+        }
+
+        return buildReviewTimelinePage(
+            selectedFilter = selectedFilter,
+            pendingReviewedCardIds = pendingReviewedCardIds,
+            decks = deckSummaries,
+            cards = cardSummaries,
+            tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries),
+            offset = offset,
+            limit = limit
+        )
     }
 
     override suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long) {
