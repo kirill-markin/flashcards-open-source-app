@@ -5,6 +5,8 @@ Read this file before making any Android change.
 ## Goal
 
 The Android app should match the iOS app in product scope, but it must feel fully native to Android.
+We align the functional contract across Android and iOS, but we do not synchronize the designs between them.
+On Android, the UI and interaction design should stay maximally native to Android and Material 3.
 
 We do not want an Android app that imitates iPhone UI. We want a modern Android app built with current Google-recommended patterns, official libraries, and minimal custom behavior.
 
@@ -106,6 +108,17 @@ Test only on the final supported Android target.
 - Run Android tests only against Android 16 / API 36
 - Do not spend time on test matrices for older API levels
 - Do not add compatibility code for older Android versions unless explicitly requested
+
+## CI/CD
+
+Android CI/CD is documented in [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md).
+
+The repository policy for Android CI/CD is:
+
+- GitHub Actions is the primary CI entrypoint
+- Firebase Test Lab is the cloud device test runner
+- `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
+- Google auth from GitHub must use Workload Identity Federation, not a JSON key
 
 ## Review Standard
 
