@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.espresso.Espresso.pressBack
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -118,6 +119,32 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = 10_000L) {
             composeRule.onAllNodesWithText("FSRS-6 0.85").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    @Test
+    fun settingsAccountDeviceAccessAndExportFlowsOpen() {
+        waitForSeededCards()
+
+        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.onNodeWithText("Account").performClick()
+        composeRule.onNodeWithText("Account status").performClick()
+        composeRule.onNodeWithText("Cloud status").fetchSemanticsNode()
+        pressBack()
+
+        composeRule.onNodeWithText("This device").performClick()
+        composeRule.onNodeWithText("Local sync diagnostics").fetchSemanticsNode()
+        pressBack()
+
+        composeRule.onNodeWithText("Access").performClick()
+        composeRule.onNodeWithText("Camera").fetchSemanticsNode()
+        composeRule.onNodeWithText("Camera").performClick()
+        composeRule.onNodeWithText("Usage").fetchSemanticsNode()
+        pressBack()
+        pressBack()
+
+        composeRule.onNodeWithText("Workspace").performClick()
+        composeRule.onNodeWithText("Export").performClick()
+        composeRule.onNodeWithText("Export CSV").fetchSemanticsNode()
     }
 
     @Test

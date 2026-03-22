@@ -1,0 +1,710 @@
+package com.flashcardsopensourceapp.feature.settings
+
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Handshake
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.MailOutline
+import androidx.compose.material.icons.outlined.PersonOutline
+import androidx.compose.material.icons.outlined.SaveAlt
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
+import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+
+@Composable
+fun AccountRoute(
+    workspaceName: String,
+    onOpenStatus: () -> Unit,
+    onOpenLegalSupport: () -> Unit,
+    onOpenOpenSource: () -> Unit
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            DraftNoticeCard(
+                title = "Android local-first account",
+                body = "This account area stays intentionally honest in the Android draft. Workspace data is local-first, while cloud account flows arrive in a later wave.",
+                modifier = Modifier
+            )
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Account status")
+                    },
+                    supportingContent = {
+                        Text("Workspace: $workspaceName")
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.PersonOutline,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenStatus)
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Legal & support")
+                    },
+                    supportingContent = {
+                        Text("Privacy, terms, support, and contact")
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.Handshake,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenLegalSupport)
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Open source")
+                    },
+                    supportingContent = {
+                        Text("GitHub repository and self-hosting direction")
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.Code,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenOpenSource)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AccountStatusRoute(uiState: AccountStatusUiState) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Cloud status")
+                    },
+                    supportingContent = {
+                        Text(uiState.cloudStatusTitle)
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.LockOpen,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Workspace")
+                    },
+                    supportingContent = {
+                        Text(uiState.workspaceName)
+                    }
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Sync")
+                    },
+                    supportingContent = {
+                        Text(uiState.syncStatusText)
+                    }
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Cloud login, sync-now, custom servers, agent connections, and destructive account actions are intentionally out of scope for this Android wave.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AccountLegalSupportRoute() {
+    val context = LocalContext.current
+    val privacyUrl = stringResource(id = R.string.flashcards_privacy_policy_url)
+    val termsUrl = stringResource(id = R.string.flashcards_terms_of_service_url)
+    val supportUrl = stringResource(id = R.string.flashcards_support_url)
+    val supportEmail = stringResource(id = R.string.flashcards_support_email_address)
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                SettingsLinkItem(
+                    title = "Privacy policy",
+                    summary = "Open hosted privacy details",
+                    icon = Icons.Outlined.Description,
+                    onClick = {
+                        openExternalUrl(context = context, url = privacyUrl)
+                    }
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                SettingsLinkItem(
+                    title = "Terms of service",
+                    summary = "Open hosted terms",
+                    icon = Icons.Outlined.Description,
+                    onClick = {
+                        openExternalUrl(context = context, url = termsUrl)
+                    }
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                SettingsLinkItem(
+                    title = "Support",
+                    summary = "Open hosted support page",
+                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                    onClick = {
+                        openExternalUrl(context = context, url = supportUrl)
+                    }
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                SettingsLinkItem(
+                    title = "Support email",
+                    summary = supportEmail,
+                    icon = Icons.Outlined.MailOutline,
+                    onClick = {
+                        sendSupportEmail(context = context, emailAddress = supportEmail)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AccountOpenSourceRoute() {
+    val context = LocalContext.current
+    val repositoryUrl = stringResource(id = R.string.flashcards_repository_url)
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "The Android client stays aligned with the same open-source flashcards product and keeps room for self-hosting later, without copying the iOS visual language.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp)
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                SettingsLinkItem(
+                    title = "GitHub repository",
+                    summary = "Open MIT-licensed source repository",
+                    icon = Icons.Outlined.Code,
+                    onClick = {
+                        openExternalUrl(context = context, url = repositoryUrl)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DeviceDiagnosticsRoute(uiState: DeviceDiagnosticsUiState) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "This Android device screen stays diagnostic-first: local workspace details, build info, and sync plumbing status without pretending cloud sync already exists.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp)
+                )
+            }
+        }
+
+        item {
+            DeviceInfoCard(
+                title = "Workspace",
+                rows = listOf(
+                    "Name" to uiState.workspaceName,
+                    "Workspace ID" to uiState.workspaceId
+                )
+            )
+        }
+
+        item {
+            DeviceInfoCard(
+                title = "App",
+                rows = listOf(
+                    "Version" to uiState.appVersion,
+                    "Build" to uiState.buildNumber,
+                    "Client" to uiState.clientLabel,
+                    "Storage" to uiState.storageLabel
+                )
+            )
+        }
+
+        item {
+            DeviceInfoCard(
+                title = "Device",
+                rows = listOf(
+                    "Operating system" to uiState.operatingSystem,
+                    "Model" to uiState.deviceModel
+                )
+            )
+        }
+
+        item {
+            DeviceInfoCard(
+                title = "Local sync diagnostics",
+                rows = listOf(
+                    "Outbox entries" to uiState.outboxEntriesCount.toString(),
+                    "Last sync cursor" to uiState.lastSyncCursor,
+                    "Last sync attempt" to uiState.lastSyncAttempt
+                )
+            )
+        }
+    }
+}
+
+@Composable
+fun AccessRoute(onOpenCapability: (AccessCapability) -> Unit) {
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val capabilityStates = AccessCapability.entries.map { capability ->
+        val status = if (activity == null) {
+            AccessStatus.UNAVAILABLE
+        } else {
+            resolveAccessStatus(
+                activity = activity,
+                capability = capability,
+                hasRequestedPermission = hasRequestedAccessPermission(context = context, capability = capability)
+            )
+        }
+        AccessCapabilityUiState(
+            capability = capability,
+            title = accessCapabilityTitle(capability = capability),
+            summary = accessCapabilitySummary(capability = capability),
+            status = status,
+            guidance = accessCapabilityGuidance(capability = capability, status = status),
+            primaryActionLabel = accessCapabilityPrimaryActionLabel(status = status)
+        )
+    }
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Android access follows native platform behavior: runtime permissions for camera and microphone, system pickers for photos and files.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp)
+                )
+            }
+        }
+
+        items(capabilityStates, key = { item -> item.capability.name }) { item ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text(item.title)
+                    },
+                    supportingContent = {
+                        Text(item.status.name.lowercase().replaceFirstChar(Char::uppercase))
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        onOpenCapability(item.capability)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AccessDetailRoute(
+    capability: AccessCapability,
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val permission = accessCapabilityPermission(capability = capability)
+    var permissionResultVersion by remember(capability) {
+        mutableStateOf(value = 0)
+    }
+    val status = if (activity == null) {
+        AccessStatus.UNAVAILABLE
+    } else {
+        permissionResultVersion
+        resolveAccessStatus(
+            activity = activity,
+            capability = capability,
+            hasRequestedPermission = hasRequestedAccessPermission(context = context, capability = capability)
+        )
+    }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) {
+        permissionResultVersion += 1
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(accessCapabilityTitle(capability = capability))
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                top = innerPadding.calculateTopPadding() + 16.dp,
+                end = 16.dp,
+                bottom = innerPadding.calculateBottomPadding() + 24.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                DeviceInfoCard(
+                    title = accessCapabilityTitle(capability = capability),
+                    rows = listOf(
+                        "Status" to status.name.lowercase().replaceFirstChar(Char::uppercase),
+                        "Usage" to accessCapabilitySummary(capability = capability)
+                    )
+                )
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = accessCapabilityGuidance(capability = capability, status = status),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+
+            val primaryActionLabel = accessCapabilityPrimaryActionLabel(status = status)
+            if (primaryActionLabel != null) {
+                item {
+                    Button(
+                        onClick = {
+                            when (status) {
+                                AccessStatus.ASK_EVERY_TIME -> {
+                                    requireNotNull(permission) {
+                                        "Android permission is required for this capability."
+                                    }
+                                    markAccessPermissionRequested(context = context, capability = capability)
+                                    launcher.launch(permission)
+                                }
+                                AccessStatus.ALLOWED,
+                                AccessStatus.BLOCKED -> {
+                                    openApplicationSettings(context = context)
+                                }
+                                AccessStatus.SYSTEM_PICKER,
+                                AccessStatus.UNAVAILABLE -> Unit
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(primaryActionLabel)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WorkspaceExportRoute(
+    viewModel: WorkspaceExportViewModel
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var pendingExportData by remember {
+        mutableStateOf<WorkspaceExportData?>(value = null)
+    }
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        val exportData = pendingExportData
+        if (uri == null || exportData == null) {
+            viewModel.finishExport()
+            pendingExportData = null
+            return@rememberLauncherForActivityResult
+        }
+
+        coroutineScope.launch {
+            try {
+                writeWorkspaceExportCsv(
+                    contentResolver = context.contentResolver,
+                    uri = uri,
+                    csv = makeWorkspaceCardsCsv(exportData = exportData)
+                )
+                viewModel.finishExport()
+            } catch (error: IllegalArgumentException) {
+                viewModel.showExportError(message = error.message ?: "Android export failed.")
+            } catch (error: IllegalStateException) {
+                viewModel.showExportError(message = error.message ?: "Android export failed.")
+            }
+            pendingExportData = null
+        }
+    }
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("CSV export")
+                    },
+                    supportingContent = {
+                        Text("${uiState.activeCardsCount} active cards from ${uiState.workspaceName}")
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.SaveAlt,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+        }
+
+        if (uiState.errorMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Android export uses the system document picker so you can choose the save location yourself. The file includes front text, back text, and tags for the current workspace.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp)
+                )
+            }
+        }
+
+        item {
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        viewModel.clearErrorMessage()
+                        val exportData = viewModel.prepareExportData()
+                        if (exportData == null) {
+                            return@launch
+                        }
+
+                        pendingExportData = exportData
+                        createDocumentLauncher.launch(
+                            makeWorkspaceExportFilename(
+                                workspaceName = exportData.workspaceName,
+                                date = LocalDate.now()
+                            )
+                        )
+                    }
+                },
+                enabled = uiState.isExporting.not(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (uiState.isExporting) "Preparing export..." else "Export CSV")
+            }
+        }
+
+        item {
+            OutlinedButton(
+                onClick = {
+                    viewModel.clearErrorMessage()
+                },
+                enabled = uiState.errorMessage.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Dismiss error")
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsLinkItem(
+    title: String,
+    summary: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = {
+            Text(title)
+        },
+        supportingContent = {
+            Text(summary)
+        },
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null
+            )
+        },
+        trailingContent = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                contentDescription = null
+            )
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+@Composable
+private fun DeviceInfoCard(title: String, rows: List<Pair<String, String>>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            rows.forEach { row ->
+                Text(
+                    text = row.first,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = row.second,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+    }
+}

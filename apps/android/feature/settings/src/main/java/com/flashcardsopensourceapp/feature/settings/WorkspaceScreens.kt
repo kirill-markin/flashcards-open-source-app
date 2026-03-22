@@ -53,7 +53,8 @@ fun WorkspaceSettingsRoute(
     onOpenOverview: () -> Unit,
     onOpenDecks: () -> Unit,
     onOpenTags: () -> Unit,
-    onOpenScheduler: () -> Unit
+    onOpenScheduler: () -> Unit,
+    onOpenExport: () -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -120,6 +121,20 @@ fun WorkspaceSettingsRoute(
                         Text(uiState.schedulerSummary)
                     },
                     modifier = Modifier.clickable(onClick = onOpenScheduler)
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Export")
+                    },
+                    supportingContent = {
+                        Text(uiState.exportSummary)
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenExport)
                 )
             }
         }

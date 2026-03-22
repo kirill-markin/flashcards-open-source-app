@@ -167,6 +167,14 @@ data class AppMetadataSummary(
     val syncStatusText: String
 )
 
+data class DeviceDiagnosticsSummary(
+    val workspaceId: String,
+    val workspaceName: String,
+    val outboxEntriesCount: Int,
+    val lastSyncCursor: String?,
+    val lastSyncAttemptAtMillis: Long?
+)
+
 data class WorkspaceTagSummary(
     val tag: String,
     val cardsCount: Int
@@ -186,4 +194,16 @@ data class WorkspaceOverviewSummary(
     val dueCount: Int,
     val newCount: Int,
     val reviewedCount: Int
+)
+
+data class WorkspaceExportCard(
+    val frontText: String,
+    val backText: String,
+    val tags: List<String>
+)
+
+data class WorkspaceExportData(
+    val workspaceId: String,
+    val workspaceName: String,
+    val cards: List<WorkspaceExportCard>
 )

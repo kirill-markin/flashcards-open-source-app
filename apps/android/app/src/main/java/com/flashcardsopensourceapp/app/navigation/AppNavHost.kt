@@ -1,34 +1,47 @@
 package com.flashcardsopensourceapp.app.navigation
 
+import android.content.Context
+import android.content.pm.PackageManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
-import androidx.navigation.NavType
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.createAiViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.AccessCapability
+import com.flashcardsopensourceapp.feature.settings.AccessDetailRoute
+import com.flashcardsopensourceapp.feature.settings.AccessRoute
+import com.flashcardsopensourceapp.feature.settings.AccountLegalSupportRoute
+import com.flashcardsopensourceapp.feature.settings.AccountOpenSourceRoute
+import com.flashcardsopensourceapp.feature.settings.AccountRoute
+import com.flashcardsopensourceapp.feature.settings.AccountStatusRoute
 import com.flashcardsopensourceapp.feature.cards.CardEditorRoute
 import com.flashcardsopensourceapp.feature.cards.CardsRoute
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.cards.createCardsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createAccountStatusViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createDeviceDiagnosticsViewModelFactory
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.DeckDetailRoute
 import com.flashcardsopensourceapp.feature.settings.DeckEditorRoute
 import com.flashcardsopensourceapp.feature.settings.DecksRoute
-import com.flashcardsopensourceapp.feature.settings.SettingsPlaceholderRoute
+import com.flashcardsopensourceapp.feature.settings.DeviceDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SchedulerSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.WorkspaceExportRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceOverviewRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceTagsRoute
@@ -38,6 +51,7 @@ import com.flashcardsopensourceapp.feature.settings.createDecksViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSchedulerSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceOverviewViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createWorkspaceExportViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceTagsViewModelFactory
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +63,11 @@ fun AppNavHost(
     appGraph: AppGraph,
     navController: NavHostController
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val packageInfo = remember(context) {
+        loadPackageInfo(context = context)
+    }
 
     NavHost(
         navController = navController,
@@ -234,6 +252,9 @@ fun AppNavHost(
                 },
                 onOpenScheduler = {
                     navController.navigate(route = SettingsWorkspaceSchedulerDestination.route)
+                },
+                onOpenExport = {
+                    navController.navigate(route = SettingsWorkspaceExportDestination.route)
                 }
             )
         }
@@ -396,24 +417,96 @@ fun AppNavHost(
             )
         }
 
-        composable(route = SettingsAccountDestination.route) {
-            SettingsPlaceholderRoute(
-                title = "Account",
-                body = "TODO: Port account, legal, advanced server, and danger-zone flows from apps/ios/Flashcards/Flashcards/AccountSettingsView.swift."
+        composable(route = SettingsWorkspaceExportDestination.route) {
+            val workspaceExportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceExportViewModel>(
+                factory = createWorkspaceExportViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
             )
+
+            WorkspaceExportRoute(viewModel = workspaceExportViewModel)
+        }
+
+        composable(route = SettingsAccountDestination.route) {
+            val settingsBackStackEntry = remember(navController) {
+                navController.getBackStackEntry(SettingsDestination.route)
+            }
+            val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
+                viewModelStoreOwner = settingsBackStackEntry,
+                factory = createSettingsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+            )
+            val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+
+            AccountRoute(
+                workspaceName = uiState.workspaceName,
+                onOpenStatus = {
+                    navController.navigate(route = SettingsAccountStatusDestination.route)
+                },
+                onOpenLegalSupport = {
+                    navController.navigate(route = SettingsAccountLegalSupportDestination.route)
+                },
+                onOpenOpenSource = {
+                    navController.navigate(route = SettingsAccountOpenSourceDestination.route)
+                }
+            )
+        }
+
+        composable(route = SettingsAccountStatusDestination.route) {
+            val accountStatusViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AccountStatusViewModel>(
+                factory = createAccountStatusViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+            )
+            val uiState by accountStatusViewModel.uiState.collectAsStateWithLifecycle()
+
+            AccountStatusRoute(uiState = uiState)
+        }
+
+        composable(route = SettingsAccountLegalSupportDestination.route) {
+            AccountLegalSupportRoute()
+        }
+
+        composable(route = SettingsAccountOpenSourceDestination.route) {
+            AccountOpenSourceRoute()
         }
 
         composable(route = SettingsDeviceDestination.route) {
-            SettingsPlaceholderRoute(
-                title = "This device",
-                body = "TODO: Port device details and local database diagnostics from apps/ios/Flashcards/Flashcards/ThisDeviceSettingsView.swift."
+            val deviceDiagnosticsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DeviceDiagnosticsViewModel>(
+                factory = createDeviceDiagnosticsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    appVersion = packageInfo.versionName,
+                    buildNumber = packageInfo.longVersionCode.toString()
+                )
             )
+            val uiState by deviceDiagnosticsViewModel.uiState.collectAsStateWithLifecycle()
+
+            DeviceDiagnosticsRoute(uiState = uiState)
         }
 
         composable(route = SettingsAccessDestination.route) {
-            SettingsPlaceholderRoute(
-                title = "Access",
-                body = "TODO: Port access and agent connection flows from apps/ios/Flashcards/Flashcards/AccessSettingsView.swift."
+            AccessRoute(
+                onOpenCapability = { capability ->
+                    navController.navigate(
+                        route = SettingsAccessDetailDestination.createRoute(capability = capability.name.lowercase())
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = SettingsAccessDetailDestination.routePattern,
+            arguments = listOf(navArgument(name = SettingsAccessDetailDestination.routeArgument) {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val capabilityArgument = requireNotNull(
+                backStackEntry.arguments?.getString(SettingsAccessDetailDestination.routeArgument)
+            ) {
+                "Access detail route requires capability."
+            }
+            val capability = AccessCapability.valueOf(capabilityArgument.uppercase())
+
+            AccessDetailRoute(
+                capability = capability,
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
     }
@@ -444,4 +537,21 @@ fun navigateToTopLevelDestination(
         launchSingleTop = true
         restoreState = true
     }
+}
+
+private data class AppPackageInfo(
+    val versionName: String,
+    val longVersionCode: Long
+)
+
+private fun loadPackageInfo(context: Context): AppPackageInfo {
+    val packageInfo = context.packageManager.getPackageInfo(
+        context.packageName,
+        PackageManager.PackageInfoFlags.of(0L)
+    )
+
+    return AppPackageInfo(
+        versionName = packageInfo.versionName ?: "Unavailable",
+        longVersionCode = packageInfo.longVersionCode
+    )
 }
