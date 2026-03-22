@@ -24,7 +24,9 @@ import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.SettingsPlaceholderRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AppNavHost(
@@ -106,7 +108,9 @@ fun AppNavHost(
                     coroutineScope.launch {
                         val didSave = editorViewModel.save(editingCardId = editingCardId)
                         if (didSave) {
-                            navController.popBackStack()
+                            withContext(Dispatchers.Main.immediate) {
+                                navController.popBackStack()
+                            }
                         }
                     }
                 },
@@ -117,7 +121,9 @@ fun AppNavHost(
                         coroutineScope.launch {
                             val didDelete = editorViewModel.delete(editingCardId = editingCardId)
                             if (didDelete) {
-                                navController.popBackStack()
+                                withContext(Dispatchers.Main.immediate) {
+                                    navController.popBackStack()
+                                }
                             }
                         }
                     }

@@ -30,8 +30,11 @@ Open-source offline-first flashcards app for iOS and web.
 ## Setup Docs
 
 - [iOS local setup](docs/ios-local-setup.md)
+- [Android CI/CD](docs/android-ci-cd.md)
 - [Backend and web deployment](docs/backend-web-deployment.md)
 - [More architecture details](docs/architecture.md)
+
+Android CI/CD setup uses separate GitHub repository variables for Google Cloud and Firebase Test Lab. The required variable names and the helper sync script are documented in [`docs/android-ci-cd.md`](docs/android-ci-cd.md).
 
 ## Review Demo Accounts
 

@@ -1,0 +1,46 @@
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _ANDROID_FTL_DEVICE_MODEL: ''
+  _ANDROID_FTL_DEVICE_VERSION: ''
+  _ANDROID_FTL_RESULTS_BUCKET: ''
+  _ANDROID_FTL_RESULTS_DIR: ''
+
+timeout: 3600s
+
+steps:
+  - id: Build Android CI image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag
+      - flashcards-android-ci:latest
+      - --file
+      - apps/android/ci/Dockerfile
+      - .
+
+  - id: Build debug app, test APK, and lint
+    name: flashcards-android-ci:latest
+    entrypoint: bash
+    args:
+      - -ceu
+      - /workspace/scripts/run-android-ci.sh
+
+  - id: Run Firebase Test Lab instrumentation tests
+    name: flashcards-android-ci:latest
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        test_lab_args=(
+          --project-id "${PROJECT_ID}"
+          --device-model "${_ANDROID_FTL_DEVICE_MODEL}"
+          --device-version "${_ANDROID_FTL_DEVICE_VERSION}"
+          --app-path "/workspace/apps/android/app/build/outputs/apk/debug/app-debug.apk"
+          --test-path "/workspace/apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          --results-bucket "${_ANDROID_FTL_RESULTS_BUCKET}"
+          --results-dir "${_ANDROID_FTL_RESULTS_DIR}"
+        )
+
+        /workspace/scripts/run-android-firebase-test-lab.sh "${test_lab_args[@]}"

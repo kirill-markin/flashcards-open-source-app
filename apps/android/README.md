@@ -113,6 +113,8 @@ Test only on the final supported Android target.
 
 Android CI/CD is documented in [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md).
 
+That document also lists the required GitHub repository variables for Google Cloud authentication and Firebase Test Lab, plus the helper sync command `bash scripts/setup-github-android.sh`.
+
 The repository policy for Android CI/CD is:
 
 - GitHub Actions is the primary CI entrypoint

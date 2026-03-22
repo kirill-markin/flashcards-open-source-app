@@ -96,6 +96,11 @@ This script:
 
 The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.
 
+This AWS sync does not manage the Android Google Cloud and Firebase Test Lab repository variables. Android CI/CD uses its own setup flow and helper script:
+
+- docs: [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md)
+- sync command: `bash scripts/setup-github-android.sh`
+
 ## Review/demo accounts
 
 `DEMO_EMAIL_DOSTIP` configures the insecure review/demo allowlist in the auth Lambda, and the deployed auth Lambda reads the shared password from the AWS secret `flashcards-open-source-app/demo-password-dostip`.

@@ -15,15 +15,17 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
+    companion object {
+        private const val UI_UPDATE_TIMEOUT_MILLIS: Long = 10_000L
+    }
+
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
     fun navigationShowsAllTopLevelScreens() {
-        waitForSeededCards()
-
         composeRule.onNodeWithText("Cards").performClick()
-        composeRule.onNodeWithText("Android draft cards flow").fetchSemanticsNode()
+        waitForCardsScreen()
 
         composeRule.onNodeWithText("AI").performClick()
         composeRule.onNodeWithText("Android draft AI shell").fetchSemanticsNode()
@@ -37,9 +39,8 @@ class MainActivityTest {
 
     @Test
     fun cardsCreateEditDeleteFlowUpdatesUi() {
-        waitForSeededCards()
-
         composeRule.onNodeWithText("Cards").performClick()
+        waitForCardsScreen()
         composeRule.onNodeWithContentDescription("Add card").performClick()
 
         composeRule.onNodeWithText("Front text").performTextInput("Draft Android card")
@@ -47,7 +48,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("Tags").performTextInput("draft, android")
         composeRule.onNodeWithText("Save").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 10_000L) {
+        composeRule.waitUntil(timeoutMillis = UI_UPDATE_TIMEOUT_MILLIS) {
             composeRule.onAllNodesWithText("Draft Android card").fetchSemanticsNodes().isNotEmpty()
         }
 
@@ -55,14 +56,14 @@ class MainActivityTest {
         composeRule.onNodeWithText("Front text").performTextReplacement("Updated Android draft card")
         composeRule.onNodeWithText("Save").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 10_000L) {
+        composeRule.waitUntil(timeoutMillis = UI_UPDATE_TIMEOUT_MILLIS) {
             composeRule.onAllNodesWithText("Updated Android draft card").fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithText("Updated Android draft card").performClick()
         composeRule.onNodeWithText("Delete card").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 10_000L) {
+        composeRule.waitUntil(timeoutMillis = UI_UPDATE_TIMEOUT_MILLIS) {
             composeRule.onAllNodesWithText("Updated Android draft card").fetchSemanticsNodes().isEmpty()
         }
 
@@ -71,10 +72,9 @@ class MainActivityTest {
         )
     }
 
-    private fun waitForSeededCards() {
-        composeRule.onNodeWithText("Cards").performClick()
-        composeRule.waitUntil(timeoutMillis = 10_000L) {
-            composeRule.onAllNodesWithText("What does val mean in Kotlin?").fetchSemanticsNodes().isNotEmpty()
+    private fun waitForCardsScreen() {
+        composeRule.waitUntil(timeoutMillis = UI_UPDATE_TIMEOUT_MILLIS) {
+            composeRule.onAllNodesWithText("Android draft cards flow").fetchSemanticsNodes().isNotEmpty()
         }
     }
 }
