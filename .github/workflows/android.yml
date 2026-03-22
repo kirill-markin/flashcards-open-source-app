@@ -1,0 +1,145 @@
+name: Android CI
+
+on:
+  pull_request:
+    paths:
+      - 'apps/android/**'
+      - 'docs/android-ci-cd.md'
+      - 'scripts/run-android-ci.sh'
+      - 'scripts/run-android-firebase-test-lab.sh'
+      - 'scripts/setup-github-android.sh'
+      - 'cloudbuild.android.yaml'
+      - '.github/workflows/android.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/android/**'
+      - 'docs/android-ci-cd.md'
+      - 'scripts/run-android-ci.sh'
+      - 'scripts/run-android-firebase-test-lab.sh'
+      - 'scripts/setup-github-android.sh'
+      - 'cloudbuild.android.yaml'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: android-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Android build and lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Android SDK packages
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+
+      - name: Build debug app, test APK, and lint
+        run: bash scripts/run-android-ci.sh
+
+      - name: Upload debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apks
+          if-no-files-found: error
+          path: |
+            apps/android/app/build/outputs/apk/debug/app-debug.apk
+            apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+
+      - name: Upload lint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-lint-report
+          if-no-files-found: error
+          path: apps/android/app/build/reports/lint-results-debug.html
+
+  firebase-test-lab:
+    name: Firebase Test Lab
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && vars.GCP_PROJECT_ID != '' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && vars.GCP_SERVICE_ACCOUNT_EMAIL != '' && vars.ANDROID_FTL_DEVICE_MODEL != '' && vars.ANDROID_FTL_DEVICE_VERSION != '' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Google Cloud configuration
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
+          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
+        run: |
+          missing_values=()
+
+          for variable_name in \
+            GCP_PROJECT_ID \
+            GCP_WORKLOAD_IDENTITY_PROVIDER \
+            GCP_SERVICE_ACCOUNT_EMAIL \
+            ANDROID_FTL_DEVICE_MODEL \
+            ANDROID_FTL_DEVICE_VERSION; do
+            if [[ -z "${!variable_name}" ]]; then
+              missing_values+=("${variable_name}")
+            fi
+          done
+
+          if [[ "${#missing_values[@]}" -gt 0 ]]; then
+            printf 'Missing required GitHub Actions variables: %s\n' "${missing_values[*]}" >&2
+            echo "Configure them with bash scripts/setup-github-android.sh or in the GitHub repository settings." >&2
+            exit 1
+          fi
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Download debug APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: android-debug-apks
+          path: /tmp/android-debug-apks
+
+      - name: Run instrumentation tests in Firebase Test Lab
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
+          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
+          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
+          ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
+        run: |
+          bash scripts/run-android-firebase-test-lab.sh \
+            --project-id "${GCP_PROJECT_ID}" \
+            --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
+            --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
+            --app-path "/tmp/android-debug-apks/app-debug.apk" \
+            --test-path "/tmp/android-debug-apks/app-debug-androidTest.apk" \
+            --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
+            --results-dir "${ANDROID_FTL_RESULTS_DIR}"
