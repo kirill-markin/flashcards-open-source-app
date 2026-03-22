@@ -7,6 +7,8 @@ Read this file before making any iOS change.
 The iOS app should feel fully native to Apple platforms. We prefer Apple system components, Apple interaction patterns, and Apple visual conventions over custom design systems or cross-platform visual alignment.
 
 The product should stay aligned with the shared flashcards domain, but the iOS UI should remain an iOS UI.
+We align the functional contract across iOS and Android, but we do not synchronize the designs between them.
+On iOS, the UI and interaction design should stay maximally native to iOS.
 
 ## Platform Baseline
 
