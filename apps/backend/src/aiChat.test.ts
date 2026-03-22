@@ -63,6 +63,23 @@ test("parseAIChatTurnRequestBody accepts assistant tool-call parts without conti
   assert.equal(parsed.messages[1]?.role, "assistant");
 });
 
+test("parseAIChatTurnRequestBody preserves android device platform", () => {
+  const parsed = parseAIChatTurnRequestBody({
+    messages: [{
+      role: "user",
+      content: [{ type: "text", text: "hi" }],
+    }],
+    model: "gpt-5.4",
+    timezone: "Europe/Madrid",
+    devicePlatform: "android",
+    chatSessionId: "chat-session-android-1",
+    codeInterpreterContainerId: null,
+    userContext: { totalCards: 2 },
+  });
+
+  assert.equal(parsed.devicePlatform, "android");
+});
+
 test("createAIChatErrorEvent keeps the machine-readable fields", () => {
   assert.deepEqual(
     createAIChatErrorEvent(
@@ -144,6 +161,16 @@ test("buildAIChatSystemInstructions prefers existing tags and requires approval 
     instructions,
     /You must create a new tag only when no existing workspace tag is appropriate, and you must ask the user to approve that new tag before proposing or executing it\./i,
   );
+});
+
+test("buildAIChatSystemInstructions mentions the native android app when requested", () => {
+  const instructions = buildAIChatSystemInstructions(
+    "Europe/Madrid",
+    "android",
+    { totalCards: 10 },
+  );
+
+  assert.match(instructions, /native Android app chat/i);
 });
 
 test("streamAIChatResponse rejects guest chat immediately when guest AI quota defaults to zero", async () => {

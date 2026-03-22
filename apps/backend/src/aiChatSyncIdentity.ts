@@ -26,7 +26,7 @@ function toUuidFromSeed(seed: string): string {
 export async function ensureAIChatSyncDevice(
   workspaceId: string,
   userId: string,
-  devicePlatform: "ios" | "web",
+  devicePlatform: "ios" | "android" | "web",
 ): Promise<string> {
   const deviceId = toUuidFromSeed(`ai-chat:${workspaceId}:${devicePlatform}:chat`);
   await ensureSyncDevice(workspaceId, userId, deviceId, devicePlatform, `ai-chat:${devicePlatform}:chat`);

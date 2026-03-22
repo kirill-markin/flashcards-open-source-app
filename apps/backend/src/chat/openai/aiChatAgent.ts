@@ -387,7 +387,7 @@ export type StreamAIChatTurnParams = Readonly<{
   messages: ReadonlyArray<AIChatWireMessage>;
   model: string;
   timezone: string;
-  devicePlatform: "ios" | "web";
+  devicePlatform: "ios" | "android" | "web";
   chatSessionId: string;
   codeInterpreterContainerId: string | null;
   userContext: AIChatUserContext;

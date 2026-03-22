@@ -90,9 +90,15 @@ function formatSchemaIssues(error: ZodError): string {
 }
 
 function platformPromptLabel(devicePlatform: AIChatDevicePlatform): string {
-  return devicePlatform === "web"
-    ? "The user is chatting with you in the web browser chat."
-    : "The user is chatting with you in the iOS app chat on iPhone.";
+  if (devicePlatform === "web") {
+    return "The user is chatting with you in the web browser chat.";
+  }
+
+  if (devicePlatform === "android") {
+    return "The user is chatting with you in the native Android app chat.";
+  }
+
+  return "The user is chatting with you in the iOS app chat on iPhone.";
 }
 
 function normalizeMediaType(mediaType: string): string {

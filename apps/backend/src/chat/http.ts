@@ -211,7 +211,7 @@ export function parseAIChatTurnRequestBody(value: unknown): AIChatTurnRequestBod
     messages: parseAIChatMessages(body.messages),
     model,
     timezone,
-    devicePlatform: devicePlatform === "web" ? "web" : "ios",
+    devicePlatform: devicePlatform === "web" || devicePlatform === "android" ? devicePlatform : "ios",
     chatSessionId,
     codeInterpreterContainerId,
     userContext: parseAIChatUserContext(body.userContext),
@@ -475,7 +475,7 @@ type PreparedAIChatTurnModule = Readonly<{
       messages: ReadonlyArray<AIChatWireMessage>;
       model: string;
       timezone: string;
-      devicePlatform: "ios" | "web";
+      devicePlatform: "ios" | "android" | "web";
       chatSessionId: string;
       codeInterpreterContainerId: string | null;
       userContext: AIChatUserContext;

@@ -13,11 +13,11 @@ export type AIChatToolExecutionContext = Readonly<{
   userId: string;
   workspaceId: string;
   selectedWorkspaceId: string | null;
-  devicePlatform: "ios" | "web";
+  devicePlatform: "ios" | "android" | "web";
 }>;
 
 function createAIChatAgentDependencies(
-  devicePlatform: "ios" | "web",
+  devicePlatform: "ios" | "android" | "web",
 ): AgentToolOperationDependencies {
   return {
     ...DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
