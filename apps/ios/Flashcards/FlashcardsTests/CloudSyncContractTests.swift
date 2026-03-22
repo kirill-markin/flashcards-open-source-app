@@ -336,7 +336,7 @@ final class CloudSyncContractTests: XCTestCase, @unchecked Sendable {
                 let bodyObject = try CloudSupportTestSupport.requestBodyObject(request: request)
                 XCTAssertEqual(bodyObject["deviceId"] as? String, expectedDeviceId)
                 XCTAssertEqual(bodyObject["platform"] as? String, "ios")
-                XCTAssertEqual(bodyObject["appVersion"] as? String, "1.0.0")
+                XCTAssertEqual(bodyObject["appVersion"] as? String, "1.0.1")
 
                 let operations = try XCTUnwrap(bodyObject["operations"] as? [[String: Any]])
                 XCTAssertEqual(operations.count, 1)

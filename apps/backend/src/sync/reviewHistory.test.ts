@@ -58,7 +58,7 @@ test("processSyncReviewHistoryImportInExecutor rejects events from another devic
       {
         deviceId: "device-1",
         platform: "ios",
-        appVersion: "1.0.0",
+        appVersion: "1.0.1",
         reviewEvents: [{
           reviewEventId: "review-1",
           workspaceId: "workspace-1",
@@ -96,7 +96,7 @@ test("processSyncReviewHistoryImportInExecutor returns imported and duplicate co
       {
         deviceId: "device-1",
         platform: "ios",
-        appVersion: "1.0.0",
+        appVersion: "1.0.1",
         reviewEvents: [],
       },
     );

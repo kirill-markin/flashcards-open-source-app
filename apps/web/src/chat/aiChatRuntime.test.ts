@@ -36,7 +36,7 @@ function makeDependencies(response: Response): AIChatRuntimeDependencies {
     reportDiagnostics: vi.fn(async () => undefined),
     generateRequestId: () => "client-request-1",
     now: () => 1,
-    appVersion: "1.0.0",
+    appVersion: "1.0.1",
     devicePlatform: "web",
   };
 }
