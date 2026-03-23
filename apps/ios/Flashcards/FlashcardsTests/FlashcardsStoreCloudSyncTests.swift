@@ -42,6 +42,41 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
     }
 
+    func testPrepareCloudLinkClearsStoredGuestSessionWhenServerConfigurationChanged() async throws {
+        let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
+            testCase: self,
+            runLinkedSyncOutcomes: [],
+            isRunLinkedSyncBlocked: false
+        )
+        let staleGuestSession = StoredGuestCloudSession(
+            guestToken: "guest-token-stale",
+            userId: "guest-user-stale",
+            workspaceId: "guest-workspace-stale",
+            configurationMode: .custom,
+            apiBaseUrl: "https://api.stale.example.com/v1"
+        )
+
+        try context.guestCredentialStore.saveGuestSession(session: staleGuestSession)
+        try context.database.updateCloudSettings(
+            cloudState: .guest,
+            linkedUserId: staleGuestSession.userId,
+            linkedWorkspaceId: staleGuestSession.workspaceId,
+            activeWorkspaceId: staleGuestSession.workspaceId,
+            linkedEmail: nil
+        )
+        try context.store.reload()
+
+        let linkContext = try await context.store.prepareCloudLink(
+            verifiedContext: CloudVerifiedAuthContext(
+                apiBaseUrl: "https://api.example.com/v1",
+                credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials()
+            )
+        )
+
+        XCTAssertNil(linkContext.guestUpgradeMode)
+        XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
+    }
+
     func testSyncCloudIfLinkedResetsLocalStateWhenStoredCredentialsBelongToAnotherUser() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
