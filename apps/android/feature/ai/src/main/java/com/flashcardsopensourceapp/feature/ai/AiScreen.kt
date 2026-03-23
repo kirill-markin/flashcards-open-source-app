@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -72,10 +74,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -885,7 +885,12 @@ private fun TypingIndicatorRow() {
 private fun ToolCallCard(
     toolCall: AiChatToolCall
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    val clipboardManager = remember(context) {
+        checkNotNull(context.getSystemService(ClipboardManager::class.java)) {
+            "ClipboardManager is not available."
+        }
+    }
     var isExpanded by rememberSaveable(toolCall.toolCallId) {
         mutableStateOf(value = false)
     }
@@ -948,7 +953,9 @@ private fun ToolCallCard(
                         title = "Input",
                         value = input,
                         onCopy = {
-                            clipboardManager.setText(AnnotatedString(input))
+                            clipboardManager.setPrimaryClip(
+                                ClipData.newPlainText("Input", input)
+                            )
                         }
                     )
                 }
@@ -957,7 +964,9 @@ private fun ToolCallCard(
                         title = "Output",
                         value = output,
                         onCopy = {
-                            clipboardManager.setText(AnnotatedString(output))
+                            clipboardManager.setPrimaryClip(
+                                ClipData.newPlainText("Output", output)
+                            )
                         }
                     )
                 }

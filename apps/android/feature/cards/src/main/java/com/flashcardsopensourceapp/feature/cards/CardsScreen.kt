@@ -57,7 +57,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -76,9 +75,12 @@ fun CardsRoute(
     onClearFilter: () -> Unit,
     onCreateCard: () -> Unit,
     onOpenCard: (String) -> Unit,
+    onOpenDecks: () -> Unit,
+    onOpenTags: () -> Unit,
     onDeleteCard: (String) -> Unit
 ) {
     var isFilterSheetVisible by remember { mutableStateOf(value = false) }
+    var isLibraryMenuVisible by remember { mutableStateOf(value = false) }
     var draftFilter by remember(uiState.activeFilter) {
         mutableStateOf(uiState.activeFilter)
     }
@@ -103,6 +105,41 @@ fun CardsRoute(
                                 "Filter cards"
                             } else {
                                 "Filter cards ($activeFilterCount active)"
+                            }
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            isLibraryMenuVisible = true
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = "Library actions"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = isLibraryMenuVisible,
+                        onDismissRequest = {
+                            isLibraryMenuVisible = false
+                        }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text("Open decks")
+                            },
+                            onClick = {
+                                isLibraryMenuVisible = false
+                                onOpenDecks()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text("Open tags")
+                            },
+                            onClick = {
+                                isLibraryMenuVisible = false
+                                onOpenTags()
                             }
                         )
                     }
@@ -133,14 +170,6 @@ fun CardsRoute(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            item {
-                DraftNoticeCard(
-                    title = "Android cards aligned to filtered decks",
-                    body = "Cards now support a fuller Android-native edit flow with dedicated text and tag surfaces, while deck rules still stay separate in workspace settings.",
-                    modifier = Modifier
-                )
-            }
-
             item {
                 OutlinedTextField(
                     value = uiState.searchQuery,
