@@ -82,7 +82,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
+import com.flashcardsopensourceapp.core.ui.components.NoticeCard
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
@@ -702,8 +702,8 @@ private fun AiConversation(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            DraftNoticeCard(
-                title = "Android draft AI shell",
+            NoticeCard(
+                title = "Android AI",
                 body = "Android AI now supports native attachments, dictation, linked-session warm-up, and multimodal chat input while keeping the UI fully Material.",
                 modifier = Modifier
             )

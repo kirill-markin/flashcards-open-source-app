@@ -61,7 +61,7 @@ class DemoDataSeeder(
                     OutboxEntryEntity(
                         outboxEntryId = "outbox-demo-bootstrap",
                         workspaceId = demoWorkspaceId,
-                        deviceId = "android-draft-device",
+                        deviceId = "android-device",
                         entityType = "workspace_scheduler_settings",
                         entityId = demoWorkspaceId,
                         operationType = "upsert",

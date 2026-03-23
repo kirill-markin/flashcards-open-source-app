@@ -8,6 +8,9 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+private const val appDatabaseName: String = "flashcards-android.db"
+private const val androidDeviceId: String = "android-device"
+
 @Database(
     entities = [
         WorkspaceEntity::class,
@@ -39,22 +42,22 @@ fun buildAppDatabase(context: Context): AppDatabase {
     return Room.databaseBuilder(
         context = context,
         klass = AppDatabase::class.java,
-        name = "flashcards-android-draft.db"
+        name = appDatabaseName
     ).addMigrations(migration2To3, migration3To4).build()
 }
 
 val migration2To3: Migration = object : Migration(2, 3) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE cards ADD COLUMN dueAtMillis INTEGER")
-        database.execSQL("ALTER TABLE cards ADD COLUMN reps INTEGER NOT NULL DEFAULT 0")
-        database.execSQL("ALTER TABLE cards ADD COLUMN lapses INTEGER NOT NULL DEFAULT 0")
-        database.execSQL("ALTER TABLE cards ADD COLUMN fsrsCardState TEXT NOT NULL DEFAULT 'NEW'")
-        database.execSQL("ALTER TABLE cards ADD COLUMN fsrsStepIndex INTEGER")
-        database.execSQL("ALTER TABLE cards ADD COLUMN fsrsStability REAL")
-        database.execSQL("ALTER TABLE cards ADD COLUMN fsrsDifficulty REAL")
-        database.execSQL("ALTER TABLE cards ADD COLUMN fsrsLastReviewedAtMillis INTEGER")
-        database.execSQL("ALTER TABLE cards ADD COLUMN fsrsScheduledDays INTEGER")
-        database.execSQL(
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE cards ADD COLUMN dueAtMillis INTEGER")
+        db.execSQL("ALTER TABLE cards ADD COLUMN reps INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE cards ADD COLUMN lapses INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE cards ADD COLUMN fsrsCardState TEXT NOT NULL DEFAULT 'NEW'")
+        db.execSQL("ALTER TABLE cards ADD COLUMN fsrsStepIndex INTEGER")
+        db.execSQL("ALTER TABLE cards ADD COLUMN fsrsStability REAL")
+        db.execSQL("ALTER TABLE cards ADD COLUMN fsrsDifficulty REAL")
+        db.execSQL("ALTER TABLE cards ADD COLUMN fsrsLastReviewedAtMillis INTEGER")
+        db.execSQL("ALTER TABLE cards ADD COLUMN fsrsScheduledDays INTEGER")
+        db.execSQL(
             """
             CREATE TABLE IF NOT EXISTS workspace_scheduler_settings (
                 workspaceId TEXT NOT NULL PRIMARY KEY,
@@ -69,7 +72,7 @@ val migration2To3: Migration = object : Migration(2, 3) {
             )
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             INSERT INTO workspace_scheduler_settings (
                 workspaceId,
@@ -93,18 +96,18 @@ val migration2To3: Migration = object : Migration(2, 3) {
             FROM workspaces
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             "CREATE INDEX IF NOT EXISTS index_workspace_scheduler_settings_workspaceId ON workspace_scheduler_settings(workspaceId)"
         )
     }
 }
 
 val migration3To4: Migration = object : Migration(3, 4) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE cards ADD COLUMN deletedAtMillis INTEGER")
-        database.execSQL("ALTER TABLE decks ADD COLUMN deletedAtMillis INTEGER")
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE cards ADD COLUMN deletedAtMillis INTEGER")
+        db.execSQL("ALTER TABLE decks ADD COLUMN deletedAtMillis INTEGER")
 
-        database.execSQL(
+        db.execSQL(
             """
             CREATE TABLE IF NOT EXISTS review_logs_v4 (
                 reviewLogId TEXT NOT NULL PRIMARY KEY,
@@ -120,7 +123,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
             )
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             INSERT INTO review_logs_v4 (
                 reviewLogId,
@@ -136,7 +139,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
                 reviewLogId,
                 workspaceId,
                 cardId,
-                'android-draft-device',
+                '$androidDeviceId',
                 reviewLogId,
                 rating,
                 reviewedAtMillis,
@@ -144,12 +147,12 @@ val migration3To4: Migration = object : Migration(3, 4) {
             FROM review_logs
             """.trimIndent()
         )
-        database.execSQL("DROP TABLE review_logs")
-        database.execSQL("ALTER TABLE review_logs_v4 RENAME TO review_logs")
-        database.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_workspaceId ON review_logs(workspaceId)")
-        database.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_cardId ON review_logs(cardId)")
+        db.execSQL("DROP TABLE review_logs")
+        db.execSQL("ALTER TABLE review_logs_v4 RENAME TO review_logs")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_workspaceId ON review_logs(workspaceId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_cardId ON review_logs(cardId)")
 
-        database.execSQL(
+        db.execSQL(
             """
             CREATE TABLE IF NOT EXISTS outbox_entries_v4 (
                 outboxEntryId TEXT NOT NULL PRIMARY KEY,
@@ -167,7 +170,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
             )
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             INSERT INTO outbox_entries_v4 (
                 outboxEntryId,
@@ -185,7 +188,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
             SELECT
                 outboxEntryId,
                 workspaceId,
-                'android-draft-device',
+                '$androidDeviceId',
                 'workspace_scheduler_settings',
                 workspaceId,
                 operationType,
@@ -197,11 +200,11 @@ val migration3To4: Migration = object : Migration(3, 4) {
             FROM outbox_entries
             """.trimIndent()
         )
-        database.execSQL("DROP TABLE outbox_entries")
-        database.execSQL("ALTER TABLE outbox_entries_v4 RENAME TO outbox_entries")
-        database.execSQL("CREATE INDEX IF NOT EXISTS index_outbox_entries_workspaceId ON outbox_entries(workspaceId)")
+        db.execSQL("DROP TABLE outbox_entries")
+        db.execSQL("ALTER TABLE outbox_entries_v4 RENAME TO outbox_entries")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_outbox_entries_workspaceId ON outbox_entries(workspaceId)")
 
-        database.execSQL(
+        db.execSQL(
             """
             CREATE TABLE IF NOT EXISTS sync_state_v4 (
                 workspaceId TEXT NOT NULL PRIMARY KEY,
@@ -215,7 +218,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
             )
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             INSERT INTO sync_state_v4 (
                 workspaceId,
@@ -239,7 +242,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
             FROM sync_state
             """.trimIndent()
         )
-        database.execSQL("DROP TABLE sync_state")
-        database.execSQL("ALTER TABLE sync_state_v4 RENAME TO sync_state")
+        db.execSQL("DROP TABLE sync_state")
+        db.execSQL("ALTER TABLE sync_state_v4 RENAME TO sync_state")
     }
 }

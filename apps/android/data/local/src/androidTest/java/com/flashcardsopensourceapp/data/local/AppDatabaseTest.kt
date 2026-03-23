@@ -73,7 +73,7 @@ class AppDatabaseTest {
     }
 
     @Test
-    fun seedIsIdempotentAndCreatesDraftSyncTables(): Unit = runBlocking {
+    fun seedIsIdempotentAndCreatesSyncTables(): Unit = runBlocking {
         val seeder = DemoDataSeeder(database = database)
 
         seeder.seedIfNeeded(currentTimeMillis = 100L)

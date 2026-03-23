@@ -54,7 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
+import com.flashcardsopensourceapp.core.ui.components.NoticeCard
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
 import kotlinx.coroutines.launch
@@ -76,7 +76,7 @@ fun AccountRoute(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            DraftNoticeCard(
+            NoticeCard(
                 title = "Android cloud account foundation",
                 body = "This account area now covers linked sign-in, manual sync, linked workspace switching, and custom server configuration while keeping the UI native to Android.",
                 modifier = Modifier

@@ -67,16 +67,16 @@ If Google already provides a supported solution, use it unless there is a concre
 
 ## Product Scope
 
-The first Android draft should mirror the current top-level product structure:
+The Android app should mirror the current top-level product structure:
 
 - Review
 - Cards
 - AI
 - Settings
 
-The goal of the first iteration is a working draft that can run in an emulator and be clicked through.
+The goal is a working Android app that can run in an emulator and on-device while staying aligned with the shared product contract.
 
-Missing business logic is acceptable in the draft as long as the UI structure, navigation, and local storage foundation are in place.
+Keep the UI structure, navigation, and local storage foundation aligned with the current Android app architecture.
 
 ## Local Commands
 
@@ -85,7 +85,7 @@ Run commands from `apps/android/`.
 - Build the debug app: `./gradlew :app:assembleDebug`
 - Build AndroidTest APKs: `./gradlew :app:assembleDebugAndroidTest :data:local:assembleDebugAndroidTest`
 
-The first local draft uses:
+The current local Android app uses:
 
 - `compileSdk = 36`
 - `targetSdk = 36`

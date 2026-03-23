@@ -369,7 +369,7 @@ private fun CardRow(
                 Text("Delete card?")
             },
             text = {
-                Text("This removes the local draft card from the Android prototype.")
+                Text("This removes the local card from the Android app.")
             },
             confirmButton = {
                 TextButton(

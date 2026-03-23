@@ -2,20 +2,20 @@
 
 ![iOS app screenshots](docs/images/ios-app-screenshots.jpeg)
 
-Flashcards are a simple study format: the front side shows a question or prompt, and the back side shows the answer. People use them to study languages, facts, definitions, code, and other material they want to remember. This project is an open-source Anki-like flashcards app focused on iOS, web, and offline-first sync.
+Flashcards are a simple study format: the front side shows a question or prompt, and the back side shows the answer. People use them to study languages, facts, definitions, code, and other material they want to remember. This project is an open-source Anki-like flashcards app focused on iOS, Android, web, and offline-first sync.
 
-Open-source offline-first flashcards app for iOS and web.
+Open-source offline-first flashcards app for iOS, Android, and web.
 
 ## Clients
 
 - iOS app in `apps/ios`
-- Android app draft in `apps/android`
+- Android app in `apps/android`
 - Web client in `apps/web`
 - AI agents support through the external agent API: [https://api.flashcards-open-source-app.com/v1/](https://api.flashcards-open-source-app.com/v1/)
 
 ## Features
 
-- Offline-first: browser local database on web, SQLite on iOS
+- Offline-first: browser local database on web, SQLite on iOS and Android
 - Auto-sync: clients write locally first and sync with the backend when online
 
 ## Card scheduling
