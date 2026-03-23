@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
+import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
@@ -557,9 +558,14 @@ private class FakeCloudAccountRepository(
             updatedAtMillis = 1L
         )
     )
+    private val accountDeletionStateFlow = MutableStateFlow<AccountDeletionState>(AccountDeletionState.Hidden)
 
     override fun observeCloudSettings(): Flow<CloudSettings> {
         return cloudSettingsFlow
+    }
+
+    override fun observeAccountDeletionState(): Flow<AccountDeletionState> {
+        return accountDeletionStateFlow
     }
 
     override fun observeServerConfiguration(): Flow<CloudServiceConfiguration> {
@@ -574,6 +580,17 @@ private class FakeCloudAccountRepository(
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun beginAccountDeletion() {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun resumePendingAccountDeletionIfNeeded() {
+    }
+
+    override suspend fun retryPendingAccountDeletion() {
         throw UnsupportedOperationException()
     }
 

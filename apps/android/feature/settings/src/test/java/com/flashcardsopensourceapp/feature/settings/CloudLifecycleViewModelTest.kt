@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.settings
 
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
@@ -167,8 +168,8 @@ class CloudLifecycleViewModelTest {
 
         assertTrue(didDelete)
         assertFalse(viewModel.uiState.value.isLinked)
-        assertEquals("Account deleted. This device is now disconnected.", viewModel.uiState.value.successMessage)
         assertEquals(DestructiveActionState.IDLE, viewModel.uiState.value.deleteState)
+        assertEquals(AccountDeletionState.Hidden, cloudAccountRepository.accountDeletionState.value)
         collectionJob.cancel()
     }
 
@@ -498,6 +499,7 @@ private class FakeCloudAccountRepository(
             updatedAtMillis = 1L
         )
     )
+    val accountDeletionState = MutableStateFlow<AccountDeletionState>(AccountDeletionState.Hidden)
     private val connectionsState = MutableStateFlow(connections)
     private val verifiedWorkspacesState = MutableStateFlow(verifiedWorkspaces)
     private val linkedWorkspacesState = MutableStateFlow(linkedWorkspaces)
@@ -517,6 +519,28 @@ private class FakeCloudAccountRepository(
                 authBaseUrl = "https://auth.example.com"
             )
         )
+    }
+
+    override fun observeAccountDeletionState(): Flow<AccountDeletionState> {
+        return accountDeletionState
+    }
+
+    override suspend fun beginAccountDeletion() {
+        accountDeletionState.value = AccountDeletionState.InProgress
+        cloudSettingsState.value = cloudSettingsState.value.copy(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null
+        )
+        accountDeletionState.value = AccountDeletionState.Hidden
+    }
+
+    override suspend fun resumePendingAccountDeletionIfNeeded() {
+    }
+
+    override suspend fun retryPendingAccountDeletion() {
+        beginAccountDeletion()
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {

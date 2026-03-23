@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
@@ -903,10 +904,7 @@ class AgentConnectionsViewModel(
 
 private data class AccountDangerZoneDraftState(
     val confirmationText: String,
-    val isDeleting: Boolean,
-    val deleteState: DestructiveActionState,
     val errorMessage: String,
-    val successMessage: String,
     val showDeleteConfirmation: Boolean
 )
 
@@ -916,25 +914,31 @@ class AccountDangerZoneViewModel(
     private val draftState = MutableStateFlow(
         value = AccountDangerZoneDraftState(
             confirmationText = "",
-            isDeleting = false,
-            deleteState = DestructiveActionState.IDLE,
             errorMessage = "",
-            successMessage = "",
             showDeleteConfirmation = false
         )
     )
 
     val uiState: StateFlow<AccountDangerZoneUiState> = combine(
         cloudAccountRepository.observeCloudSettings(),
+        cloudAccountRepository.observeAccountDeletionState(),
         draftState
-    ) { cloudSettings, draft ->
+    ) { cloudSettings, deletionState, draft ->
         AccountDangerZoneUiState(
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             confirmationText = draft.confirmationText,
-            isDeleting = draft.isDeleting,
-            deleteState = draft.deleteState,
-            errorMessage = draft.errorMessage,
-            successMessage = draft.successMessage,
+            isDeleting = deletionState == AccountDeletionState.InProgress,
+            deleteState = when (deletionState) {
+                is AccountDeletionState.Failed -> DestructiveActionState.FAILED
+                AccountDeletionState.InProgress -> DestructiveActionState.IN_PROGRESS
+                AccountDeletionState.Hidden -> DestructiveActionState.IDLE
+            },
+            errorMessage = when (deletionState) {
+                is AccountDeletionState.Failed -> deletionState.message
+                AccountDeletionState.Hidden,
+                AccountDeletionState.InProgress -> draft.errorMessage
+            },
+            successMessage = "",
             showDeleteConfirmation = draft.showDeleteConfirmation
         )
     }.stateIn(
@@ -955,9 +959,7 @@ class AccountDangerZoneViewModel(
         draftState.update { state ->
             state.copy(
                 showDeleteConfirmation = true,
-                deleteState = DestructiveActionState.IDLE,
-                errorMessage = "",
-                successMessage = ""
+                errorMessage = ""
             )
         }
     }
@@ -975,13 +977,7 @@ class AccountDangerZoneViewModel(
         draftState.update { state ->
             state.copy(
                 confirmationText = value,
-                deleteState = if (state.errorMessage.isEmpty()) {
-                    state.deleteState
-                } else {
-                    DestructiveActionState.IDLE
-                },
-                errorMessage = "",
-                successMessage = ""
+                errorMessage = ""
             )
         }
     }
@@ -994,24 +990,12 @@ class AccountDangerZoneViewModel(
             return false
         }
 
-        draftState.update { state ->
-            state.copy(
-                isDeleting = true,
-                deleteState = DestructiveActionState.IN_PROGRESS,
-                errorMessage = "",
-                successMessage = ""
-            )
-        }
-
         return try {
-            cloudAccountRepository.deleteAccount(confirmationText = uiState.value.confirmationText)
+            cloudAccountRepository.beginAccountDeletion()
             draftState.update { state ->
                 state.copy(
                     confirmationText = "",
-                    isDeleting = false,
-                    deleteState = DestructiveActionState.IDLE,
                     errorMessage = "",
-                    successMessage = "Account deleted. This device is now disconnected.",
                     showDeleteConfirmation = false
                 )
             }
@@ -1019,10 +1003,7 @@ class AccountDangerZoneViewModel(
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
-                    isDeleting = false,
-                    deleteState = DestructiveActionState.FAILED,
-                    errorMessage = error.message ?: "Account deletion failed.",
-                    successMessage = ""
+                    errorMessage = error.message ?: "Account deletion failed."
                 )
             }
             false

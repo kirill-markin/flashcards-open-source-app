@@ -1,11 +1,21 @@
 package com.flashcardsopensourceapp.app
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -13,27 +23,30 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
+import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @Composable
 fun FlashcardsApp(appGraph: AppGraph) {
@@ -52,6 +65,9 @@ fun FlashcardsApp(appGraph: AppGraph) {
                 activeWorkspaceId = null,
                 updatedAtMillis = 0L
             )
+        )
+        val accountDeletionState by appGraph.cloudAccountRepository.observeAccountDeletionState().collectAsStateWithLifecycle(
+            initialValue = AccountDeletionState.Hidden
         )
         var isAppResumed by remember(lifecycleOwner) {
             mutableStateOf(
@@ -99,8 +115,17 @@ fun FlashcardsApp(appGraph: AppGraph) {
             }
         }
 
-        LaunchedEffect(isAppResumed, cloudSettings.cloudState) {
-            if (isAppResumed.not() || shouldRunForegroundSyncPolling(cloudState = cloudSettings.cloudState).not()) {
+        LaunchedEffect(appGraph.cloudAccountRepository) {
+            appGraph.cloudAccountRepository.resumePendingAccountDeletionIfNeeded()
+        }
+
+        LaunchedEffect(isAppResumed, cloudSettings.cloudState, accountDeletionState) {
+            if (
+                isAppResumed.not() || shouldRunForegroundSyncPolling(
+                    cloudState = cloudSettings.cloudState,
+                    accountDeletionState = accountDeletionState
+                ).not()
+            ) {
                 return@LaunchedEffect
             }
 
@@ -109,8 +134,13 @@ fun FlashcardsApp(appGraph: AppGraph) {
             }
         }
 
-        LaunchedEffect(isAppResumed, cloudSettings.cloudState, currentDestination.route) {
-            if (isAppResumed.not() || shouldRunForegroundSyncPolling(cloudState = cloudSettings.cloudState).not()) {
+        LaunchedEffect(isAppResumed, cloudSettings.cloudState, accountDeletionState, currentDestination.route) {
+            if (
+                isAppResumed.not() || shouldRunForegroundSyncPolling(
+                    cloudState = cloudSettings.cloudState,
+                    accountDeletionState = accountDeletionState
+                ).not()
+            ) {
                 return@LaunchedEffect
             }
 
@@ -157,6 +187,87 @@ fun FlashcardsApp(appGraph: AppGraph) {
                         .align(alignment = Alignment.BottomCenter)
                         .padding(horizontal = 16.dp, vertical = 24.dp)
                 )
+                AccountDeletionBlockingSurface(
+                    accountDeletionState = accountDeletionState,
+                    onRetryDeletion = {
+                        appGraph.cloudAccountRepository.retryPendingAccountDeletion()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun AccountDeletionBlockingSurface(
+    accountDeletionState: AccountDeletionState,
+    onRetryDeletion: suspend () -> Unit
+) {
+    if (accountDeletionState == AccountDeletionState.Hidden) {
+        return
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.82f))
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .statusBarsPadding()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = "Deleting account",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                when (accountDeletionState) {
+                    AccountDeletionState.Hidden -> Unit
+                    AccountDeletionState.InProgress -> {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "Your account deletion is in progress. Keep this screen open until it finishes.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    is AccountDeletionState.Failed -> {
+                        Text(
+                            text = "The delete request did not finish yet. Retry to keep the account deletion moving forward.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = accountDeletionState.message,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    onRetryDeletion()
+                                }
+                            },
+                            enabled = true,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Retry deletion")
+                        }
+                    }
+                }
             }
         }
     }

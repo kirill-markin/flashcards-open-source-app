@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
+import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,7 +14,12 @@ import org.junit.Test
 class ForegroundSyncPolicyTest {
     @Test
     fun linkedReviewAndCardsUseFastForegroundPolling() {
-        assertTrue(shouldRunForegroundSyncPolling(cloudState = CloudAccountState.LINKED))
+        assertTrue(
+            shouldRunForegroundSyncPolling(
+                cloudState = CloudAccountState.LINKED,
+                accountDeletionState = AccountDeletionState.Hidden
+            )
+        )
         assertEquals(
             fastForegroundSyncPollingIntervalMillis,
             foregroundSyncPollingIntervalMillis(destination = ReviewDestination)
@@ -38,8 +44,29 @@ class ForegroundSyncPolicyTest {
 
     @Test
     fun disconnectedGuestAndLinkingReadyDoNotRunForegroundPolling() {
-        assertFalse(shouldRunForegroundSyncPolling(cloudState = CloudAccountState.DISCONNECTED))
-        assertFalse(shouldRunForegroundSyncPolling(cloudState = CloudAccountState.GUEST))
-        assertFalse(shouldRunForegroundSyncPolling(cloudState = CloudAccountState.LINKING_READY))
+        assertFalse(
+            shouldRunForegroundSyncPolling(
+                cloudState = CloudAccountState.DISCONNECTED,
+                accountDeletionState = AccountDeletionState.Hidden
+            )
+        )
+        assertFalse(
+            shouldRunForegroundSyncPolling(
+                cloudState = CloudAccountState.GUEST,
+                accountDeletionState = AccountDeletionState.Hidden
+            )
+        )
+        assertFalse(
+            shouldRunForegroundSyncPolling(
+                cloudState = CloudAccountState.LINKING_READY,
+                accountDeletionState = AccountDeletionState.Hidden
+            )
+        )
+        assertFalse(
+            shouldRunForegroundSyncPolling(
+                cloudState = CloudAccountState.LINKED,
+                accountDeletionState = AccountDeletionState.InProgress
+            )
+        )
     }
 }

@@ -91,10 +91,65 @@ data class RemotePushResponse(
 class CloudRemoteException(
     message: String,
     val statusCode: Int?,
-    val responseBody: String?
+    val responseBody: String?,
+    val errorCode: String?,
+    val requestId: String?
 ) : Exception(message)
 
-class CloudRemoteService {
+interface CloudRemoteGateway {
+    fun validateConfiguration(configuration: CloudServiceConfiguration)
+    fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult
+    fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials
+    fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials
+    fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot
+    fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary>
+    fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary
+    fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary
+    fun renameWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String, name: String): CloudWorkspaceSummary
+    fun loadWorkspaceDeletePreview(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceDeletePreview
+    fun deleteWorkspace(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ): CloudWorkspaceDeleteResult
+
+    fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
+    fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult
+    fun revokeAgentConnection(apiBaseUrl: String, bearerToken: String, connectionId: String): AgentApiKeyConnectionsResult
+    fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse
+    fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse
+    fun bootstrapPull(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemoteBootstrapPullResponse
+
+    fun bootstrapPush(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemoteBootstrapPushResponse
+
+    fun pullReviewHistory(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemoteReviewHistoryPullResponse
+
+    fun importReviewHistory(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemoteReviewHistoryImportResponse
+}
+
+class CloudRemoteService : CloudRemoteGateway {
+    override
     fun validateConfiguration(configuration: CloudServiceConfiguration) {
         getJson(
             baseUrl = configuration.authBaseUrl,
@@ -108,6 +163,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult {
         val response = postJson(
             baseUrl = authBaseUrl,
@@ -152,6 +208,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials {
         val response = postJson(
             baseUrl = authBaseUrl,
@@ -188,6 +245,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials {
         val response = postJson(
             baseUrl = authBaseUrl,
@@ -217,6 +275,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
         val meResponse = getJson(apiBaseUrl, "/me", authorizationHeader = "Bearer $bearerToken")
         val selectedWorkspaceId = meResponse.optString("selectedWorkspaceId").ifBlank { null }
@@ -243,10 +302,12 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary> {
         return fetchCloudAccount(apiBaseUrl = apiBaseUrl, bearerToken = bearerToken).workspaces
     }
 
+    override
     fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
         val response = postJson(
             baseUrl = apiBaseUrl,
@@ -257,6 +318,7 @@ class CloudRemoteService {
         return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
     }
 
+    override
     fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary {
         val response = postJson(
             baseUrl = apiBaseUrl,
@@ -267,6 +329,7 @@ class CloudRemoteService {
         return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
     }
 
+    override
     fun renameWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
@@ -282,6 +345,7 @@ class CloudRemoteService {
         return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
     }
 
+    override
     fun loadWorkspaceDeletePreview(
         apiBaseUrl: String,
         bearerToken: String,
@@ -301,6 +365,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun deleteWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
@@ -321,6 +386,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun deleteAccount(
         apiBaseUrl: String,
         bearerToken: String,
@@ -337,6 +403,7 @@ class CloudRemoteService {
         }
     }
 
+    override
     fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult {
         val connections = mutableListOf<AgentApiKeyConnection>()
         var nextCursor: String? = null
@@ -362,6 +429,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun revokeAgentConnection(
         apiBaseUrl: String,
         bearerToken: String,
@@ -379,6 +447,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
@@ -396,7 +465,9 @@ class CloudRemoteService {
                         throw CloudRemoteException(
                             message = "Cloud push failed for operation ${entry.getString("operationId")}: ${entry.optString("error")}",
                             statusCode = 200,
-                            responseBody = response.toString()
+                            responseBody = response.toString(),
+                            errorCode = null,
+                            requestId = null
                         )
                     }
                     add(
@@ -410,6 +481,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
@@ -425,6 +497,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun bootstrapPull(
         apiBaseUrl: String,
         bearerToken: String,
@@ -447,6 +520,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun bootstrapPush(
         apiBaseUrl: String,
         bearerToken: String,
@@ -466,6 +540,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun pullReviewHistory(
         apiBaseUrl: String,
         bearerToken: String,
@@ -486,6 +561,7 @@ class CloudRemoteService {
         )
     }
 
+    override
     fun importReviewHistory(
         apiBaseUrl: String,
         bearerToken: String,
@@ -676,10 +752,13 @@ class CloudRemoteService {
             val statusCode = connection.responseCode
             val responseBody = readConnectionBody(connection = connection, useErrorStream = statusCode >= 400)
             if (statusCode < 200 || statusCode >= 300) {
+                val parsedError = parseCloudErrorPayload(responseBody = responseBody)
                 throw CloudRemoteException(
                     message = "Cloud request failed with status $statusCode for $path: $responseBody",
                     statusCode = statusCode,
-                    responseBody = responseBody
+                    responseBody = responseBody,
+                    errorCode = parsedError?.first,
+                    requestId = parsedError?.second
                 )
             }
 
@@ -705,6 +784,22 @@ class CloudRemoteService {
                 reader.readText()
             }
         }
+    }
+}
+
+private fun parseCloudErrorPayload(responseBody: String): Pair<String?, String?>? {
+    if (responseBody.isBlank()) {
+        return null
+    }
+
+    return try {
+        val payload = JSONObject(responseBody)
+        val topLevelCode = payload.optString("code", "").ifBlank { null }
+        val nestedCode = payload.optJSONObject("error")?.optString("code", "")?.ifBlank { null }
+        val requestId = payload.optString("requestId", "").ifBlank { null }
+        Pair(topLevelCode ?: nestedCode, requestId)
+    } catch (_: Exception) {
+        null
     }
 }
 

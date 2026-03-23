@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import android.content.Context
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,8 +25,17 @@ class AiChatPreferencesStore(
     }
 
     fun updateConsent(hasConsent: Boolean) {
-        preferences.edit().putBoolean(aiChatConsentKey, hasConsent).apply()
+        preferences.edit(commit = true) {
+            putBoolean(aiChatConsentKey, hasConsent)
+        }
         consentState.value = hasConsent
+    }
+
+    fun clearConsent() {
+        preferences.edit(commit = true) {
+            remove(aiChatConsentKey)
+        }
+        consentState.value = false
     }
 
     private fun loadConsent(): Boolean {

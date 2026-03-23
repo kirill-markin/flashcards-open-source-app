@@ -109,6 +109,16 @@ data class CloudSettings(
     val updatedAtMillis: Long
 )
 
+sealed interface AccountDeletionState {
+    data object Hidden : AccountDeletionState
+
+    data object InProgress : AccountDeletionState
+
+    data class Failed(
+        val message: String
+    ) : AccountDeletionState
+}
+
 enum class SyncEntityType {
     CARD,
     DECK,

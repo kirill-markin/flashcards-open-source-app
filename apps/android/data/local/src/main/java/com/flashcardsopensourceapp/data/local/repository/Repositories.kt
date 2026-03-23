@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
+import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
@@ -90,7 +91,11 @@ interface SyncRepository {
 
 interface CloudAccountRepository {
     fun observeCloudSettings(): Flow<CloudSettings>
+    fun observeAccountDeletionState(): Flow<AccountDeletionState>
     fun observeServerConfiguration(): Flow<CloudServiceConfiguration>
+    suspend fun beginAccountDeletion()
+    suspend fun resumePendingAccountDeletionIfNeeded()
+    suspend fun retryPendingAccountDeletion()
     suspend fun sendCode(email: String): CloudSendCodeResult
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): List<CloudWorkspaceSummary>
     suspend fun logout()

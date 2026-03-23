@@ -51,6 +51,12 @@ class GuestAiSessionStore(
         }
     }
 
+    fun clearAllSessions() {
+        preferences.edit(commit = true) {
+            clear()
+        }
+    }
+
     private fun storageKey(localWorkspaceId: String?): String {
         if (localWorkspaceId.isNullOrBlank()) {
             return guestAiDefaultSessionKey

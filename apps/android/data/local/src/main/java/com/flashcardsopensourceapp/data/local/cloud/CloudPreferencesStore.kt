@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
@@ -25,6 +26,8 @@ private const val linkedWorkspaceIdKey: String = "linked-workspace-id"
 private const val linkedEmailKey: String = "linked-email"
 private const val activeWorkspaceIdKey: String = "active-workspace-id"
 private const val updatedAtMillisKey: String = "updated-at-millis"
+private const val accountDeletionStatusKey: String = "account-deletion-status"
+private const val accountDeletionFailureMessageKey: String = "account-deletion-failure-message"
 private const val customOriginKey: String = "custom-origin"
 private const val refreshTokenKey: String = "refresh-token"
 private const val idTokenKey: String = "id-token"
@@ -44,6 +47,7 @@ class CloudPreferencesStore(
     )
 
     private val cloudSettingsState = MutableStateFlow(loadCloudSettings())
+    private val accountDeletionState = MutableStateFlow(loadAccountDeletionState())
     private val serverConfigurationState = MutableStateFlow(loadServerConfiguration())
 
     fun observeCloudSettings(): StateFlow<CloudSettings> {
@@ -54,12 +58,20 @@ class CloudPreferencesStore(
         return serverConfigurationState.asStateFlow()
     }
 
+    fun observeAccountDeletionState(): StateFlow<AccountDeletionState> {
+        return accountDeletionState.asStateFlow()
+    }
+
     fun currentCloudSettings(): CloudSettings {
         return cloudSettingsState.value
     }
 
     fun currentServerConfiguration(): CloudServiceConfiguration {
         return serverConfigurationState.value
+    }
+
+    fun currentAccountDeletionState(): AccountDeletionState {
+        return accountDeletionState.value
     }
 
     fun loadCredentials(): StoredCloudCredentials? {
@@ -127,6 +139,40 @@ class CloudPreferencesStore(
         cloudSettingsState.value = loadCloudSettings()
     }
 
+    fun markAccountDeletionInProgress() {
+        metadataPreferences.edit(commit = true) {
+            putString(accountDeletionStatusKey, accountDeletionStatusInProgress)
+            remove(accountDeletionFailureMessageKey)
+        }
+        accountDeletionState.value = AccountDeletionState.InProgress
+    }
+
+    fun markAccountDeletionFailed(message: String) {
+        metadataPreferences.edit(commit = true) {
+            putString(accountDeletionStatusKey, accountDeletionStatusFailed)
+            putString(accountDeletionFailureMessageKey, message)
+        }
+        accountDeletionState.value = AccountDeletionState.Failed(message = message)
+    }
+
+    fun clearAccountDeletionState() {
+        metadataPreferences.edit(commit = true) {
+            putString(accountDeletionStatusKey, accountDeletionStatusHidden)
+            remove(accountDeletionFailureMessageKey)
+        }
+        accountDeletionState.value = AccountDeletionState.Hidden
+    }
+
+    fun regenerateDeviceId(): String {
+        val deviceId = UUID.randomUUID().toString()
+        metadataPreferences.edit(commit = true) {
+            putString(deviceIdKey, deviceId)
+            putLong(updatedAtMillisKey, System.currentTimeMillis())
+        }
+        cloudSettingsState.value = loadCloudSettings()
+        return deviceId
+    }
+
     fun applyCustomServer(configuration: CloudServiceConfiguration) {
         val customOrigin = requireNotNull(configuration.customOrigin) {
             "Custom server configuration must include the original origin."
@@ -169,6 +215,17 @@ class CloudPreferencesStore(
         }
     }
 
+    private fun loadAccountDeletionState(): AccountDeletionState {
+        return when (metadataPreferences.getString(accountDeletionStatusKey, accountDeletionStatusHidden)) {
+            accountDeletionStatusInProgress -> AccountDeletionState.InProgress
+            accountDeletionStatusFailed -> AccountDeletionState.Failed(
+                message = metadataPreferences.getString(accountDeletionFailureMessageKey, null)
+                    ?: "Account deletion failed."
+            )
+            else -> AccountDeletionState.Hidden
+        }
+    }
+
     private fun createDeviceId(): String {
         val deviceId = UUID.randomUUID().toString()
         metadataPreferences.edit(commit = true) {
@@ -177,3 +234,7 @@ class CloudPreferencesStore(
         return deviceId
     }
 }
+
+private const val accountDeletionStatusHidden: String = "hidden"
+private const val accountDeletionStatusInProgress: String = "in_progress"
+private const val accountDeletionStatusFailed: String = "failed"
