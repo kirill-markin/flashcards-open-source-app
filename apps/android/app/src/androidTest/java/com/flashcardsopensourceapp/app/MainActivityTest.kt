@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -129,7 +130,9 @@ class MainActivityTest {
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Workspace").performClick()
         composeRule.onNodeWithText("Scheduler").performClick()
-        composeRule.onNodeWithText("0.90").performTextReplacement("0.85")
+        composeRule.onNodeWithText("0.90").performClick()
+        composeRule.onAllNodes(hasSetTextAction())[0].performTextClearance()
+        composeRule.onAllNodes(hasSetTextAction())[0].performTextInput("0.85")
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("0.85").fetchSemanticsNodes().isNotEmpty()
         }
@@ -207,10 +210,8 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Reviewed in this session: 1").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Show answer").fetchSemanticsNodes().isNotEmpty()
-                || composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()
-        }
+        scrollToText(text = "Show answer")
+        composeRule.onNodeWithText("Show answer").fetchSemanticsNode()
     }
 
     @Test
@@ -280,10 +281,9 @@ class MainActivityTest {
     }
 
     private fun rateVisibleReviewCard(expectedReviewedCount: Int) {
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Show answer").fetchSemanticsNodes().isNotEmpty()
-        }
+        scrollToText(text = "Show answer")
         composeRule.onNodeWithText("Show answer").performClick()
+        scrollToText(text = "Good")
         composeRule.onNodeWithText("Good").performClick()
         composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
             composeRule.onAllNodesWithText("Reviewed in this session: $expectedReviewedCount").fetchSemanticsNodes().isNotEmpty()
