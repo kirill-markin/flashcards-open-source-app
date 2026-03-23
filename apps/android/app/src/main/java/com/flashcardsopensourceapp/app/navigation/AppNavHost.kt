@@ -65,6 +65,7 @@ import com.flashcardsopensourceapp.feature.settings.WorkspaceTagsRoute
 import com.flashcardsopensourceapp.feature.settings.createDeckDetailViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDeckEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDecksViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createAllCardsDeckDetailViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSchedulerSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createServerSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
@@ -72,6 +73,7 @@ import com.flashcardsopensourceapp.feature.settings.createWorkspaceOverviewViewM
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceExportViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceTagsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.DeckListTargetUiState
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -107,6 +109,7 @@ fun AppNavHost(
                     reviewRepository = appGraph.reviewRepository,
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
+                    reviewPreferencesStore = appGraph.reviewPreferencesStore,
                     workspaceRepository = appGraph.workspaceRepository
                 )
             )
@@ -158,6 +161,7 @@ fun AppNavHost(
                     reviewRepository = appGraph.reviewRepository,
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
+                    reviewPreferencesStore = appGraph.reviewPreferencesStore,
                     workspaceRepository = appGraph.workspaceRepository
                 )
             )
@@ -550,19 +554,52 @@ fun AppNavHost(
 
         composable(route = SettingsWorkspaceDecksDestination.route) {
             val decksViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DecksViewModel>(
-                factory = createDecksViewModelFactory(decksRepository = appGraph.decksRepository)
+                factory = createDecksViewModelFactory(
+                    decksRepository = appGraph.decksRepository,
+                    workspaceRepository = appGraph.workspaceRepository
+                )
             )
             val uiState by decksViewModel.uiState.collectAsStateWithLifecycle()
 
             DecksRoute(
                 uiState = uiState,
                 onSearchQueryChange = decksViewModel::updateSearchQuery,
-                onOpenDeck = { deckId ->
-                    navController.navigate(route = SettingsWorkspaceDeckDetailDestination.createRoute(deckId = deckId))
+                onOpenDeck = { deckTarget ->
+                    when (deckTarget) {
+                        DeckListTargetUiState.AllCards -> {
+                            navController.navigate(route = SettingsWorkspaceAllCardsDeckDetailDestination.route)
+                        }
+
+                        is DeckListTargetUiState.PersistedDeck -> {
+                            navController.navigate(
+                                route = SettingsWorkspaceDeckDetailDestination.createRoute(deckId = deckTarget.deckId)
+                            )
+                        }
+                    }
                 },
                 onCreateDeck = {
                     navController.navigate(route = SettingsWorkspaceDeckEditorDestination.createRoute(deckId = "new"))
                 }
+            )
+        }
+
+        composable(route = SettingsWorkspaceAllCardsDeckDetailDestination.route) {
+            val deckDetailViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DeckDetailViewModel>(
+                factory = createAllCardsDeckDetailViewModelFactory(
+                    decksRepository = appGraph.decksRepository,
+                    cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository
+                )
+            )
+            val uiState by deckDetailViewModel.uiState.collectAsStateWithLifecycle()
+
+            DeckDetailRoute(
+                uiState = uiState,
+                onEditDeck = {},
+                onOpenCard = { cardId ->
+                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
+                },
+                onDeleteDeck = {}
             )
         }
 
@@ -578,6 +615,8 @@ fun AppNavHost(
             val deckDetailViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DeckDetailViewModel>(
                 factory = createDeckDetailViewModelFactory(
                     decksRepository = appGraph.decksRepository,
+                    cardsRepository = appGraph.cardsRepository,
+                    workspaceRepository = appGraph.workspaceRepository,
                     deckId = deckId
                 )
             )

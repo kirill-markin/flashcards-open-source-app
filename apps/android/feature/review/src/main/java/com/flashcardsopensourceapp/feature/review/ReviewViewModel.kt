@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -42,11 +44,17 @@ private data class ReviewDraftState(
     val errorMessage: String
 )
 
+private data class ObservedReviewSessionState(
+    val requestedFilter: ReviewFilter,
+    val sessionSnapshot: ReviewSessionSnapshot
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReviewViewModel(
     private val reviewRepository: ReviewRepository,
     private val syncRepository: SyncRepository,
     private val messageController: TransientMessageController,
+    private val reviewPreferencesStore: ReviewPreferencesStore,
     workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -69,11 +77,19 @@ class ReviewViewModel(
         reviewRepository.observeReviewSession(
             selectedFilter = state.requestedFilter,
             pendingReviewedCardIds = state.pendingReviewedCardIds
-        )
+        ).map { sessionSnapshot ->
+            ObservedReviewSessionState(
+                requestedFilter = state.requestedFilter,
+                sessionSnapshot = sessionSnapshot
+            )
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = loadingReviewSessionSnapshot()
+        initialValue = ObservedReviewSessionState(
+            requestedFilter = ReviewFilter.AllCards,
+            sessionSnapshot = loadingReviewSessionSnapshot()
+        )
     )
 
     private val syncStatusState = syncRepository.observeSyncStatus().stateIn(
@@ -84,6 +100,11 @@ class ReviewViewModel(
             lastSuccessfulSyncAtMillis = null,
             lastErrorMessage = ""
         )
+    )
+    private val workspaceState = workspaceRepository.observeWorkspace().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = null
     )
     private val appMetadataState = workspaceRepository.observeAppMetadata().stateIn(
         scope = viewModelScope,
@@ -101,12 +122,15 @@ class ReviewViewModel(
     private var previousSyncStatus: SyncStatus = SyncStatus.Idle
     private var reviewCardIdsAtSyncStart: List<String>? = null
     private var lastHandledSuccessfulSyncAtMillis: Long? = null
+    private var activeWorkspaceId: String? = null
+    private var workspaceGeneration: Long = 0L
 
     val uiState: StateFlow<ReviewUiState> = combine(
         reviewSessionState,
         draftState,
         appMetadataState
-    ) { sessionSnapshot, state, appMetadata ->
+    ) { reviewSessionState, state, appMetadata ->
+        val sessionSnapshot = reviewSessionState.sessionSnapshot
         val sessionCurrentCard = sessionSnapshot.cards.firstOrNull()
         val sessionPreparedCurrentCard = sessionCurrentCard?.let { card ->
             prepareReviewCardPresentation(
@@ -187,23 +211,27 @@ class ReviewViewModel(
     )
 
     init {
+        observeWorkspaceChanges()
+        observeResolvedFilterChanges()
         observeSyncDrivenReviewChanges()
     }
 
     fun selectFilter(reviewFilter: ReviewFilter) {
         draftState.update { state ->
-            state.copy(
-                requestedFilter = reviewFilter,
-                revealedCardId = null,
-                optimisticPreparedCurrentCard = null,
-                previewCards = emptyList(),
-                nextPreviewOffset = 0,
-                hasMorePreviewCards = true,
-                isPreviewLoading = false,
-                previewErrorMessage = "",
-                errorMessage = ""
+            applyReviewFilterChange(
+                state = state,
+                reviewFilter = reviewFilter
             )
         }
+        persistSelectedReviewFilter(reviewFilter = reviewFilter)
+    }
+
+    private fun persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
+        val workspaceId = activeWorkspaceId ?: return
+        reviewPreferencesStore.saveSelectedReviewFilter(
+            workspaceId = workspaceId,
+            reviewFilter = reviewFilter
+        )
     }
 
     fun revealAnswer() {
@@ -272,6 +300,7 @@ class ReviewViewModel(
         val currentCard = uiState.value.preparedCurrentCard?.card ?: return
         val cardId = currentCard.cardId
         val optimisticPreparedCurrentCard = uiState.value.preparedNextCard
+        val operationWorkspaceGeneration = workspaceGeneration
 
         draftState.update { state ->
             state.copy(
@@ -294,6 +323,9 @@ class ReviewViewModel(
                     rating = rating,
                     reviewedAtMillis = System.currentTimeMillis()
                 )
+                if (operationWorkspaceGeneration != workspaceGeneration) {
+                    return@launch
+                }
                 draftState.update { state ->
                     state.copy(
                         reviewedInSessionCount = state.reviewedInSessionCount + 1,
@@ -301,6 +333,9 @@ class ReviewViewModel(
                     )
                 }
             } catch (error: Throwable) {
+                if (operationWorkspaceGeneration != workspaceGeneration) {
+                    return@launch
+                }
                 draftState.update { state ->
                     state.copy(
                         pendingReviewedCardIds = state.pendingReviewedCardIds - cardId,
@@ -315,6 +350,7 @@ class ReviewViewModel(
     private fun loadPreviewPage(offset: Int, replaceCards: Boolean) {
         val requestedFilter = uiState.value.selectedFilter
         val pendingReviewedCardIds = draftState.value.pendingReviewedCardIds
+        val operationWorkspaceGeneration = workspaceGeneration
 
         viewModelScope.launch {
             try {
@@ -324,6 +360,9 @@ class ReviewViewModel(
                     offset = offset,
                     limit = reviewPreviewPageSize
                 )
+                if (operationWorkspaceGeneration != workspaceGeneration) {
+                    return@launch
+                }
 
                 draftState.update { state ->
                     val mergedCards = if (replaceCards) {
@@ -343,6 +382,9 @@ class ReviewViewModel(
                     )
                 }
             } catch (error: Throwable) {
+                if (operationWorkspaceGeneration != workspaceGeneration) {
+                    return@launch
+                }
                 draftState.update { state ->
                     state.copy(
                         isPreviewLoading = false,
@@ -355,12 +397,65 @@ class ReviewViewModel(
 
     private fun observeSyncDrivenReviewChanges() {
         viewModelScope.launch {
-            combine(reviewSessionState, syncStatusState) { sessionSnapshot, syncStatusSnapshot ->
-                sessionSnapshot to syncStatusSnapshot
+            combine(reviewSessionState, syncStatusState) { reviewSessionState, syncStatusSnapshot ->
+                reviewSessionState.sessionSnapshot to syncStatusSnapshot
             }.collect { (sessionSnapshot, syncStatusSnapshot) ->
                 handleSyncStatusTransition(
                     sessionSnapshot = sessionSnapshot,
                     syncStatusSnapshot = syncStatusSnapshot
+                )
+            }
+        }
+    }
+
+    private fun observeWorkspaceChanges() {
+        viewModelScope.launch {
+            workspaceState.collect { workspace ->
+                val workspaceId = workspace?.workspaceId
+                if (workspaceId == activeWorkspaceId) {
+                    return@collect
+                }
+
+                activeWorkspaceId = workspaceId
+                workspaceGeneration += 1L
+                val restoredFilter = if (workspaceId == null) {
+                    ReviewFilter.AllCards
+                } else {
+                    reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = workspaceId)
+                }
+
+                draftState.value = makeWorkspaceScopedDraftState(reviewFilter = restoredFilter)
+            }
+        }
+    }
+
+    private fun observeResolvedFilterChanges() {
+        viewModelScope.launch {
+            combine(reviewSessionState, workspaceState) { reviewSessionState, workspace ->
+                reviewSessionState to workspace?.workspaceId
+            }.collect { (reviewSessionState, workspaceId) ->
+                val sessionSnapshot = reviewSessionState.sessionSnapshot
+                if (workspaceId == null || sessionSnapshot.isLoading) {
+                    return@collect
+                }
+
+                val requestedFilter = draftState.value.requestedFilter
+                if (reviewSessionState.requestedFilter != requestedFilter) {
+                    return@collect
+                }
+                if (requestedFilter == sessionSnapshot.selectedFilter) {
+                    return@collect
+                }
+
+                draftState.update { state ->
+                    applyResolvedReviewFilter(
+                        state = state,
+                        reviewFilter = sessionSnapshot.selectedFilter
+                    )
+                }
+                reviewPreferencesStore.saveSelectedReviewFilter(
+                    workspaceId = workspaceId,
+                    reviewFilter = sessionSnapshot.selectedFilter
                 )
             }
         }
@@ -430,6 +525,7 @@ fun createReviewViewModelFactory(
     reviewRepository: ReviewRepository,
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
+    reviewPreferencesStore: ReviewPreferencesStore,
     workspaceRepository: WorkspaceRepository
 ): ViewModelProvider.Factory {
     return viewModelFactory {
@@ -438,10 +534,61 @@ fun createReviewViewModelFactory(
                 reviewRepository = reviewRepository,
                 syncRepository = syncRepository,
                 messageController = messageController,
+                reviewPreferencesStore = reviewPreferencesStore,
                 workspaceRepository = workspaceRepository
             )
         }
     }
+}
+
+private fun makeWorkspaceScopedDraftState(reviewFilter: ReviewFilter): ReviewDraftState {
+    return ReviewDraftState(
+        requestedFilter = reviewFilter,
+        revealedCardId = null,
+        reviewedInSessionCount = 0,
+        pendingReviewedCardIds = emptySet(),
+        optimisticPreparedCurrentCard = null,
+        previewCards = emptyList(),
+        nextPreviewOffset = 0,
+        hasMorePreviewCards = true,
+        isPreviewLoading = false,
+        previewErrorMessage = "",
+        errorMessage = ""
+    )
+}
+
+private fun applyReviewFilterChange(
+    state: ReviewDraftState,
+    reviewFilter: ReviewFilter
+): ReviewDraftState {
+    return state.copy(
+        requestedFilter = reviewFilter,
+        revealedCardId = null,
+        optimisticPreparedCurrentCard = null,
+        previewCards = emptyList(),
+        nextPreviewOffset = 0,
+        hasMorePreviewCards = true,
+        isPreviewLoading = false,
+        previewErrorMessage = "",
+        errorMessage = ""
+    )
+}
+
+private fun applyResolvedReviewFilter(
+    state: ReviewDraftState,
+    reviewFilter: ReviewFilter
+): ReviewDraftState {
+    return state.copy(
+        requestedFilter = reviewFilter,
+        revealedCardId = null,
+        optimisticPreparedCurrentCard = null,
+        previewCards = emptyList(),
+        nextPreviewOffset = 0,
+        hasMorePreviewCards = true,
+        isPreviewLoading = false,
+        previewErrorMessage = "",
+        errorMessage = ""
+    )
 }
 
 private fun resolveReviewEmptyState(

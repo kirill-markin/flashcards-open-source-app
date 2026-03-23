@@ -88,6 +88,10 @@ data object SettingsWorkspaceDecksDestination {
     const val route: String = "settings/workspace/decks"
 }
 
+data object SettingsWorkspaceAllCardsDeckDetailDestination {
+    const val route: String = "settings/workspace/decks/all-cards"
+}
+
 data object SettingsWorkspaceDeckDetailDestination {
     const val routePrefix: String = "settings/workspace/decks/detail"
     const val routeArgument: String = "deckId"
