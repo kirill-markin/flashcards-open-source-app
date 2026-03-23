@@ -80,7 +80,14 @@ struct RootTabView: View {
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .overlay {
-            GlobalTransientBannerHost()
+            ZStack {
+                GlobalTransientBannerHost()
+
+                if store.accountDeletionState != .hidden {
+                    AccountDeletionProgressView()
+                        .environment(store)
+                }
+            }
         }
         .onChange(of: navigation.selectedTab) { _, nextTab in
             guard usesFastCloudSyncPolling(tab: nextTab) else {
@@ -88,17 +95,6 @@ struct RootTabView: View {
             }
 
             store.extendCloudSyncFastPolling(now: Date())
-        }
-        .fullScreenCover(
-            isPresented: Binding(
-                get: {
-                    store.accountDeletionState != .hidden
-                },
-                set: { _ in }
-            )
-        ) {
-            AccountDeletionProgressView()
-                .environment(store)
         }
         .alert(
             "Account deleted",
