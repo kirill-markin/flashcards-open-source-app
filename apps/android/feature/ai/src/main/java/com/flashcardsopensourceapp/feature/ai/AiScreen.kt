@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AddComment
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -31,8 +33,8 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.ModelTraining
 import androidx.compose.material.icons.outlined.PhotoLibrary
-import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -64,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -81,12 +84,12 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.AccessStatus
-import com.flashcardsopensourceapp.feature.settings.accessCapabilityGuidance
 import com.flashcardsopensourceapp.feature.settings.accessCapabilityPermission
 import com.flashcardsopensourceapp.feature.settings.hasRequestedAccessPermission
 import com.flashcardsopensourceapp.feature.settings.markAccessPermissionRequested
 import com.flashcardsopensourceapp.feature.settings.openApplicationSettings
 import com.flashcardsopensourceapp.feature.settings.resolveAccessStatus
+import kotlinx.coroutines.delay
 
 private enum class AttachmentAction {
     TAKE_PHOTO,
@@ -105,6 +108,7 @@ fun AiRoute(
     onNewChat: () -> Unit,
     onOpenSignIn: () -> Unit,
     onDismissErrorMessage: () -> Unit,
+    onDismissAlert: () -> Unit,
     onAddPendingAttachment: (AiChatAttachment) -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
     onStartDictationPermissionRequest: () -> Unit,
@@ -112,6 +116,7 @@ fun AiRoute(
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
     onWarmUpSessionIfNeeded: () -> Unit,
+    onShowAlert: (AiAlertState) -> Unit,
     onShowErrorMessage: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -127,6 +132,7 @@ fun AiRoute(
     val currentDictationState by rememberUpdatedState(uiState.dictationState)
     val currentWarmUpAction by rememberUpdatedState(onWarmUpSessionIfNeeded)
     val currentCancelDictationAction by rememberUpdatedState(onCancelDictation)
+    val currentShowAlertAction by rememberUpdatedState(onShowAlert)
     val currentShowErrorAction by rememberUpdatedState(onShowErrorMessage)
 
     val takePictureLauncher = rememberLauncherForActivityResult(
@@ -139,7 +145,12 @@ fun AiRoute(
         try {
             onAddPendingAttachment(makeAiChatAttachmentFromCameraBitmap(bitmap = bitmap))
         } catch (error: Exception) {
-            currentShowErrorAction(error.message ?: "Captured photo could not be added.")
+            currentShowAlertAction(
+                aiAttachmentImportAlert(
+                    capability = AccessCapability.CAMERA,
+                    error = error
+                )
+            )
         }
     }
     val choosePhotoLauncher = rememberLauncherForActivityResult(
@@ -157,7 +168,12 @@ fun AiRoute(
                 )
             )
         } catch (error: Exception) {
-            currentShowErrorAction(error.message ?: "Selected image could not be added.")
+            currentShowAlertAction(
+                aiAttachmentImportAlert(
+                    capability = AccessCapability.PHOTOS,
+                    error = error
+                )
+            )
         }
     }
     val chooseDocumentLauncher = rememberLauncherForActivityResult(
@@ -175,7 +191,12 @@ fun AiRoute(
                 )
             )
         } catch (error: Exception) {
-            currentShowErrorAction(error.message ?: "Selected file could not be added.")
+            currentShowAlertAction(
+                aiAttachmentImportAlert(
+                    capability = AccessCapability.FILES,
+                    error = error
+                )
+            )
         }
     }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
@@ -185,12 +206,7 @@ fun AiRoute(
             return@rememberLauncherForActivityResult
         }
 
-        if (isGranted) {
-            takePictureLauncher.launch(null)
-            return@rememberLauncherForActivityResult
-        }
-
-        val status = resolveAccessStatus(
+        val requestedStatus = resolveAccessStatus(
             activity = activity,
             capability = AccessCapability.CAMERA,
             hasRequestedPermission = hasRequestedAccessPermission(
@@ -198,12 +214,17 @@ fun AiRoute(
                 capability = AccessCapability.CAMERA
             )
         )
-        currentShowErrorAction(
-            accessCapabilityGuidance(
+        when (
+            val result = aiCapabilityPresentationResult(
                 capability = AccessCapability.CAMERA,
-                status = status
+                initialStatus = if (isGranted) AccessStatus.ALLOWED else AccessStatus.ASK_EVERY_TIME,
+                requestedStatus = if (isGranted) AccessStatus.ALLOWED else requestedStatus
             )
-        )
+        ) {
+            AiCapabilityPresentationResult.Present -> takePictureLauncher.launch(null)
+            AiCapabilityPresentationResult.StopSilently -> Unit
+            is AiCapabilityPresentationResult.ShowAlert -> currentShowAlertAction(result.alert)
+        }
     }
     val microphonePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -213,18 +234,7 @@ fun AiRoute(
             return@rememberLauncherForActivityResult
         }
 
-        if (isGranted) {
-            startDictationRecording(
-                dictationRecorder = dictationRecorder,
-                onStartDictationRecording = onStartDictationRecording,
-                onShowErrorMessage = currentShowErrorAction,
-                onCancelDictation = currentCancelDictationAction
-            )
-            return@rememberLauncherForActivityResult
-        }
-
-        currentCancelDictationAction()
-        val status = resolveAccessStatus(
+        val requestedStatus = resolveAccessStatus(
             activity = activity,
             capability = AccessCapability.MICROPHONE,
             hasRequestedPermission = hasRequestedAccessPermission(
@@ -232,12 +242,31 @@ fun AiRoute(
                 capability = AccessCapability.MICROPHONE
             )
         )
-        currentShowErrorAction(
-            accessCapabilityGuidance(
+        when (
+            val result = aiCapabilityPresentationResult(
                 capability = AccessCapability.MICROPHONE,
-                status = status
+                initialStatus = if (isGranted) AccessStatus.ALLOWED else AccessStatus.ASK_EVERY_TIME,
+                requestedStatus = if (isGranted) AccessStatus.ALLOWED else requestedStatus
             )
-        )
+        ) {
+            AiCapabilityPresentationResult.Present -> {
+                startDictationRecording(
+                    dictationRecorder = dictationRecorder,
+                    onStartDictationRecording = onStartDictationRecording,
+                    onShowAlert = currentShowAlertAction,
+                    onCancelDictation = currentCancelDictationAction
+                )
+            }
+
+            AiCapabilityPresentationResult.StopSilently -> {
+                currentCancelDictationAction()
+            }
+
+            is AiCapabilityPresentationResult.ShowAlert -> {
+                currentCancelDictationAction()
+                currentShowAlertAction(result.alert)
+            }
+        }
     }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -360,6 +389,7 @@ fun AiRoute(
                             onStartDictationRecording = onStartDictationRecording,
                             onTranscribeRecordedAudio = onTranscribeRecordedAudio,
                             onCancelDictation = onCancelDictation,
+                            onShowAlert = onShowAlert,
                             onShowErrorMessage = onShowErrorMessage,
                             microphonePermissionLauncher = microphonePermissionLauncher
                         )
@@ -378,6 +408,7 @@ fun AiRoute(
             AiConversation(
                 messages = uiState.messages,
                 currentWorkspaceName = uiState.currentWorkspaceName,
+                isStreaming = uiState.isStreaming,
                 onOpenSignIn = onOpenSignIn,
                 contentPadding = PaddingValues(
                     start = 16.dp,
@@ -414,6 +445,7 @@ fun AiRoute(
                     AttachmentAction.TAKE_PHOTO -> {
                         handleCameraAction(
                             activity = activity,
+                            onShowAlert = onShowAlert,
                             onShowErrorMessage = onShowErrorMessage,
                             takePictureLauncher = takePictureLauncher,
                             cameraPermissionLauncher = cameraPermissionLauncher
@@ -421,15 +453,64 @@ fun AiRoute(
                     }
 
                     AttachmentAction.CHOOSE_PHOTO -> {
-                        choosePhotoLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        handleAttachmentAction(
+                            capability = AccessCapability.PHOTOS,
+                            onShowAlert = onShowAlert,
+                            onPresent = {
+                                choosePhotoLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
                         )
                     }
 
                     AttachmentAction.CHOOSE_FILE -> {
-                        chooseDocumentLauncher.launch(aiChatDocumentPickerMimeTypes())
+                        handleAttachmentAction(
+                            capability = AccessCapability.FILES,
+                            onShowAlert = onShowAlert,
+                            onPresent = {
+                                chooseDocumentLauncher.launch(aiChatDocumentPickerMimeTypes())
+                            }
+                        )
                     }
                 }
+            }
+        )
+    }
+
+    uiState.activeAlert?.let { activeAlert ->
+        AlertDialog(
+            onDismissRequest = onDismissAlert,
+            title = {
+                Text(activeAlert.title)
+            },
+            text = {
+                Text(activeAlert.message)
+            },
+            confirmButton = {
+                if (activeAlert.showsSettingsAction) {
+                    TextButton(
+                        onClick = {
+                            onDismissAlert()
+                            openApplicationSettings(context = context)
+                        }
+                    ) {
+                        Text("Open Settings")
+                    }
+                } else {
+                    TextButton(onClick = onDismissAlert) {
+                        Text("OK")
+                    }
+                }
+            },
+            dismissButton = if (activeAlert.showsSettingsAction) {
+                {
+                    TextButton(onClick = onDismissAlert) {
+                        Text("Cancel")
+                    }
+                }
+            } else {
+                null
             }
         )
     }
@@ -486,10 +567,73 @@ private fun ConsentGate(
 private fun AiConversation(
     messages: List<AiChatMessage>,
     currentWorkspaceName: String,
+    isStreaming: Boolean,
     onOpenSignIn: () -> Unit,
     contentPadding: PaddingValues
 ) {
+    val listState = rememberLazyListState()
+    val currentMessages by rememberUpdatedState(messages)
+    val currentStreamingState by rememberUpdatedState(isStreaming)
+
+    val autoScrollKey = remember(messages) {
+        buildString {
+            append(messages.size)
+            val lastMessage = messages.lastOrNull()
+            if (lastMessage != null) {
+                append("|")
+                append(lastMessage.messageId)
+                append("|")
+                append(lastMessage.isError)
+                append("|")
+                append(
+                    lastMessage.content.sumOf { contentPart ->
+                        when (contentPart) {
+                            is AiChatContentPart.Text -> contentPart.text.length
+                            is AiChatContentPart.ToolCall -> contentPart.toolCall.input?.length ?: 0
+                            is AiChatContentPart.Image -> contentPart.base64Data.length
+                            is AiChatContentPart.File -> contentPart.base64Data.length
+                            is AiChatContentPart.AccountUpgradePrompt -> contentPart.message.length
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(autoScrollKey) {
+        val layoutInfo = listState.layoutInfo
+        val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        val scrollState = aiConversationScrollState(
+            totalItemsCount = layoutInfo.totalItemsCount,
+            lastVisibleItemIndex = lastVisibleItemIndex,
+            isUserScrolling = listState.isScrollInProgress,
+            bottomThreshold = 1
+        )
+        if (scrollState.isNearBottom && scrollState.isUserScrolling.not()) {
+            val lastItemIndex = conversationLastItemIndex(messages = messages)
+            listState.animateScrollToItem(index = lastItemIndex)
+        }
+    }
+
+    LaunchedEffect(isStreaming) {
+        while (currentStreamingState) {
+            delay(250L)
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val scrollState = aiConversationScrollState(
+                totalItemsCount = layoutInfo.totalItemsCount,
+                lastVisibleItemIndex = lastVisibleItemIndex,
+                isUserScrolling = listState.isScrollInProgress,
+                bottomThreshold = 1
+            )
+            if (scrollState.isNearBottom && scrollState.isUserScrolling.not()) {
+                listState.animateScrollToItem(index = conversationLastItemIndex(messages = currentMessages))
+            }
+        }
+    }
+
     LazyColumn(
+        state = listState,
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
@@ -640,7 +784,7 @@ private fun ToolCallCard(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 2.dp
     ) {
         Column(
@@ -657,15 +801,68 @@ private fun ToolCallCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             toolCall.input?.let { input ->
-                Text(
-                    text = "Input\n$input",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Text(
+                        text = "Input\n$input",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
             }
             toolCall.output?.let { output ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Text(
+                        text = "Output\n$output",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RepairStatusCard(
+    status: AiChatRepairAttemptStatus
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Repairing AI response",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = status.message,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Attempt ${status.attempt} of ${status.maxAttempts}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            status.toolName?.let { toolName ->
                 Text(
-                    text = "Output\n$output",
-                    style = MaterialTheme.typography.bodySmall
+                    text = "Tool: $toolName",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             }
         }
@@ -794,13 +991,7 @@ private fun AiComposer(
             }
 
             uiState.repairStatus?.let { status ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "${status.message} ${status.attempt}/${status.maxAttempts}",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                RepairStatusCard(status = status)
             }
 
             if (uiState.dictationState != AiChatDictationState.IDLE) {
@@ -872,7 +1063,7 @@ private fun AiComposer(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Send,
+                    imageVector = Icons.AutoMirrored.Outlined.Send,
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1048,6 +1239,7 @@ private fun dictationStatusLabel(
 
 private fun handleCameraAction(
     activity: ComponentActivity?,
+    onShowAlert: (AiAlertState) -> Unit,
     onShowErrorMessage: (String) -> Unit,
     takePictureLauncher: androidx.activity.result.ActivityResultLauncher<Void?>,
     cameraPermissionLauncher: androidx.activity.result.ActivityResultLauncher<String>
@@ -1065,38 +1257,54 @@ private fun handleCameraAction(
             capability = AccessCapability.CAMERA
         )
     )
-    when (status) {
-        AccessStatus.ALLOWED -> {
+    when (
+        val result = aiCapabilityPresentationResult(
+            capability = AccessCapability.CAMERA,
+            initialStatus = status,
+            requestedStatus = null
+        )
+    ) {
+        AiCapabilityPresentationResult.Present -> {
+            if (status == AccessStatus.ASK_EVERY_TIME) {
+                val permission = requireNotNull(
+                    accessCapabilityPermission(capability = AccessCapability.CAMERA)
+                ) {
+                    "Camera permission is unavailable."
+                }
+                markAccessPermissionRequested(
+                    context = activity,
+                    capability = AccessCapability.CAMERA
+                )
+                cameraPermissionLauncher.launch(permission)
+                return
+            }
+
             takePictureLauncher.launch(null)
         }
 
-        AccessStatus.ASK_EVERY_TIME -> {
-            val permission = requireNotNull(
-                accessCapabilityPermission(capability = AccessCapability.CAMERA)
-            ) {
-                "Camera permission is unavailable."
-            }
-            markAccessPermissionRequested(
-                context = activity,
-                capability = AccessCapability.CAMERA
-            )
-            cameraPermissionLauncher.launch(permission)
-        }
+        AiCapabilityPresentationResult.StopSilently -> Unit
 
-        AccessStatus.BLOCKED -> {
-            openApplicationSettings(context = activity)
+        is AiCapabilityPresentationResult.ShowAlert -> {
+            onShowAlert(result.alert)
         }
+    }
+}
 
-        AccessStatus.UNAVAILABLE -> {
-            onShowErrorMessage(
-                accessCapabilityGuidance(
-                    capability = AccessCapability.CAMERA,
-                    status = status
-                )
-            )
-        }
-
-        AccessStatus.SYSTEM_PICKER -> Unit
+private fun handleAttachmentAction(
+    capability: AccessCapability,
+    onShowAlert: (AiAlertState) -> Unit,
+    onPresent: () -> Unit
+) {
+    when (
+        val result = aiCapabilityPresentationResult(
+            capability = capability,
+            initialStatus = AccessStatus.SYSTEM_PICKER,
+            requestedStatus = null
+        )
+    ) {
+        AiCapabilityPresentationResult.Present -> onPresent()
+        AiCapabilityPresentationResult.StopSilently -> Unit
+        is AiCapabilityPresentationResult.ShowAlert -> onShowAlert(result.alert)
     }
 }
 
@@ -1108,6 +1316,7 @@ private fun handleDictationToggle(
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
+    onShowAlert: (AiAlertState) -> Unit,
     onShowErrorMessage: (String) -> Unit,
     microphonePermissionLauncher: androidx.activity.result.ActivityResultLauncher<String>
 ) {
@@ -1122,7 +1331,7 @@ private fun handleDictationToggle(
         } catch (error: Exception) {
             dictationRecorder.cancelRecording()
             onCancelDictation()
-            onShowErrorMessage(error.message ?: "Audio recording could not be finished.")
+            onShowAlert(AiAlertState.GeneralError(message = error.message ?: "Audio recording could not be finished."))
         }
         return
     }
@@ -1141,53 +1350,52 @@ private fun handleDictationToggle(
             capability = AccessCapability.MICROPHONE
         )
     )
-    when (status) {
-        AccessStatus.ALLOWED -> {
+    when (
+        val result = aiCapabilityPresentationResult(
+            capability = AccessCapability.MICROPHONE,
+            initialStatus = status,
+            requestedStatus = null
+        )
+    ) {
+        AiCapabilityPresentationResult.Present -> {
+            if (status == AccessStatus.ASK_EVERY_TIME) {
+                val permission = requireNotNull(
+                    accessCapabilityPermission(capability = AccessCapability.MICROPHONE)
+                ) {
+                    "Microphone permission is unavailable."
+                }
+                onStartDictationPermissionRequest()
+                markAccessPermissionRequested(
+                    context = activity,
+                    capability = AccessCapability.MICROPHONE
+                )
+                microphonePermissionLauncher.launch(permission)
+                return
+            }
+
             startDictationRecording(
                 dictationRecorder = dictationRecorder,
                 onStartDictationRecording = onStartDictationRecording,
-                onShowErrorMessage = onShowErrorMessage,
+                onShowAlert = onShowAlert,
                 onCancelDictation = onCancelDictation
             )
         }
 
-        AccessStatus.ASK_EVERY_TIME -> {
-            val permission = requireNotNull(
-                accessCapabilityPermission(capability = AccessCapability.MICROPHONE)
-            ) {
-                "Microphone permission is unavailable."
-            }
-            onStartDictationPermissionRequest()
-            markAccessPermissionRequested(
-                context = activity,
-                capability = AccessCapability.MICROPHONE
-            )
-            microphonePermissionLauncher.launch(permission)
-        }
-
-        AccessStatus.BLOCKED -> {
-            openApplicationSettings(context = activity)
+        AiCapabilityPresentationResult.StopSilently -> {
             onCancelDictation()
         }
 
-        AccessStatus.UNAVAILABLE -> {
-            onShowErrorMessage(
-                accessCapabilityGuidance(
-                    capability = AccessCapability.MICROPHONE,
-                    status = status
-                )
-            )
+        is AiCapabilityPresentationResult.ShowAlert -> {
             onCancelDictation()
+            onShowAlert(result.alert)
         }
-
-        AccessStatus.SYSTEM_PICKER -> Unit
     }
 }
 
 private fun startDictationRecording(
     dictationRecorder: AndroidAiChatDictationRecorder,
     onStartDictationRecording: () -> Unit,
-    onShowErrorMessage: (String) -> Unit,
+    onShowAlert: (AiAlertState) -> Unit,
     onCancelDictation: () -> Unit
 ) {
     try {
@@ -1196,6 +1404,16 @@ private fun startDictationRecording(
     } catch (error: Exception) {
         dictationRecorder.cancelRecording()
         onCancelDictation()
-        onShowErrorMessage(error.message ?: "Audio recording could not be started.")
+        onShowAlert(AiAlertState.GeneralError(message = error.message ?: "Audio recording could not be started."))
+    }
+}
+
+private fun conversationLastItemIndex(
+    messages: List<AiChatMessage>
+): Int {
+    return if (messages.isEmpty()) {
+        1
+    } else {
+        messages.size
     }
 }

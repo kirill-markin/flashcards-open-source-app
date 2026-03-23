@@ -93,6 +93,46 @@ class AiViewModelTest {
     }
 
     @Test
+    fun sendFailureNormalizesAvailabilityMessageForOfficialServer() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            streamHandler = { _, _, _ ->
+                throw AiChatRemoteException(
+                    message = "Provider unavailable",
+                    statusCode = 503,
+                    code = "LOCAL_CHAT_UNAVAILABLE",
+                    stage = "response_not_ok",
+                    requestId = "request-availability-1",
+                    responseBody = null
+                )
+            }
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED,
+                serverConfigurationMode = CloudServiceConfigurationMode.OFFICIAL
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.updateDraftMessage("Summarize")
+        advanceUntilIdle()
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        val expectedMessage =
+            "AI is temporarily unavailable on the official server. Try again later. Request ID: request-availability-1"
+        assertEquals(expectedMessage, viewModel.uiState.value.errorMessage)
+        val assistantMessage = viewModel.uiState.value.messages.last()
+        val textPart = assistantMessage.content.filterIsInstance<AiChatContentPart.Text>().last()
+        assertEquals(expectedMessage, textPart.text)
+        collectionJob.cancel()
+    }
+
+    @Test
     fun guestModeLocksSelectedModelToDefault() = runTest(dispatcher) {
         val aiChatRepository = FakeAiChatRepository(
             hasConsent = true,
@@ -250,10 +290,10 @@ class AiViewModelTest {
         viewModel.sendMessage()
         advanceUntilIdle()
 
-        assertEquals("Network failed.", viewModel.uiState.value.errorMessage)
+        assertEquals("Network failed. Request ID: request-2", viewModel.uiState.value.errorMessage)
         val assistantMessage = viewModel.uiState.value.messages.last()
         val textPart = assistantMessage.content.filterIsInstance<AiChatContentPart.Text>().last()
-        assertEquals("Network failed.", textPart.text)
+        assertEquals("Network failed. Request ID: request-2", textPart.text)
         assertTrue(assistantMessage.isError)
         collectionJob.cancel()
     }
@@ -341,6 +381,47 @@ class AiViewModelTest {
     }
 
     @Test
+    fun transcriptionFailureShowsNormalizedAlert() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            transcriptionError = AiChatRemoteException(
+                message = "Dictation unavailable",
+                statusCode = 503,
+                code = "CHAT_TRANSCRIPTION_UNAVAILABLE",
+                stage = "response_not_ok",
+                requestId = "request-dictation-1",
+                responseBody = null
+            )
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED,
+                serverConfigurationMode = CloudServiceConfigurationMode.OFFICIAL
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.startDictationRecording()
+        viewModel.transcribeRecordedAudio(
+            fileName = "chat-dictation.m4a",
+            mediaType = "audio/mp4",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        advanceUntilIdle()
+
+        val activeAlert = viewModel.uiState.value.activeAlert as AiAlertState.GeneralError
+        assertEquals(
+            "AI dictation is temporarily unavailable on the official server. Try again later. Request ID: request-dictation-1",
+            activeAlert.message
+        )
+        assertEquals(AiChatDictationState.IDLE, viewModel.uiState.value.dictationState)
+        collectionJob.cancel()
+    }
+
+    @Test
     fun warmUpRunsOnlyForLinkedAccountsWithConsent() = runTest(dispatcher) {
         val aiChatRepository = FakeAiChatRepository(hasConsent = true)
         val linkedViewModel = AiViewModel(
@@ -358,6 +439,41 @@ class AiViewModelTest {
 
         assertEquals(1, aiChatRepository.warmUpCalls)
         linkedCollectionJob.cancel()
+    }
+
+    @Test
+    fun warmUpFailureShowsGeneralAlert() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            warmUpError = AiChatRemoteException(
+                message = "Warm-up failed",
+                statusCode = 503,
+                code = "LOCAL_CHAT_UNAVAILABLE",
+                stage = "response_not_ok",
+                requestId = "request-warmup-1",
+                responseBody = null
+            )
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED,
+                serverConfigurationMode = CloudServiceConfigurationMode.CUSTOM
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.warmUpLinkedSessionIfNeeded()
+        advanceUntilIdle()
+
+        val activeAlert = viewModel.uiState.value.activeAlert as AiAlertState.GeneralError
+        assertEquals(
+            "AI is unavailable on this server. Contact the server operator. Request ID: request-warmup-1",
+            activeAlert.message
+        )
+        collectionJob.cancel()
     }
 
     @Test
@@ -417,6 +533,8 @@ private class FakeAiChatRepository(
     hasConsent: Boolean,
     persistedState: AiChatPersistedState = makeDefaultAiChatPersistedState(),
     private val transcriptionText: String = "",
+    private val transcriptionError: Exception? = null,
+    private val warmUpError: Exception? = null,
     private val streamHandler: suspend (
         String?,
         AiChatPersistedState,
@@ -468,10 +586,16 @@ private class FakeAiChatRepository(
         mediaType: String,
         audioBytes: ByteArray
     ): String {
+        transcriptionError?.let { error ->
+            throw error
+        }
         return transcriptionText
     }
 
     override suspend fun warmUpLinkedSession() {
+        warmUpError?.let { error ->
+            throw error
+        }
         warmUpCalls += 1
     }
 
@@ -545,7 +669,8 @@ private class FakeWorkspaceRepository : WorkspaceRepository {
 }
 
 private class FakeCloudAccountRepository(
-    cloudState: CloudAccountState = CloudAccountState.DISCONNECTED
+    cloudState: CloudAccountState = CloudAccountState.DISCONNECTED,
+    private val serverConfigurationMode: CloudServiceConfigurationMode = CloudServiceConfigurationMode.OFFICIAL
 ) : CloudAccountRepository {
     private val cloudSettingsFlow = MutableStateFlow(
         CloudSettings(
@@ -571,8 +696,12 @@ private class FakeCloudAccountRepository(
     override fun observeServerConfiguration(): Flow<CloudServiceConfiguration> {
         return flowOf(
             CloudServiceConfiguration(
-                mode = CloudServiceConfigurationMode.OFFICIAL,
-                customOrigin = null,
+                mode = serverConfigurationMode,
+                customOrigin = if (serverConfigurationMode == CloudServiceConfigurationMode.CUSTOM) {
+                    "https://custom.example.com"
+                } else {
+                    null
+                },
                 apiBaseUrl = "https://api.example.com/v1",
                 authBaseUrl = "https://auth.example.com"
             )
@@ -643,8 +772,12 @@ private class FakeCloudAccountRepository(
 
     override suspend fun currentServerConfiguration(): CloudServiceConfiguration {
         return CloudServiceConfiguration(
-            mode = CloudServiceConfigurationMode.OFFICIAL,
-            customOrigin = null,
+            mode = serverConfigurationMode,
+            customOrigin = if (serverConfigurationMode == CloudServiceConfigurationMode.CUSTOM) {
+                "https://custom.example.com"
+            } else {
+                null
+            },
             apiBaseUrl = "https://api.example.com/v1",
             authBaseUrl = "https://auth.example.com"
         )

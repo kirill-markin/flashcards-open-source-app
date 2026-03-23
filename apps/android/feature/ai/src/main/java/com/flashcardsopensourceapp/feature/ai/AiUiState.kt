@@ -21,5 +21,6 @@ data class AiUiState(
     val canStartNewChat: Boolean,
     val isModelPickerEnabled: Boolean,
     val repairStatus: AiChatRepairAttemptStatus?,
+    val activeAlert: AiAlertState?,
     val errorMessage: String
 )
