@@ -59,6 +59,9 @@ fun ReviewRoute(
     onOpenPreview: () -> Unit,
     onOpenCurrentCard: (String) -> Unit,
     onOpenDeckManagement: () -> Unit,
+    onCreateCard: () -> Unit,
+    onCreateCardWithAi: () -> Unit,
+    onSwitchToAllCards: () -> Unit,
     onRevealAnswer: () -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
@@ -126,6 +129,9 @@ fun ReviewRoute(
         ReviewContent(
             uiState = uiState,
             onOpenCurrentCard = onOpenCurrentCard,
+            onCreateCard = onCreateCard,
+            onCreateCardWithAi = onCreateCardWithAi,
+            onSwitchToAllCards = onSwitchToAllCards,
             onRevealAnswer = onRevealAnswer,
             onRateAgain = onRateAgain,
             onRateHard = onRateHard,
@@ -164,6 +170,9 @@ fun ReviewRoute(
 private fun ReviewContent(
     uiState: ReviewUiState,
     onOpenCurrentCard: (String) -> Unit,
+    onCreateCard: () -> Unit,
+    onCreateCardWithAi: () -> Unit,
+    onSwitchToAllCards: () -> Unit,
     onRevealAnswer: () -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
@@ -215,26 +224,16 @@ private fun ReviewContent(
                     )
                 }
 
-                uiState.totalCount == 0 && uiState.selectedFilter == ReviewFilter.AllCards -> {
-                    EmptyReviewState(
-                        title = "No cards yet",
-                        body = "Create cards in the Cards tab to start reviewing on Android."
+                uiState.emptyState != null -> {
+                    ActionableEmptyReviewState(
+                        emptyState = uiState.emptyState,
+                        onCreateCard = onCreateCard,
+                        onCreateCardWithAi = onCreateCardWithAi,
+                        onSwitchToAllCards = onSwitchToAllCards
                     )
                 }
 
-                uiState.totalCount == 0 -> {
-                    EmptyReviewState(
-                        title = "No cards in this filter",
-                        body = "This review filter does not include any cards yet."
-                    )
-                }
-
-                else -> {
-                    EmptyReviewState(
-                        title = "Session complete",
-                        body = "No more cards are left in this study pass."
-                    )
-                }
+                else -> Unit
             }
         }
     }
@@ -283,10 +282,26 @@ private fun ReviewSessionSummary(
 }
 
 @Composable
-private fun EmptyReviewState(title: String, body: String) {
+private fun ActionableEmptyReviewState(
+    emptyState: ReviewEmptyState,
+    onCreateCard: () -> Unit,
+    onCreateCardWithAi: () -> Unit,
+    onSwitchToAllCards: () -> Unit
+) {
+    val title = when (emptyState) {
+        ReviewEmptyState.NO_CARDS_YET -> "No cards yet"
+        ReviewEmptyState.FILTER_EMPTY -> "No cards in this filter"
+        ReviewEmptyState.SESSION_COMPLETE -> "Session complete"
+    }
+    val body = when (emptyState) {
+        ReviewEmptyState.NO_CARDS_YET -> "Create your first card to start studying on Android."
+        ReviewEmptyState.FILTER_EMPTY -> "This review filter has nothing due right now. You can switch back to all cards or create something new."
+        ReviewEmptyState.SESSION_COMPLETE -> "No more cards are left in this study pass. Add more material to keep going."
+    }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
@@ -298,6 +313,26 @@ private fun EmptyReviewState(title: String, body: String) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            OutlinedButton(
+                onClick = onCreateCard,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Create card")
+            }
+            Button(
+                onClick = onCreateCardWithAi,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Create with AI")
+            }
+            if (emptyState == ReviewEmptyState.FILTER_EMPTY) {
+                TextButton(
+                    onClick = onSwitchToAllCards,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Switch to all cards")
+                }
+            }
         }
     }
 }
@@ -568,6 +603,26 @@ private fun ReviewFilterOptionRow(
     )
 }
 
+@Composable
+private fun StaticEmptyReviewState(title: String, body: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewPreviewRoute(
@@ -630,7 +685,7 @@ fun ReviewPreviewRoute(
                 }
             } else if (uiState.previewItems.isEmpty()) {
                 item {
-                    EmptyReviewState(
+                    StaticEmptyReviewState(
                         title = "No cards in preview",
                         body = "This review filter does not have any cards to show right now."
                     )

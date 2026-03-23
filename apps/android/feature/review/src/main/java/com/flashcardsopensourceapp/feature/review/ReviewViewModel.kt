@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,7 +46,8 @@ private data class ReviewDraftState(
 class ReviewViewModel(
     private val reviewRepository: ReviewRepository,
     private val syncRepository: SyncRepository,
-    private val messageController: TransientMessageController
+    private val messageController: TransientMessageController,
+    workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = ReviewDraftState(
@@ -83,6 +85,18 @@ class ReviewViewModel(
             lastErrorMessage = ""
         )
     )
+    private val appMetadataState = workspaceRepository.observeAppMetadata().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = com.flashcardsopensourceapp.data.local.model.AppMetadataSummary(
+            currentWorkspaceName = "Loading...",
+            workspaceName = "Loading...",
+            deckCount = 0,
+            cardCount = 0,
+            localStorageLabel = "Room + SQLite",
+            syncStatusText = "Loading..."
+        )
+    )
 
     private var previousSyncStatus: SyncStatus = SyncStatus.Idle
     private var reviewCardIdsAtSyncStart: List<String>? = null
@@ -90,8 +104,9 @@ class ReviewViewModel(
 
     val uiState: StateFlow<ReviewUiState> = combine(
         reviewSessionState,
-        draftState
-    ) { sessionSnapshot, state ->
+        draftState,
+        appMetadataState
+    ) { sessionSnapshot, state, appMetadata ->
         val sessionCurrentCard = sessionSnapshot.cards.firstOrNull()
         val sessionPreparedCurrentCard = sessionCurrentCard?.let { card ->
             prepareReviewCardPresentation(
@@ -117,6 +132,11 @@ class ReviewViewModel(
         } else {
             null
         }
+        val emptyState = resolveReviewEmptyState(
+            selectedFilter = sessionSnapshot.selectedFilter,
+            totalCount = sessionSnapshot.totalCount,
+            workspaceCardCount = appMetadata.cardCount
+        )
 
         ReviewUiState(
             isLoading = sessionSnapshot.isLoading,
@@ -137,6 +157,7 @@ class ReviewViewModel(
                 currentCardId = currentPreparedCard?.card?.cardId
             ),
             hasMorePreviewCards = state.hasMorePreviewCards,
+            emptyState = emptyState,
             previewErrorMessage = state.previewErrorMessage,
             errorMessage = state.errorMessage
         )
@@ -159,6 +180,7 @@ class ReviewViewModel(
             isPreviewLoading = false,
             previewItems = emptyList(),
             hasMorePreviewCards = true,
+            emptyState = null,
             previewErrorMessage = "",
             errorMessage = ""
         )
@@ -407,16 +429,38 @@ class ReviewViewModel(
 fun createReviewViewModelFactory(
     reviewRepository: ReviewRepository,
     syncRepository: SyncRepository,
-    messageController: TransientMessageController
+    messageController: TransientMessageController,
+    workspaceRepository: WorkspaceRepository
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             ReviewViewModel(
                 reviewRepository = reviewRepository,
                 syncRepository = syncRepository,
-                messageController = messageController
+                messageController = messageController,
+                workspaceRepository = workspaceRepository
             )
         }
+    }
+}
+
+private fun resolveReviewEmptyState(
+    selectedFilter: ReviewFilter,
+    totalCount: Int,
+    workspaceCardCount: Int
+): ReviewEmptyState? {
+    if (totalCount > 0) {
+        return null
+    }
+
+    if (workspaceCardCount == 0) {
+        return ReviewEmptyState.NO_CARDS_YET
+    }
+
+    return if (selectedFilter == ReviewFilter.AllCards) {
+        ReviewEmptyState.SESSION_COMPLETE
+    } else {
+        ReviewEmptyState.FILTER_EMPTY
     }
 }
 

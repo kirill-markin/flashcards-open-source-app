@@ -339,6 +339,20 @@ class AiViewModel(
         }
     }
 
+    fun applyEntryPrefill(prefill: AiEntryPrefill) {
+        val currentState = draftState.value
+        if (currentState.isStreaming || currentState.dictationState != AiChatDictationState.IDLE) {
+            return
+        }
+
+        draftState.update { state ->
+            state.copy(
+                draftMessage = aiEntryPrefillPrompt(prefill = prefill),
+                errorMessage = ""
+            )
+        }
+    }
+
     fun showErrorMessage(message: String) {
         draftState.update { state ->
             state.copy(errorMessage = message)

@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.createAiViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
@@ -71,6 +72,7 @@ import com.flashcardsopensourceapp.feature.settings.createWorkspaceOverviewViewM
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceExportViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceTagsViewModelFactory
+import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -104,7 +106,8 @@ fun AppNavHost(
                 factory = createReviewViewModelFactory(
                     reviewRepository = appGraph.reviewRepository,
                     syncRepository = appGraph.syncRepository,
-                    messageController = appGraph.appMessageBus
+                    messageController = appGraph.appMessageBus,
+                    workspaceRepository = appGraph.workspaceRepository
                 )
             )
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
@@ -120,6 +123,19 @@ fun AppNavHost(
                 },
                 onOpenDeckManagement = {
                     navController.navigate(route = SettingsWorkspaceDecksDestination.route)
+                },
+                onCreateCard = {
+                    navController.navigate(route = CardEditorDestination.createRoute(cardId = "new"))
+                },
+                onCreateCardWithAi = {
+                    appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = AiEntryPrefill.CREATE_CARD)
+                    navigateToTopLevelDestination(
+                        navController = navController,
+                        destination = AiDestination
+                    )
+                },
+                onSwitchToAllCards = {
+                    reviewViewModel.selectFilter(reviewFilter = ReviewFilter.AllCards)
                 },
                 onRevealAnswer = reviewViewModel::revealAnswer,
                 onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.AGAIN) },
@@ -141,7 +157,8 @@ fun AppNavHost(
                 factory = createReviewViewModelFactory(
                     reviewRepository = appGraph.reviewRepository,
                     syncRepository = appGraph.syncRepository,
-                    messageController = appGraph.appMessageBus
+                    messageController = appGraph.appMessageBus,
+                    workspaceRepository = appGraph.workspaceRepository
                 )
             )
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
@@ -361,6 +378,13 @@ fun AppNavHost(
                 )
             )
             val uiState by aiViewModel.uiState.collectAsStateWithLifecycle()
+            val entryPrefillRequest by appGraph.appHandoffCoordinator.observeAiEntryPrefill().collectAsStateWithLifecycle()
+
+            LaunchedEffect(entryPrefillRequest?.requestId) {
+                val request = entryPrefillRequest ?: return@LaunchedEffect
+                aiViewModel.applyEntryPrefill(prefill = request.prefill)
+                appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
+            }
 
             AiRoute(
                 uiState = uiState,
