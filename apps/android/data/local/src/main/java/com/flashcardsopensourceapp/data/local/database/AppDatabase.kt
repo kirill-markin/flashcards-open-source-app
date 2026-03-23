@@ -38,6 +38,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun syncStateDao(): SyncStateDao
 }
 
+fun closeAppDatabase(database: AppDatabase) {
+    database.close()
+}
+
 fun buildAppDatabase(context: Context): AppDatabase {
     return Room.databaseBuilder(
         context = context,
