@@ -53,6 +53,7 @@ data class WorkspaceOverviewUiState(
     val isSavingName: Boolean,
     val isDeletePreviewLoading: Boolean,
     val isDeletingWorkspace: Boolean,
+    val deleteState: DestructiveActionState,
     val errorMessage: String,
     val successMessage: String,
     val deleteConfirmationText: String,

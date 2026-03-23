@@ -144,6 +144,10 @@ data object SettingsAccountSignInCodeDestination {
     const val route: String = "settings/account/sign-in/code"
 }
 
+data object SettingsAccountPostAuthDestination {
+    const val route: String = "settings/account/sign-in/post-auth"
+}
+
 data object SettingsAccountLegalSupportDestination {
     const val route: String = "settings/account/legal-support"
 }

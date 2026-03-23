@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.di
 
 import android.content.Context
+import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
@@ -29,6 +30,7 @@ import com.flashcardsopensourceapp.data.local.seed.DemoDataSeeder
 class AppGraph(
     context: Context
 ) {
+    val appMessageBus = AppMessageBus()
     val database: AppDatabase = buildAppDatabase(context = context)
     private val cloudPreferencesStore = CloudPreferencesStore(context = context)
     private val cloudRemoteService = CloudRemoteService()
