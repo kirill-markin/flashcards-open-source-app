@@ -1,10 +1,12 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteService
+import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
@@ -32,19 +34,44 @@ import org.json.JSONObject
 
 private const val syncPullPageLimit: Int = 200
 private const val bootstrapPageLimit: Int = 200
+private const val accountDeletionConfirmationTextForCloudApi: String = "delete my account"
 
 class LocalCloudAccountRepository(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
-    private val remoteService: CloudRemoteService,
-    private val syncLocalStore: SyncLocalStore
+    private val remoteService: CloudRemoteGateway,
+    private val syncLocalStore: SyncLocalStore,
+    private val resetCoordinator: CloudIdentityResetCoordinator
 ) : CloudAccountRepository {
+    private var isAccountDeletionRunning: Boolean = false
+
     override fun observeCloudSettings(): Flow<CloudSettings> {
         return preferencesStore.observeCloudSettings()
     }
 
+    override fun observeAccountDeletionState(): Flow<AccountDeletionState> {
+        return preferencesStore.observeAccountDeletionState()
+    }
+
     override fun observeServerConfiguration(): Flow<CloudServiceConfiguration> {
         return preferencesStore.observeServerConfiguration()
+    }
+
+    override suspend fun beginAccountDeletion() {
+        preferencesStore.markAccountDeletionInProgress()
+        runAccountDeletion()
+    }
+
+    override suspend fun resumePendingAccountDeletionIfNeeded() {
+        if (preferencesStore.currentAccountDeletionState() == AccountDeletionState.Hidden) {
+            return
+        }
+        runAccountDeletion()
+    }
+
+    override suspend fun retryPendingAccountDeletion() {
+        preferencesStore.markAccountDeletionInProgress()
+        runAccountDeletion()
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {
@@ -76,14 +103,7 @@ class LocalCloudAccountRepository(
     }
 
     override suspend fun logout() {
-        preferencesStore.clearCredentials()
-        preferencesStore.updateCloudSettings(
-            cloudState = CloudAccountState.DISCONNECTED,
-            linkedUserId = null,
-            linkedWorkspaceId = null,
-            linkedEmail = null,
-            activeWorkspaceId = database.workspaceDao().loadWorkspace()?.workspaceId
-        )
+        resetCoordinator.resetLocalStateForCloudIdentityChange()
     }
 
     override suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary {
@@ -154,12 +174,20 @@ class LocalCloudAccountRepository(
 
     override suspend fun deleteAccount(confirmationText: String) {
         val authenticatedSession = authenticatedSession()
-        remoteService.deleteAccount(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken,
-            confirmationText = confirmationText
-        )
-        logout()
+        try {
+            remoteService.deleteAccount(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                bearerToken = authenticatedSession.credentials.idToken,
+                confirmationText = confirmationText
+            )
+        } catch (error: Exception) {
+            if (isRemoteAccountDeletedError(error = error)) {
+                resetCoordinator.resetLocalStateForCloudIdentityChange()
+                return
+            }
+            throw error
+        }
+        resetCoordinator.resetLocalStateForCloudIdentityChange()
     }
 
     override suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary> {
@@ -250,40 +278,84 @@ class LocalCloudAccountRepository(
 
     override suspend fun applyCustomServer(configuration: CloudServiceConfiguration) {
         preferencesStore.applyCustomServer(configuration)
-        logout()
+        resetCoordinator.resetLocalStateForCloudIdentityChange()
     }
 
     override suspend fun resetToOfficialServer() {
         preferencesStore.resetToOfficialServer()
-        logout()
+        resetCoordinator.resetLocalStateForCloudIdentityChange()
+    }
+
+    private suspend fun runAccountDeletion() {
+        if (isAccountDeletionRunning) {
+            return
+        }
+
+        isAccountDeletionRunning = true
+        try {
+            val authenticatedSession = authenticatedSession()
+            try {
+                remoteService.deleteAccount(
+                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                    bearerToken = authenticatedSession.credentials.idToken,
+                    confirmationText = accountDeletionConfirmationTextForCloudApi
+                )
+            } catch (error: Exception) {
+                if (isRemoteAccountDeletedError(error = error).not()) {
+                    preferencesStore.markAccountDeletionFailed(
+                        message = error.message ?: "Account deletion failed."
+                    )
+                    return
+                }
+            }
+            resetCoordinator.resetLocalStateForCloudIdentityChange()
+        } catch (error: Exception) {
+            if (isRemoteAccountDeletedError(error = error)) {
+                resetCoordinator.resetLocalStateForCloudIdentityChange()
+                return
+            }
+            preferencesStore.markAccountDeletionFailed(
+                message = error.message ?: "Account deletion failed."
+            )
+        } finally {
+            isAccountDeletionRunning = false
+        }
     }
 
     private suspend fun authenticatedSession(): AuthenticatedCloudSession {
-        val configuration = preferencesStore.currentServerConfiguration()
-        val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
-            "Cloud account is not signed in."
-        }
+        try {
+            val configuration = preferencesStore.currentServerConfiguration()
+            val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
+                "Cloud account is not signed in."
+            }
 
-        val refreshedCredentials = if (
-            shouldRefreshCloudIdToken(
-                idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                nowMillis = System.currentTimeMillis()
+            val refreshedCredentials = if (
+                shouldRefreshCloudIdToken(
+                    idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
+                    nowMillis = System.currentTimeMillis()
+                )
+            ) {
+                remoteService.refreshIdToken(
+                    refreshToken = storedCredentials.refreshToken,
+                    authBaseUrl = configuration.authBaseUrl
+                ).also(preferencesStore::saveCredentials)
+            } else {
+                storedCredentials
+            }
+            val accountSnapshot = fetchCloudAccount(refreshedCredentials, configuration)
+
+            return AuthenticatedCloudSession(
+                configuration = configuration,
+                credentials = refreshedCredentials,
+                accountSnapshot = accountSnapshot
             )
-        ) {
-            remoteService.refreshIdToken(
-                refreshToken = storedCredentials.refreshToken,
-                authBaseUrl = configuration.authBaseUrl
-            ).also(preferencesStore::saveCredentials)
-        } else {
-            storedCredentials
+        } catch (error: Exception) {
+            if (isRemoteAccountDeletedError(error = error)) {
+                resetCoordinator.resetLocalStateForCloudIdentityChange()
+                throw IllegalStateException("Your account has already been deleted.")
+            }
+            throw error
         }
-        val accountSnapshot = fetchCloudAccount(refreshedCredentials, configuration)
-
-        return AuthenticatedCloudSession(
-            configuration = configuration,
-            credentials = refreshedCredentials,
-            accountSnapshot = accountSnapshot
-        )
     }
 
     private fun fetchCloudAccount(
@@ -300,8 +372,9 @@ class LocalCloudAccountRepository(
 class LocalSyncRepository(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
-    private val remoteService: CloudRemoteService,
-    private val syncLocalStore: SyncLocalStore
+    private val remoteService: CloudRemoteGateway,
+    private val syncLocalStore: SyncLocalStore,
+    private val resetCoordinator: CloudIdentityResetCoordinator
 ) : SyncRepository {
     private val syncStatusState = MutableStateFlow(
         SyncStatusSnapshot(
@@ -320,6 +393,9 @@ class LocalSyncRepository(
     }
 
     override suspend fun syncNow() {
+        if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) {
+            return
+        }
         val cloudSettings = preferencesStore.currentCloudSettings()
         require(cloudSettings.cloudState == CloudAccountState.LINKED) {
             "Cloud sync requires a linked cloud account."
@@ -514,6 +590,15 @@ class LocalSyncRepository(
                 lastErrorMessage = ""
             )
         } catch (error: Exception) {
+            if (isRemoteAccountDeletedError(error = error)) {
+                resetCoordinator.resetLocalStateForCloudIdentityChange()
+                syncStatusState.value = SyncStatusSnapshot(
+                    status = SyncStatus.Idle,
+                    lastSuccessfulSyncAtMillis = null,
+                    lastErrorMessage = ""
+                )
+                return
+            }
             syncLocalStore.markSyncFailure(workspaceId, error.message ?: "Cloud sync failed.")
             syncStatusState.value = SyncStatusSnapshot(
                 status = SyncStatus.Failed(error.message ?: "Cloud sync failed."),
@@ -552,6 +637,12 @@ class LocalSyncRepository(
             accountSnapshot = accountSnapshot
         )
     }
+}
+
+private fun isRemoteAccountDeletedError(error: Exception): Boolean {
+    return error is CloudRemoteException
+        && error.statusCode == 410
+        && error.errorCode == "ACCOUNT_DELETED"
 }
 
 private data class AuthenticatedCloudSession(

@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.buildAppDatabase
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
+import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalAiChatRepository
@@ -40,22 +41,33 @@ class AppGraph(
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     private val aiChatRemoteService = AiChatRemoteService()
+    private val demoDataSeeder = DemoDataSeeder(database = database)
     private val syncLocalStore = SyncLocalStore(
         database = database,
         preferencesStore = cloudPreferencesStore
+    )
+    private val cloudIdentityResetCoordinator = CloudIdentityResetCoordinator(
+        database = database,
+        cloudPreferencesStore = cloudPreferencesStore,
+        aiChatPreferencesStore = aiChatPreferencesStore,
+        aiChatHistoryStore = aiChatHistoryStore,
+        guestAiSessionStore = guestAiSessionStore,
+        demoDataSeeder = demoDataSeeder
     )
 
     val cloudAccountRepository: CloudAccountRepository = LocalCloudAccountRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
-        syncLocalStore = syncLocalStore
+        syncLocalStore = syncLocalStore,
+        resetCoordinator = cloudIdentityResetCoordinator
     )
     val syncRepository: SyncRepository = LocalSyncRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
-        syncLocalStore = syncLocalStore
+        syncLocalStore = syncLocalStore,
+        resetCoordinator = cloudIdentityResetCoordinator
     )
     val cardsRepository: CardsRepository = LocalCardsRepository(
         database = database,
@@ -84,8 +96,6 @@ class AppGraph(
         aiChatPreferencesStore = aiChatPreferencesStore,
         guestSessionStore = guestAiSessionStore
     )
-
-    private val demoDataSeeder = DemoDataSeeder(database = database)
 
     suspend fun seedDemoDataIfNeeded(currentTimeMillis: Long) {
         demoDataSeeder.seedIfNeeded(currentTimeMillis = currentTimeMillis)

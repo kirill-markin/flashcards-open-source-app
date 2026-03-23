@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import android.content.Context
+import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -39,13 +40,21 @@ class AiChatHistoryStore(
 
     suspend fun saveState(workspaceId: String?, state: AiChatPersistedState) = withContext(Dispatchers.IO) {
         val trimmedState = state.copy(messages = state.messages.takeLast(aiChatMaxMessages))
-        preferences.edit()
-            .putString(storageKey(workspaceId = workspaceId), encodeState(state = trimmedState).toString())
-            .apply()
+        preferences.edit(commit = true) {
+            putString(storageKey(workspaceId = workspaceId), encodeState(state = trimmedState).toString())
+        }
     }
 
     suspend fun clearState(workspaceId: String?) = withContext(Dispatchers.IO) {
-        preferences.edit().remove(storageKey(workspaceId = workspaceId)).apply()
+        preferences.edit(commit = true) {
+            remove(storageKey(workspaceId = workspaceId))
+        }
+    }
+
+    suspend fun clearAllState() = withContext(Dispatchers.IO) {
+        preferences.edit(commit = true) {
+            clear()
+        }
     }
 
     private fun storageKey(workspaceId: String?): String {

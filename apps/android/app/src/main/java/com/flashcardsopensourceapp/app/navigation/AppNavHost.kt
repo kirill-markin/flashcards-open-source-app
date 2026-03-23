@@ -960,12 +960,7 @@ fun AppNavHost(
                 onConfirmationTextChange = accountDangerZoneViewModel::updateConfirmationText,
                 onDeleteAccount = {
                     coroutineScope.launch {
-                        val didDelete = accountDangerZoneViewModel.deleteAccount()
-                        if (didDelete) {
-                            appGraph.appMessageBus.showMessage(
-                                message = "Account deleted. This device is now disconnected."
-                            )
-                        }
+                        accountDangerZoneViewModel.deleteAccount()
                     }
                 }
             )
