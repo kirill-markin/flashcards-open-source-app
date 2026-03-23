@@ -91,7 +91,6 @@ import com.flashcardsopensourceapp.data.local.model.AiChatModelOption
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.AccessStatus
@@ -907,18 +906,17 @@ private fun ToolCallCard(
             ListItem(
                 headlineContent = {
                     Text(
-                        text = toolCall.name,
+                        text = formatAiToolCallSummaryText(
+                            name = toolCall.name,
+                            input = toolCall.input
+                        ),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
                 },
                 supportingContent = {
                     Text(
-                        text = if (toolCall.status == AiChatToolCallStatus.STARTED) {
-                            "Running"
-                        } else {
-                            "Completed"
-                        },
+                        text = formatAiToolCallStatus(status = toolCall.status),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },

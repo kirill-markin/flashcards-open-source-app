@@ -5,8 +5,9 @@ import type { StoredMessage } from "./useChatHistory";
  * Maps machine-oriented tool names into short user-facing labels while keeping
  * unsupported or future tool names visible instead of dropping them.
  *
- * Mirror:
- * `apps/ios/Flashcards/Flashcards/AI/AIChatView.swift::aiChatToolLabel`
+ * Mirrors:
+ * - `apps/ios/Flashcards/Flashcards/AI/AIChatToolPresentation.swift::aiChatToolLabel`
+ * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiToolCallPresentation.kt::formatAiToolLabel`
  */
 export function formatToolLabel(name: string): string {
   if (name === "sql") return "SQL";
@@ -16,8 +17,9 @@ export function formatToolLabel(name: string): string {
 }
 
 /**
- * Mirror:
- * `apps/ios/Flashcards/Flashcards/AI/AIChatView.swift::aiChatToolPreview`
+ * Mirrors:
+ * - `apps/ios/Flashcards/Flashcards/AI/AIChatToolPresentation.swift::aiChatToolPreview`
+ * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiToolCallPresentation.kt::formatAiToolCallPreview`
  */
 function extractToolCallPreview(name: string, input: string | null): string | null {
   if (input === null || input.trim() === "") {

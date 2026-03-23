@@ -13,8 +13,9 @@ struct AIChatToolSection: Hashable, Sendable, Identifiable {
  Mirrors:
  - `apps/web/src/chat/chatMessageContent.tsx::formatToolLabel`
  - `apps/web/src/chat/chatMessageContent.tsx::extractToolCallPreview`
+ - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiToolCallPresentation.kt`
 
- Keep user-facing tool labels aligned across web and iOS chat UIs.
+ Keep user-facing tool labels aligned across web, iOS, and Android chat UIs.
  */
 func aiChatToolLabel(name: String) -> String {
     switch name {
@@ -25,7 +26,7 @@ func aiChatToolLabel(name: String) -> String {
     case "web_search":
         return "Web search"
     default:
-        return name.replacingOccurrences(of: "_", with: " ").capitalized
+        return name
     }
 }
 

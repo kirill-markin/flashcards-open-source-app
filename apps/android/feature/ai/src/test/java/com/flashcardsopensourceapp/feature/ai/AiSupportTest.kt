@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai
 
+import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.AccessStatus
@@ -8,6 +9,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiSupportTest {
+    @Test
+    fun toolCallSummaryMatchesWebAndIosFormatting() {
+        assertEquals("SQL: SELECT * FROM cards", formatAiToolCallSummaryText(name = "sql", input = "{\"sql\":\"SELECT * FROM cards\"}"))
+        assertEquals("Code execution", formatAiToolCallSummaryText(name = "code_execution", input = null))
+        assertEquals("Web search", formatAiToolCallSummaryText(name = "web_search", input = ""))
+    }
+
+    @Test
+    fun toolCallStatusUsesSharedDoneLabel() {
+        assertEquals("Running", formatAiToolCallStatus(status = AiChatToolCallStatus.STARTED))
+        assertEquals("Done", formatAiToolCallStatus(status = AiChatToolCallStatus.COMPLETED))
+    }
+
     @Test
     fun chatAvailabilityMessageUsesOfficialCopy() {
         val message = aiChatAvailabilityMessage(

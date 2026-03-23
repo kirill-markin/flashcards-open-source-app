@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document describes the current full FSRS implementation used by the backend and the iOS app.
+This document describes the current full FSRS implementation used by the backend, the iOS app, and the Android app.
 It is the source of truth for hidden scheduler state, workspace-level scheduler settings, and the product-specific boundaries around official FSRS behavior.
 
 Reference implementation:
@@ -18,30 +18,37 @@ Repository implementations:
 - backend workspace scheduler settings: `apps/backend/src/workspaceSchedulerSettings.ts`
 - iOS scheduler: `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`
 - iOS local persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
+- Android scheduler: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt`
+- Android local persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
 - web FSRS type mirror only: `apps/web/src/types.ts`
 - iOS settings UI: `apps/ios/Flashcards/Flashcards/SettingsView.swift`
+- Android settings UI: `apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/WorkspaceScreens.kt`
 
 ## Mirror contract
 
-The repository has exactly two independent implementations of the FSRS scheduler algorithm:
+The repository has exactly three independent implementations of the FSRS scheduler algorithm:
 
 - backend: `apps/backend/src/schedule.ts`
 - iOS: `apps/ios/Flashcards/Flashcards/FsrsScheduler.swift`
+- Android: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt`
 
 They are full platform-specific copies of the same algorithm and must stay behaviorally identical.
-The web app does not contain a third scheduler implementation in this repository; `apps/web/src/types.ts` only mirrors the FSRS data contract.
+The web app does not contain a fourth scheduler implementation in this repository; `apps/web/src/types.ts` only mirrors the FSRS data contract.
 
 Supporting mirrors around the scheduler contract:
 
 - backend review persistence: `apps/backend/src/cards.ts`
 - iOS review persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
+- Android review persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
 - backend scheduler settings: `apps/backend/src/workspaceSchedulerSettings.ts`
 - iOS scheduler settings: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
+- Android scheduler settings: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt`
 - shared parity vectors: `tests/fsrs-full-vectors.json`
 - backend parity tests: `apps/backend/src/schedule.test.ts`
 - iOS parity tests: `apps/ios/Flashcards/FlashcardsTests/FsrsSchedulerTests.swift`
+- Android parity tests: `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupportTest.kt`
 
-Any scheduler change must update the backend copy, the iOS copy, this document, and the parity vectors plus both test suites in the same PR.
+Any scheduler change must update the backend copy, the iOS copy, the Android copy, this document, and the parity vectors plus all three test suites in the same PR.
 
 Core scheduler symbol parity:
 

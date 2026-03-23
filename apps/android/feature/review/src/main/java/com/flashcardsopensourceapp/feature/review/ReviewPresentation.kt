@@ -23,6 +23,12 @@ import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
 
+/*
+ Keep review content presentation heuristics aligned with:
+ - apps/web/src/screens/reviewContentPresentation.ts
+ - apps/ios/Flashcards/Flashcards/ReviewContentPresentation.swift
+ */
+
 const val emptyReviewBackTextPlaceholder: String = "No back text"
 
 private const val reviewShortPlainWordLimit: Int = 4

@@ -39,6 +39,12 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
+/*
+ Keep Android bootstrap and sync application aligned with:
+ - apps/ios/Flashcards/Flashcards/CloudSync/CloudSyncRunner.swift
+ - apps/ios/Flashcards/Flashcards/LocalDatabase+Sync.swift
+ */
+
 private const val outboxBatchLimit: Int = 200
 
 class SyncLocalStore(

@@ -7,6 +7,12 @@ import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
+/*
+ Keep Android navigation destinations aligned with:
+ - apps/web/src/routes.ts
+ - apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift
+ */
+
 sealed interface TopLevelDestination {
     val route: String
     val label: String

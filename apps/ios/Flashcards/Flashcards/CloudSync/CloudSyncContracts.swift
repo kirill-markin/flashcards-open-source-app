@@ -1,3 +1,9 @@
+/*
+ Keep sync wire contracts aligned with:
+ - apps/backend/src/sync.ts
+ - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/CloudRemoteService.kt
+ */
+
 struct MeResponse: Decodable {
     struct Profile: Decodable {
         let email: String?

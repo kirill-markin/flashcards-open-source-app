@@ -5,6 +5,12 @@ import Foundation
 // which is why we accept it as part of the iOS markdown rendering stack.
 import MarkdownUI
 
+/*
+ Keep review content presentation heuristics aligned with:
+ - apps/web/src/screens/reviewContentPresentation.ts
+ - apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewPresentation.kt
+ */
+
 enum ReviewContentPresentationMode: Equatable {
     case shortPlain
     case paragraphPlain
