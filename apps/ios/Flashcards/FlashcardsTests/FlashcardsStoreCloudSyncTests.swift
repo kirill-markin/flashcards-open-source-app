@@ -245,13 +245,21 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             runLinkedSyncOutcomes: [.succeed],
             isRunLinkedSyncBlocked: false
         )
+        let configuration = try context.store.currentCloudServiceConfiguration()
         let storedGuestSession = FlashcardsStoreTestSupport.makeStoredGuestCloudSession(
             userId: "guest-user-reinstall",
             workspaceId: "guest-workspace-reinstall",
             guestToken: "guest-token-reinstall"
         )
+        let configuredStoredGuestSession = StoredGuestCloudSession(
+            guestToken: storedGuestSession.guestToken,
+            userId: storedGuestSession.userId,
+            workspaceId: storedGuestSession.workspaceId,
+            configurationMode: configuration.mode,
+            apiBaseUrl: configuration.apiBaseUrl
+        )
 
-        try context.guestCredentialStore.saveGuestSession(session: storedGuestSession)
+        try context.guestCredentialStore.saveGuestSession(session: configuredStoredGuestSession)
         try context.store.reload()
 
         await context.store.syncCloudIfLinked()
@@ -260,16 +268,19 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(
             context.cloudSyncService.runLinkedSyncSessions,
             [
-                FlashcardsStoreTestSupport.makeGuestSession(
-                    userId: storedGuestSession.userId,
-                    workspaceId: storedGuestSession.workspaceId,
-                    guestToken: storedGuestSession.guestToken
+                CloudLinkedSession(
+                    userId: configuredStoredGuestSession.userId,
+                    workspaceId: configuredStoredGuestSession.workspaceId,
+                    email: nil,
+                    configurationMode: configuration.mode,
+                    apiBaseUrl: configuration.apiBaseUrl,
+                    authorization: .guest(configuredStoredGuestSession.guestToken)
                 )
             ]
         )
         XCTAssertEqual(context.store.cloudSettings?.cloudState, .guest)
-        XCTAssertEqual(context.store.cloudSettings?.linkedUserId, storedGuestSession.userId)
-        XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, storedGuestSession.workspaceId)
+        XCTAssertEqual(context.store.cloudSettings?.linkedUserId, configuredStoredGuestSession.userId)
+        XCTAssertEqual(context.store.cloudSettings?.linkedWorkspaceId, configuredStoredGuestSession.workspaceId)
         XCTAssertTrue(try XCTUnwrap(context.store.cloudRuntime.activeCloudSession()).authorization.isGuest)
         XCTAssertEqual(context.store.syncStatus, .idle)
         XCTAssertEqual(context.store.globalErrorMessage, "")
@@ -281,18 +292,26 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             runLinkedSyncOutcomes: [.succeed],
             isRunLinkedSyncBlocked: false
         )
+        let configuration = try context.store.currentCloudServiceConfiguration()
         let storedGuestSession = FlashcardsStoreTestSupport.makeStoredGuestCloudSession(
             userId: "guest-user-2",
             workspaceId: "guest-workspace-2",
             guestToken: "guest-token-2"
         )
+        let configuredStoredGuestSession = StoredGuestCloudSession(
+            guestToken: storedGuestSession.guestToken,
+            userId: storedGuestSession.userId,
+            workspaceId: storedGuestSession.workspaceId,
+            configurationMode: configuration.mode,
+            apiBaseUrl: configuration.apiBaseUrl
+        )
 
-        try context.guestCredentialStore.saveGuestSession(session: storedGuestSession)
+        try context.guestCredentialStore.saveGuestSession(session: configuredStoredGuestSession)
         try context.database.updateCloudSettings(
             cloudState: .guest,
-            linkedUserId: storedGuestSession.userId,
-            linkedWorkspaceId: storedGuestSession.workspaceId,
-            activeWorkspaceId: storedGuestSession.workspaceId,
+            linkedUserId: configuredStoredGuestSession.userId,
+            linkedWorkspaceId: configuredStoredGuestSession.workspaceId,
+            activeWorkspaceId: configuredStoredGuestSession.workspaceId,
             linkedEmail: nil
         )
         try context.store.reload()
@@ -303,10 +322,13 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(
             context.cloudSyncService.runLinkedSyncSessions,
             [
-                FlashcardsStoreTestSupport.makeGuestSession(
-                    userId: storedGuestSession.userId,
-                    workspaceId: storedGuestSession.workspaceId,
-                    guestToken: storedGuestSession.guestToken
+                CloudLinkedSession(
+                    userId: configuredStoredGuestSession.userId,
+                    workspaceId: configuredStoredGuestSession.workspaceId,
+                    email: nil,
+                    configurationMode: configuration.mode,
+                    apiBaseUrl: configuration.apiBaseUrl,
+                    authorization: .guest(configuredStoredGuestSession.guestToken)
                 )
             ]
         )
@@ -444,14 +466,22 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             runLinkedSyncOutcomes: [.succeed],
             isRunLinkedSyncBlocked: false
         )
+        let configuration = try context.store.currentCloudServiceConfiguration()
         let storedGuestSession = FlashcardsStoreTestSupport.makeStoredGuestCloudSession(
             userId: "guest-user-ambiguous",
             workspaceId: "guest-workspace-ambiguous",
             guestToken: "guest-token-ambiguous"
         )
+        let configuredStoredGuestSession = StoredGuestCloudSession(
+            guestToken: storedGuestSession.guestToken,
+            userId: storedGuestSession.userId,
+            workspaceId: storedGuestSession.workspaceId,
+            configurationMode: configuration.mode,
+            apiBaseUrl: configuration.apiBaseUrl
+        )
 
         try context.credentialStore.saveCredentials(credentials: FlashcardsStoreTestSupport.makeStoredCloudCredentials())
-        try context.guestCredentialStore.saveGuestSession(session: storedGuestSession)
+        try context.guestCredentialStore.saveGuestSession(session: configuredStoredGuestSession)
         try context.store.reload()
 
         await context.store.syncCloudIfLinked()

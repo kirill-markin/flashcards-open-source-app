@@ -677,166 +677,168 @@ final class DatabaseCore {
     }
 
     private func ensureDefaultState() throws {
-        let appSettingsCount = try self.scalarInt(
-            sql: "SELECT COUNT(*) FROM app_local_settings",
-            values: []
-        )
-        let deviceId: String
-        if appSettingsCount == 0 {
-            deviceId = UUID().uuidString.lowercased()
-            try self.execute(
-                sql: """
-                INSERT INTO app_local_settings (
-                    settings_id,
-                    device_id,
-                    cloud_state,
-                    linked_user_id,
-                    linked_workspace_id,
-                    active_workspace_id,
-                    linked_email,
-                    onboarding_completed,
-                    updated_at
-                )
-                VALUES (1, ?, 'disconnected', NULL, NULL, NULL, NULL, 0, ?)
-                """,
-                values: [
-                    .text(deviceId),
-                    .text(nowIsoTimestamp())
-                ]
-            )
-        } else {
-            deviceId = try self.scalarText(
-                sql: "SELECT device_id FROM app_local_settings WHERE settings_id = 1",
+        try self.inTransaction {
+            let appSettingsCount = try self.scalarInt(
+                sql: "SELECT COUNT(*) FROM app_local_settings",
                 values: []
             )
-        }
-
-        let workspaceCount = try self.scalarInt(
-            sql: "SELECT COUNT(*) FROM workspaces",
-            values: []
-        )
-        let workspaceId: String
-
-        if workspaceCount == 0 {
-            let now = nowIsoTimestamp()
-            let operationId = UUID().uuidString.lowercased()
-            workspaceId = UUID().uuidString.lowercased()
-            try self.execute(
-                sql: """
-                INSERT INTO workspaces (
-                    workspace_id,
-                    name,
-                    created_at,
-                    fsrs_client_updated_at,
-                    fsrs_last_modified_by_device_id,
-                    fsrs_last_operation_id,
-                    fsrs_updated_at
+            let deviceId: String
+            if appSettingsCount == 0 {
+                deviceId = UUID().uuidString.lowercased()
+                try self.execute(
+                    sql: """
+                    INSERT INTO app_local_settings (
+                        settings_id,
+                        device_id,
+                        cloud_state,
+                        linked_user_id,
+                        linked_workspace_id,
+                        active_workspace_id,
+                        linked_email,
+                        onboarding_completed,
+                        updated_at
+                    )
+                    VALUES (1, ?, 'disconnected', NULL, NULL, NULL, NULL, 0, ?)
+                    """,
+                    values: [
+                        .text(deviceId),
+                        .text(nowIsoTimestamp())
+                    ]
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                values: [
-                    .text(workspaceId),
-                    .text("Personal"),
-                    .text(now),
-                    .text(now),
-                    .text(deviceId),
-                    .text(operationId),
-                    .text(now)
-                ]
-            )
-            try self.execute(
-                sql: """
-                UPDATE app_local_settings
-                SET active_workspace_id = ?, updated_at = ?
-                WHERE settings_id = 1
-                """,
-                values: [
-                    .text(workspaceId),
-                    .text(nowIsoTimestamp())
-                ]
-            )
-        } else {
-            workspaceId = try self.scalarText(
-                sql: """
-                SELECT workspace_id
-                FROM workspaces
-                ORDER BY created_at ASC
-                LIMIT 1
-                """,
+            } else {
+                deviceId = try self.scalarText(
+                    sql: "SELECT device_id FROM app_local_settings WHERE settings_id = 1",
+                    values: []
+                )
+            }
+
+            let workspaceCount = try self.scalarInt(
+                sql: "SELECT COUNT(*) FROM workspaces",
                 values: []
             )
-        }
+            let workspaceId: String
 
-        let activeWorkspaceId = try self.scalarOptionalText(
-            sql: "SELECT active_workspace_id FROM app_local_settings WHERE settings_id = 1",
-            values: []
-        )
-        let hasActiveWorkspace: Bool
-        if let activeWorkspaceId {
-            hasActiveWorkspace = try self.scalarInt(
-                sql: "SELECT COUNT(*) FROM workspaces WHERE workspace_id = ?",
-                values: [.text(activeWorkspaceId)]
-            ) > 0
-        } else {
-            hasActiveWorkspace = false
-        }
-
-        if hasActiveWorkspace == false {
-            try self.execute(
-                sql: """
-                UPDATE app_local_settings
-                SET active_workspace_id = ?, updated_at = ?
-                WHERE settings_id = 1
-                """,
-                values: [
-                    .text(workspaceId),
-                    .text(nowIsoTimestamp())
-                ]
-            )
-        }
-
-        let syncStateCount = try self.scalarInt(
-            sql: "SELECT COUNT(*) FROM sync_state WHERE workspace_id = ?",
-            values: [.text(workspaceId)]
-        )
-        if syncStateCount == 0 {
-            try self.execute(
-                sql: """
-                INSERT INTO sync_state (
-                    workspace_id,
-                    last_applied_hot_change_id,
-                    last_applied_review_sequence_id,
-                    has_hydrated_hot_state,
-                    has_hydrated_review_history,
-                    updated_at
+            if workspaceCount == 0 {
+                let now = nowIsoTimestamp()
+                let operationId = UUID().uuidString.lowercased()
+                workspaceId = UUID().uuidString.lowercased()
+                try self.execute(
+                    sql: """
+                    INSERT INTO workspaces (
+                        workspace_id,
+                        name,
+                        created_at,
+                        fsrs_client_updated_at,
+                        fsrs_last_modified_by_device_id,
+                        fsrs_last_operation_id,
+                        fsrs_updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    values: [
+                        .text(workspaceId),
+                        .text("Personal"),
+                        .text(now),
+                        .text(now),
+                        .text(deviceId),
+                        .text(operationId),
+                        .text(now)
+                    ]
                 )
-                VALUES (?, 0, 0, 0, 0, ?)
-                """,
-                values: [
-                    .text(workspaceId),
-                    .text(nowIsoTimestamp())
-                ]
-            )
-        }
+                try self.execute(
+                    sql: """
+                    UPDATE app_local_settings
+                    SET active_workspace_id = ?, updated_at = ?
+                    WHERE settings_id = 1
+                    """,
+                    values: [
+                        .text(workspaceId),
+                        .text(nowIsoTimestamp())
+                    ]
+                )
+            } else {
+                workspaceId = try self.scalarText(
+                    sql: """
+                    SELECT workspace_id
+                    FROM workspaces
+                    ORDER BY created_at ASC
+                    LIMIT 1
+                    """,
+                    values: []
+                )
+            }
 
-        let userSettingsCount = try self.scalarInt(
-            sql: "SELECT COUNT(*) FROM user_settings",
-            values: []
-        )
-        if userSettingsCount == 0 {
-            let locale = Locale.current.language.languageCode?.identifier ?? "en"
-            try self.execute(
-                sql: """
-                INSERT INTO user_settings (user_id, workspace_id, email, locale, created_at)
-                VALUES (?, ?, NULL, ?, ?)
-                """,
-                values: [
-                    .text("local-user"),
-                    .text(workspaceId),
-                    .text(locale),
-                    .text(nowIsoTimestamp())
-                ]
+            let activeWorkspaceId = try self.scalarOptionalText(
+                sql: "SELECT active_workspace_id FROM app_local_settings WHERE settings_id = 1",
+                values: []
             )
+            let hasActiveWorkspace: Bool
+            if let activeWorkspaceId {
+                hasActiveWorkspace = try self.scalarInt(
+                    sql: "SELECT COUNT(*) FROM workspaces WHERE workspace_id = ?",
+                    values: [.text(activeWorkspaceId)]
+                ) > 0
+            } else {
+                hasActiveWorkspace = false
+            }
+
+            if hasActiveWorkspace == false {
+                try self.execute(
+                    sql: """
+                    UPDATE app_local_settings
+                    SET active_workspace_id = ?, updated_at = ?
+                    WHERE settings_id = 1
+                    """,
+                    values: [
+                        .text(workspaceId),
+                        .text(nowIsoTimestamp())
+                    ]
+                )
+            }
+
+            let syncStateCount = try self.scalarInt(
+                sql: "SELECT COUNT(*) FROM sync_state WHERE workspace_id = ?",
+                values: [.text(workspaceId)]
+            )
+            if syncStateCount == 0 {
+                try self.execute(
+                    sql: """
+                    INSERT INTO sync_state (
+                        workspace_id,
+                        last_applied_hot_change_id,
+                        last_applied_review_sequence_id,
+                        has_hydrated_hot_state,
+                        has_hydrated_review_history,
+                        updated_at
+                    )
+                    VALUES (?, 0, 0, 0, 0, ?)
+                    """,
+                    values: [
+                        .text(workspaceId),
+                        .text(nowIsoTimestamp())
+                    ]
+                )
+            }
+
+            let userSettingsCount = try self.scalarInt(
+                sql: "SELECT COUNT(*) FROM user_settings",
+                values: []
+            )
+            if userSettingsCount == 0 {
+                let locale = Locale.current.language.languageCode?.identifier ?? "en"
+                try self.execute(
+                    sql: """
+                    INSERT INTO user_settings (user_id, workspace_id, email, locale, created_at)
+                    VALUES (?, ?, NULL, ?, ?)
+                    """,
+                    values: [
+                        .text("local-user"),
+                        .text(workspaceId),
+                        .text(locale),
+                        .text(nowIsoTimestamp())
+                    ]
+                )
+            }
         }
     }
 
