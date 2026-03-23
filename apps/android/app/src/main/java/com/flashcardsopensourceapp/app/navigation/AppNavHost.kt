@@ -391,10 +391,11 @@ fun AppNavHost(
                 onAcceptConsent = aiViewModel::acceptConsent,
                 onDraftMessageChange = aiViewModel::updateDraftMessage,
                 onSendMessage = aiViewModel::sendMessage,
+                onCancelStreaming = aiViewModel::cancelStreaming,
                 onSelectModel = aiViewModel::selectModel,
                 onNewChat = aiViewModel::clearConversation,
-                onOpenSignIn = {
-                    navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                onOpenAccountStatus = {
+                    navController.navigate(route = SettingsAccountStatusDestination.route)
                 },
                 onDismissErrorMessage = aiViewModel::dismissErrorMessage,
                 onDismissAlert = aiViewModel::dismissAlert,

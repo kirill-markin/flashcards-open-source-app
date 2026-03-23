@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConf
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -144,6 +145,7 @@ class AiViewModel(
             isConsentRequired = hasConsent.not(),
             isLinked = isLinked,
             isStreaming = draft.isStreaming,
+            canStopStreaming = draft.isStreaming,
             dictationState = draft.dictationState,
             canSend = hasConsent
                 && draft.isStreaming.not()
@@ -172,6 +174,7 @@ class AiViewModel(
             isConsentRequired = aiChatRepository.hasConsent().not(),
             isLinked = false,
             isStreaming = false,
+            canStopStreaming = false,
             dictationState = AiChatDictationState.IDLE,
             canSend = false,
             canStartNewChat = false,
@@ -371,6 +374,25 @@ class AiViewModel(
         }
     }
 
+    fun cancelStreaming() {
+        if (draftState.value.isStreaming.not()) {
+            return
+        }
+
+        activeSendJob?.cancel()
+        activeSendJob = null
+        draftState.update { state ->
+            state.copy(
+                persistedState = clearOptimisticAssistantStatusIfNeeded(state = state.persistedState),
+                isStreaming = false,
+                repairStatus = null,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
+        persistCurrentState()
+    }
+
     fun applyEntryPrefill(prefill: AiEntryPrefill) {
         val currentState = draftState.value
         if (currentState.isStreaming || currentState.dictationState != AiChatDictationState.IDLE) {
@@ -504,6 +526,8 @@ class AiViewModel(
                     )
                 }
                 persistCurrentState()
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: AiChatRemoteException) {
                 handleSendFailure(error = error)
             } catch (error: Exception) {
@@ -693,6 +717,27 @@ class AiViewModel(
             surface = surface
         )
     }
+}
+
+private fun clearOptimisticAssistantStatusIfNeeded(
+    state: AiChatPersistedState
+): AiChatPersistedState {
+    val lastMessage = state.messages.lastOrNull() ?: return state
+    if (lastMessage.role != AiChatRole.ASSISTANT) {
+        return state
+    }
+
+    val updatedContent = removingOptimisticAssistantStatus(content = lastMessage.content)
+    if (updatedContent == lastMessage.content) {
+        return state
+    }
+    if (updatedContent.isEmpty()) {
+        return state.copy(messages = state.messages.dropLast(1))
+    }
+
+    return state.copy(
+        messages = state.messages.dropLast(1) + lastMessage.copy(content = updatedContent)
+    )
 }
 
 fun createAiViewModelFactory(
