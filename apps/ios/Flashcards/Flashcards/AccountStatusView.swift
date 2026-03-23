@@ -85,11 +85,11 @@ struct AccountStatusView: View {
 
                     switch cloudSettings.cloudState {
                     case .disconnected, .linkingReady:
-                        Button("Sign in for sync") {
+                        Button("Sign in or sign up") {
                             self.isCloudSignInPresented = true
                         }
                     case .guest:
-                        Button("Create account or Log in") {
+                        Button("Sign in or sign up") {
                             self.isCloudSignInPresented = true
                         }
                     case .linked:
