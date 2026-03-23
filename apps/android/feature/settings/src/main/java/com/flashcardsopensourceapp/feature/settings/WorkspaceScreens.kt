@@ -38,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
@@ -47,6 +48,14 @@ import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.formatDeckFilterDefinition
+
+const val workspaceSchedulerSummaryTag: String = "workspace_scheduler_summary"
+const val schedulerDesiredRetentionFieldTag: String = "scheduler_desired_retention_field"
+const val schedulerLearningStepsFieldTag: String = "scheduler_learning_steps_field"
+const val schedulerRelearningStepsFieldTag: String = "scheduler_relearning_steps_field"
+const val schedulerMaximumIntervalFieldTag: String = "scheduler_maximum_interval_field"
+const val schedulerSaveButtonTag: String = "scheduler_save_button"
+const val schedulerApplyButtonTag: String = "scheduler_apply_button"
 
 @Composable
 fun WorkspaceSettingsRoute(
@@ -119,7 +128,10 @@ fun WorkspaceSettingsRoute(
                         Text("Scheduler")
                     },
                     supportingContent = {
-                        Text(uiState.schedulerSummary)
+                        Text(
+                            text = uiState.schedulerSummary,
+                            modifier = Modifier.testTag(workspaceSchedulerSummaryTag)
+                        )
                     },
                     modifier = Modifier.clickable(onClick = onOpenScheduler)
                 )
@@ -457,7 +469,9 @@ fun SchedulerSettingsRoute(
                     supportingText = {
                         Text("Higher values bring cards back sooner.")
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(schedulerDesiredRetentionFieldTag)
                 )
             }
 
@@ -471,7 +485,9 @@ fun SchedulerSettingsRoute(
                     supportingText = {
                         Text("Comma-separated step list, for example 1, 10")
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(schedulerLearningStepsFieldTag)
                 )
             }
 
@@ -485,7 +501,9 @@ fun SchedulerSettingsRoute(
                     supportingText = {
                         Text("Comma-separated step list after Again in review.")
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(schedulerRelearningStepsFieldTag)
                 )
             }
 
@@ -496,7 +514,9 @@ fun SchedulerSettingsRoute(
                     label = {
                         Text("Maximum interval (days)")
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(schedulerMaximumIntervalFieldTag)
                 )
             }
 
@@ -532,7 +552,9 @@ fun SchedulerSettingsRoute(
                     }
                     Button(
                         onClick = onRequestSave,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(schedulerSaveButtonTag)
                     ) {
                         Text("Save")
                     }
@@ -545,7 +567,10 @@ fun SchedulerSettingsRoute(
         AlertDialog(
             onDismissRequest = onDismissSaveConfirmation,
             confirmButton = {
-                TextButton(onClick = onConfirmSave) {
+                TextButton(
+                    onClick = onConfirmSave,
+                    modifier = Modifier.testTag(schedulerApplyButtonTag)
+                ) {
                     Text("Apply")
                 }
             },

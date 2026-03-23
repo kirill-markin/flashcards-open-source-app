@@ -5,16 +5,28 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.pressBack
+import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
+import com.flashcardsopensourceapp.feature.settings.schedulerApplyButtonTag
+import com.flashcardsopensourceapp.feature.settings.schedulerDesiredRetentionFieldTag
+import com.flashcardsopensourceapp.feature.settings.schedulerLearningStepsFieldTag
+import com.flashcardsopensourceapp.feature.settings.schedulerMaximumIntervalFieldTag
+import com.flashcardsopensourceapp.feature.settings.schedulerRelearningStepsFieldTag
+import com.flashcardsopensourceapp.feature.settings.schedulerSaveButtonTag
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,6 +37,7 @@ class MainActivityTest {
         private const val seededCardsTimeoutMillis: Long = 30_000L
         private const val uiTimeoutMillis: Long = 10_000L
         private const val seededCardsVisibleTitle: String = "What does Material 3 provide?"
+        private const val maxReviewCardsToRate: Int = 5
     }
 
     @get:Rule
@@ -133,23 +146,45 @@ class MainActivityTest {
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Workspace").performClick()
         composeRule.onNodeWithText("Scheduler").performClick()
-        composeRule.onNode(
-            matcher = hasSetTextAction().and(other = hasText("0.90"))
-        ).performTextReplacement("0.85")
+        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
+            composeRule.onAllNodesWithTag(schedulerDesiredRetentionFieldTag).fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithTag(schedulerLearningStepsFieldTag).fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithTag(schedulerRelearningStepsFieldTag).fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithTag(schedulerMaximumIntervalFieldTag).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performScrollTo()
+        composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performTextReplacement("0.85")
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("0.85").fetchSemanticsNodes().isNotEmpty()
         }
-        pressBack()
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
+        composeRule.onNodeWithTag(schedulerLearningStepsFieldTag).performScrollTo()
+        composeRule.onNodeWithTag(schedulerLearningStepsFieldTag).performTextReplacement("1, 10")
+        composeRule.onNodeWithTag(schedulerRelearningStepsFieldTag).performScrollTo()
+        composeRule.onNodeWithTag(schedulerRelearningStepsFieldTag).performTextReplacement("10")
+        composeRule.onNodeWithTag(schedulerMaximumIntervalFieldTag).performScrollTo()
+        composeRule.onNodeWithTag(schedulerMaximumIntervalFieldTag).performTextReplacement("36500")
+        closeSoftKeyboard()
+        composeRule.onNodeWithTag(schedulerSaveButtonTag).performScrollTo()
+        composeRule.onNodeWithTag(schedulerSaveButtonTag).performClick()
         composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            composeRule.onAllNodesWithText("Apply scheduler settings?").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag(schedulerApplyButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Apply").performClick()
-
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("FSRS-6 0.85").fetchSemanticsNodes().isNotEmpty()
+        composeRule.onNodeWithTag(schedulerApplyButtonTag).performClick()
+        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
+            composeRule.onAllNodesWithTag(schedulerApplyButtonTag).fetchSemanticsNodes().isEmpty()
+        }
+        pressBack()
+        if (composeRule.onAllNodesWithText("Workspace").fetchSemanticsNodes().isEmpty()) {
+            pressBack()
+        }
+        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
+            composeRule.onAllNodesWithText("Workspace").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Workspace").performClick()
+        composeRule.onNodeWithText("Scheduler").performClick()
+        composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performScrollTo()
+        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
+            composeRule.onAllNodesWithText("0.85").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
@@ -224,9 +259,7 @@ class MainActivityTest {
 
         composeRule.onNodeWithText("Review").performClick()
         openReviewFilter(filterTitle = "Android UI")
-        rateVisibleReviewCard()
-        rateVisibleReviewCard()
-        rateVisibleReviewCard()
+        drainReviewCardsUntilEmptyState()
         composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
             composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()
         }
@@ -286,17 +319,30 @@ class MainActivityTest {
     }
 
     private fun rateVisibleReviewCard() {
-        composeRule.onNodeWithText("Show answer").performClick()
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Good"))
-        ).performClick()
+        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performScrollTo()
+        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
+        composeRule.onNodeWithTag(reviewRateGoodButtonTag).performScrollTo()
+        composeRule.onNodeWithTag(reviewRateGoodButtonTag).performClick()
         composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            val ratingButtonsGone = composeRule.onAllNodes(
-                matcher = hasClickAction().and(other = hasText("Good"))
-            ).fetchSemanticsNodes().isEmpty()
-            val nextCardReady = composeRule.onAllNodesWithText("Show answer").fetchSemanticsNodes().isNotEmpty()
+            val ratingButtonsGone = composeRule.onAllNodesWithTag(reviewRateGoodButtonTag).fetchSemanticsNodes().isEmpty()
+            val nextCardReady = composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
             val emptyStateVisible = composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()
             ratingButtonsGone && (nextCardReady || emptyStateVisible)
+        }
+    }
+
+    private fun drainReviewCardsUntilEmptyState() {
+        repeat(maxReviewCardsToRate) {
+            if (composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()) {
+                return
+            }
+            composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
+                composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
+                    || composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()
+            }
+            if (composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()) {
+                rateVisibleReviewCard()
+            }
         }
     }
 

@@ -43,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
@@ -50,6 +51,9 @@ import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
+
+const val reviewShowAnswerButtonTag: String = "review_show_answer_button"
+const val reviewRateGoodButtonTag: String = "review_rate_good_button"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -431,7 +435,9 @@ private fun ReviewCardContent(
             }
             Button(
                 onClick = onRevealAnswer,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(reviewShowAnswerButtonTag)
             ) {
                 Text("Show answer")
             }
@@ -466,7 +472,14 @@ private fun ReviewCardSideSurface(
 
 @Composable
 private fun RatingButton(option: ReviewAnswerOption, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = if (option.rating == com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD) {
+            Modifier.testTag(reviewRateGoodButtonTag)
+        } else {
+            Modifier
+        }
+    ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
