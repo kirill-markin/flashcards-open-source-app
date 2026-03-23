@@ -18,6 +18,7 @@ import org.junit.runner.RunWith
 class MainActivityTest {
     companion object {
         private const val seededCardsTimeoutMillis: Long = 30_000L
+        private const val seededCardsVisibleTitle: String = "What does Material 3 provide?"
     }
 
     @get:Rule
@@ -239,7 +240,7 @@ class MainActivityTest {
     private fun waitForSeededCards() {
         composeRule.onNodeWithText("Cards").performClick()
         composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            composeRule.onAllNodesWithText("What does val mean in Kotlin?").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(seededCardsVisibleTitle).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
