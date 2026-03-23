@@ -59,7 +59,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("Workspace").fetchSemanticsNode()
 
         composeRule.onNodeWithText("Review").performClick()
-        composeRule.onNodeWithText("Android draft review flow").fetchSemanticsNode()
+        composeRule.onNodeWithText("Session progress").fetchSemanticsNode()
     }
 
     @Test
@@ -244,6 +244,9 @@ class MainActivityTest {
         pressBack()
         composeRule.onNodeWithText("3 / 3").performClick()
         composeRule.onNodeWithText("Review queue").fetchSemanticsNode()
+        composeRule.onNodeWithText(seededCardsVisibleTitle).performClick()
+        composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
+        tapBackIcon()
         tapBackIcon()
 
         rateVisibleReviewCard()
@@ -269,6 +272,11 @@ class MainActivityTest {
         composeRule.onNodeWithText("Create with AI").fetchSemanticsNode()
         composeRule.onNodeWithText("Switch to all cards").fetchSemanticsNode()
 
+        composeRule.onNodeWithText("Create card").performClick()
+        composeRule.onNodeWithText("New card").fetchSemanticsNode()
+        tapBackIcon()
+
+        composeRule.onNodeWithText("No cards in this filter").fetchSemanticsNode()
         composeRule.onNodeWithText("Create with AI").performClick()
         if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
             composeRule.onNodeWithText("OK").performClick()
@@ -282,6 +290,19 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Show answer").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    @Test
+    fun reviewManageDecksHandoffOpensDeckLibraryAndReturnsToReview() {
+        waitForSeededCards()
+
+        composeRule.onNodeWithText("Review").performClick()
+        composeRule.onNodeWithContentDescription("Choose review filter").performClick()
+        composeRule.onNodeWithText("Manage filtered decks").performClick()
+        composeRule.onNodeWithText("Decks").fetchSemanticsNode()
+        tapBackIcon()
+        composeRule.onNodeWithText("Review").fetchSemanticsNode()
+        composeRule.onNodeWithText("Show answer").fetchSemanticsNode()
     }
 
     private fun waitForSeededCards() {

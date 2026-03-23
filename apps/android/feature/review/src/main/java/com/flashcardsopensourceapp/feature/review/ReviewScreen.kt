@@ -46,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
@@ -190,14 +189,6 @@ private fun ReviewContent(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            DraftNoticeCard(
-                title = "Android draft review flow",
-                body = "This review flow now keeps local scheduler state, preview, optimistic session progress, and foreground cloud reconciliation aligned with the Android app shell.",
-                modifier = Modifier
-            )
-        }
-
-        item {
             ReviewSessionSummary(
                 remainingCount = uiState.remainingCount,
                 totalCount = uiState.totalCount,
@@ -214,7 +205,6 @@ private fun ReviewContent(
                 uiState.preparedCurrentCard != null -> {
                     ReviewCardContent(
                         currentCard = uiState.preparedCurrentCard,
-                        preparedNextCard = uiState.preparedNextCard,
                         isAnswerVisible = uiState.isAnswerVisible,
                         reviewedInSessionCount = uiState.reviewedInSessionCount,
                         onOpenCurrentCard = {
@@ -298,9 +288,9 @@ private fun ActionableEmptyReviewState(
         ReviewEmptyState.SESSION_COMPLETE -> "Session complete"
     }
     val body = when (emptyState) {
-        ReviewEmptyState.NO_CARDS_YET -> "Create your first card to start studying on Android."
-        ReviewEmptyState.FILTER_EMPTY -> "This review filter has nothing due right now. You can switch back to all cards or create something new."
-        ReviewEmptyState.SESSION_COMPLETE -> "No more cards are left in this study pass. Add more material to keep going."
+        ReviewEmptyState.NO_CARDS_YET -> "Create a card or use AI to start your first study session."
+        ReviewEmptyState.FILTER_EMPTY -> "Nothing is due in this filter right now. Switch back to all cards or add more material."
+        ReviewEmptyState.SESSION_COMPLETE -> "You are done for now. Add more material or come back when more cards are due."
     }
 
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -344,7 +334,6 @@ private fun ActionableEmptyReviewState(
 @Composable
 private fun ReviewCardContent(
     currentCard: PreparedReviewCardPresentation,
-    preparedNextCard: PreparedReviewCardPresentation?,
     isAnswerVisible: Boolean,
     reviewedInSessionCount: Int,
     onOpenCurrentCard: () -> Unit,
@@ -388,13 +377,6 @@ private fun ReviewCardContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (preparedNextCard != null && preparedNextCard.card.cardId != currentCard.card.cardId) {
-                Text(
-                    text = "Next card prepared: ${reviewRenderedContentDebugText(preparedNextCard.frontContent)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 

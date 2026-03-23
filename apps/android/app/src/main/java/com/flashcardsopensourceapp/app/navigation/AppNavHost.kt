@@ -95,8 +95,28 @@ fun AppNavHost(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val cardEditorRequest by appGraph.appHandoffCoordinator.observeCardEditor().collectAsStateWithLifecycle()
+    val settingsNavigationRequest by appGraph.appHandoffCoordinator.observeSettingsNavigation().collectAsStateWithLifecycle()
     val packageInfo = remember(context) {
         loadPackageInfo(context = context)
+    }
+
+    LaunchedEffect(cardEditorRequest?.requestId) {
+        val request = cardEditorRequest ?: return@LaunchedEffect
+        navigateToCardEditor(
+            navController = navController,
+            cardId = request.cardId
+        )
+        appGraph.appHandoffCoordinator.consumeCardEditor(requestId = request.requestId)
+    }
+
+    LaunchedEffect(settingsNavigationRequest?.requestId) {
+        val request = settingsNavigationRequest ?: return@LaunchedEffect
+        navigateToSettingsNavigationTarget(
+            navController = navController,
+            target = request.target
+        )
+        appGraph.appHandoffCoordinator.consumeSettingsNavigation(requestId = request.requestId)
     }
 
     NavHost(
@@ -122,13 +142,15 @@ fun AppNavHost(
                     navController.navigate(route = ReviewPreviewDestination.route)
                 },
                 onOpenCurrentCard = { cardId ->
-                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
                 },
                 onOpenDeckManagement = {
-                    navController.navigate(route = SettingsWorkspaceDecksDestination.route)
+                    appGraph.appHandoffCoordinator.requestSettingsNavigation(
+                        target = SettingsNavigationTarget.WORKSPACE_DECKS
+                    )
                 },
                 onCreateCard = {
-                    navController.navigate(route = CardEditorDestination.createRoute(cardId = "new"))
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = null)
                 },
                 onCreateCardWithAi = {
                     appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = AiEntryPrefill.CREATE_CARD)
@@ -173,7 +195,7 @@ fun AppNavHost(
                 onLoadNextPreviewPageIfNeeded = reviewViewModel::loadNextPreviewPageIfNeeded,
                 onRetryPreview = reviewViewModel::retryPreview,
                 onOpenCard = { cardId ->
-                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
                 },
                 onBack = {
                     navController.popBackStack()
@@ -196,10 +218,20 @@ fun AppNavHost(
                 onApplyFilter = cardsViewModel::applyFilter,
                 onClearFilter = cardsViewModel::clearFilter,
                 onCreateCard = {
-                    navController.navigate(route = CardEditorDestination.createRoute(cardId = "new"))
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = null)
                 },
                 onOpenCard = { cardId ->
-                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
+                },
+                onOpenDecks = {
+                    appGraph.appHandoffCoordinator.requestSettingsNavigation(
+                        target = SettingsNavigationTarget.WORKSPACE_DECKS
+                    )
+                },
+                onOpenTags = {
+                    appGraph.appHandoffCoordinator.requestSettingsNavigation(
+                        target = SettingsNavigationTarget.WORKSPACE_TAGS
+                    )
                 },
                 onDeleteCard = { cardId ->
                     coroutineScope.launch {
@@ -512,6 +544,9 @@ fun AppNavHost(
                 },
                 onOpenExport = {
                     navController.navigate(route = SettingsWorkspaceExportDestination.route)
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -579,6 +614,9 @@ fun AppNavHost(
                 },
                 onCreateDeck = {
                     navController.navigate(route = SettingsWorkspaceDeckEditorDestination.createRoute(deckId = "new"))
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -597,9 +635,12 @@ fun AppNavHost(
                 uiState = uiState,
                 onEditDeck = {},
                 onOpenCard = { cardId ->
-                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
                 },
-                onDeleteDeck = {}
+                onDeleteDeck = {},
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -628,7 +669,7 @@ fun AppNavHost(
                     navController.navigate(route = SettingsWorkspaceDeckEditorDestination.createRoute(deckId = editingDeckId))
                 },
                 onOpenCard = { cardId ->
-                    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId))
+                    appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
                 },
                 onDeleteDeck = { deletingDeckId ->
                     coroutineScope.launch {
@@ -637,6 +678,9 @@ fun AppNavHost(
                             navController.popBackStack()
                         }
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -703,7 +747,10 @@ fun AppNavHost(
 
             WorkspaceTagsRoute(
                 uiState = uiState,
-                onSearchQueryChange = workspaceTagsViewModel::updateSearchQuery
+                onSearchQueryChange = workspaceTagsViewModel::updateSearchQuery,
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -1076,6 +1123,28 @@ fun currentTopLevelDestination(navController: NavHostController): TopLevelDestin
     }
 }
 
+private fun navigateToCardEditor(
+    navController: NavHostController,
+    cardId: String?
+) {
+    navController.navigate(route = CardEditorDestination.createRoute(cardId = cardId ?: "new")) {
+        launchSingleTop = true
+    }
+}
+
+private fun navigateToSettingsNavigationTarget(
+    navController: NavHostController,
+    target: SettingsNavigationTarget
+) {
+    navigateToTopLevelDestination(
+        navController = navController,
+        destination = SettingsDestination
+    )
+    navController.navigate(route = target.route) {
+        launchSingleTop = true
+    }
+}
+
 fun navigateToTopLevelDestination(
     navController: NavHostController,
     destination: TopLevelDestination
@@ -1088,6 +1157,13 @@ fun navigateToTopLevelDestination(
         restoreState = true
     }
 }
+
+private val SettingsNavigationTarget.route: String
+    get() = when (this) {
+        SettingsNavigationTarget.WORKSPACE -> SettingsWorkspaceDestination.route
+        SettingsNavigationTarget.WORKSPACE_DECKS -> SettingsWorkspaceDecksDestination.route
+        SettingsNavigationTarget.WORKSPACE_TAGS -> SettingsWorkspaceTagsDestination.route
+    }
 
 private data class AppPackageInfo(
     val versionName: String,

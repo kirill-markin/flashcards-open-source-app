@@ -11,12 +11,38 @@ data class AiEntryPrefillRequest(
     val prefill: AiEntryPrefill
 )
 
+data class CardEditorRequest(
+    val requestId: Long,
+    val cardId: String?
+)
+
+enum class SettingsNavigationTarget {
+    WORKSPACE,
+    WORKSPACE_DECKS,
+    WORKSPACE_TAGS
+}
+
+data class SettingsNavigationRequest(
+    val requestId: Long,
+    val target: SettingsNavigationTarget
+)
+
 class AppHandoffCoordinator {
     private val nextRequestId = AtomicLong(0L)
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
+    private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
+    private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
 
     fun observeAiEntryPrefill(): StateFlow<AiEntryPrefillRequest?> {
         return aiEntryPrefillState.asStateFlow()
+    }
+
+    fun observeCardEditor(): StateFlow<CardEditorRequest?> {
+        return cardEditorState.asStateFlow()
+    }
+
+    fun observeSettingsNavigation(): StateFlow<SettingsNavigationRequest?> {
+        return settingsNavigationState.asStateFlow()
     }
 
     fun requestAiEntryPrefill(prefill: AiEntryPrefill) {
@@ -32,5 +58,35 @@ class AppHandoffCoordinator {
         }
 
         aiEntryPrefillState.value = null
+    }
+
+    fun requestCardEditor(cardId: String?) {
+        cardEditorState.value = CardEditorRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            cardId = cardId
+        )
+    }
+
+    fun consumeCardEditor(requestId: Long) {
+        if (cardEditorState.value?.requestId != requestId) {
+            return
+        }
+
+        cardEditorState.value = null
+    }
+
+    fun requestSettingsNavigation(target: SettingsNavigationTarget) {
+        settingsNavigationState.value = SettingsNavigationRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            target = target
+        )
+    }
+
+    fun consumeSettingsNavigation(requestId: Long) {
+        if (settingsNavigationState.value?.requestId != requestId) {
+            return
+        }
+
+        settingsNavigationState.value = null
     }
 }

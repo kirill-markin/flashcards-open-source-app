@@ -105,6 +105,70 @@ class WorkspaceLibraryViewModelTest {
         collectionJob.cancel()
     }
 
+    @Test
+    fun decksListReactsToDeckRepositoryChangesWithoutManualReload() = runTest(dispatcher) {
+        val decksRepository = FakeDecksRepository()
+        val viewModel = DecksViewModel(
+            decksRepository = decksRepository,
+            workspaceRepository = FakeLibraryWorkspaceRepository()
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        decksRepository.appendDeck(
+            deck = sampleDeckSummary(
+                deckId = "deck-storage",
+                name = "Storage Focus",
+                tags = listOf("Android", "storage")
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("All cards", "Android UI", "Kotlin Basics", "Storage Focus"),
+            viewModel.uiState.value.deckEntries.map(DeckListEntryUiState::title)
+        )
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun deckDetailReactsWhenMatchingCardsChange() = runTest(dispatcher) {
+        val matchingCard = sampleLibraryCard(
+            cardId = "card-ui",
+            frontText = "How do Material 3 chips work?",
+            tags = listOf("Android")
+        )
+        val updatedMatchingCard = sampleLibraryCard(
+            cardId = "card-ui-2",
+            frontText = "How do adaptive panes work?",
+            tags = listOf("Android")
+        )
+        val decksRepository = FakeDecksRepository(
+            deckCards = mapOf(
+                "deck-ui" to listOf(matchingCard)
+            )
+        )
+        val viewModel = DeckDetailViewModel(
+            decksRepository = decksRepository,
+            cardsRepository = FakeCardsRepository(),
+            workspaceRepository = FakeLibraryWorkspaceRepository(),
+            deckDetailRequest = DeckDetailRequest.PersistedDeck(deckId = "deck-ui")
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        assertEquals(listOf("How do Material 3 chips work?"), viewModel.uiState.value.cards.map(CardSummary::frontText))
+
+        decksRepository.replaceDeckCards(
+            deckId = "deck-ui",
+            cards = listOf(updatedMatchingCard)
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf("How do adaptive panes work?"), viewModel.uiState.value.cards.map(CardSummary::frontText))
+        collectionJob.cancel()
+    }
+
     private fun startCollecting(scope: TestScope, viewModel: DecksViewModel): Job {
         return scope.launch {
             viewModel.uiState.collect { }
@@ -124,43 +188,24 @@ class WorkspaceLibraryViewModelTest {
     }
 }
 
-private class FakeDecksRepository : DecksRepository {
-    private val decksState = MutableStateFlow(
-        listOf(
-            DeckSummary(
-                deckId = "deck-ui",
-                workspaceId = "workspace-demo",
-                name = "Android UI",
-                filterDefinition = DeckFilterDefinition(
-                    version = 2,
-                    effortLevels = emptyList(),
-                    tags = listOf("Android")
-                ),
-                totalCards = 1,
-                dueCards = 1,
-                newCards = 1,
-                reviewedCards = 0,
-                createdAtMillis = 1L,
-                updatedAtMillis = 1L
-            ),
-            DeckSummary(
-                deckId = "deck-kotlin",
-                workspaceId = "workspace-demo",
-                name = "Kotlin Basics",
-                filterDefinition = DeckFilterDefinition(
-                    version = 2,
-                    effortLevels = emptyList(),
-                    tags = listOf("kotlin")
-                ),
-                totalCards = 1,
-                dueCards = 1,
-                newCards = 1,
-                reviewedCards = 0,
-                createdAtMillis = 2L,
-                updatedAtMillis = 2L
-            )
+private class FakeDecksRepository(
+    initialDecks: List<DeckSummary> = listOf(
+        sampleDeckSummary(
+            deckId = "deck-ui",
+            name = "Android UI",
+            tags = listOf("Android")
+        ),
+        sampleDeckSummary(
+            deckId = "deck-kotlin",
+            name = "Kotlin Basics",
+            tags = listOf("kotlin"),
+            createdAtMillis = 2L
         )
-    )
+    ),
+    deckCards: Map<String, List<CardSummary>> = emptyMap()
+) : DecksRepository {
+    private val decksState = MutableStateFlow(initialDecks)
+    private val deckCardsState = MutableStateFlow(deckCards)
 
     override fun observeDecks(): Flow<List<DeckSummary>> {
         return decksState
@@ -173,69 +218,74 @@ private class FakeDecksRepository : DecksRepository {
     }
 
     override fun observeDeckCards(deckId: String): Flow<List<CardSummary>> {
-        return flowOf(emptyList())
+        return deckCardsState.map { cardsByDeck ->
+            cardsByDeck[deckId].orEmpty()
+        }
     }
 
     override suspend fun createDeck(deckDraft: DeckDraft) {
+        decksState.value = decksState.value + sampleDeckSummary(
+            deckId = "created-${decksState.value.size + 1}",
+            name = deckDraft.name,
+            tags = deckDraft.filterDefinition.tags
+        )
     }
 
     override suspend fun updateDeck(deckId: String, deckDraft: DeckDraft) {
+        decksState.value = decksState.value.map { deck ->
+            if (deck.deckId == deckId) {
+                deck.copy(
+                    name = deckDraft.name,
+                    filterDefinition = deckDraft.filterDefinition
+                )
+            } else {
+                deck
+            }
+        }
     }
 
     override suspend fun deleteDeck(deckId: String) {
+        decksState.value = decksState.value.filterNot { deck ->
+            deck.deckId == deckId
+        }
+        deckCardsState.value = deckCardsState.value - deckId
+    }
+
+    fun appendDeck(deck: DeckSummary) {
+        decksState.value = decksState.value + deck
+    }
+
+    fun replaceDeckCards(deckId: String, cards: List<CardSummary>) {
+        deckCardsState.value = deckCardsState.value + (deckId to cards)
     }
 }
 
 private class FakeCardsRepository : CardsRepository {
-    private val cards = listOf(
-        CardSummary(
-            cardId = "card-1",
-            workspaceId = "workspace-demo",
-            frontText = "What does Room wrap on Android?",
-            backText = "SQLite",
-            tags = listOf("Android"),
-            effortLevel = EffortLevel.FAST,
-            dueAtMillis = null,
-            createdAtMillis = 1L,
-            updatedAtMillis = 1L,
-            reps = 0,
-            lapses = 0,
-            fsrsCardState = com.flashcardsopensourceapp.data.local.model.FsrsCardState.NEW,
-            fsrsStepIndex = null,
-            fsrsStability = null,
-            fsrsDifficulty = null,
-            fsrsLastReviewedAtMillis = null,
-            fsrsScheduledDays = null,
-            deletedAtMillis = null
-        ),
-        CardSummary(
-            cardId = "card-2",
-            workspaceId = "workspace-demo",
-            frontText = "What does val mean in Kotlin?",
-            backText = "Immutable reference",
-            tags = listOf("kotlin"),
-            effortLevel = EffortLevel.FAST,
-            dueAtMillis = 100L,
-            createdAtMillis = 2L,
-            updatedAtMillis = 2L,
-            reps = 0,
-            lapses = 0,
-            fsrsCardState = com.flashcardsopensourceapp.data.local.model.FsrsCardState.NEW,
-            fsrsStepIndex = null,
-            fsrsStability = null,
-            fsrsDifficulty = null,
-            fsrsLastReviewedAtMillis = null,
-            fsrsScheduledDays = null,
-            deletedAtMillis = null
+    private val cardsState = MutableStateFlow(
+        listOf(
+            sampleLibraryCard(
+                cardId = "card-1",
+                frontText = "What does Room wrap on Android?",
+                tags = listOf("Android")
+            ),
+            sampleLibraryCard(
+                cardId = "card-2",
+                frontText = "What does val mean in Kotlin?",
+                tags = listOf("kotlin"),
+                dueAtMillis = 100L,
+                createdAtMillis = 2L
+            )
         )
     )
 
     override fun observeCards(searchQuery: String, filter: CardFilter): Flow<List<CardSummary>> {
-        return flowOf(cards)
+        return cardsState
     }
 
     override fun observeCard(cardId: String): Flow<CardSummary?> {
-        return flowOf(cards.firstOrNull { card -> card.cardId == cardId })
+        return cardsState.map { cards ->
+            cards.firstOrNull { card -> card.cardId == cardId }
+        }
     }
 
     override suspend fun createCard(cardDraft: CardDraft) {
@@ -322,4 +372,57 @@ private class FakeLibraryWorkspaceRepository : WorkspaceRepository {
         enableFuzz: Boolean
     ) {
     }
+}
+
+private fun sampleDeckSummary(
+    deckId: String,
+    name: String,
+    tags: List<String>,
+    createdAtMillis: Long = 1L
+): DeckSummary {
+    return DeckSummary(
+        deckId = deckId,
+        workspaceId = "workspace-demo",
+        name = name,
+        filterDefinition = DeckFilterDefinition(
+            version = 2,
+            effortLevels = emptyList(),
+            tags = tags
+        ),
+        totalCards = 1,
+        dueCards = 1,
+        newCards = 1,
+        reviewedCards = 0,
+        createdAtMillis = createdAtMillis,
+        updatedAtMillis = createdAtMillis
+    )
+}
+
+private fun sampleLibraryCard(
+    cardId: String,
+    frontText: String,
+    tags: List<String>,
+    dueAtMillis: Long? = null,
+    createdAtMillis: Long = 1L
+): CardSummary {
+    return CardSummary(
+        cardId = cardId,
+        workspaceId = "workspace-demo",
+        frontText = frontText,
+        backText = "Answer",
+        tags = tags,
+        effortLevel = EffortLevel.FAST,
+        dueAtMillis = dueAtMillis,
+        createdAtMillis = createdAtMillis,
+        updatedAtMillis = createdAtMillis,
+        reps = 0,
+        lapses = 0,
+        fsrsCardState = com.flashcardsopensourceapp.data.local.model.FsrsCardState.NEW,
+        fsrsStepIndex = null,
+        fsrsStability = null,
+        fsrsDifficulty = null,
+        fsrsLastReviewedAtMillis = null,
+        fsrsScheduledDays = null,
+        deletedAtMillis = null
+    )
 }
