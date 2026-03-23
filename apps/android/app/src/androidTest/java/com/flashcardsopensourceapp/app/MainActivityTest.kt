@@ -204,6 +204,38 @@ class MainActivityTest {
         composeRule.onNodeWithText("What is WorkManager for?").fetchSemanticsNode()
     }
 
+    @Test
+    fun reviewEmptyStateSupportsGuidedCreationHandoffs() {
+        waitForSeededCards()
+
+        composeRule.onNodeWithText("Review").performClick()
+        composeRule.onNodeWithContentDescription("Choose review filter").performClick()
+        composeRule.onNodeWithText("Android UI (3)").performClick()
+
+        repeat(3) {
+            composeRule.onNodeWithText("Show answer").performClick()
+            composeRule.onNodeWithText("Good").performClick()
+        }
+
+        composeRule.onNodeWithText("No cards in this filter").fetchSemanticsNode()
+        composeRule.onNodeWithText("Create card").fetchSemanticsNode()
+        composeRule.onNodeWithText("Create with AI").fetchSemanticsNode()
+        composeRule.onNodeWithText("Switch to all cards").fetchSemanticsNode()
+
+        composeRule.onNodeWithText("Switch to all cards").performClick()
+        composeRule.onNodeWithText("What does val mean in Kotlin?").fetchSemanticsNode()
+
+        composeRule.onNodeWithContentDescription("Choose review filter").performClick()
+        composeRule.onNodeWithText("Android UI (3)").performClick()
+        composeRule.onNodeWithText("No cards in this filter").fetchSemanticsNode()
+
+        composeRule.onNodeWithText("Create with AI").performClick()
+        if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText("OK").performClick()
+        }
+        composeRule.onNodeWithText("Help me create a card.").fetchSemanticsNode()
+    }
+
     private fun waitForSeededCards() {
         composeRule.onNodeWithText("Cards").performClick()
         composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {

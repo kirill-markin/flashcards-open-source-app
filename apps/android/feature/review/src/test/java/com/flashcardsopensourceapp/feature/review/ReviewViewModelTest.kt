@@ -11,6 +11,12 @@ import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
+import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
+import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
+import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
@@ -18,6 +24,7 @@ import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,6 +32,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -219,6 +227,52 @@ class ReviewViewModelTest {
     }
 
     @Test
+    fun emptyWorkspaceShowsNoCardsYetState() = runTest(dispatcher) {
+        val reviewViewModel = createReviewViewModel(
+            reviewRepository = FakeReviewRepository(cards = emptyList()),
+            workspaceRepository = FakeWorkspaceRepository(cardCount = 0)
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        advanceUntilIdle()
+
+        assertEquals(ReviewEmptyState.NO_CARDS_YET, reviewViewModel.uiState.value.emptyState)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun allCardsWithOnlyFutureCardsShowsSessionCompleteState() = runTest(dispatcher) {
+        val reviewViewModel = createReviewViewModel(
+            reviewRepository = FakeReviewRepository(
+                cards = sampleCards(count = 2, dueAtMillis = 5_000L)
+            ),
+            workspaceRepository = FakeWorkspaceRepository(cardCount = 2)
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        advanceUntilIdle()
+
+        assertEquals(ReviewEmptyState.SESSION_COMPLETE, reviewViewModel.uiState.value.emptyState)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun filteredReviewWithNoMatchingDueCardsShowsFilterEmptyState() = runTest(dispatcher) {
+        val reviewViewModel = createReviewViewModel(
+            reviewRepository = FakeReviewRepository(cards = sampleCards(count = 1)),
+            workspaceRepository = FakeWorkspaceRepository(cardCount = 1)
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        advanceUntilIdle()
+        reviewViewModel.selectFilter(reviewFilter = ReviewFilter.Tag(tag = "ui"))
+        advanceUntilIdle()
+
+        assertEquals(ReviewEmptyState.FILTER_EMPTY, reviewViewModel.uiState.value.emptyState)
+        collectionJob.cancel()
+    }
+
+    @Test
     fun previewIgnoresNonLastVisibleCardForNextPageLoading() = runTest(dispatcher) {
         val reviewViewModel = createReviewViewModel(
             reviewRepository = FakeReviewRepository(cards = sampleCards(count = 25))
@@ -335,7 +389,8 @@ class ReviewViewModelTest {
         return ReviewViewModel(
             reviewRepository = reviewRepository,
             syncRepository = FakeSyncRepository(),
-            messageController = FakeMessageController()
+            messageController = FakeMessageController(),
+            workspaceRepository = FakeWorkspaceRepository(cardCount = 3)
         )
     }
 
@@ -347,7 +402,20 @@ class ReviewViewModelTest {
         return ReviewViewModel(
             reviewRepository = reviewRepository,
             syncRepository = syncRepository,
-            messageController = messageController
+            messageController = messageController,
+            workspaceRepository = FakeWorkspaceRepository(cardCount = 3)
+        )
+    }
+
+    private fun createReviewViewModel(
+        reviewRepository: FakeReviewRepository,
+        workspaceRepository: FakeWorkspaceRepository
+    ): ReviewViewModel {
+        return ReviewViewModel(
+            reviewRepository = reviewRepository,
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController(),
+            workspaceRepository = workspaceRepository
         )
     }
 
@@ -455,11 +523,67 @@ class ReviewViewModelTest {
         }
     }
 
+    private class FakeWorkspaceRepository(
+        private val cardCount: Int
+    ) : WorkspaceRepository {
+        override fun observeWorkspace(): Flow<WorkspaceSummary?> {
+            return flowOf(
+                WorkspaceSummary(
+                    workspaceId = "workspace-demo",
+                    name = "Demo",
+                    createdAtMillis = 1L
+                )
+            )
+        }
+
+        override fun observeAppMetadata(): Flow<AppMetadataSummary> {
+            return flowOf(
+                AppMetadataSummary(
+                    currentWorkspaceName = "Demo",
+                    workspaceName = "Demo",
+                    deckCount = 2,
+                    cardCount = cardCount,
+                    localStorageLabel = "Room + SQLite",
+                    syncStatusText = "Synced"
+                )
+            )
+        }
+
+        override fun observeWorkspaceOverview(): Flow<WorkspaceOverviewSummary?> {
+            return flowOf(null)
+        }
+
+        override fun observeWorkspaceSchedulerSettings(): Flow<WorkspaceSchedulerSettings?> {
+            return flowOf(null)
+        }
+
+        override fun observeWorkspaceTagsSummary(): Flow<WorkspaceTagsSummary> {
+            return flowOf(WorkspaceTagsSummary(tags = emptyList(), totalCards = cardCount))
+        }
+
+        override fun observeDeviceDiagnostics(): Flow<DeviceDiagnosticsSummary?> {
+            return flowOf(null)
+        }
+
+        override suspend fun loadWorkspaceExportData(): WorkspaceExportData? {
+            return null
+        }
+
+        override suspend fun updateWorkspaceSchedulerSettings(
+            desiredRetention: Double,
+            learningStepsMinutes: List<Int>,
+            relearningStepsMinutes: List<Int>,
+            maximumIntervalDays: Int,
+            enableFuzz: Boolean
+        ) {
+        }
+    }
+
     private companion object {
         private lateinit var pendingRecordReview: CompletableDeferred<Unit>
         private var previewFailureCount: Int = 0
 
-        private fun sampleCards(count: Int): List<CardSummary> {
+        private fun sampleCards(count: Int, dueAtMillis: Long? = null): List<CardSummary> {
             return (1..count).map { index ->
                 CardSummary(
                     cardId = "card-$index",
@@ -468,7 +592,7 @@ class ReviewViewModelTest {
                     backText = "Back $index",
                     tags = if (index % 2 == 0) listOf("ui") else listOf("basics"),
                     effortLevel = EffortLevel.FAST,
-                    dueAtMillis = null,
+                    dueAtMillis = dueAtMillis,
                     createdAtMillis = index.toLong(),
                     updatedAtMillis = index.toLong(),
                     reps = 0,

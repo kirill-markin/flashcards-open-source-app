@@ -290,6 +290,25 @@ class AiViewModelTest {
     }
 
     @Test
+    fun applyEntryPrefillSetsCreateCardPrompt() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(hasConsent = true)
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository()
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.applyEntryPrefill(prefill = AiEntryPrefill.CREATE_CARD)
+        advanceUntilIdle()
+
+        assertEquals("Help me create a card.", viewModel.uiState.value.draftMessage)
+        assertTrue(viewModel.uiState.value.messages.isEmpty())
+        collectionJob.cancel()
+    }
+
+    @Test
     fun transcriptionAppendsTranscriptToDraftWithoutSending() = runTest(dispatcher) {
         val aiChatRepository = FakeAiChatRepository(
             hasConsent = true,
