@@ -468,11 +468,39 @@ private class FakeCloudAccountRepository(
         throw UnsupportedOperationException()
     }
 
+    override suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadCurrentWorkspaceDeletePreview(): com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun deleteCurrentWorkspace(
+        confirmationText: String
+    ): com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun deleteAccount(confirmationText: String) {
+        throw UnsupportedOperationException()
+    }
+
     override suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary> {
         throw UnsupportedOperationException()
     }
 
     override suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun listAgentConnections(): com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun revokeAgentConnection(
+        connectionId: String
+    ): com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult {
         throw UnsupportedOperationException()
     }
 

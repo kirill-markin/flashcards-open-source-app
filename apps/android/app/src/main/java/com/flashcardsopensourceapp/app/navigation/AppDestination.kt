@@ -152,6 +152,14 @@ data object SettingsAccountOpenSourceDestination {
     const val route: String = "settings/account/open-source"
 }
 
+data object SettingsAccountAgentConnectionsDestination {
+    const val route: String = "settings/account/agent-connections"
+}
+
+data object SettingsAccountDangerZoneDestination {
+    const val route: String = "settings/account/danger-zone"
+}
+
 data object SettingsDeviceDestination {
     const val route: String = "settings/device"
 }

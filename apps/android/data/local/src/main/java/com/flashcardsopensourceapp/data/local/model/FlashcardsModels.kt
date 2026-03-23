@@ -63,6 +63,34 @@ data class CloudWorkspaceSummary(
     val isSelected: Boolean
 )
 
+data class CloudWorkspaceDeletePreview(
+    val workspaceId: String,
+    val workspaceName: String,
+    val activeCardCount: Int,
+    val confirmationText: String,
+    val isLastAccessibleWorkspace: Boolean
+)
+
+data class CloudWorkspaceDeleteResult(
+    val ok: Boolean,
+    val deletedWorkspaceId: String,
+    val deletedCardsCount: Int,
+    val workspace: CloudWorkspaceSummary
+)
+
+data class AgentApiKeyConnection(
+    val connectionId: String,
+    val label: String,
+    val createdAtMillis: Long,
+    val lastUsedAtMillis: Long?,
+    val revokedAtMillis: Long?
+)
+
+data class AgentApiKeyConnectionsResult(
+    val connections: List<AgentApiKeyConnection>,
+    val instructions: String
+)
+
 sealed interface CloudWorkspaceLinkSelection {
     data class Existing(
         val workspaceId: String

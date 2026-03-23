@@ -23,10 +23,12 @@ import com.flashcardsopensourceapp.feature.settings.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.AccessDetailRoute
 import com.flashcardsopensourceapp.feature.settings.AccessRoute
 import com.flashcardsopensourceapp.feature.settings.AccountAdvancedRoute
+import com.flashcardsopensourceapp.feature.settings.AccountDangerZoneRoute
 import com.flashcardsopensourceapp.feature.settings.AccountLegalSupportRoute
 import com.flashcardsopensourceapp.feature.settings.AccountOpenSourceRoute
 import com.flashcardsopensourceapp.feature.settings.AccountRoute
 import com.flashcardsopensourceapp.feature.settings.AccountStatusRoute
+import com.flashcardsopensourceapp.feature.settings.AgentConnectionsRoute
 import com.flashcardsopensourceapp.feature.cards.CardEditorRoute
 import com.flashcardsopensourceapp.feature.cards.CardTagsRoute
 import com.flashcardsopensourceapp.feature.cards.CardTextEditorRoute
@@ -34,6 +36,8 @@ import com.flashcardsopensourceapp.feature.cards.CardsRoute
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.cards.createCardsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createAccountStatusViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createAccountDangerZoneViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.createAgentConnectionsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createCloudSignInViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createCurrentWorkspaceViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDeviceDiagnosticsViewModelFactory
@@ -442,11 +446,37 @@ fun AppNavHost(
 
         composable(route = SettingsWorkspaceOverviewDestination.route) {
             val workspaceOverviewViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceOverviewViewModel>(
-                factory = createWorkspaceOverviewViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+                factory = createWorkspaceOverviewViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    syncRepository = appGraph.syncRepository
+                )
             )
             val uiState by workspaceOverviewViewModel.uiState.collectAsStateWithLifecycle()
 
-            WorkspaceOverviewRoute(uiState = uiState)
+            WorkspaceOverviewRoute(
+                uiState = uiState,
+                onWorkspaceNameChange = workspaceOverviewViewModel::updateWorkspaceNameDraft,
+                onSaveWorkspaceName = {
+                    coroutineScope.launch {
+                        workspaceOverviewViewModel.saveWorkspaceName()
+                    }
+                },
+                onRequestDeleteWorkspace = {
+                    coroutineScope.launch {
+                        workspaceOverviewViewModel.requestDeleteWorkspace()
+                    }
+                },
+                onDismissDeletePreviewAlert = workspaceOverviewViewModel::dismissDeletePreviewAlert,
+                onOpenDeleteConfirmation = workspaceOverviewViewModel::openDeleteConfirmation,
+                onDeleteConfirmationTextChange = workspaceOverviewViewModel::updateDeleteConfirmationText,
+                onDismissDeleteConfirmation = workspaceOverviewViewModel::dismissDeleteConfirmation,
+                onDeleteWorkspace = {
+                    coroutineScope.launch {
+                        workspaceOverviewViewModel.deleteWorkspace()
+                    }
+                }
+            )
         }
 
         composable(route = SettingsWorkspaceDecksDestination.route) {
@@ -635,6 +665,12 @@ fun AppNavHost(
                 },
                 onOpenAdvanced = {
                     navController.navigate(route = SettingsAccountAdvancedDestination.route)
+                },
+                onOpenAgentConnections = {
+                    navController.navigate(route = SettingsAccountAgentConnectionsDestination.route)
+                },
+                onOpenDangerZone = {
+                    navController.navigate(route = SettingsAccountDangerZoneDestination.route)
                 }
             )
         }
@@ -782,6 +818,50 @@ fun AppNavHost(
 
         composable(route = SettingsAccountOpenSourceDestination.route) {
             AccountOpenSourceRoute()
+        }
+
+        composable(route = SettingsAccountAgentConnectionsDestination.route) {
+            val agentConnectionsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AgentConnectionsViewModel>(
+                factory = createAgentConnectionsViewModelFactory(
+                    cloudAccountRepository = appGraph.cloudAccountRepository
+                )
+            )
+            val uiState by agentConnectionsViewModel.uiState.collectAsStateWithLifecycle()
+
+            AgentConnectionsRoute(
+                uiState = uiState,
+                onReload = {
+                    coroutineScope.launch {
+                        agentConnectionsViewModel.loadConnections()
+                    }
+                },
+                onRevokeConnection = { connectionId ->
+                    coroutineScope.launch {
+                        agentConnectionsViewModel.revokeConnection(connectionId = connectionId)
+                    }
+                }
+            )
+        }
+
+        composable(route = SettingsAccountDangerZoneDestination.route) {
+            val accountDangerZoneViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AccountDangerZoneViewModel>(
+                factory = createAccountDangerZoneViewModelFactory(
+                    cloudAccountRepository = appGraph.cloudAccountRepository
+                )
+            )
+            val uiState by accountDangerZoneViewModel.uiState.collectAsStateWithLifecycle()
+
+            AccountDangerZoneRoute(
+                uiState = uiState,
+                onRequestDeleteConfirmation = accountDangerZoneViewModel::requestDeleteConfirmation,
+                onDismissDeleteConfirmation = accountDangerZoneViewModel::dismissDeleteConfirmation,
+                onConfirmationTextChange = accountDangerZoneViewModel::updateConfirmationText,
+                onDeleteAccount = {
+                    coroutineScope.launch {
+                        accountDangerZoneViewModel.deleteAccount()
+                    }
+                }
+            )
         }
 
         composable(route = SettingsDeviceDestination.route) {

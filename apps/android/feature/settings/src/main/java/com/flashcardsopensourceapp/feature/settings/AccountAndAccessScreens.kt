@@ -19,12 +19,15 @@ import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.SaveAlt
 import androidx.compose.material.icons.outlined.SettingsEthernet
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,8 +39,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,7 +64,9 @@ fun AccountRoute(
     onOpenStatus: () -> Unit,
     onOpenLegalSupport: () -> Unit,
     onOpenOpenSource: () -> Unit,
-    onOpenAdvanced: () -> Unit
+    onOpenAdvanced: () -> Unit,
+    onOpenAgentConnections: () -> Unit,
+    onOpenDangerZone: () -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -150,6 +157,46 @@ fun AccountRoute(
                         )
                     },
                     modifier = Modifier.clickable(onClick = onOpenAdvanced)
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Agent connections")
+                    },
+                    supportingContent = {
+                        Text("Review and revoke long-lived bot connections")
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.Link,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenAgentConnections)
+                )
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = {
+                        Text("Danger zone")
+                    },
+                    supportingContent = {
+                        Text("Delete account")
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.WarningAmber,
+                            contentDescription = null
+                        )
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenDangerZone)
                 )
             }
         }
@@ -605,6 +652,248 @@ fun CloudSignInCodeRoute(
                 Text(if (uiState.isVerifyingCode) "Verifying..." else "Verify code")
             }
         }
+    }
+}
+
+@Composable
+fun AgentConnectionsRoute(
+    uiState: AgentConnectionsUiState,
+    onReload: () -> Unit,
+    onRevokeConnection: (String) -> Unit
+) {
+    LaunchedEffect(uiState.isLinked) {
+        if (uiState.isLinked) {
+            onReload()
+        }
+    }
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (uiState.errorMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Agent connections",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (uiState.isLinked) {
+                        Text(
+                            text = "Review and revoke long-lived bot connections tied to this cloud account.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedButton(
+                            onClick = onReload,
+                            enabled = uiState.isLoading.not(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (uiState.isLoading) "Loading..." else "Reload")
+                        }
+                    } else {
+                        Text(
+                            text = "Sign in to the cloud account to manage long-lived bot connections.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        if (uiState.instructions.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.instructions,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        if (uiState.isLinked && uiState.isLoading.not() && uiState.connections.isEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "No long-lived bot connections were created for this account.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        items(uiState.connections, key = { item -> item.connectionId }) { connection ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(connection.label, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = connection.connectionId,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text("Created: ${connection.createdAtLabel}")
+                    Text("Last used: ${connection.lastUsedAtLabel}")
+                    Text("Revoked: ${connection.revokedAtLabel}")
+                    OutlinedButton(
+                        onClick = {
+                            onRevokeConnection(connection.connectionId)
+                        },
+                        enabled = connection.isRevoked.not() && uiState.revokingConnectionId != connection.connectionId,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (uiState.revokingConnectionId == connection.connectionId) {
+                                "Revoking..."
+                            } else {
+                                "Revoke"
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AccountDangerZoneRoute(
+    uiState: AccountDangerZoneUiState,
+    onRequestDeleteConfirmation: () -> Unit,
+    onDismissDeleteConfirmation: () -> Unit,
+    onConfirmationTextChange: (String) -> Unit,
+    onDeleteAccount: () -> Unit
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (uiState.errorMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        if (uiState.successMessage.isNotEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.successMessage,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Danger zone",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        text = "Permanently delete this account and all cloud data.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(
+                        onClick = onRequestDeleteConfirmation,
+                        enabled = uiState.isLinked && uiState.isDeleting.not(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (uiState.isDeleting) "Deleting..." else "Delete my account")
+                    }
+                    if (uiState.isLinked.not()) {
+                        Text(
+                            text = "Sign in to a linked cloud account before deleting it.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (uiState.showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = {
+                if (uiState.isDeleting.not()) {
+                    onDismissDeleteConfirmation()
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = onDeleteAccount,
+                    enabled = uiState.isDeleting.not() && uiState.confirmationText == accountDeletionConfirmationText
+                ) {
+                    Text(if (uiState.isDeleting) "Deleting..." else "Delete my account")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDismissDeleteConfirmation,
+                    enabled = uiState.isDeleting.not()
+                ) {
+                    Text("Cancel")
+                }
+            },
+            title = {
+                Text("Delete account")
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Warning! This action is permanent. Type the phrase below exactly to continue.",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        text = accountDeletionConfirmationText,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    OutlinedTextField(
+                        value = uiState.confirmationText,
+                        onValueChange = onConfirmationTextChange,
+                        label = {
+                            Text("Confirmation text")
+                        },
+                        enabled = uiState.isDeleting.not(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        )
     }
 }
 

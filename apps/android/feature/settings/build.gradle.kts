@@ -43,4 +43,5 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
 
     testImplementation(libs.junit4)
+    testImplementation(libs.org.jetbrains.kotlinx.coroutines.test)
 }

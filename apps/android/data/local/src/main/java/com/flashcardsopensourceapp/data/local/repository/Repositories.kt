@@ -11,8 +11,12 @@ import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
+import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
@@ -90,8 +94,14 @@ interface CloudAccountRepository {
     suspend fun sendCode(email: String): CloudSendCodeResult
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): List<CloudWorkspaceSummary>
     suspend fun logout()
+    suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary
+    suspend fun loadCurrentWorkspaceDeletePreview(): CloudWorkspaceDeletePreview
+    suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult
+    suspend fun deleteAccount(confirmationText: String)
     suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary>
     suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
+    suspend fun listAgentConnections(): AgentApiKeyConnectionsResult
+    suspend fun revokeAgentConnection(connectionId: String): AgentApiKeyConnectionsResult
     suspend fun currentServerConfiguration(): CloudServiceConfiguration
     suspend fun validateCustomServer(customOrigin: String): CloudServiceConfiguration
     suspend fun applyCustomServer(configuration: CloudServiceConfiguration)
