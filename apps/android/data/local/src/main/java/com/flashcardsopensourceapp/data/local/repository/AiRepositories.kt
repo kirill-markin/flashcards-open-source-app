@@ -56,6 +56,38 @@ class LocalAiChatRepository(
         historyStore.clearState(workspaceId = workspaceId)
     }
 
+    override suspend fun transcribeAudio(
+        workspaceId: String?,
+        fileName: String,
+        mediaType: String,
+        audioBytes: ByteArray
+    ): String {
+        val session = authorizedSession(workspaceId = workspaceId)
+        return aiChatRemoteService.transcribeAudio(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            fileName = fileName,
+            mediaType = mediaType,
+            audioBytes = audioBytes
+        )
+    }
+
+    override suspend fun warmUpLinkedSession() {
+        val cloudSettings = preferencesStore.currentCloudSettings()
+        require(cloudSettings.cloudState == CloudAccountState.LINKED) {
+            "AI warm-up requires a linked cloud account."
+        }
+        val configuration = preferencesStore.currentServerConfiguration()
+        val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
+            "Cloud account is not signed in."
+        }
+
+        refreshedCredentials(
+            storedCredentials = storedCredentials,
+            authBaseUrl = configuration.authBaseUrl
+        )
+    }
+
     override suspend fun streamTurn(
         workspaceId: String?,
         state: AiChatPersistedState,

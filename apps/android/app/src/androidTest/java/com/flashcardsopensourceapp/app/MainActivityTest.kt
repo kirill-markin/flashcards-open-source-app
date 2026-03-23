@@ -31,6 +31,9 @@ class MainActivityTest {
         composeRule.onNodeWithText("Search cards").fetchSemanticsNode()
 
         composeRule.onNodeWithText("AI").performClick()
+        if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText("OK").performClick()
+        }
         composeRule.onNodeWithText("Android draft AI shell").fetchSemanticsNode()
 
         composeRule.onNodeWithText("Settings").performClick()

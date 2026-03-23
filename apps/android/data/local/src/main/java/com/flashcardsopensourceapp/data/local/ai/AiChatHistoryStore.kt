@@ -121,6 +121,18 @@ class AiChatHistoryStore(
                 .put("type", "text")
                 .put("text", contentPart.text)
 
+            is AiChatContentPart.Image -> JSONObject()
+                .put("type", "image")
+                .put("fileName", contentPart.fileName)
+                .put("mediaType", contentPart.mediaType)
+                .put("base64Data", contentPart.base64Data)
+
+            is AiChatContentPart.File -> JSONObject()
+                .put("type", "file")
+                .put("fileName", contentPart.fileName)
+                .put("mediaType", contentPart.mediaType)
+                .put("base64Data", contentPart.base64Data)
+
             is AiChatContentPart.ToolCall -> JSONObject()
                 .put("type", "tool_call")
                 .put("toolCallId", contentPart.toolCall.toolCallId)
@@ -148,6 +160,18 @@ class AiChatHistoryStore(
         return when (jsonObject.getString("type")) {
             "text" -> AiChatContentPart.Text(
                 text = jsonObject.getString("text")
+            )
+
+            "image" -> AiChatContentPart.Image(
+                fileName = jsonObject.optString("fileName", "").ifBlank { null },
+                mediaType = jsonObject.getString("mediaType"),
+                base64Data = jsonObject.getString("base64Data")
+            )
+
+            "file" -> AiChatContentPart.File(
+                fileName = jsonObject.getString("fileName"),
+                mediaType = jsonObject.getString("mediaType"),
+                base64Data = jsonObject.getString("base64Data")
             )
 
             "tool_call" -> AiChatContentPart.ToolCall(

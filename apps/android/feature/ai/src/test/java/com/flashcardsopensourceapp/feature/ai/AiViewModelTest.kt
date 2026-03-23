@@ -1,7 +1,9 @@
 package com.flashcardsopensourceapp.feature.ai
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
@@ -27,6 +29,7 @@ import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
 import com.flashcardsopensourceapp.data.local.model.aiChatDefaultModelId
+import com.flashcardsopensourceapp.data.local.model.makeAiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -255,6 +258,89 @@ class AiViewModelTest {
     }
 
     @Test
+    fun attachmentsOnlySendCreatesUserMessageWithImageContent() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(hasConsent = true)
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.addPendingAttachment(
+            makeAiChatAttachment(
+                fileName = "photo.jpg",
+                mediaType = "image/jpeg",
+                base64Data = "abc"
+            )
+        )
+        advanceUntilIdle()
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals(2, viewModel.uiState.value.messages.size)
+        val userMessage = viewModel.uiState.value.messages.first()
+        val imagePart = userMessage.content.single() as AiChatContentPart.Image
+        assertEquals("photo.jpg", imagePart.fileName)
+        assertTrue(viewModel.uiState.value.pendingAttachments.isEmpty())
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun transcriptionAppendsTranscriptToDraftWithoutSending() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            transcriptionText = "Added by dictation"
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.updateDraftMessage("Draft")
+        viewModel.startDictationRecording()
+        viewModel.transcribeRecordedAudio(
+            fileName = "chat-dictation.m4a",
+            mediaType = "audio/mp4",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        advanceUntilIdle()
+
+        assertEquals(AiChatDictationState.IDLE, viewModel.uiState.value.dictationState)
+        assertEquals("Draft\nAdded by dictation", viewModel.uiState.value.draftMessage)
+        assertTrue(viewModel.uiState.value.messages.isEmpty())
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun warmUpRunsOnlyForLinkedAccountsWithConsent() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(hasConsent = true)
+        val linkedViewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED
+            )
+        )
+        val linkedCollectionJob = startCollecting(scope = this, viewModel = linkedViewModel)
+
+        advanceUntilIdle()
+        linkedViewModel.warmUpLinkedSessionIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(1, aiChatRepository.warmUpCalls)
+        linkedCollectionJob.cancel()
+    }
+
+    @Test
     fun reloadRestoresPersistedMessagesForCurrentWorkspace() = runTest(dispatcher) {
         val aiChatRepository = FakeAiChatRepository(
             hasConsent = true,
@@ -310,6 +396,7 @@ class AiViewModelTest {
 private class FakeAiChatRepository(
     hasConsent: Boolean,
     persistedState: AiChatPersistedState = makeDefaultAiChatPersistedState(),
+    private val transcriptionText: String = "",
     private val streamHandler: suspend (
         String?,
         AiChatPersistedState,
@@ -324,6 +411,7 @@ private class FakeAiChatRepository(
     private val consentState = MutableStateFlow(hasConsent)
     private val storedStates = mutableMapOf<String?, AiChatPersistedState>()
     var lastSavedState: AiChatPersistedState? = null
+    var warmUpCalls: Int = 0
 
     init {
         storedStates["workspace-1"] = persistedState
@@ -352,6 +440,19 @@ private class FakeAiChatRepository(
 
     override suspend fun clearPersistedState(workspaceId: String?) {
         storedStates.remove(workspaceId)
+    }
+
+    override suspend fun transcribeAudio(
+        workspaceId: String?,
+        fileName: String,
+        mediaType: String,
+        audioBytes: ByteArray
+    ): String {
+        return transcriptionText
+    }
+
+    override suspend fun warmUpLinkedSession() {
+        warmUpCalls += 1
     }
 
     override suspend fun streamTurn(

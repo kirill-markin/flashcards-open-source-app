@@ -15,10 +15,12 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.util.UUID
 
 private const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
 private const val codeInterpreterContainerIdHeaderName: String = "X-Code-Interpreter-Container-Id"
@@ -115,6 +117,42 @@ class AiChatRemoteService {
         }
     }
 
+    suspend fun transcribeAudio(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        fileName: String,
+        mediaType: String,
+        audioBytes: ByteArray
+    ): String = withContext(Dispatchers.IO) {
+        val boundary = "flashcards-${UUID.randomUUID()}"
+        val connection = openConnection(
+            apiBaseUrl = apiBaseUrl,
+            path = "/chat/transcriptions",
+            method = "POST",
+            authorizationHeader = authorizationHeader
+        )
+
+        try {
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            connection.doOutput = true
+            connection.outputStream.use { outputStream ->
+                outputStream.write(
+                    encodeMultipartAudioBody(
+                        boundary = boundary,
+                        fileName = fileName,
+                        mediaType = mediaType,
+                        audioBytes = audioBytes
+                    )
+                )
+            }
+
+            val response = readJsonResponse(connection = connection)
+            return@withContext response.getString("text")
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     private fun openConnection(
         apiBaseUrl: String,
         path: String,
@@ -190,6 +228,17 @@ class AiChatRemoteService {
                 .put("type", "text")
                 .put("text", part.text)
 
+            is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Image -> JSONObject()
+                .put("type", "image")
+                .put("mediaType", part.mediaType)
+                .put("base64Data", part.base64Data)
+
+            is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.File -> JSONObject()
+                .put("type", "file")
+                .put("fileName", part.fileName)
+                .put("mediaType", part.mediaType)
+                .put("base64Data", part.base64Data)
+
             is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.ToolCall -> JSONObject()
                 .put("type", "tool_call")
                 .put("toolCallId", part.toolCallId)
@@ -198,6 +247,24 @@ class AiChatRemoteService {
                 .put("input", part.input)
                 .put("output", part.output)
         }
+    }
+
+    private fun encodeMultipartAudioBody(
+        boundary: String,
+        fileName: String,
+        mediaType: String,
+        audioBytes: ByteArray
+    ): ByteArray {
+        val outputStream = ByteArrayOutputStream()
+        outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
+        outputStream.write(
+            "Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n"
+                .toByteArray(StandardCharsets.UTF_8)
+        )
+        outputStream.write("Content-Type: $mediaType\r\n\r\n".toByteArray(StandardCharsets.UTF_8))
+        outputStream.write(audioBytes)
+        outputStream.write("\r\n--$boundary--\r\n".toByteArray(StandardCharsets.UTF_8))
+        return outputStream.toByteArray()
     }
 }
 
