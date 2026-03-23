@@ -54,6 +54,11 @@ import type {
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
 } from "../types";
+// Keep local web review scheduling aligned with the backend source of truth and
+// the mirrored native copies:
+// - apps/backend/src/schedule.ts
+// - apps/ios/Flashcards/Flashcards/FsrsScheduler.swift
+// - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt
 import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/schedule";
 import {
   buildCardUpsertOperation,

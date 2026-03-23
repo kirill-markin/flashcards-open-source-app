@@ -2,6 +2,8 @@
  * Web FSRS types mirror the backend scheduler contract and the iOS/Android data models.
  * The web app does not contain a standalone FSRS scheduler implementation in
  * this repository.
+ * Web review submissions and review-button interval previews reuse the backend
+ * scheduler module from `apps/backend/src/schedule.ts`.
  *
  * Keep these FSRS-facing types aligned with:
  * - apps/backend/src/schedule.ts
