@@ -63,6 +63,19 @@ data class CloudWorkspaceSummary(
     val isSelected: Boolean
 )
 
+enum class CloudGuestUpgradeMode {
+    BOUND,
+    MERGE_REQUIRED
+}
+
+sealed interface CloudGuestUpgradeSelection {
+    data class Existing(
+        val workspaceId: String
+    ) : CloudGuestUpgradeSelection
+
+    data object CreateNew : CloudGuestUpgradeSelection
+}
+
 data class CloudWorkspaceDeletePreview(
     val workspaceId: String,
     val workspaceName: String,
@@ -98,6 +111,13 @@ sealed interface CloudWorkspaceLinkSelection {
 
     data object CreateNew : CloudWorkspaceLinkSelection
 }
+
+data class CloudWorkspaceLinkContext(
+    val userId: String,
+    val email: String?,
+    val workspaces: List<CloudWorkspaceSummary>,
+    val guestUpgradeMode: CloudGuestUpgradeMode?
+)
 
 data class CloudSettings(
     val deviceId: String,

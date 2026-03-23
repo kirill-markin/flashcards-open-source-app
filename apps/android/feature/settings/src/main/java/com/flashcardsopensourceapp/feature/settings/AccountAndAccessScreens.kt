@@ -275,13 +275,25 @@ fun AccountStatusRoute(
                         text = "Actions",
                         style = MaterialTheme.typography.titleMedium
                     )
+                    if (uiState.isGuest) {
+                        Text(
+                            text = "Guest AI is active on this device. Create an account or log in to upgrade it into a linked cloud account.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     if (uiState.isLinked || uiState.isLinkingReady.not()) {
                         Button(
                             onClick = onOpenSignIn,
                             enabled = uiState.isSubmitting.not(),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (uiState.isLinked) "Switch account" else "Sign in for sync")
+                            Text(
+                                when {
+                                    uiState.isLinked -> "Switch account"
+                                    uiState.isGuest -> "Create account or Log in"
+                                    else -> "Sign in for sync"
+                                }
+                            )
                         }
                     }
                     if (uiState.isLinked) {
@@ -419,14 +431,18 @@ fun CurrentWorkspaceRoute(
                     when {
                         uiState.isLinked.not() && uiState.isLinkingReady.not() -> {
                             Text(
-                                text = "Sign in first to load linked cloud workspaces.",
+                                text = if (uiState.isGuest) {
+                                    "Create an account or log in to upgrade Guest AI before managing linked workspaces."
+                                } else {
+                                    "Sign in first to load linked cloud workspaces."
+                                },
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Button(
                                 onClick = onOpenSignIn,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Sign in")
+                                Text(if (uiState.isGuest) "Create account or Log in" else "Sign in")
                             }
                         }
 
@@ -622,7 +638,11 @@ fun CloudSignInEmailRoute(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Sign in with email to link Android to your cloud workspace.",
+                    text = if (uiState.isGuestUpgrade) {
+                        "Sign in with email to upgrade Guest AI into a linked cloud account on Android."
+                    } else {
+                        "Sign in with email to link Android to your cloud workspace."
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(20.dp)
                 )
@@ -678,7 +698,11 @@ fun CloudSignInCodeRoute(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"}.",
+                    text = if (uiState.isGuestUpgrade) {
+                        "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"} to upgrade Guest AI."
+                    } else {
+                        "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"}."
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(20.dp)
                 )
@@ -758,11 +782,23 @@ fun CloudPostAuthRoute(
 
                     when (uiState.mode) {
                         CloudPostAuthMode.READY_TO_AUTO_LINK -> {
-                            Text("Preparing ${uiState.pendingWorkspaceTitle ?: "your workspace"}...")
+                            Text(
+                                if (uiState.isGuestUpgrade) {
+                                    "Preparing to upgrade Guest AI into ${uiState.pendingWorkspaceTitle ?: "your workspace"}..."
+                                } else {
+                                    "Preparing ${uiState.pendingWorkspaceTitle ?: "your workspace"}..."
+                                }
+                            )
                         }
 
                         CloudPostAuthMode.CHOOSE_WORKSPACE -> {
-                            Text("Choose a linked workspace to open on this Android device, or create a new one.")
+                            Text(
+                                if (uiState.isGuestUpgrade) {
+                                    "Choose the linked workspace that should receive this Guest AI session, or create a new one."
+                                } else {
+                                    "Choose a linked workspace to open on this Android device, or create a new one."
+                                }
+                            )
                         }
 
                         CloudPostAuthMode.PROCESSING -> {

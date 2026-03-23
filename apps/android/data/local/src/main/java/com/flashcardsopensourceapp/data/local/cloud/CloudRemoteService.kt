@@ -3,6 +3,8 @@ package com.flashcardsopensourceapp.data.local.cloud
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
@@ -103,6 +105,14 @@ interface CloudRemoteGateway {
     fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials
     fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot
     fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary>
+    fun prepareGuestUpgrade(apiBaseUrl: String, bearerToken: String, guestToken: String): CloudGuestUpgradeMode
+    fun completeGuestUpgrade(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String,
+        selection: CloudGuestUpgradeSelection
+    ): CloudWorkspaceSummary
+
     fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary
     fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary
     fun renameWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String, name: String): CloudWorkspaceSummary
@@ -308,6 +318,39 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
+    fun prepareGuestUpgrade(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String
+    ): CloudGuestUpgradeMode {
+        val response = postJson(
+            baseUrl = apiBaseUrl,
+            path = "/guest-auth/upgrade/prepare",
+            authorizationHeader = "Bearer $bearerToken",
+            body = JSONObject().put("guestToken", guestToken)
+        )
+        return parseGuestUpgradeMode(response.getString("mode"))
+    }
+
+    override
+    fun completeGuestUpgrade(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String,
+        selection: CloudGuestUpgradeSelection
+    ): CloudWorkspaceSummary {
+        val response = postJson(
+            baseUrl = apiBaseUrl,
+            path = "/guest-auth/upgrade/complete",
+            authorizationHeader = "Bearer $bearerToken",
+            body = JSONObject()
+                .put("guestToken", guestToken)
+                .put("selection", encodeGuestUpgradeSelection(selection = selection))
+        )
+        return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
+    }
+
+    override
     fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
         val response = postJson(
             baseUrl = apiBaseUrl,
@@ -400,6 +443,27 @@ class CloudRemoteService : CloudRemoteGateway {
         )
         require(response.optBoolean("ok")) {
             "Cloud delete-account did not return ok=true."
+        }
+    }
+
+    private fun encodeGuestUpgradeSelection(selection: CloudGuestUpgradeSelection): JSONObject {
+        return when (selection) {
+            is CloudGuestUpgradeSelection.Existing -> JSONObject()
+                .put("type", "existing")
+                .put("workspaceId", selection.workspaceId)
+
+            CloudGuestUpgradeSelection.CreateNew -> JSONObject()
+                .put("type", "create_new")
+        }
+    }
+
+    private fun parseGuestUpgradeMode(rawMode: String): CloudGuestUpgradeMode {
+        return when (rawMode) {
+            "bound" -> CloudGuestUpgradeMode.BOUND
+            "merge_required" -> CloudGuestUpgradeMode.MERGE_REQUIRED
+            else -> {
+                throw IllegalStateException("Unsupported guest upgrade mode: $rawMode")
+            }
         }
     }
 

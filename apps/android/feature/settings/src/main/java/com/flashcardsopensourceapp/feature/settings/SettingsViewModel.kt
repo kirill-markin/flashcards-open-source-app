@@ -31,7 +31,7 @@ class SettingsViewModel(
             accountStatusTitle = when (cloudSettings.cloudState) {
                 CloudAccountState.DISCONNECTED -> "Disconnected"
                 CloudAccountState.LINKING_READY -> "Choose workspace"
-                CloudAccountState.GUEST -> "Guest"
+                CloudAccountState.GUEST -> "Guest AI"
                 CloudAccountState.LINKED -> cloudSettings.linkedEmail ?: "Linked"
             }
         )

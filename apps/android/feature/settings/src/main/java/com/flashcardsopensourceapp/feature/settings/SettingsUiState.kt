@@ -38,6 +38,7 @@ data class AccountStatusUiState(
     val deviceId: String,
     val syncStatusText: String,
     val lastSuccessfulSync: String,
+    val isGuest: Boolean,
     val isLinked: Boolean,
     val isLinkingReady: Boolean,
     val showLogoutConfirmation: Boolean,
@@ -49,6 +50,7 @@ data class CurrentWorkspaceUiState(
     val cloudStatusTitle: String,
     val currentWorkspaceName: String,
     val linkedEmail: String?,
+    val isGuest: Boolean,
     val isLinked: Boolean,
     val isLinkingReady: Boolean,
     val isLoading: Boolean,
@@ -82,6 +84,7 @@ data class ServerSettingsUiState(
 data class CloudSignInUiState(
     val email: String,
     val code: String,
+    val isGuestUpgrade: Boolean,
     val isSendingCode: Boolean,
     val isVerifyingCode: Boolean,
     val errorMessage: String,
@@ -91,6 +94,7 @@ data class CloudSignInUiState(
 data class CloudPostAuthUiState(
     val mode: CloudPostAuthMode,
     val verifiedEmail: String?,
+    val isGuestUpgrade: Boolean,
     val workspaces: List<CurrentWorkspaceItemUiState>,
     val pendingWorkspaceTitle: String?,
     val processingTitle: String,

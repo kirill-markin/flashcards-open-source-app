@@ -9,9 +9,11 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
@@ -61,10 +63,14 @@ class AccountStatusViewModel(
             deviceId = cloudSettings.deviceId,
             syncStatusText = when (val status = syncStatus.status) {
                 is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> status.message
-                com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> metadata.syncStatusText
+                com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> when (cloudSettings.cloudState) {
+                    CloudAccountState.GUEST -> "Guest AI session"
+                    else -> metadata.syncStatusText
+                }
                 com.flashcardsopensourceapp.data.local.model.SyncStatus.Syncing -> "Syncing"
             },
             lastSuccessfulSync = formatTimestampLabel(syncStatus.lastSuccessfulSyncAtMillis),
+            isGuest = cloudSettings.cloudState == CloudAccountState.GUEST,
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
             showLogoutConfirmation = draft.showLogoutConfirmation,
@@ -81,6 +87,7 @@ class AccountStatusViewModel(
             deviceId = "Loading...",
             syncStatusText = "Loading...",
             lastSuccessfulSync = "Never",
+            isGuest = false,
             isLinked = false,
             isLinkingReady = false,
             showLogoutConfirmation = false,
@@ -186,6 +193,7 @@ class CurrentWorkspaceViewModel(
             cloudStatusTitle = displayCloudAccountStateTitle(cloudState = cloudSettings.cloudState),
             currentWorkspaceName = metadata.currentWorkspaceName,
             linkedEmail = cloudSettings.linkedEmail,
+            isGuest = cloudSettings.cloudState == CloudAccountState.GUEST,
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
             isLoading = draft.operation == CurrentWorkspaceOperation.LOADING,
@@ -207,6 +215,7 @@ class CurrentWorkspaceViewModel(
             cloudStatusTitle = "Loading...",
             currentWorkspaceName = "Loading...",
             linkedEmail = null,
+            isGuest = false,
             isLinked = false,
             isLinkingReady = false,
             isLoading = false,
@@ -222,7 +231,13 @@ class CurrentWorkspaceViewModel(
     suspend fun loadWorkspaces() {
         val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
         if (cloudSettings.cloudState != CloudAccountState.LINKED) {
-            messageController.showMessage(message = "Sign in to load linked workspaces.")
+            messageController.showMessage(
+                message = if (cloudSettings.cloudState == CloudAccountState.GUEST) {
+                    "Create an account or log in to upgrade Guest AI before managing workspaces."
+                } else {
+                    "Sign in to load linked workspaces."
+                }
+            )
             return
         }
 
@@ -466,7 +481,11 @@ class ServerSettingsViewModel(
 }
 
 private sealed interface CloudPostAuthRetryAction {
-    data class CompleteLink(
+    data class CompleteCloudLink(
+        val selection: CloudWorkspaceLinkSelection
+    ) : CloudPostAuthRetryAction
+
+    data class CompleteGuestUpgrade(
         val selection: CloudWorkspaceLinkSelection
     ) : CloudPostAuthRetryAction
 
@@ -479,11 +498,10 @@ private data class CloudSignInDraftState(
     val email: String,
     val code: String,
     val challenge: CloudOtpChallenge?,
+    val linkContext: CloudWorkspaceLinkContext?,
     val isSendingCode: Boolean,
     val isVerifyingCode: Boolean,
     val errorMessage: String,
-    val verifiedEmail: String?,
-    val availableWorkspaces: List<CloudWorkspaceSummary>,
     val pendingSelection: CloudWorkspaceLinkSelection?,
     val processingTitle: String,
     val processingMessage: String,
@@ -502,11 +520,10 @@ class CloudSignInViewModel(
             email = "",
             code = "",
             challenge = null,
+            linkContext = null,
             isSendingCode = false,
             isVerifyingCode = false,
             errorMessage = "",
-            verifiedEmail = null,
-            availableWorkspaces = emptyList(),
             pendingSelection = null,
             processingTitle = "",
             processingMessage = "",
@@ -523,6 +540,7 @@ class CloudSignInViewModel(
             CloudSignInUiState(
                 email = draft.email,
                 code = draft.code,
+                isGuestUpgrade = draft.linkContext?.guestUpgradeMode != null,
                 isSendingCode = draft.isSendingCode,
                 isVerifyingCode = draft.isVerifyingCode,
                 errorMessage = draft.errorMessage,
@@ -532,6 +550,7 @@ class CloudSignInViewModel(
         initialValue = CloudSignInUiState(
             email = "",
             code = "",
+            isGuestUpgrade = false,
             isSendingCode = false,
             isVerifyingCode = false,
             errorMessage = "",
@@ -548,28 +567,32 @@ class CloudSignInViewModel(
                     draft.postAuthErrorMessage.isNotEmpty() -> CloudPostAuthMode.FAILED
                     draft.processingTitle.isNotEmpty() -> CloudPostAuthMode.PROCESSING
                     draft.pendingSelection != null -> CloudPostAuthMode.READY_TO_AUTO_LINK
-                    draft.verifiedEmail != null && draft.availableWorkspaces.size > 1 -> CloudPostAuthMode.CHOOSE_WORKSPACE
+                    draft.linkContext != null && draft.linkContext.workspaces.size > 1 -> CloudPostAuthMode.CHOOSE_WORKSPACE
                     else -> CloudPostAuthMode.IDLE
                 },
-                verifiedEmail = draft.verifiedEmail,
-                workspaces = buildCloudPostAuthWorkspaceItems(workspaces = draft.availableWorkspaces),
+                verifiedEmail = draft.linkContext?.email,
+                isGuestUpgrade = draft.linkContext?.guestUpgradeMode != null,
+                workspaces = buildCloudPostAuthWorkspaceItems(
+                    workspaces = draft.linkContext?.workspaces ?: emptyList()
+                ),
                 pendingWorkspaceTitle = draft.pendingSelection?.let { selection ->
                     workspaceSelectionTitle(
                         selection = selection,
-                        workspaces = draft.availableWorkspaces
+                        workspaces = draft.linkContext?.workspaces ?: emptyList()
                     )
                 },
                 processingTitle = draft.processingTitle,
                 processingMessage = draft.processingMessage,
                 errorMessage = draft.postAuthErrorMessage,
                 canRetry = draft.retryAction != null,
-                canLogout = draft.verifiedEmail != null,
+                canLogout = draft.linkContext != null,
                 completionToken = draft.completionToken
             )
         },
         initialValue = CloudPostAuthUiState(
             mode = CloudPostAuthMode.IDLE,
             verifiedEmail = null,
+            isGuestUpgrade = false,
             workspaces = emptyList(),
             pendingWorkspaceTitle = null,
             processingTitle = "",
@@ -599,6 +622,8 @@ class CloudSignInViewModel(
                             isSendingCode = false,
                             errorMessage = "",
                             challenge = result.challenge,
+                            linkContext = null,
+                            pendingSelection = null,
                             completionToken = null
                         )
                     }
@@ -610,7 +635,9 @@ class CloudSignInViewModel(
                         state.copy(
                             isSendingCode = false,
                             errorMessage = "This account flow currently expects one-time code verification.",
-                            challenge = null
+                            challenge = null,
+                            linkContext = null,
+                            pendingSelection = null
                         )
                     }
                     false
@@ -633,7 +660,7 @@ class CloudSignInViewModel(
         }
         draftState.update { state -> state.copy(isVerifyingCode = true, errorMessage = "") }
         return try {
-            val workspaces = cloudAccountRepository.verifyCode(
+            val linkContext = cloudAccountRepository.verifyCode(
                 challenge = challenge,
                 code = draftState.value.code
             )
@@ -641,11 +668,12 @@ class CloudSignInViewModel(
                 state.copy(
                     isVerifyingCode = false,
                     errorMessage = "",
-                    verifiedEmail = challenge.email,
-                    availableWorkspaces = workspaces,
-                    pendingSelection = when (workspaces.size) {
+                    linkContext = linkContext,
+                    pendingSelection = when (linkContext.workspaces.size) {
                         0 -> CloudWorkspaceLinkSelection.CreateNew
-                        1 -> CloudWorkspaceLinkSelection.Existing(workspaceId = workspaces.first().workspaceId)
+                        1 -> CloudWorkspaceLinkSelection.Existing(
+                            workspaceId = linkContext.workspaces.first().workspaceId
+                        )
                         else -> null
                     },
                     processingTitle = "",
@@ -682,7 +710,8 @@ class CloudSignInViewModel(
     suspend fun retryPostAuth() {
         when (val retryAction = draftState.value.retryAction) {
             null -> Unit
-            is CloudPostAuthRetryAction.CompleteLink -> completePostAuth(selection = retryAction.selection)
+            is CloudPostAuthRetryAction.CompleteCloudLink -> completePostAuth(selection = retryAction.selection)
+            is CloudPostAuthRetryAction.CompleteGuestUpgrade -> completePostAuth(selection = retryAction.selection)
             is CloudPostAuthRetryAction.SyncOnly -> runPostAuthSyncOnly(workspaceTitle = retryAction.workspaceTitle)
         }
     }
@@ -700,25 +729,50 @@ class CloudSignInViewModel(
     }
 
     private suspend fun completePostAuth(selection: CloudWorkspaceLinkSelection) {
+        val linkContext = requireNotNull(draftState.value.linkContext) {
+            "Cloud workspace setup is unavailable."
+        }
+        val requiresGuestUpgrade = linkContext.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED
+        val isGuestUpgrade = linkContext.guestUpgradeMode != null
         draftState.update { state ->
             state.copy(
                 pendingSelection = null,
-                processingTitle = "Linking workspace",
-                processingMessage = "Preparing your cloud workspace on this Android device.",
+                processingTitle = if (isGuestUpgrade) {
+                    "Upgrading guest account"
+                } else {
+                    "Linking workspace"
+                },
+                processingMessage = if (isGuestUpgrade) {
+                    "Preparing your Guest AI session for a linked Android cloud account."
+                } else {
+                    "Preparing your cloud workspace on this Android device."
+                },
                 postAuthErrorMessage = "",
-                retryAction = CloudPostAuthRetryAction.CompleteLink(selection = selection)
+                retryAction = if (requiresGuestUpgrade) {
+                    CloudPostAuthRetryAction.CompleteGuestUpgrade(selection = selection)
+                } else {
+                    CloudPostAuthRetryAction.CompleteCloudLink(selection = selection)
+                }
             )
         }
 
         try {
-            val workspace = cloudAccountRepository.switchLinkedWorkspace(selection = selection)
+            val workspace = if (requiresGuestUpgrade) {
+                cloudAccountRepository.completeGuestUpgrade(selection = selection)
+            } else {
+                cloudAccountRepository.completeCloudLink(selection = selection)
+            }
             runPostAuthSyncOnly(workspaceTitle = workspace.name)
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
                     processingTitle = "",
                     processingMessage = "",
-                    postAuthErrorMessage = error.message ?: "Cloud workspace setup failed."
+                    postAuthErrorMessage = error.message ?: if (requiresGuestUpgrade) {
+                        "Guest account upgrade failed."
+                    } else {
+                        "Cloud workspace setup failed."
+                    }
                 )
             }
         }
@@ -741,7 +795,7 @@ class CloudSignInViewModel(
                     email = "",
                     code = "",
                     challenge = null,
-                    availableWorkspaces = emptyList(),
+                    linkContext = null,
                     pendingSelection = null,
                     processingTitle = "",
                     processingMessage = "",
@@ -768,8 +822,7 @@ class CloudSignInViewModel(
                 email = "",
                 code = "",
                 challenge = null,
-                verifiedEmail = null,
-                availableWorkspaces = emptyList(),
+                linkContext = null,
                 pendingSelection = null,
                 processingTitle = "",
                 processingMessage = "",
@@ -1253,7 +1306,7 @@ private fun displayCloudAccountStateTitle(cloudState: CloudAccountState): String
     return when (cloudState) {
         CloudAccountState.DISCONNECTED -> "Disconnected"
         CloudAccountState.LINKING_READY -> "Choose workspace"
-        CloudAccountState.GUEST -> "Guest"
+        CloudAccountState.GUEST -> "Guest AI"
         CloudAccountState.LINKED -> "Linked"
     }
 }
