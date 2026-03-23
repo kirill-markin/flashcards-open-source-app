@@ -211,6 +211,8 @@ Implemented sync behavior:
   - emit sync changes
 - Review visibility is compute-on-read with `due_at <= now()`.
 - Backend, iOS, and Android maintain mirrored scheduling logic and state validation.
+- The web app computes review submissions locally too, but it does not keep a fourth standalone scheduler copy in `apps/web`.
+- Instead, the web review flow reuses the backend scheduler module directly from `apps/backend/src/schedule.ts` when it needs the next local `dueAt` and FSRS state.
 
 There is no separate background scheduler worker.
 

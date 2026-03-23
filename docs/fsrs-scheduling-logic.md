@@ -20,7 +20,8 @@ Repository implementations:
 - iOS local persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android scheduler: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt`
 - Android local persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
-- web FSRS type mirror only: `apps/web/src/types.ts`
+- web FSRS type mirror: `apps/web/src/types.ts`
+- web local review submit flow: `apps/web/src/appData/useSyncEngine.ts`
 - iOS settings UI: `apps/ios/Flashcards/Flashcards/SettingsView.swift`
 - Android settings UI: `apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/WorkspaceScreens.kt`
 
@@ -33,13 +34,15 @@ The repository has exactly three independent implementations of the FSRS schedul
 - Android: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt`
 
 They are full platform-specific copies of the same algorithm and must stay behaviorally identical.
-The web app does not contain a fourth scheduler implementation in this repository; `apps/web/src/types.ts` only mirrors the FSRS data contract.
+The web app does not contain a fourth standalone scheduler implementation in this repository.
+Instead, the web review flow reuses the backend scheduler module from `apps/backend/src/schedule.ts` for local review submission and button-interval previews, while `apps/web/src/types.ts` mirrors the FSRS data contract.
 
 Supporting mirrors around the scheduler contract:
 
 - backend review persistence: `apps/backend/src/cards.ts`
 - iOS review persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android review persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
+- web local review submit flow reusing backend scheduler: `apps/web/src/appData/useSyncEngine.ts`
 - backend scheduler settings: `apps/backend/src/workspaceSchedulerSettings.ts`
 - iOS scheduler settings: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android scheduler settings: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt`
