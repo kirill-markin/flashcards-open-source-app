@@ -395,7 +395,7 @@ fun AppNavHost(
                 onSelectModel = aiViewModel::selectModel,
                 onNewChat = aiViewModel::clearConversation,
                 onOpenAccountStatus = {
-                    navController.navigate(route = SettingsAccountStatusDestination.route)
+                    navController.navigate(route = SettingsAccountSignInEmailDestination.route)
                 },
                 onDismissErrorMessage = aiViewModel::dismissErrorMessage,
                 onDismissAlert = aiViewModel::dismissAlert,
@@ -887,7 +887,11 @@ fun AppNavHost(
             if (uiState.completionToken != null) {
                 LaunchedEffect(uiState.completionToken) {
                     signInViewModel.acknowledgePostAuthCompletion()
-                    navController.popBackStack(route = SettingsAccountDestination.route, inclusive = false)
+                    navigateToTopLevelDestination(
+                        navController = navController,
+                        destination = SettingsDestination
+                    )
+                    navController.navigate(route = SettingsAccountStatusDestination.route)
                 }
             }
 
@@ -911,7 +915,11 @@ fun AppNavHost(
                 onLogout = {
                     coroutineScope.launch {
                         signInViewModel.logoutAfterPostAuthFailure()
-                        navController.popBackStack(route = SettingsAccountDestination.route, inclusive = false)
+                        navigateToTopLevelDestination(
+                            navController = navController,
+                            destination = SettingsDestination
+                        )
+                        navController.navigate(route = SettingsAccountStatusDestination.route)
                     }
                 }
             )

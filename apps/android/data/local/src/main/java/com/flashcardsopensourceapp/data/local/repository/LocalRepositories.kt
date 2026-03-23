@@ -296,7 +296,7 @@ class LocalWorkspaceRepository(
                 syncStatusText = when (cloudSettings.cloudState) {
                     CloudAccountState.DISCONNECTED -> "Not connected"
                     CloudAccountState.LINKING_READY -> "Sign-in complete, choose a workspace"
-                    CloudAccountState.GUEST -> "Guest"
+                    CloudAccountState.GUEST -> "Guest AI session"
                     CloudAccountState.LINKED -> when (val syncStatus = syncStatusSnapshot.status) {
                         is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> syncStatus.message
                         com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> "Synced"

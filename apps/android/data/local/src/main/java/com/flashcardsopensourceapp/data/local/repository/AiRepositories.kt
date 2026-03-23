@@ -169,6 +169,10 @@ class LocalAiChatRepository(
             configuration = configuration
         )
         if (existingSession != null) {
+            markGuestCloudState(
+                session = existingSession,
+                activeWorkspaceId = workspaceId
+            )
             return existingSession
         }
 
@@ -180,6 +184,28 @@ class LocalAiChatRepository(
             localWorkspaceId = workspaceId,
             session = createdSession
         )
+        markGuestCloudState(
+            session = createdSession,
+            activeWorkspaceId = workspaceId
+        )
         return createdSession
+    }
+
+    private fun markGuestCloudState(
+        session: StoredGuestAiSession,
+        activeWorkspaceId: String?
+    ) {
+        val currentCloudState = preferencesStore.currentCloudSettings().cloudState
+        if (currentCloudState == CloudAccountState.LINKED || currentCloudState == CloudAccountState.LINKING_READY) {
+            return
+        }
+
+        preferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.GUEST,
+            linkedUserId = session.userId,
+            linkedWorkspaceId = session.workspaceId,
+            linkedEmail = null,
+            activeWorkspaceId = activeWorkspaceId
+        )
     }
 }

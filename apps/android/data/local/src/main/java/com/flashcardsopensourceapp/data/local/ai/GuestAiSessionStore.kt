@@ -45,6 +45,19 @@ class GuestAiSessionStore(
         }
     }
 
+    fun loadAnySession(configuration: CloudServiceConfiguration): StoredGuestAiSession? {
+        val storedSession = preferences.all.values
+            .asSequence()
+            .mapNotNull { value ->
+                (value as? String)?.let(::decodeSession)
+            }
+            .firstOrNull { session ->
+                session.apiBaseUrl == configuration.apiBaseUrl && session.configurationMode == configuration.mode
+            }
+
+        return storedSession
+    }
+
     fun clearSession(localWorkspaceId: String?) {
         preferences.edit(commit = true) {
             remove(storageKey(localWorkspaceId = localWorkspaceId))

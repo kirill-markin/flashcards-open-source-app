@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
@@ -97,7 +98,9 @@ interface CloudAccountRepository {
     suspend fun resumePendingAccountDeletionIfNeeded()
     suspend fun retryPendingAccountDeletion()
     suspend fun sendCode(email: String): CloudSendCodeResult
-    suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): List<CloudWorkspaceSummary>
+    suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext
+    suspend fun completeCloudLink(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
+    suspend fun completeGuestUpgrade(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
     suspend fun logout()
     suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary
     suspend fun loadCurrentWorkspaceDeletePreview(): CloudWorkspaceDeletePreview

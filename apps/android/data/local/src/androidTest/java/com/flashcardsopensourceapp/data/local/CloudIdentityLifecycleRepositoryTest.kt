@@ -22,10 +22,13 @@ import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
@@ -235,6 +238,90 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals("workspace-demo", database.workspaceDao().loadWorkspace()?.workspaceId)
     }
 
+    @Test
+    fun verifyCodePreparesBoundGuestUpgradeWhenGuestSessionExists() = runBlocking {
+        demoDataSeeder.seedIfNeeded(currentTimeMillis = 100L)
+        val remoteGateway = FakeCloudRemoteGateway(guestUpgradeMode = CloudGuestUpgradeMode.BOUND)
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = "workspace-demo",
+            session = StoredGuestAiSession(
+                guestToken = "guest-token",
+                userId = "guest-user",
+                workspaceId = "guest-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
+            )
+        )
+
+        val linkContext = repository.verifyCode(
+            challenge = CloudOtpChallenge(
+                email = "user@example.com",
+                csrfToken = "csrf",
+                otpSessionToken = "otp"
+            ),
+            code = "123456"
+        )
+
+        assertEquals(CloudGuestUpgradeMode.BOUND, linkContext.guestUpgradeMode)
+        assertEquals(CloudAccountState.LINKING_READY, cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals("user-1", cloudPreferencesStore.currentCloudSettings().linkedUserId)
+        assertNull(cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)
+    }
+
+    @Test
+    fun completeGuestUpgradeClearsGuestSessionAndLinksWorkspace() = runBlocking {
+        demoDataSeeder.seedIfNeeded(currentTimeMillis = 100L)
+        val selectedWorkspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-linked",
+            name = "Linked Workspace",
+            createdAtMillis = 200L,
+            isSelected = true
+        )
+        val remoteGateway = FakeCloudRemoteGateway(
+            guestUpgradeMode = CloudGuestUpgradeMode.MERGE_REQUIRED,
+            accountSnapshot = CloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(selectedWorkspace)
+            )
+        )
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = "workspace-demo",
+            session = StoredGuestAiSession(
+                guestToken = "guest-token",
+                userId = "guest-user",
+                workspaceId = "guest-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
+            )
+        )
+        repository.verifyCode(
+            challenge = CloudOtpChallenge(
+                email = "user@example.com",
+                csrfToken = "csrf",
+                otpSessionToken = "otp"
+            ),
+            code = "123456"
+        )
+
+        val linkedWorkspace = repository.completeGuestUpgrade(
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+        )
+
+        assertEquals(selectedWorkspace.workspaceId, linkedWorkspace.workspaceId)
+        assertEquals(CloudAccountState.LINKED, cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(selectedWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertEquals("user@example.com", cloudPreferencesStore.currentCloudSettings().linkedEmail)
+        assertNull(
+            guestAiSessionStore.loadAnySession(configuration = makeOfficialCloudServiceConfiguration())
+        )
+        assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)
+        assertEquals(1, remoteGateway.completeGuestUpgradeCalls)
+    }
+
     private fun createCloudAccountRepository(remoteGateway: CloudRemoteGateway): LocalCloudAccountRepository {
         return LocalCloudAccountRepository(
             database = database,
@@ -244,7 +331,8 @@ class CloudIdentityLifecycleRepositoryTest {
                 database = database,
                 preferencesStore = cloudPreferencesStore
             ),
-            resetCoordinator = resetCoordinator
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore
         )
     }
 
@@ -276,9 +364,24 @@ class CloudIdentityLifecycleRepositoryTest {
 
 private class FakeCloudRemoteGateway(
     private var deleteFailuresRemaining: Int = 0,
-    private val fetchAccountError: CloudRemoteException? = null
+    private val fetchAccountError: CloudRemoteException? = null,
+    private val guestUpgradeMode: CloudGuestUpgradeMode? = null,
+    private val accountSnapshot: CloudAccountSnapshot = CloudAccountSnapshot(
+        userId = "user-1",
+        email = "user@example.com",
+        workspaces = listOf(
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-demo",
+                name = "Personal Workspace",
+                createdAtMillis = 100L,
+                isSelected = true
+            )
+        )
+    )
 ) : CloudRemoteGateway {
     var deleteAccountCalls: Int = 0
+    var prepareGuestUpgradeCalls: Int = 0
+    var completeGuestUpgradeCalls: Int = 0
 
     override fun validateConfiguration(configuration: CloudServiceConfiguration) {
     }
@@ -313,30 +416,47 @@ private class FakeCloudRemoteGateway(
         fetchAccountError?.let { error ->
             throw error
         }
-        return CloudAccountSnapshot(
-            userId = "user-1",
-            email = "user@example.com",
-            workspaces = listOf(
-                CloudWorkspaceSummary(
-                    workspaceId = "workspace-demo",
-                    name = "Personal Workspace",
-                    createdAtMillis = 100L,
-                    isSelected = true
-                )
-            )
-        )
+        return accountSnapshot
     }
 
     override fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary> {
         return fetchCloudAccount(apiBaseUrl = apiBaseUrl, bearerToken = bearerToken).workspaces
     }
 
+    override fun prepareGuestUpgrade(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String
+    ): CloudGuestUpgradeMode {
+        prepareGuestUpgradeCalls += 1
+        return requireNotNull(guestUpgradeMode) {
+            "Guest upgrade mode is required for this test."
+        }
+    }
+
+    override fun completeGuestUpgrade(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String,
+        selection: CloudGuestUpgradeSelection
+    ): CloudWorkspaceSummary {
+        completeGuestUpgradeCalls += 1
+        return resolveWorkspaceSelection(selection = selection)
+    }
+
     override fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
+        return CloudWorkspaceSummary(
+            workspaceId = "workspace-new",
+            name = name,
+            createdAtMillis = 300L,
+            isSelected = true
+        )
     }
 
     override fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
+        return accountSnapshot.workspaces.first { workspace ->
+            workspace.workspaceId == workspaceId
+        }
     }
 
     override fun renameWorkspace(
@@ -444,5 +564,20 @@ private class FakeCloudRemoteGateway(
             duplicateCount = 0,
             nextReviewSequenceId = 0L
         )
+    }
+
+    private fun resolveWorkspaceSelection(selection: CloudGuestUpgradeSelection): CloudWorkspaceSummary {
+        return when (selection) {
+            is CloudGuestUpgradeSelection.Existing -> accountSnapshot.workspaces.first { workspace ->
+                workspace.workspaceId == selection.workspaceId
+            }
+
+            CloudGuestUpgradeSelection.CreateNew -> CloudWorkspaceSummary(
+                workspaceId = "workspace-new",
+                name = "Personal",
+                createdAtMillis = 300L,
+                isSelected = true
+            )
+        }
     }
 }

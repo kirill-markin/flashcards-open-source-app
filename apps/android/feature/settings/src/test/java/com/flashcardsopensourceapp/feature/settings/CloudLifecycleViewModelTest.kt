@@ -6,11 +6,13 @@ import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
@@ -295,6 +297,68 @@ class CloudLifecycleViewModelTest {
     }
 
     @Test
+    fun cloudSignInGuestMergeRequiredUsesGuestUpgradeBranch() = runTest(dispatcher) {
+        val messages = FakeMessageController()
+        val workspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-2",
+            name = "Spanish",
+            createdAtMillis = 2L,
+            isSelected = false
+        )
+        val syncRepository = FakeSyncRepository()
+        val cloudAccountRepository = FakeCloudAccountRepository(
+            initialCloudState = CloudAccountState.GUEST,
+            guestUpgradeMode = CloudGuestUpgradeMode.MERGE_REQUIRED,
+            verifiedWorkspaces = listOf(workspace),
+            linkedWorkspaces = listOf(workspace)
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = cloudAccountRepository,
+            syncRepository = syncRepository,
+            messageController = messages
+        )
+        val uiCollectionJob = startCollecting(scope = this, viewModel = viewModel)
+        val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
+
+        viewModel.updateEmail("user@example.com")
+        assertTrue(viewModel.sendCode())
+        viewModel.updateCode("123456")
+        assertTrue(viewModel.verifyCode())
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isGuestUpgrade)
+        assertTrue(viewModel.postAuthUiState.value.isGuestUpgrade)
+
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(1, cloudAccountRepository.completeGuestUpgradeCalls)
+        assertEquals(0, cloudAccountRepository.completeCloudLinkCalls)
+        assertEquals(1, syncRepository.syncNowCalls)
+        assertEquals(listOf("Signed in and synced Spanish."), messages.messages)
+        uiCollectionJob.cancel()
+        postAuthCollectionJob.cancel()
+    }
+
+    @Test
+    fun accountStatusUiMarksGuestState() = runTest(dispatcher) {
+        val viewModel = AccountStatusViewModel(
+            cloudAccountRepository = FakeCloudAccountRepository(initialCloudState = CloudAccountState.GUEST),
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController(),
+            workspaceRepository = FakeWorkspaceRepository()
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isGuest)
+        assertEquals("Guest AI", viewModel.uiState.value.cloudStatusTitle)
+        assertEquals("Guest AI session", viewModel.uiState.value.syncStatusText)
+        collectionJob.cancel()
+    }
+
+    @Test
     fun currentWorkspaceRetryRepeatsSyncWithoutRelinking() = runTest(dispatcher) {
         val messages = FakeMessageController()
         val workspaces = listOf(
@@ -485,6 +549,7 @@ private class FakeCloudAccountRepository(
     connections: List<AgentApiKeyConnection> = emptyList(),
     private val onRenameWorkspace: ((String) -> Unit)? = null,
     initialCloudState: CloudAccountState = CloudAccountState.LINKED,
+    private val guestUpgradeMode: CloudGuestUpgradeMode? = null,
     verifiedWorkspaces: List<CloudWorkspaceSummary> = emptyList(),
     linkedWorkspaces: List<CloudWorkspaceSummary> = emptyList()
 ) : CloudAccountRepository {
@@ -505,6 +570,8 @@ private class FakeCloudAccountRepository(
     private val linkedWorkspacesState = MutableStateFlow(linkedWorkspaces)
     var lastRenamedWorkspaceName: String? = null
     var switchLinkedWorkspaceCalls: Int = 0
+    var completeCloudLinkCalls: Int = 0
+    var completeGuestUpgradeCalls: Int = 0
 
     override fun observeCloudSettings(): Flow<CloudSettings> {
         return cloudSettingsState
@@ -556,7 +623,7 @@ private class FakeCloudAccountRepository(
     override suspend fun verifyCode(
         challenge: CloudOtpChallenge,
         code: String
-    ): List<CloudWorkspaceSummary> {
+    ): CloudWorkspaceLinkContext {
         cloudSettingsState.value = cloudSettingsState.value.copy(
             cloudState = CloudAccountState.LINKING_READY,
             linkedUserId = "user-1",
@@ -564,7 +631,22 @@ private class FakeCloudAccountRepository(
             linkedEmail = challenge.email,
             activeWorkspaceId = null
         )
-        return verifiedWorkspacesState.value
+        return CloudWorkspaceLinkContext(
+            userId = "user-1",
+            email = challenge.email,
+            workspaces = verifiedWorkspacesState.value,
+            guestUpgradeMode = guestUpgradeMode
+        )
+    }
+
+    override suspend fun completeCloudLink(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+        completeCloudLinkCalls += 1
+        return applyPostAuthSelection(selection = selection)
+    }
+
+    override suspend fun completeGuestUpgrade(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+        completeGuestUpgradeCalls += 1
+        return applyPostAuthSelection(selection = selection)
     }
 
     override suspend fun logout() {
@@ -628,6 +710,10 @@ private class FakeCloudAccountRepository(
 
     override suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
         switchLinkedWorkspaceCalls += 1
+        return applyPostAuthSelection(selection = selection)
+    }
+
+    private fun applyPostAuthSelection(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
         val selectedWorkspace = when (selection) {
             is CloudWorkspaceLinkSelection.Existing -> linkedWorkspacesState.value.first { workspace ->
                 workspace.workspaceId == selection.workspaceId

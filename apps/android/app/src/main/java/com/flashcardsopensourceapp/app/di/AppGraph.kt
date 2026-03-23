@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteService
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.buildAppDatabase
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
@@ -60,7 +61,8 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
         syncLocalStore = syncLocalStore,
-        resetCoordinator = cloudIdentityResetCoordinator
+        resetCoordinator = cloudIdentityResetCoordinator,
+        guestSessionStore = guestAiSessionStore
     )
     val syncRepository: SyncRepository = LocalSyncRepository(
         database = database,
@@ -97,7 +99,49 @@ class AppGraph(
         guestSessionStore = guestAiSessionStore
     )
 
+    init {
+        restoreGuestCloudStateIfNeeded()
+    }
+
     suspend fun seedDemoDataIfNeeded(currentTimeMillis: Long) {
         demoDataSeeder.seedIfNeeded(currentTimeMillis = currentTimeMillis)
+    }
+
+    private fun restoreGuestCloudStateIfNeeded() {
+        val currentCloudSettings = cloudPreferencesStore.currentCloudSettings()
+        if (
+            currentCloudSettings.cloudState == CloudAccountState.LINKED
+            || currentCloudSettings.cloudState == CloudAccountState.LINKING_READY
+        ) {
+            return
+        }
+
+        val configuration = cloudPreferencesStore.currentServerConfiguration()
+        val localWorkspaceId = currentCloudSettings.activeWorkspaceId
+        val guestSession = guestAiSessionStore.loadSession(
+            localWorkspaceId = localWorkspaceId,
+            configuration = configuration
+        ) ?: guestAiSessionStore.loadAnySession(configuration = configuration)
+
+        if (guestSession == null) {
+            if (currentCloudSettings.cloudState == CloudAccountState.GUEST) {
+                cloudPreferencesStore.updateCloudSettings(
+                    cloudState = CloudAccountState.DISCONNECTED,
+                    linkedUserId = null,
+                    linkedWorkspaceId = null,
+                    linkedEmail = null,
+                    activeWorkspaceId = localWorkspaceId
+                )
+            }
+            return
+        }
+
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.GUEST,
+            linkedUserId = guestSession.userId,
+            linkedWorkspaceId = guestSession.workspaceId,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
     }
 }

@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository
 
+import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
@@ -9,10 +10,13 @@ import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
@@ -20,6 +24,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
@@ -41,7 +46,8 @@ class LocalCloudAccountRepository(
     private val preferencesStore: CloudPreferencesStore,
     private val remoteService: CloudRemoteGateway,
     private val syncLocalStore: SyncLocalStore,
-    private val resetCoordinator: CloudIdentityResetCoordinator
+    private val resetCoordinator: CloudIdentityResetCoordinator,
+    private val guestSessionStore: GuestAiSessionStore
 ) : CloudAccountRepository {
     private var isAccountDeletionRunning: Boolean = false
 
@@ -82,7 +88,7 @@ class LocalCloudAccountRepository(
         )
     }
 
-    override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): List<CloudWorkspaceSummary> {
+    override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
         val configuration = preferencesStore.currentServerConfiguration()
         val credentials = remoteService.verifyCode(
             challenge = challenge,
@@ -92,6 +98,16 @@ class LocalCloudAccountRepository(
         preferencesStore.saveCredentials(credentials)
 
         val accountSnapshot = fetchCloudAccount(credentials = credentials, configuration = configuration)
+        val guestSession = activeGuestSession(configuration = configuration)
+        val guestUpgradeMode = if (guestSession == null) {
+            null
+        } else {
+            remoteService.prepareGuestUpgrade(
+                apiBaseUrl = configuration.apiBaseUrl,
+                bearerToken = credentials.idToken,
+                guestToken = guestSession.guestToken
+            )
+        }
         preferencesStore.updateCloudSettings(
             cloudState = CloudAccountState.LINKING_READY,
             linkedUserId = accountSnapshot.userId,
@@ -99,7 +115,48 @@ class LocalCloudAccountRepository(
             linkedEmail = accountSnapshot.email,
             activeWorkspaceId = database.workspaceDao().loadWorkspace()?.workspaceId
         )
-        return accountSnapshot.workspaces
+        return CloudWorkspaceLinkContext(
+            userId = accountSnapshot.userId,
+            email = accountSnapshot.email,
+            workspaces = accountSnapshot.workspaces,
+            guestUpgradeMode = guestUpgradeMode
+        )
+    }
+
+    override suspend fun completeCloudLink(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+        val authenticatedSession = authenticatedSession()
+        val selectedWorkspace = resolveWorkspaceSelection(
+            authenticatedSession = authenticatedSession,
+            selection = selection
+        )
+        clearGuestSessionsIfNeeded()
+        applyLinkedWorkspace(
+            accountSnapshot = authenticatedSession.accountSnapshot,
+            bearerToken = authenticatedSession.credentials.idToken,
+            selectedWorkspace = selectedWorkspace
+        )
+        return selectedWorkspace
+    }
+
+    override suspend fun completeGuestUpgrade(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+        val authenticatedSession = authenticatedSession()
+        val configuration = preferencesStore.currentServerConfiguration()
+        val guestSession = requireNotNull(activeGuestSession(configuration = configuration)) {
+            "Guest AI session is unavailable."
+        }
+        val selectedWorkspace = remoteService.completeGuestUpgrade(
+            apiBaseUrl = configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken,
+            guestToken = guestSession.guestToken,
+            selection = selection.toGuestUpgradeSelection()
+        )
+        clearGuestSessionsIfNeeded()
+        applyLinkedWorkspace(
+            accountSnapshot = authenticatedSession.accountSnapshot,
+            bearerToken = authenticatedSession.credentials.idToken,
+            selectedWorkspace = selectedWorkspace
+        )
+        return selectedWorkspace
     }
 
     override suspend fun logout() {
@@ -200,45 +257,14 @@ class LocalCloudAccountRepository(
 
     override suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
         val authenticatedSession = authenticatedSession()
-        val selectedWorkspace = when (selection) {
-            is CloudWorkspaceLinkSelection.Existing -> remoteService.selectWorkspace(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                workspaceId = selection.workspaceId
-            )
-
-            CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                name = "Personal"
-            )
-        }
-
-        val bootstrapProbe = remoteService.bootstrapPull(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken,
-            workspaceId = selectedWorkspace.workspaceId,
-            body = JSONObject()
-                .put("mode", "pull")
-                .put("deviceId", preferencesStore.currentCloudSettings().deviceId)
-                .put("platform", "android")
-                .put("appVersion", "0.1.0")
-                .put("cursor", JSONObject.NULL)
-                .put("limit", 1)
+        val selectedWorkspace = resolveWorkspaceSelection(
+            authenticatedSession = authenticatedSession,
+            selection = selection
         )
-
-        if (bootstrapProbe.remoteIsEmpty) {
-            syncLocalStore.relinkCurrentWorkspaceKeepingLocalData(selectedWorkspace)
-        } else {
-            syncLocalStore.replaceLocalWorkspaceWithShell(selectedWorkspace)
-        }
-
-        preferencesStore.updateCloudSettings(
-            cloudState = CloudAccountState.LINKED,
-            linkedUserId = authenticatedSession.accountSnapshot.userId,
-            linkedWorkspaceId = selectedWorkspace.workspaceId,
-            linkedEmail = authenticatedSession.accountSnapshot.email,
-            activeWorkspaceId = selectedWorkspace.workspaceId
+        applyLinkedWorkspace(
+            accountSnapshot = authenticatedSession.accountSnapshot,
+            bearerToken = authenticatedSession.credentials.idToken,
+            selectedWorkspace = selectedWorkspace
         )
         return selectedWorkspace
     }
@@ -366,6 +392,78 @@ class LocalCloudAccountRepository(
             apiBaseUrl = configuration.apiBaseUrl,
             bearerToken = credentials.idToken
         )
+    }
+
+    private fun resolveWorkspaceSelection(
+        authenticatedSession: AuthenticatedCloudSession,
+        selection: CloudWorkspaceLinkSelection
+    ): CloudWorkspaceSummary {
+        return when (selection) {
+            is CloudWorkspaceLinkSelection.Existing -> remoteService.selectWorkspace(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                bearerToken = authenticatedSession.credentials.idToken,
+                workspaceId = selection.workspaceId
+            )
+
+            CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                bearerToken = authenticatedSession.credentials.idToken,
+                name = "Personal"
+            )
+        }
+    }
+
+    private suspend fun applyLinkedWorkspace(
+        accountSnapshot: CloudAccountSnapshot,
+        bearerToken: String,
+        selectedWorkspace: CloudWorkspaceSummary
+    ) {
+        val configuration = preferencesStore.currentServerConfiguration()
+        val bootstrapProbe = remoteService.bootstrapPull(
+            apiBaseUrl = configuration.apiBaseUrl,
+            bearerToken = bearerToken,
+            workspaceId = selectedWorkspace.workspaceId,
+            body = JSONObject()
+                .put("mode", "pull")
+                .put("deviceId", preferencesStore.currentCloudSettings().deviceId)
+                .put("platform", "android")
+                .put("appVersion", "0.1.0")
+                .put("cursor", JSONObject.NULL)
+                .put("limit", 1)
+        )
+
+        if (bootstrapProbe.remoteIsEmpty) {
+            syncLocalStore.relinkCurrentWorkspaceKeepingLocalData(selectedWorkspace)
+        } else {
+            syncLocalStore.replaceLocalWorkspaceWithShell(selectedWorkspace)
+        }
+
+        preferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.LINKED,
+            linkedUserId = accountSnapshot.userId,
+            linkedWorkspaceId = selectedWorkspace.workspaceId,
+            linkedEmail = accountSnapshot.email,
+            activeWorkspaceId = selectedWorkspace.workspaceId
+        )
+    }
+
+    private suspend fun activeGuestSession(configuration: CloudServiceConfiguration): StoredGuestAiSession? {
+        val localWorkspaceId = database.workspaceDao().loadWorkspace()?.workspaceId
+        return guestSessionStore.loadSession(
+            localWorkspaceId = localWorkspaceId,
+            configuration = configuration
+        ) ?: guestSessionStore.loadAnySession(configuration = configuration)
+    }
+
+    private fun clearGuestSessionsIfNeeded() {
+        guestSessionStore.clearAllSessions()
+    }
+}
+
+private fun CloudWorkspaceLinkSelection.toGuestUpgradeSelection(): CloudGuestUpgradeSelection {
+    return when (this) {
+        is CloudWorkspaceLinkSelection.Existing -> CloudGuestUpgradeSelection.Existing(workspaceId = workspaceId)
+        CloudWorkspaceLinkSelection.CreateNew -> CloudGuestUpgradeSelection.CreateNew
     }
 }
 
