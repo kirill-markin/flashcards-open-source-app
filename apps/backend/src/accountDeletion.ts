@@ -1,6 +1,7 @@
 import { deleteCognitoUser } from "./cognitoUsers";
 import { transactionWithUserScope, type DatabaseExecutor } from "./db";
 import { isDeletedSubject, markDeletedSubjectInExecutor } from "./deletedSubjects";
+import { isConfiguredDemoEmail } from "./demoEmailAccess";
 import { HttpError } from "./errors";
 
 export const deleteAccountConfirmationText: string = "delete my account";
@@ -8,6 +9,7 @@ export const deleteAccountConfirmationText: string = "delete my account";
 type AccountDeletionInput = Readonly<{
   appUserId: string;
   authSubjectUserId: string;
+  email: string | null;
   cognitoUsername: string | null;
   confirmationText: string;
 }>;
@@ -16,6 +18,7 @@ type AccountDeletionDependencies = Readonly<{
   transactionWithUserScope: typeof transactionWithUserScope;
   deleteCognitoUser: (cognitoUsername: string) => Promise<void>;
   isDeletedSubject: (userId: string) => Promise<boolean>;
+  isConfiguredDemoEmail: (email: string | null) => boolean;
 }>;
 
 type WorkspaceIdRow = Readonly<{
@@ -35,6 +38,7 @@ const defaultAccountDeletionDependencies: AccountDeletionDependencies = {
   transactionWithUserScope,
   deleteCognitoUser,
   isDeletedSubject,
+  isConfiguredDemoEmail,
 };
 
 function assertValidConfirmationText(confirmationText: string): void {
@@ -62,7 +66,6 @@ function assertCognitoUsername(cognitoUsername: string | null): string {
 async function deleteAccountDataInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
-  authSubjectUserId: string,
 ): Promise<void> {
   const userSettingsResult = await executor.query<UserSettingsEmailRow>(
     "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
@@ -113,34 +116,43 @@ async function deleteAccountDataInExecutor(
     [appUserId, email],
   );
   await executor.query("DELETE FROM org.user_settings WHERE user_id = $1", [appUserId]);
+}
+
+/**
+ * Fully deletes one real account, including the stale-token tombstone that
+ * blocks the removed Cognito identity from reprovisioning.
+ *
+ * This path is not used for the insecure review/demo accounts configured via
+ * `DEMO_EMAIL_DOSTIP`. Those `@example.com` demo accounts keep their Cognito
+ * identity so they can be reused after their app data is cleared.
+ */
+async function deleteRealAccountDataInExecutor(
+  executor: DatabaseExecutor,
+  appUserId: string,
+  authSubjectUserId: string,
+): Promise<void> {
+  await deleteAccountDataInExecutor(executor, appUserId);
   await markDeletedSubjectInExecutor(executor, authSubjectUserId);
 }
 
-export async function deleteAccountForAuthenticatedUser(
-  input: AccountDeletionInput,
-  dependencies: AccountDeletionDependencies = defaultAccountDeletionDependencies,
+/**
+ * Clears app data for one configured insecure review/demo account while
+ * preserving the Cognito identity for reuse.
+ *
+ * This path exists only for the explicit `DEMO_EMAIL_DOSTIP` allowlist inside
+ * the `@example.com` domain. Real user accounts must not use it.
+ */
+async function deleteDemoAccountDataInExecutor(
+  executor: DatabaseExecutor,
+  appUserId: string,
 ): Promise<void> {
-  assertValidConfirmationText(input.confirmationText);
-  const cognitoUsername = assertCognitoUsername(input.cognitoUsername);
+  await deleteAccountDataInExecutor(executor, appUserId);
+}
 
-  if (await dependencies.isDeletedSubject(input.authSubjectUserId)) {
-    try {
-      await dependencies.deleteCognitoUser(cognitoUsername);
-      return;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new HttpError(
-        503,
-        `Account deletion could not finish the Cognito cleanup step. Retry the delete request. (${message})`,
-        "ACCOUNT_DELETE_IDENTITY_DELETE_FAILED",
-      );
-    }
-  }
-
-  await dependencies.transactionWithUserScope({ userId: input.appUserId }, async (executor) => {
-    await deleteAccountDataInExecutor(executor, input.appUserId, input.authSubjectUserId);
-  });
-
+async function deleteCognitoIdentity(
+  cognitoUsername: string,
+  dependencies: AccountDeletionDependencies,
+): Promise<void> {
   try {
     await dependencies.deleteCognitoUser(cognitoUsername);
   } catch (error) {
@@ -151,4 +163,38 @@ export async function deleteAccountForAuthenticatedUser(
       "ACCOUNT_DELETE_IDENTITY_DELETE_FAILED",
     );
   }
+}
+
+export async function deleteAccountForAuthenticatedUser(
+  input: AccountDeletionInput,
+  dependencies: AccountDeletionDependencies = defaultAccountDeletionDependencies,
+): Promise<void> {
+  assertValidConfirmationText(input.confirmationText);
+  const isDemoAccount = dependencies.isConfiguredDemoEmail(input.email);
+
+  if (await dependencies.isDeletedSubject(input.authSubjectUserId)) {
+    if (isDemoAccount) {
+      return;
+    }
+
+    const cognitoUsername = assertCognitoUsername(input.cognitoUsername);
+    await deleteCognitoIdentity(cognitoUsername, dependencies);
+    return;
+  }
+
+  await dependencies.transactionWithUserScope({ userId: input.appUserId }, async (executor) => {
+    if (isDemoAccount) {
+      await deleteDemoAccountDataInExecutor(executor, input.appUserId);
+      return;
+    }
+
+    await deleteRealAccountDataInExecutor(executor, input.appUserId, input.authSubjectUserId);
+  });
+
+  if (isDemoAccount) {
+    return;
+  }
+
+  const cognitoUsername = assertCognitoUsername(input.cognitoUsername);
+  await deleteCognitoIdentity(cognitoUsername, dependencies);
 }
