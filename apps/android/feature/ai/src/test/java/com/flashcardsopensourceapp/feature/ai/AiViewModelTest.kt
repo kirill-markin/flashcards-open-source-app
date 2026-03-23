@@ -18,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
@@ -800,7 +801,20 @@ private class FakeCloudAccountRepository(
     override suspend fun verifyCode(
         challenge: CloudOtpChallenge,
         code: String
-    ): List<CloudWorkspaceSummary> {
+    ): CloudWorkspaceLinkContext {
+        return CloudWorkspaceLinkContext(
+            userId = "user-1",
+            email = challenge.email,
+            workspaces = emptyList(),
+            guestUpgradeMode = null
+        )
+    }
+
+    override suspend fun completeCloudLink(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun completeGuestUpgrade(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
         throw UnsupportedOperationException()
     }
 
