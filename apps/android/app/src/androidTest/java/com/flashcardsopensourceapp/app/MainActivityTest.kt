@@ -53,7 +53,7 @@ class MainActivityTest {
         if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
             composeRule.onNodeWithText("OK").performClick()
         }
-        composeRule.onNodeWithText("Android draft AI shell").fetchSemanticsNode()
+        composeRule.onNodeWithText("Android AI").fetchSemanticsNode()
 
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Workspace").fetchSemanticsNode()
@@ -68,8 +68,8 @@ class MainActivityTest {
 
         composeRule.onNodeWithContentDescription("Add card").performClick()
 
-        updateCardText(fieldTitle = "Front", value = "Draft Android card")
-        updateCardText(fieldTitle = "Back", value = "This came from the Android prototype.")
+        updateCardText(fieldTitle = "Front", value = "Android card")
+        updateCardText(fieldTitle = "Back", value = "This came from the Android app.")
         composeRule.onNodeWithText("Tags").performClick()
         composeRule.onNodeWithText("Add a tag").performTextInput("draft")
         composeRule.onNodeWithText("Add tag").performClick()
@@ -81,32 +81,32 @@ class MainActivityTest {
         ).performClick()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Draft Android card").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Android card").fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithContentDescription("Filter cards").performClick()
         composeRule.onNodeWithText("draft (1)").performClick()
         composeRule.onNodeWithText("Apply").performClick()
-        composeRule.onNodeWithText("Draft Android card").fetchSemanticsNode()
+        composeRule.onNodeWithText("Android card").fetchSemanticsNode()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("What does val mean in Kotlin?").fetchSemanticsNodes().isEmpty()
         }
         composeRule.onNodeWithText("Clear").performClick()
 
-        composeRule.onNodeWithText("Draft Android card").performClick()
-        updateCardText(fieldTitle = "Front", value = "Updated Android draft card")
+        composeRule.onNodeWithText("Android card").performClick()
+        updateCardText(fieldTitle = "Front", value = "Updated Android card")
         composeRule.onNodeWithText("Save").performClick()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Updated Android draft card").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Updated Android draft card").performClick()
+        composeRule.onNodeWithText("Updated Android card").performClick()
         scrollToText(text = "Delete card")
         composeRule.onNodeWithText("Delete card").performClick()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Updated Android draft card").fetchSemanticsNodes().isEmpty()
+            composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isEmpty()
         }
     }
 
@@ -281,7 +281,7 @@ class MainActivityTest {
         if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
             composeRule.onNodeWithText("OK").performClick()
         }
-        composeRule.onNodeWithText("Android draft AI shell").fetchSemanticsNode()
+        composeRule.onNodeWithText("Android AI").fetchSemanticsNode()
         composeRule.onNodeWithText("Message").fetchSemanticsNode()
 
         composeRule.onNodeWithText("Review").performClick()

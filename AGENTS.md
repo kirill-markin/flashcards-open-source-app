@@ -17,10 +17,10 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 - Do not build AWS SDK bundles or other AWS deployment artifacts locally. Push code to `main`, and let CI/CD build and deploy everything.
 - Web app: supported
 - iOS app: Swift (priority). Before making any iOS change, read [apps/ios/README.md](apps/ios/README.md).
-- Android app: planned later. Before making any Android change, read [apps/android/README.md](apps/android/README.md).
+- Android app: Kotlin + Jetpack Compose. Before making any Android change, read [apps/android/README.md](apps/android/README.md).
 - Terminal / AI-agent API client: supported via the canonical machine API entrypoint `GET https://api.flashcards-open-source-app.com/v1/` (the same discovery payload is also available at `GET https://api.flashcards-open-source-app.com/v1/agent`)
 
-We support the web app, the iOS app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
+We support the web app, the iOS app, the Android app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
 The platform READMEs are part of the working agreement for mobile work: [apps/ios/README.md](apps/ios/README.md) for iOS changes and [apps/android/README.md](apps/android/README.md) for Android changes.
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
 Running iOS tests is a heavy operation, so do not run them automatically and only run them after the user explicitly agrees.

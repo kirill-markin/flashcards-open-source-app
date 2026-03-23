@@ -14,7 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
+import com.flashcardsopensourceapp.core.ui.components.NoticeCard
 
 @Composable
 fun SettingsRoute(
@@ -31,9 +31,9 @@ fun SettingsRoute(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            DraftNoticeCard(
-                title = "Android draft settings",
-                body = "Workspace management, account surfaces, device diagnostics, Android-native access, and CSV export now sit on top of the local-first Android draft.",
+            NoticeCard(
+                title = "Android settings",
+                body = "Workspace management, account surfaces, device diagnostics, Android-native access, and CSV export now sit on top of the local-first Android app.",
                 modifier = Modifier
             )
         }
