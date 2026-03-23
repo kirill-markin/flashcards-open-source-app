@@ -80,6 +80,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apiCertificateArn,
       openAiApiKeySecretArn,
       anthropicApiKeySecretArn,
+      demoEmailDostip,
       guestAiWeightedMonthlyTokenCap,
       userPoolId: authResult.userPool.userPoolId,
       userPoolArn: authResult.userPool.userPoolArn,
