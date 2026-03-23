@@ -626,9 +626,8 @@ private fun toWorkspaceSchedulerSettingsEntity(settings: WorkspaceSchedulerSetti
 }
 
 private fun toWorkspaceSchedulerSettings(entity: WorkspaceSchedulerSettingsEntity): WorkspaceSchedulerSettings {
-    return WorkspaceSchedulerSettings(
+    return validateWorkspaceSchedulerSettingsInput(
         workspaceId = entity.workspaceId,
-        algorithm = entity.algorithm,
         desiredRetention = entity.desiredRetention,
         learningStepsMinutes = decodeSchedulerStepListJson(json = entity.learningStepsMinutesJson),
         relearningStepsMinutes = decodeSchedulerStepListJson(json = entity.relearningStepsMinutesJson),

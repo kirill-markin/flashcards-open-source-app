@@ -20,6 +20,12 @@ android {
     kotlin {
         jvmToolchain(17)
     }
+
+    sourceSets {
+        getByName("test") {
+            resources.setSrcDirs(listOf("../../../../tests"))
+        }
+    }
 }
 
 dependencies {
@@ -33,6 +39,7 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit4)
+    testImplementation(libs.org.json)
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)

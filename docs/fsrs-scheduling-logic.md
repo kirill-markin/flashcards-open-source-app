@@ -45,7 +45,7 @@ Supporting mirrors around the scheduler contract:
 - Android scheduler settings: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt`
 - shared parity vectors: `tests/fsrs-full-vectors.json`
 - backend parity tests: `apps/backend/src/schedule.test.ts`
-- iOS parity tests: `apps/ios/Flashcards/FlashcardsTests/FsrsSchedulerTests.swift`
+- iOS parity tests: `apps/ios/Flashcards/FlashcardsTests/FsrsSchedulerParityTests.swift`
 - Android parity tests: `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupportTest.kt`
 
 Any scheduler change must update the backend copy, the iOS copy, the Android copy, this document, and the parity vectors plus all three test suites in the same PR.
@@ -65,6 +65,9 @@ Core scheduler symbol parity:
 | `Alea` | `AleaGenerator` |
 | `addMinutes` / `addDays` | `FlashcardsLogic.swift` `addMinutes(date:minutes:)` / `addDays(date:days:)` |
 | `clamp`, `roundTo8`, `dateDiffInDays`, `stateRequiresMemory`, `getIntervalModifier`, `formatSeedNumber`, `mapRatingToFsrsGrade`, `getStepsForState`, `getCurrentStepIndex`, `getLearningStrategyStepIndex`, `getHardStepMinutes`, `getLearningStepResult`, `initStability`, `initDifficulty`, `meanReversion`, `linearDamping`, `nextDifficulty`, `forgettingCurve`, `nextRecallStability`, `nextForgetStability`, `nextShortTermStability`, `createInitialMemoryState`, `computeNextShortTermMemoryState`, `computeNextReviewMemoryState`, `getFuzzRange`, `getIntervalSeed`, `nextInterval`, `getMemoryState`, `buildShortTermSchedule`, `buildGraduatedReviewSchedule`, `buildReviewSuccessSchedule`, `createEmptyReviewableCardScheduleState`, `computeReviewSchedule`, `rebuildCardScheduleState` | same symbol names in Swift style |
+
+Android keeps the same scheduler symbol set in `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/SchedulerSupport.kt`.
+Because Android persistence uses epoch milliseconds instead of `Date`, the Android mirror uses `*Millis` timestamp fields while keeping the same transition logic, helper structure, seed rules, and validation semantics as backend and iOS.
 
 Scheduler-entrypoint parity:
 
