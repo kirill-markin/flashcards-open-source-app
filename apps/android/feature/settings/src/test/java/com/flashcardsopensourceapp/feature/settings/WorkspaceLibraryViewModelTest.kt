@@ -65,7 +65,7 @@ class WorkspaceLibraryViewModelTest {
         assertEquals(DeckListTargetUiState.AllCards, viewModel.uiState.value.deckEntries.first().target)
         assertEquals("All cards", viewModel.uiState.value.deckEntries.first().title)
         assertEquals(
-            listOf("All cards", "Android UI", "Kotlin Basics"),
+            listOf("All cards", "UI", "Basics"),
             viewModel.uiState.value.deckEntries.map(DeckListEntryUiState::title)
         )
         collectionJob.cancel()
@@ -125,7 +125,7 @@ class WorkspaceLibraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            listOf("All cards", "Android UI", "Kotlin Basics", "Storage Focus"),
+            listOf("All cards", "UI", "Basics", "Storage Focus"),
             viewModel.uiState.value.deckEntries.map(DeckListEntryUiState::title)
         )
         collectionJob.cancel()
@@ -192,12 +192,12 @@ private class FakeDecksRepository(
     initialDecks: List<DeckSummary> = listOf(
         sampleDeckSummary(
             deckId = "deck-ui",
-            name = "Android UI",
+            name = "UI",
             tags = listOf("Android")
         ),
         sampleDeckSummary(
             deckId = "deck-kotlin",
-            name = "Kotlin Basics",
+            name = "Basics",
             tags = listOf("kotlin"),
             createdAtMillis = 2L
         )
@@ -270,7 +270,7 @@ private class FakeCardsRepository : CardsRepository {
             ),
             sampleLibraryCard(
                 cardId = "card-2",
-                frontText = "What does val mean in Kotlin?",
+                frontText = "What is an immutable binding?",
                 tags = listOf("kotlin"),
                 dueAtMillis = 100L,
                 createdAtMillis = 2L
@@ -301,8 +301,8 @@ private class FakeCardsRepository : CardsRepository {
 private class FakeLibraryWorkspaceRepository : WorkspaceRepository {
     private val overviewState = MutableStateFlow(
         WorkspaceOverviewSummary(
-            workspaceId = "workspace-demo",
-            workspaceName = "Demo",
+            workspaceId = "workspace-local",
+            workspaceName = "Personal",
             totalCards = 4,
             deckCount = 2,
             tagsCount = 2,
@@ -324,8 +324,8 @@ private class FakeLibraryWorkspaceRepository : WorkspaceRepository {
     override fun observeWorkspace(): Flow<WorkspaceSummary?> {
         return flowOf(
             WorkspaceSummary(
-                workspaceId = "workspace-demo",
-                name = "Demo",
+                workspaceId = "workspace-local",
+                name = "Personal",
                 createdAtMillis = 1L
             )
         )
@@ -334,8 +334,8 @@ private class FakeLibraryWorkspaceRepository : WorkspaceRepository {
     override fun observeAppMetadata(): Flow<AppMetadataSummary> {
         return flowOf(
             AppMetadataSummary(
-                currentWorkspaceName = "Demo",
-                workspaceName = "Demo",
+                currentWorkspaceName = "Personal",
+                workspaceName = "Personal",
                 deckCount = 2,
                 cardCount = 4,
                 localStorageLabel = "Room + SQLite",
@@ -382,7 +382,7 @@ private fun sampleDeckSummary(
 ): DeckSummary {
     return DeckSummary(
         deckId = deckId,
-        workspaceId = "workspace-demo",
+        workspaceId = "workspace-local",
         name = name,
         filterDefinition = DeckFilterDefinition(
             version = 2,
@@ -407,7 +407,7 @@ private fun sampleLibraryCard(
 ): CardSummary {
     return CardSummary(
         cardId = cardId,
-        workspaceId = "workspace-demo",
+        workspaceId = "workspace-local",
         frontText = frontText,
         backText = "Answer",
         tags = tags,

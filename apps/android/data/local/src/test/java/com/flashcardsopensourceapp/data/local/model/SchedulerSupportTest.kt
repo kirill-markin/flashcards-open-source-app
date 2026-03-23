@@ -77,7 +77,7 @@ class SchedulerSupportTest {
     fun workspaceSchedulerConfigChangesAffectOnlyFutureReviews() {
         val cardId = "config-change-card"
         val updatedSettings = validateWorkspaceSchedulerSettingsInput(
-            workspaceId = "workspace-demo",
+            workspaceId = "workspace-local",
             desiredRetention = 0.90,
             learningStepsMinutes = listOf(1),
             relearningStepsMinutes = listOf(10),
@@ -483,7 +483,7 @@ class SchedulerSupportTest {
 
     private fun defaultSchedulerSettings(): WorkspaceSchedulerSettings {
         return makeDefaultWorkspaceSchedulerSettings(
-            workspaceId = "workspace-demo",
+            workspaceId = "workspace-local",
             updatedAtMillis = 100L
         )
     }
@@ -517,7 +517,7 @@ class SchedulerSupportTest {
 
     private fun parseSettings(jsonObject: JSONObject): WorkspaceSchedulerSettings {
         return validateWorkspaceSchedulerSettingsInput(
-            workspaceId = "workspace-demo",
+            workspaceId = "workspace-local",
             desiredRetention = jsonObject.getDouble("desiredRetention"),
             learningStepsMinutes = parseIntList(jsonObject.getJSONArray("learningStepsMinutes")),
             relearningStepsMinutes = parseIntList(jsonObject.getJSONArray("relearningStepsMinutes")),

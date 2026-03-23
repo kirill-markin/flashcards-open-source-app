@@ -223,7 +223,7 @@ class ReviewViewModelTest {
     fun invalidSavedFilterFallsBackToAllCardsAndRewritesPreference() = runTest(dispatcher) {
         val reviewPreferencesStore = FakeReviewPreferencesStore().apply {
             saveSelectedReviewFilter(
-                workspaceId = "workspace-demo",
+                workspaceId = "workspace-local",
                 reviewFilter = ReviewFilter.Deck(deckId = "missing-deck")
             )
         }
@@ -236,7 +236,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(ReviewFilter.AllCards, reviewViewModel.uiState.value.selectedFilter)
-        assertEquals(ReviewFilter.AllCards, reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = "workspace-demo"))
+        assertEquals(ReviewFilter.AllCards, reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = "workspace-local"))
         collectionJob.cancel()
     }
 
@@ -244,7 +244,7 @@ class ReviewViewModelTest {
     fun switchingWorkspaceRestoresScopedFilterAndClearsPreviewState() = runTest(dispatcher) {
         val reviewPreferencesStore = FakeReviewPreferencesStore().apply {
             saveSelectedReviewFilter(
-                workspaceId = "workspace-demo",
+                workspaceId = "workspace-local",
                 reviewFilter = ReviewFilter.Deck(deckId = "deck-ui")
             )
             saveSelectedReviewFilter(
@@ -564,7 +564,7 @@ class ReviewViewModelTest {
                     cards = currentCards,
                     tagsSummary = sampleTagsSummary(cards = currentCards),
                     settings = makeDefaultWorkspaceSchedulerSettings(
-                        workspaceId = "workspace-demo",
+                        workspaceId = "workspace-local",
                         updatedAtMillis = 100L
                     ),
                     reviewedAtMillis = 1_000L
@@ -649,7 +649,7 @@ class ReviewViewModelTest {
     ) : WorkspaceRepository {
         private val workspaceState = MutableStateFlow(
             WorkspaceSummary(
-                workspaceId = "workspace-demo",
+                workspaceId = "workspace-local",
                 name = "Demo",
                 createdAtMillis = 1L
             )
@@ -743,7 +743,7 @@ class ReviewViewModelTest {
             return (1..count).map { index ->
                 CardSummary(
                     cardId = "card-$index",
-                    workspaceId = "workspace-demo",
+                    workspaceId = "workspace-local",
                     frontText = "Front $index",
                     backText = "Back $index",
                     tags = if (index % 2 == 0) listOf("ui") else listOf("basics"),
@@ -768,7 +768,7 @@ class ReviewViewModelTest {
             return listOf(
                 DeckSummary(
                     deckId = "deck-basics",
-                    workspaceId = "workspace-demo",
+                    workspaceId = "workspace-local",
                     name = "Basics",
                     filterDefinition = DeckFilterDefinition(
                         version = 2,
@@ -784,7 +784,7 @@ class ReviewViewModelTest {
                 ),
                 DeckSummary(
                     deckId = "deck-ui",
-                    workspaceId = "workspace-demo",
+                    workspaceId = "workspace-local",
                     name = "UI",
                     filterDefinition = DeckFilterDefinition(
                         version = 2,

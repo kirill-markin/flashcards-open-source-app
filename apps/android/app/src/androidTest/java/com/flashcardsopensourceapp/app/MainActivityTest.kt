@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.app
 
-import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -14,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -33,72 +32,49 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
     companion object {
-        private const val seededCardsTimeoutMillis: Long = 30_000L
         private const val uiTimeoutMillis: Long = 10_000L
-        private const val seededCardsVisibleTitle: String = "What does Material 3 provide?"
-        private const val maxReviewCardsToRate: Int = 5
-        private val seededReviewQueueTitles: List<String> = listOf(
-            "What does Material 3 provide?",
-            "What is Compose used for?",
-            "What does Room wrap on Android?"
-        )
+        private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
     }
 
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun navigationShowsAllTopLevelScreens() {
-        waitForSeededCards()
-
+    fun navigationShowsAllTopLevelScreensFromEmptyState() {
+        waitForCardsEmptyState()
         composeRule.onNodeWithText("Search cards").fetchSemanticsNode()
 
         composeRule.onNodeWithText("AI").performClick()
-        if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithText("OK").performClick()
-        }
+        dismissAiConsentIfNeeded()
         composeRule.onNodeWithText("Android AI").fetchSemanticsNode()
 
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Workspace").fetchSemanticsNode()
 
         composeRule.onNodeWithText("Review").performClick()
-        composeRule.onNodeWithText("Session progress").fetchSemanticsNode()
+        composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
     }
 
     @Test
-    fun cardsCreateFilterEditDeleteFlowUpdatesUi() {
-        waitForSeededCards()
+    fun cardsCreateFilterEditDeleteFlowWorksFromEmptyState() {
+        waitForCardsEmptyState()
 
-        composeRule.onNodeWithContentDescription("Add card").performClick()
-
-        updateCardText(fieldTitle = "Front", value = "Android card")
-        updateCardText(fieldTitle = "Back", value = "This came from the Android app.")
-        composeRule.onNodeWithText("Tags").performClick()
-        composeRule.onNodeWithText("Add a tag").performTextInput("draft")
-        composeRule.onNodeWithText("Add tag").performClick()
-        composeRule.onNodeWithText("Add a tag").performTextInput("android")
-        composeRule.onNodeWithText("Add tag").performClick()
-        tapBackIcon()
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
+        createCard(
+            frontText = "Android card",
+            backText = "This came from the Android app.",
+            tags = listOf("draft", "android")
+        )
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Android card").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(hasContentDescription("Filter cards").and(other = hasClickAction())).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNode(
-            matcher = hasContentDescription("Filter cards").and(other = hasClickAction())
-        ).performClick()
+        openCardFilter()
         composeRule.onNodeWithText("draft (1)").performClick()
         composeRule.onNodeWithText("Apply").performClick()
         composeRule.onNodeWithText("Android card").fetchSemanticsNode()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("What does val mean in Kotlin?").fetchSemanticsNodes().isEmpty()
+            composeRule.onAllNodesWithText("No cards match the current filters.").fetchSemanticsNodes().isEmpty()
         }
         composeRule.onNodeWithText("Clear").performClick()
 
@@ -117,47 +93,58 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isEmpty()
         }
+        composeRule.onNodeWithText(emptyCardsMessage).fetchSemanticsNode()
     }
 
     @Test
-    fun workspaceDecksAndTagsFlowWorks() {
-        waitForSeededCards()
+    fun workspaceDecksAndTagsFlowWorksAfterCreatingCards() {
+        waitForCardsEmptyState()
+        createCard(
+            frontText = "SQLite note",
+            backText = "Stored locally.",
+            tags = listOf("storage")
+        )
+        createCard(
+            frontText = "Compose note",
+            backText = "Rendered declaratively.",
+            tags = listOf("ui")
+        )
 
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Workspace").performClick()
         composeRule.onNodeWithText("Decks").performClick()
-        composeRule.onNodeWithText("Kotlin Basics").fetchSemanticsNode()
 
         composeRule.onNodeWithContentDescription("Add deck").performClick()
-        composeRule.onNodeWithText("Deck name").performTextInput("SQLite Focus")
-        composeRule.onNodeWithText("sqlite (2)").performClick()
+        composeRule.onNodeWithText("Deck name").performTextInput("Storage deck")
+        composeRule.onNodeWithText("storage (1)").performClick()
         composeRule.onNodeWithText("Save").performClick()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("SQLite Focus").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Storage deck").fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("SQLite Focus").performClick()
+        composeRule.onNodeWithText("Storage deck").performClick()
         composeRule.onNode(
-            matcher = hasText("What does Room wrap on Android?", substring = true).and(other = hasClickAction())
+            matcher = hasText("SQLite note", substring = true).and(other = hasClickAction())
         ).performClick()
         composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
         tapBackIcon()
         tapBackIcon()
         tapBackIcon()
+
         composeRule.onNodeWithText("Tags").performClick()
         composeRule.onNodeWithText("Search tags").performTextInput("ui")
-        composeRule.onNodeWithText("3 cards").fetchSemanticsNode()
+        composeRule.onNodeWithText("1 cards").fetchSemanticsNode()
     }
 
     @Test
-    fun schedulerSettingsFlowUpdatesWorkspaceSummary() {
-        waitForSeededCards()
+    fun schedulerSettingsFlowUpdatesWorkspaceSummaryFromEmptyState() {
+        waitForCardsEmptyState()
 
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Workspace").performClick()
         composeRule.onNodeWithText("Scheduler").performClick()
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(schedulerDesiredRetentionFieldTag).fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithTag(schedulerLearningStepsFieldTag).fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithTag(schedulerRelearningStepsFieldTag).fetchSemanticsNodes().isNotEmpty()
@@ -165,9 +152,6 @@ class MainActivityTest {
         }
         composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performScrollTo()
         composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performTextReplacement("0.85")
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("0.85").fetchSemanticsNodes().isNotEmpty()
-        }
         composeRule.onNodeWithTag(schedulerLearningStepsFieldTag).performScrollTo()
         composeRule.onNodeWithTag(schedulerLearningStepsFieldTag).performTextReplacement("1, 10")
         composeRule.onNodeWithTag(schedulerRelearningStepsFieldTag).performScrollTo()
@@ -176,31 +160,24 @@ class MainActivityTest {
         composeRule.onNodeWithTag(schedulerMaximumIntervalFieldTag).performTextReplacement("36500")
         composeRule.onNodeWithTag(schedulerSaveButtonTag).performScrollTo()
         composeRule.onNodeWithTag(schedulerSaveButtonTag).performClick()
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(schedulerApplyButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag(schedulerApplyButtonTag).performClick()
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            composeRule.onAllNodesWithTag(schedulerApplyButtonTag).fetchSemanticsNodes().isEmpty()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Overview").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText("Scheduler").fetchSemanticsNodes().isNotEmpty()
         }
-        tapBackIcon()
-        if (composeRule.onAllNodesWithText("Workspace").fetchSemanticsNodes().isEmpty()) {
-            tapBackIcon()
-        }
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            composeRule.onAllNodesWithText("Workspace").fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithText("Workspace").performClick()
         composeRule.onNodeWithText("Scheduler").performClick()
         composeRule.onNodeWithTag(schedulerDesiredRetentionFieldTag).performScrollTo()
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("0.85").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     @Test
-    fun settingsAccountDeviceAccessAndExportFlowsOpen() {
-        waitForSeededCards()
+    fun settingsAccountDeviceAccessAndExportFlowsOpenFromEmptyState() {
+        waitForCardsEmptyState()
 
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Workspace").performClick()
@@ -224,6 +201,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("Delete my account").fetchSemanticsNode()
         tapBackIcon()
         tapBackIcon()
+
         openSettingsSection(sectionTitle = "This device")
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Workspace ID").fetchSemanticsNodes().isNotEmpty()
@@ -243,87 +221,101 @@ class MainActivityTest {
     }
 
     @Test
-    fun reviewFilterPreviewAndRatingFlowWorks() {
-        waitForSeededCards()
-
-        composeRule.onNodeWithText("Review").performClick()
-        openReviewFilter(filterTitle = "Android UI")
-        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).fetchSemanticsNode()
-        composeRule.onNodeWithText("Edit card").performClick()
-        composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
-        tapBackIcon()
-        composeRule.onNodeWithText("3 / 3").performClick()
-        composeRule.onNodeWithText("Review queue").fetchSemanticsNode()
-        openSeededReviewQueueCard()
-        composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
-        tapBackIcon()
-        tapBackIcon()
-
-        rateVisibleReviewCard()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).fetchSemanticsNode()
-    }
-
-    @Test
     fun reviewEmptyStateSupportsGuidedCreationHandoffs() {
-        waitForSeededCards()
+        waitForCardsEmptyState()
 
         composeRule.onNodeWithText("Review").performClick()
-        openReviewFilter(filterTitle = "Android UI")
-        drainReviewCardsUntilEmptyState()
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()
-        }
-
-        composeRule.onNodeWithText("No cards in this filter").fetchSemanticsNode()
+        composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
         composeRule.onNodeWithText("Create card").fetchSemanticsNode()
         composeRule.onNodeWithText("Create with AI").fetchSemanticsNode()
-        composeRule.onNodeWithText("Switch to all cards").fetchSemanticsNode()
 
         composeRule.onNodeWithText("Create card").performClick()
         composeRule.onNodeWithText("New card").fetchSemanticsNode()
         tapBackIcon()
 
-        composeRule.onNodeWithText("No cards in this filter").fetchSemanticsNode()
+        composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
         composeRule.onNodeWithText("Create with AI").performClick()
-        if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithText("OK").performClick()
-        }
+        dismissAiConsentIfNeeded()
         composeRule.onNodeWithText("Android AI").fetchSemanticsNode()
         composeRule.onNodeWithText("Message").fetchSemanticsNode()
-
-        composeRule.onNodeWithText("Review").performClick()
-        composeRule.onNodeWithText("No cards in this filter").fetchSemanticsNode()
-        composeRule.onNodeWithText("Switch to all cards").performClick()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
-        }
     }
 
     @Test
-    fun reviewManageDecksHandoffOpensDeckLibraryAndReturnsToReview() {
-        waitForSeededCards()
+    fun reviewShowsAndRatesCardCreatedFromEmptyState() {
+        waitForCardsEmptyState()
+        createCard(
+            frontText = "Review me",
+            backText = "Rated from the review screen.",
+            tags = listOf("review")
+        )
 
         composeRule.onNodeWithText("Review").performClick()
-        composeRule.onNodeWithContentDescription("Choose review filter").performClick()
-        composeRule.onNodeWithText("Manage filtered decks").performClick()
-        composeRule.onNodeWithText("Decks").fetchSemanticsNode()
-        tapBackIcon()
-        composeRule.onNodeWithText("Review").fetchSemanticsNode()
-        if (composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isEmpty()) {
-            tapBackIcon()
-        }
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performScrollTo()
+        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
+        composeRule.onNodeWithTag(reviewRateGoodButtonTag).performScrollTo()
+        composeRule.onNodeWithTag(reviewRateGoodButtonTag).performClick()
+
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Session complete").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Session complete").fetchSemanticsNode()
     }
 
-    private fun waitForSeededCards() {
-        composeRule.onNodeWithText("Cards").performClick()
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            composeRule.onAllNodesWithText(seededCardsVisibleTitle).fetchSemanticsNodes().isNotEmpty()
+    private fun waitForCardsEmptyState() {
+        openCardsTab()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText(emptyCardsMessage).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun createCard(frontText: String, backText: String, tags: List<String>) {
+        openCardsTab()
+        composeRule.onNodeWithContentDescription("Add card").performClick()
+        updateCardText(fieldTitle = "Front", value = frontText)
+        updateCardText(fieldTitle = "Back", value = backText)
+        if (tags.isNotEmpty()) {
+            composeRule.onNodeWithText("Tags").performClick()
+            tags.forEach { tag ->
+                composeRule.onNodeWithText("Add a tag").performTextInput(tag)
+                composeRule.onNodeWithText("Add tag").performClick()
+            }
+            tapBackIcon()
+        }
+        scrollToText(text = "Save")
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodes(
+                matcher = hasClickAction().and(other = hasText("Save"))
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNode(
+            matcher = hasClickAction().and(other = hasText("Save"))
+        ).performClick()
+    }
+
+    private fun openCardsTab() {
+        composeRule.onNode(
+            matcher = hasText("Cards").and(other = hasClickAction())
+        ).performClick()
+    }
+
+    private fun openCardFilter() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodes(
+                hasContentDescription("Filter cards").and(other = hasClickAction())
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNode(
+            matcher = hasContentDescription("Filter cards").and(other = hasClickAction())
+        ).performClick()
+    }
+
+    private fun dismissAiConsentIfNeeded() {
+        if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText("OK").performClick()
         }
     }
 
@@ -350,57 +342,6 @@ class MainActivityTest {
             composeRule.onAllNodesWithText(sectionTitle).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText(sectionTitle).performClick()
-    }
-
-    private fun openReviewFilter(filterTitle: String) {
-        composeRule.onNodeWithContentDescription("Choose review filter").performClick()
-        composeRule.onNode(
-            matcher = hasText(filterTitle, substring = true).and(other = hasClickAction())
-        ).performClick()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
-                || composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    private fun rateVisibleReviewCard() {
-        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performScrollTo()
-        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewRateGoodButtonTag).performScrollTo()
-        composeRule.onNodeWithTag(reviewRateGoodButtonTag).performClick()
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            val ratingButtonsGone = composeRule.onAllNodesWithTag(reviewRateGoodButtonTag).fetchSemanticsNodes().isEmpty()
-            val nextCardReady = composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
-            val emptyStateVisible = composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()
-            ratingButtonsGone && (nextCardReady || emptyStateVisible)
-        }
-    }
-
-    private fun openSeededReviewQueueCard() {
-        composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-            seededReviewQueueTitles.any { title ->
-                composeRule.onAllNodesWithText(title, substring = true).fetchSemanticsNodes().isNotEmpty()
-            }
-        }
-        val visibleTitle = seededReviewQueueTitles.first { title ->
-            composeRule.onAllNodesWithText(title, substring = true).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithText(visibleTitle, substring = true).performClick()
-    }
-
-    private fun drainReviewCardsUntilEmptyState() {
-        repeat(maxReviewCardsToRate) {
-            if (composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()) {
-                return
-            }
-            composeRule.waitUntil(timeoutMillis = seededCardsTimeoutMillis) {
-                composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
-                    || composeRule.onAllNodesWithText("No cards in this filter").fetchSemanticsNodes().isNotEmpty()
-            }
-            if (composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()) {
-                rateVisibleReviewCard()
-            }
-        }
     }
 
     private fun scrollToText(text: String) {

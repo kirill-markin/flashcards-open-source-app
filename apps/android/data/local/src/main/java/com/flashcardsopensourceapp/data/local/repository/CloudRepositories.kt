@@ -501,12 +501,12 @@ class LocalSyncRepository(
         val workspaceId = requireNotNull(cloudSettings.linkedWorkspaceId) {
             "Cloud sync requires a linked workspace."
         }
-        val authenticatedSession = authenticatedSession()
 
         syncStatusState.value = syncStatusState.value.copy(status = SyncStatus.Syncing, lastErrorMessage = "")
         syncLocalStore.recordSyncAttempt(workspaceId)
 
         try {
+            val authenticatedSession = authenticatedSession()
             var syncState = syncLocalStore.ensureSyncState(workspaceId)
             var lastHotCursor = syncState.lastSyncCursor?.toLongOrNull() ?: 0L
             var lastReviewSequenceId = syncState.lastReviewSequenceId

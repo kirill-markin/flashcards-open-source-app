@@ -253,7 +253,7 @@ private fun sampleCardsListItem(
 ): CardSummary {
     return CardSummary(
         cardId = cardId,
-        workspaceId = "workspace-demo",
+        workspaceId = "workspace-local",
         frontText = frontText,
         backText = "Answer",
         tags = tags,

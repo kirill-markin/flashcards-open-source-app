@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         val application = application as FlashcardsApplication
 
         lifecycleScope.launch {
-            application.appGraph.seedDemoDataIfNeeded(
+            application.appGraph.ensureLocalWorkspaceShell(
                 currentTimeMillis = System.currentTimeMillis()
             )
         }

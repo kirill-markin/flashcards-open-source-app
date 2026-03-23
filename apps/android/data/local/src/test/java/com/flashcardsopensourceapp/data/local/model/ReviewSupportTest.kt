@@ -90,7 +90,7 @@ class ReviewSupportTest {
     fun buildReviewTimelinePagePlacesFutureCardsBeforeAlreadyRatedTail() {
         val cards = sampleCards() + CardSummary(
             cardId = "card-5",
-            workspaceId = "workspace-demo",
+            workspaceId = "workspace-local",
             frontText = "Future card",
             backText = "Shows later in preview.",
             tags = listOf("future"),
@@ -139,9 +139,9 @@ class ReviewSupportTest {
         return listOf(
             CardSummary(
                 cardId = "card-1",
-                workspaceId = "workspace-demo",
-                frontText = "What does val mean in Kotlin?",
-                backText = "A read-only reference.",
+                workspaceId = "workspace-local",
+                frontText = "What is an immutable binding?",
+                backText = "A value that cannot be reassigned after creation.",
                 tags = listOf("basics"),
                 effortLevel = EffortLevel.FAST,
                 dueAtMillis = null,
@@ -159,7 +159,7 @@ class ReviewSupportTest {
             ),
             CardSummary(
                 cardId = "card-2",
-                workspaceId = "workspace-demo",
+                workspaceId = "workspace-local",
                 frontText = "What is a data class?",
                 backText = "A class optimized for immutable value-like data.",
                 tags = listOf("basics"),
@@ -179,10 +179,10 @@ class ReviewSupportTest {
             ),
             CardSummary(
                 cardId = "card-3",
-                workspaceId = "workspace-demo",
-                frontText = "What does Room wrap on Android?",
-                backText = "SQLite with typed DAO and entity APIs.",
-                tags = listOf("sqlite"),
+                workspaceId = "workspace-local",
+                frontText = "What does local persistence store?",
+                backText = "Structured records on device.",
+                tags = listOf("storage"),
                 effortLevel = EffortLevel.LONG,
                 dueAtMillis = null,
                 createdAtMillis = 102L,
@@ -199,9 +199,9 @@ class ReviewSupportTest {
             ),
             CardSummary(
                 cardId = "card-4",
-                workspaceId = "workspace-demo",
-                frontText = "What is Compose used for?",
-                backText = "Building Android UI declaratively.",
+                workspaceId = "workspace-local",
+                frontText = "What is declarative UI?",
+                backText = "A UI model driven by state updates.",
                 tags = listOf("ui"),
                 effortLevel = EffortLevel.FAST,
                 dueAtMillis = null,
@@ -224,8 +224,8 @@ class ReviewSupportTest {
         return listOf(
             DeckSummary(
                 deckId = "deck-kotlin",
-                workspaceId = "workspace-demo",
-                name = "Kotlin Basics",
+                workspaceId = "workspace-local",
+                name = "Basics",
                 filterDefinition = DeckFilterDefinition(
                     version = 2,
                     effortLevels = emptyList(),
@@ -240,8 +240,8 @@ class ReviewSupportTest {
             ),
             DeckSummary(
                 deckId = "deck-ui",
-                workspaceId = "workspace-demo",
-                name = "Android UI",
+                workspaceId = "workspace-local",
+                name = "UI",
                 filterDefinition = DeckFilterDefinition(
                     version = 2,
                     effortLevels = emptyList(),
@@ -270,7 +270,7 @@ class ReviewSupportTest {
 
     private fun sampleSchedulerSettings(): WorkspaceSchedulerSettings {
         return makeDefaultWorkspaceSchedulerSettings(
-            workspaceId = "workspace-demo",
+            workspaceId = "workspace-local",
             updatedAtMillis = 100L
         )
     }

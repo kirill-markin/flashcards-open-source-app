@@ -246,7 +246,7 @@ private fun sampleCard(
 ): CardSummary {
     return CardSummary(
         cardId = cardId,
-        workspaceId = "workspace-demo",
+        workspaceId = "workspace-local",
         frontText = frontText,
         backText = backText,
         tags = tags,
