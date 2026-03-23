@@ -115,6 +115,13 @@ interface AiChatRepository {
     suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
     suspend fun clearPersistedState(workspaceId: String?)
+    suspend fun transcribeAudio(
+        workspaceId: String?,
+        fileName: String,
+        mediaType: String,
+        audioBytes: ByteArray
+    ): String
+    suspend fun warmUpLinkedSession()
     suspend fun streamTurn(
         workspaceId: String?,
         state: AiChatPersistedState,

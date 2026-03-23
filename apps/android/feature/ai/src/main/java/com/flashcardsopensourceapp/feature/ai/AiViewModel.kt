@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
@@ -15,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
+import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
 import com.flashcardsopensourceapp.data.local.model.aiChatDefaultModelId
@@ -23,7 +26,6 @@ import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaReachedMessa
 import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
 import com.flashcardsopensourceapp.data.local.model.availableAiChatModels
 import com.flashcardsopensourceapp.data.local.model.enforceAllowedAiChatModel
-import com.flashcardsopensourceapp.data.local.model.makeAiChatSessionId
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -40,11 +42,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+private const val noSpeechRecordedMessage: String = "No speech was recorded."
+
 private data class AiDraftState(
     val workspaceId: String?,
     val persistedState: AiChatPersistedState,
     val draftMessage: String,
+    val pendingAttachments: List<AiChatAttachment>,
     val isStreaming: Boolean,
+    val dictationState: AiChatDictationState,
     val repairStatus: AiChatRepairAttemptStatus?,
     val errorMessage: String
 )
@@ -62,7 +68,7 @@ class AiViewModel(
     private val metadataState = workspaceRepository.observeAppMetadata().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = com.flashcardsopensourceapp.data.local.model.AppMetadataSummary(
+        initialValue = AppMetadataSummary(
             currentWorkspaceName = "Loading...",
             workspaceName = "Loading...",
             deckCount = 0,
@@ -94,12 +100,15 @@ class AiViewModel(
             workspaceId = null,
             persistedState = makeDefaultAiChatPersistedState(),
             draftMessage = "",
+            pendingAttachments = emptyList(),
             isStreaming = false,
+            dictationState = AiChatDictationState.IDLE,
             repairStatus = null,
             errorMessage = ""
         )
     )
     private var activeSendJob: Job? = null
+    private var activeWarmUpJob: Job? = null
 
     val uiState: StateFlow<AiUiState> = combine(
         metadataState,
@@ -114,18 +123,29 @@ class AiViewModel(
         )
         val hasMessages = draft.persistedState.messages.isNotEmpty()
         val hasDraftText = draft.draftMessage.trim().isNotEmpty()
+        val canEditConversation = draft.isStreaming.not() && draft.dictationState == AiChatDictationState.IDLE
+
         AiUiState(
             currentWorkspaceName = metadata.currentWorkspaceName,
             messages = draft.persistedState.messages,
+            pendingAttachments = draft.pendingAttachments,
             draftMessage = draft.draftMessage,
             selectedModelId = selectedModelId,
             availableModels = availableAiChatModels(isLinked = isLinked),
             isConsentRequired = hasConsent.not(),
             isLinked = isLinked,
             isStreaming = draft.isStreaming,
-            canSend = hasConsent && draft.isStreaming.not() && hasDraftText,
-            canStartNewChat = draft.isStreaming.not() && (hasMessages || hasDraftText),
-            isModelPickerEnabled = draft.isStreaming.not() && hasMessages.not() && isLinked,
+            dictationState = draft.dictationState,
+            canSend = hasConsent
+                && draft.isStreaming.not()
+                && draft.dictationState == AiChatDictationState.IDLE
+                && (hasDraftText || draft.pendingAttachments.isNotEmpty()),
+            canStartNewChat = canEditConversation
+                && (hasMessages || hasDraftText || draft.pendingAttachments.isNotEmpty()),
+            isModelPickerEnabled = draft.isStreaming.not()
+                && draft.dictationState == AiChatDictationState.IDLE
+                && hasMessages.not()
+                && isLinked,
             repairStatus = draft.repairStatus,
             errorMessage = draft.errorMessage
         )
@@ -135,12 +155,14 @@ class AiViewModel(
         initialValue = AiUiState(
             currentWorkspaceName = "Loading...",
             messages = emptyList(),
+            pendingAttachments = emptyList(),
             draftMessage = "",
             selectedModelId = aiChatDefaultModelId,
             availableModels = availableAiChatModels(isLinked = false),
             isConsentRequired = aiChatRepository.hasConsent().not(),
             isLinked = false,
             isStreaming = false,
+            dictationState = AiChatDictationState.IDLE,
             canSend = false,
             canStartNewChat = false,
             isModelPickerEnabled = false,
@@ -161,7 +183,10 @@ class AiViewModel(
 
     fun updateDraftMessage(draftMessage: String) {
         draftState.update { state ->
-            state.copy(draftMessage = draftMessage)
+            state.copy(
+                draftMessage = draftMessage,
+                errorMessage = ""
+            )
         }
     }
 
@@ -172,15 +197,120 @@ class AiViewModel(
     fun selectModel(modelId: String) {
         val isLinked = cloudSettingsState.value.cloudState == CloudAccountState.LINKED
         draftState.update { state ->
-            val nextPersistedState = state.persistedState.copy(
-                selectedModelId = enforceAllowedAiChatModel(
-                    selectedModelId = modelId,
-                    isLinked = isLinked
+            state.copy(
+                persistedState = state.persistedState.copy(
+                    selectedModelId = enforceAllowedAiChatModel(
+                        selectedModelId = modelId,
+                        isLinked = isLinked
+                    )
                 )
             )
-            state.copy(persistedState = nextPersistedState)
         }
         persistCurrentState()
+    }
+
+    fun addPendingAttachment(attachment: AiChatAttachment) {
+        draftState.update { state ->
+            state.copy(
+                pendingAttachments = state.pendingAttachments + attachment,
+                errorMessage = ""
+            )
+        }
+    }
+
+    fun removePendingAttachment(attachmentId: String) {
+        draftState.update { state ->
+            state.copy(
+                pendingAttachments = state.pendingAttachments.filter { attachment ->
+                    attachment.id != attachmentId
+                },
+                errorMessage = ""
+            )
+        }
+    }
+
+    fun startDictationPermissionRequest() {
+        if (draftState.value.isStreaming) {
+            return
+        }
+
+        draftState.update { state ->
+            state.copy(
+                dictationState = AiChatDictationState.REQUESTING_PERMISSION,
+                errorMessage = ""
+            )
+        }
+    }
+
+    fun startDictationRecording() {
+        if (draftState.value.isStreaming) {
+            return
+        }
+
+        draftState.update { state ->
+            state.copy(
+                dictationState = AiChatDictationState.RECORDING,
+                errorMessage = ""
+            )
+        }
+    }
+
+    fun cancelDictation() {
+        draftState.update { state ->
+            state.copy(
+                dictationState = AiChatDictationState.IDLE
+            )
+        }
+    }
+
+    fun transcribeRecordedAudio(
+        fileName: String,
+        mediaType: String,
+        audioBytes: ByteArray
+    ) {
+        if (draftState.value.dictationState != AiChatDictationState.RECORDING) {
+            return
+        }
+
+        draftState.update { state ->
+            state.copy(
+                dictationState = AiChatDictationState.TRANSCRIBING,
+                errorMessage = ""
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val transcript = aiChatRepository.transcribeAudio(
+                    workspaceId = draftState.value.workspaceId,
+                    fileName = fileName,
+                    mediaType = mediaType,
+                    audioBytes = audioBytes
+                ).trim()
+
+                require(transcript.isNotEmpty()) {
+                    noSpeechRecordedMessage
+                }
+
+                draftState.update { state ->
+                    state.copy(
+                        draftMessage = appendTranscriptToDraft(
+                            currentDraft = state.draftMessage,
+                            transcript = transcript
+                        ),
+                        dictationState = AiChatDictationState.IDLE,
+                        errorMessage = ""
+                    )
+                }
+            } catch (error: Exception) {
+                draftState.update { state ->
+                    state.copy(
+                        dictationState = AiChatDictationState.IDLE,
+                        errorMessage = error.message ?: "Audio transcription failed."
+                    )
+                }
+            }
+        }
     }
 
     fun clearConversation() {
@@ -194,6 +324,8 @@ class AiViewModel(
                     selectedModelId = state.persistedState.selectedModelId
                 ),
                 draftMessage = "",
+                pendingAttachments = emptyList(),
+                dictationState = AiChatDictationState.IDLE,
                 repairStatus = null,
                 errorMessage = ""
             )
@@ -204,6 +336,40 @@ class AiViewModel(
     fun dismissErrorMessage() {
         draftState.update { state ->
             state.copy(errorMessage = "")
+        }
+    }
+
+    fun showErrorMessage(message: String) {
+        draftState.update { state ->
+            state.copy(errorMessage = message)
+        }
+    }
+
+    fun warmUpLinkedSessionIfNeeded() {
+        val currentState = draftState.value
+        if (currentState.isStreaming) {
+            return
+        }
+        if (consentState.value.not()) {
+            return
+        }
+        if (cloudSettingsState.value.cloudState != CloudAccountState.LINKED) {
+            return
+        }
+        if (activeWarmUpJob != null) {
+            return
+        }
+
+        activeWarmUpJob = viewModelScope.launch {
+            try {
+                aiChatRepository.warmUpLinkedSession()
+            } catch (error: Exception) {
+                draftState.update { state ->
+                    state.copy(errorMessage = error.message ?: "AI session warm-up failed.")
+                }
+            } finally {
+                activeWarmUpJob = null
+            }
         }
     }
 
@@ -218,8 +384,11 @@ class AiViewModel(
             return
         }
 
-        val messageText = draftState.value.draftMessage.trim()
-        if (messageText.isEmpty()) {
+        val outgoingContent = makeUserContent(
+            draftMessage = draftState.value.draftMessage,
+            pendingAttachments = draftState.value.pendingAttachments
+        )
+        if (outgoingContent.isEmpty()) {
             return
         }
 
@@ -230,7 +399,7 @@ class AiViewModel(
                 isLinked = isLinked
             ),
             messages = draftState.value.persistedState.messages + listOf(
-                makeUserMessage(text = messageText),
+                makeUserMessage(content = outgoingContent),
                 makeAssistantStatusMessage()
             )
         )
@@ -238,7 +407,9 @@ class AiViewModel(
             state.copy(
                 persistedState = nextPersistedState,
                 draftMessage = "",
+                pendingAttachments = emptyList(),
                 isStreaming = true,
+                dictationState = AiChatDictationState.IDLE,
                 repairStatus = null,
                 errorMessage = ""
             )
@@ -394,6 +565,7 @@ class AiViewModel(
 
     private fun switchWorkspace(workspaceId: String?) {
         activeSendJob?.cancel()
+        activeWarmUpJob?.cancel()
         viewModelScope.launch {
             val persistedState = aiChatRepository.loadPersistedState(workspaceId = workspaceId)
             val isLinked = cloudSettingsState.value.cloudState == CloudAccountState.LINKED
@@ -406,7 +578,9 @@ class AiViewModel(
                     )
                 ),
                 draftMessage = "",
+                pendingAttachments = emptyList(),
                 isStreaming = false,
+                dictationState = AiChatDictationState.IDLE,
                 repairStatus = null,
                 errorMessage = ""
             )
@@ -441,13 +615,11 @@ fun createAiViewModelFactory(
     }
 }
 
-private fun makeUserMessage(text: String): AiChatMessage {
+private fun makeUserMessage(content: List<AiChatContentPart>): AiChatMessage {
     return AiChatMessage(
         messageId = UUID.randomUUID().toString().lowercase(),
         role = AiChatRole.USER,
-        content = listOf(
-            AiChatContentPart.Text(text = text)
-        ),
+        content = content,
         timestampMillis = System.currentTimeMillis(),
         isError = false
     )
@@ -463,6 +635,52 @@ private fun makeAssistantStatusMessage(): AiChatMessage {
         timestampMillis = System.currentTimeMillis(),
         isError = false
     )
+}
+
+private fun makeUserContent(
+    draftMessage: String,
+    pendingAttachments: List<AiChatAttachment>
+): List<AiChatContentPart> {
+    val attachmentContent = pendingAttachments.map(::makeAttachmentContentPart)
+    val trimmedMessage = draftMessage.trim()
+    if (trimmedMessage.isEmpty()) {
+        return attachmentContent
+    }
+
+    return attachmentContent + AiChatContentPart.Text(text = trimmedMessage)
+}
+
+private fun makeAttachmentContentPart(attachment: AiChatAttachment): AiChatContentPart {
+    return if (attachment.isImage) {
+        AiChatContentPart.Image(
+            fileName = attachment.fileName,
+            mediaType = attachment.mediaType,
+            base64Data = attachment.base64Data
+        )
+    } else {
+        AiChatContentPart.File(
+            fileName = attachment.fileName,
+            mediaType = attachment.mediaType,
+            base64Data = attachment.base64Data
+        )
+    }
+}
+
+private fun appendTranscriptToDraft(
+    currentDraft: String,
+    transcript: String
+): String {
+    val trimmedTranscript = transcript.trim()
+    if (trimmedTranscript.isEmpty()) {
+        return currentDraft
+    }
+
+    val trimmedDraft = currentDraft.trimEnd()
+    if (trimmedDraft.isEmpty()) {
+        return trimmedTranscript
+    }
+
+    return "$trimmedDraft\n$trimmedTranscript"
 }
 
 private fun appendAssistantText(
@@ -578,7 +796,7 @@ private fun markAssistantError(
         ""
     } else {
         lastMessage.content.filterIsInstance<AiChatContentPart.Text>()
-        .joinToString(separator = "") { part -> part.text }
+            .joinToString(separator = "") { part -> part.text }
     }
     val separator = if (currentText.isEmpty()) "" else "\n\n"
     return state.copy(

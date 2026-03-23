@@ -9,6 +9,27 @@ const val aiChatOptimisticAssistantStatusText: String = "Looking through your ca
 const val aiChatGuestQuotaReachedMessage: String =
     "Your free guest AI limit for this month is used up. Create an account or log in to keep using AI."
 const val aiChatGuestQuotaButtonTitle: String = "Create account or Log in"
+const val aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
+
+val aiChatSupportedFileExtensions: Set<String> = setOf(
+    "pdf",
+    "txt",
+    "csv",
+    "json",
+    "xml",
+    "xlsx",
+    "xls",
+    "md",
+    "html",
+    "py",
+    "js",
+    "ts",
+    "yaml",
+    "yml",
+    "sql",
+    "log",
+    "docx"
+)
 
 data class AiChatModelOption(
     val id: String,
@@ -36,6 +57,23 @@ enum class AiChatToolCallStatus {
     COMPLETED
 }
 
+enum class AiChatDictationState {
+    IDLE,
+    REQUESTING_PERMISSION,
+    RECORDING,
+    TRANSCRIBING
+}
+
+data class AiChatAttachment(
+    val id: String,
+    val fileName: String,
+    val mediaType: String,
+    val base64Data: String
+) {
+    val isImage: Boolean
+        get() = mediaType.startsWith(prefix = "image/")
+}
+
 data class AiChatToolCall(
     val toolCallId: String,
     val name: String,
@@ -47,6 +85,18 @@ data class AiChatToolCall(
 sealed interface AiChatContentPart {
     data class Text(
         val text: String
+    ) : AiChatContentPart
+
+    data class Image(
+        val fileName: String?,
+        val mediaType: String,
+        val base64Data: String
+    ) : AiChatContentPart
+
+    data class File(
+        val fileName: String,
+        val mediaType: String,
+        val base64Data: String
     ) : AiChatContentPart
 
     data class ToolCall(
@@ -81,6 +131,17 @@ data class AiChatUserContext(
 sealed interface AiChatWireContentPart {
     data class Text(
         val text: String
+    ) : AiChatWireContentPart
+
+    data class Image(
+        val mediaType: String,
+        val base64Data: String
+    ) : AiChatWireContentPart
+
+    data class File(
+        val fileName: String,
+        val mediaType: String,
+        val base64Data: String
     ) : AiChatWireContentPart
 
     data class ToolCall(
@@ -187,6 +248,17 @@ fun buildAiChatWireMessages(messages: List<AiChatMessage>): List<AiChatWireMessa
             content = message.content.mapNotNull { part ->
                 when (part) {
                     is AiChatContentPart.Text -> AiChatWireContentPart.Text(text = part.text)
+                    is AiChatContentPart.Image -> AiChatWireContentPart.Image(
+                        mediaType = part.mediaType,
+                        base64Data = part.base64Data
+                    )
+
+                    is AiChatContentPart.File -> AiChatWireContentPart.File(
+                        fileName = part.fileName,
+                        mediaType = part.mediaType,
+                        base64Data = part.base64Data
+                    )
+
                     is AiChatContentPart.ToolCall -> AiChatWireContentPart.ToolCall(
                         toolCallId = part.toolCall.toolCallId,
                         name = part.toolCall.name,
@@ -199,6 +271,32 @@ fun buildAiChatWireMessages(messages: List<AiChatMessage>): List<AiChatWireMessa
                 }
             }
         )
+    }
+}
+
+fun makeAiChatAttachment(
+    fileName: String,
+    mediaType: String,
+    base64Data: String
+): AiChatAttachment {
+    return AiChatAttachment(
+        id = UUID.randomUUID().toString().lowercase(),
+        fileName = fileName,
+        mediaType = mediaType,
+        base64Data = base64Data
+    )
+}
+
+fun requireAiChatAttachmentSize(byteCount: Int) {
+    require(byteCount <= aiChatMaximumAttachmentBytes) {
+        "File is too large. Maximum allowed size is 20 MB."
+    }
+}
+
+fun requireSupportedAiChatAttachmentExtension(fileExtension: String) {
+    val normalizedExtension = fileExtension.trim().lowercase()
+    require(aiChatSupportedFileExtensions.contains(normalizedExtension)) {
+        "Unsupported file type: .$normalizedExtension"
     }
 }
 
