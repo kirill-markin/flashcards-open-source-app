@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
+import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
@@ -12,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
@@ -24,7 +27,6 @@ import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepositor
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
-import com.flashcardsopensourceapp.data.local.seed.DemoDataSeeder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -73,23 +75,25 @@ class AppDatabaseTest {
     }
 
     @Test
-    fun seedIsIdempotentAndCreatesSyncTables(): Unit = runBlocking {
-        val seeder = DemoDataSeeder(database = database)
+    fun localWorkspaceBootstrapIsIdempotentAndCreatesEmptyState(): Unit = runBlocking {
+        val firstWorkspaceId = bootstrapLocalWorkspace(currentTimeMillis = 100L)
+        val secondWorkspaceId = bootstrapLocalWorkspace(currentTimeMillis = 200L)
 
-        seeder.seedIfNeeded(currentTimeMillis = 100L)
-        seeder.seedIfNeeded(currentTimeMillis = 200L)
-
+        assertEquals(firstWorkspaceId, secondWorkspaceId)
         assertEquals(1, database.workspaceDao().countWorkspaces())
-        assertEquals(1, database.outboxDao().countOutboxEntries())
-        assertNotNull(database.syncStateDao().loadSyncState(workspaceId = "workspace-demo"))
+        assertEquals(localWorkspaceName, database.workspaceDao().loadWorkspace()?.name)
+        assertEquals(0, database.outboxDao().countOutboxEntries())
+        assertNotNull(database.syncStateDao().loadSyncState(workspaceId = firstWorkspaceId))
         assertNotNull(
-            database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(workspaceId = "workspace-demo")
+            database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(workspaceId = firstWorkspaceId)
         )
+        assertTrue(database.cardDao().observeCardsWithRelations().first().isEmpty())
+        assertTrue(database.deckDao().observeDecks().first().isEmpty())
     }
 
     @Test
     fun cardsDecksAndWorkspaceSummariesFollowAlignedContract(): Unit = runBlocking {
-        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+        bootstrapLocalWorkspace(currentTimeMillis = 100L)
         val cardsRepository = makeCardsRepository()
         val decksRepository = makeDecksRepository()
         val workspaceRepository = makeWorkspaceRepository()
@@ -98,16 +102,24 @@ class AppDatabaseTest {
             cardDraft = CardDraft(
                 frontText = "What is a ViewModel?",
                 backText = "A lifecycle-aware state holder for a screen.",
-                tags = listOf("ui", "state"),
+                tags = listOf("android", "state"),
                 effortLevel = EffortLevel.FAST
+            )
+        )
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "What is SQLite used for?",
+                backText = "Persistent local storage.",
+                tags = listOf("storage"),
+                effortLevel = EffortLevel.MEDIUM
             )
         )
         decksRepository.createDeck(
             deckDraft = DeckDraft(
-                name = "SQLite Cards",
+                name = "Storage Cards",
                 filterDefinition = buildDeckFilterDefinition(
                     effortLevels = emptyList(),
-                    tags = listOf("sqlite")
+                    tags = listOf("storage")
                 )
             )
         )
@@ -123,19 +135,60 @@ class AppDatabaseTest {
         val tagsSummary = workspaceRepository.observeWorkspaceTagsSummary().first()
         val overview = workspaceRepository.observeWorkspaceOverview().first()
 
-        assertTrue(cards.any { card -> card.frontText == "What is a ViewModel?" })
-        assertTrue(decks.any { deck -> deck.name == "SQLite Cards" && deck.totalCards == 2 })
-        assertTrue(tagsSummary.tags.any { tag -> tag.tag == "ui" && tag.cardsCount >= 3 })
-        assertEquals(11, overview?.totalCards)
-        assertEquals(4, overview?.deckCount)
-        assertEquals(11, overview?.dueCount)
-        assertEquals(11, overview?.newCount)
+        assertEquals(2, cards.size)
+        assertTrue(decks.any { deck -> deck.name == "Storage Cards" && deck.totalCards == 1 })
+        assertTrue(tagsSummary.tags.any { tag -> tag.tag == "android" && tag.cardsCount == 1 })
+        assertTrue(tagsSummary.tags.any { tag -> tag.tag == "storage" && tag.cardsCount == 1 })
+        assertEquals(2, overview?.totalCards)
+        assertEquals(1, overview?.deckCount)
+        assertEquals(2, overview?.dueCount)
+        assertEquals(2, overview?.newCount)
     }
 
     @Test
     fun reviewRepositoryResolvesMissingFiltersAndCountsPendingCards(): Unit = runBlocking {
-        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+        bootstrapLocalWorkspace(currentTimeMillis = 100L)
+        val cardsRepository = makeCardsRepository()
+        val decksRepository = makeDecksRepository()
         val reviewRepository = makeReviewRepository()
+
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "UI basics",
+                backText = "Compose UI",
+                tags = listOf("ui"),
+                effortLevel = EffortLevel.FAST
+            )
+        )
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "Material components",
+                backText = "Material 3",
+                tags = listOf("ui"),
+                effortLevel = EffortLevel.FAST
+            )
+        )
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "Offline sync",
+                backText = "Queue writes locally first.",
+                tags = listOf("sync"),
+                effortLevel = EffortLevel.LONG
+            )
+        )
+        decksRepository.createDeck(
+            deckDraft = DeckDraft(
+                name = "UI cards",
+                filterDefinition = buildDeckFilterDefinition(
+                    effortLevels = emptyList(),
+                    tags = listOf("ui")
+                )
+            )
+        )
+
+        val orderedCardIds = database.cardDao().observeCardsWithRelations().first().map { card ->
+            card.card.cardId
+        }
 
         val allCardsSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Deck(deckId = "missing-deck"),
@@ -143,7 +196,7 @@ class AppDatabaseTest {
         ).first()
         val pendingSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCardIds = setOf("card-1")
+            pendingReviewedCardIds = setOf(orderedCardIds.first())
         ).first()
         val tagSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Tag(tag = "ui"),
@@ -151,55 +204,89 @@ class AppDatabaseTest {
         ).first()
 
         assertEquals(ReviewFilter.AllCards, allCardsSnapshot.selectedFilter)
-        assertEquals(10, allCardsSnapshot.totalCount)
-        assertEquals(9, pendingSnapshot.remainingCount)
-        assertEquals(10, pendingSnapshot.totalCount)
-        assertEquals(3, tagSnapshot.totalCount)
-        assertEquals("in 10 minutes", tagSnapshot.answerOptions.first { option ->
-            option.rating == com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD
-        }.intervalDescription)
+        assertEquals(3, allCardsSnapshot.totalCount)
+        assertEquals(2, pendingSnapshot.remainingCount)
+        assertEquals(3, pendingSnapshot.totalCount)
+        assertEquals(2, tagSnapshot.totalCount)
+        assertEquals(
+            "in 10 minutes",
+            tagSnapshot.answerOptions.first { option ->
+                option.rating == ReviewRating.GOOD
+            }.intervalDescription
+        )
     }
 
     @Test
     fun reviewTimelinePageMovesAlreadyRatedCardsToTail(): Unit = runBlocking {
-        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+        bootstrapLocalWorkspace(currentTimeMillis = 100L)
+        val cardsRepository = makeCardsRepository()
         val reviewRepository = makeReviewRepository()
+
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "First",
+                backText = "One",
+                tags = listOf("alpha"),
+                effortLevel = EffortLevel.FAST
+            )
+        )
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "Second",
+                backText = "Two",
+                tags = listOf("beta"),
+                effortLevel = EffortLevel.FAST
+            )
+        )
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "Third",
+                backText = "Three",
+                tags = listOf("gamma"),
+                effortLevel = EffortLevel.FAST
+            )
+        )
+
+        val orderedCardIds = database.cardDao().observeCardsWithRelations().first().map { card ->
+            card.card.cardId
+        }
+        val pendingCardIds = orderedCardIds.take(2).toSet()
 
         val page = reviewRepository.loadReviewTimelinePage(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCardIds = setOf("card-1", "card-2"),
+            pendingReviewedCardIds = pendingCardIds,
             offset = 0,
             limit = 10
         )
 
-        assertEquals("card-3", page.cards.first().cardId)
-        assertEquals(listOf("card-1", "card-2"), page.cards.takeLast(2).map { card -> card.cardId })
+        assertEquals(3, page.cards.size)
+        assertEquals(pendingCardIds, page.cards.takeLast(2).map { card -> card.cardId }.toSet())
+        assertFalse(page.cards.first().cardId in pendingCardIds)
         assertTrue(page.hasMoreCards.not())
     }
 
     @Test
-    fun workspaceRepositoryExposesDeviceDiagnosticsAndExportData(): Unit = runBlocking {
-        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+    fun workspaceRepositoryExposesDeviceDiagnosticsAndExportDataForEmptyWorkspace(): Unit = runBlocking {
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = 100L)
         val workspaceRepository = makeWorkspaceRepository()
 
         val diagnostics = workspaceRepository.observeDeviceDiagnostics().first()
         val exportData = workspaceRepository.loadWorkspaceExportData()
 
-        assertEquals("workspace-demo", diagnostics?.workspaceId)
-        assertEquals("Personal Workspace", diagnostics?.workspaceName)
-        assertEquals(1, diagnostics?.outboxEntriesCount)
+        assertEquals(workspaceId, diagnostics?.workspaceId)
+        assertEquals(localWorkspaceName, diagnostics?.workspaceName)
+        assertEquals(0, diagnostics?.outboxEntriesCount)
         assertEquals(null, diagnostics?.lastSyncCursor)
         assertEquals(null, diagnostics?.lastSyncAttemptAtMillis)
 
-        assertEquals("workspace-demo", exportData?.workspaceId)
-        assertEquals("Personal Workspace", exportData?.workspaceName)
-        assertEquals(10, exportData?.cards?.size)
-        assertEquals("What does val mean in Kotlin?", exportData?.cards?.first()?.frontText)
+        assertEquals(workspaceId, exportData?.workspaceId)
+        assertEquals(localWorkspaceName, exportData?.workspaceName)
+        assertTrue(exportData?.cards?.isEmpty() == true)
     }
 
     @Test
     fun cardMutationsWriteOutboxEntriesForCreateUpdateAndDelete(): Unit = runBlocking {
-        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = 100L)
         val cardsRepository = makeCardsRepository()
 
         cardsRepository.createCard(
@@ -225,7 +312,7 @@ class AppDatabaseTest {
         )
         cardsRepository.deleteCard(cardId = createdCardId)
 
-        val entries = database.outboxDao().loadOutboxEntries(workspaceId = "workspace-demo", limit = 20)
+        val entries = database.outboxDao().loadOutboxEntries(workspaceId = workspaceId, limit = 20)
             .filter { entry -> entry.entityId == createdCardId }
 
         assertEquals(3, entries.size)
@@ -241,7 +328,7 @@ class AppDatabaseTest {
 
     @Test
     fun deckMutationsWriteOutboxEntriesForCreateUpdateAndDelete(): Unit = runBlocking {
-        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = 100L)
         val decksRepository = makeDecksRepository()
 
         decksRepository.createDeck(
@@ -269,7 +356,7 @@ class AppDatabaseTest {
         )
         decksRepository.deleteDeck(deckId = createdDeckId)
 
-        val entries = database.outboxDao().loadOutboxEntries(workspaceId = "workspace-demo", limit = 20)
+        val entries = database.outboxDao().loadOutboxEntries(workspaceId = workspaceId, limit = 20)
             .filter { entry -> entry.entityId == createdDeckId }
 
         assertEquals(3, entries.size)
@@ -284,7 +371,7 @@ class AppDatabaseTest {
 
     @Test
     fun workspaceSchedulerSaveWritesSyncOutboxEntry(): Unit = runBlocking {
-        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = 100L)
         val workspaceRepository = makeWorkspaceRepository()
 
         workspaceRepository.updateWorkspaceSchedulerSettings(
@@ -295,11 +382,11 @@ class AppDatabaseTest {
             enableFuzz = false
         )
 
-        val entries = database.outboxDao().loadOutboxEntries(workspaceId = "workspace-demo", limit = 20)
+        val entries = database.outboxDao().loadOutboxEntries(workspaceId = workspaceId, limit = 20)
             .filter { entry -> entry.entityType == "workspace_scheduler_settings" }
         val updatedSettingsPayload = JSONObject(entries.last().payloadJson)
 
-        assertEquals(2, entries.size)
+        assertEquals(1, entries.size)
         assertEquals("fsrs-6", updatedSettingsPayload.getString("algorithm"))
         assertEquals(0.87, updatedSettingsPayload.getDouble("desiredRetention"), 0.0001)
         assertEquals(false, updatedSettingsPayload.getBoolean("enableFuzz"))
@@ -307,23 +394,47 @@ class AppDatabaseTest {
 
     @Test
     fun recordReviewWritesReviewEventAndCardOutboxEntries(): Unit = runBlocking {
-        DemoDataSeeder(database = database).seedIfNeeded(currentTimeMillis = 100L)
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = 100L)
+        val cardsRepository = makeCardsRepository()
         val reviewRepository = makeReviewRepository()
 
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "What is WorkManager?",
+                backText = "Reliable background work scheduling.",
+                tags = listOf("android"),
+                effortLevel = EffortLevel.FAST
+            )
+        )
+        val cardId = database.cardDao().observeCardsWithRelations().first()
+            .first { card -> card.card.frontText == "What is WorkManager?" }
+            .card.cardId
+
         reviewRepository.recordReview(
-            cardId = "card-1",
-            rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD,
+            cardId = cardId,
+            rating = ReviewRating.GOOD,
             reviewedAtMillis = 1_000L
         )
 
         val reviewLogs = database.reviewLogDao().loadReviewLogs()
-        val entries = database.outboxDao().loadOutboxEntries(workspaceId = "workspace-demo", limit = 20)
+        val entries = database.outboxDao().loadOutboxEntries(workspaceId = workspaceId, limit = 20)
 
         assertEquals(1, reviewLogs.size)
         assertFalse(reviewLogs.first().deviceId.isBlank())
         assertFalse(reviewLogs.first().clientEventId.isBlank())
-        assertTrue(entries.any { entry -> entry.entityType == "review_event" && entry.entityId == reviewLogs.first().reviewLogId })
-        assertTrue(entries.any { entry -> entry.entityType == "card" && entry.entityId == "card-1" })
+        assertTrue(entries.any { entry ->
+            entry.entityType == "review_event" && entry.entityId == reviewLogs.first().reviewLogId
+        })
+        assertTrue(entries.any { entry ->
+            entry.entityType == "card" && entry.entityId == cardId
+        })
+    }
+
+    private suspend fun bootstrapLocalWorkspace(currentTimeMillis: Long): String {
+        return ensureLocalWorkspaceShell(
+            database = database,
+            currentTimeMillis = currentTimeMillis
+        )
     }
 
     private fun makeCardsRepository(): CardsRepository {

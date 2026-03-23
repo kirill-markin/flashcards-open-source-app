@@ -3,10 +3,10 @@ package com.flashcardsopensourceapp.data.local.repository
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.seed.DemoDataSeeder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -17,8 +17,7 @@ class CloudIdentityResetCoordinator(
     private val cloudPreferencesStore: CloudPreferencesStore,
     private val aiChatPreferencesStore: AiChatPreferencesStore,
     private val aiChatHistoryStore: AiChatHistoryStore,
-    private val guestAiSessionStore: GuestAiSessionStore,
-    private val demoDataSeeder: DemoDataSeeder
+    private val guestAiSessionStore: GuestAiSessionStore
 ) {
     private val resetMutex = Mutex()
 
@@ -30,8 +29,10 @@ class CloudIdentityResetCoordinator(
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()
                 database.clearAllTables()
-                demoDataSeeder.seedIfNeeded(currentTimeMillis = System.currentTimeMillis())
-                val activeWorkspaceId = database.workspaceDao().loadWorkspace()?.workspaceId
+                val activeWorkspaceId = ensureLocalWorkspaceShell(
+                    database = database,
+                    currentTimeMillis = System.currentTimeMillis()
+                )
                 cloudPreferencesStore.regenerateDeviceId()
                 cloudPreferencesStore.updateCloudSettings(
                     cloudState = CloudAccountState.DISCONNECTED,

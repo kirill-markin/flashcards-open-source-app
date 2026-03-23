@@ -7,6 +7,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
+import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
@@ -28,9 +30,9 @@ import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
@@ -39,7 +41,6 @@ import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConf
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalSyncRepository
-import com.flashcardsopensourceapp.data.local.seed.DemoDataSeeder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
@@ -60,11 +61,10 @@ class CloudIdentityLifecycleRepositoryTest {
     private lateinit var aiChatPreferencesStore: AiChatPreferencesStore
     private lateinit var aiChatHistoryStore: AiChatHistoryStore
     private lateinit var guestAiSessionStore: GuestAiSessionStore
-    private lateinit var demoDataSeeder: DemoDataSeeder
     private lateinit var resetCoordinator: CloudIdentityResetCoordinator
 
     @Before
-    fun setUp() {
+    fun setUp() = runBlocking {
         context = ApplicationProvider.getApplicationContext()
         clearTestPreferences()
         database = Room.inMemoryDatabaseBuilder(
@@ -75,14 +75,16 @@ class CloudIdentityLifecycleRepositoryTest {
         aiChatPreferencesStore = AiChatPreferencesStore(context = context)
         aiChatHistoryStore = AiChatHistoryStore(context = context)
         guestAiSessionStore = GuestAiSessionStore(context = context)
-        demoDataSeeder = DemoDataSeeder(database = database)
+        ensureLocalWorkspaceShell(
+            database = database,
+            currentTimeMillis = 100L
+        )
         resetCoordinator = CloudIdentityResetCoordinator(
             database = database,
             cloudPreferencesStore = cloudPreferencesStore,
             aiChatPreferencesStore = aiChatPreferencesStore,
             aiChatHistoryStore = aiChatHistoryStore,
-            guestAiSessionStore = guestAiSessionStore,
-            demoDataSeeder = demoDataSeeder
+            guestAiSessionStore = guestAiSessionStore
         )
     }
 
@@ -93,8 +95,8 @@ class CloudIdentityLifecycleRepositoryTest {
     }
 
     @Test
-    fun resetCoordinatorClearsIdentityAndReseedsFreshState() = runBlocking {
-        demoDataSeeder.seedIfNeeded(currentTimeMillis = 100L)
+    fun resetCoordinatorClearsIdentityAndRecreatesEmptyState() = runBlocking {
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
         val initialDeviceId = cloudPreferencesStore.currentCloudSettings().deviceId
         cloudPreferencesStore.saveCredentials(
             credentials = StoredCloudCredentials(
@@ -106,13 +108,13 @@ class CloudIdentityLifecycleRepositoryTest {
         cloudPreferencesStore.updateCloudSettings(
             cloudState = CloudAccountState.LINKED,
             linkedUserId = "user-1",
-            linkedWorkspaceId = "workspace-demo",
+            linkedWorkspaceId = initialLocalWorkspaceId,
             linkedEmail = "user@example.com",
-            activeWorkspaceId = "workspace-demo"
+            activeWorkspaceId = initialLocalWorkspaceId
         )
         aiChatPreferencesStore.updateConsent(hasConsent = true)
         aiChatHistoryStore.saveState(
-            workspaceId = "workspace-demo",
+            workspaceId = initialLocalWorkspaceId,
             state = AiChatPersistedState(
                 messages = emptyList(),
                 selectedModelId = "gpt-5.2",
@@ -121,7 +123,7 @@ class CloudIdentityLifecycleRepositoryTest {
             )
         )
         guestAiSessionStore.saveSession(
-            localWorkspaceId = "workspace-demo",
+            localWorkspaceId = initialLocalWorkspaceId,
             session = StoredGuestAiSession(
                 guestToken = "guest-token",
                 userId = "guest-user",
@@ -134,22 +136,27 @@ class CloudIdentityLifecycleRepositoryTest {
 
         resetCoordinator.resetLocalStateForCloudIdentityChange()
 
+        val resetWorkspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+            "Expected a local workspace after reset."
+        }
+
         assertNull(cloudPreferencesStore.loadCredentials())
         assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
-        assertEquals("workspace-demo", cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertEquals(resetWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertNotEquals(initialLocalWorkspaceId, resetWorkspace.workspaceId)
         assertNotEquals(initialDeviceId, cloudPreferencesStore.currentCloudSettings().deviceId)
         assertEquals(AccountDeletionState.Hidden, cloudPreferencesStore.currentAccountDeletionState())
         assertTrue(aiChatPreferencesStore.hasConsent().not())
-        assertEquals("workspace-demo", database.workspaceDao().loadWorkspace()?.workspaceId)
+        assertEquals(localWorkspaceName, resetWorkspace.name)
         assertEquals(1, database.workspaceDao().countWorkspaces())
-        assertEquals(1, database.outboxDao().countOutboxEntries())
+        assertEquals(0, database.outboxDao().countOutboxEntries())
         assertEquals(
             "gpt-5.4",
-            aiChatHistoryStore.loadState(workspaceId = "workspace-demo").selectedModelId
+            aiChatHistoryStore.loadState(workspaceId = resetWorkspace.workspaceId).selectedModelId
         )
         assertNull(
             guestAiSessionStore.loadSession(
-                localWorkspaceId = "workspace-demo",
+                localWorkspaceId = resetWorkspace.workspaceId,
                 configuration = makeOfficialCloudServiceConfiguration()
             )
         )
@@ -157,12 +164,12 @@ class CloudIdentityLifecycleRepositoryTest {
 
     @Test
     fun accountDeletionLifecyclePersistsFailureAndRetryCleansLocalState() = runBlocking {
-        demoDataSeeder.seedIfNeeded(currentTimeMillis = 100L)
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
         val initialDeviceId = cloudPreferencesStore.currentCloudSettings().deviceId
         val remoteGateway = FakeCloudRemoteGateway(deleteFailuresRemaining = 1)
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
 
-        prepareLinkedCloudIdentity()
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
 
         repository.beginAccountDeletion()
 
@@ -170,9 +177,13 @@ class CloudIdentityLifecycleRepositoryTest {
         assertTrue(failedState is AccountDeletionState.Failed)
         assertEquals(1, remoteGateway.deleteAccountCalls)
         assertEquals(CloudAccountState.LINKED, cloudPreferencesStore.currentCloudSettings().cloudState)
-        assertEquals("workspace-demo", database.workspaceDao().loadWorkspace()?.workspaceId)
+        assertEquals(initialLocalWorkspaceId, database.workspaceDao().loadWorkspace()?.workspaceId)
 
         repository.retryPendingAccountDeletion()
+
+        val resetWorkspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+            "Expected a local workspace after retry."
+        }
 
         assertEquals(AccountDeletionState.Hidden, cloudPreferencesStore.currentAccountDeletionState())
         assertEquals(2, remoteGateway.deleteAccountCalls)
@@ -180,16 +191,17 @@ class CloudIdentityLifecycleRepositoryTest {
         assertNull(cloudPreferencesStore.loadCredentials())
         assertNotEquals(initialDeviceId, cloudPreferencesStore.currentCloudSettings().deviceId)
         assertEquals(1, database.workspaceDao().countWorkspaces())
-        assertEquals("workspace-demo", database.workspaceDao().loadWorkspace()?.workspaceId)
+        assertEquals(localWorkspaceName, resetWorkspace.name)
+        assertNotEquals(initialLocalWorkspaceId, resetWorkspace.workspaceId)
     }
 
     @Test
     fun resumePendingAccountDeletionRepeatsDeleteOnNextLaunch() = runBlocking {
-        demoDataSeeder.seedIfNeeded(currentTimeMillis = 100L)
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
         val remoteGateway = FakeCloudRemoteGateway(deleteFailuresRemaining = 0)
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
 
-        prepareLinkedCloudIdentity()
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
         cloudPreferencesStore.markAccountDeletionInProgress()
 
         repository.resumePendingAccountDeletionIfNeeded()
@@ -197,11 +209,12 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(1, remoteGateway.deleteAccountCalls)
         assertEquals(AccountDeletionState.Hidden, cloudPreferencesStore.currentAccountDeletionState())
         assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(localWorkspaceName, database.workspaceDao().loadWorkspace()?.name)
     }
 
     @Test
     fun syncRepositoryResetsLocalStateOnRemoteAccountDeleted() = runBlocking {
-        demoDataSeeder.seedIfNeeded(currentTimeMillis = 100L)
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
         val remoteGateway = FakeCloudRemoteGateway(
             fetchAccountError = CloudRemoteException(
                 message = "Cloud request failed with status 410 for /me",
@@ -225,26 +238,31 @@ class CloudIdentityLifecycleRepositoryTest {
             resetCoordinator = resetCoordinator
         )
 
-        prepareLinkedCloudIdentity()
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
         aiChatPreferencesStore.updateConsent(hasConsent = true)
 
         repository.syncNow()
+
+        val resetWorkspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+            "Expected a local workspace after remote deletion."
+        }
 
         assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(AccountDeletionState.Hidden, cloudPreferencesStore.currentAccountDeletionState())
         assertNull(cloudPreferencesStore.loadCredentials())
         assertTrue(aiChatPreferencesStore.hasConsent().not())
         assertEquals(SyncStatus.Idle, repository.observeSyncStatus().first().status)
-        assertEquals("workspace-demo", database.workspaceDao().loadWorkspace()?.workspaceId)
+        assertEquals(localWorkspaceName, resetWorkspace.name)
+        assertNotEquals(initialLocalWorkspaceId, resetWorkspace.workspaceId)
     }
 
     @Test
     fun verifyCodePreparesBoundGuestUpgradeWhenGuestSessionExists() = runBlocking {
-        demoDataSeeder.seedIfNeeded(currentTimeMillis = 100L)
+        val localWorkspaceId = requireLocalWorkspaceId()
         val remoteGateway = FakeCloudRemoteGateway(guestUpgradeMode = CloudGuestUpgradeMode.BOUND)
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
         guestAiSessionStore.saveSession(
-            localWorkspaceId = "workspace-demo",
+            localWorkspaceId = localWorkspaceId,
             session = StoredGuestAiSession(
                 guestToken = "guest-token",
                 userId = "guest-user",
@@ -267,12 +285,13 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(CloudAccountState.LINKING_READY, cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals("user-1", cloudPreferencesStore.currentCloudSettings().linkedUserId)
         assertNull(cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertEquals(localWorkspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)
     }
 
     @Test
     fun completeGuestUpgradeClearsGuestSessionAndLinksWorkspace() = runBlocking {
-        demoDataSeeder.seedIfNeeded(currentTimeMillis = 100L)
+        val localWorkspaceId = requireLocalWorkspaceId()
         val selectedWorkspace = CloudWorkspaceSummary(
             workspaceId = "workspace-linked",
             name = "Linked Workspace",
@@ -289,7 +308,7 @@ class CloudIdentityLifecycleRepositoryTest {
         )
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
         guestAiSessionStore.saveSession(
-            localWorkspaceId = "workspace-demo",
+            localWorkspaceId = localWorkspaceId,
             session = StoredGuestAiSession(
                 guestToken = "guest-token",
                 userId = "guest-user",
@@ -315,6 +334,7 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(CloudAccountState.LINKED, cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(selectedWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals("user@example.com", cloudPreferencesStore.currentCloudSettings().linkedEmail)
+        assertEquals(selectedWorkspace.workspaceId, database.workspaceDao().loadWorkspace()?.workspaceId)
         assertNull(
             guestAiSessionStore.loadAnySession(configuration = makeOfficialCloudServiceConfiguration())
         )
@@ -336,7 +356,7 @@ class CloudIdentityLifecycleRepositoryTest {
         )
     }
 
-    private fun prepareLinkedCloudIdentity() {
+    private fun prepareLinkedCloudIdentity(localWorkspaceId: String) {
         cloudPreferencesStore.saveCredentials(
             credentials = StoredCloudCredentials(
                 refreshToken = "refresh-token",
@@ -347,10 +367,16 @@ class CloudIdentityLifecycleRepositoryTest {
         cloudPreferencesStore.updateCloudSettings(
             cloudState = CloudAccountState.LINKED,
             linkedUserId = "user-1",
-            linkedWorkspaceId = "workspace-demo",
+            linkedWorkspaceId = localWorkspaceId,
             linkedEmail = "user@example.com",
-            activeWorkspaceId = "workspace-demo"
+            activeWorkspaceId = localWorkspaceId
         )
+    }
+
+    private suspend fun requireLocalWorkspaceId(): String {
+        return requireNotNull(database.workspaceDao().loadWorkspace()?.workspaceId) {
+            "Expected a local workspace."
+        }
     }
 
     private fun clearTestPreferences() {
@@ -371,8 +397,8 @@ private class FakeCloudRemoteGateway(
         email = "user@example.com",
         workspaces = listOf(
             CloudWorkspaceSummary(
-                workspaceId = "workspace-demo",
-                name = "Personal Workspace",
+                workspaceId = "workspace-remote",
+                name = localWorkspaceName,
                 createdAtMillis = 100L,
                 isSelected = true
             )
@@ -574,7 +600,7 @@ private class FakeCloudRemoteGateway(
 
             CloudGuestUpgradeSelection.CreateNew -> CloudWorkspaceSummary(
                 workspaceId = "workspace-new",
-                name = "Personal",
+                name = localWorkspaceName,
                 createdAtMillis = 300L,
                 isSelected = true
             )

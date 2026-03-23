@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.migration2To3
+import com.flashcardsopensourceapp.data.local.database.migration3To4
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -34,11 +35,11 @@ class AppDatabaseMigrationTest {
             context = context,
             klass = AppDatabase::class.java,
             name = databaseName
-        ).addMigrations(migration2To3).build()
+        ).addMigrations(migration2To3, migration3To4).build()
 
         val migratedCard = database.cardDao().loadCard(cardId = "card-1")
         val schedulerSettings = database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(
-            workspaceId = "workspace-demo"
+            workspaceId = "workspace-local"
         )
 
         assertNotNull(migratedCard)
@@ -64,34 +65,97 @@ class AppDatabaseMigrationTest {
             "CREATE TABLE workspaces (workspaceId TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, createdAtMillis INTEGER NOT NULL)"
         )
         sqliteDatabase.execSQL(
-            "CREATE TABLE decks (deckId TEXT NOT NULL PRIMARY KEY, workspaceId TEXT NOT NULL, name TEXT NOT NULL, filterDefinitionJson TEXT NOT NULL, createdAtMillis INTEGER NOT NULL, updatedAtMillis INTEGER NOT NULL)"
+            """
+            CREATE TABLE decks (
+                deckId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                name TEXT NOT NULL,
+                filterDefinitionJson TEXT NOT NULL,
+                createdAtMillis INTEGER NOT NULL,
+                updatedAtMillis INTEGER NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
         )
         sqliteDatabase.execSQL(
-            "CREATE TABLE cards (cardId TEXT NOT NULL PRIMARY KEY, workspaceId TEXT NOT NULL, frontText TEXT NOT NULL, backText TEXT NOT NULL, effortLevel TEXT NOT NULL, createdAtMillis INTEGER NOT NULL, updatedAtMillis INTEGER NOT NULL)"
+            """
+            CREATE TABLE cards (
+                cardId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                frontText TEXT NOT NULL,
+                backText TEXT NOT NULL,
+                effortLevel TEXT NOT NULL,
+                createdAtMillis INTEGER NOT NULL,
+                updatedAtMillis INTEGER NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
         )
         sqliteDatabase.execSQL(
-            "CREATE TABLE tags (tagId TEXT NOT NULL PRIMARY KEY, workspaceId TEXT NOT NULL, name TEXT NOT NULL)"
+            """
+            CREATE TABLE tags (
+                tagId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                name TEXT NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
         )
         sqliteDatabase.execSQL(
-            "CREATE TABLE card_tags (cardId TEXT NOT NULL, tagId TEXT NOT NULL, PRIMARY KEY(cardId, tagId))"
+            """
+            CREATE TABLE card_tags (
+                cardId TEXT NOT NULL,
+                tagId TEXT NOT NULL,
+                PRIMARY KEY(cardId, tagId),
+                FOREIGN KEY(cardId) REFERENCES cards(cardId) ON DELETE CASCADE,
+                FOREIGN KEY(tagId) REFERENCES tags(tagId) ON DELETE CASCADE
+            )
+            """.trimIndent()
         )
         sqliteDatabase.execSQL(
-            "CREATE TABLE review_logs (reviewLogId TEXT NOT NULL PRIMARY KEY, workspaceId TEXT NOT NULL, cardId TEXT NOT NULL, rating TEXT NOT NULL, reviewedAtMillis INTEGER NOT NULL)"
+            """
+            CREATE TABLE review_logs (
+                reviewLogId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                cardId TEXT NOT NULL,
+                rating TEXT NOT NULL,
+                reviewedAtMillis INTEGER NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE,
+                FOREIGN KEY(cardId) REFERENCES cards(cardId) ON DELETE CASCADE
+            )
+            """.trimIndent()
         )
         sqliteDatabase.execSQL(
-            "CREATE TABLE outbox_entries (outboxEntryId TEXT NOT NULL PRIMARY KEY, workspaceId TEXT NOT NULL, operationType TEXT NOT NULL, payloadJson TEXT NOT NULL, createdAtMillis INTEGER NOT NULL)"
+            """
+            CREATE TABLE outbox_entries (
+                outboxEntryId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                operationType TEXT NOT NULL,
+                payloadJson TEXT NOT NULL,
+                createdAtMillis INTEGER NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
         )
         sqliteDatabase.execSQL(
             "CREATE TABLE sync_state (workspaceId TEXT NOT NULL PRIMARY KEY, lastSyncCursor TEXT, lastSyncAttemptAtMillis INTEGER)"
         )
+        sqliteDatabase.execSQL("CREATE INDEX index_decks_workspaceId ON decks(workspaceId)")
+        sqliteDatabase.execSQL("CREATE INDEX index_cards_workspaceId ON cards(workspaceId)")
+        sqliteDatabase.execSQL("CREATE UNIQUE INDEX index_tags_workspaceId_name ON tags(workspaceId, name)")
+        sqliteDatabase.execSQL("CREATE INDEX index_card_tags_tagId ON card_tags(tagId)")
+        sqliteDatabase.execSQL("CREATE INDEX index_review_logs_workspaceId ON review_logs(workspaceId)")
+        sqliteDatabase.execSQL("CREATE INDEX index_review_logs_cardId ON review_logs(cardId)")
+        sqliteDatabase.execSQL("CREATE INDEX index_outbox_entries_workspaceId ON outbox_entries(workspaceId)")
 
         sqliteDatabase.execSQL(
-            "INSERT INTO workspaces (workspaceId, name, createdAtMillis) VALUES ('workspace-demo', 'Personal Workspace', 100)"
+            "INSERT INTO workspaces (workspaceId, name, createdAtMillis) VALUES ('workspace-local', 'Personal', 100)"
         )
         sqliteDatabase.execSQL(
-            "INSERT INTO cards (cardId, workspaceId, frontText, backText, effortLevel, createdAtMillis, updatedAtMillis) VALUES ('card-1', 'workspace-demo', 'Front', 'Back', 'FAST', 100, 100)"
+            "INSERT INTO cards (cardId, workspaceId, frontText, backText, effortLevel, createdAtMillis, updatedAtMillis) VALUES ('card-1', 'workspace-local', 'Front', 'Back', 'FAST', 100, 100)"
         )
 
+        sqliteDatabase.version = 2
         sqliteDatabase.close()
     }
 }

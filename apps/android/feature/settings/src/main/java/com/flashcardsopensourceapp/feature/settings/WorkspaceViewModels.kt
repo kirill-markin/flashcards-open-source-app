@@ -605,6 +605,11 @@ private data class SchedulerSettingsDraftState(
 class SchedulerSettingsViewModel(
     private val workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
+    private val schedulerSettingsState = workspaceRepository.observeWorkspaceSchedulerSettings().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = null
+    )
     private val draftState = MutableStateFlow(
         value = SchedulerSettingsDraftState(
             desiredRetentionText = "",
@@ -619,13 +624,25 @@ class SchedulerSettingsViewModel(
     )
 
     val uiState: StateFlow<SchedulerSettingsUiState> = combine(
-        workspaceRepository.observeWorkspaceSchedulerSettings(),
+        schedulerSettingsState,
         draftState
     ) { schedulerSettings, draft ->
-        val resolvedSettings = schedulerSettings ?: makeDefaultWorkspaceSchedulerSettings(
-            workspaceId = "workspace-demo",
-            updatedAtMillis = 0L
-        )
+        if (schedulerSettings == null) {
+            return@combine SchedulerSettingsUiState(
+                isLoading = true,
+                algorithm = "FSRS-6",
+                desiredRetentionText = draft.desiredRetentionText,
+                learningStepsText = draft.learningStepsText,
+                relearningStepsText = draft.relearningStepsText,
+                maximumIntervalDaysText = draft.maximumIntervalDaysText,
+                enableFuzz = draft.enableFuzz,
+                updatedAtLabel = "Unavailable",
+                errorMessage = draft.errorMessage,
+                showSaveConfirmation = draft.showSaveConfirmation
+            )
+        }
+
+        val resolvedSettings = schedulerSettings
         val effectiveDraft = if (draft.hasUserEdits) {
             draft
         } else {
@@ -764,10 +781,11 @@ class SchedulerSettingsViewModel(
     }
 
     fun resetToDefaults() {
+        val schedulerSettings = schedulerSettingsState.value ?: return
         draftState.value = makeDraftState(
             settings = makeDefaultWorkspaceSchedulerSettings(
-                workspaceId = "workspace-demo",
-                updatedAtMillis = 0L
+                workspaceId = schedulerSettings.workspaceId,
+                updatedAtMillis = schedulerSettings.updatedAtMillis
             )
         ).copy(hasUserEdits = true)
     }

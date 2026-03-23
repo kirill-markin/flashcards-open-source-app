@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.di
 import android.content.Context
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
+import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
@@ -30,7 +31,6 @@ import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepositor
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
-import com.flashcardsopensourceapp.data.local.seed.DemoDataSeeder
 
 class AppGraph(
     context: Context
@@ -45,7 +45,6 @@ class AppGraph(
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
     private val aiChatRemoteService = AiChatRemoteService()
-    private val demoDataSeeder = DemoDataSeeder(database = database)
     private val syncLocalStore = SyncLocalStore(
         database = database,
         preferencesStore = cloudPreferencesStore
@@ -55,8 +54,7 @@ class AppGraph(
         cloudPreferencesStore = cloudPreferencesStore,
         aiChatPreferencesStore = aiChatPreferencesStore,
         aiChatHistoryStore = aiChatHistoryStore,
-        guestAiSessionStore = guestAiSessionStore,
-        demoDataSeeder = demoDataSeeder
+        guestAiSessionStore = guestAiSessionStore
     )
 
     val cloudAccountRepository: CloudAccountRepository = LocalCloudAccountRepository(
@@ -106,8 +104,11 @@ class AppGraph(
         restoreGuestCloudStateIfNeeded()
     }
 
-    suspend fun seedDemoDataIfNeeded(currentTimeMillis: Long) {
-        demoDataSeeder.seedIfNeeded(currentTimeMillis = currentTimeMillis)
+    suspend fun ensureLocalWorkspaceShell(currentTimeMillis: Long) {
+        ensureLocalWorkspaceShell(
+            database = database,
+            currentTimeMillis = currentTimeMillis
+        )
     }
 
     private fun restoreGuestCloudStateIfNeeded() {

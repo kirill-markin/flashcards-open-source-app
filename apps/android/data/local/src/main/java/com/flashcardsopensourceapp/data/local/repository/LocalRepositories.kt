@@ -445,6 +445,7 @@ class LocalReviewRepository(
         pendingReviewedCardIds: Set<String>
     ): Flow<ReviewSessionSnapshot> {
         return combine(
+            database.workspaceDao().observeWorkspace(),
             database.deckDao().observeDecks(),
             database.cardDao().observeCardsWithRelations(),
             database.workspaceDao().observeWorkspace().flatMapLatest { workspace ->
@@ -456,7 +457,7 @@ class LocalReviewRepository(
                     workspaceId = workspace.workspaceId
                 )
             }
-        ) { decks, cards, settingsEntity ->
+        ) { workspace, decks, cards, settingsEntity ->
             val nowMillis = System.currentTimeMillis()
             val cardSummaries = cards.map(::toCardSummary).filter { card -> card.deletedAtMillis == null }
             val deckSummaries = decks.filter { deck -> deck.deletedAtMillis == null }.map { deck ->
@@ -466,7 +467,7 @@ class LocalReviewRepository(
                     nowMillis = nowMillis
                 )
             }
-            val workspaceId = cardSummaries.firstOrNull()?.workspaceId ?: "workspace-demo"
+            val workspaceId = workspace?.workspaceId ?: cardSummaries.firstOrNull()?.workspaceId.orEmpty()
             val settings = settingsEntity?.let(::toWorkspaceSchedulerSettings)
                 ?: makeDefaultWorkspaceSchedulerSettings(
                     workspaceId = workspaceId,
