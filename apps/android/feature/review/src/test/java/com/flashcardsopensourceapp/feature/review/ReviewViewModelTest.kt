@@ -65,7 +65,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertTrue(reviewViewModel.uiState.value.isAnswerVisible)
-        assertEquals("card-1", reviewViewModel.uiState.value.currentCard?.cardId)
+        assertEquals("card-1", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
         collectionJob.cancel()
     }
 
@@ -85,8 +85,8 @@ class ReviewViewModelTest {
         reviewViewModel.rateCard(rating = ReviewRating.GOOD)
         advanceUntilIdle()
 
-        assertEquals("card-2", reviewViewModel.uiState.value.currentCard?.cardId)
-        assertEquals("card-2", reviewViewModel.uiState.value.preparedNextCard?.cardId)
+        assertEquals("card-2", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
         assertEquals(2, reviewViewModel.uiState.value.remainingCount)
         assertEquals(0, reviewViewModel.uiState.value.reviewedInSessionCount)
 
@@ -94,7 +94,8 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, reviewViewModel.uiState.value.reviewedInSessionCount)
-        assertEquals(null, reviewViewModel.uiState.value.preparedNextCard)
+        assertEquals("card-2", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
         collectionJob.cancel()
     }
 
@@ -133,7 +134,7 @@ class ReviewViewModelTest {
         reviewViewModel.rateCard(rating = ReviewRating.HARD)
         advanceUntilIdle()
 
-        assertEquals("card-1", reviewViewModel.uiState.value.currentCard?.cardId)
+        assertEquals("card-1", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
         assertEquals(0, reviewViewModel.uiState.value.reviewedInSessionCount)
         assertEquals("Review failed to save.", reviewViewModel.uiState.value.errorMessage)
         collectionJob.cancel()
@@ -150,13 +151,13 @@ class ReviewViewModelTest {
         reviewViewModel.startPreview()
         advanceUntilIdle()
 
-        assertEquals(20, reviewViewModel.uiState.value.previewCards.size)
+        assertEquals(20, previewCardEntries(reviewViewModel).size)
         reviewViewModel.loadNextPreviewPageIfNeeded(
-            itemCardId = reviewViewModel.uiState.value.previewCards.last().cardId
+            itemCardId = previewCardEntries(reviewViewModel).last().card.cardId
         )
         advanceUntilIdle()
 
-        assertEquals(25, reviewViewModel.uiState.value.previewCards.size)
+        assertEquals(25, previewCardEntries(reviewViewModel).size)
         assertFalse(reviewViewModel.uiState.value.hasMorePreviewCards)
         collectionJob.cancel()
     }
@@ -177,7 +178,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(3, secondViewModel.uiState.value.remainingCount)
-        assertEquals("card-1", secondViewModel.uiState.value.currentCard?.cardId)
+        assertEquals("card-1", secondViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
         firstCollectionJob.cancel()
         secondCollectionJob.cancel()
     }
@@ -211,8 +212,47 @@ class ReviewViewModelTest {
         reviewViewModel.retryPreview()
         advanceUntilIdle()
 
-        assertEquals(3, reviewViewModel.uiState.value.previewCards.size)
+        assertEquals(3, previewCardEntries(reviewViewModel).size)
         assertEquals("", reviewViewModel.uiState.value.previewErrorMessage)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun previewIgnoresNonLastVisibleCardForNextPageLoading() = runTest(dispatcher) {
+        val reviewViewModel = ReviewViewModel(
+            reviewRepository = FakeReviewRepository(cards = sampleCards(count = 25))
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        advanceUntilIdle()
+        reviewViewModel.startPreview()
+        advanceUntilIdle()
+
+        reviewViewModel.loadNextPreviewPageIfNeeded(itemCardId = "card-5")
+        advanceUntilIdle()
+
+        assertEquals(20, previewCardEntries(reviewViewModel).size)
+        assertTrue(reviewViewModel.uiState.value.hasMorePreviewCards)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun preparedNextPresentationUpdatesWhenQueueHeadChanges() = runTest(dispatcher) {
+        val reviewViewModel = ReviewViewModel(
+            reviewRepository = FakeReviewRepository(cards = sampleCards(count = 4))
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        advanceUntilIdle()
+
+        assertEquals("card-1", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-2", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
+
+        reviewViewModel.rateCard(rating = ReviewRating.GOOD)
+        advanceUntilIdle()
+
+        assertEquals("card-2", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
         collectionJob.cancel()
     }
 
@@ -294,7 +334,8 @@ class ReviewViewModelTest {
                     fsrsStability = null,
                     fsrsDifficulty = null,
                     fsrsLastReviewedAtMillis = null,
-                    fsrsScheduledDays = null
+                    fsrsScheduledDays = null,
+                    deletedAtMillis = null
                 )
             }
         }
@@ -373,5 +414,9 @@ class ReviewViewModelTest {
         return backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.uiState.collect { }
         }
+    }
+
+    private fun previewCardEntries(viewModel: ReviewViewModel): List<ReviewPreviewListItem.CardEntry> {
+        return viewModel.uiState.value.previewItems.filterIsInstance<ReviewPreviewListItem.CardEntry>()
     }
 }

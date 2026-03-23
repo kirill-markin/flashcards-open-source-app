@@ -74,7 +74,65 @@ class ReviewSupportTest {
             listOf("card-2", "card-4", "card-1", "card-3"),
             page.cards.map { card -> card.cardId }
         )
+        assertEquals(
+            listOf(
+                ReviewCardQueueStatus.ACTIVE,
+                ReviewCardQueueStatus.ACTIVE,
+                ReviewCardQueueStatus.RATED,
+                ReviewCardQueueStatus.RATED
+            ),
+            page.cards.map { card -> card.queueStatus }
+        )
         assertTrue(page.hasMoreCards.not())
+    }
+
+    @Test
+    fun buildReviewTimelinePagePlacesFutureCardsBeforeAlreadyRatedTail() {
+        val cards = sampleCards() + CardSummary(
+            cardId = "card-5",
+            workspaceId = "workspace-demo",
+            frontText = "Future card",
+            backText = "Shows later in preview.",
+            tags = listOf("future"),
+            effortLevel = EffortLevel.FAST,
+            dueAtMillis = 5_000L,
+            createdAtMillis = 104L,
+            updatedAtMillis = 104L,
+            reps = 1,
+            lapses = 0,
+            fsrsCardState = FsrsCardState.REVIEW,
+            fsrsStepIndex = null,
+            fsrsStability = 2.0,
+            fsrsDifficulty = 5.0,
+            fsrsLastReviewedAtMillis = 500L,
+            fsrsScheduledDays = 2,
+            deletedAtMillis = null
+        )
+        val page = buildReviewTimelinePage(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCardIds = setOf("card-1"),
+            decks = sampleDecks(),
+            cards = cards,
+            tagsSummary = sampleTagsSummary(),
+            reviewedAtMillis = 1_000L,
+            offset = 0,
+            limit = 10
+        )
+
+        assertEquals(
+            listOf("card-2", "card-3", "card-4", "card-5", "card-1"),
+            page.cards.map { card -> card.cardId }
+        )
+        assertEquals(
+            listOf(
+                ReviewCardQueueStatus.ACTIVE,
+                ReviewCardQueueStatus.ACTIVE,
+                ReviewCardQueueStatus.ACTIVE,
+                ReviewCardQueueStatus.FUTURE,
+                ReviewCardQueueStatus.RATED
+            ),
+            page.cards.map { card -> card.queueStatus }
+        )
     }
 
     private fun sampleCards(): List<CardSummary> {

@@ -330,8 +330,15 @@ data class ReviewCard(
     val backText: String,
     val tags: List<String>,
     val effortLevel: EffortLevel,
-    val createdAtMillis: Long
+    val createdAtMillis: Long,
+    val queueStatus: ReviewCardQueueStatus
 )
+
+enum class ReviewCardQueueStatus {
+    ACTIVE,
+    FUTURE,
+    RATED
+}
 
 data class ReviewSchedule(
     val dueAtMillis: Long?,
@@ -366,6 +373,7 @@ data class ReviewSessionSnapshot(
     val selectedFilterTitle: String,
     val cards: List<ReviewCard>,
     val answerOptions: List<ReviewAnswerOption>,
+    val nextAnswerOptions: List<ReviewAnswerOption>,
     val remainingCount: Int,
     val totalCount: Int,
     val availableDeckFilters: List<ReviewDeckFilterOption>,

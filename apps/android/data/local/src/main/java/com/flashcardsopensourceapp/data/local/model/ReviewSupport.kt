@@ -102,6 +102,20 @@ private fun dueCardsMatchingReviewFilter(
     )
 }
 
+private fun cardsMatchingReviewFilter(
+    selectedFilter: ReviewFilter,
+    decks: List<DeckSummary>,
+    cards: List<CardSummary>
+): List<CardSummary> {
+    return cards.filter { card ->
+        matchesReviewFilter(
+            filter = selectedFilter,
+            decks = decks,
+            card = card
+        )
+    }
+}
+
 fun buildReviewDeckFilterOptions(decks: List<DeckSummary>): List<ReviewDeckFilterOption> {
     return decks.map { deck ->
         ReviewDeckFilterOption(
@@ -166,6 +180,7 @@ fun buildReviewSessionSnapshot(
         pendingReviewedCardIds.contains(card.cardId).not()
     }
     val currentCard = remainingCards.firstOrNull()
+    val nextCard = remainingCards.getOrNull(index = 1)
 
     return ReviewSessionSnapshot(
         selectedFilter = resolvedFilter,
@@ -175,6 +190,13 @@ fun buildReviewSessionSnapshot(
         ),
         cards = remainingCards.map(::toReviewCard),
         answerOptions = currentCard?.let { card ->
+            makeReviewAnswerOptions(
+                card = card,
+                settings = settings,
+                reviewedAtMillis = reviewedAtMillis
+            )
+        } ?: emptyList(),
+        nextAnswerOptions = nextCard?.let { card ->
             makeReviewAnswerOptions(
                 card = card,
                 settings = settings,
@@ -214,34 +236,66 @@ fun buildReviewTimelinePage(
         decks = decks,
         tagsSummary = tagsSummary
     )
-    val matchingCards = dueCardsMatchingReviewFilter(
+    val matchingCards = cardsMatchingReviewFilter(
         selectedFilter = resolvedFilter,
         decks = decks,
-        cards = cards,
-        reviewedAtMillis = reviewedAtMillis
+        cards = cards
     )
-    val remainingCards = matchingCards.filter { card ->
+    val dueCards = sortCardsForReviewQueue(
+        cards = matchingCards.filter { card ->
+            isCardDue(card = card, nowMillis = reviewedAtMillis)
+        }
+    )
+    val futureCards = sortCardsForReviewQueue(
+        cards = matchingCards.filter { card ->
+            isCardDue(card = card, nowMillis = reviewedAtMillis).not()
+        }
+    )
+    val remainingCards = dueCards.filter { card ->
         pendingReviewedCardIds.contains(card.cardId).not()
     }
-    val alreadyReviewedCards = matchingCards.filter { card ->
+    val alreadyReviewedCards = dueCards.filter { card ->
         pendingReviewedCardIds.contains(card.cardId)
     }
-    val orderedCards = remainingCards + alreadyReviewedCards
+    val orderedCards = buildList {
+        addAll(remainingCards.map { card ->
+            toReviewCard(
+                card = card,
+                queueStatus = ReviewCardQueueStatus.ACTIVE
+            )
+        })
+        addAll(futureCards.map { card ->
+            toReviewCard(
+                card = card,
+                queueStatus = ReviewCardQueueStatus.FUTURE
+            )
+        })
+        addAll(alreadyReviewedCards.map { card ->
+            toReviewCard(
+                card = card,
+                queueStatus = ReviewCardQueueStatus.RATED
+            )
+        })
+    }
     val pageCards = orderedCards.drop(offset).take(limit)
 
     return ReviewTimelinePage(
-        cards = pageCards.map(::toReviewCard),
+        cards = pageCards,
         hasMoreCards = offset + pageCards.size < orderedCards.size
     )
 }
 
-fun toReviewCard(card: CardSummary): ReviewCard {
+fun toReviewCard(
+    card: CardSummary,
+    queueStatus: ReviewCardQueueStatus = ReviewCardQueueStatus.ACTIVE
+): ReviewCard {
     return ReviewCard(
         cardId = card.cardId,
         frontText = card.frontText,
         backText = card.backText,
         tags = card.tags,
         effortLevel = card.effortLevel,
-        createdAtMillis = card.createdAtMillis
+        createdAtMillis = card.createdAtMillis,
+        queueStatus = queueStatus
     )
 }
