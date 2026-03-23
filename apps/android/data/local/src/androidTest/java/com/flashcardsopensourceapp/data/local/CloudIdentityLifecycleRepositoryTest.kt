@@ -290,6 +290,41 @@ class CloudIdentityLifecycleRepositoryTest {
     }
 
     @Test
+    fun verifyCodeSkipsGuestUpgradeWhenStoredGuestSessionBelongsToAnotherServerConfiguration() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        val remoteGateway = FakeCloudRemoteGateway(guestUpgradeMode = CloudGuestUpgradeMode.BOUND)
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = localWorkspaceId,
+            session = StoredGuestAiSession(
+                guestToken = "guest-token-stale",
+                userId = "guest-user-stale",
+                workspaceId = "guest-workspace-stale",
+                configurationMode = CloudServiceConfigurationMode.CUSTOM,
+                apiBaseUrl = "https://api.stale.example.com/v1"
+            )
+        )
+
+        val linkContext = repository.verifyCode(
+            challenge = CloudOtpChallenge(
+                email = "user@example.com",
+                csrfToken = "csrf",
+                otpSessionToken = "otp"
+            ),
+            code = "123456"
+        )
+
+        assertNull(linkContext.guestUpgradeMode)
+        assertNull(
+            guestAiSessionStore.loadSession(
+                localWorkspaceId = localWorkspaceId,
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
+        )
+        assertEquals(0, remoteGateway.prepareGuestUpgradeCalls)
+    }
+
+    @Test
     fun completeGuestUpgradeClearsGuestSessionAndLinksWorkspace() = runBlocking {
         val localWorkspaceId = requireLocalWorkspaceId()
         val selectedWorkspace = CloudWorkspaceSummary(
