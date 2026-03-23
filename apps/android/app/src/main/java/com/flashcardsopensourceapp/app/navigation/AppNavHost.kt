@@ -397,6 +397,7 @@ fun AppNavHost(
                     navController.navigate(route = SettingsAccountSignInEmailDestination.route)
                 },
                 onDismissErrorMessage = aiViewModel::dismissErrorMessage,
+                onDismissAlert = aiViewModel::dismissAlert,
                 onAddPendingAttachment = aiViewModel::addPendingAttachment,
                 onRemovePendingAttachment = aiViewModel::removePendingAttachment,
                 onStartDictationPermissionRequest = aiViewModel::startDictationPermissionRequest,
@@ -404,6 +405,7 @@ fun AppNavHost(
                 onTranscribeRecordedAudio = aiViewModel::transcribeRecordedAudio,
                 onCancelDictation = aiViewModel::cancelDictation,
                 onWarmUpSessionIfNeeded = aiViewModel::warmUpLinkedSessionIfNeeded,
+                onShowAlert = aiViewModel::showAlert,
                 onShowErrorMessage = aiViewModel::showErrorMessage
             )
         }
