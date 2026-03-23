@@ -28,7 +28,6 @@ class MainActivityTest {
     fun navigationShowsAllTopLevelScreens() {
         waitForSeededCards()
 
-        composeRule.onNodeWithText("Cards").performClick()
         composeRule.onNodeWithText("Search cards").fetchSemanticsNode()
 
         composeRule.onNodeWithText("AI").performClick()
@@ -48,7 +47,6 @@ class MainActivityTest {
     fun cardsCreateFilterEditDeleteFlowUpdatesUi() {
         waitForSeededCards()
 
-        composeRule.onNodeWithText("Cards").performClick()
         composeRule.onNodeWithContentDescription("Add card").performClick()
 
         updateCardText(fieldTitle = "Front", value = "Draft Android card")
@@ -113,9 +111,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
         pressBack()
         pressBack()
-
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Workspace").performClick()
+        pressBack()
         composeRule.onNodeWithText("Tags").performClick()
         composeRule.onNodeWithText("Search tags").performTextInput("ui")
         composeRule.onNodeWithText("ui").fetchSemanticsNode()
@@ -130,6 +126,9 @@ class MainActivityTest {
         composeRule.onNodeWithText("Scheduler").performClick()
         composeRule.onNodeWithText("Desired retention").performTextReplacement("0.85")
         composeRule.onNodeWithText("Save").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000L) {
+            composeRule.onAllNodesWithText("Apply").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Apply").performClick()
 
         composeRule.waitUntil(timeoutMillis = 10_000L) {
@@ -161,6 +160,7 @@ class MainActivityTest {
 
         composeRule.onNodeWithText("Danger zone").performClick()
         composeRule.onNodeWithText("Delete my account").fetchSemanticsNode()
+        pressBack()
         pressBack()
 
         composeRule.onNodeWithText("This device").performClick()
@@ -200,7 +200,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("Show answer").performClick()
         composeRule.onNodeWithText("Good").performClick()
         composeRule.waitUntil(timeoutMillis = 10_000L) {
-            composeRule.onAllNodesWithText("What is Compose used for?").fetchSemanticsNodes().isEmpty()
+            composeRule.onAllNodesWithText("What is WorkManager for?").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("What is WorkManager for?").fetchSemanticsNode()
     }
@@ -212,11 +212,20 @@ class MainActivityTest {
         composeRule.onNodeWithText("Review").performClick()
         composeRule.onNodeWithContentDescription("Choose review filter").performClick()
         composeRule.onNodeWithText("Android UI (3)").performClick()
+        composeRule.waitUntil(timeoutMillis = 10_000L) {
+            composeRule.onAllNodesWithText("Show answer").fetchSemanticsNodes().isNotEmpty()
+        }
 
-        repeat(3) {
+        repeat(2) {
             composeRule.onNodeWithText("Show answer").performClick()
             composeRule.onNodeWithText("Good").performClick()
+            composeRule.waitUntil(timeoutMillis = 10_000L) {
+                composeRule.onAllNodesWithText("Show answer").fetchSemanticsNodes().isNotEmpty()
+            }
         }
+
+        composeRule.onNodeWithText("Show answer").performClick()
+        composeRule.onNodeWithText("Good").performClick()
 
         composeRule.onNodeWithText("No cards in this filter").fetchSemanticsNode()
         composeRule.onNodeWithText("Create card").fetchSemanticsNode()
