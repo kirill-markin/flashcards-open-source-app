@@ -16,6 +16,7 @@ export interface ApiGatewayProps {
   apiCertificateArn: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   anthropicApiKeySecretArn: string | undefined;
+  demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   userPoolId: string;
   userPoolArn: string;
@@ -42,6 +43,7 @@ interface BackendFunctionProps {
   userPoolClientId: string;
   openAiApiKeySecretArn: string | undefined;
   anthropicApiKeySecretArn: string | undefined;
+  demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
 }
 
@@ -128,6 +130,9 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     `${props.constructId}AnthropicApiKeySecret`,
     "ANTHROPIC_API_KEY",
   );
+  if (props.demoEmailDostip !== undefined && props.demoEmailDostip !== "") {
+    fn.addEnvironment("DEMO_EMAIL_DOSTIP", props.demoEmailDostip);
+  }
 
   return fn;
 }
@@ -168,6 +173,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+    demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });
   const chatStreamingFn = createBackendFunction(scope, {
@@ -185,6 +191,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+    demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });
 
