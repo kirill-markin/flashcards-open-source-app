@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
+import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
@@ -8,19 +9,23 @@ import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
+import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
+import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -53,9 +58,7 @@ class ReviewViewModelTest {
 
     @Test
     fun revealAnswerOpensOnlyForCurrentCard() = runTest(dispatcher) {
-        val reviewViewModel = ReviewViewModel(
-            reviewRepository = FakeReviewRepository()
-        )
+        val reviewViewModel = createReviewViewModel(reviewRepository = FakeReviewRepository())
         val collectionJob = startCollecting(viewModel = reviewViewModel)
 
         advanceUntilIdle()
@@ -78,7 +81,7 @@ class ReviewViewModelTest {
                 }.await()
             }
         )
-        val reviewViewModel = ReviewViewModel(reviewRepository = reviewRepository)
+        val reviewViewModel = createReviewViewModel(reviewRepository = reviewRepository)
         val collectionJob = startCollecting(viewModel = reviewViewModel)
 
         advanceUntilIdle()
@@ -101,9 +104,7 @@ class ReviewViewModelTest {
 
     @Test
     fun selectingFilterResetsVisibleAnswer() = runTest(dispatcher) {
-        val reviewViewModel = ReviewViewModel(
-            reviewRepository = FakeReviewRepository()
-        )
+        val reviewViewModel = createReviewViewModel(reviewRepository = FakeReviewRepository())
         val collectionJob = startCollecting(viewModel = reviewViewModel)
 
         advanceUntilIdle()
@@ -121,7 +122,7 @@ class ReviewViewModelTest {
 
     @Test
     fun failedReviewRestoresCardAndShowsError() = runTest(dispatcher) {
-        val reviewViewModel = ReviewViewModel(
+        val reviewViewModel = createReviewViewModel(
             reviewRepository = FakeReviewRepository(
                 recordReviewHandler = {
                     throw IllegalStateException("Review failed to save.")
@@ -142,7 +143,7 @@ class ReviewViewModelTest {
 
     @Test
     fun previewLoadsFirstPageAndAppendsNextPage() = runTest(dispatcher) {
-        val reviewViewModel = ReviewViewModel(
+        val reviewViewModel = createReviewViewModel(
             reviewRepository = FakeReviewRepository(cards = sampleCards(count = 25))
         )
         val collectionJob = startCollecting(viewModel = reviewViewModel)
@@ -151,13 +152,13 @@ class ReviewViewModelTest {
         reviewViewModel.startPreview()
         advanceUntilIdle()
 
-        assertEquals(20, previewCardEntries(reviewViewModel).size)
+        assertEquals(20, previewCardEntries(viewModel = reviewViewModel).size)
         reviewViewModel.loadNextPreviewPageIfNeeded(
-            itemCardId = previewCardEntries(reviewViewModel).last().card.cardId
+            itemCardId = previewCardEntries(viewModel = reviewViewModel).last().card.cardId
         )
         advanceUntilIdle()
 
-        assertEquals(25, previewCardEntries(reviewViewModel).size)
+        assertEquals(25, previewCardEntries(viewModel = reviewViewModel).size)
         assertFalse(reviewViewModel.uiState.value.hasMorePreviewCards)
         collectionJob.cancel()
     }
@@ -165,7 +166,7 @@ class ReviewViewModelTest {
     @Test
     fun coldStartDoesNotRestorePendingSessionState() = runTest(dispatcher) {
         val reviewRepository = FakeReviewRepository()
-        val firstViewModel = ReviewViewModel(reviewRepository = reviewRepository)
+        val firstViewModel = createReviewViewModel(reviewRepository = reviewRepository)
         val firstCollectionJob = startCollecting(viewModel = firstViewModel)
 
         advanceUntilIdle()
@@ -173,7 +174,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
         assertEquals(2, firstViewModel.uiState.value.remainingCount)
 
-        val secondViewModel = ReviewViewModel(reviewRepository = reviewRepository)
+        val secondViewModel = createReviewViewModel(reviewRepository = reviewRepository)
         val secondCollectionJob = startCollecting(viewModel = secondViewModel)
         advanceUntilIdle()
 
@@ -201,7 +202,7 @@ class ReviewViewModelTest {
                 )
             }
         )
-        val reviewViewModel = ReviewViewModel(reviewRepository = reviewRepository)
+        val reviewViewModel = createReviewViewModel(reviewRepository = reviewRepository)
         val collectionJob = startCollecting(viewModel = reviewViewModel)
 
         advanceUntilIdle()
@@ -212,14 +213,14 @@ class ReviewViewModelTest {
         reviewViewModel.retryPreview()
         advanceUntilIdle()
 
-        assertEquals(3, previewCardEntries(reviewViewModel).size)
+        assertEquals(3, previewCardEntries(viewModel = reviewViewModel).size)
         assertEquals("", reviewViewModel.uiState.value.previewErrorMessage)
         collectionJob.cancel()
     }
 
     @Test
     fun previewIgnoresNonLastVisibleCardForNextPageLoading() = runTest(dispatcher) {
-        val reviewViewModel = ReviewViewModel(
+        val reviewViewModel = createReviewViewModel(
             reviewRepository = FakeReviewRepository(cards = sampleCards(count = 25))
         )
         val collectionJob = startCollecting(viewModel = reviewViewModel)
@@ -231,14 +232,14 @@ class ReviewViewModelTest {
         reviewViewModel.loadNextPreviewPageIfNeeded(itemCardId = "card-5")
         advanceUntilIdle()
 
-        assertEquals(20, previewCardEntries(reviewViewModel).size)
+        assertEquals(20, previewCardEntries(viewModel = reviewViewModel).size)
         assertTrue(reviewViewModel.uiState.value.hasMorePreviewCards)
         collectionJob.cancel()
     }
 
     @Test
     fun preparedNextPresentationUpdatesWhenQueueHeadChanges() = runTest(dispatcher) {
-        val reviewViewModel = ReviewViewModel(
+        val reviewViewModel = createReviewViewModel(
             reviewRepository = FakeReviewRepository(cards = sampleCards(count = 4))
         )
         val collectionJob = startCollecting(viewModel = reviewViewModel)
@@ -256,8 +257,102 @@ class ReviewViewModelTest {
         collectionJob.cancel()
     }
 
+    @Test
+    fun successfulSyncWithoutQueueChangeDoesNotShowRemoteUpdateMessage() = runTest(dispatcher) {
+        val syncRepository = FakeSyncRepository()
+        val messageController = FakeMessageController()
+        val reviewViewModel = createReviewViewModel(
+            reviewRepository = FakeReviewRepository(),
+            syncRepository = syncRepository,
+            messageController = messageController
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        advanceUntilIdle()
+        syncRepository.startSync()
+        advanceUntilIdle()
+        syncRepository.completeSyncSuccessfully(lastSuccessfulSyncAtMillis = 10L)
+        advanceUntilIdle()
+
+        assertTrue(messageController.messages.isEmpty())
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun successfulSyncWithChangedQueueClearsStaleOptimisticCardAndShowsMessageOnce() = runTest(dispatcher) {
+        val reviewRepository = FakeReviewRepository(
+            cards = sampleCards(count = 4),
+            recordReviewHandler = {
+                CompletableDeferred<Unit>().also { deferred ->
+                    pendingRecordReview = deferred
+                }.await()
+            }
+        )
+        val syncRepository = FakeSyncRepository()
+        val messageController = FakeMessageController()
+        val reviewViewModel = createReviewViewModel(
+            reviewRepository = reviewRepository,
+            syncRepository = syncRepository,
+            messageController = messageController
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        advanceUntilIdle()
+        reviewViewModel.revealAnswer()
+        reviewViewModel.rateCard(rating = ReviewRating.GOOD)
+        advanceUntilIdle()
+
+        assertEquals("card-2", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        syncRepository.startSync()
+        advanceUntilIdle()
+        reviewRepository.replaceCards(
+            nextCards = sampleCards(count = 4).filter { card ->
+                card.cardId != "card-2"
+            }
+        )
+        advanceUntilIdle()
+        syncRepository.completeSyncSuccessfully(lastSuccessfulSyncAtMillis = 20L)
+        advanceUntilIdle()
+
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertFalse(reviewViewModel.uiState.value.isAnswerVisible)
+        assertEquals(listOf("This review updated on another device."), messageController.messages)
+
+        reviewRepository.replaceCards(
+            nextCards = sampleCards(count = 4).filter { card ->
+                card.cardId != "card-2"
+            }
+        )
+        advanceUntilIdle()
+
+        assertEquals(1, messageController.messages.size)
+        pendingRecordReview.complete(Unit)
+        advanceUntilIdle()
+        collectionJob.cancel()
+    }
+
+    private fun createReviewViewModel(reviewRepository: FakeReviewRepository): ReviewViewModel {
+        return ReviewViewModel(
+            reviewRepository = reviewRepository,
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController()
+        )
+    }
+
+    private fun createReviewViewModel(
+        reviewRepository: FakeReviewRepository,
+        syncRepository: FakeSyncRepository,
+        messageController: FakeMessageController
+    ): ReviewViewModel {
+        return ReviewViewModel(
+            reviewRepository = reviewRepository,
+            syncRepository = syncRepository,
+            messageController = messageController
+        )
+    }
+
     private class FakeReviewRepository(
-        private val cards: List<CardSummary> = sampleCards(count = 3),
+        cards: List<CardSummary> = sampleCards(count = 3),
         private val recordReviewHandler: suspend () -> Unit = {},
         private val timelineHandler: (suspend (
             ReviewFilter,
@@ -266,24 +361,26 @@ class ReviewViewModelTest {
             Int
         ) -> ReviewTimelinePage)? = null
     ) : ReviewRepository {
+        private val cardsState = MutableStateFlow(cards)
+
         override fun observeReviewSession(
             selectedFilter: ReviewFilter,
             pendingReviewedCardIds: Set<String>
         ): Flow<ReviewSessionSnapshot> {
-            return flowOf(
+            return cardsState.map { currentCards ->
                 buildReviewSessionSnapshot(
                     selectedFilter = selectedFilter,
                     pendingReviewedCardIds = pendingReviewedCardIds,
                     decks = sampleDecks(),
-                    cards = cards,
-                    tagsSummary = sampleTagsSummary(cards = cards),
+                    cards = currentCards,
+                    tagsSummary = sampleTagsSummary(cards = currentCards),
                     settings = makeDefaultWorkspaceSchedulerSettings(
                         workspaceId = "workspace-demo",
                         updatedAtMillis = 100L
                     ),
                     reviewedAtMillis = 1_000L
                 )
-            )
+            }
         }
 
         override suspend fun loadReviewTimelinePage(
@@ -302,12 +399,59 @@ class ReviewViewModelTest {
                 pendingReviewedCardIds = pendingReviewedCardIds,
                 offset = offset,
                 limit = limit,
-                cards = cards
+                cards = cardsState.value
             )
         }
 
         override suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long) {
             recordReviewHandler()
+        }
+
+        fun replaceCards(nextCards: List<CardSummary>) {
+            cardsState.value = nextCards
+        }
+    }
+
+    private class FakeSyncRepository : SyncRepository {
+        private val syncStatusState = MutableStateFlow(
+            SyncStatusSnapshot(
+                status = SyncStatus.Idle,
+                lastSuccessfulSyncAtMillis = null,
+                lastErrorMessage = ""
+            )
+        )
+
+        override fun observeSyncStatus(): Flow<SyncStatusSnapshot> {
+            return syncStatusState
+        }
+
+        override suspend fun scheduleSync() {
+        }
+
+        override suspend fun syncNow() {
+        }
+
+        fun startSync() {
+            syncStatusState.value = syncStatusState.value.copy(
+                status = SyncStatus.Syncing,
+                lastErrorMessage = ""
+            )
+        }
+
+        fun completeSyncSuccessfully(lastSuccessfulSyncAtMillis: Long) {
+            syncStatusState.value = SyncStatusSnapshot(
+                status = SyncStatus.Idle,
+                lastSuccessfulSyncAtMillis = lastSuccessfulSyncAtMillis,
+                lastErrorMessage = ""
+            )
+        }
+    }
+
+    private class FakeMessageController : TransientMessageController {
+        val messages = mutableListOf<String>()
+
+        override fun showMessage(message: String) {
+            messages += message
         }
     }
 

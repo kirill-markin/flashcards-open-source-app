@@ -101,7 +101,11 @@ fun AppNavHost(
     ) {
         composable(route = ReviewDestination.route) {
             val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
-                factory = createReviewViewModelFactory(reviewRepository = appGraph.reviewRepository)
+                factory = createReviewViewModelFactory(
+                    reviewRepository = appGraph.reviewRepository,
+                    syncRepository = appGraph.syncRepository,
+                    messageController = appGraph.appMessageBus
+                )
             )
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -134,7 +138,11 @@ fun AppNavHost(
             )
             val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
                 viewModelStoreOwner = reviewBackStackEntry,
-                factory = createReviewViewModelFactory(reviewRepository = appGraph.reviewRepository)
+                factory = createReviewViewModelFactory(
+                    reviewRepository = appGraph.reviewRepository,
+                    syncRepository = appGraph.syncRepository,
+                    messageController = appGraph.appMessageBus
+                )
             )
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
 

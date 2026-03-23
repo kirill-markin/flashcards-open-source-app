@@ -8,12 +8,22 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.di.AppGraph
@@ -22,14 +32,32 @@ import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 
 @Composable
 fun FlashcardsApp(appGraph: AppGraph) {
     FlashcardsTheme {
         val navController = rememberNavController()
+        val lifecycleOwner = LocalLifecycleOwner.current
         val currentDestination = currentTopLevelDestination(navController = navController)
         val snackbarHostState = remember { SnackbarHostState() }
+        val cloudSettings by appGraph.cloudAccountRepository.observeCloudSettings().collectAsStateWithLifecycle(
+            initialValue = CloudSettings(
+                deviceId = "",
+                cloudState = CloudAccountState.DISCONNECTED,
+                linkedUserId = null,
+                linkedWorkspaceId = null,
+                linkedEmail = null,
+                activeWorkspaceId = null,
+                updatedAtMillis = 0L
+            )
+        )
+        var isAppResumed by remember(lifecycleOwner) {
+            mutableStateOf(
+                value = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+            )
+        }
 
         LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
             appGraph.appMessageBus.messages.collect { message ->
@@ -40,23 +68,57 @@ fun FlashcardsApp(appGraph: AppGraph) {
         LaunchedEffect(appGraph.syncRepository) {
             var previousStatus: SyncStatus? = null
             appGraph.syncRepository.observeSyncStatus().collect { snapshot ->
-                when {
-                    snapshot.status is SyncStatus.Syncing && previousStatus !is SyncStatus.Syncing -> {
-                        appGraph.appMessageBus.showMessage(message = "Sync started.")
-                    }
-
-                    snapshot.status is SyncStatus.Idle && previousStatus is SyncStatus.Syncing -> {
-                        appGraph.appMessageBus.showMessage(message = "Sync completed.")
-                    }
-
-                    snapshot.status is SyncStatus.Failed && previousStatus !is SyncStatus.Failed -> {
-                        val failedStatus = snapshot.status as SyncStatus.Failed
-                        appGraph.appMessageBus.showMessage(
-                            message = "Sync failed: ${failedStatus.message}"
-                        )
-                    }
+                if (snapshot.status is SyncStatus.Failed && previousStatus !is SyncStatus.Failed) {
+                    val failedStatus = snapshot.status as SyncStatus.Failed
+                    appGraph.appMessageBus.showMessage(
+                        message = "Sync failed: ${failedStatus.message}"
+                    )
                 }
                 previousStatus = snapshot.status
+            }
+        }
+
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> {
+                        isAppResumed = true
+                    }
+
+                    Lifecycle.Event.ON_PAUSE -> {
+                        isAppResumed = false
+                    }
+
+                    else -> Unit
+                }
+            }
+
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+            }
+        }
+
+        LaunchedEffect(isAppResumed, cloudSettings.cloudState) {
+            if (isAppResumed.not() || shouldRunForegroundSyncPolling(cloudState = cloudSettings.cloudState).not()) {
+                return@LaunchedEffect
+            }
+
+            runCatching {
+                appGraph.syncRepository.syncNow()
+            }
+        }
+
+        LaunchedEffect(isAppResumed, cloudSettings.cloudState, currentDestination.route) {
+            if (isAppResumed.not() || shouldRunForegroundSyncPolling(cloudState = cloudSettings.cloudState).not()) {
+                return@LaunchedEffect
+            }
+
+            while (true) {
+                delay(foregroundSyncPollingIntervalMillis(destination = currentDestination))
+                runCatching {
+                    appGraph.syncRepository.syncNow()
+                }
             }
         }
 

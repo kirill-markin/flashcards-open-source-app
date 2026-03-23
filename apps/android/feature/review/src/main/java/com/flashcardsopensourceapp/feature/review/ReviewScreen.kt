@@ -179,7 +179,7 @@ private fun ReviewContent(
         item {
             DraftNoticeCard(
                 title = "Android draft review flow",
-                body = "This review flow now uses local scheduler state for queue counts, answer intervals, preview, and optimistic session progress, while cloud sync remains out of scope.",
+                body = "This review flow now keeps local scheduler state, preview, optimistic session progress, and foreground cloud reconciliation aligned with the Android app shell.",
                 modifier = Modifier
             )
         }

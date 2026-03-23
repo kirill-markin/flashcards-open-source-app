@@ -5,10 +5,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
+import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val reviewPreviewPageSize: Int = 20
+private const val reviewUpdatedOnAnotherDeviceMessage: String = "This review updated on another device."
 
 private data class ReviewDraftState(
     val requestedFilter: ReviewFilter,
@@ -37,7 +43,9 @@ private data class ReviewDraftState(
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReviewViewModel(
-    private val reviewRepository: ReviewRepository
+    private val reviewRepository: ReviewRepository,
+    private val syncRepository: SyncRepository,
+    private val messageController: TransientMessageController
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = ReviewDraftState(
@@ -55,15 +63,33 @@ class ReviewViewModel(
         )
     )
 
-    private val reviewSession = draftState.flatMapLatest { state ->
+    private val reviewSessionState = draftState.flatMapLatest { state ->
         reviewRepository.observeReviewSession(
             selectedFilter = state.requestedFilter,
             pendingReviewedCardIds = state.pendingReviewedCardIds
         )
-    }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = loadingReviewSessionSnapshot()
+    )
+
+    private val syncStatusState = syncRepository.observeSyncStatus().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = SyncStatusSnapshot(
+            status = SyncStatus.Idle,
+            lastSuccessfulSyncAtMillis = null,
+            lastErrorMessage = ""
+        )
+    )
+
+    private var previousSyncStatus: SyncStatus = SyncStatus.Idle
+    private var reviewCardIdsAtSyncStart: List<String>? = null
+    private var lastHandledSuccessfulSyncAtMillis: Long? = null
 
     val uiState: StateFlow<ReviewUiState> = combine(
-        reviewSession,
+        reviewSessionState,
         draftState
     ) { sessionSnapshot, state ->
         val sessionCurrentCard = sessionSnapshot.cards.firstOrNull()
@@ -137,6 +163,10 @@ class ReviewViewModel(
             errorMessage = ""
         )
     )
+
+    init {
+        observeSyncDrivenReviewChanges()
+    }
 
     fun selectFilter(reviewFilter: ReviewFilter) {
         draftState.update { state ->
@@ -300,12 +330,107 @@ class ReviewViewModel(
             }
         }
     }
-}
 
-fun createReviewViewModelFactory(reviewRepository: ReviewRepository): ViewModelProvider.Factory {
-    return viewModelFactory {
-        initializer {
-            ReviewViewModel(reviewRepository = reviewRepository)
+    private fun observeSyncDrivenReviewChanges() {
+        viewModelScope.launch {
+            combine(reviewSessionState, syncStatusState) { sessionSnapshot, syncStatusSnapshot ->
+                sessionSnapshot to syncStatusSnapshot
+            }.collect { (sessionSnapshot, syncStatusSnapshot) ->
+                handleSyncStatusTransition(
+                    sessionSnapshot = sessionSnapshot,
+                    syncStatusSnapshot = syncStatusSnapshot
+                )
+            }
         }
     }
+
+    private fun handleSyncStatusTransition(
+        sessionSnapshot: ReviewSessionSnapshot,
+        syncStatusSnapshot: SyncStatusSnapshot
+    ) {
+        val currentSyncStatus = syncStatusSnapshot.status
+
+        if (currentSyncStatus is SyncStatus.Syncing && previousSyncStatus !is SyncStatus.Syncing) {
+            reviewCardIdsAtSyncStart = sessionSnapshot.cards.map(ReviewCard::cardId)
+        }
+
+        val completedSuccessfulSync = currentSyncStatus is SyncStatus.Idle
+            && previousSyncStatus is SyncStatus.Syncing
+            && syncStatusSnapshot.lastSuccessfulSyncAtMillis != null
+            && syncStatusSnapshot.lastSuccessfulSyncAtMillis != lastHandledSuccessfulSyncAtMillis
+
+        if (completedSuccessfulSync) {
+            reconcileReviewAfterSuccessfulSync(sessionSnapshot = sessionSnapshot)
+            lastHandledSuccessfulSyncAtMillis = syncStatusSnapshot.lastSuccessfulSyncAtMillis
+            reviewCardIdsAtSyncStart = null
+        }
+
+        if (currentSyncStatus is SyncStatus.Failed && previousSyncStatus is SyncStatus.Syncing) {
+            reviewCardIdsAtSyncStart = null
+        }
+
+        previousSyncStatus = currentSyncStatus
+    }
+
+    private fun reconcileReviewAfterSuccessfulSync(sessionSnapshot: ReviewSessionSnapshot) {
+        val reviewCardIdsBeforeSync = reviewCardIdsAtSyncStart ?: return
+        val reviewCardIdsAfterSync = sessionSnapshot.cards.map(ReviewCard::cardId)
+
+        if (reviewCardIdsBeforeSync == reviewCardIdsAfterSync) {
+            return
+        }
+
+        val postSyncCurrentCardId = reviewCardIdsAfterSync.firstOrNull()
+        draftState.update { state ->
+            state.copy(
+                revealedCardId = if (state.revealedCardId == postSyncCurrentCardId) {
+                    state.revealedCardId
+                } else {
+                    null
+                },
+                optimisticPreparedCurrentCard = if (state.optimisticPreparedCurrentCard?.card?.cardId == postSyncCurrentCardId) {
+                    state.optimisticPreparedCurrentCard
+                } else {
+                    null
+                },
+                previewCards = emptyList(),
+                nextPreviewOffset = 0,
+                hasMorePreviewCards = true,
+                isPreviewLoading = false,
+                previewErrorMessage = ""
+            )
+        }
+        messageController.showMessage(message = reviewUpdatedOnAnotherDeviceMessage)
+    }
+}
+
+fun createReviewViewModelFactory(
+    reviewRepository: ReviewRepository,
+    syncRepository: SyncRepository,
+    messageController: TransientMessageController
+): ViewModelProvider.Factory {
+    return viewModelFactory {
+        initializer {
+            ReviewViewModel(
+                reviewRepository = reviewRepository,
+                syncRepository = syncRepository,
+                messageController = messageController
+            )
+        }
+    }
+}
+
+private fun loadingReviewSessionSnapshot(): ReviewSessionSnapshot {
+    return ReviewSessionSnapshot(
+        selectedFilter = ReviewFilter.AllCards,
+        selectedFilterTitle = "All cards",
+        cards = emptyList(),
+        answerOptions = emptyList(),
+        nextAnswerOptions = emptyList(),
+        remainingCount = 0,
+        totalCount = 0,
+        availableDeckFilters = emptyList(),
+        availableTagFilters = emptyList(),
+        isLoading = true
+    )
 }
