@@ -26,12 +26,12 @@
 	<string>$(AUTH_BASE_URL)</string>
 	<key>FLASHCARDS_PRIVACY_POLICY_URL</key>
 	<string>$(PRIVACY_POLICY_URL)</string>
-	<key>FLASHCARDS_TERMS_OF_SERVICE_URL</key>
-	<string>$(TERMS_OF_SERVICE_URL)</string>
-	<key>FLASHCARDS_SUPPORT_URL</key>
-	<string>$(SUPPORT_URL)</string>
 	<key>FLASHCARDS_SUPPORT_EMAIL_ADDRESS</key>
 	<string>$(SUPPORT_EMAIL_ADDRESS)</string>
+	<key>FLASHCARDS_SUPPORT_URL</key>
+	<string>$(SUPPORT_URL)</string>
+	<key>FLASHCARDS_TERMS_OF_SERVICE_URL</key>
+	<string>$(TERMS_OF_SERVICE_URL)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationCategoryType</key>
@@ -40,10 +40,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Allow camera access to take photos for AI chat attachments.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Allow photo library access to choose photos for AI chat attachments.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Allow microphone access to dictate text into AI chat.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow photo library access to choose photos for AI chat attachments.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -55,10 +55,6 @@
 	<true/>
 	<key>UILaunchScreen</key>
 	<dict/>
-	<key>UISupportedInterfaceOrientations~iphone</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -66,5 +62,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UISupportedInterfaceOrientations~iphone</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
 </dict>
 </plist>
