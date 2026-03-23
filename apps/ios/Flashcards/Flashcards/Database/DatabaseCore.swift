@@ -676,7 +676,58 @@ final class DatabaseCore {
         )
     }
 
+    private func defaultStateNeedsInitialization() throws -> Bool {
+        let appSettingsCount = try self.scalarInt(
+            sql: "SELECT COUNT(*) FROM app_local_settings",
+            values: []
+        )
+        if appSettingsCount == 0 {
+            return true
+        }
+
+        let workspaceCount = try self.scalarInt(
+            sql: "SELECT COUNT(*) FROM workspaces",
+            values: []
+        )
+        if workspaceCount == 0 {
+            return true
+        }
+
+        let userSettingsCount = try self.scalarInt(
+            sql: "SELECT COUNT(*) FROM user_settings",
+            values: []
+        )
+        if userSettingsCount == 0 {
+            return true
+        }
+
+        guard let activeWorkspaceId = try self.scalarOptionalText(
+            sql: "SELECT active_workspace_id FROM app_local_settings WHERE settings_id = 1",
+            values: []
+        ) else {
+            return true
+        }
+
+        let hasActiveWorkspace = try self.scalarInt(
+            sql: "SELECT COUNT(*) FROM workspaces WHERE workspace_id = ?",
+            values: [.text(activeWorkspaceId)]
+        ) > 0
+        if hasActiveWorkspace == false {
+            return true
+        }
+
+        let hasSyncState = try self.scalarInt(
+            sql: "SELECT COUNT(*) FROM sync_state WHERE workspace_id = ?",
+            values: [.text(activeWorkspaceId)]
+        ) > 0
+        return hasSyncState == false
+    }
+
     private func ensureDefaultState() throws {
+        if try self.defaultStateNeedsInitialization() == false {
+            return
+        }
+
         try self.inTransaction {
             let appSettingsCount = try self.scalarInt(
                 sql: "SELECT COUNT(*) FROM app_local_settings",
