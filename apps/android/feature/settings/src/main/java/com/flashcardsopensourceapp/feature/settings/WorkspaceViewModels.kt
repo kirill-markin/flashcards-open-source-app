@@ -6,17 +6,22 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.data.local.model.CardFilter
+import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
+import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
@@ -349,24 +354,32 @@ private data class WorkspaceOverviewDraftState(
 )
 
 class DecksViewModel(
-    decksRepository: DecksRepository
+    decksRepository: DecksRepository,
+    workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow(value = "")
 
     val uiState: StateFlow<DecksUiState> = combine(
         decksRepository.observeDecks(),
+        workspaceRepository.observeWorkspaceOverview(),
         searchQuery
-    ) { decks, query ->
+    ) { decks, overview, query ->
         DecksUiState(
             searchQuery = query,
-            decks = filterDecks(decks = decks, searchQuery = query)
+            deckEntries = filterDeckEntries(
+                deckEntries = buildDeckListEntries(
+                    decks = decks,
+                    overview = overview
+                ),
+                searchQuery = query
+            )
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = DecksUiState(
             searchQuery = "",
-            decks = emptyList()
+            deckEntries = emptyList()
         )
     )
 
@@ -375,23 +388,60 @@ class DecksViewModel(
     }
 }
 
+sealed interface DeckDetailRequest {
+    data object AllCards : DeckDetailRequest
+
+    data class PersistedDeck(
+        val deckId: String
+    ) : DeckDetailRequest
+}
+
 class DeckDetailViewModel(
     decksRepository: DecksRepository,
-    deckId: String
+    cardsRepository: CardsRepository,
+    workspaceRepository: WorkspaceRepository,
+    deckDetailRequest: DeckDetailRequest
 ) : ViewModel() {
-    val uiState: StateFlow<DeckDetailUiState> = combine(
-        decksRepository.observeDeck(deckId = deckId),
-        decksRepository.observeDeckCards(deckId = deckId)
-    ) { deck, cards ->
-        DeckDetailUiState(
-            deck = deck,
-            cards = cards
-        )
+    private val deckFilter = CardFilter(
+        tags = emptyList(),
+        effort = emptyList()
+    )
+
+    val uiState: StateFlow<DeckDetailUiState> = when (deckDetailRequest) {
+        DeckDetailRequest.AllCards -> {
+            combine(
+                workspaceRepository.observeWorkspaceOverview(),
+                cardsRepository.observeCards(
+                    searchQuery = "",
+                    filter = deckFilter
+                )
+            ) { overview, cards ->
+                DeckDetailUiState(
+                    detail = buildAllCardsDeckDetailInfo(overview = overview),
+                    cards = cards
+                )
+            }
+        }
+
+        is DeckDetailRequest.PersistedDeck -> {
+            combine(
+                decksRepository.observeDeck(deckId = deckDetailRequest.deckId),
+                decksRepository.observeDeckCards(deckId = deckDetailRequest.deckId)
+            ) { deck, cards ->
+                DeckDetailUiState(
+                    detail = deck?.let(::toPersistedDeckDetailInfo),
+                    cards = cards
+                )
+            }
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = DeckDetailUiState(
-            deck = null,
+            detail = when (deckDetailRequest) {
+                DeckDetailRequest.AllCards -> buildAllCardsDeckDetailInfo(overview = null)
+                is DeckDetailRequest.PersistedDeck -> null
+            },
             cards = emptyList()
         )
     )
@@ -749,20 +799,50 @@ fun createWorkspaceOverviewViewModelFactory(
     }
 }
 
-fun createDecksViewModelFactory(decksRepository: DecksRepository): ViewModelProvider.Factory {
+fun createDecksViewModelFactory(
+    decksRepository: DecksRepository,
+    workspaceRepository: WorkspaceRepository
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            DecksViewModel(decksRepository = decksRepository)
+            DecksViewModel(
+                decksRepository = decksRepository,
+                workspaceRepository = workspaceRepository
+            )
         }
     }
 }
 
-fun createDeckDetailViewModelFactory(decksRepository: DecksRepository, deckId: String): ViewModelProvider.Factory {
+fun createDeckDetailViewModelFactory(
+    decksRepository: DecksRepository,
+    cardsRepository: CardsRepository,
+    workspaceRepository: WorkspaceRepository,
+    deckId: String
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             DeckDetailViewModel(
                 decksRepository = decksRepository,
-                deckId = deckId
+                cardsRepository = cardsRepository,
+                workspaceRepository = workspaceRepository,
+                deckDetailRequest = DeckDetailRequest.PersistedDeck(deckId = deckId)
+            )
+        }
+    }
+}
+
+fun createAllCardsDeckDetailViewModelFactory(
+    decksRepository: DecksRepository,
+    cardsRepository: CardsRepository,
+    workspaceRepository: WorkspaceRepository
+): ViewModelProvider.Factory {
+    return viewModelFactory {
+        initializer {
+            DeckDetailViewModel(
+                decksRepository = decksRepository,
+                cardsRepository = cardsRepository,
+                workspaceRepository = workspaceRepository,
+                deckDetailRequest = DeckDetailRequest.AllCards
             )
         }
     }
@@ -800,29 +880,87 @@ fun createSchedulerSettingsViewModelFactory(workspaceRepository: WorkspaceReposi
     }
 }
 
-private fun filterDecks(decks: List<DeckSummary>, searchQuery: String): List<DeckSummary> {
+private fun filterDeckEntries(
+    deckEntries: List<DeckListEntryUiState>,
+    searchQuery: String
+): List<DeckListEntryUiState> {
     val normalizedQuery = searchQuery.trim().lowercase()
 
     if (normalizedQuery.isEmpty()) {
-        return decks
+        return deckEntries
     }
 
-    return decks.filter { deck ->
-        deck.name.lowercase().contains(normalizedQuery)
-            || formatDeckFilter(deck.filterDefinition).lowercase().contains(normalizedQuery)
+    return deckEntries.filter { deckEntry ->
+        deckEntry.title.lowercase().contains(normalizedQuery)
+            || deckEntry.filterSummary.lowercase().contains(normalizedQuery)
     }
 }
 
 private fun filterTags(tags: List<WorkspaceTagSummary>, searchQuery: String): List<WorkspaceTagSummary> {
-    val normalizedQuery = searchQuery.trim().lowercase()
+    val normalizedQuery = normalizeTagKey(tag = searchQuery)
 
     if (normalizedQuery.isEmpty()) {
         return tags
     }
 
     return tags.filter { tagSummary ->
-        tagSummary.tag.lowercase().contains(normalizedQuery)
+        normalizeTagKey(tag = tagSummary.tag).contains(normalizedQuery)
     }
+}
+
+private fun buildDeckListEntries(
+    decks: List<DeckSummary>,
+    overview: WorkspaceOverviewSummary?
+): List<DeckListEntryUiState> {
+    val allCardsEntry = buildAllCardsDeckListEntry(overview = overview)
+    val persistedDeckEntries = decks.map { deck ->
+        DeckListEntryUiState(
+            target = DeckListTargetUiState.PersistedDeck(deckId = deck.deckId),
+            title = deck.name,
+            filterSummary = formatDeckFilter(filterDefinition = deck.filterDefinition),
+            totalCards = deck.totalCards,
+            dueCards = deck.dueCards,
+            newCards = deck.newCards,
+            reviewedCards = deck.reviewedCards
+        )
+    }
+
+    return listOf(allCardsEntry) + persistedDeckEntries
+}
+
+private fun buildAllCardsDeckListEntry(overview: WorkspaceOverviewSummary?): DeckListEntryUiState {
+    return DeckListEntryUiState(
+        target = DeckListTargetUiState.AllCards,
+        title = "All cards",
+        filterSummary = "All cards",
+        totalCards = overview?.totalCards ?: 0,
+        dueCards = overview?.dueCount ?: 0,
+        newCards = overview?.newCount ?: 0,
+        reviewedCards = overview?.reviewedCount ?: 0
+    )
+}
+
+private fun buildAllCardsDeckDetailInfo(overview: WorkspaceOverviewSummary?): DeckDetailInfoUiState.AllCards {
+    return DeckDetailInfoUiState.AllCards(
+        title = "All cards",
+        filterSummary = "All cards",
+        totalCards = overview?.totalCards ?: 0,
+        dueCards = overview?.dueCount ?: 0,
+        newCards = overview?.newCount ?: 0,
+        reviewedCards = overview?.reviewedCount ?: 0
+    )
+}
+
+private fun toPersistedDeckDetailInfo(deck: DeckSummary): DeckDetailInfoUiState.PersistedDeck {
+    return DeckDetailInfoUiState.PersistedDeck(
+        deckId = deck.deckId,
+        title = deck.name,
+        filterSummary = formatDeckFilter(filterDefinition = deck.filterDefinition),
+        totalCards = deck.totalCards,
+        dueCards = deck.dueCards,
+        newCards = deck.newCards,
+        reviewedCards = deck.reviewedCards
+    )
 }
 
 private fun toggleEffortLevelSelection(selectedEffortLevels: List<EffortLevel>, effortLevel: EffortLevel): List<EffortLevel> {

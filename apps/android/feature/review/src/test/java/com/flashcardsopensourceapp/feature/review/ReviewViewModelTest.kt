@@ -22,6 +22,7 @@ import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -190,6 +191,98 @@ class ReviewViewModelTest {
         assertEquals("card-1", secondViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
         firstCollectionJob.cancel()
         secondCollectionJob.cancel()
+    }
+
+    @Test
+    fun selectedFilterRestoresAfterRecreatingViewModel() = runTest(dispatcher) {
+        val reviewRepository = FakeReviewRepository()
+        val reviewPreferencesStore = FakeReviewPreferencesStore()
+        val firstViewModel = createReviewViewModel(
+            reviewRepository = reviewRepository,
+            reviewPreferencesStore = reviewPreferencesStore
+        )
+        val firstCollectionJob = startCollecting(viewModel = firstViewModel)
+
+        advanceUntilIdle()
+        firstViewModel.selectFilter(reviewFilter = ReviewFilter.Deck(deckId = "deck-ui"))
+        advanceUntilIdle()
+
+        val secondViewModel = createReviewViewModel(
+            reviewRepository = reviewRepository,
+            reviewPreferencesStore = reviewPreferencesStore
+        )
+        val secondCollectionJob = startCollecting(viewModel = secondViewModel)
+        advanceUntilIdle()
+
+        assertEquals(ReviewFilter.Deck(deckId = "deck-ui"), secondViewModel.uiState.value.selectedFilter)
+        firstCollectionJob.cancel()
+        secondCollectionJob.cancel()
+    }
+
+    @Test
+    fun invalidSavedFilterFallsBackToAllCardsAndRewritesPreference() = runTest(dispatcher) {
+        val reviewPreferencesStore = FakeReviewPreferencesStore().apply {
+            saveSelectedReviewFilter(
+                workspaceId = "workspace-demo",
+                reviewFilter = ReviewFilter.Deck(deckId = "missing-deck")
+            )
+        }
+        val reviewViewModel = createReviewViewModel(
+            reviewRepository = FakeReviewRepository(),
+            reviewPreferencesStore = reviewPreferencesStore
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        advanceUntilIdle()
+
+        assertEquals(ReviewFilter.AllCards, reviewViewModel.uiState.value.selectedFilter)
+        assertEquals(ReviewFilter.AllCards, reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = "workspace-demo"))
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun switchingWorkspaceRestoresScopedFilterAndClearsPreviewState() = runTest(dispatcher) {
+        val reviewPreferencesStore = FakeReviewPreferencesStore().apply {
+            saveSelectedReviewFilter(
+                workspaceId = "workspace-demo",
+                reviewFilter = ReviewFilter.Deck(deckId = "deck-ui")
+            )
+            saveSelectedReviewFilter(
+                workspaceId = "workspace-second",
+                reviewFilter = ReviewFilter.Tag(tag = "basics")
+            )
+        }
+        val workspaceRepository = FakeWorkspaceRepository(cardCount = 3)
+        val reviewViewModel = createReviewViewModel(
+            reviewRepository = FakeReviewRepository(cards = sampleCards(count = 25)),
+            workspaceRepository = workspaceRepository,
+            reviewPreferencesStore = reviewPreferencesStore
+        )
+        val collectionJob = startCollecting(viewModel = reviewViewModel)
+
+        try {
+            advanceUntilIdle()
+            assertEquals(ReviewFilter.Deck(deckId = "deck-ui"), reviewViewModel.uiState.value.selectedFilter)
+
+            reviewViewModel.revealAnswer()
+            reviewViewModel.startPreview()
+            reviewViewModel.rateCard(rating = ReviewRating.GOOD)
+            advanceUntilIdle()
+
+            workspaceRepository.switchWorkspace(
+                workspaceId = "workspace-second",
+                workspaceName = "Second",
+                cardCount = 3
+            )
+            advanceUntilIdle()
+
+            assertEquals(ReviewFilter.Tag(tag = "basics"), reviewViewModel.uiState.value.selectedFilter)
+            assertFalse(reviewViewModel.uiState.value.isAnswerVisible)
+            assertTrue(reviewViewModel.uiState.value.previewItems.isEmpty())
+            assertEquals(0, reviewViewModel.uiState.value.reviewedInSessionCount)
+        } finally {
+            collectionJob.cancel()
+        }
     }
 
     @Test
@@ -390,6 +483,7 @@ class ReviewViewModelTest {
             reviewRepository = reviewRepository,
             syncRepository = FakeSyncRepository(),
             messageController = FakeMessageController(),
+            reviewPreferencesStore = FakeReviewPreferencesStore(),
             workspaceRepository = FakeWorkspaceRepository(cardCount = 3)
         )
     }
@@ -403,6 +497,7 @@ class ReviewViewModelTest {
             reviewRepository = reviewRepository,
             syncRepository = syncRepository,
             messageController = messageController,
+            reviewPreferencesStore = FakeReviewPreferencesStore(),
             workspaceRepository = FakeWorkspaceRepository(cardCount = 3)
         )
     }
@@ -411,10 +506,36 @@ class ReviewViewModelTest {
         reviewRepository: FakeReviewRepository,
         workspaceRepository: FakeWorkspaceRepository
     ): ReviewViewModel {
+        return createReviewViewModel(
+            reviewRepository = reviewRepository,
+            workspaceRepository = workspaceRepository,
+            reviewPreferencesStore = FakeReviewPreferencesStore()
+        )
+    }
+
+    private fun createReviewViewModel(
+        reviewRepository: FakeReviewRepository,
+        reviewPreferencesStore: FakeReviewPreferencesStore
+    ): ReviewViewModel {
         return ReviewViewModel(
             reviewRepository = reviewRepository,
             syncRepository = FakeSyncRepository(),
             messageController = FakeMessageController(),
+            reviewPreferencesStore = reviewPreferencesStore,
+            workspaceRepository = FakeWorkspaceRepository(cardCount = 3)
+        )
+    }
+
+    private fun createReviewViewModel(
+        reviewRepository: FakeReviewRepository,
+        workspaceRepository: FakeWorkspaceRepository,
+        reviewPreferencesStore: FakeReviewPreferencesStore
+    ): ReviewViewModel {
+        return ReviewViewModel(
+            reviewRepository = reviewRepository,
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController(),
+            reviewPreferencesStore = reviewPreferencesStore,
             workspaceRepository = workspaceRepository
         )
     }
@@ -526,27 +647,30 @@ class ReviewViewModelTest {
     private class FakeWorkspaceRepository(
         private val cardCount: Int
     ) : WorkspaceRepository {
-        override fun observeWorkspace(): Flow<WorkspaceSummary?> {
-            return flowOf(
-                WorkspaceSummary(
-                    workspaceId = "workspace-demo",
-                    name = "Demo",
-                    createdAtMillis = 1L
-                )
+        private val workspaceState = MutableStateFlow(
+            WorkspaceSummary(
+                workspaceId = "workspace-demo",
+                name = "Demo",
+                createdAtMillis = 1L
             )
+        )
+        private val appMetadataState = MutableStateFlow(
+            AppMetadataSummary(
+                currentWorkspaceName = "Demo",
+                workspaceName = "Demo",
+                deckCount = 2,
+                cardCount = cardCount,
+                localStorageLabel = "Room + SQLite",
+                syncStatusText = "Synced"
+            )
+        )
+
+        override fun observeWorkspace(): Flow<WorkspaceSummary?> {
+            return workspaceState
         }
 
         override fun observeAppMetadata(): Flow<AppMetadataSummary> {
-            return flowOf(
-                AppMetadataSummary(
-                    currentWorkspaceName = "Demo",
-                    workspaceName = "Demo",
-                    deckCount = 2,
-                    cardCount = cardCount,
-                    localStorageLabel = "Room + SQLite",
-                    syncStatusText = "Synced"
-                )
-            )
+            return appMetadataState
         }
 
         override fun observeWorkspaceOverview(): Flow<WorkspaceOverviewSummary?> {
@@ -576,6 +700,38 @@ class ReviewViewModelTest {
             maximumIntervalDays: Int,
             enableFuzz: Boolean
         ) {
+        }
+
+        fun switchWorkspace(workspaceId: String, workspaceName: String, cardCount: Int) {
+            workspaceState.value = WorkspaceSummary(
+                workspaceId = workspaceId,
+                name = workspaceName,
+                createdAtMillis = 1L
+            )
+            appMetadataState.value = AppMetadataSummary(
+                currentWorkspaceName = workspaceName,
+                workspaceName = workspaceName,
+                deckCount = 2,
+                cardCount = cardCount,
+                localStorageLabel = "Room + SQLite",
+                syncStatusText = "Synced"
+            )
+        }
+    }
+
+    private class FakeReviewPreferencesStore : ReviewPreferencesStore {
+        private val values = mutableMapOf<String, ReviewFilter>()
+
+        override fun loadSelectedReviewFilter(workspaceId: String): ReviewFilter {
+            return values[workspaceId] ?: ReviewFilter.AllCards
+        }
+
+        override fun saveSelectedReviewFilter(workspaceId: String, reviewFilter: ReviewFilter) {
+            values[workspaceId] = reviewFilter
+        }
+
+        override fun clearSelectedReviewFilter(workspaceId: String) {
+            values.remove(workspaceId)
         }
     }
 

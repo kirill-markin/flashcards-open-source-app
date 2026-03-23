@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.feature.settings
 
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
@@ -62,13 +61,65 @@ data class WorkspaceOverviewUiState(
     val deletePreview: CloudWorkspaceDeletePreview?
 )
 
-data class DecksUiState(
-    val searchQuery: String,
-    val decks: List<DeckSummary>
+sealed interface DeckListTargetUiState {
+    val id: String
+
+    data object AllCards : DeckListTargetUiState {
+        override val id: String = "all-cards"
+    }
+
+    data class PersistedDeck(
+        val deckId: String
+    ) : DeckListTargetUiState {
+        override val id: String = deckId
+    }
+}
+
+data class DeckListEntryUiState(
+    val target: DeckListTargetUiState,
+    val title: String,
+    val filterSummary: String,
+    val totalCards: Int,
+    val dueCards: Int,
+    val newCards: Int,
+    val reviewedCards: Int
 )
 
+data class DecksUiState(
+    val searchQuery: String,
+    val deckEntries: List<DeckListEntryUiState>
+)
+
+sealed interface DeckDetailInfoUiState {
+    val title: String
+    val filterSummary: String
+    val totalCards: Int
+    val dueCards: Int
+    val newCards: Int
+    val reviewedCards: Int
+
+    data class AllCards(
+        override val title: String,
+        override val filterSummary: String,
+        override val totalCards: Int,
+        override val dueCards: Int,
+        override val newCards: Int,
+        override val reviewedCards: Int
+    ) : DeckDetailInfoUiState
+
+    data class PersistedDeck(
+        val deckId: String,
+        override val title: String,
+        override val filterSummary: String,
+        override val totalCards: Int,
+        override val dueCards: Int,
+        override val newCards: Int,
+        override val reviewedCards: Int
+    ) : DeckDetailInfoUiState
+}
+
 data class DeckDetailUiState(
-    val deck: DeckSummary?,
+    val detail: DeckDetailInfoUiState?,
     val cards: List<com.flashcardsopensourceapp.data.local.model.CardSummary>
 )
 

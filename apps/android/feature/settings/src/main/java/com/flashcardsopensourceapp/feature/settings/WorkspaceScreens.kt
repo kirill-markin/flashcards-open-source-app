@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.formatDeckFilterDefinition
@@ -594,7 +593,7 @@ fun SchedulerSettingsRoute(
 fun DecksRoute(
     uiState: DecksUiState,
     onSearchQueryChange: (String) -> Unit,
-    onOpenDeck: (String) -> Unit,
+    onOpenDeck: (DeckListTargetUiState) -> Unit,
     onCreateDeck: () -> Unit
 ) {
     Scaffold(
@@ -637,7 +636,7 @@ fun DecksRoute(
                 )
             }
 
-            if (uiState.decks.isEmpty()) {
+            if (uiState.deckEntries.isEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
@@ -651,9 +650,9 @@ fun DecksRoute(
                     }
                 }
             } else {
-                items(uiState.decks, key = { deck -> deck.deckId }) { deck ->
+                items(uiState.deckEntries, key = { deckEntry -> deckEntry.target.id }) { deckEntry ->
                     DeckRow(
-                        deck = deck,
+                        deckEntry = deckEntry,
                         onOpenDeck = onOpenDeck
                     )
                 }
@@ -669,9 +668,9 @@ fun DeckDetailRoute(
     onOpenCard: (String) -> Unit,
     onDeleteDeck: (String) -> Unit
 ) {
-    val deck = uiState.deck
+    val detail = uiState.detail
 
-    if (deck == null) {
+    if (detail == null) {
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -701,41 +700,43 @@ fun DeckDetailRoute(
                     modifier = Modifier.padding(20.dp)
                 ) {
                     Text(
-                        text = deck.name,
+                        text = detail.title,
                         style = MaterialTheme.typography.headlineSmall
                     )
                     Text(
-                        text = formatDeckFilterDefinition(filterDefinition = deck.filterDefinition),
+                        text = detail.filterSummary,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OverviewRow(title = "Cards", value = deck.totalCards)
-                    OverviewRow(title = "Due", value = deck.dueCards)
-                    OverviewRow(title = "New", value = deck.newCards)
-                    OverviewRow(title = "Reviewed", value = deck.reviewedCards)
+                    OverviewRow(title = "Cards", value = detail.totalCards)
+                    OverviewRow(title = "Due", value = detail.dueCards)
+                    OverviewRow(title = "New", value = detail.newCards)
+                    OverviewRow(title = "Reviewed", value = detail.reviewedCards)
                 }
             }
         }
 
-        item {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        onEditDeck(deck.deckId)
-                    },
-                    modifier = Modifier.weight(1f)
+        if (detail is DeckDetailInfoUiState.PersistedDeck) {
+            item {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Edit")
-                }
-                Button(
-                    onClick = {
-                        onDeleteDeck(deck.deckId)
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Delete")
+                    OutlinedButton(
+                        onClick = {
+                            onEditDeck(detail.deckId)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Edit")
+                    }
+                    Button(
+                        onClick = {
+                            onDeleteDeck(detail.deckId)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Delete")
+                    }
                 }
             }
         }
@@ -751,7 +752,11 @@ fun DeckDetailRoute(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "This filtered deck has no matching cards yet.",
+                        text = if (detail is DeckDetailInfoUiState.AllCards) {
+                            "This workspace does not have any cards yet."
+                        } else {
+                            "This filtered deck has no matching cards yet."
+                        },
                         modifier = Modifier.padding(20.dp)
                     )
                 }
@@ -999,7 +1004,15 @@ fun WorkspaceTagsRoute(
                         Text("Total cards")
                     },
                     supportingContent = {
-                        Text("${uiState.totalCards}")
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("${uiState.totalCards}")
+                            Text(
+                                "This count is for the full workspace and does not double-count cards that share tags.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 )
             }
@@ -1009,14 +1022,14 @@ fun WorkspaceTagsRoute(
 
 @Composable
 private fun DeckRow(
-    deck: DeckSummary,
-    onOpenDeck: (String) -> Unit
+    deckEntry: DeckListEntryUiState,
+    onOpenDeck: (DeckListTargetUiState) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                onOpenDeck(deck.deckId)
+                onOpenDeck(deckEntry.target)
             }
     ) {
         Column(
@@ -1024,16 +1037,16 @@ private fun DeckRow(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = deck.name,
+                text = deckEntry.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = formatDeckFilterDefinition(filterDefinition = deck.filterDefinition),
+                text = deckEntry.filterSummary,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "${deck.totalCards} cards | ${deck.newCards} new | ${deck.reviewedCards} reviewed",
+                text = "${deckEntry.totalCards} cards | ${deckEntry.newCards} new | ${deckEntry.reviewedCards} reviewed | ${deckEntry.dueCards} due",
                 style = MaterialTheme.typography.labelMedium
             )
         }
