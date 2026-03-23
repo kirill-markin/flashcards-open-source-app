@@ -3,13 +3,17 @@ import SwiftUI
 let transientBannerDefaultDismissDelayNanoseconds: UInt64 = 3_000_000_000
 let settingsWorkspaceLockedBannerMessage: String = "Workspace changes are available only after you create an account."
 let reviewUpdatedOnAnotherDeviceBannerMessage: String = "This review updated on another device."
+let aiChatOfflineBannerMessage: String = "No internet connection. AI chat requires internet access."
 
 enum TransientBannerKind: Hashable, Sendable {
+    case aiChatOffline
     case reviewUpdatedOnAnotherDevice
     case workspaceChangesRequireAccount
 
     var iconSystemName: String {
         switch self {
+        case .aiChatOffline:
+            return "wifi.slash"
         case .reviewUpdatedOnAnotherDevice:
             return "arrow.triangle.2.circlepath.circle.fill"
         case .workspaceChangesRequireAccount:
@@ -30,6 +34,15 @@ func makeWorkspaceChangesRequireAccountBanner() -> TransientBanner {
         id: UUID().uuidString.lowercased(),
         message: settingsWorkspaceLockedBannerMessage,
         kind: .workspaceChangesRequireAccount,
+        dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
+    )
+}
+
+func makeAIChatOfflineBanner() -> TransientBanner {
+    TransientBanner(
+        id: UUID().uuidString.lowercased(),
+        message: aiChatOfflineBannerMessage,
+        kind: .aiChatOffline,
         dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
     )
 }

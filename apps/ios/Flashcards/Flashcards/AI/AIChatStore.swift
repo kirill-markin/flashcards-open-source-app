@@ -397,6 +397,7 @@ final class AIChatStore {
 
         let task = Task {
             var diagnosticsSession: CloudLinkedSession?
+            var didStartStreamingRequest = false
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 try await self.ensureAIChatReadyForSend(linkedSession: session)
@@ -422,6 +423,7 @@ final class AIChatStore {
                 self.pendingAttachments = []
                 self.isStreaming = true
                 self.activeConversationId = conversationId
+                didStartStreamingRequest = true
                 diagnosticsSession = session
                 let initialState = self.currentPersistedState()
                 let result = await self.runtime.run(
@@ -454,16 +456,7 @@ final class AIChatStore {
                 }
             } catch is CancellationError {
             } catch {
-                let latestPersistedState = self.historyStore.loadState()
-                self.chatSessionId = latestPersistedState.chatSessionId
-                self.codeInterpreterContainerId = latestPersistedState.codeInterpreterContainerId
-                self.markAssistantError(message: Flashcards.errorMessage(error: error))
-                self.repairStatus = nil
-                self.isStreaming = false
-                let state = self.currentPersistedState()
-                Task {
-                    await self.historyStore.saveState(state: state)
-                }
+                self.handleSendMessageError(error, didStartStreamingRequest: didStartStreamingRequest)
             }
 
             if self.activeConversationId == conversationId {
@@ -625,6 +618,25 @@ final class AIChatStore {
             chatSessionId: self.chatSessionId,
             codeInterpreterContainerId: self.codeInterpreterContainerId
         )
+    }
+
+    private func handleSendMessageError(_ error: Error, didStartStreamingRequest: Bool) {
+        let latestPersistedState = self.historyStore.loadState()
+        self.chatSessionId = latestPersistedState.chatSessionId
+        self.codeInterpreterContainerId = latestPersistedState.codeInterpreterContainerId
+        self.repairStatus = nil
+        self.isStreaming = false
+
+        if didStartStreamingRequest == false && isAIChatOfflineSendError(error: error) {
+            self.flashcardsStore.enqueueTransientBanner(banner: makeAIChatOfflineBanner())
+            return
+        }
+
+        self.markAssistantError(message: Flashcards.errorMessage(error: error))
+        let state = self.currentPersistedState()
+        Task {
+            await self.historyStore.saveState(state: state)
+        }
     }
 
     private func enforceAllowedSelectedModelIfNeeded() {
@@ -806,6 +818,23 @@ private func isOptimisticAIChatStatusContent(content: [AIChatContentPart]) -> Bo
     }
 
     return text == aiChatOptimisticAssistantStatusText
+}
+
+private func isAIChatOfflineSendError(error: Error) -> Bool {
+    if let urlError = error as? URLError {
+        return urlError.code == .notConnectedToInternet
+    }
+
+    let nsError = error as NSError
+    if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorNotConnectedToInternet {
+        return true
+    }
+
+    guard let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error else {
+        return false
+    }
+
+    return isAIChatOfflineSendError(error: underlyingError)
 }
 
 private func removingOptimisticAIChatStatus(content: [AIChatContentPart]) -> [AIChatContentPart] {

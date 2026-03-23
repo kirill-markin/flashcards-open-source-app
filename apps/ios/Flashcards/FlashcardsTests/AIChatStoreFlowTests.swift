@@ -93,6 +93,61 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testAIChatStoreShowsOfflineBannerInsteadOfChatErrorWhenGuestSessionFailsOffline() async throws {
+        let flashcardsStore = try self.makeStore()
+        let failingToolExecutor = FailingToolExecutor()
+        grantAIChatExternalProviderConsent(userDefaults: flashcardsStore.userDefaults)
+        AIChatMockUrlProtocol.requestHandler = { request in
+            guard request.url?.path == "/v1/guest-auth/session" else {
+                XCTFail("Unexpected request path: \(request.url?.path ?? "nil")")
+                throw StubLocalizedError(message: "Unexpected request")
+            }
+
+            throw URLError(.notConnectedToInternet)
+        }
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(
+                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            ),
+            chatService: FailingChatService(),
+            toolExecutor: failingToolExecutor,
+            localContextLoader: failingToolExecutor
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+
+        for _ in 0..<100 {
+            if flashcardsStore.currentTransientBanner != nil {
+                break
+            }
+
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertEqual(chatStore.messages.count, 0)
+        XCTAssertNil(chatStore.activeAlert)
+        XCTAssertEqual(flashcardsStore.currentTransientBanner?.message, aiChatOfflineBannerMessage)
+        XCTAssertEqual(flashcardsStore.currentTransientBanner?.kind, .aiChatOffline)
+        XCTAssertEqual(flashcardsStore.queuedTransientBanners.count, 0)
+
+        chatStore.sendMessage()
+
+        for _ in 0..<100 {
+            if flashcardsStore.queuedTransientBanners.count == 1 {
+                break
+            }
+
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertEqual(flashcardsStore.queuedTransientBanners.count, 1)
+        XCTAssertEqual(flashcardsStore.queuedTransientBanners[0].message, aiChatOfflineBannerMessage)
+        XCTAssertEqual(flashcardsStore.queuedTransientBanners[0].kind, .aiChatOffline)
+    }
+
+    @MainActor
     func testAIChatStoreShowsAccountUpgradePromptForGuestLimitStreamErrors() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let failingToolExecutor = FailingToolExecutor()
