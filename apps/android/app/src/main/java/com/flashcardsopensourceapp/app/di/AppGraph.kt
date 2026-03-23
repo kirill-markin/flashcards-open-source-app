@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteService
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.buildAppDatabase
+import com.flashcardsopensourceapp.data.local.database.closeAppDatabase
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
@@ -147,5 +148,9 @@ class AppGraph(
             linkedEmail = null,
             activeWorkspaceId = localWorkspaceId
         )
+    }
+
+    fun close() {
+        closeAppDatabase(database = database)
     }
 }

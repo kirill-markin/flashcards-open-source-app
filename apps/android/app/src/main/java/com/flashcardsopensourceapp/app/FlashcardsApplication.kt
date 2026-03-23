@@ -9,6 +9,14 @@ class FlashcardsApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        recreateAppGraph()
+    }
+
+    fun closeAppGraph() {
+        appGraph.close()
+    }
+
+    fun recreateAppGraph() {
         appGraph = AppGraph(context = this)
     }
 }

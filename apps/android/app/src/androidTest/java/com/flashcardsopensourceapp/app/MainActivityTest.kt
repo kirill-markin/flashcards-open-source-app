@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.app
 
-import android.content.Context
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -17,7 +16,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
@@ -30,7 +28,6 @@ import com.flashcardsopensourceapp.feature.settings.schedulerSaveButtonTag
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 
@@ -39,18 +36,9 @@ class MainActivityTest {
     companion object {
         private const val uiTimeoutMillis: Long = 10_000L
         private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
-        private const val appDatabaseName: String = "flashcards-android.db"
     }
 
-    private val appStateResetRule = object : ExternalResource() {
-        override fun before() {
-            clearAppState()
-        }
-
-        override fun after() {
-            clearAppState()
-        }
-    }
+    private val appStateResetRule = AppStateResetRule()
 
     private val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -130,8 +118,7 @@ class MainActivityTest {
             tags = listOf("ui")
         )
 
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Workspace").performClick()
+        openSettingsSection(sectionTitle = "Workspace")
         composeRule.onNodeWithText("Decks").performClick()
 
         composeRule.onNodeWithContentDescription("Add deck").performClick()
@@ -314,6 +301,10 @@ class MainActivityTest {
         composeRule.onNode(
             matcher = hasClickAction().and(other = hasText("Save"))
         ).performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun openCardsTab() {
@@ -366,20 +357,5 @@ class MainActivityTest {
 
     private fun scrollToText(text: String) {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text))
-    }
-
-    private fun clearAppState() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        context.deleteDatabase(appDatabaseName)
-        listOf(
-            "flashcards-ai-chat-history",
-            "flashcards-ai-chat-preferences",
-            "flashcards-ai-chat-guest-session",
-            "flashcards-cloud-metadata",
-            "flashcards-cloud-secrets",
-            "flashcards-review-preferences"
-        ).forEach { preferencesName ->
-            context.deleteSharedPreferences(preferencesName)
-        }
     }
 }
