@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
@@ -61,7 +62,8 @@ class WorkspaceSettingsViewModel(
 class WorkspaceOverviewViewModel(
     workspaceRepository: WorkspaceRepository,
     private val cloudAccountRepository: CloudAccountRepository,
-    private val syncRepository: SyncRepository
+    private val syncRepository: SyncRepository,
+    private val messageController: TransientMessageController
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = WorkspaceOverviewDraftState(
@@ -70,6 +72,7 @@ class WorkspaceOverviewViewModel(
             isSavingName = false,
             isDeletePreviewLoading = false,
             isDeletingWorkspace = false,
+            deleteState = DestructiveActionState.IDLE,
             errorMessage = "",
             successMessage = "",
             deleteConfirmationText = "",
@@ -104,6 +107,7 @@ class WorkspaceOverviewViewModel(
             isSavingName = draft.isSavingName,
             isDeletePreviewLoading = draft.isDeletePreviewLoading,
             isDeletingWorkspace = draft.isDeletingWorkspace,
+            deleteState = draft.deleteState,
             errorMessage = draft.errorMessage,
             successMessage = draft.successMessage,
             deleteConfirmationText = draft.deleteConfirmationText,
@@ -127,6 +131,7 @@ class WorkspaceOverviewViewModel(
             isSavingName = false,
             isDeletePreviewLoading = false,
             isDeletingWorkspace = false,
+            deleteState = DestructiveActionState.IDLE,
             errorMessage = "",
             successMessage = "",
             deleteConfirmationText = "",
@@ -188,6 +193,7 @@ class WorkspaceOverviewViewModel(
         draftState.update { state ->
             state.copy(
                 isDeletePreviewLoading = true,
+                deleteState = DestructiveActionState.IDLE,
                 errorMessage = "",
                 successMessage = ""
             )
@@ -201,6 +207,7 @@ class WorkspaceOverviewViewModel(
                     deleteConfirmationText = "",
                     showDeletePreviewAlert = true,
                     showDeleteConfirmation = false,
+                    deleteState = DestructiveActionState.IDLE,
                     deletePreview = deletePreview
                 )
             }
@@ -225,7 +232,8 @@ class WorkspaceOverviewViewModel(
         draftState.update { state ->
             state.copy(
                 showDeletePreviewAlert = false,
-                showDeleteConfirmation = true
+                showDeleteConfirmation = true,
+                deleteState = DestructiveActionState.IDLE
             )
         }
     }
@@ -234,6 +242,11 @@ class WorkspaceOverviewViewModel(
         draftState.update { state ->
             state.copy(
                 deleteConfirmationText = value,
+                deleteState = if (state.errorMessage.isEmpty()) {
+                    state.deleteState
+                } else {
+                    DestructiveActionState.IDLE
+                },
                 errorMessage = "",
                 successMessage = ""
             )
@@ -245,6 +258,7 @@ class WorkspaceOverviewViewModel(
             state.copy(
                 showDeleteConfirmation = false,
                 deleteConfirmationText = "",
+                deleteState = DestructiveActionState.IDLE,
                 deletePreview = null
             )
         }
@@ -264,6 +278,7 @@ class WorkspaceOverviewViewModel(
         draftState.update { state ->
             state.copy(
                 isDeletingWorkspace = true,
+                deleteState = DestructiveActionState.IN_PROGRESS,
                 errorMessage = "",
                 successMessage = ""
             )
@@ -273,24 +288,42 @@ class WorkspaceOverviewViewModel(
             val result = cloudAccountRepository.deleteCurrentWorkspace(
                 confirmationText = uiState.value.deleteConfirmationText
             )
-            syncRepository.syncNow()
+            val syncFailureMessage = try {
+                syncRepository.syncNow()
+                null
+            } catch (error: Exception) {
+                error.message ?: "Workspace sync failed after deletion."
+            }
             draftState.update { state ->
                 state.copy(
                     workspaceNameDraft = result.workspace.name,
                     hasUserEditedName = false,
                     isDeletingWorkspace = false,
+                    deleteState = DestructiveActionState.IDLE,
                     deleteConfirmationText = "",
                     showDeleteConfirmation = false,
                     deletePreview = null,
-                    errorMessage = "",
-                    successMessage = "Workspace deleted. Switched to ${result.workspace.name}."
+                    errorMessage = syncFailureMessage.orEmpty(),
+                    successMessage = if (syncFailureMessage == null) {
+                        "Workspace deleted. Switched to ${result.workspace.name}."
+                    } else {
+                        "Workspace deleted. Switched to ${result.workspace.name}. Sync still needs attention."
+                    }
                 )
             }
+            messageController.showMessage(
+                message = if (syncFailureMessage == null) {
+                    "Workspace deleted. Switched to ${result.workspace.name}."
+                } else {
+                    "Workspace deleted, but sync still needs attention."
+                }
+            )
             true
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
                     isDeletingWorkspace = false,
+                    deleteState = DestructiveActionState.FAILED,
                     errorMessage = error.message ?: "Workspace deletion failed.",
                     successMessage = ""
                 )
@@ -306,6 +339,7 @@ private data class WorkspaceOverviewDraftState(
     val isSavingName: Boolean,
     val isDeletePreviewLoading: Boolean,
     val isDeletingWorkspace: Boolean,
+    val deleteState: DestructiveActionState,
     val errorMessage: String,
     val successMessage: String,
     val deleteConfirmationText: String,
@@ -700,14 +734,16 @@ fun createWorkspaceSettingsViewModelFactory(workspaceRepository: WorkspaceReposi
 fun createWorkspaceOverviewViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    syncRepository: SyncRepository
+    syncRepository: SyncRepository,
+    messageController: TransientMessageController
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             WorkspaceOverviewViewModel(
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
-                syncRepository = syncRepository
+                syncRepository = syncRepository,
+                messageController = messageController
             )
         }
     }

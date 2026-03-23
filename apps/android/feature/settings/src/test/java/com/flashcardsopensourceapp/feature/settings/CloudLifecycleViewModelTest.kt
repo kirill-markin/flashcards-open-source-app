@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
@@ -67,7 +68,8 @@ class CloudLifecycleViewModelTest {
         val viewModel = WorkspaceOverviewViewModel(
             workspaceRepository = workspaceRepository,
             cloudAccountRepository = cloudAccountRepository,
-            syncRepository = FakeSyncRepository()
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController()
         )
         val collectionJob = startCollecting(scope = this, viewModel = viewModel)
 
@@ -90,7 +92,8 @@ class CloudLifecycleViewModelTest {
         val viewModel = WorkspaceOverviewViewModel(
             workspaceRepository = FakeWorkspaceRepository(),
             cloudAccountRepository = FakeCloudAccountRepository(),
-            syncRepository = FakeSyncRepository()
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController()
         )
         val collectionJob = startCollecting(scope = this, viewModel = viewModel)
 
@@ -165,6 +168,175 @@ class CloudLifecycleViewModelTest {
         assertTrue(didDelete)
         assertFalse(viewModel.uiState.value.isLinked)
         assertEquals("Account deleted. This device is now disconnected.", viewModel.uiState.value.successMessage)
+        assertEquals(DestructiveActionState.IDLE, viewModel.uiState.value.deleteState)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun accountStatusLogoutRequiresConfirmationAndEmitsMessage() = runTest(dispatcher) {
+        val messages = FakeMessageController()
+        val viewModel = AccountStatusViewModel(
+            cloudAccountRepository = FakeCloudAccountRepository(),
+            syncRepository = FakeSyncRepository(),
+            messageController = messages,
+            workspaceRepository = FakeWorkspaceRepository()
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.requestLogoutConfirmation()
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.showLogoutConfirmation)
+
+        viewModel.confirmLogout()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.showLogoutConfirmation)
+        assertFalse(viewModel.uiState.value.isLinked)
+        assertEquals(listOf("Logged out. This device is disconnected."), messages.messages)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun cloudSignInAutoLinksSingleWorkspaceAndCompletes() = runTest(dispatcher) {
+        val messages = FakeMessageController()
+        val workspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-2",
+            name = "Spanish",
+            createdAtMillis = 2L,
+            isSelected = false
+        )
+        val syncRepository = FakeSyncRepository()
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = FakeCloudAccountRepository(
+                initialCloudState = CloudAccountState.DISCONNECTED,
+                verifiedWorkspaces = listOf(workspace),
+                linkedWorkspaces = listOf(workspace)
+            ),
+            syncRepository = syncRepository,
+            messageController = messages
+        )
+        val uiCollectionJob = startCollecting(scope = this, viewModel = viewModel)
+        val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
+
+        viewModel.updateEmail("user@example.com")
+        assertTrue(viewModel.sendCode())
+        viewModel.updateCode("123456")
+        assertTrue(viewModel.verifyCode())
+        advanceUntilIdle()
+        assertEquals(CloudPostAuthMode.READY_TO_AUTO_LINK, viewModel.postAuthUiState.value.mode)
+
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(1, syncRepository.syncNowCalls)
+        assertEquals(CloudPostAuthMode.IDLE, viewModel.postAuthUiState.value.mode)
+        assertTrue(viewModel.postAuthUiState.value.completionToken != null)
+        assertEquals(listOf("Signed in and synced Spanish."), messages.messages)
+        uiCollectionJob.cancel()
+        postAuthCollectionJob.cancel()
+    }
+
+    @Test
+    fun cloudSignInRetryKeepsVerifiedContextAfterSyncFailure() = runTest(dispatcher) {
+        val messages = FakeMessageController()
+        val workspaces = listOf(
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-1",
+                name = "Personal",
+                createdAtMillis = 1L,
+                isSelected = false
+            ),
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-2",
+                name = "Spanish",
+                createdAtMillis = 2L,
+                isSelected = false
+            )
+        )
+        val syncRepository = FakeSyncRepository(failuresRemaining = 1)
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = FakeCloudAccountRepository(
+                initialCloudState = CloudAccountState.DISCONNECTED,
+                verifiedWorkspaces = workspaces,
+                linkedWorkspaces = workspaces
+            ),
+            syncRepository = syncRepository,
+            messageController = messages
+        )
+        val uiCollectionJob = startCollecting(scope = this, viewModel = viewModel)
+        val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
+
+        viewModel.updateEmail("user@example.com")
+        assertTrue(viewModel.sendCode())
+        viewModel.updateCode("123456")
+        assertTrue(viewModel.verifyCode())
+        advanceUntilIdle()
+        assertEquals(CloudPostAuthMode.CHOOSE_WORKSPACE, viewModel.postAuthUiState.value.mode)
+
+        viewModel.selectPostAuthWorkspace(
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = "workspace-2")
+        )
+        advanceUntilIdle()
+
+        assertEquals(CloudPostAuthMode.FAILED, viewModel.postAuthUiState.value.mode)
+        assertEquals("user@example.com", viewModel.postAuthUiState.value.verifiedEmail)
+        assertTrue(viewModel.postAuthUiState.value.canRetry)
+
+        viewModel.retryPostAuth()
+        advanceUntilIdle()
+
+        assertEquals(2, syncRepository.syncNowCalls)
+        assertTrue(viewModel.postAuthUiState.value.completionToken != null)
+        assertEquals(listOf("Signed in and synced Spanish."), messages.messages)
+        uiCollectionJob.cancel()
+        postAuthCollectionJob.cancel()
+    }
+
+    @Test
+    fun currentWorkspaceRetryRepeatsSyncWithoutRelinking() = runTest(dispatcher) {
+        val messages = FakeMessageController()
+        val workspaces = listOf(
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-1",
+                name = "Personal",
+                createdAtMillis = 1L,
+                isSelected = true
+            ),
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-2",
+                name = "Spanish",
+                createdAtMillis = 2L,
+                isSelected = false
+            )
+        )
+        val syncRepository = FakeSyncRepository(failuresRemaining = 1)
+        val cloudAccountRepository = FakeCloudAccountRepository(
+            linkedWorkspaces = workspaces
+        )
+        val viewModel = CurrentWorkspaceViewModel(
+            cloudAccountRepository = cloudAccountRepository,
+            syncRepository = syncRepository,
+            messageController = messages,
+            workspaceRepository = FakeWorkspaceRepository()
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        viewModel.loadWorkspaces()
+        advanceUntilIdle()
+        viewModel.switchWorkspace(selection = CloudWorkspaceLinkSelection.Existing(workspaceId = "workspace-2"))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.canRetryLastWorkspaceAction)
+        assertEquals(CurrentWorkspaceOperation.IDLE, viewModel.uiState.value.operation)
+
+        viewModel.retryLastWorkspaceAction()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.canRetryLastWorkspaceAction)
+        assertEquals(2, syncRepository.syncNowCalls)
+        assertEquals(1, cloudAccountRepository.switchLinkedWorkspaceCalls)
+        assertEquals(listOf("Current workspace is now Spanish."), messages.messages)
         collectionJob.cancel()
     }
 
@@ -192,6 +364,42 @@ class CloudLifecycleViewModelTest {
     ): Job {
         return scope.launch {
             viewModel.uiState.collect()
+        }
+    }
+
+    private fun startCollecting(
+        scope: TestScope,
+        viewModel: AccountStatusViewModel
+    ): Job {
+        return scope.launch {
+            viewModel.uiState.collect()
+        }
+    }
+
+    private fun startCollecting(
+        scope: TestScope,
+        viewModel: CurrentWorkspaceViewModel
+    ): Job {
+        return scope.launch {
+            viewModel.uiState.collect()
+        }
+    }
+
+    private fun startCollecting(
+        scope: TestScope,
+        viewModel: CloudSignInViewModel
+    ): Job {
+        return scope.launch {
+            viewModel.uiState.collect()
+        }
+    }
+
+    private fun startCollectingPostAuth(
+        scope: TestScope,
+        viewModel: CloudSignInViewModel
+    ): Job {
+        return scope.launch {
+            viewModel.postAuthUiState.collect()
         }
     }
 }
@@ -274,21 +482,27 @@ private class FakeWorkspaceRepository : WorkspaceRepository {
 
 private class FakeCloudAccountRepository(
     connections: List<AgentApiKeyConnection> = emptyList(),
-    private val onRenameWorkspace: ((String) -> Unit)? = null
+    private val onRenameWorkspace: ((String) -> Unit)? = null,
+    initialCloudState: CloudAccountState = CloudAccountState.LINKED,
+    verifiedWorkspaces: List<CloudWorkspaceSummary> = emptyList(),
+    linkedWorkspaces: List<CloudWorkspaceSummary> = emptyList()
 ) : CloudAccountRepository {
     private val cloudSettingsState = MutableStateFlow(
         CloudSettings(
             deviceId = "device-1",
-            cloudState = CloudAccountState.LINKED,
-            linkedUserId = "user-1",
-            linkedWorkspaceId = "workspace-1",
-            linkedEmail = "user@example.com",
-            activeWorkspaceId = "workspace-1",
+            cloudState = initialCloudState,
+            linkedUserId = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "user-1",
+            linkedWorkspaceId = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "workspace-1",
+            linkedEmail = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "user@example.com",
+            activeWorkspaceId = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "workspace-1",
             updatedAtMillis = 1L
         )
     )
     private val connectionsState = MutableStateFlow(connections)
+    private val verifiedWorkspacesState = MutableStateFlow(verifiedWorkspaces)
+    private val linkedWorkspacesState = MutableStateFlow(linkedWorkspaces)
     var lastRenamedWorkspaceName: String? = null
+    var switchLinkedWorkspaceCalls: Int = 0
 
     override fun observeCloudSettings(): Flow<CloudSettings> {
         return cloudSettingsState
@@ -306,14 +520,27 @@ private class FakeCloudAccountRepository(
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {
-        throw UnsupportedOperationException()
+        return CloudSendCodeResult.OtpRequired(
+            challenge = CloudOtpChallenge(
+                email = email,
+                csrfToken = "csrf",
+                otpSessionToken = "otp"
+            )
+        )
     }
 
     override suspend fun verifyCode(
         challenge: CloudOtpChallenge,
         code: String
     ): List<CloudWorkspaceSummary> {
-        throw UnsupportedOperationException()
+        cloudSettingsState.value = cloudSettingsState.value.copy(
+            cloudState = CloudAccountState.LINKING_READY,
+            linkedUserId = "user-1",
+            linkedWorkspaceId = null,
+            linkedEmail = challenge.email,
+            activeWorkspaceId = null
+        )
+        return verifiedWorkspacesState.value
     }
 
     override suspend fun logout() {
@@ -372,11 +599,34 @@ private class FakeCloudAccountRepository(
     }
 
     override suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary> {
-        throw UnsupportedOperationException()
+        return linkedWorkspacesState.value
     }
 
     override suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
+        switchLinkedWorkspaceCalls += 1
+        val selectedWorkspace = when (selection) {
+            is CloudWorkspaceLinkSelection.Existing -> linkedWorkspacesState.value.first { workspace ->
+                workspace.workspaceId == selection.workspaceId
+            }.copy(isSelected = true)
+
+            CloudWorkspaceLinkSelection.CreateNew -> CloudWorkspaceSummary(
+                workspaceId = "workspace-new",
+                name = "New workspace",
+                createdAtMillis = 3L,
+                isSelected = true
+            )
+        }
+        linkedWorkspacesState.value = (linkedWorkspacesState.value + selectedWorkspace)
+            .distinctBy(CloudWorkspaceSummary::workspaceId)
+            .map { workspace ->
+                workspace.copy(isSelected = workspace.workspaceId == selectedWorkspace.workspaceId)
+            }
+        cloudSettingsState.value = cloudSettingsState.value.copy(
+            cloudState = CloudAccountState.LINKED,
+            linkedWorkspaceId = selectedWorkspace.workspaceId,
+            activeWorkspaceId = selectedWorkspace.workspaceId
+        )
+        return selectedWorkspace
     }
 
     override suspend fun listAgentConnections(): AgentApiKeyConnectionsResult {
@@ -426,6 +676,15 @@ private class FakeCloudAccountRepository(
 }
 
 private class FakeSyncRepository : SyncRepository {
+    constructor() : this(failuresRemaining = 0)
+
+    constructor(failuresRemaining: Int) {
+        this.failuresRemaining = failuresRemaining
+    }
+
+    var failuresRemaining: Int
+    var syncNowCalls: Int = 0
+
     override fun observeSyncStatus(): Flow<com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot> {
         return flowOf(
             com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot(
@@ -440,5 +699,18 @@ private class FakeSyncRepository : SyncRepository {
     }
 
     override suspend fun syncNow() {
+        syncNowCalls += 1
+        if (failuresRemaining > 0) {
+            failuresRemaining -= 1
+            throw IllegalStateException("Sync failed.")
+        }
+    }
+}
+
+private class FakeMessageController : TransientMessageController {
+    val messages = mutableListOf<String>()
+
+    override fun showMessage(message: String) {
+        messages += message
     }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
@@ -21,24 +22,28 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 private data class AccountStatusDraftState(
     val errorMessage: String,
-    val isSubmitting: Boolean
+    val isSubmitting: Boolean,
+    val showLogoutConfirmation: Boolean
 )
 
 class AccountStatusViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
+    private val messageController: TransientMessageController,
     workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = AccountStatusDraftState(
             errorMessage = "",
-            isSubmitting = false
+            isSubmitting = false,
+            showLogoutConfirmation = false
         )
     )
 
@@ -61,6 +66,7 @@ class AccountStatusViewModel(
             lastSuccessfulSync = formatTimestampLabel(syncStatus.lastSuccessfulSyncAtMillis),
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
+            showLogoutConfirmation = draft.showLogoutConfirmation,
             errorMessage = draft.errorMessage,
             isSubmitting = draft.isSubmitting
         )
@@ -76,10 +82,26 @@ class AccountStatusViewModel(
             lastSuccessfulSync = "Never",
             isLinked = false,
             isLinkingReady = false,
+            showLogoutConfirmation = false,
             errorMessage = "",
             isSubmitting = false
         )
     )
+
+    fun requestLogoutConfirmation() {
+        draftState.update { state ->
+            state.copy(
+                showLogoutConfirmation = true,
+                errorMessage = ""
+            )
+        }
+    }
+
+    fun dismissLogoutConfirmation() {
+        draftState.update { state ->
+            state.copy(showLogoutConfirmation = false)
+        }
+    }
 
     suspend fun syncNow() {
         draftState.update { state -> state.copy(isSubmitting = true, errorMessage = "") }
@@ -96,15 +118,23 @@ class AccountStatusViewModel(
         }
     }
 
-    suspend fun logout() {
-        draftState.update { state -> state.copy(isSubmitting = true, errorMessage = "") }
+    suspend fun confirmLogout() {
+        draftState.update { state ->
+            state.copy(
+                isSubmitting = true,
+                showLogoutConfirmation = false,
+                errorMessage = ""
+            )
+        }
         try {
             cloudAccountRepository.logout()
             draftState.update { state -> state.copy(isSubmitting = false, errorMessage = "") }
+            messageController.showMessage(message = "Logged out. This device is disconnected.")
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
                     isSubmitting = false,
+                    showLogoutConfirmation = false,
                     errorMessage = error.message ?: "Logout failed."
                 )
             }
@@ -112,9 +142,20 @@ class AccountStatusViewModel(
     }
 }
 
+private sealed interface CurrentWorkspaceRetryAction {
+    data class CompleteLink(
+        val selection: CloudWorkspaceLinkSelection
+    ) : CurrentWorkspaceRetryAction
+
+    data class SyncOnly(
+        val workspaceTitle: String
+    ) : CurrentWorkspaceRetryAction
+}
+
 private data class CurrentWorkspaceDraftState(
-    val isLoading: Boolean,
-    val isSwitching: Boolean,
+    val operation: CurrentWorkspaceOperation,
+    val pendingWorkspaceTitle: String?,
+    val retryAction: CurrentWorkspaceRetryAction?,
     val errorMessage: String,
     val workspaces: List<CloudWorkspaceSummary>
 )
@@ -122,12 +163,14 @@ private data class CurrentWorkspaceDraftState(
 class CurrentWorkspaceViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
+    private val messageController: TransientMessageController,
     workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = CurrentWorkspaceDraftState(
-            isLoading = false,
-            isSwitching = false,
+            operation = CurrentWorkspaceOperation.IDLE,
+            pendingWorkspaceTitle = null,
+            retryAction = null,
             errorMessage = "",
             workspaces = emptyList()
         )
@@ -144,8 +187,12 @@ class CurrentWorkspaceViewModel(
             linkedEmail = cloudSettings.linkedEmail,
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
-            isLoading = draft.isLoading,
-            isSwitching = draft.isSwitching,
+            isLoading = draft.operation == CurrentWorkspaceOperation.LOADING,
+            isSwitching = draft.operation == CurrentWorkspaceOperation.SWITCHING
+                || draft.operation == CurrentWorkspaceOperation.SYNCING,
+            operation = draft.operation,
+            pendingWorkspaceTitle = draft.pendingWorkspaceTitle,
+            canRetryLastWorkspaceAction = draft.retryAction != null,
             errorMessage = draft.errorMessage,
             workspaces = buildCurrentWorkspaceItems(
                 currentWorkspaceName = metadata.currentWorkspaceName,
@@ -163,18 +210,32 @@ class CurrentWorkspaceViewModel(
             isLinkingReady = false,
             isLoading = false,
             isSwitching = false,
+            operation = CurrentWorkspaceOperation.IDLE,
+            pendingWorkspaceTitle = null,
+            canRetryLastWorkspaceAction = false,
             errorMessage = "",
             workspaces = emptyList()
         )
     )
 
     suspend fun loadWorkspaces() {
-        draftState.update { state -> state.copy(isLoading = true, errorMessage = "") }
+        val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
+        if (cloudSettings.cloudState != CloudAccountState.LINKED) {
+            messageController.showMessage(message = "Sign in to load linked workspaces.")
+            return
+        }
+
+        draftState.update { state ->
+            state.copy(
+                operation = CurrentWorkspaceOperation.LOADING,
+                errorMessage = ""
+            )
+        }
         try {
             val workspaces = cloudAccountRepository.listLinkedWorkspaces()
             draftState.update { state ->
                 state.copy(
-                    isLoading = false,
+                    operation = CurrentWorkspaceOperation.IDLE,
                     errorMessage = "",
                     workspaces = workspaces
                 )
@@ -182,7 +243,7 @@ class CurrentWorkspaceViewModel(
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
-                    isLoading = false,
+                    operation = CurrentWorkspaceOperation.IDLE,
                     errorMessage = error.message ?: "Could not load linked workspaces."
                 )
             }
@@ -190,17 +251,66 @@ class CurrentWorkspaceViewModel(
     }
 
     suspend fun switchWorkspace(selection: CloudWorkspaceLinkSelection) {
-        draftState.update { state -> state.copy(isSwitching = true, errorMessage = "") }
+        draftState.update { state ->
+            state.copy(
+                operation = CurrentWorkspaceOperation.SWITCHING,
+                pendingWorkspaceTitle = workspaceSelectionTitle(
+                    selection = selection,
+                    workspaces = state.workspaces
+                ),
+                retryAction = CurrentWorkspaceRetryAction.CompleteLink(selection = selection),
+                errorMessage = ""
+            )
+        }
         try {
-            cloudAccountRepository.switchLinkedWorkspace(selection)
-            syncRepository.syncNow()
-            draftState.update { state -> state.copy(isSwitching = false, errorMessage = "") }
-            loadWorkspaces()
+            val workspace = cloudAccountRepository.switchLinkedWorkspace(selection)
+            runWorkspaceSync(workspaceTitle = workspace.name)
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
-                    isSwitching = false,
+                    operation = CurrentWorkspaceOperation.IDLE,
                     errorMessage = error.message ?: "Workspace switch failed."
+                )
+            }
+        }
+    }
+
+    suspend fun retryLastWorkspaceAction() {
+        when (val retryAction = draftState.value.retryAction) {
+            null -> Unit
+            is CurrentWorkspaceRetryAction.CompleteLink -> switchWorkspace(selection = retryAction.selection)
+            is CurrentWorkspaceRetryAction.SyncOnly -> runWorkspaceSync(workspaceTitle = retryAction.workspaceTitle)
+        }
+    }
+
+    private suspend fun runWorkspaceSync(workspaceTitle: String) {
+        draftState.update { state ->
+            state.copy(
+                operation = CurrentWorkspaceOperation.SYNCING,
+                pendingWorkspaceTitle = workspaceTitle,
+                retryAction = CurrentWorkspaceRetryAction.SyncOnly(workspaceTitle = workspaceTitle),
+                errorMessage = ""
+            )
+        }
+
+        try {
+            syncRepository.syncNow()
+            val workspaces = cloudAccountRepository.listLinkedWorkspaces()
+            draftState.update { state ->
+                state.copy(
+                    operation = CurrentWorkspaceOperation.IDLE,
+                    pendingWorkspaceTitle = null,
+                    retryAction = null,
+                    errorMessage = "",
+                    workspaces = workspaces
+                )
+            }
+            messageController.showMessage(message = "Current workspace is now $workspaceTitle.")
+        } catch (error: Exception) {
+            draftState.update { state ->
+                state.copy(
+                    operation = CurrentWorkspaceOperation.IDLE,
+                    errorMessage = error.message ?: "Workspace sync failed."
                 )
             }
         }
@@ -354,17 +464,37 @@ class ServerSettingsViewModel(
     }
 }
 
+private sealed interface CloudPostAuthRetryAction {
+    data class CompleteLink(
+        val selection: CloudWorkspaceLinkSelection
+    ) : CloudPostAuthRetryAction
+
+    data class SyncOnly(
+        val workspaceTitle: String
+    ) : CloudPostAuthRetryAction
+}
+
 private data class CloudSignInDraftState(
     val email: String,
     val code: String,
     val challenge: CloudOtpChallenge?,
     val isSendingCode: Boolean,
     val isVerifyingCode: Boolean,
-    val errorMessage: String
+    val errorMessage: String,
+    val verifiedEmail: String?,
+    val availableWorkspaces: List<CloudWorkspaceSummary>,
+    val pendingSelection: CloudWorkspaceLinkSelection?,
+    val processingTitle: String,
+    val processingMessage: String,
+    val postAuthErrorMessage: String,
+    val retryAction: CloudPostAuthRetryAction?,
+    val completionToken: Long?
 )
 
 class CloudSignInViewModel(
-    private val cloudAccountRepository: CloudAccountRepository
+    private val cloudAccountRepository: CloudAccountRepository,
+    private val syncRepository: SyncRepository,
+    private val messageController: TransientMessageController
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = CloudSignInDraftState(
@@ -373,7 +503,15 @@ class CloudSignInViewModel(
             challenge = null,
             isSendingCode = false,
             isVerifyingCode = false,
-            errorMessage = ""
+            errorMessage = "",
+            verifiedEmail = null,
+            availableWorkspaces = emptyList(),
+            pendingSelection = null,
+            processingTitle = "",
+            processingMessage = "",
+            postAuthErrorMessage = "",
+            retryAction = null,
+            completionToken = null
         )
     )
 
@@ -400,6 +538,48 @@ class CloudSignInViewModel(
         )
     )
 
+    val postAuthUiState: StateFlow<CloudPostAuthUiState> = draftState.mapToStateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        transform = { draft ->
+            CloudPostAuthUiState(
+                mode = when {
+                    draft.postAuthErrorMessage.isNotEmpty() -> CloudPostAuthMode.FAILED
+                    draft.processingTitle.isNotEmpty() -> CloudPostAuthMode.PROCESSING
+                    draft.pendingSelection != null -> CloudPostAuthMode.READY_TO_AUTO_LINK
+                    draft.verifiedEmail != null && draft.availableWorkspaces.size > 1 -> CloudPostAuthMode.CHOOSE_WORKSPACE
+                    else -> CloudPostAuthMode.IDLE
+                },
+                verifiedEmail = draft.verifiedEmail,
+                workspaces = buildCloudPostAuthWorkspaceItems(workspaces = draft.availableWorkspaces),
+                pendingWorkspaceTitle = draft.pendingSelection?.let { selection ->
+                    workspaceSelectionTitle(
+                        selection = selection,
+                        workspaces = draft.availableWorkspaces
+                    )
+                },
+                processingTitle = draft.processingTitle,
+                processingMessage = draft.processingMessage,
+                errorMessage = draft.postAuthErrorMessage,
+                canRetry = draft.retryAction != null,
+                canLogout = draft.verifiedEmail != null,
+                completionToken = draft.completionToken
+            )
+        },
+        initialValue = CloudPostAuthUiState(
+            mode = CloudPostAuthMode.IDLE,
+            verifiedEmail = null,
+            workspaces = emptyList(),
+            pendingWorkspaceTitle = null,
+            processingTitle = "",
+            processingMessage = "",
+            errorMessage = "",
+            canRetry = false,
+            canLogout = false,
+            completionToken = null
+        )
+    )
+
     fun updateEmail(email: String) {
         draftState.update { state -> state.copy(email = email, errorMessage = "") }
     }
@@ -417,7 +597,8 @@ class CloudSignInViewModel(
                         state.copy(
                             isSendingCode = false,
                             errorMessage = "",
-                            challenge = result.challenge
+                            challenge = result.challenge,
+                            completionToken = null
                         )
                     }
                     true
@@ -445,7 +626,7 @@ class CloudSignInViewModel(
         }
     }
 
-    suspend fun verifyCode(): List<CloudWorkspaceSummary> {
+    suspend fun verifyCode(): Boolean {
         val challenge = requireNotNull(draftState.value.challenge) {
             "Request a sign-in code first."
         }
@@ -455,8 +636,25 @@ class CloudSignInViewModel(
                 challenge = challenge,
                 code = draftState.value.code
             )
-            draftState.update { state -> state.copy(isVerifyingCode = false, errorMessage = "") }
-            workspaces
+            draftState.update { state ->
+                state.copy(
+                    isVerifyingCode = false,
+                    errorMessage = "",
+                    verifiedEmail = challenge.email,
+                    availableWorkspaces = workspaces,
+                    pendingSelection = when (workspaces.size) {
+                        0 -> CloudWorkspaceLinkSelection.CreateNew
+                        1 -> CloudWorkspaceLinkSelection.Existing(workspaceId = workspaces.first().workspaceId)
+                        else -> null
+                    },
+                    processingTitle = "",
+                    processingMessage = "",
+                    postAuthErrorMessage = "",
+                    retryAction = null,
+                    completionToken = null
+                )
+            }
+            true
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
@@ -464,7 +662,121 @@ class CloudSignInViewModel(
                     errorMessage = error.message ?: "Could not verify the code."
                 )
             }
-            emptyList()
+            false
+        }
+    }
+
+    suspend fun completePendingPostAuthIfNeeded() {
+        val selection = draftState.value.pendingSelection ?: return
+        if (draftState.value.processingTitle.isNotEmpty() || draftState.value.postAuthErrorMessage.isNotEmpty()) {
+            return
+        }
+        completePostAuth(selection = selection)
+    }
+
+    suspend fun selectPostAuthWorkspace(selection: CloudWorkspaceLinkSelection) {
+        completePostAuth(selection = selection)
+    }
+
+    suspend fun retryPostAuth() {
+        when (val retryAction = draftState.value.retryAction) {
+            null -> Unit
+            is CloudPostAuthRetryAction.CompleteLink -> completePostAuth(selection = retryAction.selection)
+            is CloudPostAuthRetryAction.SyncOnly -> runPostAuthSyncOnly(workspaceTitle = retryAction.workspaceTitle)
+        }
+    }
+
+    suspend fun logoutAfterPostAuthFailure() {
+        cloudAccountRepository.logout()
+        clearPostAuthState()
+        messageController.showMessage(message = "Signed-in setup was cancelled. This device is disconnected.")
+    }
+
+    fun acknowledgePostAuthCompletion() {
+        draftState.update { state ->
+            state.copy(completionToken = null)
+        }
+    }
+
+    private suspend fun completePostAuth(selection: CloudWorkspaceLinkSelection) {
+        draftState.update { state ->
+            state.copy(
+                pendingSelection = null,
+                processingTitle = "Linking workspace",
+                processingMessage = "Preparing your cloud workspace on this Android device.",
+                postAuthErrorMessage = "",
+                retryAction = CloudPostAuthRetryAction.CompleteLink(selection = selection)
+            )
+        }
+
+        try {
+            val workspace = cloudAccountRepository.switchLinkedWorkspace(selection = selection)
+            runPostAuthSyncOnly(workspaceTitle = workspace.name)
+        } catch (error: Exception) {
+            draftState.update { state ->
+                state.copy(
+                    processingTitle = "",
+                    processingMessage = "",
+                    postAuthErrorMessage = error.message ?: "Cloud workspace setup failed."
+                )
+            }
+        }
+    }
+
+    private suspend fun runPostAuthSyncOnly(workspaceTitle: String) {
+        draftState.update { state ->
+            state.copy(
+                processingTitle = "Syncing workspace",
+                processingMessage = "Keep this screen open while Android finishes the initial cloud sync.",
+                postAuthErrorMessage = "",
+                retryAction = CloudPostAuthRetryAction.SyncOnly(workspaceTitle = workspaceTitle)
+            )
+        }
+
+        try {
+            syncRepository.syncNow()
+            draftState.update { state ->
+                state.copy(
+                    email = "",
+                    code = "",
+                    challenge = null,
+                    availableWorkspaces = emptyList(),
+                    pendingSelection = null,
+                    processingTitle = "",
+                    processingMessage = "",
+                    postAuthErrorMessage = "",
+                    retryAction = null,
+                    completionToken = System.currentTimeMillis()
+                )
+            }
+            messageController.showMessage(message = "Signed in and synced $workspaceTitle.")
+        } catch (error: Exception) {
+            draftState.update { state ->
+                state.copy(
+                    processingTitle = "",
+                    processingMessage = "",
+                    postAuthErrorMessage = error.message ?: "Initial sync failed."
+                )
+            }
+        }
+    }
+
+    private fun clearPostAuthState() {
+        draftState.update { state ->
+            state.copy(
+                email = "",
+                code = "",
+                challenge = null,
+                verifiedEmail = null,
+                availableWorkspaces = emptyList(),
+                pendingSelection = null,
+                processingTitle = "",
+                processingMessage = "",
+                postAuthErrorMessage = "",
+                retryAction = null,
+                completionToken = null,
+                errorMessage = ""
+            )
         }
     }
 }
@@ -592,6 +904,7 @@ class AgentConnectionsViewModel(
 private data class AccountDangerZoneDraftState(
     val confirmationText: String,
     val isDeleting: Boolean,
+    val deleteState: DestructiveActionState,
     val errorMessage: String,
     val successMessage: String,
     val showDeleteConfirmation: Boolean
@@ -604,6 +917,7 @@ class AccountDangerZoneViewModel(
         value = AccountDangerZoneDraftState(
             confirmationText = "",
             isDeleting = false,
+            deleteState = DestructiveActionState.IDLE,
             errorMessage = "",
             successMessage = "",
             showDeleteConfirmation = false
@@ -618,6 +932,7 @@ class AccountDangerZoneViewModel(
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             confirmationText = draft.confirmationText,
             isDeleting = draft.isDeleting,
+            deleteState = draft.deleteState,
             errorMessage = draft.errorMessage,
             successMessage = draft.successMessage,
             showDeleteConfirmation = draft.showDeleteConfirmation
@@ -629,6 +944,7 @@ class AccountDangerZoneViewModel(
             isLinked = false,
             confirmationText = "",
             isDeleting = false,
+            deleteState = DestructiveActionState.IDLE,
             errorMessage = "",
             successMessage = "",
             showDeleteConfirmation = false
@@ -639,6 +955,7 @@ class AccountDangerZoneViewModel(
         draftState.update { state ->
             state.copy(
                 showDeleteConfirmation = true,
+                deleteState = DestructiveActionState.IDLE,
                 errorMessage = "",
                 successMessage = ""
             )
@@ -658,6 +975,11 @@ class AccountDangerZoneViewModel(
         draftState.update { state ->
             state.copy(
                 confirmationText = value,
+                deleteState = if (state.errorMessage.isEmpty()) {
+                    state.deleteState
+                } else {
+                    DestructiveActionState.IDLE
+                },
                 errorMessage = "",
                 successMessage = ""
             )
@@ -675,6 +997,7 @@ class AccountDangerZoneViewModel(
         draftState.update { state ->
             state.copy(
                 isDeleting = true,
+                deleteState = DestructiveActionState.IN_PROGRESS,
                 errorMessage = "",
                 successMessage = ""
             )
@@ -686,6 +1009,7 @@ class AccountDangerZoneViewModel(
                 state.copy(
                     confirmationText = "",
                     isDeleting = false,
+                    deleteState = DestructiveActionState.IDLE,
                     errorMessage = "",
                     successMessage = "Account deleted. This device is now disconnected.",
                     showDeleteConfirmation = false
@@ -696,6 +1020,7 @@ class AccountDangerZoneViewModel(
             draftState.update { state ->
                 state.copy(
                     isDeleting = false,
+                    deleteState = DestructiveActionState.FAILED,
                     errorMessage = error.message ?: "Account deletion failed.",
                     successMessage = ""
                 )
@@ -846,13 +1171,15 @@ class WorkspaceExportViewModel(
 fun createAccountStatusViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    syncRepository: SyncRepository
+    syncRepository: SyncRepository,
+    messageController: TransientMessageController
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             AccountStatusViewModel(
                 cloudAccountRepository = cloudAccountRepository,
                 syncRepository = syncRepository,
+                messageController = messageController,
                 workspaceRepository = workspaceRepository
             )
         }
@@ -862,23 +1189,33 @@ fun createAccountStatusViewModelFactory(
 fun createCurrentWorkspaceViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    syncRepository: SyncRepository
+    syncRepository: SyncRepository,
+    messageController: TransientMessageController
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             CurrentWorkspaceViewModel(
                 cloudAccountRepository = cloudAccountRepository,
                 syncRepository = syncRepository,
+                messageController = messageController,
                 workspaceRepository = workspaceRepository
             )
         }
     }
 }
 
-fun createCloudSignInViewModelFactory(cloudAccountRepository: CloudAccountRepository): ViewModelProvider.Factory {
+fun createCloudSignInViewModelFactory(
+    cloudAccountRepository: CloudAccountRepository,
+    syncRepository: SyncRepository,
+    messageController: TransientMessageController
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            CloudSignInViewModel(cloudAccountRepository = cloudAccountRepository)
+            CloudSignInViewModel(
+                cloudAccountRepository = cloudAccountRepository,
+                syncRepository = syncRepository,
+                messageController = messageController
+            )
         }
     }
 }
@@ -940,6 +1277,18 @@ private fun displayCloudAccountStateTitle(cloudState: CloudAccountState): String
     }
 }
 
+private fun workspaceSelectionTitle(
+    selection: CloudWorkspaceLinkSelection,
+    workspaces: List<CloudWorkspaceSummary>
+): String {
+    return when (selection) {
+        is CloudWorkspaceLinkSelection.Existing -> workspaces.firstOrNull { workspace ->
+            workspace.workspaceId == selection.workspaceId
+        }?.name ?: "Selected workspace"
+        CloudWorkspaceLinkSelection.CreateNew -> "New workspace"
+    }
+}
+
 private fun buildCurrentWorkspaceItems(
     currentWorkspaceName: String,
     workspaces: List<CloudWorkspaceSummary>
@@ -954,6 +1303,26 @@ private fun buildCurrentWorkspaceItems(
         )
     }
     return items + CurrentWorkspaceItemUiState(
+        workspaceId = "create-new",
+        title = "Create new workspace",
+        subtitle = "Start a new linked workspace in the cloud",
+        isSelected = false,
+        isCreateNew = true
+    )
+}
+
+private fun buildCloudPostAuthWorkspaceItems(
+    workspaces: List<CloudWorkspaceSummary>
+): List<CurrentWorkspaceItemUiState> {
+    return workspaces.map { workspace ->
+        CurrentWorkspaceItemUiState(
+            workspaceId = workspace.workspaceId,
+            title = workspace.name,
+            subtitle = formatTimestampLabel(workspace.createdAtMillis),
+            isSelected = false,
+            isCreateNew = false
+        )
+    } + CurrentWorkspaceItemUiState(
         workspaceId = "create-new",
         title = "Create new workspace",
         subtitle = "Start a new linked workspace in the cloud",

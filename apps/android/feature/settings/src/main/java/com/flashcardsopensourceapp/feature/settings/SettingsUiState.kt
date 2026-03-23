@@ -1,5 +1,26 @@
 package com.flashcardsopensourceapp.feature.settings
 
+enum class CurrentWorkspaceOperation {
+    IDLE,
+    LOADING,
+    SWITCHING,
+    SYNCING
+}
+
+enum class DestructiveActionState {
+    IDLE,
+    IN_PROGRESS,
+    FAILED
+}
+
+enum class CloudPostAuthMode {
+    IDLE,
+    READY_TO_AUTO_LINK,
+    CHOOSE_WORKSPACE,
+    PROCESSING,
+    FAILED
+}
+
 data class SettingsUiState(
     val currentWorkspaceName: String,
     val workspaceName: String,
@@ -19,6 +40,7 @@ data class AccountStatusUiState(
     val lastSuccessfulSync: String,
     val isLinked: Boolean,
     val isLinkingReady: Boolean,
+    val showLogoutConfirmation: Boolean,
     val errorMessage: String,
     val isSubmitting: Boolean
 )
@@ -31,6 +53,9 @@ data class CurrentWorkspaceUiState(
     val isLinkingReady: Boolean,
     val isLoading: Boolean,
     val isSwitching: Boolean,
+    val operation: CurrentWorkspaceOperation,
+    val pendingWorkspaceTitle: String?,
+    val canRetryLastWorkspaceAction: Boolean,
     val errorMessage: String,
     val workspaces: List<CurrentWorkspaceItemUiState>
 )
@@ -63,6 +88,19 @@ data class CloudSignInUiState(
     val challengeEmail: String?
 )
 
+data class CloudPostAuthUiState(
+    val mode: CloudPostAuthMode,
+    val verifiedEmail: String?,
+    val workspaces: List<CurrentWorkspaceItemUiState>,
+    val pendingWorkspaceTitle: String?,
+    val processingTitle: String,
+    val processingMessage: String,
+    val errorMessage: String,
+    val canRetry: Boolean,
+    val canLogout: Boolean,
+    val completionToken: Long?
+)
+
 data class AgentConnectionsUiState(
     val isLinked: Boolean,
     val isLoading: Boolean,
@@ -85,6 +123,7 @@ data class AccountDangerZoneUiState(
     val isLinked: Boolean,
     val confirmationText: String,
     val isDeleting: Boolean,
+    val deleteState: DestructiveActionState,
     val errorMessage: String,
     val successMessage: String,
     val showDeleteConfirmation: Boolean

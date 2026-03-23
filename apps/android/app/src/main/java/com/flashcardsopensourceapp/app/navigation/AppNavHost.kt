@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.navigation
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -11,6 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -46,6 +48,7 @@ import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.CloudSignInCodeRoute
 import com.flashcardsopensourceapp.feature.settings.CloudSignInEmailRoute
+import com.flashcardsopensourceapp.feature.settings.CloudPostAuthRoute
 import com.flashcardsopensourceapp.feature.settings.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.DeckDetailRoute
 import com.flashcardsopensourceapp.feature.settings.DeckEditorRoute
@@ -71,6 +74,15 @@ import com.flashcardsopensourceapp.feature.settings.createWorkspaceTagsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+@Composable
+private fun rememberRouteBackStackEntry(
+    navController: NavHostController,
+    currentBackStackEntry: NavBackStackEntry,
+    route: String
+): NavBackStackEntry = remember(currentBackStackEntry) {
+    navController.getBackStackEntry(route)
+}
 
 @Composable
 fun AppNavHost(
@@ -114,10 +126,12 @@ fun AppNavHost(
             )
         }
 
-        composable(route = ReviewPreviewDestination.route) {
-            val reviewBackStackEntry = remember(navController) {
-                navController.getBackStackEntry(ReviewDestination.route)
-            }
+        composable(route = ReviewPreviewDestination.route) { backStackEntry ->
+            val reviewBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = ReviewDestination.route
+            )
             val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
                 viewModelStoreOwner = reviewBackStackEntry,
                 factory = createReviewViewModelFactory(reviewRepository = appGraph.reviewRepository)
@@ -259,9 +273,11 @@ fun AppNavHost(
             ) {
                 "Card text editor route requires field."
             }
-            val editorBackStackEntry = remember(navController, editingArgument) {
-                navController.getBackStackEntry(CardEditorDestination.createRoute(cardId = editingArgument))
-            }
+            val editorBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = CardEditorDestination.createRoute(cardId = editingArgument)
+            )
             val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
                 viewModelStoreOwner = editorBackStackEntry,
                 factory = createCardEditorViewModelFactory(
@@ -302,9 +318,11 @@ fun AppNavHost(
             ) {
                 "Card tags route requires cardId."
             }
-            val editorBackStackEntry = remember(navController, editingArgument) {
-                navController.getBackStackEntry(CardEditorDestination.createRoute(cardId = editingArgument))
-            }
+            val editorBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = CardEditorDestination.createRoute(cardId = editingArgument)
+            )
             val editorViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardEditorViewModel>(
                 viewModelStoreOwner = editorBackStackEntry,
                 factory = createCardEditorViewModelFactory(
@@ -392,7 +410,8 @@ fun AppNavHost(
                 factory = createCurrentWorkspaceViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
-                    syncRepository = appGraph.syncRepository
+                    syncRepository = appGraph.syncRepository,
+                    messageController = appGraph.appMessageBus
                 )
             )
             val uiState by currentWorkspaceViewModel.uiState.collectAsStateWithLifecycle()
@@ -421,7 +440,13 @@ fun AppNavHost(
                     }
                 },
                 onOpenSignIn = {
+                    appGraph.appMessageBus.showMessage(message = "Sign in to manage linked workspaces.")
                     navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                },
+                onRetryLastWorkspaceAction = {
+                    coroutineScope.launch {
+                        currentWorkspaceViewModel.retryLastWorkspaceAction()
+                    }
                 }
             )
         }
@@ -457,7 +482,8 @@ fun AppNavHost(
                 factory = createWorkspaceOverviewViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
-                    syncRepository = appGraph.syncRepository
+                    syncRepository = appGraph.syncRepository,
+                    messageController = appGraph.appMessageBus
                 )
             )
             val uiState by workspaceOverviewViewModel.uiState.collectAsStateWithLifecycle()
@@ -647,10 +673,12 @@ fun AppNavHost(
             WorkspaceExportRoute(viewModel = workspaceExportViewModel)
         }
 
-        composable(route = SettingsAccountDestination.route) {
-            val settingsBackStackEntry = remember(navController) {
-                navController.getBackStackEntry(SettingsDestination.route)
-            }
+        composable(route = SettingsAccountDestination.route) { backStackEntry ->
+            val settingsBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = SettingsDestination.route
+            )
             val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
                 viewModelStoreOwner = settingsBackStackEntry,
                 factory = createSettingsViewModelFactory(
@@ -688,7 +716,8 @@ fun AppNavHost(
                 factory = createAccountStatusViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
-                    syncRepository = appGraph.syncRepository
+                    syncRepository = appGraph.syncRepository,
+                    messageController = appGraph.appMessageBus
                 )
             )
             val uiState by accountStatusViewModel.uiState.collectAsStateWithLifecycle()
@@ -703,9 +732,11 @@ fun AppNavHost(
                         accountStatusViewModel.syncNow()
                     }
                 },
-                onLogout = {
+                onRequestLogout = accountStatusViewModel::requestLogoutConfirmation,
+                onDismissLogoutConfirmation = accountStatusViewModel::dismissLogoutConfirmation,
+                onConfirmLogout = {
                     coroutineScope.launch {
-                        accountStatusViewModel.logout()
+                        accountStatusViewModel.confirmLogout()
                     }
                 }
             )
@@ -751,7 +782,9 @@ fun AppNavHost(
         composable(route = SettingsAccountSignInEmailDestination.route) {
             val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CloudSignInViewModel>(
                 factory = createCloudSignInViewModelFactory(
-                    cloudAccountRepository = appGraph.cloudAccountRepository
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    syncRepository = appGraph.syncRepository,
+                    messageController = appGraph.appMessageBus
                 )
             )
             val uiState by signInViewModel.uiState.collectAsStateWithLifecycle()
@@ -770,14 +803,18 @@ fun AppNavHost(
             )
         }
 
-        composable(route = SettingsAccountSignInCodeDestination.route) {
-            val emailRouteBackStackEntry = remember(navController) {
-                navController.getBackStackEntry(SettingsAccountSignInEmailDestination.route)
-            }
+        composable(route = SettingsAccountSignInCodeDestination.route) { backStackEntry ->
+            val emailRouteBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = SettingsAccountSignInEmailDestination.route
+            )
             val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CloudSignInViewModel>(
                 viewModelStoreOwner = emailRouteBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
-                    cloudAccountRepository = appGraph.cloudAccountRepository
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    syncRepository = appGraph.syncRepository,
+                    messageController = appGraph.appMessageBus
                 )
             )
             val uiState by signInViewModel.uiState.collectAsStateWithLifecycle()
@@ -787,34 +824,59 @@ fun AppNavHost(
                 onCodeChange = signInViewModel::updateCode,
                 onVerifyCode = {
                     coroutineScope.launch {
-                        val workspaces = signInViewModel.verifyCode()
-                        when {
-                            workspaces.isEmpty() -> {
-                                appGraph.cloudAccountRepository.switchLinkedWorkspace(
-                                    selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.CreateNew
-                                )
-                                appGraph.syncRepository.syncNow()
-                                navController.popBackStack(route = SettingsAccountDestination.route, inclusive = false)
-                            }
-
-                            workspaces.size == 1 -> {
-                                appGraph.cloudAccountRepository.switchLinkedWorkspace(
-                                    selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.Existing(
-                                        workspaceId = workspaces.first().workspaceId
-                                    )
-                                )
-                                appGraph.syncRepository.syncNow()
-                                navController.popBackStack(route = SettingsAccountDestination.route, inclusive = false)
-                            }
-
-                            else -> {
-                                navController.navigate(route = SettingsCurrentWorkspaceDestination.route) {
-                                    popUpTo(route = SettingsAccountSignInEmailDestination.route) {
-                                        inclusive = true
-                                    }
-                                }
-                            }
+                        val didVerify = signInViewModel.verifyCode()
+                        if (didVerify) {
+                            navController.navigate(route = SettingsAccountPostAuthDestination.route)
                         }
+                    }
+                }
+            )
+        }
+
+        composable(route = SettingsAccountPostAuthDestination.route) { backStackEntry ->
+            val emailRouteBackStackEntry = rememberRouteBackStackEntry(
+                navController = navController,
+                currentBackStackEntry = backStackEntry,
+                route = SettingsAccountSignInEmailDestination.route
+            )
+            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CloudSignInViewModel>(
+                viewModelStoreOwner = emailRouteBackStackEntry,
+                factory = createCloudSignInViewModelFactory(
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    syncRepository = appGraph.syncRepository,
+                    messageController = appGraph.appMessageBus
+                )
+            )
+            val uiState by signInViewModel.postAuthUiState.collectAsStateWithLifecycle()
+
+            if (uiState.completionToken != null) {
+                LaunchedEffect(uiState.completionToken) {
+                    signInViewModel.acknowledgePostAuthCompletion()
+                    navController.popBackStack(route = SettingsAccountDestination.route, inclusive = false)
+                }
+            }
+
+            CloudPostAuthRoute(
+                uiState = uiState,
+                onAutoContinue = {
+                    coroutineScope.launch {
+                        signInViewModel.completePendingPostAuthIfNeeded()
+                    }
+                },
+                onSelectWorkspace = { selection ->
+                    coroutineScope.launch {
+                        signInViewModel.selectPostAuthWorkspace(selection = selection)
+                    }
+                },
+                onRetry = {
+                    coroutineScope.launch {
+                        signInViewModel.retryPostAuth()
+                    }
+                },
+                onLogout = {
+                    coroutineScope.launch {
+                        signInViewModel.logoutAfterPostAuthFailure()
+                        navController.popBackStack(route = SettingsAccountDestination.route, inclusive = false)
                     }
                 }
             )
@@ -866,7 +928,12 @@ fun AppNavHost(
                 onConfirmationTextChange = accountDangerZoneViewModel::updateConfirmationText,
                 onDeleteAccount = {
                     coroutineScope.launch {
-                        accountDangerZoneViewModel.deleteAccount()
+                        val didDelete = accountDangerZoneViewModel.deleteAccount()
+                        if (didDelete) {
+                            appGraph.appMessageBus.showMessage(
+                                message = "Account deleted. This device is now disconnected."
+                            )
+                        }
                     }
                 }
             )

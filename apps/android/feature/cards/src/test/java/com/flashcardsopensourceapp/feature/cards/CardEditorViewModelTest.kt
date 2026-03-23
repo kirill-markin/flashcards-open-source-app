@@ -198,6 +198,7 @@ private class FakeWorkspaceRepository(
     override fun observeAppMetadata(): Flow<AppMetadataSummary> {
         return flowOf(
             AppMetadataSummary(
+                currentWorkspaceName = "Workspace",
                 workspaceName = "Workspace",
                 deckCount = 0,
                 cardCount = 0,
@@ -260,6 +261,7 @@ private fun sampleCard(
         fsrsStability = null,
         fsrsDifficulty = null,
         fsrsLastReviewedAtMillis = null,
-        fsrsScheduledDays = null
+        fsrsScheduledDays = null,
+        deletedAtMillis = null
     )
 }

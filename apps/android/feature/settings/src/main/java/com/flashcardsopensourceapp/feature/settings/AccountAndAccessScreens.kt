@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -208,7 +210,9 @@ fun AccountStatusRoute(
     uiState: AccountStatusUiState,
     onOpenSignIn: () -> Unit,
     onSyncNow: () -> Unit,
-    onLogout: () -> Unit
+    onRequestLogout: () -> Unit,
+    onDismissLogoutConfirmation: () -> Unit,
+    onConfirmLogout: () -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -289,7 +293,7 @@ fun AccountStatusRoute(
                             Text(if (uiState.isSubmitting) "Syncing..." else "Sync now")
                         }
                         OutlinedButton(
-                            onClick = onLogout,
+                            onClick = onRequestLogout,
                             enabled = uiState.isSubmitting.not(),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -300,6 +304,38 @@ fun AccountStatusRoute(
             }
         }
     }
+
+    if (uiState.showLogoutConfirmation) {
+        AlertDialog(
+            onDismissRequest = {
+                if (uiState.isSubmitting.not()) {
+                    onDismissLogoutConfirmation()
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = onConfirmLogout,
+                    enabled = uiState.isSubmitting.not()
+                ) {
+                    Text(if (uiState.isSubmitting) "Logging out..." else "Log out")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDismissLogoutConfirmation,
+                    enabled = uiState.isSubmitting.not()
+                ) {
+                    Text("Cancel")
+                }
+            },
+            title = {
+                Text("Log out and clear this device?")
+            },
+            text = {
+                Text("All local workspaces and synced data will be removed from this device.")
+            }
+        )
+    }
 }
 
 @Composable
@@ -308,8 +344,15 @@ fun CurrentWorkspaceRoute(
     onReload: () -> Unit,
     onSwitchToExistingWorkspace: (String) -> Unit,
     onCreateWorkspace: () -> Unit,
-    onOpenSignIn: () -> Unit
+    onOpenSignIn: () -> Unit,
+    onRetryLastWorkspaceAction: () -> Unit
 ) {
+    LaunchedEffect(uiState.isLinked, uiState.workspaces.isEmpty(), uiState.isLoading) {
+        if (uiState.isLinked && uiState.workspaces.isEmpty() && uiState.isLoading.not()) {
+            onReload()
+        }
+    }
+
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -333,6 +376,17 @@ fun CurrentWorkspaceRoute(
                     if (uiState.linkedEmail != null) {
                         Text(
                             text = uiState.linkedEmail,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (uiState.pendingWorkspaceTitle != null) {
+                        Text(
+                            text = when (uiState.operation) {
+                                CurrentWorkspaceOperation.SWITCHING -> "Switching to ${uiState.pendingWorkspaceTitle}..."
+                                CurrentWorkspaceOperation.SYNCING -> "Syncing ${uiState.pendingWorkspaceTitle}..."
+                                CurrentWorkspaceOperation.IDLE,
+                                CurrentWorkspaceOperation.LOADING -> ""
+                            },
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -377,7 +431,10 @@ fun CurrentWorkspaceRoute(
                         }
 
                         uiState.isLoading -> {
-                            Text("Loading linked workspaces...")
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                CircularProgressIndicator()
+                                Text("Loading linked workspaces...")
+                            }
                         }
 
                         uiState.workspaces.isEmpty() -> {
@@ -410,6 +467,14 @@ fun CurrentWorkspaceRoute(
                                             workspace.title
                                         }
                                     )
+                                }
+                            }
+                            if (uiState.canRetryLastWorkspaceAction && uiState.errorMessage.isNotEmpty()) {
+                                OutlinedButton(
+                                    onClick = onRetryLastWorkspaceAction,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Retry last workspace action")
                                 }
                             }
                         }
@@ -656,6 +721,120 @@ fun CloudSignInCodeRoute(
 }
 
 @Composable
+fun CloudPostAuthRoute(
+    uiState: CloudPostAuthUiState,
+    onAutoContinue: () -> Unit,
+    onSelectWorkspace: (CloudWorkspaceLinkSelection) -> Unit,
+    onRetry: () -> Unit,
+    onLogout: () -> Unit
+) {
+    LaunchedEffect(uiState.mode, uiState.pendingWorkspaceTitle) {
+        if (uiState.mode == CloudPostAuthMode.READY_TO_AUTO_LINK) {
+            onAutoContinue()
+        }
+    }
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Finishing cloud setup",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (uiState.verifiedEmail != null) {
+                        Text(
+                            text = uiState.verifiedEmail,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    when (uiState.mode) {
+                        CloudPostAuthMode.READY_TO_AUTO_LINK -> {
+                            Text("Preparing ${uiState.pendingWorkspaceTitle ?: "your workspace"}...")
+                        }
+
+                        CloudPostAuthMode.CHOOSE_WORKSPACE -> {
+                            Text("Choose a linked workspace to open on this Android device, or create a new one.")
+                        }
+
+                        CloudPostAuthMode.PROCESSING -> {
+                            CircularProgressIndicator()
+                            Text(uiState.processingTitle)
+                            Text(
+                                text = uiState.processingMessage,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        CloudPostAuthMode.FAILED -> {
+                            Text(
+                                text = uiState.errorMessage,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+
+                        CloudPostAuthMode.IDLE -> {
+                            Text(
+                                text = "Cloud account setup is idle.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (uiState.mode == CloudPostAuthMode.CHOOSE_WORKSPACE) {
+            items(uiState.workspaces, key = { item -> item.workspaceId }) { workspace ->
+                OutlinedButton(
+                    onClick = {
+                        if (workspace.isCreateNew) {
+                            onSelectWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+                        } else {
+                            onSelectWorkspace(
+                                CloudWorkspaceLinkSelection.Existing(workspaceId = workspace.workspaceId)
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(workspace.title)
+                }
+            }
+        }
+
+        if (uiState.mode == CloudPostAuthMode.FAILED) {
+            item {
+                Button(
+                    onClick = onRetry,
+                    enabled = uiState.canRetry,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Retry")
+                }
+            }
+            item {
+                OutlinedButton(
+                    onClick = onLogout,
+                    enabled = uiState.canLogout,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Log out")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun AgentConnectionsRoute(
     uiState: AgentConnectionsUiState,
     onReload: () -> Unit,
@@ -828,6 +1007,9 @@ fun AccountDangerZoneRoute(
                         text = "Permanently delete this account and all cloud data.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (uiState.deleteState == DestructiveActionState.IN_PROGRESS) {
+                        CircularProgressIndicator()
+                    }
                     Button(
                         onClick = onRequestDeleteConfirmation,
                         enabled = uiState.isLinked && uiState.isDeleting.not(),
@@ -878,6 +1060,15 @@ fun AccountDangerZoneRoute(
                         text = "Warning! This action is permanent. Type the phrase below exactly to continue.",
                         color = MaterialTheme.colorScheme.error
                     )
+                    if (uiState.deleteState == DestructiveActionState.IN_PROGRESS) {
+                        CircularProgressIndicator()
+                    }
+                    if (uiState.deleteState == DestructiveActionState.FAILED && uiState.errorMessage.isNotEmpty()) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                     Text(
                         text = accountDeletionConfirmationText,
                         style = MaterialTheme.typography.bodyMedium
