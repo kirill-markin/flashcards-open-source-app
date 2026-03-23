@@ -650,18 +650,11 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
             timeoutNanoseconds: 2_000_000_000,
             pollNanoseconds: 20_000_000
         ) {
-            context.store.cloudRuntime.activeCloudSession()?.workspaceId == linkedSession.workspaceId
+            context.cloudSyncService.runLinkedSyncCallCount == 1
         }
 
         let syncTask = Task { @MainActor in
             await context.store.syncCloudIfLinked()
-        }
-
-        await FlashcardsStoreTestSupport.waitUntil(
-            timeoutNanoseconds: 2_000_000_000,
-            pollNanoseconds: 20_000_000
-        ) {
-            context.cloudSyncService.runLinkedSyncCallCount == 1
         }
 
         try await Task.sleep(nanoseconds: 50_000_000)
