@@ -379,6 +379,7 @@ enum class ReviewCardQueueStatus {
     RATED
 }
 
+// Keep in sync with apps/backend/src/schedule.ts::ReviewSchedule, apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::ReviewSchedule, and the Android scheduler mirror in SchedulerSupport.kt.
 data class ReviewSchedule(
     val dueAtMillis: Long?,
     val reps: Int,
@@ -391,6 +392,7 @@ data class ReviewSchedule(
     val fsrsScheduledDays: Int?
 )
 
+// Keep review answer option presentation aligned with apps/ios/Flashcards/Flashcards/ReviewAnswerSupport.swift and the Android scheduler mirror in SchedulerSupport.kt.
 data class ReviewAnswerOption(
     val rating: ReviewRating,
     val intervalDescription: String
