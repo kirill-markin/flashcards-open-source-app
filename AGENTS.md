@@ -29,6 +29,7 @@ If iOS tests are explicitly requested, run them only on one specific iPhone simu
 If that iPhone simulator runtime is not already available locally, do not run the tests and do not trigger extra runtime downloads or installations.
 For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.
 For Android, follow [apps/android/README.md](apps/android/README.md) for platform targets and testing focus. Tests should be run only against the final supported Android target, not against older API levels.
+Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, Android tests can be run by starting that emulator.
 
 ## Repository Strategy
 
