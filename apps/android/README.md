@@ -93,14 +93,6 @@ The first local draft uses:
 - Room on top of SQLite for local storage
 - Material 3 + Compose + Navigation Compose + `NavigationSuiteScaffold`
 
-## Partial Implementation Rule
-
-When work is intentionally incomplete, leave explicit comments in English using this format:
-
-`TODO: Port <specific logic> from <specific iOS file or feature>`
-
-The comment must identify the exact logic that still needs to be ported from iOS. Do not leave vague TODOs.
-
 ## Testing Rule
 
 Test only on the final supported Android target.

@@ -55,14 +55,6 @@ Avoid:
 - compatibility work for old iOS versions that we do not support
 - adding third-party dependencies when Apple APIs already cover the use case
 
-## Partial Implementation Rule
-
-When work is intentionally incomplete, leave explicit comments in English using this format:
-
-`TODO: Port <specific logic> from <specific iOS file or feature>`
-
-The comment must say exactly what is missing. Do not leave vague TODOs.
-
 ## Testing Rule
 
 Only test the app against the final supported iOS target.

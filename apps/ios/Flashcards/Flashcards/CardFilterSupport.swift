@@ -91,6 +91,7 @@ func isCardReviewed(card: Card) -> Bool {
 }
 
 func matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card) -> Bool {
+    // Keep deck matching semantics aligned with apps/web/src/appData/domain.ts::matchesDeckFilterDefinition and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FilterSupport.kt::matchesDeckFilterDefinition.
     if filterDefinition.effortLevels.isEmpty == false && filterDefinition.effortLevels.contains(card.effortLevel) == false {
         return false
     }

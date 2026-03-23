@@ -1,5 +1,5 @@
 /**
- * Web FSRS types mirror the backend scheduler contract and the iOS data model.
+ * Web FSRS types mirror the backend scheduler contract and the iOS/Android data models.
  * The web app does not contain a standalone FSRS scheduler implementation in
  * this repository.
  *
@@ -7,10 +7,11 @@
  * - apps/backend/src/schedule.ts
  * - apps/backend/src/workspaceSchedulerSettings.ts
  * - apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift
+ * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt
  * - docs/fsrs-scheduling-logic.md
  */
 export type EffortLevel = "fast" | "medium" | "long";
-// Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::FsrsCardState and apps/backend/src/schedule.ts::FsrsCardState.
+// Keep in sync with apps/backend/src/schedule.ts::FsrsCardState, apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
 export type FsrsCardState = "new" | "learning" | "review" | "relearning";
 
 export type CardFilter = Readonly<{
@@ -121,7 +122,7 @@ export type HomeSnapshot = Readonly<{
   reviewedCount: number;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::Card and apps/backend/src/cards.ts::Card.
+// Keep in sync with apps/backend/src/cards.ts::Card, apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::CardSummary.
 export type Card = Readonly<{
   cardId: string;
   frontText: string;

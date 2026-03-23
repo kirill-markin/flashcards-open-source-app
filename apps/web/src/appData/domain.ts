@@ -111,7 +111,7 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
   return false;
 }
 
-/** Mirrors iOS deck matching semantics: effort is inclusive and tags match on any overlap. */
+/** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FilterSupport.kt: effort is inclusive and tags match on any overlap. */
 export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card): boolean {
   if (filterDefinition.effortLevels.length > 0 && filterDefinition.effortLevels.includes(card.effortLevel) === false) {
     return false;

@@ -24,6 +24,12 @@ import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+/*
+ Keep Android sync wire payloads aligned with:
+ - apps/backend/src/sync.ts
+ - apps/ios/Flashcards/Flashcards/CloudSync/CloudSyncContracts.swift
+ */
+
 data class RemoteSyncChange(
     val changeId: Long,
     val entityType: SyncEntityType,

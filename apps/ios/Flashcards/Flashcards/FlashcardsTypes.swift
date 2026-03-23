@@ -1,8 +1,8 @@
 import Foundation
 
 /**
- FSRS-facing Swift types mirror the backend scheduler contract and the web
- transport types. The iOS scheduler implementation itself lives in
+ FSRS-facing Swift types mirror the backend scheduler contract plus the web and
+ Android transport/data types. The iOS scheduler implementation itself lives in
  `FsrsScheduler.swift`.
 
  Keep these FSRS-facing types aligned with:
@@ -10,15 +10,17 @@ import Foundation
  - apps/backend/src/cards.ts
  - apps/backend/src/workspaceSchedulerSettings.ts
  - apps/web/src/types.ts
+ - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt
  - docs/fsrs-scheduling-logic.md
  */
 
 /**
- Keep workspace navigation aligned with the web app:
+ Keep workspace navigation aligned with web and Android:
  the primary destinations are Review, Cards, AI, and Settings.
  Decks and tags belong under workspace settings on both platforms.
  Web exposes account settings from the account menu, while iOS nests account
- settings inside the Settings tab.
+ settings inside the Settings tab. Android keeps the same product destinations
+ in `apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/AppDestination.kt`.
  */
 enum AppTab: Hashable, CaseIterable, Sendable {
     case review
@@ -108,7 +110,7 @@ enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable, Sendable 
     }
 }
 
-// Keep in sync with apps/backend/src/schedule.ts::FsrsCardState and apps/web/src/types.ts::FsrsCardState.
+// Keep in sync with apps/backend/src/schedule.ts::FsrsCardState, apps/web/src/types.ts::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::FsrsCardState.
 enum FsrsCardState: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
     case new
     case learning
@@ -169,7 +171,7 @@ struct UserSettings: Codable, Hashable, Sendable {
     let createdAt: String
 }
 
-// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings and apps/web/src/types.ts::WorkspaceSchedulerSettings.
+// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings, apps/web/src/types.ts::WorkspaceSchedulerSettings, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::WorkspaceSchedulerSettings.
 struct WorkspaceSchedulerSettings: Codable, Hashable, Sendable {
     let algorithm: String
     let desiredRetention: Double
@@ -183,7 +185,7 @@ struct WorkspaceSchedulerSettings: Codable, Hashable, Sendable {
     let updatedAt: String
 }
 
-// Keep in sync with apps/backend/src/cards.ts::Card and apps/web/src/types.ts::Card.
+// Keep in sync with apps/backend/src/cards.ts::Card, apps/web/src/types.ts::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FlashcardsModels.kt::CardSummary.
 struct Card: Codable, Identifiable, Hashable, Sendable {
     let cardId: String
     let workspaceId: String

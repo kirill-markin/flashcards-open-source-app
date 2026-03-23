@@ -1,5 +1,11 @@
 package com.flashcardsopensourceapp.data.local.model
 
+/*
+ Keep these shared data contracts aligned with:
+ - apps/web/src/types.ts
+ - apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift
+ */
+
 data class WorkspaceSummary(
     val workspaceId: String,
     val name: String,
@@ -254,6 +260,7 @@ data class PersistedOutboxEntry(
     val operation: SyncOperation
 )
 
+// Keep in sync with apps/backend/src/schedule.ts::FsrsCardState, apps/web/src/types.ts::FsrsCardState, and apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::FsrsCardState.
 enum class FsrsCardState {
     NEW,
     LEARNING,
@@ -291,6 +298,7 @@ data class DeckSummary(
     val updatedAtMillis: Long
 )
 
+// Keep in sync with apps/backend/src/workspaceSchedulerSettings.ts::WorkspaceSchedulerSettings, apps/web/src/types.ts::WorkspaceSchedulerSettings, and apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::WorkspaceSchedulerSettings.
 data class WorkspaceSchedulerSettings(
     val workspaceId: String,
     val algorithm: String,
@@ -302,6 +310,7 @@ data class WorkspaceSchedulerSettings(
     val updatedAtMillis: Long
 )
 
+// Keep in sync with apps/backend/src/cards.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift::Card.
 data class CardSummary(
     val cardId: String,
     val workspaceId: String,

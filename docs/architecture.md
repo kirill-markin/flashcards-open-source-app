@@ -176,7 +176,7 @@ Important tables and responsibilities:
 
 ## Offline-first sync
 
-The sync contract is the same across web and iOS:
+The sync contract is the same across web, iOS, and Android:
 
 1. Write locally first.
 2. Add a record to the local outbox.
@@ -210,7 +210,7 @@ Implemented sync behavior:
   - update the card snapshot
   - emit sync changes
 - Review visibility is compute-on-read with `due_at <= now()`.
-- Backend and iOS maintain mirrored scheduling logic and state validation.
+- Backend, iOS, and Android maintain mirrored scheduling logic and state validation.
 
 There is no separate background scheduler worker.
 
@@ -223,7 +223,7 @@ The app uses backend-executed AI chat:
 - Available model vendors are OpenAI and Anthropic.
 - Shared workspace data access is intentionally normalized around one SQL tool contract.
 - The backend executes AI chat tools and continues provider loops internally.
-- Web and iOS act as stream plus sync clients and do not execute chat tools locally.
+- Web, iOS, and Android act as stream plus sync clients and do not execute chat tools locally.
 
 ## Agent API architecture
 

@@ -1,6 +1,7 @@
 /**
- * Keep web settings navigation aligned with iOS:
- * Settings is the root settings screen, with workspace/account drill-ins.
+ * Keep web settings navigation aligned with:
+ * - apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift
+ * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/AppDestination.kt
  */
 export const reviewRoute: string = "/review";
 export const cardsRoute: string = "/cards";

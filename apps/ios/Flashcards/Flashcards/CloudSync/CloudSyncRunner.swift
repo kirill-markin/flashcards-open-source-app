@@ -1,3 +1,9 @@
+/*
+ Keep the iOS sync runner flow aligned with:
+ - apps/backend/src/sync.ts
+ - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/CloudRepositories.kt
+ */
+
 struct CloudSyncRunner {
     private let database: LocalDatabase
     private let transport: CloudSyncTransport
