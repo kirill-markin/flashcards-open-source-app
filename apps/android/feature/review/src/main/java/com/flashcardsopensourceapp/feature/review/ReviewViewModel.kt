@@ -26,7 +26,7 @@ private data class ReviewDraftState(
     val revealedCardId: String?,
     val reviewedInSessionCount: Int,
     val pendingReviewedCardIds: Set<String>,
-    val preparedNextCard: ReviewCard?,
+    val optimisticPreparedCurrentCard: PreparedReviewCardPresentation?,
     val previewCards: List<ReviewCard>,
     val nextPreviewOffset: Int,
     val hasMorePreviewCards: Boolean,
@@ -45,7 +45,7 @@ class ReviewViewModel(
             revealedCardId = null,
             reviewedInSessionCount = 0,
             pendingReviewedCardIds = emptySet(),
-            preparedNextCard = null,
+            optimisticPreparedCurrentCard = null,
             previewCards = emptyList(),
             nextPreviewOffset = 0,
             hasMorePreviewCards = true,
@@ -67,13 +67,29 @@ class ReviewViewModel(
         draftState
     ) { sessionSnapshot, state ->
         val sessionCurrentCard = sessionSnapshot.cards.firstOrNull()
-        val currentCard = if (
-            state.preparedNextCard != null
-            && sessionCurrentCard?.cardId != state.preparedNextCard.cardId
+        val sessionPreparedCurrentCard = sessionCurrentCard?.let { card ->
+            prepareReviewCardPresentation(
+                card = card,
+                answerOptions = sessionSnapshot.answerOptions
+            )
+        }
+        val currentPreparedCard = if (
+            state.optimisticPreparedCurrentCard != null
+            && sessionPreparedCurrentCard?.card?.cardId != state.optimisticPreparedCurrentCard.card.cardId
         ) {
-            state.preparedNextCard
+            state.optimisticPreparedCurrentCard
         } else {
-            sessionCurrentCard
+            sessionPreparedCurrentCard
+        }
+        val preparedNextCard = if (currentPreparedCard?.card?.cardId == sessionPreparedCurrentCard?.card?.cardId) {
+            sessionSnapshot.cards.getOrNull(index = 1)?.let { card ->
+                prepareReviewCardPresentation(
+                    card = card,
+                    answerOptions = sessionSnapshot.nextAnswerOptions
+                )
+            }
+        } else {
+            null
         }
 
         ReviewUiState(
@@ -83,16 +99,17 @@ class ReviewViewModel(
             remainingCount = sessionSnapshot.remainingCount,
             totalCount = sessionSnapshot.totalCount,
             reviewedInSessionCount = state.reviewedInSessionCount,
-            isAnswerVisible = state.revealedCardId == currentCard?.cardId,
-            cards = sessionSnapshot.cards,
-            currentCard = currentCard,
-            currentCardIdForEditing = currentCard?.cardId,
-            preparedNextCard = state.preparedNextCard,
-            answerOptions = sessionSnapshot.answerOptions,
+            isAnswerVisible = state.revealedCardId == currentPreparedCard?.card?.cardId,
+            currentCardIdForEditing = currentPreparedCard?.card?.cardId,
+            preparedCurrentCard = currentPreparedCard,
+            preparedNextCard = preparedNextCard,
             availableDeckFilters = sessionSnapshot.availableDeckFilters,
             availableTagFilters = sessionSnapshot.availableTagFilters,
             isPreviewLoading = state.isPreviewLoading,
-            previewCards = state.previewCards,
+            previewItems = buildReviewPreviewItems(
+                cards = state.previewCards,
+                currentCardId = currentPreparedCard?.card?.cardId
+            ),
             hasMorePreviewCards = state.hasMorePreviewCards,
             previewErrorMessage = state.previewErrorMessage,
             errorMessage = state.errorMessage
@@ -108,15 +125,13 @@ class ReviewViewModel(
             totalCount = 0,
             reviewedInSessionCount = 0,
             isAnswerVisible = false,
-            cards = emptyList(),
-            currentCard = null,
             currentCardIdForEditing = null,
+            preparedCurrentCard = null,
             preparedNextCard = null,
-            answerOptions = emptyList(),
             availableDeckFilters = emptyList(),
             availableTagFilters = emptyList(),
             isPreviewLoading = false,
-            previewCards = emptyList(),
+            previewItems = emptyList(),
             hasMorePreviewCards = true,
             previewErrorMessage = "",
             errorMessage = ""
@@ -128,7 +143,7 @@ class ReviewViewModel(
             state.copy(
                 requestedFilter = reviewFilter,
                 revealedCardId = null,
-                preparedNextCard = null,
+                optimisticPreparedCurrentCard = null,
                 previewCards = emptyList(),
                 nextPreviewOffset = 0,
                 hasMorePreviewCards = true,
@@ -140,7 +155,7 @@ class ReviewViewModel(
     }
 
     fun revealAnswer() {
-        val currentCardId = uiState.value.currentCard?.cardId ?: return
+        val currentCardId = uiState.value.preparedCurrentCard?.card?.cardId ?: return
         draftState.update { state ->
             state.copy(
                 revealedCardId = currentCardId,
@@ -202,17 +217,15 @@ class ReviewViewModel(
     }
 
     fun rateCard(rating: ReviewRating) {
-        val currentCard = uiState.value.currentCard ?: return
+        val currentCard = uiState.value.preparedCurrentCard?.card ?: return
         val cardId = currentCard.cardId
-        val preparedNextCard = uiState.value.cards.firstOrNull { card ->
-            card.cardId != cardId
-        }
+        val optimisticPreparedCurrentCard = uiState.value.preparedNextCard
 
         draftState.update { state ->
             state.copy(
                 revealedCardId = null,
                 pendingReviewedCardIds = state.pendingReviewedCardIds + cardId,
-                preparedNextCard = preparedNextCard,
+                optimisticPreparedCurrentCard = optimisticPreparedCurrentCard,
                 previewCards = emptyList(),
                 nextPreviewOffset = 0,
                 hasMorePreviewCards = true,
@@ -232,14 +245,14 @@ class ReviewViewModel(
                 draftState.update { state ->
                     state.copy(
                         reviewedInSessionCount = state.reviewedInSessionCount + 1,
-                        preparedNextCard = null
+                        optimisticPreparedCurrentCard = null
                     )
                 }
             } catch (error: Throwable) {
                 draftState.update { state ->
                     state.copy(
                         pendingReviewedCardIds = state.pendingReviewedCardIds - cardId,
-                        preparedNextCard = null,
+                        optimisticPreparedCurrentCard = null,
                         errorMessage = error.message ?: "Review could not be saved."
                     )
                 }

@@ -31,6 +31,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -46,7 +47,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.DraftNoticeCard
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
-import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
@@ -198,12 +198,11 @@ private fun ReviewContent(
                     LoadingReviewState()
                 }
 
-                uiState.currentCard != null -> {
+                uiState.preparedCurrentCard != null -> {
                     ReviewCardContent(
-                        currentCard = uiState.currentCard,
+                        currentCard = uiState.preparedCurrentCard,
                         preparedNextCard = uiState.preparedNextCard,
                         isAnswerVisible = uiState.isAnswerVisible,
-                        answerOptions = uiState.answerOptions,
                         reviewedInSessionCount = uiState.reviewedInSessionCount,
                         onOpenCurrentCard = {
                             uiState.currentCardIdForEditing?.let(onOpenCurrentCard)
@@ -305,10 +304,9 @@ private fun EmptyReviewState(title: String, body: String) {
 
 @Composable
 private fun ReviewCardContent(
-    currentCard: ReviewCard,
-    preparedNextCard: ReviewCard?,
+    currentCard: PreparedReviewCardPresentation,
+    preparedNextCard: PreparedReviewCardPresentation?,
     isAnswerVisible: Boolean,
-    answerOptions: List<ReviewAnswerOption>,
     reviewedInSessionCount: Int,
     onOpenCurrentCard: () -> Unit,
     onRevealAnswer: () -> Unit,
@@ -323,25 +321,27 @@ private fun ReviewCardContent(
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
-                text = "Effort: ${currentCard.effortLevel.name.lowercase().replaceFirstChar { character -> character.uppercase() }}",
+                text = "Effort: ${currentCard.card.effortLevel.name.lowercase().replaceFirstChar { character -> character.uppercase() }}",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
-            Text(
-                text = currentCard.frontText,
-                style = MaterialTheme.typography.headlineSmall
+            ReviewCardSideSurface(
+                label = "Front",
+                content = currentCard.frontContent,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
             )
-            if (currentCard.tags.isNotEmpty()) {
-                Text(
-                    text = currentCard.tags.joinToString(separator = " | "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (isAnswerVisible) {
+                ReviewCardSideSurface(
+                    label = "Back",
+                    content = currentCard.backContent,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
                 )
             }
-            if (isAnswerVisible) {
+            if (currentCard.card.tags.isNotEmpty()) {
                 Text(
-                    text = currentCard.backText,
-                    style = MaterialTheme.typography.bodyLarge
+                    text = currentCard.card.tags.joinToString(separator = " | "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text(
@@ -349,9 +349,9 @@ private fun ReviewCardContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (preparedNextCard != null && preparedNextCard.cardId != currentCard.cardId) {
+            if (preparedNextCard != null && preparedNextCard.card.cardId != currentCard.card.cardId) {
                 Text(
-                    text = "Next card prepared: ${preparedNextCard.frontText}",
+                    text = "Next card prepared: ${reviewRenderedContentDebugText(preparedNextCard.frontContent)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -371,7 +371,7 @@ private fun ReviewCardContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            answerOptions.forEach { answerOption ->
+            currentCard.answerOptions.forEach { answerOption ->
                 RatingButton(
                     option = answerOption,
                     onClick = when (answerOption.rating) {
@@ -400,6 +400,31 @@ private fun ReviewCardContent(
             ) {
                 Text("Show answer")
             }
+        }
+    }
+}
+
+@Composable
+private fun ReviewCardSideSurface(
+    label: String,
+    content: ReviewRenderedContent,
+    containerColor: androidx.compose.ui.graphics.Color
+) {
+    Surface(
+        color = containerColor,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ReviewRenderedContentView(content = content)
         }
     }
 }
@@ -592,18 +617,18 @@ fun ReviewPreviewRoute(
                 )
             }
 
-            if (uiState.isPreviewLoading && uiState.previewCards.isEmpty()) {
+            if (uiState.isPreviewLoading && uiState.previewItems.isEmpty()) {
                 item {
                     LoadingReviewState()
                 }
-            } else if (uiState.previewCards.isEmpty() && uiState.previewErrorMessage.isNotEmpty()) {
+            } else if (uiState.previewItems.isEmpty() && uiState.previewErrorMessage.isNotEmpty()) {
                 item {
                     PreviewErrorCard(
                         message = uiState.previewErrorMessage,
                         onRetry = onRetryPreview
                     )
                 }
-            } else if (uiState.previewCards.isEmpty()) {
+            } else if (uiState.previewItems.isEmpty()) {
                 item {
                     EmptyReviewState(
                         title = "No cards in preview",
@@ -612,27 +637,29 @@ fun ReviewPreviewRoute(
                 }
             } else {
                 itemsIndexed(
-                    items = uiState.previewCards,
-                    key = { _, card ->
-                        card.cardId
+                    items = uiState.previewItems,
+                    key = { _, item ->
+                        item.itemId
                     }
-                ) { index, card ->
-                    if (index == uiState.remainingCount && uiState.remainingCount < uiState.previewCards.size) {
-                        PreviewSectionSeparator()
-                    }
+                ) { _, item ->
+                    when (item) {
+                        is ReviewPreviewListItem.SectionHeader -> {
+                            PreviewSectionSeparator(title = item.title)
+                        }
 
-                    PreviewCardRow(
-                        card = card,
-                        isCurrent = card.cardId == uiState.currentCard?.cardId,
-                        isAlreadyRated = index >= uiState.remainingCount,
-                        onOpenCard = onOpenCard
-                    )
+                        is ReviewPreviewListItem.CardEntry -> {
+                            PreviewCardRow(
+                                item = item,
+                                onOpenCard = onOpenCard
+                            )
 
-                    LaunchedEffect(
-                        key1 = card.cardId,
-                        key2 = uiState.previewCards.size
-                    ) {
-                        onLoadNextPreviewPageIfNeeded(card.cardId)
+                            LaunchedEffect(
+                                key1 = item.card.cardId,
+                                key2 = uiState.previewItems.size
+                            ) {
+                                onLoadNextPreviewPageIfNeeded(item.card.cardId)
+                            }
+                        }
                     }
                 }
 
@@ -661,14 +688,14 @@ fun ReviewPreviewRoute(
 }
 
 @Composable
-private fun PreviewSectionSeparator() {
+private fun PreviewSectionSeparator(title: String) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         HorizontalDivider()
         Text(
-            text = "Already rated in this session",
+            text = title,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -677,14 +704,14 @@ private fun PreviewSectionSeparator() {
 
 @Composable
 private fun PreviewCardRow(
-    card: ReviewCard,
-    isCurrent: Boolean,
-    isAlreadyRated: Boolean,
+    item: ReviewPreviewListItem.CardEntry,
     onOpenCard: (String) -> Unit
 ) {
+    val card = item.card
     val containerColor = when {
-        isCurrent -> MaterialTheme.colorScheme.secondaryContainer
-        isAlreadyRated -> MaterialTheme.colorScheme.surfaceVariant
+        item.isCurrent -> MaterialTheme.colorScheme.secondaryContainer
+        item.isAlreadyRated -> MaterialTheme.colorScheme.surfaceVariant
+        item.isFuture -> MaterialTheme.colorScheme.surfaceContainerLow
         else -> MaterialTheme.colorScheme.surface
     }
 
@@ -712,15 +739,21 @@ private fun PreviewCardRow(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
-                if (isCurrent) {
+                if (item.isCurrent) {
                     Text(
                         text = "Current",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
-                } else if (isAlreadyRated) {
+                } else if (item.isAlreadyRated) {
                     Text(
                         text = "Rated",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else if (item.isFuture) {
+                    Text(
+                        text = "Later",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -730,7 +763,7 @@ private fun PreviewCardRow(
             Text(
                 text = card.backText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isAlreadyRated) {
+                color = if (item.isAlreadyRated) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
                     MaterialTheme.colorScheme.onSurface
