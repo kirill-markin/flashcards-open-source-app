@@ -39,6 +39,7 @@ import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -219,6 +220,79 @@ class AiViewModelTest {
             toolCallPart.toolCall.status
         )
         assertFalse(viewModel.uiState.value.isStreaming)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun cancelStreamingKeepsPartialAssistantTextAndPersistsState() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            streamHandler = { _, _, onEvent ->
+                onEvent(AiChatStreamEvent.Delta(text = "Partial answer"))
+                awaitCancellation()
+            }
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.updateDraftMessage("Summarize")
+        advanceUntilIdle()
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isStreaming)
+        assertTrue(viewModel.uiState.value.canStopStreaming)
+        viewModel.cancelStreaming()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isStreaming)
+        assertFalse(viewModel.uiState.value.canStopStreaming)
+        assertEquals(2, viewModel.uiState.value.messages.size)
+        val assistantMessage = viewModel.uiState.value.messages.last()
+        val textPart = assistantMessage.content.filterIsInstance<AiChatContentPart.Text>().single()
+        assertEquals("Partial answer", textPart.text)
+        assertEquals("Partial answer", aiChatRepository.lastSavedState?.messages?.last()?.content
+            ?.filterIsInstance<AiChatContentPart.Text>()?.single()?.text)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun cancelStreamingRemovesOptimisticAssistantPlaceholderWithoutRealContent() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            streamHandler = { _, _, _ ->
+                awaitCancellation()
+            }
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.updateDraftMessage("Summarize")
+        advanceUntilIdle()
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals(2, viewModel.uiState.value.messages.size)
+        viewModel.cancelStreaming()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isStreaming)
+        assertEquals(1, viewModel.uiState.value.messages.size)
+        assertEquals(1, aiChatRepository.lastSavedState?.messages?.size)
         collectionJob.cancel()
     }
 

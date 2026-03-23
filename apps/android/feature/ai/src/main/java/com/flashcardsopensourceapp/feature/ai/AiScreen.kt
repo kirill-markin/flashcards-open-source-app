@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,12 +24,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.AddComment
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Mic
@@ -61,11 +67,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -82,13 +92,16 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.AccessStatus
 import com.flashcardsopensourceapp.feature.settings.accessCapabilityPermission
 import com.flashcardsopensourceapp.feature.settings.hasRequestedAccessPermission
 import com.flashcardsopensourceapp.feature.settings.markAccessPermissionRequested
 import com.flashcardsopensourceapp.feature.settings.openApplicationSettings
+import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import com.flashcardsopensourceapp.feature.settings.resolveAccessStatus
+import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import kotlinx.coroutines.delay
 
 private enum class AttachmentAction {
@@ -104,9 +117,10 @@ fun AiRoute(
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
     onSendMessage: () -> Unit,
+    onCancelStreaming: () -> Unit,
     onSelectModel: (String) -> Unit,
     onNewChat: () -> Unit,
-    onOpenSignIn: () -> Unit,
+    onOpenAccountStatus: () -> Unit,
     onDismissErrorMessage: () -> Unit,
     onDismissAlert: () -> Unit,
     onAddPendingAttachment: (AiChatAttachment) -> Unit,
@@ -376,6 +390,7 @@ fun AiRoute(
                     ),
                     onDraftMessageChange = onDraftMessageChange,
                     onSendMessage = onSendMessage,
+                    onCancelStreaming = onCancelStreaming,
                     onRemovePendingAttachment = onRemovePendingAttachment,
                     onOpenAttachmentMenu = {
                         isAttachmentSheetVisible = true
@@ -409,7 +424,7 @@ fun AiRoute(
                 messages = uiState.messages,
                 currentWorkspaceName = uiState.currentWorkspaceName,
                 isStreaming = uiState.isStreaming,
-                onOpenSignIn = onOpenSignIn,
+                onOpenAccountStatus = onOpenAccountStatus,
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     top = innerPadding.calculateTopPadding() + 16.dp,
@@ -522,6 +537,11 @@ private fun ConsentGate(
     onAcceptConsent: () -> Unit,
     modifier: Modifier
 ) {
+    val context = LocalContext.current
+    val privacyUrl = stringResource(id = SettingsR.string.flashcards_privacy_policy_url)
+    val termsUrl = stringResource(id = SettingsR.string.flashcards_terms_of_service_url)
+    val supportUrl = stringResource(id = SettingsR.string.flashcards_support_url)
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
@@ -558,6 +578,50 @@ private fun ConsentGate(
                 ) {
                     Text("OK")
                 }
+
+                HorizontalDivider()
+
+                TextButton(
+                    onClick = {
+                        openExternalUrl(context = context, url = privacyUrl)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Privacy Policy")
+                }
+
+                TextButton(
+                    onClick = {
+                        openExternalUrl(context = context, url = termsUrl)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Terms of Service")
+                }
+
+                TextButton(
+                    onClick = {
+                        openExternalUrl(context = context, url = supportUrl)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Support")
+                }
             }
         }
     }
@@ -568,7 +632,7 @@ private fun AiConversation(
     messages: List<AiChatMessage>,
     currentWorkspaceName: String,
     isStreaming: Boolean,
-    onOpenSignIn: () -> Unit,
+    onOpenAccountStatus: () -> Unit,
     contentPadding: PaddingValues
 ) {
     val listState = rememberLazyListState()
@@ -667,10 +731,12 @@ private fun AiConversation(
             }
         }
 
-        items(messages, key = { message -> message.messageId }) { message ->
+        items(items = messages, key = { message -> message.messageId }) { message ->
             MessageRow(
                 message = message,
-                onOpenSignIn = onOpenSignIn
+                isStreaming = isStreaming,
+                isLastMessage = messages.lastOrNull()?.messageId == message.messageId,
+                onOpenAccountStatus = onOpenAccountStatus
             )
         }
     }
@@ -679,7 +745,9 @@ private fun AiConversation(
 @Composable
 private fun MessageRow(
     message: AiChatMessage,
-    onOpenSignIn: () -> Unit
+    isStreaming: Boolean,
+    isLastMessage: Boolean,
+    onOpenAccountStatus: () -> Unit
 ) {
     val alignment = if (message.role == AiChatRole.USER) {
         Alignment.CenterEnd
@@ -713,10 +781,20 @@ private fun MessageRow(
                     fontWeight = FontWeight.SemiBold
                 )
 
+                val showsStreamingIndicator = message.role == AiChatRole.ASSISTANT
+                    && isLastMessage
+                    && isStreaming
+
                 message.content.forEach { contentPart ->
                     when (contentPart) {
                         is AiChatContentPart.Text -> {
-                            Text(text = contentPart.text)
+                            if (showsStreamingIndicator && contentPart.text == aiChatOptimisticAssistantStatusText) {
+                                TypingIndicatorRow()
+                            } else {
+                                SelectionContainer {
+                                    Text(text = contentPart.text)
+                                }
+                            }
                         }
 
                         is AiChatContentPart.Image -> {
@@ -743,10 +821,17 @@ private fun MessageRow(
                             AccountUpgradeCard(
                                 message = contentPart.message,
                                 buttonTitle = contentPart.buttonTitle,
-                                onOpenSignIn = onOpenSignIn
+                                onOpenAccountStatus = onOpenAccountStatus
                             )
                         }
                     }
+                }
+
+                if (showsStreamingIndicator && message.content.none { contentPart ->
+                        contentPart is AiChatContentPart.Text && contentPart.text == aiChatOptimisticAssistantStatusText
+                    }
+                ) {
+                    TypingIndicatorRow()
                 }
             }
         }
@@ -779,9 +864,32 @@ private fun AttachmentContentCard(
 }
 
 @Composable
+private fun TypingIndicatorRow() {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(
+            strokeWidth = 2.dp,
+            modifier = Modifier.width(18.dp)
+        )
+        Text(
+            text = "Generating response...",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
 private fun ToolCallCard(
     toolCall: AiChatToolCall
 ) {
+    val clipboardManager = LocalClipboardManager.current
+    var isExpanded by rememberSaveable(toolCall.toolCallId) {
+        mutableStateOf(value = false)
+    }
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -791,40 +899,112 @@ private fun ToolCallCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(14.dp)
         ) {
-            Text(
-                text = "Tool: ${toolCall.name}",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = if (toolCall.status == AiChatToolCallStatus.STARTED) "Running" else "Completed",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            toolCall.input?.let { input ->
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface
-                ) {
+            ListItem(
+                headlineContent = {
                     Text(
-                        text = "Input\n$input",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        modifier = Modifier.padding(12.dp)
+                        text = toolCall.name,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                supportingContent = {
+                    Text(
+                        text = if (toolCall.status == AiChatToolCallStatus.STARTED) {
+                            "Running"
+                        } else {
+                            "Completed"
+                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingContent = {
+                    IconButton(
+                        onClick = {
+                            isExpanded = isExpanded.not()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) {
+                                Icons.Outlined.ExpandLess
+                            } else {
+                                Icons.Outlined.ExpandMore
+                            },
+                            contentDescription = if (isExpanded) {
+                                "Collapse tool details"
+                            } else {
+                                "Expand tool details"
+                            }
+                        )
+                    }
+                },
+                modifier = Modifier.clickable {
+                    isExpanded = isExpanded.not()
+                }
+            )
+
+            if (isExpanded) {
+                toolCall.input?.let { input ->
+                    ToolCallDetailCard(
+                        title = "Input",
+                        value = input,
+                        onCopy = {
+                            clipboardManager.setText(AnnotatedString(input))
+                        }
+                    )
+                }
+                toolCall.output?.let { output ->
+                    ToolCallDetailCard(
+                        title = "Output",
+                        value = output,
+                        onCopy = {
+                            clipboardManager.setText(AnnotatedString(output))
+                        }
                     )
                 }
             }
-            toolCall.output?.let { output ->
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Text(
-                        text = "Output\n$output",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        modifier = Modifier.padding(12.dp)
+        }
+    }
+}
+
+@Composable
+private fun ToolCallDetailCard(
+    title: String,
+    value: String,
+    onCopy: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                TextButton(onClick = onCopy) {
+                    Icon(
+                        imageVector = Icons.Outlined.ContentCopy,
+                        contentDescription = null
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Copy ${title.lowercase()}")
                 }
+            }
+            SelectionContainer {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace
+                )
             }
         }
     }
@@ -873,7 +1053,7 @@ private fun RepairStatusCard(
 private fun AccountUpgradeCard(
     message: String,
     buttonTitle: String,
-    onOpenSignIn: () -> Unit
+    onOpenAccountStatus: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -883,9 +1063,11 @@ private fun AccountUpgradeCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(text = message)
+            SelectionContainer {
+                Text(text = message)
+            }
             Button(
-                onClick = onOpenSignIn,
+                onClick = onOpenAccountStatus,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(buttonTitle)
@@ -900,6 +1082,7 @@ private fun AiComposer(
     selectedModelLabel: String,
     onDraftMessageChange: (String) -> Unit,
     onSendMessage: () -> Unit,
+    onCancelStreaming: () -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
     onOpenAttachmentMenu: () -> Unit,
     onToggleDictation: () -> Unit
@@ -1058,16 +1241,24 @@ private fun AiComposer(
             }
 
             Button(
-                onClick = onSendMessage,
-                enabled = uiState.canSend,
+                onClick = if (uiState.canStopStreaming) {
+                    onCancelStreaming
+                } else {
+                    onSendMessage
+                },
+                enabled = uiState.canStopStreaming || uiState.canSend,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.Send,
+                    imageVector = if (uiState.canStopStreaming) {
+                        Icons.Outlined.Stop
+                    } else {
+                        Icons.AutoMirrored.Outlined.Send
+                    },
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Send")
+                Text(if (uiState.canStopStreaming) "Stop" else "Send")
             }
         }
     }

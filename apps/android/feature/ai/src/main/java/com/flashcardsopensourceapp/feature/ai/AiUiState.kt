@@ -16,6 +16,7 @@ data class AiUiState(
     val isConsentRequired: Boolean,
     val isLinked: Boolean,
     val isStreaming: Boolean,
+    val canStopStreaming: Boolean,
     val dictationState: AiChatDictationState,
     val canSend: Boolean,
     val canStartNewChat: Boolean,
