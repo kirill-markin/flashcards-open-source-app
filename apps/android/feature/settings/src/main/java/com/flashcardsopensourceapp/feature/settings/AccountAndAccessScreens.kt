@@ -290,8 +290,8 @@ fun AccountStatusRoute(
                             Text(
                                 when {
                                     uiState.isLinked -> "Switch account"
-                                    uiState.isGuest -> "Create account or Log in"
-                                    else -> "Sign in for sync"
+                                    uiState.isGuest -> "Sign in or sign up"
+                                    else -> "Sign in or sign up"
                                 }
                             )
                         }
