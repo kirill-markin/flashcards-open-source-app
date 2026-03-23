@@ -63,6 +63,21 @@ extension FlashcardsStore {
         }
     }
 
+    private func loadGuestSessionForCurrentConfiguration() throws -> StoredGuestCloudSession? {
+        guard let storedGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() else {
+            return nil
+        }
+
+        let configuration = try self.currentCloudServiceConfiguration()
+        if storedGuestSession.apiBaseUrl != configuration.apiBaseUrl
+            || storedGuestSession.configurationMode != configuration.mode {
+            try self.dependencies.guestCredentialStore.clearGuestSession()
+            return nil
+        }
+
+        return storedGuestSession
+    }
+
     private func loadAuthenticatedCloudAccountSnapshot(
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration
@@ -304,7 +319,7 @@ extension FlashcardsStore {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ) async throws {
-        guard let guestSession = try self.dependencies.guestCredentialStore.loadGuestSession() else {
+        guard let guestSession = try self.loadGuestSessionForCurrentConfiguration() else {
             throw LocalStoreError.uninitialized("Guest AI session is unavailable")
         }
 
@@ -460,7 +475,7 @@ extension FlashcardsStore {
 
     private func reconcilePersistedCloudStateBeforeSync() async throws -> PersistedCloudStateReconciliationOutcome {
         let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
-        let hasStoredGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() != nil
+        let hasStoredGuestSession = try self.loadGuestSessionForCurrentConfiguration() != nil
         guard let cloudState = self.cloudSettings?.cloudState else {
             return .continueSync(
                 hasStoredCredentials: hasStoredCredentials,
@@ -570,7 +585,7 @@ extension FlashcardsStore {
 
     private func loadOrCreateGuestCloudSession() async throws -> CloudLinkedSession {
         let storedGuestSession: StoredGuestCloudSession
-        if let existingGuestSession = try self.dependencies.guestCredentialStore.loadGuestSession() {
+        if let existingGuestSession = try self.loadGuestSessionForCurrentConfiguration() {
             storedGuestSession = existingGuestSession
         } else {
             let configuration = try self.currentCloudServiceConfiguration()
@@ -631,7 +646,7 @@ extension FlashcardsStore {
         guard self.cloudSettings?.cloudState == .guest else {
             return nil
         }
-        guard let guestSession = try self.dependencies.guestCredentialStore.loadGuestSession() else {
+        guard let guestSession = try self.loadGuestSessionForCurrentConfiguration() else {
             return nil
         }
 
