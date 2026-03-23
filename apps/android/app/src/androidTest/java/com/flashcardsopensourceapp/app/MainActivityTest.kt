@@ -138,9 +138,25 @@ class MainActivityTest {
         waitForSeededCards()
 
         composeRule.onNodeWithText("Settings").performClick()
+        composeRule.onNodeWithText("Workspace").performClick()
+        composeRule.onNodeWithText("Overview").performClick()
+        composeRule.onNodeWithText("Danger zone").fetchSemanticsNode()
+        composeRule.onNodeWithText("Workspace rename is available only for linked cloud workspaces.").fetchSemanticsNode()
+        pressBack()
+        pressBack()
+
+        composeRule.onNodeWithText("Settings").performClick()
         composeRule.onNodeWithText("Account").performClick()
         composeRule.onNodeWithText("Account status").performClick()
         composeRule.onNodeWithText("Cloud status").fetchSemanticsNode()
+        pressBack()
+
+        composeRule.onNodeWithText("Agent connections").performClick()
+        composeRule.onNodeWithText("Sign in to the cloud account to manage long-lived bot connections.").fetchSemanticsNode()
+        pressBack()
+
+        composeRule.onNodeWithText("Danger zone").performClick()
+        composeRule.onNodeWithText("Delete my account").fetchSemanticsNode()
         pressBack()
 
         composeRule.onNodeWithText("This device").performClick()

@@ -62,3 +62,30 @@ data class CloudSignInUiState(
     val errorMessage: String,
     val challengeEmail: String?
 )
+
+data class AgentConnectionsUiState(
+    val isLinked: Boolean,
+    val isLoading: Boolean,
+    val instructions: String,
+    val errorMessage: String,
+    val revokingConnectionId: String?,
+    val connections: List<AgentConnectionItemUiState>
+)
+
+data class AgentConnectionItemUiState(
+    val connectionId: String,
+    val label: String,
+    val createdAtLabel: String,
+    val lastUsedAtLabel: String,
+    val revokedAtLabel: String,
+    val isRevoked: Boolean
+)
+
+data class AccountDangerZoneUiState(
+    val isLinked: Boolean,
+    val confirmationText: String,
+    val isDeleting: Boolean,
+    val errorMessage: String,
+    val successMessage: String,
+    val showDeleteConfirmation: Boolean
+)

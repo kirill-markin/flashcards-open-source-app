@@ -1,9 +1,13 @@
 package com.flashcardsopensourceapp.data.local.cloud
 
+import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
+import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
@@ -263,6 +267,118 @@ class CloudRemoteService {
         return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
     }
 
+    fun renameWorkspace(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        name: String
+    ): CloudWorkspaceSummary {
+        val response = postJson(
+            baseUrl = apiBaseUrl,
+            path = "/workspaces/$workspaceId/rename",
+            authorizationHeader = "Bearer $bearerToken",
+            body = JSONObject().put("name", name)
+        )
+        return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
+    }
+
+    fun loadWorkspaceDeletePreview(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ): CloudWorkspaceDeletePreview {
+        val response = getJson(
+            baseUrl = apiBaseUrl,
+            path = "/workspaces/$workspaceId/delete-preview",
+            authorizationHeader = "Bearer $bearerToken"
+        )
+        return CloudWorkspaceDeletePreview(
+            workspaceId = response.getString("workspaceId"),
+            workspaceName = response.getString("workspaceName"),
+            activeCardCount = response.getInt("activeCardCount"),
+            confirmationText = response.getString("confirmationText"),
+            isLastAccessibleWorkspace = response.getBoolean("isLastAccessibleWorkspace")
+        )
+    }
+
+    fun deleteWorkspace(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ): CloudWorkspaceDeleteResult {
+        val response = postJson(
+            baseUrl = apiBaseUrl,
+            path = "/workspaces/$workspaceId/delete",
+            authorizationHeader = "Bearer $bearerToken",
+            body = JSONObject().put("confirmationText", confirmationText)
+        )
+        return CloudWorkspaceDeleteResult(
+            ok = response.getBoolean("ok"),
+            deletedWorkspaceId = response.getString("deletedWorkspaceId"),
+            deletedCardsCount = response.getInt("deletedCardsCount"),
+            workspace = parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
+        )
+    }
+
+    fun deleteAccount(
+        apiBaseUrl: String,
+        bearerToken: String,
+        confirmationText: String
+    ) {
+        val response = postJson(
+            baseUrl = apiBaseUrl,
+            path = "/me/delete",
+            authorizationHeader = "Bearer $bearerToken",
+            body = JSONObject().put("confirmationText", confirmationText)
+        )
+        require(response.optBoolean("ok")) {
+            "Cloud delete-account did not return ok=true."
+        }
+    }
+
+    fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult {
+        val connections = mutableListOf<AgentApiKeyConnection>()
+        var nextCursor: String? = null
+        var instructions: String = ""
+
+        do {
+            val response = getJson(
+                baseUrl = apiBaseUrl,
+                path = buildPaginatedPath(basePath = "/agent-api-keys", cursor = nextCursor),
+                authorizationHeader = "Bearer $bearerToken"
+            )
+            instructions = response.optString("instructions")
+            val items = response.getJSONArray("connections")
+            for (index in 0 until items.length()) {
+                connections.add(parseAgentApiKeyConnection(items.getJSONObject(index)))
+            }
+            nextCursor = response.optString("nextCursor").ifBlank { null }
+        } while (nextCursor != null)
+
+        return AgentApiKeyConnectionsResult(
+            connections = connections,
+            instructions = instructions
+        )
+    }
+
+    fun revokeAgentConnection(
+        apiBaseUrl: String,
+        bearerToken: String,
+        connectionId: String
+    ): AgentApiKeyConnectionsResult {
+        val response = postJson(
+            baseUrl = apiBaseUrl,
+            path = "/agent-api-keys/$connectionId/revoke",
+            authorizationHeader = "Bearer $bearerToken",
+            body = null
+        )
+        return AgentApiKeyConnectionsResult(
+            connections = listOf(parseAgentApiKeyConnection(response.getJSONObject("connection"))),
+            instructions = response.optString("instructions")
+        )
+    }
+
     fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
@@ -413,6 +529,16 @@ class CloudRemoteService {
             name = workspace.getString("name"),
             createdAtMillis = parseIsoTimestamp(workspace.getString("createdAt")),
             isSelected = isSelected
+        )
+    }
+
+    private fun parseAgentApiKeyConnection(connection: JSONObject): AgentApiKeyConnection {
+        return AgentApiKeyConnection(
+            connectionId = connection.getString("connectionId"),
+            label = connection.getString("label"),
+            createdAtMillis = parseIsoTimestamp(connection.getString("createdAt")),
+            lastUsedAtMillis = connection.optString("lastUsedAt").ifBlank { null }?.let(::parseIsoTimestamp),
+            revokedAtMillis = connection.optString("revokedAt").ifBlank { null }?.let(::parseIsoTimestamp)
         )
     }
 

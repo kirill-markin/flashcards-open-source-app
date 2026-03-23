@@ -11,8 +11,11 @@ import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
@@ -83,6 +86,82 @@ class LocalCloudAccountRepository(
         )
     }
 
+    override suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary {
+        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+            "Workspace rename is available only for linked cloud workspaces."
+        }
+        val authenticatedSession = authenticatedSession()
+        val workspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+            "Workspace rename requires a local workspace."
+        }
+        val trimmedName = name.trim()
+        require(trimmedName.isNotEmpty()) {
+            "Workspace name is required."
+        }
+
+        val renamedWorkspace = remoteService.renameWorkspace(
+            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken,
+            workspaceId = workspace.workspaceId,
+            name = trimmedName
+        )
+        database.workspaceDao().updateWorkspace(
+            workspace.copy(name = renamedWorkspace.name)
+        )
+        return renamedWorkspace
+    }
+
+    override suspend fun loadCurrentWorkspaceDeletePreview(): CloudWorkspaceDeletePreview {
+        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+            "Workspace deletion is available only for linked cloud workspaces."
+        }
+        val authenticatedSession = authenticatedSession()
+        val workspaceId = requireNotNull(database.workspaceDao().loadWorkspace()?.workspaceId) {
+            "Workspace deletion requires a local workspace."
+        }
+        return remoteService.loadWorkspaceDeletePreview(
+            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken,
+            workspaceId = workspaceId
+        )
+    }
+
+    override suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult {
+        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+            "Workspace deletion is available only for linked cloud workspaces."
+        }
+        val authenticatedSession = authenticatedSession()
+        val currentWorkspaceId = requireNotNull(database.workspaceDao().loadWorkspace()?.workspaceId) {
+            "Workspace deletion requires a local workspace."
+        }
+        val result = remoteService.deleteWorkspace(
+            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken,
+            workspaceId = currentWorkspaceId,
+            confirmationText = confirmationText
+        )
+
+        syncLocalStore.replaceLocalWorkspaceWithShell(result.workspace)
+        preferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.LINKED,
+            linkedUserId = authenticatedSession.accountSnapshot.userId,
+            linkedWorkspaceId = result.workspace.workspaceId,
+            linkedEmail = authenticatedSession.accountSnapshot.email,
+            activeWorkspaceId = result.workspace.workspaceId
+        )
+        return result
+    }
+
+    override suspend fun deleteAccount(confirmationText: String) {
+        val authenticatedSession = authenticatedSession()
+        remoteService.deleteAccount(
+            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken,
+            confirmationText = confirmationText
+        )
+        logout()
+    }
+
     override suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary> {
         val authenticatedSession = authenticatedSession()
         return remoteService.listLinkedWorkspaces(
@@ -134,6 +213,29 @@ class LocalCloudAccountRepository(
             activeWorkspaceId = selectedWorkspace.workspaceId
         )
         return selectedWorkspace
+    }
+
+    override suspend fun listAgentConnections(): AgentApiKeyConnectionsResult {
+        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+            "Agent connections are available only for linked cloud accounts."
+        }
+        val authenticatedSession = authenticatedSession()
+        return remoteService.listAgentConnections(
+            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken
+        )
+    }
+
+    override suspend fun revokeAgentConnection(connectionId: String): AgentApiKeyConnectionsResult {
+        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+            "Agent connections are available only for linked cloud accounts."
+        }
+        val authenticatedSession = authenticatedSession()
+        return remoteService.revokeAgentConnection(
+            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken,
+            connectionId = connectionId
+        )
     }
 
     override suspend fun currentServerConfiguration(): CloudServiceConfiguration {

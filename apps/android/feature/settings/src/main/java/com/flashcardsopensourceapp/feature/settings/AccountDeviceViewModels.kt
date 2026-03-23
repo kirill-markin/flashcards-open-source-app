@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
@@ -468,6 +469,242 @@ class CloudSignInViewModel(
     }
 }
 
+private data class AgentConnectionsDraftState(
+    val isLoading: Boolean,
+    val instructions: String,
+    val errorMessage: String,
+    val revokingConnectionId: String?,
+    val connections: List<AgentApiKeyConnection>
+)
+
+class AgentConnectionsViewModel(
+    private val cloudAccountRepository: CloudAccountRepository
+) : ViewModel() {
+    private val draftState = MutableStateFlow(
+        value = AgentConnectionsDraftState(
+            isLoading = false,
+            instructions = "",
+            errorMessage = "",
+            revokingConnectionId = null,
+            connections = emptyList()
+        )
+    )
+
+    val uiState: StateFlow<AgentConnectionsUiState> = combine(
+        cloudAccountRepository.observeCloudSettings(),
+        draftState
+    ) { cloudSettings, draft ->
+        AgentConnectionsUiState(
+            isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
+            isLoading = draft.isLoading,
+            instructions = draft.instructions,
+            errorMessage = draft.errorMessage,
+            revokingConnectionId = draft.revokingConnectionId,
+            connections = draft.connections.map(::toAgentConnectionItemUiState)
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = AgentConnectionsUiState(
+            isLinked = false,
+            isLoading = false,
+            instructions = "",
+            errorMessage = "",
+            revokingConnectionId = null,
+            connections = emptyList()
+        )
+    )
+
+    suspend fun loadConnections() {
+        if (uiState.value.isLinked.not()) {
+            draftState.update { state ->
+                state.copy(
+                    isLoading = false,
+                    instructions = "",
+                    errorMessage = "",
+                    revokingConnectionId = null,
+                    connections = emptyList()
+                )
+            }
+            return
+        }
+
+        draftState.update { state ->
+            state.copy(isLoading = true, errorMessage = "")
+        }
+
+        try {
+            val result = cloudAccountRepository.listAgentConnections()
+            draftState.update { state ->
+                state.copy(
+                    isLoading = false,
+                    instructions = result.instructions,
+                    errorMessage = "",
+                    connections = result.connections
+                )
+            }
+        } catch (error: Exception) {
+            draftState.update { state ->
+                state.copy(
+                    isLoading = false,
+                    errorMessage = error.message ?: "Could not load agent connections."
+                )
+            }
+        }
+    }
+
+    suspend fun revokeConnection(connectionId: String) {
+        draftState.update { state ->
+            state.copy(
+                revokingConnectionId = connectionId,
+                errorMessage = ""
+            )
+        }
+
+        try {
+            val result = cloudAccountRepository.revokeAgentConnection(connectionId = connectionId)
+            val revokedConnection = result.connections.single()
+            draftState.update { state ->
+                state.copy(
+                    instructions = result.instructions,
+                    errorMessage = "",
+                    revokingConnectionId = null,
+                    connections = state.connections.map { connection ->
+                        if (connection.connectionId == revokedConnection.connectionId) {
+                            revokedConnection
+                        } else {
+                            connection
+                        }
+                    }
+                )
+            }
+        } catch (error: Exception) {
+            draftState.update { state ->
+                state.copy(
+                    errorMessage = error.message ?: "Could not revoke the agent connection.",
+                    revokingConnectionId = null
+                )
+            }
+        }
+    }
+}
+
+private data class AccountDangerZoneDraftState(
+    val confirmationText: String,
+    val isDeleting: Boolean,
+    val errorMessage: String,
+    val successMessage: String,
+    val showDeleteConfirmation: Boolean
+)
+
+class AccountDangerZoneViewModel(
+    private val cloudAccountRepository: CloudAccountRepository
+) : ViewModel() {
+    private val draftState = MutableStateFlow(
+        value = AccountDangerZoneDraftState(
+            confirmationText = "",
+            isDeleting = false,
+            errorMessage = "",
+            successMessage = "",
+            showDeleteConfirmation = false
+        )
+    )
+
+    val uiState: StateFlow<AccountDangerZoneUiState> = combine(
+        cloudAccountRepository.observeCloudSettings(),
+        draftState
+    ) { cloudSettings, draft ->
+        AccountDangerZoneUiState(
+            isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
+            confirmationText = draft.confirmationText,
+            isDeleting = draft.isDeleting,
+            errorMessage = draft.errorMessage,
+            successMessage = draft.successMessage,
+            showDeleteConfirmation = draft.showDeleteConfirmation
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = AccountDangerZoneUiState(
+            isLinked = false,
+            confirmationText = "",
+            isDeleting = false,
+            errorMessage = "",
+            successMessage = "",
+            showDeleteConfirmation = false
+        )
+    )
+
+    fun requestDeleteConfirmation() {
+        draftState.update { state ->
+            state.copy(
+                showDeleteConfirmation = true,
+                errorMessage = "",
+                successMessage = ""
+            )
+        }
+    }
+
+    fun dismissDeleteConfirmation() {
+        draftState.update { state ->
+            state.copy(
+                showDeleteConfirmation = false,
+                confirmationText = ""
+            )
+        }
+    }
+
+    fun updateConfirmationText(value: String) {
+        draftState.update { state ->
+            state.copy(
+                confirmationText = value,
+                errorMessage = "",
+                successMessage = ""
+            )
+        }
+    }
+
+    suspend fun deleteAccount(): Boolean {
+        if (uiState.value.confirmationText != accountDeletionConfirmationText) {
+            draftState.update { state ->
+                state.copy(errorMessage = "Enter the confirmation phrase exactly to continue.")
+            }
+            return false
+        }
+
+        draftState.update { state ->
+            state.copy(
+                isDeleting = true,
+                errorMessage = "",
+                successMessage = ""
+            )
+        }
+
+        return try {
+            cloudAccountRepository.deleteAccount(confirmationText = uiState.value.confirmationText)
+            draftState.update { state ->
+                state.copy(
+                    confirmationText = "",
+                    isDeleting = false,
+                    errorMessage = "",
+                    successMessage = "Account deleted. This device is now disconnected.",
+                    showDeleteConfirmation = false
+                )
+            }
+            true
+        } catch (error: Exception) {
+            draftState.update { state ->
+                state.copy(
+                    isDeleting = false,
+                    errorMessage = error.message ?: "Account deletion failed.",
+                    successMessage = ""
+                )
+            }
+            false
+        }
+    }
+}
+
 class DeviceDiagnosticsViewModel(
     workspaceRepository: WorkspaceRepository,
     appVersion: String,
@@ -646,6 +883,22 @@ fun createCloudSignInViewModelFactory(cloudAccountRepository: CloudAccountReposi
     }
 }
 
+fun createAgentConnectionsViewModelFactory(cloudAccountRepository: CloudAccountRepository): ViewModelProvider.Factory {
+    return viewModelFactory {
+        initializer {
+            AgentConnectionsViewModel(cloudAccountRepository = cloudAccountRepository)
+        }
+    }
+}
+
+fun createAccountDangerZoneViewModelFactory(cloudAccountRepository: CloudAccountRepository): ViewModelProvider.Factory {
+    return viewModelFactory {
+        initializer {
+            AccountDangerZoneViewModel(cloudAccountRepository = cloudAccountRepository)
+        }
+    }
+}
+
 fun createServerSettingsViewModelFactory(cloudAccountRepository: CloudAccountRepository): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -719,5 +972,16 @@ private fun <Input, Output> Flow<Input>.mapToStateIn(
         scope = scope,
         started = started,
         initialValue = initialValue
+    )
+}
+
+private fun toAgentConnectionItemUiState(connection: AgentApiKeyConnection): AgentConnectionItemUiState {
+    return AgentConnectionItemUiState(
+        connectionId = connection.connectionId,
+        label = connection.label,
+        createdAtLabel = formatTimestampLabel(timestampMillis = connection.createdAtMillis),
+        lastUsedAtLabel = formatTimestampLabel(timestampMillis = connection.lastUsedAtMillis),
+        revokedAtLabel = formatTimestampLabel(timestampMillis = connection.revokedAtMillis),
+        isRevoked = connection.revokedAtMillis != null
     )
 }

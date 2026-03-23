@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -46,7 +47,18 @@ data class WorkspaceOverviewUiState(
     val tagCount: Int,
     val dueCount: Int,
     val newCount: Int,
-    val reviewedCount: Int
+    val reviewedCount: Int,
+    val isLinked: Boolean,
+    val workspaceNameDraft: String,
+    val isSavingName: Boolean,
+    val isDeletePreviewLoading: Boolean,
+    val isDeletingWorkspace: Boolean,
+    val errorMessage: String,
+    val successMessage: String,
+    val deleteConfirmationText: String,
+    val showDeletePreviewAlert: Boolean,
+    val showDeleteConfirmation: Boolean,
+    val deletePreview: CloudWorkspaceDeletePreview?
 )
 
 data class DecksUiState(
