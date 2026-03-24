@@ -27,3 +27,7 @@ pnpm-debug.log*
 
 # macOS
 .DS_Store
+
+# temporary files
+tmp/
+temp/
