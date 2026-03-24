@@ -149,5 +149,7 @@ jobs:
           packageName: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
           releaseFiles: apps/android/app/build/outputs/bundle/release/app-release.aab
           track: internal
-          status: completed
+          # Use draft releases until the Play app is ready for non-draft publishing.
+          status: draft
+          # status: completed
           releaseName: ${{ env.ANDROID_PLAY_RELEASE_NAME }}
