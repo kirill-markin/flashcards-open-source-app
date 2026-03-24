@@ -4,6 +4,7 @@ This repository uses a split Android pipeline:
 
 - GitHub Actions is the primary CI entrypoint for pull requests and `main`
 - Firebase Test Lab runs instrumentation tests on Google-managed devices
+- A dedicated GitHub Actions release workflow builds a signed Android App Bundle and uploads it to the Google Play internal track after `main` passes Android CI
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
 This setup keeps fast repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
@@ -19,6 +20,18 @@ The Android GitHub Actions workflow depends on these repository variables:
 - `ANDROID_FTL_DEVICE_VERSION`
 - `ANDROID_FTL_RESULTS_BUCKET`
 - `ANDROID_FTL_RESULTS_DIR`
+
+The Android Google Play release workflow also depends on these repository variables:
+
+- `GCP_PLAY_SERVICE_ACCOUNT_EMAIL`
+- `ANDROID_PLAY_PACKAGE_NAME`
+
+And these repository secrets:
+
+- `ANDROID_UPLOAD_KEYSTORE_BASE64`
+- `ANDROID_UPLOAD_KEYSTORE_PASSWORD`
+- `ANDROID_UPLOAD_KEY_ALIAS`
+- `ANDROID_UPLOAD_KEY_PASSWORD`
 
 Push them to the repository with:
 
@@ -39,6 +52,14 @@ GitHub Actions workflow: `.github/workflows/android.yml`
 - Runs Firebase Test Lab instrumentation tests on `main` and on manual dispatch after Google Cloud auth is configured
 - Skips the Firebase Test Lab job entirely until the required GitHub repository variables are present
 
+GitHub Actions workflow: `.github/workflows/android-release.yml`
+
+- Triggers after `Android CI` succeeds on `main` or on manual dispatch
+- Builds `:app:bundleRelease`
+- Signs the bundle with the Android upload keystore from GitHub secrets
+- Uploads the signed `.aab` as a workflow artifact
+- Publishes the bundle to the Google Play internal track using Workload Identity Federation and the Play Developer API
+
 Cloud Build config: `cloudbuild.android.yaml`
 
 - Builds a dedicated Android CI container from `apps/android/ci/Dockerfile`
@@ -53,6 +74,7 @@ This is the current recommended shape for this repository:
 - Use Workload Identity Federation for GitHub to Google Cloud authentication
 - Do not store Google service account JSON keys in GitHub secrets
 - Use Firebase Test Lab for instrumentation tests instead of self-hosted emulators
+- Use a separate Google Cloud service account for Google Play uploads, scoped in Play Console to this app only
 - Use a dedicated Cloud Storage bucket for Test Lab results so you do not need broad `roles/editor`
 
 Google's current documentation supports this direction:
@@ -151,7 +173,38 @@ The GitHub variable `GCP_WORKLOAD_IDENTITY_PROVIDER` must use this format:
 projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/flashcards-open-source-app
 ```
 
-### 5. Choose the Firebase Test Lab device
+### 5. Create a dedicated Google Play release service account
+
+Create a second service account for Google Play uploads:
+
+```bash
+gcloud iam service-accounts create "github-android-play" \
+  --project "YOUR_GCP_PROJECT_ID" \
+  --display-name "GitHub Android Play Release"
+```
+
+You do not need broad Google Cloud project roles for the Play upload itself. The release workflow authenticates as this service account through Workload Identity Federation, and the actual app release permissions are granted in Play Console.
+
+Allow the repository to impersonate the service account:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  "github-android-play@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com" \
+  --project "YOUR_GCP_PROJECT_ID" \
+  --role "roles/iam.workloadIdentityUser" \
+  --member "principalSet://iam.googleapis.com/projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/kirill-markin/flashcards-open-source-app"
+```
+
+### 6. Enable the Google Play Developer API
+
+Enable the Android Publisher API in the same Google Cloud project:
+
+```bash
+gcloud services enable androidpublisher.googleapis.com \
+  --project "YOUR_GCP_PROJECT_ID"
+```
+
+### 7. Choose the Firebase Test Lab device
 
 This repository intentionally tests Android 16 / API 36 only.
 
@@ -169,6 +222,23 @@ Then set:
 ## GitHub repository variables
 
 Set the required repository variables listed above before expecting the Firebase Test Lab job to run in GitHub Actions.
+
+Set the Google Play release variables and secrets before expecting `.github/workflows/android-release.yml` to succeed.
+
+`ANDROID_PLAY_PACKAGE_NAME` should match the Android `applicationId`. In this repository that value is `com.flashcardsopensourceapp.app`.
+
+## One-time Play Console setup
+
+Before the release workflow can publish to Google Play, complete this one-time setup in Play Console:
+
+1. Create the app with package name `com.flashcardsopensourceapp.app`.
+2. Complete the required Play Console setup sections for the app shell, including app access, ads declaration, content rating, target audience, privacy policy, and Data safety if Play requires them for release submission.
+3. Enable Play App Signing for the app.
+4. Create the internal testing track.
+5. Invite `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` in Play Console under Users and permissions, then grant the app-specific permissions needed to release builds to testing tracks.
+6. Make the first signed upload manually in Play Console using the same upload keystore that CI will use later.
+
+That first manual upload is the safest bootstrap step because it establishes the app entry, Play App Signing state, and first track release before CI takes over subsequent uploads.
 
 ## Cloud Build trigger setup
 
@@ -203,6 +273,17 @@ Build the same artifacts CI expects:
 
 ```bash
 bash scripts/run-android-ci.sh
+```
+
+Build the signed release bundle with the same inputs that the release workflow uses:
+
+```bash
+bash scripts/run-android-release.sh \
+  --version-code "12345" \
+  --keystore-path "/absolute/path/to/upload-key.jks" \
+  --keystore-password "YOUR_KEYSTORE_PASSWORD" \
+  --key-alias "YOUR_KEY_ALIAS" \
+  --key-password "YOUR_KEY_PASSWORD"
 ```
 
 Run Firebase Test Lab directly after authenticating with `gcloud`:
