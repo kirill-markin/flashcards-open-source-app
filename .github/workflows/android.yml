@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - 'apps/android/**'
-      - '!apps/android/docs/media/**'
+      - '!apps/android/docs/**'
       - 'docs/android-ci-cd.md'
       - 'scripts/run-android-ci.sh'
       - 'scripts/run-android-firebase-test-lab.sh'
@@ -15,7 +15,7 @@ on:
     branches: [main]
     paths:
       - 'apps/android/**'
-      - '!apps/android/docs/media/**'
+      - '!apps/android/docs/**'
       - 'docs/android-ci-cd.md'
       - 'scripts/run-android-ci.sh'
       - 'scripts/run-android-firebase-test-lab.sh'
