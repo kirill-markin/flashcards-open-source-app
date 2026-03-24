@@ -1,6 +1,41 @@
+import org.gradle.api.GradleException
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+val requestedTaskNames: List<String> = gradle.startParameter.taskNames
+val isReleaseTaskRequested: Boolean = requestedTaskNames.any { taskName ->
+    taskName.contains("Release", ignoreCase = true)
+}
+
+val androidVersionCodeValue: String? = providers.environmentVariable("ANDROID_VERSION_CODE").orNull
+val androidVersionCode: Int? = androidVersionCodeValue?.toIntOrNull()
+val androidReleaseStoreFile: String? = providers.environmentVariable("ANDROID_RELEASE_STORE_FILE").orNull
+val androidReleaseStorePassword: String? = providers.environmentVariable("ANDROID_RELEASE_STORE_PASSWORD").orNull
+val androidReleaseKeyAlias: String? = providers.environmentVariable("ANDROID_RELEASE_KEY_ALIAS").orNull
+val androidReleaseKeyPassword: String? = providers.environmentVariable("ANDROID_RELEASE_KEY_PASSWORD").orNull
+
+if (isReleaseTaskRequested && androidVersionCode == null) {
+    throw GradleException("ANDROID_VERSION_CODE must be set to an integer for Android release builds.")
+}
+
+if (isReleaseTaskRequested) {
+    val missingSigningVariables: List<String> = listOf(
+        "ANDROID_RELEASE_STORE_FILE" to androidReleaseStoreFile,
+        "ANDROID_RELEASE_STORE_PASSWORD" to androidReleaseStorePassword,
+        "ANDROID_RELEASE_KEY_ALIAS" to androidReleaseKeyAlias,
+        "ANDROID_RELEASE_KEY_PASSWORD" to androidReleaseKeyPassword
+    ).mapNotNull { (variableName, variableValue) ->
+        if (variableValue.isNullOrBlank()) variableName else null
+    }
+
+    if (missingSigningVariables.isNotEmpty()) {
+        throw GradleException(
+            "Missing Android release signing environment variables: ${missingSigningVariables.joinToString(", ")}."
+        )
+    }
 }
 
 android {
@@ -11,14 +46,35 @@ android {
         applicationId = "com.flashcardsopensourceapp.app"
         minSdk = 34
         targetSdk = 36
-        versionCode = 1
+        versionCode = androidVersionCode ?: 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            if (!androidReleaseStoreFile.isNullOrBlank()) {
+                storeFile = file(androidReleaseStoreFile)
+            }
+
+            if (!androidReleaseStorePassword.isNullOrBlank()) {
+                storePassword = androidReleaseStorePassword
+            }
+
+            if (!androidReleaseKeyAlias.isNullOrBlank()) {
+                keyAlias = androidReleaseKeyAlias
+            }
+
+            if (!androidReleaseKeyPassword.isNullOrBlank()) {
+                keyPassword = androidReleaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
