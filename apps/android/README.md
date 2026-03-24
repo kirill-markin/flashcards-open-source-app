@@ -85,6 +85,27 @@ Run commands from `apps/android/`.
 - Build the debug app: `./gradlew :app:assembleDebug`
 - Build AndroidTest APKs: `./gradlew :app:assembleDebugAndroidTest :data:local:assembleDebugAndroidTest`
 
+## Media Assets
+
+Store committed Android marketing assets and reference screenshots in `apps/android/docs/media/`.
+
+Use that directory for assets such as:
+
+- Google Play screenshots
+- feature graphic source files
+- exported PNGs used in store listings
+
+These files are updated manually and are part of the repository on purpose.
+Media-only changes inside `apps/android/docs/media/` must not trigger Android CI builds.
+
+When it is faster, ask an LLM to create or capture these assets directly on a local virtual Android device.
+That workflow works well for:
+
+- opening the current app build in an emulator
+- creating realistic demo cards and AI chats
+- taking clean store screenshots by hand
+- generating a feature graphic source and exporting the final PNG
+
 The current local Android app uses:
 
 - `compileSdk = 36`
