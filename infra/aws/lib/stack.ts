@@ -97,6 +97,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       db: dbResult.db,
       restApi: api.restApi,
       backendFn: api.backendFn,
+      chatWorkerFn: api.chatWorkerFn,
     });
 
     ciCd(this, {
@@ -123,6 +124,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       restApi: api.restApi,
       authRestApi: authApi.restApi,
       backendFn: api.backendFn,
+      chatWorkerFn: api.chatWorkerFn,
       authFn: authApi.authFn,
       migrationFn,
       userPoolId: authResult.userPool.userPoolId,

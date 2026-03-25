@@ -26,6 +26,7 @@ export interface ApiGatewayProps {
 export interface ApiGatewayResult {
   restApi: apigw.RestApi;
   backendFn: lambdaNodejs.NodejsFunction;
+  chatWorkerFn: lambdaNodejs.NodejsFunction;
 }
 
 interface BackendFunctionProps {
@@ -194,6 +195,26 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });
+  const chatWorkerFn = createBackendFunction(scope, {
+    constructId: "ChatRunWorkerHandler",
+    entry: path.join(__dirname, "../../../apps/backend/src/lambda-chat-worker.ts"),
+    baseDomain: props.baseDomain,
+    vpc: props.vpc,
+    lambdaSg: props.lambdaSg,
+    db: props.db,
+    backendDbSecret: props.backendDbSecret,
+    backendCsrfSecret,
+    allowedOrigins,
+    userPoolId: props.userPoolId,
+    userPoolArn: props.userPoolArn,
+    userPoolClientId: props.userPoolClientId,
+    openAiApiKeySecretArn: props.openAiApiKeySecretArn,
+    anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+    demoEmailDostip: props.demoEmailDostip,
+    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
+  });
+  backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);
+  chatWorkerFn.grantInvoke(backendFn);
 
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
@@ -363,5 +384,5 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     });
   }
 
-  return { restApi, backendFn };
+  return { restApi, backendFn, chatWorkerFn };
 }

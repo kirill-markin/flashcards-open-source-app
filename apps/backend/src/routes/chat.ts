@@ -1,23 +1,20 @@
 import { Hono } from "hono";
-import { isBackendOwnedChatEnabled, CHAT_MODEL_ID } from "../chat/config";
+import { isBackendOwnedChatEnabled } from "../chat/config";
 import {
-  cancelActiveChatRunByUser,
+  getRecoveredChatSessionSnapshot,
+  prepareChatRun,
+  requestChatRunCancellation,
+  type ChatRunStopState,
+  type PreparedChatRun,
+} from "../chat/runs";
+import {
   ChatSessionConflictError,
   ChatSessionNotFoundError,
   createFreshChatSession,
-  getChatSessionSnapshot,
   getLatestChatSessionId,
-  prepareChatRun,
   type ChatSessionSnapshot,
 } from "../chat/store";
-import {
-  hasActiveChatRun,
-  markActiveChatRunCancellationPersisted,
-  startPersistedChatRun,
-  stopActiveChatRun,
-  type StartPersistedChatRunParams,
-} from "../chat/runtime";
-import type { ChatStreamEvent, ContentPart } from "../chat/types";
+import { invokeChatWorkerOrPersistFailure } from "../chat/workerInvoke";
 import type { AuthTransport } from "../auth";
 import { HttpError } from "../errors";
 import {
@@ -79,15 +76,12 @@ type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   enabled?: boolean;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
-  getChatSessionSnapshotFn?: typeof getChatSessionSnapshot;
+  getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
   getLatestChatSessionIdFn?: typeof getLatestChatSessionId;
   createFreshChatSessionFn?: typeof createFreshChatSession;
   prepareChatRunFn?: typeof prepareChatRun;
-  startPersistedChatRunFn?: typeof startPersistedChatRun;
-  stopActiveChatRunFn?: typeof stopActiveChatRun;
-  cancelActiveChatRunByUserFn?: typeof cancelActiveChatRunByUser;
-  markActiveChatRunCancellationPersistedFn?: typeof markActiveChatRunCancellationPersisted;
-  hasActiveChatRunFn?: typeof hasActiveChatRun;
+  invokeChatWorkerFn?: typeof invokeChatWorkerOrPersistFailure;
+  requestChatRunCancellationFn?: typeof requestChatRunCancellation;
 }>;
 
 const LEGACY_CHAT_REQUEST_FIELDS = [
@@ -105,8 +99,6 @@ const LEGACY_CHAT_REQUEST_FIELDS = [
   "thinking",
   "thinkingLevel",
 ] as const;
-
-const CHAT_STREAM_HEARTBEAT_INTERVAL_MS = 15_000;
 
 function expectNullableString(value: unknown, fieldName: string): string | null {
   if (value === null) {
@@ -228,11 +220,18 @@ type ChatHistoryResponse = Readonly<{
   mainContentInvalidationVersion: number;
   messages: ReadonlyArray<Readonly<{
     role: "user" | "assistant";
-    content: ReadonlyArray<ContentPart>;
+    content: ChatSessionSnapshot["messages"][number]["content"];
     timestamp: number;
     isError: boolean;
     isStopped: boolean;
   }>>;
+}>;
+
+type ChatStartResponse = Readonly<{
+  ok: true;
+  sessionId: string;
+  runId: string;
+  runState: "running";
 }>;
 
 function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryResponse {
@@ -273,163 +272,16 @@ async function loadSupportedRequestContext(
   return requestContext;
 }
 
-function isExpectedStreamClosureError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes("Controller is already closed")
-    || message.includes("ReadableStream is already closed")
-    || message.includes("stream is already closed");
-}
-
-function createSseDataLine(event: ChatStreamEvent): string {
-  return `data: ${JSON.stringify(event)}\n\n`;
-}
-
-function createSseHeartbeatLine(): string {
-  return ": keep-alive\n\n";
-}
-
-export function createChatEventStream(params: Readonly<{
-  events: AsyncGenerator<ChatStreamEvent>;
-  heartbeatIntervalMs: number;
-  onStreamError: (error: string) => void;
-}>): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  let isClosed = false;
-  let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const clearHeartbeat = (): void => {
-    if (heartbeatTimer !== null) {
-      clearTimeout(heartbeatTimer);
-      heartbeatTimer = null;
-    }
-  };
-
-  return new ReadableStream({
-    async start(controller) {
-      const closeStream = (): void => {
-        clearHeartbeat();
-        if (isClosed) {
-          return;
-        }
-
-        isClosed = true;
-        try {
-          controller.close();
-        } catch (error) {
-          if (!isExpectedStreamClosureError(error)) {
-            throw error;
-          }
-        }
-      };
-
-      const enqueueChunk = (chunk: string): boolean => {
-        if (isClosed) {
-          return false;
-        }
-
-        try {
-          controller.enqueue(encoder.encode(chunk));
-          return true;
-        } catch (error) {
-          clearHeartbeat();
-          isClosed = true;
-          if (isExpectedStreamClosureError(error)) {
-            return false;
-          }
-          throw error;
-        }
-      };
-
-      const scheduleHeartbeat = (): void => {
-        clearHeartbeat();
-        if (isClosed) {
-          return;
-        }
-
-        heartbeatTimer = setTimeout(() => {
-          try {
-            const written = enqueueChunk(createSseHeartbeatLine());
-            if (!written) {
-              return;
-            }
-            scheduleHeartbeat();
-          } catch (error) {
-            if (isClosed || isExpectedStreamClosureError(error)) {
-              return;
-            }
-            const message = error instanceof Error ? error.message : String(error);
-            params.onStreamError(message);
-            closeStream();
-          }
-        }, params.heartbeatIntervalMs);
-      };
-
-      scheduleHeartbeat();
-
-      try {
-        for await (const event of params.events) {
-          if (isClosed) {
-            return;
-          }
-          clearHeartbeat();
-          const written = enqueueChunk(createSseDataLine(event));
-          if (!written) {
-            return;
-          }
-          if (event.type === "done") {
-            closeStream();
-            return;
-          }
-          scheduleHeartbeat();
-        }
-      } catch (error) {
-        clearHeartbeat();
-        if (isClosed || isExpectedStreamClosureError(error)) {
-          return;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        params.onStreamError(message);
-        if (!isClosed) {
-          const written = enqueueChunk(createSseDataLine({ type: "error", message }));
-          if (!written) {
-            return;
-          }
-        }
-      }
-
-      closeStream();
-    },
-    cancel() {
-      isClosed = true;
-      if (heartbeatTimer !== null) {
-        clearTimeout(heartbeatTimer);
-      }
-      const returnFn = params.events.return?.bind(params.events);
-      if (returnFn === undefined) {
-        return;
-      }
-
-      return returnFn(undefined).then(
-        (): void => undefined,
-        (): void => undefined,
-      );
-    },
-  });
-}
-
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const enabled = options.enabled ?? isBackendOwnedChatEnabled();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
-  const getChatSessionSnapshotFn = options.getChatSessionSnapshotFn ?? getChatSessionSnapshot;
+  const getRecoveredChatSessionSnapshotFn = options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot;
   const getLatestChatSessionIdFn = options.getLatestChatSessionIdFn ?? getLatestChatSessionId;
   const createFreshChatSessionFn = options.createFreshChatSessionFn ?? createFreshChatSession;
   const prepareChatRunFn = options.prepareChatRunFn ?? prepareChatRun;
-  const startPersistedChatRunFn = options.startPersistedChatRunFn ?? startPersistedChatRun;
-  const stopActiveChatRunFn = options.stopActiveChatRunFn ?? stopActiveChatRun;
-  const cancelActiveChatRunByUserFn = options.cancelActiveChatRunByUserFn ?? cancelActiveChatRunByUser;
-  const markActiveChatRunCancellationPersistedFn = options.markActiveChatRunCancellationPersistedFn ?? markActiveChatRunCancellationPersisted;
-  const hasActiveChatRunFn = options.hasActiveChatRunFn ?? hasActiveChatRun;
+  const invokeChatWorkerFn = options.invokeChatWorkerFn ?? invokeChatWorkerOrPersistFailure;
+  const requestChatRunCancellationFn = options.requestChatRunCancellationFn ?? requestChatRunCancellation;
 
   app.get("/chat", async (context) => {
     assertBackendOwnedChatEnabled(enabled);
@@ -442,7 +294,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     const sessionId = context.req.query("sessionId") ?? undefined;
 
     try {
-      const snapshot = await getChatSessionSnapshotFn(
+      const snapshot = await getRecoveredChatSessionSnapshotFn(
         requestContext.userId,
         workspaceId,
         sessionId,
@@ -463,54 +315,32 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     const workspaceId = requireSelectedWorkspaceId(requestContext);
     const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
 
+    let preparedRun: PreparedChatRun;
     try {
-      const preparedRun = await prepareChatRunFn(
+      preparedRun = await prepareChatRunFn(
         requestContext.userId,
         workspaceId,
         body.sessionId,
         body.content,
+        context.get("requestId"),
+        body.timezone,
       );
-
-      const events = startPersistedChatRunFn({
-        requestId: context.get("requestId"),
-        userId: requestContext.userId,
-        workspaceId,
-        sessionId: preparedRun.sessionId,
-        timezone: body.timezone,
-        assistantItemId: preparedRun.assistantItem.itemId,
-        localMessages: preparedRun.localMessages,
-        turnInput: preparedRun.turnInput,
-        diagnostics: {
-          requestId: context.get("requestId"),
-          userId: requestContext.userId,
-          workspaceId,
-          sessionId: preparedRun.sessionId,
-          model: CHAT_MODEL_ID,
-          messageCount: 1,
-          hasAttachments: body.content.some((part) => part.type !== "text"),
-          attachmentFileNames: body.content
-            .filter((part): part is Extract<ChatContentPart, { type: "file" }> => part.type === "file")
-            .map((part) => part.fileName),
-        },
-      } satisfies StartPersistedChatRunParams);
-
-      const stream = createChatEventStream({
-        events,
-        heartbeatIntervalMs: CHAT_STREAM_HEARTBEAT_INTERVAL_MS,
-        onStreamError: (): void => undefined,
-      });
-
-      return new Response(stream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-          "X-Chat-Session-Id": preparedRun.sessionId,
-        },
-      });
     } catch (error) {
       return mapStoreError(error);
     }
+
+    await invokeChatWorkerFn({
+      runId: preparedRun.runId,
+      userId: requestContext.userId,
+      workspaceId,
+    });
+
+    return context.json({
+      ok: true,
+      sessionId: preparedRun.sessionId,
+      runId: preparedRun.runId,
+      runState: "running",
+    } satisfies ChatStartResponse);
   });
 
   app.delete("/chat", async (context) => {
@@ -525,7 +355,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
 
     try {
       if (sessionId !== undefined) {
-        await getChatSessionSnapshotFn(
+        await getRecoveredChatSessionSnapshotFn(
           requestContext.userId,
           workspaceId,
           sessionId,
@@ -563,7 +393,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
 
     let sessionId: string;
     try {
-      sessionId = await getChatSessionSnapshotFn(
+      sessionId = await getRecoveredChatSessionSnapshotFn(
         requestContext.userId,
         workspaceId,
         body.sessionId,
@@ -572,22 +402,18 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       return mapStoreError(error);
     }
 
-    const stoppedRuntimeRun = stopActiveChatRunFn(sessionId);
-    const persistedCancelledRun = await cancelActiveChatRunByUserFn(
+    const stopState: ChatRunStopState = await requestChatRunCancellationFn(
       requestContext.userId,
       workspaceId,
       sessionId,
     );
 
-    if (persistedCancelledRun) {
-      markActiveChatRunCancellationPersistedFn(sessionId);
-    }
-
     return context.json({
       ok: true,
-      sessionId,
-      stopped: stoppedRuntimeRun || persistedCancelledRun,
-      stillRunning: hasActiveChatRunFn(sessionId),
+      sessionId: stopState.sessionId,
+      runId: stopState.runId,
+      stopped: stopState.stopped,
+      stillRunning: stopState.stillRunning,
     });
   });
 
