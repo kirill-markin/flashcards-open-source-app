@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
+import type { AppEnv } from "../app";
 import { ChatSessionNotFoundError } from "../chat/store";
-import type { ChatStreamEvent } from "../chat/types";
 import { HttpError } from "../errors";
 import type { RequestContext } from "../server/requestContext";
 import {
-  createChatEventStream,
   createChatRoutes,
   parseChatRequestBody,
   parseStopChatRequestBody,
@@ -16,18 +15,19 @@ function createChatTestApp(
   options: Readonly<{
     enabled?: boolean;
     requestContext?: RequestContext;
-    getChatSessionSnapshotFn?: typeof import("../chat/store").getChatSessionSnapshot;
+    getRecoveredChatSessionSnapshotFn?: typeof import("../chat/runs").getRecoveredChatSessionSnapshot;
     getLatestChatSessionIdFn?: typeof import("../chat/store").getLatestChatSessionId;
     createFreshChatSessionFn?: typeof import("../chat/store").createFreshChatSession;
-    prepareChatRunFn?: typeof import("../chat/store").prepareChatRun;
-    startPersistedChatRunFn?: typeof import("../chat/runtime").startPersistedChatRun;
-    stopActiveChatRunFn?: typeof import("../chat/runtime").stopActiveChatRun;
-    cancelActiveChatRunByUserFn?: typeof import("../chat/store").cancelActiveChatRunByUser;
-    markActiveChatRunCancellationPersistedFn?: typeof import("../chat/runtime").markActiveChatRunCancellationPersisted;
-    hasActiveChatRunFn?: typeof import("../chat/runtime").hasActiveChatRun;
+    prepareChatRunFn?: typeof import("../chat/runs").prepareChatRun;
+    invokeChatWorkerFn?: typeof import("../chat/workerInvoke").invokeChatWorkerOrPersistFailure;
+    requestChatRunCancellationFn?: typeof import("../chat/runs").requestChatRunCancellation;
   }>,
-): Hono {
-  const app = new Hono();
+): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
+  app.use("*", async (context, next) => {
+    context.set("requestId", "request-1");
+    await next();
+  });
   app.onError((error, context) => {
     if (error instanceof HttpError) {
       context.status(error.statusCode as never);
@@ -39,15 +39,12 @@ function createChatTestApp(
   app.route("/", createChatRoutes({
     allowedOrigins: [],
     enabled: options.enabled,
-    getChatSessionSnapshotFn: options.getChatSessionSnapshotFn,
+    getRecoveredChatSessionSnapshotFn: options.getRecoveredChatSessionSnapshotFn,
     getLatestChatSessionIdFn: options.getLatestChatSessionIdFn,
     createFreshChatSessionFn: options.createFreshChatSessionFn,
     prepareChatRunFn: options.prepareChatRunFn,
-    startPersistedChatRunFn: options.startPersistedChatRunFn,
-    stopActiveChatRunFn: options.stopActiveChatRunFn,
-    cancelActiveChatRunByUserFn: options.cancelActiveChatRunByUserFn,
-    markActiveChatRunCancellationPersistedFn: options.markActiveChatRunCancellationPersistedFn,
-    hasActiveChatRunFn: options.hasActiveChatRunFn,
+    invokeChatWorkerFn: options.invokeChatWorkerFn,
+    requestChatRunCancellationFn: options.requestChatRunCancellationFn,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {
         authorizationHeader: undefined,
@@ -72,15 +69,6 @@ function createChatTestApp(
     }),
   }));
   return app;
-}
-
-async function readSseEvents(response: Response): Promise<ReadonlyArray<ChatStreamEvent>> {
-  const text = await response.text();
-  return text
-    .split("\n\n")
-    .map((chunk) => chunk.trim())
-    .filter((chunk) => chunk.startsWith("data: "))
-    .map((chunk) => JSON.parse(chunk.slice(6)) as ChatStreamEvent);
 }
 
 test("parseChatRequestBody rejects legacy chat fields", () => {
@@ -152,47 +140,26 @@ test("new chat routes reject guest transport even when enabled", async () => {
   });
 });
 
-test("new chat routes accept the server-owned request shape and stream the new backend-owned response", async () => {
+test("new chat POST route prepares a persisted run and dispatches the worker", async () => {
+  let invokedPayload: Readonly<Record<string, string>> | null = null;
   const app = createChatTestApp({
     enabled: true,
-    prepareChatRunFn: async (userId, workspaceId, sessionId, content) => {
+    prepareChatRunFn: async (userId, workspaceId, sessionId, content, requestId, timezone) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");
       assert.equal(sessionId, "session-1");
+      assert.equal(requestId, "request-1");
+      assert.equal(timezone, "Europe/Madrid");
       assert.deepEqual(content, [{ type: "text", text: "hi" }]);
 
       return {
         sessionId: "session-1",
-        assistantItem: {
-          itemId: "assistant-1",
-          sessionId: "session-1",
-          role: "assistant",
-          content: [],
-          state: "in_progress",
-          isError: false,
-          isStopped: false,
-          timestamp: 1,
-          updatedAt: 1,
-        },
-        localMessages: [{
-          role: "user",
-          content: [{ type: "text", text: "hi" }],
-        }],
-        turnInput: [{ type: "text", text: "hi" }],
+        runId: "run-1",
       };
     },
-    startPersistedChatRunFn: () =>
-      (async function* (): AsyncGenerator<ChatStreamEvent> {
-        yield {
-          type: "delta",
-          text: "hello",
-          itemId: "item-1",
-          outputIndex: 0,
-          contentIndex: 0,
-          sequenceNumber: 1,
-        };
-        yield { type: "done" };
-      })(),
+    invokeChatWorkerFn: async (payload) => {
+      invokedPayload = payload;
+    },
   });
 
   const response = await app.request("https://api.example.com/chat", {
@@ -208,25 +175,23 @@ test("new chat routes accept the server-owned request shape and stream the new b
   });
 
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get("content-type"), "text/event-stream");
-  assert.equal(response.headers.get("x-chat-session-id"), "session-1");
-  assert.deepEqual(await readSseEvents(response), [
-    {
-      type: "delta",
-      text: "hello",
-      itemId: "item-1",
-      outputIndex: 0,
-      contentIndex: 0,
-      sequenceNumber: 1,
-    },
-    { type: "done" },
-  ]);
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    sessionId: "session-1",
+    runId: "run-1",
+    runState: "running",
+  });
+  assert.deepEqual(invokedPayload, {
+    runId: "run-1",
+    userId: "user-1",
+    workspaceId: "workspace-1",
+  });
 });
 
-test("new chat GET route returns the persisted snapshot", async () => {
+test("new chat GET route returns the recovered persisted snapshot", async () => {
   const app = createChatTestApp({
     enabled: true,
-    getChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
+    getRecoveredChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");
       assert.equal(sessionId, "session-1");
@@ -234,6 +199,7 @@ test("new chat GET route returns the persisted snapshot", async () => {
       return {
         sessionId: "session-1",
         runState: "idle",
+        activeRunId: null,
         updatedAt: 1_742_811_200_000,
         activeRunHeartbeatAt: null,
         mainContentInvalidationVersion: 0,
@@ -271,7 +237,7 @@ test("new chat GET route returns the persisted snapshot", async () => {
 test("new chat GET route maps missing sessions to 404", async () => {
   const app = createChatTestApp({
     enabled: true,
-    getChatSessionSnapshotFn: async () => {
+    getRecoveredChatSessionSnapshotFn: async () => {
       throw new ChatSessionNotFoundError("session-404");
     },
   });
@@ -313,10 +279,10 @@ test("new chat DELETE route creates a fresh empty session", async () => {
   });
 });
 
-test("new chat stop route validates the new stop contract and returns stop state", async () => {
+test("new chat stop route delegates to persisted run cancellation", async () => {
   const app = createChatTestApp({
     enabled: true,
-    getChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
+    getRecoveredChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");
       assert.equal(sessionId, "session-1");
@@ -324,26 +290,24 @@ test("new chat stop route validates the new stop contract and returns stop state
       return {
         sessionId: "session-1",
         runState: "running",
+        activeRunId: "run-1",
         updatedAt: 1,
         activeRunHeartbeatAt: 1,
         mainContentInvalidationVersion: 0,
         messages: [],
       };
     },
-    stopActiveChatRunFn: (sessionId) => {
-      assert.equal(sessionId, "session-1");
-      return true;
-    },
-    cancelActiveChatRunByUserFn: async (userId, workspaceId, sessionId) => {
+    requestChatRunCancellationFn: async (userId, workspaceId, sessionId) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");
       assert.equal(sessionId, "session-1");
-      return true;
+      return {
+        sessionId,
+        runId: "run-1",
+        stopped: true,
+        stillRunning: true,
+      };
     },
-    markActiveChatRunCancellationPersistedFn: (sessionId) => {
-      assert.equal(sessionId, "session-1");
-    },
-    hasActiveChatRunFn: () => false,
   });
 
   const response = await app.request("https://api.example.com/chat/stop", {
@@ -360,38 +324,8 @@ test("new chat stop route validates the new stop contract and returns stop state
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: "session-1",
+    runId: "run-1",
     stopped: true,
-    stillRunning: false,
+    stillRunning: true,
   });
-});
-
-test("createChatEventStream emits SSE chunks and heartbeats safely", async () => {
-  const stream = createChatEventStream({
-    events: (async function* (): AsyncGenerator<ChatStreamEvent> {
-      yield {
-        type: "delta",
-        text: "hello",
-        itemId: "item-1",
-        outputIndex: 0,
-        contentIndex: 0,
-        sequenceNumber: 1,
-      };
-      yield { type: "done" };
-    })(),
-    heartbeatIntervalMs: 1,
-    onStreamError: () => undefined,
-  });
-
-  const response = new Response(stream);
-  assert.deepEqual(await readSseEvents(response), [
-    {
-      type: "delta",
-      text: "hello",
-      itemId: "item-1",
-      outputIndex: 0,
-      contentIndex: 0,
-      sequenceNumber: 1,
-    },
-    { type: "done" },
-  ]);
 });

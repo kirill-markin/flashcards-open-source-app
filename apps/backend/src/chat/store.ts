@@ -20,9 +20,10 @@ export const STOPPED_BY_USER_TOOL_OUTPUT = "Stopped by user";
 export const INTERRUPTED_TOOL_CALL_OUTPUT = "Interrupted before output was captured.";
 export const FAILED_TOOL_CALL_OUTPUT = "Tool failed before returning output.";
 
-type ChatSessionRow = Readonly<{
+export type ChatSessionRow = Readonly<{
   session_id: string;
   status: ChatSessionRunState;
+  active_run_id: string | null;
   active_run_heartbeat_at: string | null;
   main_content_invalidation_version: string | number;
   updated_at: string;
@@ -70,6 +71,7 @@ type UpdateChatMessageItemAndInvalidateMainContentParams = Readonly<{
 }>;
 
 type PersistAssistantTerminalErrorParams = Readonly<{
+  runId: string;
   sessionId: string;
   assistantItemId: string;
   assistantContent: ReadonlyArray<ContentPart>;
@@ -79,6 +81,7 @@ type PersistAssistantTerminalErrorParams = Readonly<{
 }>;
 
 type PersistAssistantCancelledParams = Readonly<{
+  runId: string;
   sessionId: string;
   assistantItemId: string;
   assistantContent: ReadonlyArray<ContentPart>;
@@ -86,6 +89,8 @@ type PersistAssistantCancelledParams = Readonly<{
 }>;
 
 type CompleteChatRunParams = Readonly<{
+  runId: string;
+  sessionId: string;
   assistantItemId: string;
   assistantContent: ReadonlyArray<ContentPart>;
   assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
@@ -128,21 +133,15 @@ export type PersistedChatMessageItem = Readonly<{
 export type ChatSessionSnapshot = Readonly<{
   sessionId: string;
   runState: ChatSessionRunState;
+  activeRunId: string | null;
   updatedAt: number;
   activeRunHeartbeatAt: number | null;
   mainContentInvalidationVersion: number;
   messages: ReadonlyArray<StoredMessage>;
 }>;
 
-export type PreparedChatRun = Readonly<{
-  sessionId: string;
-  assistantItem: PersistedChatMessageItem;
-  localMessages: ReadonlyArray<ServerChatMessage>;
-  turnInput: ReadonlyArray<ContentPart>;
-}>;
-
 const SELECT_SESSION_SQL = `
-  SELECT session_id, status, active_run_heartbeat_at, main_content_invalidation_version, updated_at
+  SELECT session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
   FROM ai.chat_sessions
   WHERE user_id = $1
     AND workspace_id = $2
@@ -150,14 +149,14 @@ const SELECT_SESSION_SQL = `
 `;
 
 const SELECT_SESSION_FOR_UPDATE_SQL = `
-  SELECT session_id, status, active_run_heartbeat_at, main_content_invalidation_version, updated_at
+  SELECT session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
   FROM ai.chat_sessions
   WHERE session_id = $1
   FOR UPDATE
 `;
 
 const SELECT_LATEST_SESSION_SQL = `
-  SELECT session_id, status, active_run_heartbeat_at, main_content_invalidation_version, updated_at
+  SELECT session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
   FROM ai.chat_sessions
   WHERE user_id = $1
     AND workspace_id = $2
@@ -170,12 +169,13 @@ const INSERT_SESSION_SQL = `
     user_id,
     workspace_id,
     status,
+    active_run_id,
     active_run_heartbeat_at,
     main_content_invalidation_version,
     updated_at
   )
-  VALUES ($1, $2, 'idle', NULL, 0, now())
-  RETURNING session_id, status, active_run_heartbeat_at, main_content_invalidation_version, updated_at
+  VALUES ($1, $2, 'idle', NULL, NULL, 0, now())
+  RETURNING session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
 `;
 
 const LIST_CHAT_ITEMS_SQL = `
@@ -234,10 +234,11 @@ const UPDATE_CHAT_ITEM_SQL = `
 const UPDATE_CHAT_SESSION_STATUS_SQL = `
   UPDATE ai.chat_sessions
   SET status = $2,
-      active_run_heartbeat_at = $3,
+      active_run_id = $3,
+      active_run_heartbeat_at = $4,
       updated_at = now()
   WHERE session_id = $1
-  RETURNING session_id, status, active_run_heartbeat_at, main_content_invalidation_version, updated_at
+  RETURNING session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
 `;
 
 const UPDATE_CHAT_ITEM_AND_INVALIDATE_MAIN_CONTENT_SQL = `
@@ -284,6 +285,7 @@ function mapSessionRow(row: ChatSessionRow): Omit<ChatSessionSnapshot, "messages
   return {
     sessionId: row.session_id,
     runState: row.status,
+    activeRunId: row.active_run_id,
     updatedAt: new Date(row.updated_at).getTime(),
     activeRunHeartbeatAt: row.active_run_heartbeat_at === null
       ? null
@@ -322,7 +324,7 @@ function mapPersistedMessagesToStoredMessages(
   }));
 }
 
-function buildLocalChatMessages(
+export function buildLocalChatMessages(
   messages: ReadonlyArray<PersistedChatMessageItem>,
 ): ReadonlyArray<ServerChatMessage> {
   return messages.map((message) => ({
@@ -386,7 +388,7 @@ function toChatItemPayload(
   };
 }
 
-async function insertChatItemWithExecutor(
+export async function insertChatItemWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   params: InsertChatItemParams,
@@ -402,7 +404,7 @@ async function insertChatItemWithExecutor(
   });
 }
 
-async function updateChatItemWithExecutor(
+export async function updateChatItemWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   params: UpdateChatMessageItemParams,
@@ -460,7 +462,7 @@ async function createChatSessionWithExecutor(
   });
 }
 
-async function selectRequestedChatSessionWithExecutor(
+export async function selectRequestedChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   sessionId: string,
@@ -488,7 +490,7 @@ async function selectLatestChatSessionWithExecutor(
   });
 }
 
-async function resolveRequestedChatSessionWithExecutor(
+export async function resolveRequestedChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   sessionId: string,
@@ -501,7 +503,7 @@ async function resolveRequestedChatSessionWithExecutor(
   throw new ChatSessionNotFoundError(sessionId);
 }
 
-async function resolveLatestOrCreateChatSessionWithExecutor(
+export async function resolveLatestOrCreateChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
 ): Promise<ChatSessionRow> {
@@ -569,69 +571,18 @@ export const getChatSessionSnapshotWithExecutor = async (
     };
   });
 
-export const prepareChatRunWithExecutor = async (
-  executor: DatabaseExecutor,
-  scope: WorkspaceDatabaseScope,
-  requestedSessionId: string | undefined,
-  content: ReadonlyArray<ContentPart>,
-): Promise<PreparedChatRun> =>
-  withScopedExecutor(executor, scope, async () => {
-    const sessionRow = requestedSessionId === undefined
-      ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
-      : await resolveRequestedChatSessionWithExecutor(executor, scope, requestedSessionId);
-
-    const lockedSessionRows = await executeQuery<ChatSessionRow>(executor, SELECT_SESSION_FOR_UPDATE_SQL, [
-      sessionRow.session_id,
-    ]);
-    const lockedSession = requireSessionRow(lockedSessionRows[0], "lock");
-
-    if (lockedSession.status === "running") {
-      throw new ChatSessionConflictError(sessionRow.session_id);
-    }
-
-    await insertChatItemWithExecutor(executor, scope, {
-      sessionId: sessionRow.session_id,
-      role: "user",
-      state: "completed",
-      content,
-    });
-
-    const persistedMessagesRows = await executeQuery<ChatItemRow>(executor, LIST_CHAT_ITEMS_SQL, [sessionRow.session_id]);
-    const assistantItem = await insertChatItemWithExecutor(executor, scope, {
-      sessionId: sessionRow.session_id,
-      role: "assistant",
-      state: "in_progress",
-      content: [],
-    });
-
-    await updateChatSessionRunStateWithExecutor(
-      executor,
-      scope,
-      sessionRow.session_id,
-      "running",
-      new Date(),
-    );
-
-    return {
-      sessionId: sessionRow.session_id,
-      assistantItem,
-      localMessages: buildLocalChatMessages(
-        persistedMessagesRows.map((row) => mapChatItemRow(row)),
-      ),
-      turnInput: content,
-    };
-  });
-
 export const touchChatSessionHeartbeatWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   sessionId: string,
   heartbeatAt: Date,
+  activeRunId: string,
 ): Promise<void> =>
   withScopedExecutor(executor, scope, async () => {
     const rows = await executeQuery<ChatSessionRow>(executor, UPDATE_CHAT_SESSION_STATUS_SQL, [
       sessionId,
       "running",
+      activeRunId,
       heartbeatAt.toISOString(),
     ]);
     if (rows.length === 0) {
@@ -644,12 +595,14 @@ export const updateChatSessionRunStateWithExecutor = async (
   scope: WorkspaceDatabaseScope,
   sessionId: string,
   runState: ChatSessionRunState,
+  activeRunId: string | null,
   activeRunHeartbeatAt: Date | null,
 ): Promise<void> =>
   withScopedExecutor(executor, scope, async () => {
     const rows = await executeQuery<ChatSessionRow>(executor, UPDATE_CHAT_SESSION_STATUS_SQL, [
       sessionId,
       runState,
+      activeRunId,
       activeRunHeartbeatAt?.toISOString() ?? null,
     ]);
     if (rows.length === 0) {
@@ -701,15 +654,6 @@ export const getChatSessionSnapshot = async (
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
     getChatSessionSnapshotWithExecutor(executor, { userId, workspaceId }, sessionId));
 
-export const prepareChatRun = async (
-  userId: string,
-  workspaceId: string,
-  requestedSessionId: string | undefined,
-  content: ReadonlyArray<ContentPart>,
-): Promise<PreparedChatRun> =>
-  transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
-    prepareChatRunWithExecutor(executor, { userId, workspaceId }, requestedSessionId, content));
-
 export const updateAssistantMessageItem = async (
   userId: string,
   workspaceId: string,
@@ -733,9 +677,16 @@ export const touchChatSessionHeartbeat = async (
   workspaceId: string,
   sessionId: string,
   heartbeatAt: Date,
+  activeRunId: string,
 ): Promise<void> =>
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
-    touchChatSessionHeartbeatWithExecutor(executor, { userId, workspaceId }, sessionId, heartbeatAt));
+    touchChatSessionHeartbeatWithExecutor(
+      executor,
+      { userId, workspaceId },
+      sessionId,
+      heartbeatAt,
+      activeRunId,
+    ));
 
 export const completeChatRun = async (
   userId: string,
@@ -757,8 +708,9 @@ export const completeChatRun = async (
     await updateChatSessionRunStateWithExecutor(
       executor,
       { userId, workspaceId },
-      updatedAssistant.sessionId,
+      params.sessionId,
       "idle",
+      null,
       null,
     );
   });
@@ -844,6 +796,7 @@ export const persistAssistantTerminalError = async (
       params.sessionId,
       params.sessionState,
       null,
+      null,
     );
   });
 
@@ -865,6 +818,7 @@ export const persistAssistantCancelled = async (
       { userId, workspaceId },
       params.sessionId,
       "idle",
+      null,
       null,
     );
   });
@@ -904,6 +858,7 @@ export const cancelActiveChatRunByUserWithExecutor = async (
       scope,
       sessionId,
       updatePlan.sessionState,
+      null,
       null,
     );
     return true;

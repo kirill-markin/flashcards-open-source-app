@@ -3,10 +3,8 @@ import test from "node:test";
 import type { StoredOpenAIReplayItem } from "./openai/replayItems";
 import type { ChatStreamEvent } from "./types";
 import {
-  clearActiveChatRunForTests,
-  createActiveChatRunForTests,
+  ChatRunOwnershipLostError,
   runPersistedChatSessionWithDeps,
-  stopActiveChatRun,
   type ChatRuntimeDependencies,
   type StartPersistedChatRunParams,
 } from "./runtime";
@@ -30,6 +28,7 @@ function createStartedResponse(
 
 function createParams(): StartPersistedChatRunParams {
   return {
+    runId: "run-1",
     requestId: "req-1",
     userId: "user-1",
     workspaceId: "workspace-1",
@@ -56,45 +55,66 @@ function createParams(): StartPersistedChatRunParams {
 
 function createDependencies(
   startOpenAILoopImpl: ChatRuntimeDependencies["startOpenAILoop"],
-  completeChatRunCalls: Array<Readonly<Record<string, unknown>>>,
-  persistAssistantCancelledCalls: Array<Readonly<Record<string, unknown>>>,
-  persistAssistantTerminalErrorCalls: Array<Readonly<Record<string, unknown>>>,
-  updateAssistantMessageItemCalls: Array<Readonly<Record<string, unknown>>>,
-  updateAssistantMessageItemAndInvalidateMainContentCalls: Array<Readonly<Record<string, unknown>>>,
-): ChatRuntimeDependencies {
-  return {
-    startOpenAILoop: startOpenAILoopImpl,
-    completeChatRun: async (_userId, _workspaceId, params): Promise<void> => {
-      completeChatRunCalls.push(params as unknown as Readonly<Record<string, unknown>>);
-    },
-    persistAssistantCancelled: async (_userId, _workspaceId, params): Promise<void> => {
-      persistAssistantCancelledCalls.push(params as unknown as Readonly<Record<string, unknown>>);
-    },
-    persistAssistantTerminalError: async (_userId, _workspaceId, params): Promise<void> => {
-      persistAssistantTerminalErrorCalls.push(params as unknown as Readonly<Record<string, unknown>>);
-    },
-    touchChatSessionHeartbeat: async (): Promise<void> => undefined,
-    updateAssistantMessageItem: async (_userId, _workspaceId, params): Promise<never> => {
-      updateAssistantMessageItemCalls.push(params as unknown as Readonly<Record<string, unknown>>);
-      return undefined as never;
-    },
-    updateAssistantMessageItemAndInvalidateMainContent: async (_userId, _workspaceId, params): Promise<number> => {
-      updateAssistantMessageItemAndInvalidateMainContentCalls.push(params as unknown as Readonly<Record<string, unknown>>);
-      return 1;
-    },
-    beginTaskProtection: async (): Promise<void> => undefined,
-    endTaskProtection: async (): Promise<void> => undefined,
-  };
-}
-
-test("runPersistedChatSessionWithDeps completes a plain turn and stores replay items", async () => {
+  options?: Readonly<{
+    heartbeatStates?: ReadonlyArray<Readonly<{ cancellationRequested: boolean; ownershipLost: boolean }>>;
+  }>,
+): Readonly<{
+  dependencies: ChatRuntimeDependencies;
+  completeChatRunCalls: Array<Readonly<Record<string, unknown>>>;
+  persistAssistantCancelledCalls: Array<Readonly<Record<string, unknown>>>;
+  persistAssistantTerminalErrorCalls: Array<Readonly<Record<string, unknown>>>;
+  updateAssistantMessageItemCalls: Array<Readonly<Record<string, unknown>>>;
+  updateAssistantMessageItemAndInvalidateMainContentCalls: Array<Readonly<Record<string, unknown>>>;
+}> {
   const completeChatRunCalls: Array<Readonly<Record<string, unknown>>> = [];
   const persistAssistantCancelledCalls: Array<Readonly<Record<string, unknown>>> = [];
   const persistAssistantTerminalErrorCalls: Array<Readonly<Record<string, unknown>>> = [];
   const updateAssistantMessageItemCalls: Array<Readonly<Record<string, unknown>>> = [];
   const updateAssistantMessageItemAndInvalidateMainContentCalls: Array<Readonly<Record<string, unknown>>> = [];
+  const heartbeatStates = [...(options?.heartbeatStates ?? [{
+    cancellationRequested: false,
+    ownershipLost: false,
+  }])];
 
-  const dependencies = createDependencies(
+  return {
+    completeChatRunCalls,
+    persistAssistantCancelledCalls,
+    persistAssistantTerminalErrorCalls,
+    updateAssistantMessageItemCalls,
+    updateAssistantMessageItemAndInvalidateMainContentCalls,
+    dependencies: {
+      startOpenAILoop: startOpenAILoopImpl,
+      completeChatRun: async (_userId, _workspaceId, params): Promise<void> => {
+        completeChatRunCalls.push(params as unknown as Readonly<Record<string, unknown>>);
+      },
+      persistAssistantCancelled: async (_userId, _workspaceId, params): Promise<void> => {
+        persistAssistantCancelledCalls.push(params as unknown as Readonly<Record<string, unknown>>);
+      },
+      persistAssistantTerminalError: async (_userId, _workspaceId, params): Promise<void> => {
+        persistAssistantTerminalErrorCalls.push(params as unknown as Readonly<Record<string, unknown>>);
+      },
+      touchChatRunHeartbeat: async (): Promise<{ cancellationRequested: boolean; ownershipLost: boolean }> => {
+        return heartbeatStates.shift() ?? {
+          cancellationRequested: false,
+          ownershipLost: false,
+        };
+      },
+      updateAssistantMessageItem: async (_userId, _workspaceId, params): Promise<never> => {
+        updateAssistantMessageItemCalls.push(params as unknown as Readonly<Record<string, unknown>>);
+        return undefined as never;
+      },
+      updateAssistantMessageItemAndInvalidateMainContent: async (_userId, _workspaceId, params): Promise<number> => {
+        updateAssistantMessageItemAndInvalidateMainContentCalls.push(params as unknown as Readonly<Record<string, unknown>>);
+        return 1;
+      },
+      beginTaskProtection: async (): Promise<void> => undefined,
+      endTaskProtection: async (): Promise<void> => undefined,
+    },
+  };
+}
+
+test("runPersistedChatSessionWithDeps completes a plain turn and stores replay items", async () => {
+  const { dependencies, completeChatRunCalls, persistAssistantCancelledCalls, persistAssistantTerminalErrorCalls, updateAssistantMessageItemCalls, updateAssistantMessageItemAndInvalidateMainContentCalls } = createDependencies(
     async () =>
       createStartedResponse([
         {
@@ -117,11 +137,6 @@ test("runPersistedChatSessionWithDeps completes a plain turn and stores replay i
           annotations: [],
         }],
       }]),
-    completeChatRunCalls,
-    persistAssistantCancelledCalls,
-    persistAssistantTerminalErrorCalls,
-    updateAssistantMessageItemCalls,
-    updateAssistantMessageItemAndInvalidateMainContentCalls,
   );
 
   await runPersistedChatSessionWithDeps(createParams(), dependencies);
@@ -134,13 +149,7 @@ test("runPersistedChatSessionWithDeps completes a plain turn and stores replay i
 });
 
 test("runPersistedChatSessionWithDeps persists invalidation only for completed mutating tool calls", async () => {
-  const completeChatRunCalls: Array<Readonly<Record<string, unknown>>> = [];
-  const persistAssistantCancelledCalls: Array<Readonly<Record<string, unknown>>> = [];
-  const persistAssistantTerminalErrorCalls: Array<Readonly<Record<string, unknown>>> = [];
-  const updateAssistantMessageItemCalls: Array<Readonly<Record<string, unknown>>> = [];
-  const updateAssistantMessageItemAndInvalidateMainContentCalls: Array<Readonly<Record<string, unknown>>> = [];
-
-  const dependencies = createDependencies(
+  const { dependencies, completeChatRunCalls, updateAssistantMessageItemAndInvalidateMainContentCalls } = createDependencies(
     async () =>
       createStartedResponse([
         {
@@ -157,11 +166,6 @@ test("runPersistedChatSessionWithDeps persists invalidation only for completed m
         },
         { type: "done" },
       ], null, []),
-    completeChatRunCalls,
-    persistAssistantCancelledCalls,
-    persistAssistantTerminalErrorCalls,
-    updateAssistantMessageItemCalls,
-    updateAssistantMessageItemAndInvalidateMainContentCalls,
   );
 
   await runPersistedChatSessionWithDeps(createParams(), dependencies);
@@ -170,8 +174,50 @@ test("runPersistedChatSessionWithDeps persists invalidation only for completed m
   assert.equal(completeChatRunCalls.length, 1);
 });
 
-test("stopActiveChatRun aborts the active session and closes it for tests", () => {
-  createActiveChatRunForTests("session-stop");
-  assert.equal(stopActiveChatRun("session-stop"), true);
-  clearActiveChatRunForTests("session-stop");
+test("runPersistedChatSessionWithDeps persists cancellation when heartbeat reports a user stop", async () => {
+  const { dependencies, persistAssistantCancelledCalls, completeChatRunCalls } = createDependencies(
+    async () =>
+      createStartedResponse([
+        {
+          type: "delta",
+          text: "Partial answer",
+          itemId: "msg-1",
+          outputIndex: 0,
+          contentIndex: 0,
+          sequenceNumber: 1,
+        },
+      ], null, []),
+    {
+      heartbeatStates: [
+        { cancellationRequested: true, ownershipLost: false },
+      ],
+    },
+  );
+
+  await runPersistedChatSessionWithDeps(createParams(), dependencies);
+
+  assert.equal(persistAssistantCancelledCalls.length, 1);
+  assert.equal(completeChatRunCalls.length, 0);
+});
+
+test("runPersistedChatSessionWithDeps exits cleanly when worker ownership is lost", async () => {
+  const { dependencies, persistAssistantCancelledCalls, persistAssistantTerminalErrorCalls, completeChatRunCalls } = createDependencies(
+    async () =>
+      createStartedResponse([], null, []),
+    {
+      heartbeatStates: [
+        { cancellationRequested: false, ownershipLost: true },
+      ],
+    },
+  );
+
+  await assert.doesNotReject(() => runPersistedChatSessionWithDeps(createParams(), dependencies));
+  assert.equal(persistAssistantCancelledCalls.length, 0);
+  assert.equal(persistAssistantTerminalErrorCalls.length, 0);
+  assert.equal(completeChatRunCalls.length, 0);
+});
+
+test("ChatRunOwnershipLostError keeps a stable message", () => {
+  const error = new ChatRunOwnershipLostError("run-1");
+  assert.equal(error.message, "Chat run ownership lost: run-1");
 });
