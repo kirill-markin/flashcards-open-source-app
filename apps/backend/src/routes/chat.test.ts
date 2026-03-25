@@ -3,13 +3,16 @@ import test from "node:test";
 import { Hono } from "hono";
 import { HttpError } from "../errors";
 import type { RequestContext } from "../server/requestContext";
-import { createChatRoutes } from "./chat";
+import {
+  createChatRoutes,
+  parseChatRequestBody,
+  parseStopChatRequestBody,
+} from "./chat";
 
 function createChatTestApp(
   options: Readonly<{
+    enabled?: boolean;
     requestContext?: RequestContext;
-    streamAIChatResponseFn?: Parameters<typeof createChatRoutes>[0]["streamAIChatResponseFn"];
-    transcribeAudioFn: Parameters<typeof createChatRoutes>[0]["transcribeAudioFn"];
   }>,
 ): Hono {
   const app = new Hono();
@@ -23,6 +26,7 @@ function createChatTestApp(
   });
   app.route("/", createChatRoutes({
     allowedOrigins: [],
+    enabled: options.enabled,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {
         authorizationHeader: undefined,
@@ -40,49 +44,54 @@ function createChatTestApp(
           email: "user@example.com",
           locale: "en",
           userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
-          transport: "bearer",
+          transport: "session",
           connectionId: null,
         }),
       },
     }),
-    streamAIChatResponseFn: options.streamAIChatResponseFn,
-    transcribeAudioFn: options.transcribeAudioFn,
   }));
   return app;
 }
 
-test("chat transcriptions route accepts multipart uploads without durationSeconds and returns text", async () => {
-  let observedSource: string | null = null;
-  let observedFileName: string | null = null;
-  const app = createChatTestApp({
-    transcribeAudioFn: async (upload) => {
-      observedSource = upload.source;
-      observedFileName = upload.file.name;
-      return "recognized text";
-    },
-  });
-
-  const formData = new FormData();
-  formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
-  formData.append("source", "web");
-
-  const response = await app.request("https://api.example.com/chat/transcriptions", {
-    method: "POST",
-    body: formData,
-  });
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { text: "recognized text" });
-  assert.equal(observedSource, "web");
-  assert.equal(observedFileName, "clip.webm");
+test("parseChatRequestBody rejects legacy chat fields", () => {
+  assert.throws(
+    () => parseChatRequestBody({
+      messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],
+      timezone: "Europe/Madrid",
+      content: [{ type: "text", text: "hi" }],
+    }),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 400
+      && error.message === "Unsupported legacy chat field: messages",
+  );
 });
 
-test("chat transcriptions route blocks guest uploads immediately when guest AI quota defaults to zero", async () => {
-  const originalGuestAiWeightedMonthlyTokenCap = process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
-  delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+test("parseStopChatRequestBody requires a non-empty sessionId", () => {
+  assert.throws(
+    () => parseStopChatRequestBody({ sessionId: "" }),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 400
+      && error.message === "sessionId must not be empty",
+  );
+});
 
-  let transcribeCallCount = 0;
+test("new chat routes stay hidden while the feature gate is disabled", async () => {
+  const app = createChatTestApp({ enabled: false });
+
+  const response = await app.request("https://api.example.com/chat", {
+    method: "GET",
+  });
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), {
+    error: "Not found",
+    code: "AI_CHAT_V2_DISABLED",
+  });
+});
+
+test("new chat routes reject guest transport even when enabled", async () => {
   const app = createChatTestApp({
+    enabled: true,
     requestContext: {
       userId: "guest-user-1",
       subjectUserId: "guest-user-1",
@@ -93,186 +102,64 @@ test("chat transcriptions route blocks guest uploads immediately when guest AI q
       transport: "guest",
       connectionId: null,
     },
-    transcribeAudioFn: async () => {
-      transcribeCallCount += 1;
-      return "ignored";
-    },
   });
 
-  const formData = new FormData();
-  formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
-  formData.append("source", "web");
-
-  const response = await app.request("https://api.example.com/chat/transcriptions", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (originalGuestAiWeightedMonthlyTokenCap === undefined) {
-    delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
-  } else {
-    process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP = originalGuestAiWeightedMonthlyTokenCap;
-  }
-
-  assert.equal(response.status, 429);
-  assert.deepEqual(await response.json(), {
-    error: "Your free monthly AI limit is used up on this device. Create an account to keep going.",
-    code: "GUEST_AI_LIMIT_REACHED",
-  });
-  assert.equal(transcribeCallCount, 0);
-});
-
-test("chat transcriptions route rejects requests without a file upload", async () => {
-  const app = createChatTestApp({ transcribeAudioFn: async () => "ignored" });
-  const formData = new FormData();
-  formData.append("source", "ios");
-
-  const response = await app.request("https://api.example.com/chat/transcriptions", {
-    method: "POST",
-    body: formData,
-  });
-
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), {
-    error: "file is required",
-    code: "CHAT_TRANSCRIPTION_FILE_REQUIRED",
-  });
-});
-
-test("chat transcriptions route rejects unsupported media types", async () => {
-  const app = createChatTestApp({ transcribeAudioFn: async () => "ignored" });
-  const formData = new FormData();
-  formData.append("file", new File(["audio"], "clip.mp3", { type: "audio/mpeg" }));
-  formData.append("source", "web");
-
-  const response = await app.request("https://api.example.com/chat/transcriptions", {
-    method: "POST",
-    body: formData,
-  });
-
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), {
-    error: "Unsupported audio file type. Use m4a, wav, or webm.",
-    code: "CHAT_TRANSCRIPTION_FILE_UNSUPPORTED",
-  });
-});
-
-test("chat transcriptions route surfaces upstream failures as 503", async () => {
-  const app = createChatTestApp({
-    transcribeAudioFn: async () => {
-      throw new HttpError(503, "There is a network problem. Fix it and try again.", "CHAT_TRANSCRIPTION_UNAVAILABLE");
-    },
-  });
-  const formData = new FormData();
-  formData.append("file", new File(["audio"], "clip.wav", { type: "audio/wav" }));
-  formData.append("source", "ios");
-
-  const response = await app.request("https://api.example.com/chat/transcriptions", {
-    method: "POST",
-    body: formData,
-  });
-
-  assert.equal(response.status, 503);
-  assert.deepEqual(await response.json(), {
-    error: "There is a network problem. Fix it and try again.",
-    code: "CHAT_TRANSCRIPTION_UNAVAILABLE",
-  });
-});
-
-test("chat transcriptions route surfaces invalid audio failures as 422", async () => {
-  const app = createChatTestApp({
-    transcribeAudioFn: async () => {
-      throw new HttpError(422, "We couldn’t process that recording. Please try again.", "CHAT_TRANSCRIPTION_INVALID_AUDIO");
-    },
-  });
-  const formData = new FormData();
-  formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
-  formData.append("source", "web");
-
-  const response = await app.request("https://api.example.com/chat/transcriptions", {
-    method: "POST",
-    body: formData,
-  });
-
-  assert.equal(response.status, 422);
-  assert.deepEqual(await response.json(), {
-    error: "We couldn’t process that recording. Please try again.",
-    code: "CHAT_TRANSCRIPTION_INVALID_AUDIO",
-  });
-});
-
-test("chat turn route forwards the authenticated request context to the AI chat response pipeline", async () => {
-  let observedUserId: string | null = null;
-  let observedTransport: string | null = null;
-  let observedDevicePlatform: string | null = null;
-  const app = createChatTestApp({
-    requestContext: {
-      userId: "user-42",
-      subjectUserId: "user-42",
-      selectedWorkspaceId: "workspace-1",
-      email: "user@example.com",
-      locale: "en",
-      userSettingsCreatedAt: "2026-03-12T10:00:00.000Z",
-      transport: "bearer",
-      connectionId: null,
-    },
-    streamAIChatResponseFn: async (body: unknown, _requestId: string, requestContext: RequestContext) => {
-      observedUserId = requestContext.userId;
-      observedTransport = requestContext.transport;
-      observedDevicePlatform = (body as { devicePlatform: string }).devicePlatform;
-      return new Response(null, { status: 204 });
-    },
-    transcribeAudioFn: async () => "ignored",
-  });
-
-  const response = await app.request("https://api.example.com/chat/turn", {
+  const response = await app.request("https://api.example.com/chat", {
     method: "POST",
     body: JSON.stringify({
-      messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],
-      model: "gpt-5.4",
+      content: [{ type: "text", text: "hi" }],
       timezone: "Europe/Madrid",
-      devicePlatform: "web",
-      chatSessionId: "chat-session-test-1",
-      codeInterpreterContainerId: null,
-      userContext: { totalCards: 5 },
     }),
     headers: {
       "Content-Type": "application/json",
     },
   });
 
-  assert.equal(response.status, 204);
-  assert.equal(observedUserId, "user-42");
-  assert.equal(observedTransport, "bearer");
-  assert.equal(observedDevicePlatform, "web");
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), {
+    error: "This endpoint requires Bearer or session authentication.",
+    code: "AI_CHAT_V2_HUMAN_AUTH_REQUIRED",
+  });
 });
 
-test("chat turn route forwards android device platform without remapping it to ios", async () => {
-  let observedDevicePlatform: string | null = null;
-  const app = createChatTestApp({
-    streamAIChatResponseFn: async (body: unknown) => {
-      observedDevicePlatform = (body as { devicePlatform: string }).devicePlatform;
-      return new Response(null, { status: 204 });
-    },
-    transcribeAudioFn: async () => "ignored",
-  });
+test("new chat routes accept the server-owned request shape and answer not ready", async () => {
+  const app = createChatTestApp({ enabled: true });
 
-  const response = await app.request("https://api.example.com/chat/turn", {
+  const response = await app.request("https://api.example.com/chat", {
     method: "POST",
     body: JSON.stringify({
-      messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],
-      model: "gpt-5.4",
+      sessionId: "session-1",
+      content: [{ type: "text", text: "hi" }],
       timezone: "Europe/Madrid",
-      devicePlatform: "android",
-      chatSessionId: "chat-session-test-android-1",
-      codeInterpreterContainerId: null,
-      userContext: { totalCards: 5 },
     }),
     headers: {
       "Content-Type": "application/json",
     },
   });
 
-  assert.equal(response.status, 204);
-  assert.equal(observedDevicePlatform, "android");
+  assert.equal(response.status, 501);
+  assert.deepEqual(await response.json(), {
+    error: "Backend-owned AI chat is not implemented yet.",
+    code: "AI_CHAT_V2_NOT_READY",
+  });
+});
+
+test("new chat stop route validates the new stop contract before returning not ready", async () => {
+  const app = createChatTestApp({ enabled: true });
+
+  const response = await app.request("https://api.example.com/chat/stop", {
+    method: "POST",
+    body: JSON.stringify({
+      sessionId: "session-1",
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  assert.equal(response.status, 501);
+  assert.deepEqual(await response.json(), {
+    error: "Backend-owned AI chat is not implemented yet.",
+    code: "AI_CHAT_V2_NOT_READY",
+  });
 });

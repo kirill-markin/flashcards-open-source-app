@@ -1,11 +1,11 @@
-import { createAgentEnvelope, createAgentErrorEnvelope } from "../agentEnvelope";
-import { executeAgentSql } from "../aiTools/agentSql";
+import { createAgentEnvelope, createAgentErrorEnvelope } from "../../agentEnvelope";
+import { executeAgentSql } from "../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
-} from "../aiTools/agentToolOperations";
-import { ensureAIChatSyncDevice } from "../aiChatSyncIdentity";
-import { HttpError } from "../errors";
+} from "../../aiTools/agentToolOperations";
+import { ensureAIChatSyncDevice } from "../../aiChatSyncIdentity";
+import { HttpError } from "../../errors";
 
 export type AIChatToolExecutionContext = Readonly<{
   requestUrl: string;

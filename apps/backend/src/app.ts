@@ -5,6 +5,8 @@ import { AuthError } from "./auth";
 import { getAuthConfig } from "./authConfig";
 import { HttpError } from "./errors";
 import { createChatRoutes } from "./routes/chat";
+import { createChatLegacyRoutes } from "./routes/chatLegacy";
+import { createChatTranscriptionsRoutes } from "./routes/chatTranscriptions";
 import { createAgentRoutes } from "./routes/agent";
 import { createCardsRoutes } from "./routes/cards";
 import { createSyncRoutes } from "./routes/sync";
@@ -226,6 +228,8 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createGuestAuthRoutes());
+  app.route("/", createChatLegacyRoutes({ allowedOrigins }));
+  app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));
   app.route("/", createChatRoutes({ allowedOrigins }));
   app.route("/", createSyncRoutes({ allowedOrigins }));
 

@@ -1,4 +1,4 @@
-import { HttpError } from "../errors";
+import { HttpError } from "../../errors";
 
 export type AIEndpointKind = "chat" | "transcription";
 

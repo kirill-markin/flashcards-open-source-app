@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { resetAuthConfigForTests } from "./authConfig";
@@ -9,6 +11,7 @@ const originalAllowInsecureLocalAuth = process.env.ALLOW_INSECURE_LOCAL_AUTH;
 const originalPublicApiBaseUrl = process.env.PUBLIC_API_BASE_URL;
 const originalPublicAuthBaseUrl = process.env.PUBLIC_AUTH_BASE_URL;
 const originalGuestAiWeightedMonthlyTokenCap = process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
+const originalAiChatV2Enabled = process.env.AI_CHAT_V2_ENABLED;
 
 function restoreEnvironment(): void {
   if (originalAuthMode === undefined) {
@@ -39,6 +42,12 @@ function restoreEnvironment(): void {
     delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
   } else {
     process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP = originalGuestAiWeightedMonthlyTokenCap;
+  }
+
+  if (originalAiChatV2Enabled === undefined) {
+    delete process.env.AI_CHAT_V2_ENABLED;
+  } else {
+    process.env.AI_CHAT_V2_ENABLED = originalAiChatV2Enabled;
   }
 
   resetAuthConfigForTests();
@@ -132,4 +141,49 @@ test("openapi endpoints return the same JSON document", async () => {
   assert.equal("/chat/turn" in openapiBody.paths, false);
   assert.equal("/agent-api-keys" in openapiBody.paths, false);
   assert.equal("/agent/sql" in openapiBody.paths, true);
+});
+
+test("createApp mounts legacy chat routes and keeps backend-owned chat hidden by default", async () => {
+  process.env.AUTH_MODE = "none";
+  process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+  delete process.env.AI_CHAT_V2_ENABLED;
+  resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
+
+  const app = createApp("");
+  const legacyResponse = await app.request("https://api.example.com/v1/chat/turn", {
+    method: "POST",
+    body: "{",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  const transcriptionsResponse = await app.request("https://api.example.com/v1/chat/transcriptions", {
+    method: "POST",
+    body: new FormData(),
+  });
+  const reservedV2Response = await app.request("https://api.example.com/v1/chat", {
+    method: "GET",
+  });
+
+  assert.notEqual(legacyResponse.status, 404);
+  assert.notEqual(transcriptionsResponse.status, 404);
+  assert.equal(reservedV2Response.status, 404);
+});
+
+test("api gateway manual chat resource list includes both reserved and legacy chat paths", () => {
+  const apiGatewaySource = readFileSync(
+    path.resolve(__dirname, "../../../infra/aws/lib/api-gateway.ts"),
+    "utf8",
+  );
+
+  assert.match(apiGatewaySource, /const chat = restApi\.root\.addResource\("chat"\);/);
+  assert.match(apiGatewaySource, /chat\.addMethod\("GET", integration\);/);
+  assert.match(apiGatewaySource, /chat\.addMethod\("POST", integration\);/);
+  assert.match(apiGatewaySource, /chat\.addMethod\("DELETE", integration\);/);
+  assert.match(apiGatewaySource, /chat\.addResource\("stop"\)\.addMethod\("POST", integration\);/);
+  assert.match(apiGatewaySource, /const turn = chat\.addResource\("turn"\);/);
+  assert.match(apiGatewaySource, /turn\.addMethod\("POST", streamingIntegration\);/);
+  assert.match(apiGatewaySource, /chat\.addResource\("transcriptions"\)\.addMethod\("POST", integration\);/);
+  assert.match(apiGatewaySource, /turn\.addResource\("diagnostics"\)\.addMethod\("POST", integration\);/);
 });

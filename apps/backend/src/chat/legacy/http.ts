@@ -1,8 +1,8 @@
-import { HttpError } from "../errors";
+import { HttpError } from "../../errors";
 import {
   assertGuestAiLimitAvailable,
   recordGuestChatUsage,
-} from "../guestAiQuota";
+} from "../../guestAiQuota";
 import {
   classifyAIEndpointFailure,
   makeAIEndpointNotConfiguredError,
@@ -18,16 +18,16 @@ import type {
 } from "./aiChatTypes";
 import { CHAT_MODELS } from "./models";
 import { hashAIProviderUserId } from "./providerSafety";
-import type { RequestContext } from "../server/requestContext";
-import { requireSelectedWorkspaceId } from "../server/requestContext";
+import type { RequestContext } from "../../server/requestContext";
+import { requireSelectedWorkspaceId } from "../../server/requestContext";
 import {
   expectNonEmptyString,
   expectNonNegativeInteger,
   expectNullableNonEmptyString,
   expectNullableNonNegativeInteger,
   expectRecord,
-} from "../server/requestParsing";
-import { getErrorLogContext } from "../server/logging";
+} from "../../server/requestParsing";
+import { getErrorLogContext } from "../../server/logging";
 type AIChatDiagnosticsBody = Readonly<{
   kind: "failure";
   clientRequestId: string;

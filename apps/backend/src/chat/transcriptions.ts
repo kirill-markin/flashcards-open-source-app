@@ -6,7 +6,7 @@ import {
   classifyAIEndpointFailure,
   getAIProviderFailureMetadata,
   makeAIEndpointNotConfiguredError,
-} from "./aiAvailabilityErrors";
+} from "./legacy/aiAvailabilityErrors";
 
 export type ChatTranscriptionSource = "ios" | "web";
 
