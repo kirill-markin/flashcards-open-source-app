@@ -1,13 +1,23 @@
 import { Hono } from "hono";
-import { isBackendOwnedChatEnabled } from "../chat/config";
+import { isBackendOwnedChatEnabled, CHAT_MODEL_ID } from "../chat/config";
 import {
-  createFreshChatSession,
+  cancelActiveChatRunByUser,
+  ChatSessionConflictError,
   ChatSessionNotFoundError,
+  createFreshChatSession,
   getChatSessionSnapshot,
   getLatestChatSessionId,
+  prepareChatRun,
   type ChatSessionSnapshot,
 } from "../chat/store";
-import type { ContentPart } from "../chat/types";
+import {
+  hasActiveChatRun,
+  markActiveChatRunCancellationPersisted,
+  startPersistedChatRun,
+  stopActiveChatRun,
+  type StartPersistedChatRunParams,
+} from "../chat/runtime";
+import type { ChatStreamEvent, ContentPart } from "../chat/types";
 import type { AuthTransport } from "../auth";
 import { HttpError } from "../errors";
 import {
@@ -72,6 +82,12 @@ type ChatRoutesOptions = Readonly<{
   getChatSessionSnapshotFn?: typeof getChatSessionSnapshot;
   getLatestChatSessionIdFn?: typeof getLatestChatSessionId;
   createFreshChatSessionFn?: typeof createFreshChatSession;
+  prepareChatRunFn?: typeof prepareChatRun;
+  startPersistedChatRunFn?: typeof startPersistedChatRun;
+  stopActiveChatRunFn?: typeof stopActiveChatRun;
+  cancelActiveChatRunByUserFn?: typeof cancelActiveChatRunByUser;
+  markActiveChatRunCancellationPersistedFn?: typeof markActiveChatRunCancellationPersisted;
+  hasActiveChatRunFn?: typeof hasActiveChatRun;
 }>;
 
 const LEGACY_CHAT_REQUEST_FIELDS = [
@@ -85,7 +101,12 @@ const LEGACY_CHAT_REQUEST_FIELDS = [
   "userContext",
   "totalCards",
   "codeInterpreterContainer",
+  "vendor",
+  "thinking",
+  "thinkingLevel",
 ] as const;
+
+const CHAT_STREAM_HEARTBEAT_INTERVAL_MS = 15_000;
 
 function expectNullableString(value: unknown, fieldName: string): string | null {
   if (value === null) {
@@ -200,10 +221,6 @@ function assertSupportedTransport(requestContext: RequestContext): void {
   );
 }
 
-function createNotReadyError(): HttpError {
-  return new HttpError(501, "Backend-owned AI chat is not implemented yet.", "AI_CHAT_V2_NOT_READY");
-}
-
 type ChatHistoryResponse = Readonly<{
   sessionId: string;
   runState: ChatSessionSnapshot["runState"];
@@ -239,6 +256,10 @@ function mapStoreError(error: unknown): never {
     throw new HttpError(404, error.message);
   }
 
+  if (error instanceof ChatSessionConflictError) {
+    throw new HttpError(409, "Chat session already has an active response");
+  }
+
   throw error;
 }
 
@@ -252,6 +273,150 @@ async function loadSupportedRequestContext(
   return requestContext;
 }
 
+function isExpectedStreamClosureError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("Controller is already closed")
+    || message.includes("ReadableStream is already closed")
+    || message.includes("stream is already closed");
+}
+
+function createSseDataLine(event: ChatStreamEvent): string {
+  return `data: ${JSON.stringify(event)}\n\n`;
+}
+
+function createSseHeartbeatLine(): string {
+  return ": keep-alive\n\n";
+}
+
+export function createChatEventStream(params: Readonly<{
+  events: AsyncGenerator<ChatStreamEvent>;
+  heartbeatIntervalMs: number;
+  onStreamError: (error: string) => void;
+}>): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  let isClosed = false;
+  let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const clearHeartbeat = (): void => {
+    if (heartbeatTimer !== null) {
+      clearTimeout(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  };
+
+  return new ReadableStream({
+    async start(controller) {
+      const closeStream = (): void => {
+        clearHeartbeat();
+        if (isClosed) {
+          return;
+        }
+
+        isClosed = true;
+        try {
+          controller.close();
+        } catch (error) {
+          if (!isExpectedStreamClosureError(error)) {
+            throw error;
+          }
+        }
+      };
+
+      const enqueueChunk = (chunk: string): boolean => {
+        if (isClosed) {
+          return false;
+        }
+
+        try {
+          controller.enqueue(encoder.encode(chunk));
+          return true;
+        } catch (error) {
+          clearHeartbeat();
+          isClosed = true;
+          if (isExpectedStreamClosureError(error)) {
+            return false;
+          }
+          throw error;
+        }
+      };
+
+      const scheduleHeartbeat = (): void => {
+        clearHeartbeat();
+        if (isClosed) {
+          return;
+        }
+
+        heartbeatTimer = setTimeout(() => {
+          try {
+            const written = enqueueChunk(createSseHeartbeatLine());
+            if (!written) {
+              return;
+            }
+            scheduleHeartbeat();
+          } catch (error) {
+            if (isClosed || isExpectedStreamClosureError(error)) {
+              return;
+            }
+            const message = error instanceof Error ? error.message : String(error);
+            params.onStreamError(message);
+            closeStream();
+          }
+        }, params.heartbeatIntervalMs);
+      };
+
+      scheduleHeartbeat();
+
+      try {
+        for await (const event of params.events) {
+          if (isClosed) {
+            return;
+          }
+          clearHeartbeat();
+          const written = enqueueChunk(createSseDataLine(event));
+          if (!written) {
+            return;
+          }
+          if (event.type === "done") {
+            closeStream();
+            return;
+          }
+          scheduleHeartbeat();
+        }
+      } catch (error) {
+        clearHeartbeat();
+        if (isClosed || isExpectedStreamClosureError(error)) {
+          return;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        params.onStreamError(message);
+        if (!isClosed) {
+          const written = enqueueChunk(createSseDataLine({ type: "error", message }));
+          if (!written) {
+            return;
+          }
+        }
+      }
+
+      closeStream();
+    },
+    cancel() {
+      isClosed = true;
+      if (heartbeatTimer !== null) {
+        clearTimeout(heartbeatTimer);
+      }
+      const returnFn = params.events.return?.bind(params.events);
+      if (returnFn === undefined) {
+        return;
+      }
+
+      return returnFn(undefined).then(
+        (): void => undefined,
+        (): void => undefined,
+      );
+    },
+  });
+}
+
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const enabled = options.enabled ?? isBackendOwnedChatEnabled();
@@ -259,6 +424,12 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const getChatSessionSnapshotFn = options.getChatSessionSnapshotFn ?? getChatSessionSnapshot;
   const getLatestChatSessionIdFn = options.getLatestChatSessionIdFn ?? getLatestChatSessionId;
   const createFreshChatSessionFn = options.createFreshChatSessionFn ?? createFreshChatSession;
+  const prepareChatRunFn = options.prepareChatRunFn ?? prepareChatRun;
+  const startPersistedChatRunFn = options.startPersistedChatRunFn ?? startPersistedChatRun;
+  const stopActiveChatRunFn = options.stopActiveChatRunFn ?? stopActiveChatRun;
+  const cancelActiveChatRunByUserFn = options.cancelActiveChatRunByUserFn ?? cancelActiveChatRunByUser;
+  const markActiveChatRunCancellationPersistedFn = options.markActiveChatRunCancellationPersistedFn ?? markActiveChatRunCancellationPersisted;
+  const hasActiveChatRunFn = options.hasActiveChatRunFn ?? hasActiveChatRun;
 
   app.get("/chat", async (context) => {
     assertBackendOwnedChatEnabled(enabled);
@@ -284,9 +455,62 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
 
   app.post("/chat", async (context) => {
     assertBackendOwnedChatEnabled(enabled);
-    await loadSupportedRequestContext(context.req.raw, options.allowedOrigins, loadRequestContextFromRequestFn);
-    parseChatRequestBody(await parseJsonBody(context.req.raw));
-    throw createNotReadyError();
+    const requestContext = await loadSupportedRequestContext(
+      context.req.raw,
+      options.allowedOrigins,
+      loadRequestContextFromRequestFn,
+    );
+    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
+
+    try {
+      const preparedRun = await prepareChatRunFn(
+        requestContext.userId,
+        workspaceId,
+        body.sessionId,
+        body.content,
+      );
+
+      const events = startPersistedChatRunFn({
+        requestId: context.get("requestId"),
+        userId: requestContext.userId,
+        workspaceId,
+        sessionId: preparedRun.sessionId,
+        timezone: body.timezone,
+        assistantItemId: preparedRun.assistantItem.itemId,
+        localMessages: preparedRun.localMessages,
+        turnInput: preparedRun.turnInput,
+        diagnostics: {
+          requestId: context.get("requestId"),
+          userId: requestContext.userId,
+          workspaceId,
+          sessionId: preparedRun.sessionId,
+          model: CHAT_MODEL_ID,
+          messageCount: 1,
+          hasAttachments: body.content.some((part) => part.type !== "text"),
+          attachmentFileNames: body.content
+            .filter((part): part is Extract<ChatContentPart, { type: "file" }> => part.type === "file")
+            .map((part) => part.fileName),
+        },
+      } satisfies StartPersistedChatRunParams);
+
+      const stream = createChatEventStream({
+        events,
+        heartbeatIntervalMs: CHAT_STREAM_HEARTBEAT_INTERVAL_MS,
+        onStreamError: (): void => undefined,
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+          "X-Chat-Session-Id": preparedRun.sessionId,
+        },
+      });
+    } catch (error) {
+      return mapStoreError(error);
+    }
   });
 
   app.delete("/chat", async (context) => {
@@ -329,9 +553,42 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
 
   app.post("/chat/stop", async (context) => {
     assertBackendOwnedChatEnabled(enabled);
-    await loadSupportedRequestContext(context.req.raw, options.allowedOrigins, loadRequestContextFromRequestFn);
-    parseStopChatRequestBody(await parseJsonBody(context.req.raw));
-    throw createNotReadyError();
+    const requestContext = await loadSupportedRequestContext(
+      context.req.raw,
+      options.allowedOrigins,
+      loadRequestContextFromRequestFn,
+    );
+    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const body = parseStopChatRequestBody(await parseJsonBody(context.req.raw));
+
+    let sessionId: string;
+    try {
+      sessionId = await getChatSessionSnapshotFn(
+        requestContext.userId,
+        workspaceId,
+        body.sessionId,
+      ).then((snapshot) => snapshot.sessionId);
+    } catch (error) {
+      return mapStoreError(error);
+    }
+
+    const stoppedRuntimeRun = stopActiveChatRunFn(sessionId);
+    const persistedCancelledRun = await cancelActiveChatRunByUserFn(
+      requestContext.userId,
+      workspaceId,
+      sessionId,
+    );
+
+    if (persistedCancelledRun) {
+      markActiveChatRunCancellationPersistedFn(sessionId);
+    }
+
+    return context.json({
+      ok: true,
+      sessionId,
+      stopped: stoppedRuntimeRun || persistedCancelledRun,
+      stillRunning: hasActiveChatRunFn(sessionId),
+    });
   });
 
   return app;
