@@ -110,7 +110,8 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
                         isError: false
                     )
                 ],
-                selectedModelId: aiChatDefaultModelId
+                chatSessionId: "session-1",
+                lastKnownChatConfig: aiChatDefaultServerConfig
             )
         )
         try context.store.reload()

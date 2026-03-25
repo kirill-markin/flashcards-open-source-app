@@ -70,7 +70,6 @@ class AiChatHistoryStore(
         return JSONObject()
             .put("messages", JSONArray(state.messages.map(::encodeMessage)))
             .put("chatSessionId", state.chatSessionId)
-            .put("codeInterpreterContainerId", state.codeInterpreterContainerId)
             .put("lastKnownChatConfig", state.lastKnownChatConfig?.let(::encodeChatConfig))
     }
 
@@ -82,14 +81,12 @@ class AiChatHistoryStore(
             ?: emptyList()
         val chatSessionId = jsonObject.optString("chatSessionId", "")
             .ifBlank { makeDefaultAiChatPersistedState().chatSessionId }
-        val codeInterpreterContainerId = jsonObject.optString("codeInterpreterContainerId", "").ifBlank { null }
         val lastKnownChatConfig = jsonObject.optJSONObject("lastKnownChatConfig")
             ?.let(::decodeChatConfig)
 
         return AiChatPersistedState(
             messages = messages,
             chatSessionId = chatSessionId,
-            codeInterpreterContainerId = codeInterpreterContainerId,
             lastKnownChatConfig = lastKnownChatConfig
         )
     }

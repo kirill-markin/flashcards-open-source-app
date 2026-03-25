@@ -11,7 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.AiChatTurnRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
@@ -64,10 +64,10 @@ class AiChatRemoteService {
         }
     }
 
-    suspend fun streamTurn(
+    suspend fun startRun(
         apiBaseUrl: String,
         authorizationHeader: String,
-        request: AiChatTurnRequest,
+        request: AiChatStartRunRequest,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome = withContext(Dispatchers.IO) {
         val startConnection = openConnection(
@@ -85,7 +85,7 @@ class AiChatRemoteService {
             startConnection.setRequestProperty("Content-Type", "application/json")
             startConnection.doOutput = true
             startConnection.outputStream.use { outputStream ->
-                outputStream.write(encodeTurnRequest(request = request).toString().toByteArray(StandardCharsets.UTF_8))
+                outputStream.write(encodeStartRunRequest(request = request).toString().toByteArray(StandardCharsets.UTF_8))
             }
 
             val response = readJsonResponse(connection = startConnection)
@@ -155,7 +155,7 @@ class AiChatRemoteService {
         } catch (error: Exception) {
             if (error is kotlinx.coroutines.CancellationException) {
                 try {
-                    stopChatRun(
+                    stopRun(
                         apiBaseUrl = apiBaseUrl,
                         authorizationHeader = authorizationHeader,
                         sessionId = sessionId
@@ -192,7 +192,7 @@ class AiChatRemoteService {
         }
     }
 
-    suspend fun resetChatSession(
+    suspend fun resetSession(
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String?
@@ -232,7 +232,7 @@ class AiChatRemoteService {
         }
     }
 
-    suspend fun stopChatRun(
+    suspend fun stopRun(
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String
@@ -345,7 +345,7 @@ class AiChatRemoteService {
         )
     }
 
-    private fun encodeTurnRequest(request: AiChatTurnRequest): JSONObject {
+    private fun encodeStartRunRequest(request: AiChatStartRunRequest): JSONObject {
         return JSONObject()
             .put("sessionId", request.sessionId)
             .put("content", JSONArray(request.content.map(::encodeWireContentPart)))

@@ -37,6 +37,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.LocalCloudAccountRepository
@@ -118,7 +119,6 @@ class CloudIdentityLifecycleRepositoryTest {
             state = AiChatPersistedState(
                 messages = emptyList(),
                 chatSessionId = "session-1",
-                codeInterpreterContainerId = "container-1",
                 lastKnownChatConfig = null
             )
         )
@@ -152,7 +152,9 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(0, database.outboxDao().countOutboxEntries())
         assertEquals(
             "gpt-5.4",
-            aiChatHistoryStore.loadState(workspaceId = resetWorkspace.workspaceId).selectedModelId
+            effectiveAiChatServerConfig(
+                aiChatHistoryStore.loadState(workspaceId = resetWorkspace.workspaceId).lastKnownChatConfig
+            ).model.id
         )
         assertNull(
             guestAiSessionStore.loadSession(

@@ -9,7 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
-import com.flashcardsopensourceapp.data.local.model.AiChatTurnRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
@@ -75,9 +75,9 @@ class LocalAiChatRepository(
         }
     }
 
-    override suspend fun resetChatSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
+    override suspend fun resetSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
         val session = authorizedSession(workspaceId = workspaceId)
-        return aiChatRemoteService.resetChatSession(
+        return aiChatRemoteService.resetSession(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
             sessionId = sessionId
@@ -116,20 +116,20 @@ class LocalAiChatRepository(
         )
     }
 
-    override suspend fun streamTurn(
+    override suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
         content: List<AiChatContentPart>,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome {
         val session = authorizedSession(workspaceId = workspaceId)
-        val request = AiChatTurnRequest(
+        val request = AiChatStartRunRequest(
             sessionId = state.chatSessionId,
             content = buildAiChatRequestContent(content = content),
             timezone = TimeZone.getDefault().id,
         )
 
-        return aiChatRemoteService.streamTurn(
+        return aiChatRemoteService.startRun(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
             request = request,

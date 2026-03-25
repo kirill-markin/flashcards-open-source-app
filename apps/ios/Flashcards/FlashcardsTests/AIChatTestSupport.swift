@@ -58,19 +58,7 @@ private func readRequestBodyData(stream: InputStream) throws -> Data {
     return data
 }
 
-typealias AILocalChatRequestBody = AIChatTurnRequestBody
-typealias AILocalChatWireMessage = AIChatWireMessage
-typealias AILocalChatUserContext = AIChatUserContext
 typealias AIChatLocalContext = AIChatContext
-
-protocol AIToolExecuting: Sendable {
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult
-}
-
-struct AIToolExecutionResult: Equatable, Sendable {
-    let output: String
-    let didMutateAppState: Bool
-}
 
 protocol AIChatLocalContextLoading: AIChatContextLoading {
     func loadLocalContext() async throws -> AIChatLocalContext
@@ -83,71 +71,11 @@ extension AIChatLocalContextLoading {
 }
 
 extension AIChatPersistedState {
-    init(messages: [AIChatMessage], selectedModelId: String) {
+    init(messages: [AIChatMessage], chatSessionId: String = makeAIChatSessionId()) {
         self.init(
             messages: messages,
-            selectedModelId: selectedModelId,
-            chatSessionId: makeAIChatSessionId(),
-            codeInterpreterContainerId: nil
-        )
-    }
-}
-
-extension AITurnStreamOutcome {
-    init(
-        awaitsToolResults: Bool,
-        requestedToolCalls: [AIToolCallRequest],
-        requestId: String?
-    ) {
-        _ = awaitsToolResults
-        _ = requestedToolCalls
-        self.init(requestId: requestId, codeInterpreterContainerId: nil)
-    }
-
-    var awaitsToolResults: Bool {
-        false
-    }
-
-    var requestedToolCalls: [AIToolCallRequest] {
-        []
-    }
-}
-
-@MainActor
-extension AIChatStore {
-    convenience init(
-        flashcardsStore: FlashcardsStore,
-        historyStore: any AIChatHistoryStoring,
-        chatService: any AIChatStreaming,
-        toolExecutor: any AIToolExecuting,
-        localContextLoader: any AIChatContextLoading
-    ) {
-        _ = toolExecutor
-        self.init(
-            flashcardsStore: flashcardsStore,
-            historyStore: historyStore,
-            chatService: chatService,
-            contextLoader: localContextLoader
-        )
-    }
-
-    convenience init(
-        flashcardsStore: FlashcardsStore,
-        historyStore: any AIChatHistoryStoring,
-        chatService: any AIChatStreaming,
-        toolExecutor: any AIToolExecuting,
-        localContextLoader: any AIChatContextLoading,
-        voiceRecorder: any AIChatVoiceRecording,
-        audioTranscriber: any AIChatAudioTranscribing
-    ) {
-        _ = toolExecutor
-        self.init(
-            flashcardsStore: flashcardsStore,
-            historyStore: historyStore,
-            chatService: chatService,
-            contextLoader: localContextLoader,
-            voiceRecorder: voiceRecorder,
-            audioTranscriber: audioTranscriber
+            chatSessionId: chatSessionId,
+            lastKnownChatConfig: nil
         )
     }
 }
@@ -173,7 +101,7 @@ final class InMemoryHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     func clearState() async {
-        self.savedState = AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+        self.savedState = AIChatPersistedState(messages: [])
     }
 }
 
@@ -200,524 +128,73 @@ func makeStubAIChatLocalContext(totalCards: Int) -> AIChatLocalContext {
     )
 }
 
-final class FailingChatService: AIChatStreaming, @unchecked Sendable {
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        XCTFail("streamTurn should not be called in this test")
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: nil)
-    }
+struct StubContextLoader: AIChatLocalContextLoading {
+    let totalCards: Int
 
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-struct ThrowingChatService: AIChatStreaming, @unchecked Sendable {
-    let error: Error
-
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        throw self.error
-    }
-
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-struct RepairingChatService: AIChatStreaming, @unchecked Sendable {
-    let terminalError: Error?
-
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        await onDelta("Checking")
-        await onRepairAttempt(
-            AIChatRepairAttemptStatus(
-                message: "Assistant is correcting sql.",
-                attempt: 1,
-                maxAttempts: 3,
-                toolName: "sql"
-            )
-        )
-
-        if let terminalError {
-            throw terminalError
-        }
-
-        await onToolCallRequest(
-            AIToolCallRequest(
-                toolCallId: "call-1",
-                name: "sql",
-                input: "{\"sql\":null}"
-            )
-        )
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-123")
-    }
-
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-struct FailingToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
-        XCTFail("execute should not be called in this test")
-        return AIToolExecutionResult(output: "", didMutateAppState: false)
+    init(totalCards: Int = 1) {
+        self.totalCards = totalCards
     }
 
     func loadLocalContext() async throws -> AIChatLocalContext {
-        makeStubAIChatLocalContext(totalCards: 1)
+        makeStubAIChatLocalContext(totalCards: self.totalCards)
     }
 }
 
-actor RecoveringToolFailureChatService: AIChatStreaming {
-    private var requests: [AILocalChatRequestBody]
-    private var callCount: Int
-
-    init() {
-        self.requests = []
-        self.callCount = 0
-    }
-
-    func streamTurn(
+final class FailingChatService: AIChatSessionServicing, @unchecked Sendable {
+    func loadSnapshot(
         session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        self.requests.append(request)
-        self.callCount += 1
-
-        if self.callCount == 1 {
-            let toolCallRequest = AIToolCallRequest(
-                toolCallId: "tool-recover-1",
-                name: "sql",
-                input: "{\"sql\":\"SELECT tags FROM cards\"}"
-            )
-            await onToolCallRequest(toolCallRequest)
-            return AITurnStreamOutcome(
-                awaitsToolResults: true,
-                requestedToolCalls: [toolCallRequest],
-                requestId: "request-recover-1"
-            )
-        }
-
-        await onDelta("Recovered")
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-recover-2")
-    }
-
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-
-    func snapshotRequests() -> [AILocalChatRequestBody] {
-        self.requests
-    }
-}
-
-actor RepeatingToolFailureChatService: AIChatStreaming {
-    private var requests: [AILocalChatRequestBody]
-    private var callCount: Int
-
-    init() {
-        self.requests = []
-        self.callCount = 0
-    }
-
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        self.requests.append(request)
-        self.callCount += 1
-
-        let toolCallRequest = AIToolCallRequest(
-            toolCallId: "tool-fail-\(self.callCount)",
-            name: "sql",
-            input: "{\"sql\":\"SELECT tags FROM cards LIMIT \(self.callCount * 10) OFFSET 0\"}"
-        )
-        await onToolCallRequest(toolCallRequest)
-        return AITurnStreamOutcome(
-            awaitsToolResults: true,
-            requestedToolCalls: [toolCallRequest],
-            requestId: "request-fail-\(self.callCount)"
+        sessionId: String?
+    ) async throws -> AIChatSessionSnapshot {
+        _ = session
+        return AIChatSessionSnapshot(
+            sessionId: sessionId ?? "session-test",
+            runState: "idle",
+            updatedAt: 0,
+            mainContentInvalidationVersion: 0,
+            chatConfig: aiChatDefaultServerConfig,
+            messages: []
         )
     }
 
-    func reportFailureDiagnostics(
+    func startRun(
         session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-
-    func snapshotRequests() -> [AILocalChatRequestBody] {
-        self.requests
-    }
-}
-
-actor RecoveringToolFailureExecutor: AIToolExecuting, AIChatLocalContextLoading {
-    private var executionCount: Int
-
-    init() {
-        self.executionCount = 0
-    }
-
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
-        self.executionCount += 1
-        if self.executionCount == 1 {
-            throw StubLocalizedError(message: "Unsupported SELECT statement")
-        }
-
-        return AIToolExecutionResult(output: "{\"ok\":true}", didMutateAppState: false)
-    }
-
-    func loadLocalContext() async throws -> AIChatLocalContext {
-        makeStubAIChatLocalContext(totalCards: 1)
-    }
-}
-
-actor AlwaysFailingToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
-        throw StubLocalizedError(message: "Unsupported SELECT statement")
-    }
-
-    func loadLocalContext() async throws -> AIChatLocalContext {
-        makeStubAIChatLocalContext(totalCards: 1)
-    }
-}
-
-struct BurstChatService: AIChatStreaming {
-    let deltas: [String]
-
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        for delta in self.deltas {
-            await onDelta(delta)
-        }
-
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-burst")
-    }
-
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-actor MutatingChatService: AIChatStreaming {
-    private var callCount: Int = 0
-
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        self.callCount += 1
-
-        if self.callCount == 1 {
-            let toolCallRequest = AIToolCallRequest(
-                toolCallId: "tool-create-card",
-                name: "sql",
-                input: "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('Front', 'Back', ('tag-a'), 'medium')\"}"
-            )
-            await onToolCallRequest(toolCallRequest)
-            return AITurnStreamOutcome(
-                awaitsToolResults: true,
-                requestedToolCalls: [toolCallRequest],
-                requestId: "request-create"
-            )
-        }
-
-        await onDelta("Saved")
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-done")
-    }
-
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-actor DelayedToolCompletionChatService: AIChatStreaming {
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        _ = onToolCallRequest
-        await onToolCall(
-            AIChatToolCall(
-                id: "tool-delayed-1",
-                name: "sql",
-                status: .started,
-                input: "{\"sql\":\"SHOW TABLES\"}",
-                output: nil
-            )
+        request: AIChatStartRunRequestBody
+    ) async throws -> AIChatStartRunResponse {
+        _ = session
+        XCTFail("startRun should not be called in this test")
+        return AIChatStartRunResponse(
+            ok: true,
+            sessionId: request.sessionId ?? "session-test",
+            runId: "run-test",
+            runState: "idle",
+            chatConfig: aiChatDefaultServerConfig
         )
-        try await Task.sleep(nanoseconds: 150_000_000)
-        await onToolCall(
-            AIChatToolCall(
-                id: "tool-delayed-1",
-                name: "sql",
-                status: .completed,
-                input: "{\"sql\":\"SHOW TABLES\"}",
-                output: "{\"ok\":true}"
-            )
+    }
+
+    func resetSession(
+        session: CloudLinkedSession,
+        sessionId: String?
+    ) async throws -> AIChatResetSessionResponse {
+        _ = session
+        return AIChatResetSessionResponse(
+            ok: true,
+            sessionId: sessionId ?? "session-reset",
+            chatConfig: aiChatDefaultServerConfig
         )
-        await onDelta("Done")
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-delayed-tool")
     }
 
-    func reportFailureDiagnostics(
+    func stopRun(
         session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-struct SlowSuccessToolExecutor: AIToolExecuting, AIChatLocalContextLoading {
-    let pauseNanoseconds: UInt64
-
-    func execute(toolCallRequest: AIToolCallRequest, requestId: String?) async throws -> AIToolExecutionResult {
-        try await Task.sleep(nanoseconds: self.pauseNanoseconds)
-        return AIToolExecutionResult(output: "{\"ok\":true}", didMutateAppState: false)
-    }
-
-    func loadLocalContext() async throws -> AIChatLocalContext {
-        makeStubAIChatLocalContext(totalCards: 1)
-    }
-}
-
-struct SuspendingChatService: AIChatStreaming, @unchecked Sendable {
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        try await Task.sleep(nanoseconds: 10_000_000_000)
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-suspending")
-    }
-
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-struct RepairingSuspendingChatService: AIChatStreaming, @unchecked Sendable {
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        await onRepairAttempt(
-            AIChatRepairAttemptStatus(
-                message: "Assistant is correcting sql.",
-                attempt: 1,
-                maxAttempts: 3,
-                toolName: "sql"
-            )
+        sessionId: String
+    ) async throws -> AIChatStopRunResponse {
+        _ = session
+        return AIChatStopRunResponse(
+            ok: true,
+            sessionId: sessionId,
+            runId: "run-test",
+            stopped: true,
+            stillRunning: false
         )
-        try await Task.sleep(nanoseconds: 10_000_000_000)
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-repairing")
-    }
-
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-struct ToolCallRequestOnlyChatService: AIChatStreaming, @unchecked Sendable {
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onDelta
-        _ = onToolCall
-        _ = onRepairAttempt
-        _ = onLatencyReported
-        await onToolCallRequest(
-            AIToolCallRequest(
-                toolCallId: "call-tool-only",
-                name: "sql",
-                input: "{\"sql\":\"SHOW TABLES\"}"
-            )
-        )
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-tool-only")
-    }
-
-    func reportFailureDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
-    }
-
-    func reportLatencyDiagnostics(
-        session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
     }
 }
 
@@ -729,75 +206,69 @@ struct StubLocalizedError: LocalizedError {
     }
 }
 
-struct DelayedBurstChatService: AIChatStreaming, @unchecked Sendable {
-    let firstDelta: String
-    let trailingDeltas: [String]
-    let pauseAfterFirstDeltaNanoseconds: UInt64
-    let pauseBeforeCompletionNanoseconds: UInt64
+actor SuspendingChatService: AIChatSessionServicing {
+    private var hasStopped: Bool
 
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        await onDelta(self.firstDelta)
-        try await Task.sleep(nanoseconds: self.pauseAfterFirstDeltaNanoseconds)
-        for delta in self.trailingDeltas {
-            await onDelta(delta)
-        }
-        try await Task.sleep(nanoseconds: self.pauseBeforeCompletionNanoseconds)
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-delayed-burst")
+    init() {
+        self.hasStopped = false
     }
 
-    func reportFailureDiagnostics(
+    func loadSnapshot(
         session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
+        sessionId: String?
+    ) async throws -> AIChatSessionSnapshot {
+        _ = session
+        return AIChatSessionSnapshot(
+            sessionId: sessionId ?? "session-suspending",
+            runState: self.hasStopped ? "idle" : "running",
+            updatedAt: self.hasStopped ? 2 : 1,
+            mainContentInvalidationVersion: 0,
+            chatConfig: aiChatDefaultServerConfig,
+            messages: []
+        )
     }
 
-    func reportLatencyDiagnostics(
+    func startRun(
         session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
-    }
-}
-
-struct ToolCallOnlyChatService: AIChatStreaming, @unchecked Sendable {
-    let toolCall: AIChatToolCall
-
-    func streamTurn(
-        session: CloudLinkedSession,
-        request: AILocalChatRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome {
-        _ = tapStartedAt
-        _ = onLatencyReported
-        await onToolCall(self.toolCall)
-        return AITurnStreamOutcome(awaitsToolResults: false, requestedToolCalls: [], requestId: "request-tool-call-only")
+        request: AIChatStartRunRequestBody
+    ) async throws -> AIChatStartRunResponse {
+        _ = session
+        self.hasStopped = false
+        return AIChatStartRunResponse(
+            ok: true,
+            sessionId: request.sessionId ?? "session-suspending",
+            runId: "run-suspending",
+            runState: "running",
+            chatConfig: aiChatDefaultServerConfig
+        )
     }
 
-    func reportFailureDiagnostics(
+    func resetSession(
         session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async {
+        sessionId: String?
+    ) async throws -> AIChatResetSessionResponse {
+        _ = session
+        self.hasStopped = true
+        return AIChatResetSessionResponse(
+            ok: true,
+            sessionId: sessionId ?? "session-reset",
+            chatConfig: aiChatDefaultServerConfig
+        )
     }
 
-    func reportLatencyDiagnostics(
+    func stopRun(
         session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async {
+        sessionId: String
+    ) async throws -> AIChatStopRunResponse {
+        _ = session
+        self.hasStopped = true
+        return AIChatStopRunResponse(
+            ok: true,
+            sessionId: sessionId,
+            runId: "run-suspending",
+            stopped: true,
+            stillRunning: false
+        )
     }
 }
 
@@ -894,56 +365,6 @@ extension AIChatMessage {
                 partialResult = (message, buttonTitle)
             }
         }
-    }
-}
-
-extension AILocalChatWireMessage {
-    init(
-        role: String,
-        content: String,
-        toolCalls: [AIChatToolCall]?,
-        toolCallId: String?,
-        name: String?,
-        output: String?
-    ) {
-        var contentParts: [AIChatContentPart]? = content.isEmpty ? nil : [.text(content)]
-        if let toolCalls {
-            if contentParts == nil {
-                contentParts = []
-            }
-            contentParts?.append(contentsOf: toolCalls.map { .toolCall($0) })
-        }
-
-        self.init(
-            role: role,
-            content: contentParts ?? []
-        )
-    }
-
-    var toolCallId: String? {
-        nil
-    }
-
-    var name: String? {
-        nil
-    }
-
-    var output: String? {
-        nil
-    }
-}
-
-extension AILocalChatRequestBody {
-    init(messages: [AILocalChatWireMessage], model: String, timezone: String) {
-        self.init(
-            messages: messages,
-            model: model,
-            timezone: timezone,
-            devicePlatform: "ios",
-            chatSessionId: makeAIChatSessionId(),
-            codeInterpreterContainerId: nil,
-            userContext: AILocalChatUserContext(totalCards: 0)
-        )
     }
 }
 

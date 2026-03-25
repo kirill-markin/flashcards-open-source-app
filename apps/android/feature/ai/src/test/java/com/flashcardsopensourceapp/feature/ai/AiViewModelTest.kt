@@ -663,8 +663,7 @@ private class FakeAiChatRepository(
         )
     }
 
-    override suspend fun resetChatSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
-        _ = sessionId
+    override suspend fun resetSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
         val resetState = makeDefaultAiChatPersistedState()
         storedStates[workspaceId] = resetState
         return AiChatSessionSnapshot(
@@ -696,13 +695,12 @@ private class FakeAiChatRepository(
         warmUpCalls += 1
     }
 
-    override suspend fun streamTurn(
+    override suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
         content: List<AiChatContentPart>,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome {
-        _ = content
         return streamHandler(workspaceId, state, onEvent)
     }
 }

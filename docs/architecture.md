@@ -221,16 +221,21 @@ There is no separate background scheduler worker.
 
 ## AI chat architecture
 
-The app is in a dual-mode AI chat migration:
+The app is in a temporary dual-mode AI chat migration:
 
-- Legacy chat still uses `POST /v1/chat/turn`.
+- Legacy compatibility still exists only on the backend through `POST /v1/chat/turn`.
 - Legacy responses are streamed over SSE from the dedicated streaming Lambda.
-- Legacy chat still carries the older provider-selection shape.
-- The new backend-owned v2 chat uses `/v1/chat` as a control-plane surface and stores canonical sessions, transcript items, and detached run state in Postgres under the `ai` schema.
+- Legacy request handling is isolated under the backend legacy chat area and exists only for already released clients that have not updated yet.
+- All current first-party clients now use the backend-owned chat surface only:
+  - `GET /v1/chat`
+  - `POST /v1/chat`
+  - `DELETE /v1/chat`
+  - `POST /v1/chat/stop`
+  - `POST /v1/chat/transcriptions`
+- The backend-owned chat stores canonical sessions, transcript items, and detached run state in Postgres under the `ai` schema.
 - V2 is intentionally server-owned: the backend owns session ids, run state, transcript history, run execution, cancellation, and recovery behavior.
 - `POST /v1/chat` creates a persisted run and asynchronously dispatches the detached worker.
 - `GET /v1/chat` reads the persisted snapshot and is the canonical recovery path for v2 progress.
-- During the migration window, web and mobile clients can move to v2 independently while legacy chat continues to serve older builds.
 
 ## Agent API architecture
 

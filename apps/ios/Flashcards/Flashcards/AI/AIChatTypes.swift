@@ -305,140 +305,120 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
     let content: [AIChatContentPart]
     let timestamp: String
     let isError: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case id = "messageId"
+        case role
+        case content
+        case timestamp
+        case timestampMillis
+        case isError
+    }
+
+    init(
+        id: String,
+        role: AIChatRole,
+        content: [AIChatContentPart],
+        timestamp: String,
+        isError: Bool
+    ) {
+        self.id = id
+        self.role = role
+        self.content = content
+        self.timestamp = timestamp
+        self.isError = isError
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.role = try container.decode(AIChatRole.self, forKey: .role)
+        self.content = try container.decode([AIChatContentPart].self, forKey: .content)
+        if let timestamp = try container.decodeIfPresent(String.self, forKey: .timestamp) {
+            self.timestamp = timestamp
+        } else if let timestampMillis = try container.decodeIfPresent(Int.self, forKey: .timestampMillis) {
+            self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.timestamp,
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "AI chat message timestamp is missing."
+                )
+            )
+        }
+        self.isError = try container.decode(Bool.self, forKey: .isError)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.id, forKey: .id)
+        try container.encode(self.role, forKey: .role)
+        try container.encode(self.content, forKey: .content)
+        try container.encode(self.timestamp, forKey: .timestamp)
+        try container.encode(self.isError, forKey: .isError)
+    }
 }
 
 struct AIChatPersistedState: Codable, Hashable, Sendable {
     let messages: [AIChatMessage]
     let chatSessionId: String
-    let codeInterpreterContainerId: String?
     let lastKnownChatConfig: AIChatServerConfig?
-
-    var selectedModelId: String {
-        self.lastKnownChatConfig?.model.id ?? aiChatDefaultModelId
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case messages
-        case selectedModelId
-        case chatSessionId
-        case codeInterpreterContainerId
-        case lastKnownChatConfig
-    }
 
     init(
         messages: [AIChatMessage],
         chatSessionId: String,
-        codeInterpreterContainerId: String?,
         lastKnownChatConfig: AIChatServerConfig?
     ) {
         self.messages = messages
         self.chatSessionId = chatSessionId
-        self.codeInterpreterContainerId = codeInterpreterContainerId
         self.lastKnownChatConfig = lastKnownChatConfig
     }
 
-    init(
-        messages: [AIChatMessage],
-        selectedModelId: String,
-        chatSessionId: String,
-        codeInterpreterContainerId: String?,
-        lastKnownChatConfig: AIChatServerConfig?
-    ) {
-        self.messages = messages
-        self.chatSessionId = chatSessionId
-        self.codeInterpreterContainerId = codeInterpreterContainerId
-        self.lastKnownChatConfig = lastKnownChatConfig ?? (
-            selectedModelId == aiChatDefaultModelId ? nil : AIChatServerConfig(
-                provider: aiChatDefaultServerConfig.provider,
-                model: AIChatServerModelDef(
-                    id: selectedModelId,
-                    label: selectedModelId,
-                    badgeLabel: selectedModelId
-                ),
-                reasoning: aiChatDefaultServerConfig.reasoning,
-                features: aiChatDefaultServerConfig.features
-            )
-        )
-    }
-
-    init(
-        messages: [AIChatMessage],
-        selectedModelId: String,
-        chatSessionId: String,
-        codeInterpreterContainerId: String?
-    ) {
+    init(messages: [AIChatMessage]) {
         self.init(
             messages: messages,
-            selectedModelId: selectedModelId,
-            chatSessionId: chatSessionId,
-            codeInterpreterContainerId: codeInterpreterContainerId,
-            lastKnownChatConfig: nil
-        )
-    }
-
-    init(
-        messages: [AIChatMessage],
-        selectedModelId: String
-    ) {
-        self.init(
-            messages: messages,
-            selectedModelId: selectedModelId,
             chatSessionId: makeAIChatSessionId(),
-            codeInterpreterContainerId: nil,
             lastKnownChatConfig: nil
         )
     }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.messages = try container.decode([AIChatMessage].self, forKey: .messages)
-        self.chatSessionId = try container.decodeIfPresent(String.self, forKey: .chatSessionId) ?? makeAIChatSessionId()
-        self.codeInterpreterContainerId = try container.decodeIfPresent(String.self, forKey: .codeInterpreterContainerId)
-        let lastKnownChatConfig = try container.decodeIfPresent(AIChatServerConfig.self, forKey: .lastKnownChatConfig)
-        let legacySelectedModelId = try container.decodeIfPresent(String.self, forKey: .selectedModelId) ?? aiChatDefaultModelId
-        self.lastKnownChatConfig = lastKnownChatConfig ?? (
-            legacySelectedModelId == aiChatDefaultModelId ? nil : AIChatServerConfig(
-                provider: aiChatDefaultServerConfig.provider,
-                model: AIChatServerModelDef(
-                    id: legacySelectedModelId,
-                    label: legacySelectedModelId,
-                    badgeLabel: legacySelectedModelId
-                ),
-                reasoning: aiChatDefaultServerConfig.reasoning,
-                features: aiChatDefaultServerConfig.features
-            )
-        )
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(self.messages, forKey: .messages)
-        try container.encode(self.chatSessionId, forKey: .chatSessionId)
-        try container.encodeIfPresent(self.lastKnownChatConfig, forKey: .lastKnownChatConfig)
-    }
 }
 
-struct AIChatWireMessage: Codable, Hashable, Sendable {
-    let role: String
+struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
+    let sessionId: String?
     let content: [AIChatContentPart]
-}
-
-/**
- Keep this block limited to short, stable user facts that help the model start
- from the right high-level context without replacing workspace tools.
- */
-struct AIChatUserContext: Codable, Hashable, Sendable {
-    let totalCards: Int
-}
-
-struct AIChatTurnRequestBody: Codable, Hashable, Sendable {
-    let messages: [AIChatWireMessage]
-    let model: String
     let timezone: String
-    let devicePlatform: String
-    let chatSessionId: String
-    let codeInterpreterContainerId: String?
-    let userContext: AIChatUserContext
+}
+
+struct AIChatSessionSnapshot: Codable, Hashable, Sendable {
+    let sessionId: String
+    let runState: String
+    let updatedAt: Int
+    let mainContentInvalidationVersion: Int
+    let chatConfig: AIChatServerConfig
+    let messages: [AIChatMessage]
+}
+
+struct AIChatStartRunResponse: Codable, Hashable, Sendable {
+    let ok: Bool
+    let sessionId: String
+    let runId: String
+    let runState: String
+    let chatConfig: AIChatServerConfig
+}
+
+struct AIChatResetSessionResponse: Codable, Hashable, Sendable {
+    let ok: Bool
+    let sessionId: String
+    let chatConfig: AIChatServerConfig
+}
+
+struct AIChatStopRunResponse: Codable, Hashable, Sendable {
+    let ok: Bool
+    let sessionId: String
+    let runId: String
+    let stopped: Bool
+    let stillRunning: Bool
 }
 
 struct AIToolCallRequest: Hashable, Sendable {
@@ -559,11 +539,6 @@ struct AIChatRepairAttemptStatus: Hashable, Sendable {
     }
 }
 
-struct AITurnStreamOutcome: Hashable, Sendable {
-    let requestId: String?
-    let codeInterpreterContainerId: String?
-}
-
 struct AIChatBackendError: Decodable, Hashable, Sendable {
     let message: String
     let code: String
@@ -652,10 +627,8 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
 }
 
 enum AIChatRuntimeEvent: Sendable {
-    case appendAssistantText(String)
+    case applySnapshot(AIChatSessionSnapshot)
     case appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String)
-    case upsertToolCall(AIChatToolCall)
-    case setRepairStatus(AIChatRepairAttemptStatus?)
     case finish
     case fail(String)
 }
@@ -666,11 +639,6 @@ struct AIChatContext: Sendable {
     let totalActiveCards: Int
 }
 
-struct AIChatRuntimeResult: Sendable {
-    let failureReportBody: AIChatFailureReportBody?
-    let latencyReportBody: AIChatLatencyReportBody?
-}
-
 protocol AIChatHistoryStoring: Sendable {
     func activateWorkspace(workspaceId: String?)
     func loadState() -> AIChatPersistedState
@@ -678,42 +646,39 @@ protocol AIChatHistoryStoring: Sendable {
     func clearState() async
 }
 
-protocol AIChatStreaming: Sendable {
-    func streamTurn(
+protocol AIChatSessionServicing: Sendable {
+    func loadSnapshot(
         session: CloudLinkedSession,
-        request: AIChatTurnRequestBody,
-        tapStartedAt: Date?,
-        onDelta: @escaping @Sendable (String) async -> Void,
-        onToolCall: @escaping @Sendable (AIChatToolCall) async -> Void,
-        onToolCallRequest: @escaping @Sendable (AIToolCallRequest) async -> Void,
-        onRepairAttempt: @escaping @Sendable (AIChatRepairAttemptStatus) async -> Void,
-        onLatencyReported: @escaping @Sendable (AIChatLatencyReportBody) async -> Void
-    ) async throws -> AITurnStreamOutcome
+        sessionId: String?
+    ) async throws -> AIChatSessionSnapshot
 
-    func reportFailureDiagnostics(
+    func startRun(
         session: CloudLinkedSession,
-        body: AIChatFailureReportBody
-    ) async
+        request: AIChatStartRunRequestBody
+    ) async throws -> AIChatStartRunResponse
 
-    func reportLatencyDiagnostics(
+    func resetSession(
         session: CloudLinkedSession,
-        body: AIChatLatencyReportBody
-    ) async
+        sessionId: String?
+    ) async throws -> AIChatResetSessionResponse
 
-    func loadServerConfig(
-        session: CloudLinkedSession
-    ) async throws -> AIChatServerConfig
-}
-
-extension AIChatStreaming {
-    func loadServerConfig(
-        session: CloudLinkedSession
-    ) async throws -> AIChatServerConfig {
-        _ = session
-        return aiChatDefaultServerConfig
-    }
+    func stopRun(
+        session: CloudLinkedSession,
+        sessionId: String
+    ) async throws -> AIChatStopRunResponse
 }
 
 protocol AIChatContextLoading: Sendable {
     func loadContext() async throws -> AIChatContext
+}
+
+private func isoTimestampFromMilliseconds(_ value: Int) -> String {
+    let date = Date(timeIntervalSince1970: TimeInterval(value) / 1000)
+    return isoTimestampFromDate(date)
+}
+
+private func isoTimestampFromDate(_ value: Date) -> String {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter.string(from: value)
 }

@@ -322,7 +322,7 @@ class AiViewModel(
         }
         viewModelScope.launch {
             try {
-                val snapshot = aiChatRepository.resetChatSession(
+                val snapshot = aiChatRepository.resetSession(
                     workspaceId = draftState.value.workspaceId,
                     sessionId = draftState.value.persistedState.chatSessionId
                 )
@@ -475,7 +475,7 @@ class AiViewModel(
         activeSendJob?.cancel()
         activeSendJob = viewModelScope.launch {
             try {
-                val outcome = aiChatRepository.streamTurn(
+                val outcome = aiChatRepository.startRun(
                     workspaceId = draftState.value.workspaceId,
                     state = nextPersistedState,
                     content = outgoingContent,

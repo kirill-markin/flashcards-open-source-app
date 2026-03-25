@@ -2,30 +2,16 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
-private func requireMessageCount(
-    _ chatStore: AIChatStore,
-    expectedCount: Int,
-    file: StaticString = #filePath,
-    line: UInt = #line
-) -> Bool {
-    XCTAssertEqual(chatStore.messages.count, expectedCount, file: file, line: line)
-    return chatStore.messages.count == expectedCount
-}
-
 final class AIChatStoreFlowTests: AIChatTestCaseBase {
     @MainActor
     func testAIChatStoreRequiresConsentBeforeGuestAIChatCanStart() throws {
         let flashcardsStore = try self.makeStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
+            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(messages: [])),
+            chatService: MockSessionChatService(),
+            contextLoader: contextLoader
         )
 
         chatStore.inputText = "hello"
@@ -39,41 +25,58 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
-    func testAIChatStoreBlocksSendWhenExternalAIConsentIsMissing() throws {
-        let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        XCTAssertEqual(chatStore.messages.count, 0)
-        XCTAssertEqual(
-            chatStore.activeAlert,
-            .generalError(message: aiChatExternalProviderConsentRequiredMessage)
-        )
-    }
-
-    @MainActor
-    func testAIChatStoreShowsStreamFailureOnlyInsideAssistantMessage() async throws {
+    func testAIChatStoreReplacesOptimisticMessagesWithBackendSnapshot() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
+        let service = MockSessionChatService(
+            snapshots: [
+                makeSnapshot(
+                    sessionId: "session-1",
+                    runState: "running",
+                    messages: [
+                        AIChatMessage(
+                            id: "message-user-1",
+                            role: .user,
+                            content: [.text("hello")],
+                            timestamp: "2026-03-09T10:00:00.000Z",
+                            isError: false
+                        ),
+                        AIChatMessage(
+                            id: "message-assistant-1",
+                            role: .assistant,
+                            content: [.text("Stored answer")],
+                            timestamp: "2026-03-09T10:00:01.000Z",
+                            isError: false
+                        )
+                    ]
+                ),
+                makeSnapshot(
+                    sessionId: "session-1",
+                    runState: "idle",
+                    messages: [
+                        AIChatMessage(
+                            id: "message-user-1",
+                            role: .user,
+                            content: [.text("hello")],
+                            timestamp: "2026-03-09T10:00:00.000Z",
+                            isError: false
+                        ),
+                        AIChatMessage(
+                            id: "message-assistant-1",
+                            role: .assistant,
+                            content: [.text("Stored answer")],
+                            timestamp: "2026-03-09T10:00:01.000Z",
+                            isError: false
+                        )
+                    ]
+                )
+            ]
+        )
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: ThrowingChatService(error: StubLocalizedError(message: "Chat failed")),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
+            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(messages: [])),
+            chatService: service,
+            contextLoader: contextLoader
         )
 
         chatStore.inputText = "hello"
@@ -81,109 +84,24 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await self.waitForChatCompletion(chatStore: chatStore)
 
-        XCTAssertNil(chatStore.activeAlert)
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
+        XCTAssertEqual(chatStore.messages.count, 2)
         XCTAssertEqual(chatStore.messages[0].role, .user)
         XCTAssertEqual(chatStore.messages[0].text, "hello")
         XCTAssertEqual(chatStore.messages[1].role, .assistant)
-        XCTAssertEqual(chatStore.messages[1].text, "Chat failed")
-        XCTAssertEqual(chatStore.messages[1].isError, true)
+        XCTAssertEqual(chatStore.messages[1].text, "Stored answer")
+        XCTAssertEqual(await service.startedRequests().count, 1)
     }
 
     @MainActor
-    func testAIChatStoreShowsOfflineBannerInsteadOfChatErrorWhenGuestSessionFailsOffline() async throws {
-        let flashcardsStore = try self.makeStore()
-        let failingToolExecutor = FailingToolExecutor()
-        grantAIChatExternalProviderConsent(userDefaults: flashcardsStore.userDefaults)
-        AIChatMockUrlProtocol.requestHandler = { request in
-            guard request.url?.path == "/v1/guest-auth/session" else {
-                XCTFail("Unexpected request path: \(request.url?.path ?? "nil")")
-                throw StubLocalizedError(message: "Unexpected request")
-            }
-
-            throw URLError(.notConnectedToInternet)
-        }
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        for _ in 0..<100 {
-            if flashcardsStore.currentTransientBanner != nil {
-                break
-            }
-
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
-
-        XCTAssertEqual(chatStore.messages.count, 0)
-        XCTAssertNil(chatStore.activeAlert)
-        XCTAssertEqual(flashcardsStore.currentTransientBanner?.message, aiChatOfflineBannerMessage)
-        XCTAssertEqual(flashcardsStore.currentTransientBanner?.kind, .aiChatOffline)
-        XCTAssertEqual(flashcardsStore.queuedTransientBanners.count, 0)
-
-        chatStore.sendMessage()
-
-        for _ in 0..<100 {
-            if flashcardsStore.queuedTransientBanners.count == 1 {
-                break
-            }
-
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
-
-        XCTAssertEqual(flashcardsStore.queuedTransientBanners.count, 1)
-        XCTAssertEqual(flashcardsStore.queuedTransientBanners[0].message, aiChatOfflineBannerMessage)
-        XCTAssertEqual(flashcardsStore.queuedTransientBanners[0].kind, .aiChatOffline)
-    }
-
-    @MainActor
-    func testAIChatStoreShowsAccountUpgradePromptForGuestLimitStreamErrors() async throws {
+    func testAIChatStoreShowsStartRunFailureInsideAssistantMessage() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let diagnostics = AIChatFailureDiagnostics(
-            clientRequestId: "client-request-1",
-            backendRequestId: "request-guest-limit-stream-1",
-            stage: .backendErrorEvent,
-            errorKind: .backendErrorEvent,
-            statusCode: nil,
-            eventType: "error",
-            toolName: nil,
-            toolCallId: nil,
-            lineNumber: nil,
-            rawSnippet: nil,
-            decoderSummary: nil,
-            continuationAttempt: nil,
-            continuationToolCallIds: []
-        )
+        let contextLoader = StubContextLoader()
+        let service = MockSessionChatService(startError: StubLocalizedError(message: "Chat failed"))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: ThrowingChatService(
-                error: AIChatServiceError.backendError(
-                    AIChatBackendError(
-                        message: aiChatGuestQuotaReachedMessage,
-                        code: "GUEST_AI_LIMIT_REACHED",
-                        stage: "stream_ai_chat_turn",
-                        requestId: "request-guest-limit-stream-1"
-                    ),
-                    diagnostics
-                )
-            ),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
+            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(messages: [])),
+            chatService: service,
+            contextLoader: contextLoader
         )
 
         chatStore.inputText = "hello"
@@ -192,24 +110,18 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         try await self.waitForChatCompletion(chatStore: chatStore)
 
         XCTAssertNil(chatStore.activeAlert)
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[0].role, .user)
-        XCTAssertEqual(chatStore.messages[1].role, .assistant)
-        XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
-        XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.buttonTitle, aiChatGuestQuotaButtonTitle)
-        XCTAssertEqual(chatStore.messages[1].isError, false)
-        XCTAssertEqual(chatStore.messages[1].text, "")
+        XCTAssertEqual(chatStore.messages.count, 2)
+        XCTAssertEqual(chatStore.messages[1].text, "Chat failed")
+        XCTAssertTrue(chatStore.messages[1].isError)
     }
 
     @MainActor
-    func testAIChatStoreShowsAccountUpgradePromptForGuestLimitPrestreamErrors() async throws {
+    func testAIChatStoreShowsAccountUpgradePromptForGuestLimitErrors() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let diagnostics = AIChatFailureDiagnostics(
-            clientRequestId: "client-request-2",
-            backendRequestId: "request-guest-limit-prestream-1",
+            clientRequestId: "client-request-1",
+            backendRequestId: "request-guest-limit-1",
             stage: .responseNotOk,
             errorKind: .invalidHttpResponse,
             statusCode: 429,
@@ -222,24 +134,22 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             continuationAttempt: nil,
             continuationToolCallIds: []
         )
+        let service = MockSessionChatService(
+            startError: AIChatServiceError.invalidResponse(
+                CloudApiErrorDetails(
+                    message: aiChatGuestQuotaReachedMessage,
+                    requestId: "request-guest-limit-1",
+                    code: "GUEST_AI_LIMIT_REACHED"
+                ),
+                aiChatGuestQuotaReachedMessage,
+                diagnostics
+            )
+        )
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: ThrowingChatService(
-                error: AIChatServiceError.invalidResponse(
-                    CloudApiErrorDetails(
-                        message: aiChatGuestQuotaReachedMessage,
-                        requestId: "request-guest-limit-prestream-1",
-                        code: "GUEST_AI_LIMIT_REACHED"
-                    ),
-                    "AI chat request failed with status 429: \(aiChatGuestQuotaReachedMessage)",
-                    diagnostics
-                )
-            ),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
+            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(messages: [])),
+            chatService: service,
+            contextLoader: contextLoader
         )
 
         chatStore.inputText = "hello"
@@ -247,621 +157,202 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await self.waitForChatCompletion(chatStore: chatStore)
 
-        XCTAssertNil(chatStore.activeAlert)
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[0].role, .user)
-        XCTAssertEqual(chatStore.messages[1].role, .assistant)
+        XCTAssertEqual(chatStore.messages.count, 2)
         XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
         XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.buttonTitle, aiChatGuestQuotaButtonTitle)
-        XCTAssertEqual(chatStore.messages[1].isError, false)
-        XCTAssertEqual(chatStore.messages[1].text, "")
+        XCTAssertFalse(chatStore.messages[1].isError)
     }
 
     @MainActor
-    func testAIChatStoreClearsRepairStatusAfterSuccessfulTurn() async throws {
+    func testAIChatStoreCancelStreamingStopsBackendRun() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: RepairingChatService(terminalError: nil),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        XCTAssertNil(chatStore.repairStatus)
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
-    }
-
-    @MainActor
-    func testAIChatStoreClearsRepairStatusAfterTerminalFailure() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: RepairingChatService(terminalError: StubLocalizedError(message: "Still invalid")),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        XCTAssertNil(chatStore.repairStatus)
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].isError, true)
-        XCTAssertEqual(chatStore.messages[1].text, "Checking\n\nStill invalid")
-    }
-
-    @MainActor
-    func testAIChatStoreDoesNotPersistHistoryOnEveryStreamToken() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let historyStore = InMemoryHistoryStore(
-            savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-        )
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: historyStore,
-            chatService: BurstChatService(deltas: Array(repeating: "A", count: 20)),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].text, String(repeating: "A", count: 20))
-        XCTAssertLessThan(historyStore.saveCallCount, 20)
-    }
-
-    @MainActor
-    func testAIChatStoreWarmUpPreparesSessionWithoutMutatingMessages() async throws {
-        let requestRecorder = RequestRecorder()
-        AIChatMockUrlProtocol.requestHandler = { request in
-            requestRecorder.append(request)
-
-            let response = HTTPURLResponse(
-                url: try XCTUnwrap(request.url),
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            let body = """
-            {"ok":true,"idToken":"refreshed-token","expiresIn":3600}
-            """.data(using: .utf8)!
-            return (response, body)
-        }
-
-        let flashcardsStore = try self.makeLinkedStore(
-            cloudAuthService: CloudAuthService(session: self.makeSession(), cookieStorage: HTTPCookieStorage()),
-            idTokenExpiresAt: formatIsoTimestamp(date: Date().addingTimeInterval(-300))
-        )
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.warmUpSessionIfNeeded()
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        let requests = requestRecorder.snapshot()
-        XCTAssertEqual(requests.count, 1)
-        XCTAssertEqual(requests.first?.url?.path, "/api/refresh-token")
-        XCTAssertEqual(chatStore.messages, [])
-        XCTAssertNil(chatStore.activeAlert)
-        XCTAssertFalse(chatStore.isStreaming)
-    }
-
-    @MainActor
-    func testFlashcardsStoreWarmUpReusesInFlightPreparation() async throws {
-        let requestRecorder = RequestRecorder()
-        AIChatMockUrlProtocol.requestHandler = { request in
-            requestRecorder.append(request)
-            Thread.sleep(forTimeInterval: 0.05)
-
-            let response = HTTPURLResponse(
-                url: try XCTUnwrap(request.url),
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            let body = """
-            {"ok":true,"idToken":"refreshed-token","expiresIn":3600}
-            """.data(using: .utf8)!
-            return (response, body)
-        }
-
-        let flashcardsStore = try self.makeLinkedStore(
-            cloudAuthService: CloudAuthService(session: self.makeSession(), cookieStorage: HTTPCookieStorage()),
-            idTokenExpiresAt: formatIsoTimestamp(date: Date().addingTimeInterval(-300))
-        )
-
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                await flashcardsStore.warmUpAuthenticatedCloudSessionForAI()
-            }
-            group.addTask {
-                await flashcardsStore.warmUpAuthenticatedCloudSessionForAI()
-            }
-        }
-
-        let requests = requestRecorder.snapshot()
-        XCTAssertEqual(requests.count, 1)
-        XCTAssertEqual(requests.first?.url?.path, "/api/refresh-token")
-    }
-
-    @MainActor
-    func testAIChatStoreWarmUpIsNoOpWhenCloudIsNotLinked() async throws {
-        let flashcardsStore = try self.makeStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.warmUpSessionIfNeeded()
-        try await Task.sleep(nanoseconds: 20_000_000)
-
-        XCTAssertEqual(chatStore.messages, [])
-        XCTAssertNil(chatStore.activeAlert)
-        XCTAssertFalse(chatStore.isStreaming)
-    }
-
-    @MainActor
-    func testAIChatStoreWarmUpIsNoOpWhenExternalAIConsentIsMissing() async throws {
-        let requestRecorder = RequestRecorder()
-        AIChatMockUrlProtocol.requestHandler = { request in
-            requestRecorder.append(request)
-
-            let response = HTTPURLResponse(
-                url: try XCTUnwrap(request.url),
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            let body = """
-            {"ok":true,"idToken":"refreshed-token","expiresIn":3600}
-            """.data(using: .utf8)!
-            return (response, body)
-        }
-
-        let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.warmUpSessionIfNeeded()
-        try await Task.sleep(nanoseconds: 20_000_000)
-
-        XCTAssertEqual(requestRecorder.snapshot().count, 0)
-        XCTAssertEqual(chatStore.messages, [])
-        XCTAssertNil(chatStore.activeAlert)
-        XCTAssertFalse(chatStore.isStreaming)
-    }
-
-    @MainActor
-    func testAIChatStoreBlocksAttachmentWhenExternalAIConsentIsMissing() throws {
-        let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.appendAttachment(
-            AIChatAttachment(
-                id: "attachment-1",
-                fileName: "notes.txt",
-                mediaType: "text/plain",
-                base64Data: Data("hello".utf8).base64EncodedString()
-            )
-        )
-
-        XCTAssertTrue(chatStore.pendingAttachments.isEmpty)
-        XCTAssertEqual(
-            chatStore.activeAlert,
-            .generalError(message: aiChatExternalProviderConsentRequiredMessage)
-        )
-    }
-
-    @MainActor
-    func testAIChatStoreWarmUpFailureDoesNotMutateMessagesOrStreamingState() async throws {
-        AIChatMockUrlProtocol.requestHandler = { request in
-            let response = HTTPURLResponse(
-                url: try XCTUnwrap(request.url),
-                statusCode: 500,
-                httpVersion: nil,
-                headerFields: [
-                    "Content-Type": "application/json",
-                    "X-Request-Id": "request-warmup-failure"
-                ]
-            )!
-            let body = """
-            {"error":"Refresh failed.","requestId":"request-warmup-failure","code":"AUTH_REFRESH_FAILED"}
-            """.data(using: .utf8)!
-            return (response, body)
-        }
-
-        let flashcardsStore = try self.makeLinkedStore(
-            cloudAuthService: CloudAuthService(session: self.makeSession(), cookieStorage: HTTPCookieStorage()),
-            idTokenExpiresAt: formatIsoTimestamp(date: Date().addingTimeInterval(-300))
-        )
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.warmUpSessionIfNeeded()
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        XCTAssertEqual(chatStore.messages, [])
-        XCTAssertNil(chatStore.activeAlert)
-        XCTAssertFalse(chatStore.isStreaming)
-    }
-
-    @MainActor
-    func testAIChatStoreSendMessageClearsDraftAndAttachmentsBeforeStreaming() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let historyStore = InMemoryHistoryStore(
-            savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-        )
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: historyStore,
-            chatService: SuspendingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.appendAttachment(
-            AIChatAttachment(
-                id: "attachment-1",
-                fileName: "note.txt",
-                mediaType: "text/plain",
-                base64Data: Data("hello".utf8).base64EncodedString()
-            )
-        )
-        chatStore.inputText = "hello"
-
-        chatStore.sendMessage()
-
-        try await self.waitForChatStart(chatStore: chatStore)
-        XCTAssertTrue(chatStore.isStreaming)
-        XCTAssertEqual(chatStore.inputText, "")
-        XCTAssertEqual(chatStore.pendingAttachments, [])
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[0].role, .user)
-        XCTAssertEqual(chatStore.messages[0].content.count, 2)
-        XCTAssertEqual(chatStore.messages[1].role, .assistant)
-        XCTAssertEqual(chatStore.messages[1].text, aiChatOptimisticAssistantStatusText)
-
-        chatStore.cancelStreaming()
-    }
-
-    @MainActor
-    func testAIChatStoreRemovesOptimisticStatusWhenToolCallStartsBeforeAnyDelta() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: ToolCallRequestOnlyChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].role, .assistant)
-        XCTAssertEqual(chatStore.messages[1].text, "")
-        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
-    }
-
-    @MainActor
-    func testAIChatStoreCancelStreamingClearsRepairStatusWithoutClearingDraft() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: RepairingSuspendingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        try await self.waitForRepairStatus(chatStore: chatStore)
-        chatStore.inputText = "next draft"
-
-        chatStore.cancelStreaming()
-
-        XCTAssertFalse(chatStore.isStreaming)
-        XCTAssertNil(chatStore.repairStatus)
-        XCTAssertEqual(chatStore.inputText, "next draft")
-    }
-
-    @MainActor
-    func testAIChatStoreKeepsTypedDraftAfterStoppingStreaming() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: SuspendingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-        try await self.waitForChatStart(chatStore: chatStore)
-        XCTAssertTrue(chatStore.isStreaming)
-
-        chatStore.inputText = "follow up"
-        chatStore.cancelStreaming()
-
-        XCTAssertFalse(chatStore.isStreaming)
-        XCTAssertEqual(chatStore.inputText, "follow up")
-    }
-
-    @MainActor
-    func testAIChatStoreKeepsAttachmentsAddedDuringStreamingAfterStopping() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: SuspendingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-        try await self.waitForChatStart(chatStore: chatStore)
-        XCTAssertTrue(chatStore.isStreaming)
-
-        let pendingAttachment = AIChatAttachment(
-            id: "attachment-1",
-            fileName: "follow-up.txt",
-            mediaType: "text/plain",
-            base64Data: Data("next".utf8).base64EncodedString()
-        )
-        chatStore.appendAttachment(pendingAttachment)
-        chatStore.inputText = "follow up"
-
-        chatStore.cancelStreaming()
-
-        XCTAssertFalse(chatStore.isStreaming)
-        XCTAssertEqual(chatStore.inputText, "follow up")
-        XCTAssertEqual(chatStore.pendingAttachments, [pendingAttachment])
-    }
-
-    @MainActor
-    func testAIChatStoreAppliesCreateCardPresentationRequestAsDraftOnly() throws {
-        let flashcardsStore = try self.makeStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let persistedMessages = [
-            AIChatMessage(
-                id: "message-1",
-                role: .assistant,
-                text: "Existing history",
-                toolCalls: [],
-                timestamp: "2026-03-09T10:00:00.000Z",
-                isError: false
-            )
-        ]
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: persistedMessages, selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        let navigation = AppNavigationModel()
-        navigation.openAICardCreation()
-        let request = try XCTUnwrap(navigation.aiChatPresentationRequest)
-        chatStore.applyPresentationRequest(request: request)
-        navigation.clearAIChatPresentationRequest()
-
-        XCTAssertEqual(chatStore.inputText, aiChatCreateCardDraftPrompt)
-        XCTAssertEqual(chatStore.messages, persistedMessages)
-        XCTAssertFalse(chatStore.isStreaming)
-        XCTAssertNil(navigation.aiChatPresentationRequest)
-    }
-
-    @MainActor
-    func testAIChatStoreShowsStartedToolCallBeforeCompletion() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: DelayedToolCompletionChatService(),
-            toolExecutor: SlowSuccessToolExecutor(pauseNanoseconds: 200_000_000),
-            localContextLoader: SlowSuccessToolExecutor(pauseNanoseconds: 200_000_000)
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.name, "sql")
-        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .started)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.input, #"{"sql":"SHOW TABLES"}"#)
-        XCTAssertNil(chatStore.messages[1].toolCalls.first?.output)
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.status, .completed)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.output, #"{"ok":true}"#)
-        XCTAssertEqual(chatStore.messages[1].text, "Done")
-    }
-
-    @MainActor
-    func testAIChatStoreFlushesFirstDeltaImmediatelyAndBatchesLaterDeltas() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: DelayedBurstChatService(
-                firstDelta: "A",
-                trailingDeltas: ["B", "C"],
-                pauseAfterFirstDeltaNanoseconds: 20_000_000,
-                pauseBeforeCompletionNanoseconds: 200_000_000
-            ),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
-        )
-
-        chatStore.inputText = "hello"
-        chatStore.sendMessage()
-
-        for _ in 0..<10 {
-            if chatStore.messages.count == 2 && chatStore.messages[1].text == "A" {
-                break
-            }
-
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].text, "A")
-
-        try await Task.sleep(nanoseconds: 50_000_000)
-        XCTAssertEqual(chatStore.messages[1].text, "A")
-
-        try await self.waitForChatCompletion(chatStore: chatStore)
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].text, "ABC")
-    }
-
-    @MainActor
-    func testAIChatStoreKeepsToolCallOnlyTurnsUnchanged() async throws {
-        let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
-        let chatStore = AIChatStore(
-            flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
-            ),
-            chatService: ToolCallOnlyChatService(
-                toolCall: AIChatToolCall(
-                    id: "tool-1",
-                    name: "web_search",
-                    status: .completed,
-                    input: nil,
-                    output: "Searched"
+        let contextLoader = StubContextLoader()
+        let service = MockSessionChatService(
+            snapshots: [
+                makeSnapshot(
+                    sessionId: "session-1",
+                    runState: "running",
+                    messages: [
+                        AIChatMessage(
+                            id: "message-user-1",
+                            role: .user,
+                            content: [.text("hello")],
+                            timestamp: "2026-03-09T10:00:00.000Z",
+                            isError: false
+                        )
+                    ]
                 )
-            ),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor
+            ],
+            snapshotDelayNanoseconds: 400_000_000
+        )
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(messages: [])),
+            chatService: service,
+            contextLoader: contextLoader
         )
 
         chatStore.inputText = "hello"
         chatStore.sendMessage()
-
+        try await Task.sleep(nanoseconds: 100_000_000)
+        chatStore.cancelStreaming()
         try await self.waitForChatCompletion(chatStore: chatStore)
 
-        guard requireMessageCount(chatStore, expectedCount: 2) else {
-            return
-        }
-        XCTAssertEqual(chatStore.messages[1].text, "")
-        XCTAssertEqual(chatStore.messages[1].toolCalls.count, 1)
-        XCTAssertEqual(chatStore.messages[1].toolCalls.first?.name, "web_search")
+        XCTAssertEqual(await service.stoppedSessionIds(), ["session-1"])
     }
+
+    @MainActor
+    func testAIChatStoreClearHistoryResetsBackendSession() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let contextLoader = StubContextLoader()
+        let service = MockSessionChatService(
+            resetResponse: AIChatResetSessionResponse(
+                ok: true,
+                sessionId: "session-reset",
+                chatConfig: aiChatDefaultServerConfig
+            )
+        )
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(
+                messages: [
+                    AIChatMessage(
+                        id: "message-1",
+                        role: .assistant,
+                        content: [.text("old")],
+                        timestamp: "2026-03-09T10:00:00.000Z",
+                        isError: false
+                    )
+                ],
+                chatSessionId: "session-old",
+                lastKnownChatConfig: aiChatDefaultServerConfig
+            )),
+            chatService: service,
+            contextLoader: contextLoader
+        )
+
+        chatStore.clearHistory()
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertTrue(chatStore.messages.isEmpty)
+        XCTAssertEqual(await service.resetSessionIds(), [nil])
+    }
+}
+
+private actor MockSessionChatService: AIChatSessionServicing {
+    private let snapshots: [AIChatSessionSnapshot]
+    private let startError: Error?
+    private let resetResponseValue: AIChatResetSessionResponse
+    private let snapshotDelayNanoseconds: UInt64
+    private var loadCount: Int
+    private var started: [AIChatStartRunRequestBody]
+    private var stopped: [String]
+    private var resetSessions: [String?]
+
+    init(
+        snapshots: [AIChatSessionSnapshot] = [
+            makeSnapshot(sessionId: "session-1", runState: "idle", messages: [])
+        ],
+        startError: Error? = nil,
+        resetResponse: AIChatResetSessionResponse = AIChatResetSessionResponse(
+            ok: true,
+            sessionId: "session-reset",
+            chatConfig: aiChatDefaultServerConfig
+        ),
+        snapshotDelayNanoseconds: UInt64 = 0
+    ) {
+        self.snapshots = snapshots
+        self.startError = startError
+        self.resetResponseValue = resetResponse
+        self.snapshotDelayNanoseconds = snapshotDelayNanoseconds
+        self.loadCount = 0
+        self.started = []
+        self.stopped = []
+        self.resetSessions = []
+    }
+
+    func loadSnapshot(
+        session: CloudLinkedSession,
+        sessionId: String?
+    ) async throws -> AIChatSessionSnapshot {
+        _ = session
+        _ = sessionId
+        if self.snapshotDelayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: self.snapshotDelayNanoseconds)
+        }
+
+        let index = min(self.loadCount, self.snapshots.count - 1)
+        self.loadCount += 1
+        return self.snapshots[index]
+    }
+
+    func startRun(
+        session: CloudLinkedSession,
+        request: AIChatStartRunRequestBody
+    ) async throws -> AIChatStartRunResponse {
+        _ = session
+        self.started.append(request)
+        if let startError = self.startError {
+            throw startError
+        }
+
+        return AIChatStartRunResponse(
+            ok: true,
+            sessionId: request.sessionId ?? "session-1",
+            runId: "run-1",
+            runState: "running",
+            chatConfig: aiChatDefaultServerConfig
+        )
+    }
+
+    func resetSession(
+        session: CloudLinkedSession,
+        sessionId: String?
+    ) async throws -> AIChatResetSessionResponse {
+        _ = session
+        self.resetSessions.append(sessionId)
+        return self.resetResponseValue
+    }
+
+    func stopRun(
+        session: CloudLinkedSession,
+        sessionId: String
+    ) async throws -> AIChatStopRunResponse {
+        _ = session
+        self.stopped.append(sessionId)
+        return AIChatStopRunResponse(
+            ok: true,
+            sessionId: sessionId,
+            runId: "run-1",
+            stopped: true,
+            stillRunning: false
+        )
+    }
+
+    func startedRequests() -> [AIChatStartRunRequestBody] {
+        self.started
+    }
+
+    func stoppedSessionIds() -> [String] {
+        self.stopped
+    }
+
+    func resetSessionIds() -> [String?] {
+        self.resetSessions
+    }
+}
+
+private func makeSnapshot(
+    sessionId: String,
+    runState: String,
+    messages: [AIChatMessage]
+) -> AIChatSessionSnapshot {
+    AIChatSessionSnapshot(
+        sessionId: sessionId,
+        runState: runState,
+        updatedAt: Int(Date().timeIntervalSince1970 * 1000),
+        mainContentInvalidationVersion: 0,
+        chatConfig: aiChatDefaultServerConfig,
+        messages: messages
+    )
 }

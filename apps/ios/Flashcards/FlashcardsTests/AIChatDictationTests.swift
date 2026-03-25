@@ -80,17 +80,16 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
     func testAIChatStoreDictationPublishesCompletedTranscriptWithoutMutatingDraft() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .success)
         let transcriber = StubAudioTranscriber(result: .success("dictated text"))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+                savedState: AIChatPersistedState(messages: [])
             ),
             chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor,
+            contextLoader: contextLoader,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -109,17 +108,16 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
     func testAIChatStoreSilentlyStopsWhenMicrophonePermissionIsDeniedFromPrompt() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .permissionDenied)
         let transcriber = StubAudioTranscriber(result: .success("ignored"))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+                savedState: AIChatPersistedState(messages: [])
             ),
             chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor,
+            contextLoader: contextLoader,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -132,17 +130,16 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
     func testAIChatStoreShowsSettingsAlertWhenMicrophonePermissionIsBlocked() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .permissionBlocked)
         let transcriber = StubAudioTranscriber(result: .success("ignored"))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+                savedState: AIChatPersistedState(messages: [])
             ),
             chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor,
+            contextLoader: contextLoader,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -155,17 +152,16 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
     func testAIChatStoreShowsGeneralAlertForTranscriptionFailures() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .success)
         let transcriber = StubAudioTranscriber(result: .failure(AIChatTranscriptionError.invalidAudio))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+                savedState: AIChatPersistedState(messages: [])
             ),
             chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor,
+            contextLoader: contextLoader,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -184,9 +180,9 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
     func testAIChatStoreShowsAccountUpgradePromptForGuestLimitDictationFailures() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let historyStore = InMemoryHistoryStore(
-            savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+            savedState: AIChatPersistedState(messages: [])
         )
         let recorder = StubVoiceRecorder(mode: .success)
         let transcriber = StubAudioTranscriber(result: .failure(AIChatTranscriptionError.guestLimitReached))
@@ -194,8 +190,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
             flashcardsStore: flashcardsStore,
             historyStore: historyStore,
             chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor,
+            contextLoader: contextLoader,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -218,17 +213,16 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
     func testAIChatStoreAllowsDictationWhileStreaming() async throws {
         let flashcardsStore = try self.makeLinkedStore()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .success)
         let transcriber = StubAudioTranscriber(result: .success("dictated text"))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+                savedState: AIChatPersistedState(messages: [])
             ),
             chatService: SuspendingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor,
+            contextLoader: contextLoader,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
@@ -255,17 +249,16 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
     func testAIChatStoreBlocksDictationWhenExternalAIConsentIsMissing() throws {
         let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
-        let failingToolExecutor = FailingToolExecutor()
+        let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .success)
         let transcriber = StubAudioTranscriber(result: .success("dictated text"))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [], selectedModelId: aiChatDefaultModelId)
+                savedState: AIChatPersistedState(messages: [])
             ),
             chatService: FailingChatService(),
-            toolExecutor: failingToolExecutor,
-            localContextLoader: failingToolExecutor,
+            contextLoader: contextLoader,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
         )
