@@ -117,9 +117,9 @@ class CloudIdentityLifecycleRepositoryTest {
             workspaceId = initialLocalWorkspaceId,
             state = AiChatPersistedState(
                 messages = emptyList(),
-                selectedModelId = "gpt-5.2",
                 chatSessionId = "session-1",
-                codeInterpreterContainerId = "container-1"
+                codeInterpreterContainerId = "container-1",
+                lastKnownChatConfig = null
             )
         )
         guestAiSessionStore.saveSession(

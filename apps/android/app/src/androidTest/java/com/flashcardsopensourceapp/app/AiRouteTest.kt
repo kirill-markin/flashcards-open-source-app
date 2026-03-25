@@ -21,11 +21,11 @@ import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatModelOption
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import org.junit.Assert.assertEquals
@@ -53,7 +53,6 @@ class AiRouteTest {
                     onDraftMessageChange = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
-                    onSelectModel = {},
                     onNewChat = {},
                     onOpenAccountStatus = {},
                     onDismissErrorMessage = {},
@@ -111,7 +110,6 @@ class AiRouteTest {
                     onDraftMessageChange = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
-                    onSelectModel = {},
                     onNewChat = {},
                     onOpenAccountStatus = {},
                     onDismissErrorMessage = {},
@@ -162,7 +160,6 @@ class AiRouteTest {
                     onDraftMessageChange = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
-                    onSelectModel = {},
                     onNewChat = {},
                     onOpenAccountStatus = {},
                     onDismissErrorMessage = {},
@@ -215,7 +212,6 @@ class AiRouteTest {
                             onDraftMessageChange = {},
                             onSendMessage = {},
                             onCancelStreaming = {},
-                            onSelectModel = {},
                             onNewChat = {},
                             onOpenAccountStatus = {
                                 navController.navigate("account-status")
@@ -257,8 +253,7 @@ private fun makeAiUiState(
         messages = messages,
         pendingAttachments = emptyList(),
         draftMessage = "",
-        selectedModelId = "gpt-5.4",
-        availableModels = listOf(AiChatModelOption(id = "gpt-5.4", label = "GPT-5.4")),
+        chatConfig = defaultAiChatServerConfig,
         isConsentRequired = isConsentRequired,
         isLinked = false,
         isStreaming = isStreaming,
@@ -266,7 +261,6 @@ private fun makeAiUiState(
         dictationState = AiChatDictationState.IDLE,
         canSend = false,
         canStartNewChat = messages.isNotEmpty(),
-        isModelPickerEnabled = false,
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""

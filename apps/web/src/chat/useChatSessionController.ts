@@ -26,7 +26,9 @@ import {
   OPTIMISTIC_ASSISTANT_STATUS_TEXT,
   useChatHistory,
 } from "./useChatHistory";
+import { defaultChatConfig, loadStoredChatConfig, storeChatConfig } from "./chatConfig";
 import type { ChatSessionSnapshot } from "./chatSessionSnapshot";
+import type { ChatConfig } from "../types";
 
 type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;
@@ -45,6 +47,7 @@ export type ChatSessionController = Readonly<{
   isLiveStreamConnected: boolean;
   isStopping: boolean;
   currentSessionId: string | null;
+  chatConfig: ChatConfig;
   composerAction: ChatComposerAction;
   sendMessage: (params: SendChatMessageParams) => Promise<void>;
   stopMessage: () => Promise<void>;
@@ -76,6 +79,7 @@ export function useChatSessionController(
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [runState, setRunState] = useState<ChatRunState>("idle");
   const [isStopping, setIsStopping] = useState<boolean>(false);
+  const [chatConfig, setChatConfig] = useState<ChatConfig>(() => loadStoredChatConfig());
 
   const lastSnapshotUpdatedAtRef = useRef<number | null>(null);
   const stoppedSessionIdsRef = useRef<Set<string>>(new Set());
@@ -93,6 +97,8 @@ export function useChatSessionController(
 
     setCurrentSessionId(snapshot.sessionId);
     setRunState(effectiveRunState);
+    setChatConfig(snapshot.chatConfig);
+    storeChatConfig(snapshot.chatConfig);
 
     if (replaceHistory && (lastSnapshotUpdatedAtRef.current === null || snapshot.updatedAt > lastSnapshotUpdatedAtRef.current)) {
       replaceMessages(snapshot.messages);
@@ -205,6 +211,8 @@ export function useChatSessionController(
     try {
       const response = await startChatRun(requestBody);
       setCurrentSessionId(response.sessionId);
+      setChatConfig(response.chatConfig);
+      storeChatConfig(response.chatConfig);
       await loadChatSnapshot(response.sessionId, true);
     } catch (error) {
       markAssistantError(`Chat request failed. ${toErrorMessage(error)}`);
@@ -265,6 +273,8 @@ export function useChatSessionController(
       lastSnapshotUpdatedAtRef.current = null;
       setCurrentSessionId(response.sessionId);
       setRunState("idle");
+      setChatConfig(response.chatConfig);
+      storeChatConfig(response.chatConfig);
     } catch (error) {
       markAssistantError(`Chat reset failed. ${toErrorMessage(error)}`);
     }
@@ -278,6 +288,7 @@ export function useChatSessionController(
     isLiveStreamConnected: false,
     isStopping,
     currentSessionId,
+    chatConfig: chatConfig ?? defaultChatConfig,
     composerAction,
     sendMessage,
     stopMessage,

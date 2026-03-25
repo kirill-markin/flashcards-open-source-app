@@ -16,6 +16,7 @@ import {
   setNavigationHandlerForTests,
   transcribeChatAudio,
 } from "./api";
+import { defaultChatConfig } from "./chat/chatConfig";
 
 function createJsonResponse(statusCode: number, payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
@@ -389,6 +390,7 @@ describe("backend-owned chat api helpers", () => {
       runState: "idle",
       updatedAt: 1,
       mainContentInvalidationVersion: 0,
+      chatConfig: defaultChatConfig,
       messages: [],
     }));
 
@@ -404,6 +406,7 @@ describe("backend-owned chat api helpers", () => {
       sessionId: "session-1",
       runId: "run-1",
       runState: "running",
+      chatConfig: defaultChatConfig,
     }));
 
     await startChatRun({
@@ -426,6 +429,7 @@ describe("backend-owned chat api helpers", () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
       ok: true,
       sessionId: "session-2",
+      chatConfig: defaultChatConfig,
     }));
 
     const response = await resetChatSession("session-1");

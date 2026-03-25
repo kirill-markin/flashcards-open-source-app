@@ -1,9 +1,14 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
+import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamError
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
+import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatTurnRequest
@@ -11,19 +16,18 @@ import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
-import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 private const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
-private const val codeInterpreterContainerIdHeaderName: String = "X-Code-Interpreter-Container-Id"
+private const val activeRunSnapshotPollIntervalMs: Long = 1_000L
 
 class AiChatRemoteException(
     message: String,
@@ -66,9 +70,176 @@ class AiChatRemoteService {
         request: AiChatTurnRequest,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome = withContext(Dispatchers.IO) {
+        val startConnection = openConnection(
+            apiBaseUrl = apiBaseUrl,
+            path = "/chat",
+            method = "POST",
+            authorizationHeader = authorizationHeader
+        )
+
+        var latestChatConfig: AiChatServerConfig? = null
+        val requestId: String?
+        val sessionId: String
+
+        try {
+            startConnection.setRequestProperty("Content-Type", "application/json")
+            startConnection.doOutput = true
+            startConnection.outputStream.use { outputStream ->
+                outputStream.write(encodeTurnRequest(request = request).toString().toByteArray(StandardCharsets.UTF_8))
+            }
+
+            val response = readJsonResponse(connection = startConnection)
+            requestId = startConnection.getHeaderField(chatRequestIdHeaderName)
+            sessionId = response.getString("sessionId")
+            latestChatConfig = response.optJSONObject("chatConfig")?.let(::decodeChatConfig)
+        } finally {
+            startConnection.disconnect()
+        }
+
+        var previousAssistantText = ""
+        var previousToolCalls = linkedMapOf<String, AiChatToolCall>()
+
+        return@withContext try {
+            while (true) {
+                val snapshot = loadSnapshot(
+                    apiBaseUrl = apiBaseUrl,
+                    authorizationHeader = authorizationHeader,
+                    sessionId = sessionId
+                )
+                latestChatConfig = snapshot.chatConfig
+
+                val latestAssistantMessage = snapshot.messages.lastOrNull { message ->
+                    message.role == AiChatRole.ASSISTANT
+                }
+                val latestAssistantText = latestAssistantMessage?.content
+                    ?.filterIsInstance<AiChatContentPart.Text>()
+                    ?.joinToString(separator = "") { part -> part.text }
+                    ?: ""
+
+                if (latestAssistantText.startsWith(previousAssistantText) && latestAssistantText != previousAssistantText) {
+                    onEvent(
+                        AiChatStreamEvent.Delta(
+                            text = latestAssistantText.removePrefix(previousAssistantText)
+                        )
+                    )
+                    previousAssistantText = latestAssistantText
+                }
+
+                val latestToolCalls = linkedMapOf<String, AiChatToolCall>()
+                latestAssistantMessage?.content?.forEach { part ->
+                    if (part is AiChatContentPart.ToolCall) {
+                        latestToolCalls[part.toolCall.toolCallId] = part.toolCall
+                    }
+                }
+                latestToolCalls.values.forEach { toolCall ->
+                    val previousToolCall = previousToolCalls[toolCall.toolCallId]
+                    if (previousToolCall != toolCall) {
+                        onEvent(AiChatStreamEvent.ToolCall(toolCall = toolCall))
+                    }
+                }
+                previousToolCalls = latestToolCalls
+
+                if (snapshot.runState != "running") {
+                    onEvent(AiChatStreamEvent.Done)
+                    return@withContext AiChatStreamOutcome(
+                        requestId = requestId,
+                        chatSessionId = sessionId,
+                        chatConfig = latestChatConfig
+                    )
+                }
+
+                delay(activeRunSnapshotPollIntervalMs)
+            }
+
+            throw IllegalStateException("Chat polling loop exited unexpectedly.")
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) {
+                try {
+                    stopChatRun(
+                        apiBaseUrl = apiBaseUrl,
+                        authorizationHeader = authorizationHeader,
+                        sessionId = sessionId
+                    )
+                } catch (_: Exception) {
+                }
+            }
+            throw error
+        }
+    }
+
+    suspend fun loadSnapshot(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        sessionId: String?
+    ): AiChatSessionSnapshot = withContext(Dispatchers.IO) {
+        val path = if (sessionId.isNullOrBlank()) {
+            "/chat"
+        } else {
+            "/chat?sessionId=$sessionId"
+        }
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
-            path = "/chat/turn",
+            path = path,
+            method = "GET",
+            authorizationHeader = authorizationHeader
+        )
+
+        try {
+            val response = readJsonResponse(connection = connection)
+            return@withContext decodeSnapshot(response)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    suspend fun resetChatSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        sessionId: String?
+    ): AiChatSessionSnapshot = withContext(Dispatchers.IO) {
+        val path = if (sessionId.isNullOrBlank()) {
+            "/chat"
+        } else {
+            "/chat?sessionId=$sessionId"
+        }
+        val connection = openConnection(
+            apiBaseUrl = apiBaseUrl,
+            path = path,
+            method = "DELETE",
+            authorizationHeader = authorizationHeader
+        )
+
+        try {
+            val response = readJsonResponse(connection = connection)
+            return@withContext AiChatSessionSnapshot(
+                sessionId = response.getString("sessionId"),
+                runState = "idle",
+                updatedAtMillis = 0L,
+                mainContentInvalidationVersion = 0L,
+                messages = emptyList(),
+                chatConfig = response.optJSONObject("chatConfig")?.let(::decodeChatConfig)
+                    ?: throw AiChatRemoteException(
+                        message = "Backend chat reset response is missing chatConfig.",
+                        statusCode = connection.responseCode,
+                        code = null,
+                        stage = "response_decode",
+                        requestId = connection.getHeaderField(chatRequestIdHeaderName),
+                        responseBody = response.toString()
+                    )
+            )
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    suspend fun stopChatRun(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        sessionId: String
+    ) = withContext(Dispatchers.IO) {
+        val connection = openConnection(
+            apiBaseUrl = apiBaseUrl,
+            path = "/chat/stop",
             method = "POST",
             authorizationHeader = authorizationHeader
         )
@@ -77,41 +248,14 @@ class AiChatRemoteService {
             connection.setRequestProperty("Content-Type", "application/json")
             connection.doOutput = true
             connection.outputStream.use { outputStream ->
-                outputStream.write(encodeTurnRequest(request = request).toString().toByteArray(StandardCharsets.UTF_8))
+                outputStream.write(
+                    JSONObject()
+                        .put("sessionId", sessionId)
+                        .toString()
+                        .toByteArray(StandardCharsets.UTF_8)
+                )
             }
-
-            val responseCode = connection.responseCode
-            if (responseCode !in 200..299) {
-                throw readErrorResponse(connection = connection)
-            }
-
-            val requestId = connection.getHeaderField(chatRequestIdHeaderName)
-            val codeInterpreterContainerId =
-                connection.getHeaderField(codeInterpreterContainerIdHeaderName)
-            BufferedReader(
-                InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)
-            ).use { reader ->
-                val parser = AiChatSseParser()
-                while (true) {
-                    val line = reader.readLine() ?: break
-                    val event = parser.pushLine(line = line)
-                    if (event != null) {
-                        onEvent(event)
-                        if (event is AiChatStreamEvent.Done) {
-                            break
-                        }
-                    }
-                }
-
-                for (event in parser.finish()) {
-                    onEvent(event)
-                }
-            }
-
-            return@withContext AiChatStreamOutcome(
-                requestId = requestId,
-                codeInterpreterContainerId = codeInterpreterContainerId
-            )
+            readJsonResponse(connection = connection)
         } finally {
             connection.disconnect()
         }
@@ -203,23 +347,9 @@ class AiChatRemoteService {
 
     private fun encodeTurnRequest(request: AiChatTurnRequest): JSONObject {
         return JSONObject()
-            .put("messages", JSONArray(request.messages.map(::encodeWireMessage)))
-            .put("model", request.model)
+            .put("sessionId", request.sessionId)
+            .put("content", JSONArray(request.content.map(::encodeWireContentPart)))
             .put("timezone", request.timezone)
-            .put("devicePlatform", request.devicePlatform)
-            .put("chatSessionId", request.chatSessionId)
-            .put("codeInterpreterContainerId", request.codeInterpreterContainerId)
-            .put(
-                "userContext",
-                JSONObject()
-                    .put("totalCards", request.userContext.totalCards)
-            )
-    }
-
-    private fun encodeWireMessage(message: com.flashcardsopensourceapp.data.local.model.AiChatWireMessage): JSONObject {
-        return JSONObject()
-            .put("role", message.role)
-            .put("content", JSONArray(message.content.map(::encodeWireContentPart)))
     }
 
     private fun encodeWireContentPart(part: com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart): JSONObject {
@@ -247,6 +377,114 @@ class AiChatRemoteService {
                 .put("input", part.input)
                 .put("output", part.output)
         }
+    }
+
+    private fun decodeSnapshot(jsonObject: JSONObject): AiChatSessionSnapshot {
+        return AiChatSessionSnapshot(
+            sessionId = jsonObject.getString("sessionId"),
+            runState = jsonObject.getString("runState"),
+            updatedAtMillis = jsonObject.getLong("updatedAt"),
+            mainContentInvalidationVersion = jsonObject.getLong("mainContentInvalidationVersion"),
+            messages = decodeMessages(jsonObject.getJSONArray("messages")),
+            chatConfig = decodeChatConfig(
+                jsonObject.optJSONObject("chatConfig")
+                    ?: throw IllegalArgumentException("Backend chat snapshot is missing chatConfig.")
+            )
+        )
+    }
+
+    private fun decodeMessages(jsonArray: JSONArray): List<AiChatMessage> {
+        return buildList {
+            for (index in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(index)
+                add(
+                    AiChatMessage(
+                        messageId = item.optString("messageId", "snapshot-$index"),
+                        role = if (item.getString("role") == "assistant") {
+                            AiChatRole.ASSISTANT
+                        } else {
+                            AiChatRole.USER
+                        },
+                        content = decodeContentParts(item.getJSONArray("content")),
+                        timestampMillis = item.getLong("timestamp"),
+                        isError = item.optBoolean("isError", false)
+                    )
+                )
+            }
+        }
+    }
+
+    private fun decodeContentParts(jsonArray: JSONArray): List<AiChatContentPart> {
+        return buildList {
+            for (index in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(index)
+                when (item.getString("type")) {
+                    "text" -> add(
+                        AiChatContentPart.Text(
+                            text = item.getString("text")
+                        )
+                    )
+
+                    "image" -> add(
+                        AiChatContentPart.Image(
+                            fileName = item.optString("fileName", "").ifBlank { null },
+                            mediaType = item.getString("mediaType"),
+                            base64Data = item.getString("base64Data")
+                        )
+                    )
+
+                    "file" -> add(
+                        AiChatContentPart.File(
+                            fileName = item.getString("fileName"),
+                            mediaType = item.getString("mediaType"),
+                            base64Data = item.getString("base64Data")
+                        )
+                    )
+
+                    "tool_call" -> add(
+                        AiChatContentPart.ToolCall(
+                            toolCall = AiChatToolCall(
+                                toolCallId = item.optString("toolCallId", item.optString("id")),
+                                name = item.getString("name"),
+                                status = if (item.getString("status") == "completed") {
+                                    AiChatToolCallStatus.COMPLETED
+                                } else {
+                                    AiChatToolCallStatus.STARTED
+                                },
+                                input = item.optString("input", "").ifBlank { null },
+                                output = item.optString("output", "").ifBlank { null }
+                            )
+                        )
+                    )
+
+                    "reasoning_summary" -> {
+                    }
+                }
+            }
+        }
+    }
+
+    private fun decodeChatConfig(jsonObject: JSONObject): AiChatServerConfig {
+        return AiChatServerConfig(
+            provider = com.flashcardsopensourceapp.data.local.model.AiChatProvider(
+                id = jsonObject.getJSONObject("provider").getString("id"),
+                label = jsonObject.getJSONObject("provider").getString("label")
+            ),
+            model = com.flashcardsopensourceapp.data.local.model.AiChatServerModel(
+                id = jsonObject.getJSONObject("model").getString("id"),
+                label = jsonObject.getJSONObject("model").getString("label"),
+                badgeLabel = jsonObject.getJSONObject("model").getString("badgeLabel")
+            ),
+            reasoning = com.flashcardsopensourceapp.data.local.model.AiChatReasoning(
+                effort = jsonObject.getJSONObject("reasoning").getString("effort"),
+                label = jsonObject.getJSONObject("reasoning").getString("label")
+            ),
+            features = com.flashcardsopensourceapp.data.local.model.AiChatFeatures(
+                modelPickerEnabled = jsonObject.getJSONObject("features").optBoolean("modelPickerEnabled", false),
+                dictationEnabled = jsonObject.getJSONObject("features").optBoolean("dictationEnabled", true),
+                attachmentsEnabled = jsonObject.getJSONObject("features").optBoolean("attachmentsEnabled", true)
+            )
+        )
     }
 
     private fun encodeMultipartAudioBody(

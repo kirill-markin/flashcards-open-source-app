@@ -2,6 +2,7 @@ import { act, createElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import type { ChatSessionSnapshot } from "../types";
+import { defaultChatConfig } from "./chatConfig";
 
 const {
   useChatLayoutMock,
@@ -126,6 +127,7 @@ export function createChatSnapshot(
     runState: "idle",
     updatedAt: 1,
     mainContentInvalidationVersion: 0,
+    chatConfig: defaultChatConfig,
     messages: [],
     ...overrides,
   };
@@ -287,10 +289,12 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       sessionId: "session-1",
       runId: "run-1",
       runState: "running",
+      chatConfig: defaultChatConfig,
     });
     resetChatSessionMock.mockResolvedValue({
       ok: true,
       sessionId: "session-reset",
+      chatConfig: defaultChatConfig,
     });
     stopChatRunMock.mockResolvedValue({
       ok: true,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { AppEnv } from "../app";
+import { getChatConfig } from "../chat/config";
 import { ChatSessionNotFoundError } from "../chat/store";
 import { HttpError } from "../errors";
 import type { RequestContext } from "../server/requestContext";
@@ -107,7 +108,7 @@ test("new chat routes stay hidden while the feature gate is disabled", async () 
   });
 });
 
-test("new chat routes reject guest transport even when enabled", async () => {
+test("new chat routes allow guest transport when enabled", async () => {
   const app = createChatTestApp({
     enabled: true,
     requestContext: {
@@ -120,23 +121,29 @@ test("new chat routes reject guest transport even when enabled", async () => {
       transport: "guest",
       connectionId: null,
     },
+    getRecoveredChatSessionSnapshotFn: async () => ({
+      sessionId: "session-guest-1",
+      runState: "idle",
+      activeRunId: null,
+      updatedAt: 1_742_811_200_000,
+      activeRunHeartbeatAt: null,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    }),
   });
 
   const response = await app.request("https://api.example.com/chat", {
-    method: "POST",
-    body: JSON.stringify({
-      content: [{ type: "text", text: "hi" }],
-      timezone: "Europe/Madrid",
-    }),
-    headers: {
-      "Content-Type": "application/json",
-    },
+    method: "GET",
   });
 
-  assert.equal(response.status, 403);
+  assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    error: "This endpoint requires Bearer or session authentication.",
-    code: "AI_CHAT_V2_HUMAN_AUTH_REQUIRED",
+    sessionId: "session-guest-1",
+    runState: "idle",
+    updatedAt: 1_742_811_200_000,
+    mainContentInvalidationVersion: 0,
+    chatConfig: getChatConfig(),
+    messages: [],
   });
 });
 
@@ -180,6 +187,7 @@ test("new chat POST route prepares a persisted run and dispatches the worker", a
     sessionId: "session-1",
     runId: "run-1",
     runState: "running",
+    chatConfig: getChatConfig(),
   });
   assert.deepEqual(invokedPayload, {
     runId: "run-1",
@@ -224,6 +232,7 @@ test("new chat GET route returns the recovered persisted snapshot", async () => 
     runState: "idle",
     updatedAt: 1_742_811_200_000,
     mainContentInvalidationVersion: 0,
+    chatConfig: getChatConfig(),
     messages: [{
       role: "assistant",
       content: [{ type: "text", text: "Stored answer" }],
@@ -276,6 +285,7 @@ test("new chat DELETE route creates a fresh empty session", async () => {
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: "session-new",
+    chatConfig: getChatConfig(),
   });
 });
 

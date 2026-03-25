@@ -119,35 +119,39 @@ extension AIChatView {
                     Spacer()
 
                     HStack(spacing: 8) {
-                        Menu {
-                            ForEach(aiChatAttachmentMenuActions()) { action in
-                                Button {
-                                    self.handleAttachmentMenuAction(action)
-                                } label: {
-                                    Label(action.title, systemImage: action.systemImage)
+                        if self.chatStore.serverChatConfig.features.attachmentsEnabled {
+                            Menu {
+                                ForEach(aiChatAttachmentMenuActions()) { action in
+                                    Button {
+                                        self.handleAttachmentMenuAction(action)
+                                    } label: {
+                                        Label(action.title, systemImage: action.systemImage)
+                                    }
                                 }
+                            } label: {
+                                aiChatComposerAccessoryIcon(systemName: "paperclip")
                             }
-                        } label: {
-                            aiChatComposerAccessoryIcon(systemName: "paperclip")
+                            .buttonStyle(.glass)
+                            .tint(.accentColor)
+                            .disabled(self.chatStore.dictationState != .idle)
+                            .accessibilityLabel("Add attachment")
+                            .accessibilityHint("Take a photo, choose a photo, or select a file")
+                            .menuOrder(.fixed)
                         }
-                        .buttonStyle(.glass)
-                        .tint(.accentColor)
-                        .disabled(self.chatStore.dictationState != .idle)
-                        .accessibilityLabel("Add attachment")
-                        .accessibilityHint("Take a photo, choose a photo, or select a file")
-                        .menuOrder(.fixed)
 
-                        Button {
-                            self.handleDictationButtonTap()
-                        } label: {
-                            aiChatComposerAccessoryIcon(
-                                systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
-                            )
+                        if self.chatStore.serverChatConfig.features.dictationEnabled {
+                            Button {
+                                self.handleDictationButtonTap()
+                            } label: {
+                                aiChatComposerAccessoryIcon(
+                                    systemName: self.chatStore.dictationState == .recording ? "stop.fill" : "mic"
+                                )
+                            }
+                            .buttonStyle(.glass)
+                            .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
+                            .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
+                            .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
                         }
-                        .buttonStyle(.glass)
-                        .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
-                        .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
-                        .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
                     }
                 }
             }
@@ -171,34 +175,13 @@ extension AIChatView {
 
     @ViewBuilder
     var composerModelControl: some View {
-        if self.chatStore.isModelLocked || self.chatStore.dictationState != .idle {
-            Text("Model: \(self.selectedModelLabel)")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        } else {
-            Picker(
-                "Model",
-                selection: Binding(
-                    get: {
-                        self.chatStore.selectedModelId
-                    },
-                    set: { nextModelId in
-                        self.chatStore.setSelectedModel(modelId: nextModelId)
-                    }
-                )
-            ) {
-                ForEach(self.chatStore.availableModels) { model in
-                    Text(model.label).tag(model.id)
-                }
-            }
-            .pickerStyle(.menu)
-        }
+        Text("\(self.chatStore.serverChatConfig.provider.label) · \(self.chatStore.serverChatConfig.model.badgeLabel)")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
     }
 
     var selectedModelLabel: String {
-        (self.chatStore.availableModels + AIChatModelDef.all).first(where: { model in
-            model.id == self.chatStore.selectedModelId
-        })?.label ?? self.chatStore.selectedModelId
+        self.chatStore.serverChatConfig.model.label
     }
 
     var primaryComposerButtonDisabled: Bool {

@@ -428,7 +428,6 @@ fun AppNavHost(
                 onDraftMessageChange = aiViewModel::updateDraftMessage,
                 onSendMessage = aiViewModel::sendMessage,
                 onCancelStreaming = aiViewModel::cancelStreaming,
-                onSelectModel = aiViewModel::selectModel,
                 onNewChat = aiViewModel::clearConversation,
                 onOpenAccountStatus = {
                     navController.navigate(route = SettingsAccountSignInEmailDestination.route)

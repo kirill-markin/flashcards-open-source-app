@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.CardDraft
@@ -123,6 +124,8 @@ interface AiChatRepository {
     suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
     suspend fun clearPersistedState(workspaceId: String?)
+    suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot?
+    suspend fun resetChatSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot
     suspend fun transcribeAudio(
         workspaceId: String?,
         fileName: String,
@@ -133,7 +136,7 @@ interface AiChatRepository {
     suspend fun streamTurn(
         workspaceId: String?,
         state: AiChatPersistedState,
-        totalCards: Int,
+        content: List<com.flashcardsopensourceapp.data.local.model.AiChatContentPart>,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome
 }
