@@ -1,14 +1,20 @@
 import { getAppConfig } from "./config";
 import type {
-  AIChatDiagnosticsPayload,
-  AIChatTurnRequestBody,
-  AIChatUserContext,
-  AIChatWireMessage,
+  AgentApiKeyConnection,
+  AgentApiKeyConnectionsResponse,
+  AgentApiKeyRevokeResponse,
+  ChatSessionSnapshot,
+  ChatTranscriptionResponse,
+  ChatTranscriptionSource,
   DeleteWorkspaceResponse,
   QueryCardsInput,
   QueryCardsPage,
+  ResetChatSessionResponse,
   ReviewEvent,
   SessionInfo,
+  StartChatRunRequestBody,
+  StartChatRunResponse,
+  StopChatRunResponse,
   SyncBootstrapEntry,
   SyncBootstrapPullResult,
   SyncBootstrapPushResult,
@@ -17,11 +23,6 @@ import type {
   SyncPushResult,
   SyncReviewHistoryImportResult,
   SyncReviewHistoryPullResult,
-  AgentApiKeyConnection,
-  AgentApiKeyConnectionsResponse,
-  AgentApiKeyRevokeResponse,
-  ChatTranscriptionResponse,
-  ChatTranscriptionSource,
   WorkspaceDeletePreview,
   WorkspaceSummary,
 } from "./types";
@@ -623,12 +624,38 @@ export async function queryCards(
   return payload as unknown as QueryCardsPage;
 }
 
-export async function streamAIChat(body: AIChatTurnRequestBody, signal: AbortSignal): Promise<Response> {
-  return requestResponse("/chat/turn", {
+export async function getChatSnapshot(sessionId?: string): Promise<ChatSessionSnapshot> {
+  const pathname = sessionId === undefined
+    ? "/chat"
+    : `/chat?sessionId=${encodeURIComponent(sessionId)}`;
+
+  return expectObject(await requestJson(pathname, {
+    method: "GET",
+  }, allowAuthRecovery)) as unknown as ChatSessionSnapshot;
+}
+
+export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
+  return expectObject(await requestJson("/chat", {
     method: "POST",
     body: JSON.stringify(body),
-    signal,
-  }, allowAuthRecovery);
+  }, allowAuthRecovery)) as unknown as StartChatRunResponse;
+}
+
+export async function resetChatSession(sessionId?: string): Promise<ResetChatSessionResponse> {
+  const pathname = sessionId === undefined
+    ? "/chat"
+    : `/chat?sessionId=${encodeURIComponent(sessionId)}`;
+
+  return expectObject(await requestJson(pathname, {
+    method: "DELETE",
+  }, allowAuthRecovery)) as unknown as ResetChatSessionResponse;
+}
+
+export async function stopChatRun(sessionId: string): Promise<StopChatRunResponse> {
+  return expectObject(await requestJson("/chat/stop", {
+    method: "POST",
+    body: JSON.stringify({ sessionId }),
+  }, allowAuthRecovery)) as unknown as StopChatRunResponse;
 }
 
 function extensionForAudioMediaType(mediaType: string): string {
@@ -670,37 +697,6 @@ export async function transcribeChatAudio(blob: Blob, source: ChatTranscriptionS
     body: formData,
   }, allowAuthRecovery)) as unknown as ChatTranscriptionResponse;
   return payload.text;
-}
-
-export function createAIChatRequestBody(
-  messages: ReadonlyArray<AIChatWireMessage>,
-  model: string,
-  timezone: string,
-  chatSessionId: string,
-  codeInterpreterContainerId: string | null,
-  userContext: AIChatUserContext,
-): AIChatTurnRequestBody {
-  return {
-    messages,
-    model,
-    timezone,
-    devicePlatform: "web",
-    chatSessionId,
-    codeInterpreterContainerId,
-    userContext,
-  };
-}
-
-export async function sendAIChatDiagnostics(body: AIChatDiagnosticsPayload): Promise<void> {
-  const response = await requestResponse("/chat/turn/diagnostics", {
-    method: "POST",
-    body: JSON.stringify(body),
-    keepalive: true,
-  }, allowAuthRecovery);
-
-  if (!response.ok) {
-    throw new ApiError(response.status, `Request failed with status ${response.status}`);
-  }
 }
 
 /**

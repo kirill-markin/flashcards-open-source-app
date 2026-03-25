@@ -88,6 +88,48 @@ export type ChatTranscriptionResponse = Readonly<{
   text: string;
 }>;
 
+export type ChatSessionHistoryMessage = Readonly<{
+  role: "user" | "assistant";
+  content: ReadonlyArray<ContentPart>;
+  timestamp: number;
+  isError: boolean;
+  isStopped: boolean;
+}>;
+
+export type ChatSessionSnapshot = Readonly<{
+  sessionId: string;
+  runState: "idle" | "running" | "interrupted";
+  updatedAt: number;
+  mainContentInvalidationVersion: number;
+  messages: ReadonlyArray<ChatSessionHistoryMessage>;
+}>;
+
+export type StartChatRunRequestBody = Readonly<{
+  sessionId?: string;
+  content: ReadonlyArray<ContentPart>;
+  timezone: string;
+}>;
+
+export type StartChatRunResponse = Readonly<{
+  ok: true;
+  sessionId: string;
+  runId: string;
+  runState: "running";
+}>;
+
+export type ResetChatSessionResponse = Readonly<{
+  ok: true;
+  sessionId: string;
+}>;
+
+export type StopChatRunResponse = Readonly<{
+  ok: true;
+  sessionId: string;
+  runId: string | null;
+  stopped: boolean;
+  stillRunning: boolean;
+}>;
+
 /** Mirrors the iOS local workspace payload used by local AI tools. */
 export type Workspace = Readonly<{
   workspaceId: string;
@@ -489,14 +531,39 @@ export type FileContentPart = Readonly<{
 
 export type ToolCallContentPart = Readonly<{
   type: "tool_call";
-  toolCallId: string;
+  id?: string;
   name: string;
   status: "started" | "completed";
+  providerStatus?: string | null;
   input: string | null;
   output: string | null;
+  streamPosition?: Readonly<{
+    itemId: string;
+    responseIndex?: number;
+    outputIndex: number;
+    contentIndex: number | null;
+    sequenceNumber: number | null;
+  }>;
 }>;
 
-export type ContentPart = TextContentPart | ImageContentPart | FileContentPart | ToolCallContentPart;
+export type ReasoningSummaryContentPart = Readonly<{
+  type: "reasoning_summary";
+  summary: string;
+  streamPosition?: Readonly<{
+    itemId: string;
+    responseIndex?: number;
+    outputIndex: number;
+    contentIndex: number | null;
+    sequenceNumber: number | null;
+  }>;
+}>;
+
+export type ContentPart =
+  | TextContentPart
+  | ImageContentPart
+  | FileContentPart
+  | ToolCallContentPart
+  | ReasoningSummaryContentPart;
 
 export type ChatMessage = Readonly<{
   role: ChatRole;

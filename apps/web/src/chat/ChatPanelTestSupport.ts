@@ -1,15 +1,16 @@
 import { act, createElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
+import type { ChatSessionSnapshot } from "../types";
 
 const {
   useChatLayoutMock,
   useAppDataMock,
-  createAIChatRequestBodyMock,
-  sendAIChatDiagnosticsMock,
-  streamAIChatMock,
+  getChatSnapshotMock,
+  startChatRunMock,
+  resetChatSessionMock,
+  stopChatRunMock,
   transcribeChatAudioMock,
-  ensurePersistentStorageMock,
   listOutboxRecordsMock,
   checkFileSizeMock,
   prepareAttachmentMock,
@@ -17,11 +18,11 @@ const {
 } = vi.hoisted(() => ({
   useChatLayoutMock: vi.fn(),
   useAppDataMock: vi.fn(),
-  createAIChatRequestBodyMock: vi.fn(),
-  sendAIChatDiagnosticsMock: vi.fn(),
-  streamAIChatMock: vi.fn(),
+  getChatSnapshotMock: vi.fn(),
+  startChatRunMock: vi.fn(),
+  resetChatSessionMock: vi.fn(),
+  stopChatRunMock: vi.fn(),
   transcribeChatAudioMock: vi.fn(),
-  ensurePersistentStorageMock: vi.fn(),
   listOutboxRecordsMock: vi.fn(),
   checkFileSizeMock: vi.fn(),
   prepareAttachmentMock: vi.fn(),
@@ -37,14 +38,11 @@ vi.mock("./ChatLayoutContext", () => ({
 }));
 
 vi.mock("../api", () => ({
-  createAIChatRequestBody: createAIChatRequestBodyMock,
-  sendAIChatDiagnostics: sendAIChatDiagnosticsMock,
-  streamAIChat: streamAIChatMock,
+  getChatSnapshot: getChatSnapshotMock,
+  startChatRun: startChatRunMock,
+  resetChatSession: resetChatSessionMock,
+  stopChatRun: stopChatRunMock,
   transcribeChatAudio: transcribeChatAudioMock,
-}));
-
-vi.mock("../localDb/cloudSettings", () => ({
-  ensurePersistentStorage: ensurePersistentStorageMock,
 }));
 
 vi.mock("../localDb/outbox", () => ({
@@ -94,39 +92,44 @@ vi.mock("./FileAttachment", () => ({
 
 import { ChatPanel } from "./ChatPanel";
 
-type Deferred<T> = Readonly<{
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-}>;
-
-type TimedStreamChunk = Readonly<{
-  atMs: number;
-  payload: string;
-}>;
-
 type ChatPanelTestHarness = Readonly<{
   getContainer: () => HTMLDivElement;
   getScrollToMock: () => ReturnType<typeof vi.fn>;
   getClipboardWriteTextMock: () => ReturnType<typeof vi.fn>;
   getAlertMock: () => ReturnType<typeof vi.fn>;
-  renderChatPanel: () => Promise<void>;
+  flushAsync: () => Promise<void>;
+  renderChatPanel: (mode?: "sidebar" | "fullscreen") => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
-  stopStreaming: () => Promise<void>;
+  clickNewConversation: () => Promise<void>;
+  clickStop: () => Promise<void>;
 }>;
 
 export {
   checkFileSizeMock,
-  createAIChatRequestBodyMock,
-  ensurePersistentStorageMock,
+  getChatSnapshotMock,
   listOutboxRecordsMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
-  sendAIChatDiagnosticsMock,
-  streamAIChatMock,
+  resetChatSessionMock,
+  startChatRunMock,
+  stopChatRunMock,
   transcribeChatAudioMock,
   useAppDataMock,
   useChatLayoutMock,
 };
+
+export function createChatSnapshot(
+  overrides?: Partial<ChatSessionSnapshot>,
+): ChatSessionSnapshot {
+  return {
+    sessionId: "session-1",
+    runState: "idle",
+    updatedAt: 1,
+    mainContentInvalidationVersion: 0,
+    messages: [],
+    ...overrides,
+  };
+}
 
 export function setTextareaValue(textarea: HTMLTextAreaElement, value: string): void {
   const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
@@ -160,127 +163,6 @@ export function configureMessagesScroller(element: HTMLDivElement): void {
   });
 }
 
-export function streamDeltaPayload(text: string): string {
-  return `data: ${JSON.stringify({ type: "delta", text })}\n`;
-}
-
-export function createSSELine(event: Record<string, unknown>): string {
-  return `data: ${JSON.stringify(event)}\n`;
-}
-
-export function createStreamResponse(payloads: ReadonlyArray<string>, status: number): Response {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller): void {
-      for (const payload of payloads) {
-        controller.enqueue(encoder.encode(payload));
-      }
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    status,
-    headers: {
-      "x-chat-request-id": "request-1",
-    },
-  });
-}
-
-export function createTimedStreamResponse(
-  chunks: ReadonlyArray<TimedStreamChunk>,
-  closeAtMs: number,
-  status: number,
-): Response {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller): void {
-      for (const chunk of chunks) {
-        window.setTimeout(() => {
-          controller.enqueue(encoder.encode(chunk.payload));
-        }, chunk.atMs);
-      }
-
-      window.setTimeout(() => {
-        controller.close();
-      }, closeAtMs);
-    },
-  });
-
-  return new Response(stream, {
-    status,
-    headers: {
-      "x-chat-request-id": "request-1",
-    },
-  });
-}
-
-export function createAbortableTimedStreamResponse(
-  signal: AbortSignal,
-  chunks: ReadonlyArray<TimedStreamChunk>,
-  closeAtMs: number,
-  status: number,
-): Response {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller): void {
-      const timeoutIds = chunks.map((chunk) => window.setTimeout(() => {
-        controller.enqueue(encoder.encode(chunk.payload));
-      }, chunk.atMs));
-      const closeTimeoutId = window.setTimeout(() => {
-        controller.close();
-      }, closeAtMs);
-
-      signal.addEventListener("abort", () => {
-        timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
-        window.clearTimeout(closeTimeoutId);
-        controller.error(new DOMException("The operation was aborted.", "AbortError"));
-      }, { once: true });
-    },
-  });
-
-  return new Response(stream, {
-    status,
-    headers: {
-      "x-chat-request-id": "request-1",
-    },
-  });
-}
-
-export function readScrollBehavior(call: ReadonlyArray<unknown>): string | null {
-  const firstArg = call[0];
-  if (typeof firstArg !== "object" || firstArg === null) {
-    return null;
-  }
-
-  if (!("behavior" in firstArg)) {
-    return null;
-  }
-
-  const behavior = firstArg.behavior;
-  return typeof behavior === "string" ? behavior : null;
-}
-
-export function countSmoothCalls(scrollToCalls: ReadonlyArray<ReadonlyArray<unknown>>): number {
-  return scrollToCalls.filter((call) => readScrollBehavior(call) === "smooth").length;
-}
-
-export function createDeferred<T>(): Deferred<T> {
-  let resolvePromise: ((value: T) => void) | null = null;
-  const promise = new Promise<T>((resolve) => {
-    resolvePromise = resolve;
-  });
-
-  if (resolvePromise === null) {
-    throw new Error("Expected deferred promise resolver");
-  }
-
-  return {
-    promise,
-    resolve: resolvePromise,
-  };
-}
-
 export function createDropEvent(file: File): DragEvent {
   const dropEvent = new Event("drop", { bubbles: true, cancelable: true }) as DragEvent;
   Object.defineProperty(dropEvent, "dataTransfer", {
@@ -289,32 +171,6 @@ export function createDropEvent(file: File): DragEvent {
     },
   });
   return dropEvent;
-}
-
-function createMemoryStorage(): Storage {
-  const entries = new Map<string, string>();
-
-  return {
-    get length(): number {
-      return entries.size;
-    },
-    clear(): void {
-      entries.clear();
-    },
-    getItem(key: string): string | null {
-      return entries.get(key) ?? null;
-    },
-    key(index: number): string | null {
-      const keys = [...entries.keys()];
-      return keys[index] ?? null;
-    },
-    removeItem(key: string): void {
-      entries.delete(key);
-    },
-    setItem(key: string, value: string): void {
-      entries.set(key, value);
-    },
-  };
 }
 
 function createMediaStreamMock(): MediaStream {
@@ -382,7 +238,6 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   beforeEach(() => {
     vi.useFakeTimers();
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    vi.stubGlobal("localStorage", createMemoryStorage());
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -398,11 +253,11 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
 
     useChatLayoutMock.mockReset();
     useAppDataMock.mockReset();
-    createAIChatRequestBodyMock.mockReset();
-    sendAIChatDiagnosticsMock.mockReset();
-    streamAIChatMock.mockReset();
+    getChatSnapshotMock.mockReset();
+    startChatRunMock.mockReset();
+    resetChatSessionMock.mockReset();
+    stopChatRunMock.mockReset();
     transcribeChatAudioMock.mockReset();
-    ensurePersistentStorageMock.mockReset();
     listOutboxRecordsMock.mockReset();
     checkFileSizeMock.mockReset();
     prepareAttachmentMock.mockReset();
@@ -421,36 +276,31 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
         createdAt: "2026-03-10T00:00:00.000Z",
         isSelected: true,
       },
+      isSessionVerified: true,
       localCardCount: 1,
       runSync: vi.fn(async (): Promise<void> => undefined),
       setErrorMessage: vi.fn(),
     });
-    createAIChatRequestBodyMock.mockImplementation(
-      (
-        messages: ReadonlyArray<unknown>,
-        model: string,
-        timezone: string,
-        chatSessionId: string,
-        codeInterpreterContainerId: string | null,
-        userContext: unknown,
-      ) => ({
-        messages,
-        model,
-        timezone,
-        chatSessionId,
-        codeInterpreterContainerId,
-        userContext,
-      }),
-    );
-    sendAIChatDiagnosticsMock.mockResolvedValue(undefined);
-    ensurePersistentStorageMock.mockResolvedValue({
-      persistence: "granted",
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot());
+    startChatRunMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-1",
+      runId: "run-1",
+      runState: "running",
     });
-    listOutboxRecordsMock.mockResolvedValue([]);
-    streamAIChatMock.mockResolvedValue(
-      createTimedStreamResponse([{ atMs: 0, payload: streamDeltaPayload("done") }], 1, 200),
-    );
+    resetChatSessionMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-reset",
+    });
+    stopChatRunMock.mockResolvedValue({
+      ok: true,
+      sessionId: "session-1",
+      runId: "run-1",
+      stopped: true,
+      stillRunning: false,
+    });
     transcribeChatAudioMock.mockResolvedValue("dictated text");
+    listOutboxRecordsMock.mockResolvedValue([]);
     checkFileSizeMock.mockReturnValue(null);
     prepareAttachmentMock.mockResolvedValue({
       fileName: "test-file.txt",
@@ -546,10 +396,17 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     return alertMock;
   }
 
-  async function renderChatPanel(): Promise<void> {
+  async function flushAsync(): Promise<void> {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
+  async function renderChatPanel(mode: "sidebar" | "fullscreen" = "fullscreen"): Promise<void> {
     expect(root).not.toBeNull();
     await act(async () => {
-      root?.render(createElement(ChatPanel, { mode: "fullscreen" }));
+      root?.render(createElement(ChatPanel, { mode }));
+      await Promise.resolve();
     });
   }
 
@@ -570,7 +427,19 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
   }
 
-  async function stopStreaming(): Promise<void> {
+  async function clickNewConversation(): Promise<void> {
+    const mountedContainer = getContainer();
+    const buttons = [...mountedContainer.querySelectorAll(".chat-close-btn")];
+    const newButton = buttons.find((button) => button.textContent === "New");
+    expect(newButton).toBeDefined();
+
+    await act(async () => {
+      newButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+  }
+
+  async function clickStop(): Promise<void> {
     const mountedContainer = getContainer();
     const stopButton = mountedContainer.querySelector('.chat-stop-btn[aria-label="Stop response"]');
     expect(stopButton).not.toBeNull();
@@ -586,8 +455,10 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     getScrollToMock,
     getClipboardWriteTextMock,
     getAlertMock,
+    flushAsync,
     renderChatPanel,
     sendMessage,
-    stopStreaming,
+    clickNewConversation,
+    clickStop,
   };
 }

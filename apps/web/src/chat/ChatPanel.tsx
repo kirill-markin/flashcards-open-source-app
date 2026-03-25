@@ -7,11 +7,8 @@ import {
   type MutableRefObject,
   type ReactElement,
 } from "react";
-import { createAIChatRequestBody, streamAIChat, transcribeChatAudio } from "../api";
-import { webAppVersion } from "../clientIdentity";
-import { DEFAULT_MODEL_ID } from "../chatModels";
+import { transcribeChatAudio } from "../api";
 import { useAppData } from "../appData";
-import { ensurePersistentStorage } from "../localDb/cloudSettings";
 import { listOutboxRecords } from "../localDb/outbox";
 import {
   explainBrowserMediaPermissionError,
@@ -32,26 +29,18 @@ import {
   IMAGE_MEDIA_TYPE_PREFIX,
   MAX_WIDTH,
   MIN_WIDTH,
-  STORAGE_MODEL_KEY,
   buildContentParts,
   calculateSidebarWidthFromPointer,
   toRequestBodySizeBytes,
 } from "./chatHelpers";
 import { renderStoredMessageContent } from "./chatMessageContent";
-import { reportAIChatDiagnostics } from "./aiChatDiagnostics";
-import { runAIChatRuntime } from "./aiChatRuntime";
-import { toAIChatMessages } from "./aiChatWire";
-import { ModelSelector } from "./ModelSelector";
 import { useChatAutoScroll } from "./useChatAutoScroll";
-import {
-  OPTIMISTIC_ASSISTANT_STATUS_TEXT,
-  useChatHistory,
-} from "./useChatHistory";
 import {
   insertDictationTranscriptIntoDraft,
   type ChatDraftSelection,
   type ChatDictationState,
 } from "./chatDictation";
+import { useChatSessionController } from "./useChatSessionController";
 
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
@@ -132,29 +121,25 @@ export function ChatPanel(props: Props): ReactElement {
   const { setIsOpen, chatWidth, setChatWidth } = useChatLayout();
   const [localWidth, setLocalWidth] = useState<number>(chatWidth);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const {
-    messages,
-    chatSessionId,
-    codeInterpreterContainerId,
-    isHydrated,
-    appendUserMessage,
-    startAssistantMessage,
-    appendAssistantChunk,
-    appendToolCall,
-    completeToolCall,
-    finalizeAssistant,
-    markAssistantError,
-    setCodeInterpreterContainerId,
-    clearOptimisticAssistantStatus,
-    clearHistory,
-  } = useChatHistory();
-
   const [inputText, setInputText] = useState<string>("");
-  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_ID);
   const [pendingAttachments, setPendingAttachments] = useState<ReadonlyArray<PendingAttachment>>([]);
-  const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
+
+  const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
+  const {
+    messages,
+    isHistoryLoaded,
+    isAssistantRunActive,
+    isStopping,
+    currentSessionId,
+    composerAction,
+    sendMessage: sendChatMessage,
+    stopMessage,
+    clearConversation,
+  } = useChatSessionController({
+    workspaceId: activeWorkspaceId,
+  });
 
   const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -162,9 +147,6 @@ export function ChatPanel(props: Props): ReactElement {
   const pendingAttachmentsRef = useRef<ReadonlyArray<PendingAttachment>>([]);
   const dragCounterRef = useRef<number>(0);
   const dragWidthRef = useRef<number>(chatWidth);
-  const abortRef = useRef<AbortController | null>(null);
-  const activeStreamIdRef = useRef<number>(0);
-  const nextStreamIdRef = useRef<number>(1);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Array<Blob>>([]);
@@ -174,8 +156,8 @@ export function ChatPanel(props: Props): ReactElement {
   const isMountedRef = useRef<boolean>(true);
 
   const { handleMessagesScroll } = useChatAutoScroll({
-    isHydrated,
-    isStreaming,
+    isHydrated: isHistoryLoaded,
+    isStreaming: isAssistantRunActive,
     messages,
     messagesRef,
   });
@@ -188,37 +170,22 @@ export function ChatPanel(props: Props): ReactElement {
   function buildDraftRequestBodyForAttachments(
     attachments: ReadonlyArray<PendingAttachment>,
     timezone: string,
-  ): ReturnType<typeof createAIChatRequestBody> | null {
+  ): Readonly<{
+    sessionId?: string;
+    content: ReturnType<typeof buildContentParts>;
+    timezone: string;
+  }> | null {
     const draftContentParts = buildContentParts(inputText, attachments);
     if (draftContentParts.length === 0) {
       return null;
     }
 
-    const draftWireMessages = toAIChatMessages([
-      ...messages,
-      {
-        role: "user",
-        content: draftContentParts,
-        timestamp: Date.now(),
-        isError: false,
-      },
-    ]);
-    return createAIChatRequestBody(
-      draftWireMessages,
-      selectedModel,
+    return {
+      sessionId: currentSessionId ?? undefined,
+      content: draftContentParts,
       timezone,
-      chatSessionId,
-      codeInterpreterContainerId,
-      { totalCards: appData.localCardCount },
-    );
+    };
   }
-
-  useEffect(() => {
-    const savedModel = localStorage.getItem(STORAGE_MODEL_KEY);
-    if (savedModel !== null) {
-      setSelectedModel(savedModel);
-    }
-  }, []);
 
   useEffect(() => {
     setLocalWidth(chatWidth);
@@ -312,11 +279,6 @@ export function ChatPanel(props: Props): ReactElement {
     };
   }, [isDragging, setChatWidth]);
 
-  function handleModelChange(modelId: string): void {
-    setSelectedModel(modelId);
-    localStorage.setItem(STORAGE_MODEL_KEY, modelId);
-  }
-
   async function handleAttach(attachment: PendingAttachment): Promise<void> {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     let finalAttachment = attachment;
@@ -358,19 +320,6 @@ export function ChatPanel(props: Props): ReactElement {
       ...currentAttachments.slice(0, index),
       ...currentAttachments.slice(index + 1),
     ]);
-  }
-
-  function stopActiveStream(): void {
-    const currentAbortController = abortRef.current;
-    if (currentAbortController === null) {
-      return;
-    }
-
-    currentAbortController.abort();
-    abortRef.current = null;
-    activeStreamIdRef.current = 0;
-    setIsStreaming(false);
-    clearOptimisticAssistantStatus();
   }
 
   function discardDictation(): void {
@@ -526,8 +475,8 @@ export function ChatPanel(props: Props): ReactElement {
     }
   }
 
-  async function sendMessage(): Promise<void> {
-    if (isStreaming || dictationState !== "idle") {
+  async function sendPendingMessage(): Promise<void> {
+    if (dictationState !== "idle" || composerAction !== "send") {
       return;
     }
 
@@ -536,44 +485,31 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
-    const tapStartedAt = Date.now();
+    if (activeWorkspaceId === null) {
+      appData.setErrorMessage("Select a workspace before using AI chat.");
+      return;
+    }
 
-    const contentParts = buildContentParts(inputText, pendingAttachments);
+    const nextText = inputText;
+    const nextAttachments = pendingAttachmentsRef.current;
+    const contentParts = buildContentParts(nextText, nextAttachments);
     if (contentParts.length === 0) {
       return;
     }
 
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const initialWireMessages = toAIChatMessages([
-      ...messages,
-      {
-        role: "user",
-        content: contentParts,
-        timestamp: Date.now(),
-        isError: false,
-      },
-    ]);
-    const initialRequestBody = createAIChatRequestBody(
-      initialWireMessages,
-      selectedModel,
-      timezone,
-      chatSessionId,
-      codeInterpreterContainerId,
-      { totalCards: appData.localCardCount },
-    );
-    if (toRequestBodySizeBytes(initialRequestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
-      markAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
-      return;
-    }
-
-    if (appData.activeWorkspace === null) {
-      appData.setErrorMessage("Select a workspace before using AI chat.");
+    const requestBody = {
+      sessionId: currentSessionId ?? undefined,
+      content: contentParts,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+    if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
+      window.alert(ATTACHMENT_LIMIT_ERROR_MESSAGE);
       return;
     }
 
     try {
       await appData.runSync();
-      const outboxRecords = await listOutboxRecords(appData.activeWorkspace.workspaceId);
+      const outboxRecords = await listOutboxRecords(activeWorkspaceId);
       if (outboxRecords.length > 0) {
         appData.setErrorMessage("AI chat is blocked until all pending sync operations are uploaded.");
         return;
@@ -583,103 +519,27 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
-    appendUserMessage(contentParts);
     setInputText("");
     draftSelectionRef.current = null;
     pendingTextareaSelectionRef.current = null;
     setPendingAttachmentsState([]);
-    setIsStreaming(true);
 
-    let hasStartedAssistant = false;
-    startAssistantMessage(OPTIMISTIC_ASSISTANT_STATUS_TEXT);
-    hasStartedAssistant = true;
-
-    const streamId = nextStreamIdRef.current;
-    nextStreamIdRef.current += 1;
-    const abortController = new AbortController();
-    abortRef.current = abortController;
-    activeStreamIdRef.current = streamId;
-
-    try {
-      const storageState = await ensurePersistentStorage();
-      console.info("chat_local_storage_state", storageState);
-
-      await runAIChatRuntime(
-        {
-          createRequestBody: (
-            runtimeMessages: ReadonlyArray<ReturnType<typeof toAIChatMessages>[number]>,
-            runtimeModel: string,
-            runtimeTimezone: string,
-            runtimeChatSessionId: string,
-            runtimeCodeInterpreterContainerId: string | null,
-          ) => createAIChatRequestBody(
-            runtimeMessages,
-            runtimeModel,
-            runtimeTimezone,
-            runtimeChatSessionId,
-            runtimeCodeInterpreterContainerId,
-            { totalCards: appData.localCardCount },
-          ),
-          streamChat: streamAIChat,
-          reportDiagnostics: reportAIChatDiagnostics,
-          generateRequestId: () => globalThis.crypto.randomUUID(),
-          now: () => Date.now(),
-          appVersion: webAppVersion,
-          devicePlatform: "web",
-        },
-        {
-          chatSessionId,
-          initialCodeInterpreterContainerId: codeInterpreterContainerId,
-          initialMessages: initialWireMessages,
-          selectedModel,
-          timezone,
-          tapStartedAt,
-          signal: abortController.signal,
-          callbacks: {
-            onAssistantStarted: () => {
-              if (hasStartedAssistant) {
-                return;
-              }
-
-              startAssistantMessage(OPTIMISTIC_ASSISTANT_STATUS_TEXT);
-              hasStartedAssistant = true;
-            },
-            onAssistantText: appendAssistantChunk,
-            onToolCallStarted: appendToolCall,
-            onToolCallCompleted: completeToolCall,
-            onAssistantCompleted: finalizeAssistant,
-            onAssistantError: markAssistantError,
-            onCodeInterpreterContainerIdChanged: setCodeInterpreterContainerId,
-            onDiagnostics: () => undefined,
-          },
-        },
-      );
-
-      try {
-        await appData.runSync();
-      } catch (error) {
-        appData.setErrorMessage(error instanceof Error ? error.message : String(error));
-      }
-    } catch (error) {
-      if (abortController.signal.aborted === false) {
-        markAssistantError(error instanceof Error ? error.message : String(error));
-      }
-    } finally {
-      if (abortController.signal.aborted) {
-        console.info("chat_request_aborted", { model: selectedModel });
-      }
-      if (activeStreamIdRef.current === streamId) {
-        setIsStreaming(false);
-        abortRef.current = null;
-        activeStreamIdRef.current = 0;
-      }
-    }
+    await sendChatMessage({
+      text: nextText,
+      attachments: nextAttachments,
+    });
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      void sendMessage();
+
+      if (composerAction === "stop") {
+        void stopMessage();
+        return;
+      }
+
+      void sendPendingMessage();
     }
   }
 
@@ -687,6 +547,12 @@ export function ChatPanel(props: Props): ReactElement {
   const isDictationVisible = dictationState !== "idle";
   const isDraftInputBlocked = dictationState !== "idle";
   const isChatActionLocked = appData.isSessionVerified === false;
+  const canSendPendingMessage = isHistoryLoaded
+    && composerAction === "send"
+    && !isStopping
+    && !isChatActionLocked
+    && dictationState === "idle"
+    && (inputText.trim().length > 0 || pendingAttachments.length > 0);
   const microphoneAriaLabel = dictationState === "recording" ? "Stop dictation" : "Start dictation";
   const dictationStatusLabel = dictationState === "requesting_permission"
     ? "Waiting for microphone access..."
@@ -736,14 +602,20 @@ export function ChatPanel(props: Props): ReactElement {
             className="chat-close-btn"
             onClick={() => {
               discardDictation();
-              stopActiveStream();
-              clearHistory();
+              void clearConversation();
             }}
           >
             New
           </button>
           {mode === "sidebar" ? (
-            <button type="button" className="chat-close-btn" onClick={() => setIsOpen(false)}>
+            <button
+              type="button"
+              className="chat-close-btn"
+              onClick={() => {
+                discardDictation();
+                setIsOpen(false);
+              }}
+            >
               &laquo;
             </button>
           ) : null}
@@ -769,7 +641,7 @@ export function ChatPanel(props: Props): ReactElement {
         ) : null}
 
         {messages.map((message, index) => {
-          const isLastAssistant = isStreaming && message.role === "assistant" && index === messages.length - 1;
+          const isLastAssistant = isAssistantRunActive && message.role === "assistant" && index === messages.length - 1;
           return (
             <div
               key={`${message.timestamp}-${index}`}
@@ -836,11 +708,6 @@ export function ChatPanel(props: Props): ReactElement {
         )}
 
         <div className="chat-controls">
-          <ModelSelector
-            value={selectedModel}
-            onChange={handleModelChange}
-            locked={messages.length > 0 || isDraftInputBlocked}
-          />
           <div className="chat-controls-right">
             <FileAttachment onAttach={handleAttach} disabled={isDraftInputBlocked} />
             <button
@@ -870,12 +737,13 @@ export function ChatPanel(props: Props): ReactElement {
                 </svg>
               )}
             </button>
-            {isStreaming ? (
+            {composerAction === "stop" ? (
               <button
                 type="button"
                 className="chat-stop-btn"
                 aria-label="Stop response"
-                onClick={stopActiveStream}
+                onClick={() => void stopMessage()}
+                disabled={isStopping}
               >
                 <span className="chat-stop-btn-icon" aria-hidden="true" />
               </button>
@@ -884,8 +752,8 @@ export function ChatPanel(props: Props): ReactElement {
                 type="button"
                 className="chat-send-btn"
                 aria-label="Send message"
-                onClick={() => void sendMessage()}
-                disabled={isChatActionLocked || dictationState !== "idle"}
+                onClick={() => void sendPendingMessage()}
+                disabled={!canSendPendingMessage}
               >
                 Send
               </button>
