@@ -11,7 +11,7 @@ describe("appendAssistantErrorContent", () => {
         { type: "text", text: "Running query." },
         {
           type: "tool_call",
-          toolCallId: "tool-1",
+          id: "tool-1",
           name: "sql",
           status: "completed",
           input: "{\"sql\":\"SHOW TABLES\"}",
@@ -23,7 +23,7 @@ describe("appendAssistantErrorContent", () => {
       { type: "text", text: "Running query." },
       {
         type: "tool_call",
-        toolCallId: "tool-1",
+        id: "tool-1",
         name: "sql",
         status: "completed",
         input: "{\"sql\":\"SHOW TABLES\"}",

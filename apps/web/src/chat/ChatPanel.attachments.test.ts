@@ -1,120 +1,75 @@
-// @vitest-environment jsdom
-
-import { act } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   createDropEvent,
-  createAIChatRequestBodyMock,
-  ensurePersistentStorageMock,
+  createChatSnapshot,
+  getChatSnapshotMock,
+  listOutboxRecordsMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
   setupChatPanelTest,
-  streamAIChatMock,
+  startChatRunMock,
 } from "./ChatPanelTestSupport";
 
 const chatPanel = setupChatPanelTest();
 
 describe("ChatPanel attachments", () => {
-  it("blocks send before network when post-compression payload exceeds the 9.5 MB safety limit", async () => {
-    const oversizedPayload = "x".repeat(10_100_000);
-    createAIChatRequestBodyMock.mockImplementation(
-      (
-        messages: ReadonlyArray<unknown>,
-        model: string,
-        timezone: string,
-        chatSessionId: string,
-        codeInterpreterContainerId: string | null,
-        userContext: unknown,
-      ) => ({
-        messages,
-        model,
-        timezone,
-        chatSessionId,
-        codeInterpreterContainerId,
-        userContext,
-        oversizedPayload,
-      }),
-    );
+  it("sends attachments as backend-owned content parts", async () => {
+    getChatSnapshotMock.mockResolvedValueOnce(createChatSnapshot());
 
-    await chatPanel.renderChatPanel();
-    await chatPanel.sendMessage("trigger limit");
-
-    expect(streamAIChatMock).not.toHaveBeenCalled();
-    expect(ensurePersistentStorageMock).not.toHaveBeenCalled();
-    expect(chatPanel.getContainer().textContent).toContain("Attachment payload limit is 10 MB after compression.");
-  });
-
-  it("rejects oversized projected attachment payload before send and keeps pending list unchanged", async () => {
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
-    prepareAttachmentMock.mockResolvedValue({
-      fileName: "photo.png",
-      mediaType: "image/jpeg",
-      base64Data: "x".repeat(9_970_000),
-    });
-    recompressImageAttachmentMock.mockResolvedValue({
-      fileName: "photo.png",
-      mediaType: "image/jpeg",
-      base64Data: "x".repeat(9_970_000),
-    });
-
-    await chatPanel.renderChatPanel();
-
-    const chatRoot = chatPanel.getContainer().querySelector(".chat-sidebar-fullscreen");
-    expect(chatRoot).not.toBeNull();
-    if (chatRoot === null) {
-      throw new Error("Expected chat root");
-    }
-
-    await act(async () => {
-      const file = new File(["123"], "photo.png", { type: "image/png" });
-      chatRoot.dispatchEvent(createDropEvent(file));
-      await Promise.resolve();
-    });
-
-    expect(recompressImageAttachmentMock).toHaveBeenCalledTimes(1);
-    expect(alertSpy).toHaveBeenCalledWith("Attachment payload limit is 10 MB after compression.");
-    expect(chatPanel.getContainer().querySelector(".chat-attachment-chip")).toBeNull();
-    alertSpy.mockRestore();
-  });
-
-  it("passes active card totals into AI chat request bodies for sends and attachment draft checks", async () => {
-    prepareAttachmentMock.mockResolvedValue({
-      fileName: "notes.txt",
-      mediaType: "text/plain",
-      base64Data: "dGVzdA==",
-    });
-
-    await chatPanel.renderChatPanel();
-
-    const chatRoot = chatPanel.getContainer().querySelector(".chat-sidebar-fullscreen");
-    expect(chatRoot).not.toBeNull();
-    if (chatRoot === null) {
-      throw new Error("Expected chat root");
-    }
-
-    await act(async () => {
-      const file = new File(["hello"], "notes.txt", { type: "text/plain" });
-      chatRoot.dispatchEvent(createDropEvent(file));
-      await Promise.resolve();
-    });
-
-    expect(createAIChatRequestBodyMock.mock.calls[0]?.[5]).toEqual({
-      totalCards: 1,
-    });
-
-    await chatPanel.sendMessage("hello");
-
-    expect(createAIChatRequestBodyMock.mock.calls.some((call) => JSON.stringify(call[5]) === JSON.stringify({
-      totalCards: 1,
-    }))).toBe(true);
-  });
-
-  it("renders the attach control as an icon button with an accessible label", async () => {
     await chatPanel.renderChatPanel();
 
     const attachButton = chatPanel.getContainer().querySelector(".chat-attach-btn");
-    expect(attachButton?.getAttribute("aria-label")).toBe("Add attachment");
-    expect(attachButton?.textContent).toBe("");
-    expect(attachButton?.querySelector(".chat-attach-btn-icon")).not.toBeNull();
+    expect(attachButton).not.toBeNull();
+    attachButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await chatPanel.flushAsync();
+    await chatPanel.sendMessage("summarize this");
+
+    expect(startChatRunMock.mock.calls[0]?.[0]).toEqual({
+      sessionId: "session-1",
+      content: [
+        {
+          type: "file",
+          mediaType: "text/plain",
+          base64Data: "YXR0YWNoZWQ=",
+          fileName: "attached.txt",
+        },
+        {
+          type: "text",
+          text: "summarize this",
+        },
+      ],
+      timezone: expect.any(String),
+    });
+  });
+
+  it("blocks sending when sync outbox still has pending operations", async () => {
+    listOutboxRecordsMock.mockResolvedValueOnce([{ operationId: "outbox-1" }]);
+
+    await chatPanel.renderChatPanel();
+    await chatPanel.sendMessage("blocked");
+
+    expect(startChatRunMock).not.toHaveBeenCalled();
+  });
+
+  it("alerts when an oversized compressed attachment still exceeds the payload limit", async () => {
+    prepareAttachmentMock.mockResolvedValueOnce({
+      fileName: "huge-image.jpg",
+      mediaType: "image/jpeg",
+      base64Data: "a".repeat(11_000_000),
+    });
+    recompressImageAttachmentMock.mockResolvedValueOnce({
+      fileName: "huge-image.jpg",
+      mediaType: "image/jpeg",
+      base64Data: "b".repeat(11_000_000),
+    });
+
+    await chatPanel.renderChatPanel();
+    const oversizedFile = new File(["image"], "huge-image.jpg", { type: "image/jpeg" });
+    const chatRoot = chatPanel.getContainer().querySelector(".chat-sidebar-fullscreen");
+    expect(chatRoot).not.toBeNull();
+    chatRoot?.dispatchEvent(createDropEvent(oversizedFile));
+    await chatPanel.flushAsync();
+
+    expect(chatPanel.getAlertMock()).toHaveBeenCalled();
   });
 });

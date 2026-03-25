@@ -133,6 +133,20 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
       continue;
     }
 
+    if (part.type === "reasoning_summary") {
+      elements.push(
+        <details key={`reasoning-${index}`} className="chat-tool-call chat-tool-call-started">
+          <summary className="chat-tool-call-summary">
+            <span className="chat-tool-call-summary-main" title={part.summary}>Reasoning</span>
+            <span className="chat-tool-call-status">Done</span>
+          </summary>
+          <pre className="chat-tool-call-output">{part.summary}</pre>
+        </details>,
+      );
+      previousPartWasAttachment = false;
+      continue;
+    }
+
     previousPartWasAttachment = false;
     const summaryText = buildToolCallSummaryText(part.name, part.input);
     elements.push(

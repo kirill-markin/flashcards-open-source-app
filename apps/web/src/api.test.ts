@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthRedirectError,
-  createAIChatRequestBody,
   createWorkspace,
   deleteWorkspace,
+  getChatSnapshot,
   getSession,
   listWorkspaces,
   loadWorkspaceDeletePreview,
   primeSessionCsrfToken,
   renameWorkspace,
+  resetChatSession,
   resetApiClientStateForTests,
+  startChatRun,
+  stopChatRun,
   setNavigationHandlerForTests,
   transcribeChatAudio,
 } from "./api";
@@ -365,34 +368,91 @@ describe("web auth recovery", () => {
   });
 });
 
-describe("createAIChatRequestBody", () => {
-  it("includes the required user context block payload", () => {
-    expect(createAIChatRequestBody(
-      [{
-        role: "user",
-        content: [{ type: "text", text: "hello" }],
-      }],
-      "gpt-5.4",
-      "Europe/Madrid",
-      "chat-session-1",
-      "container-1",
-      {
-        totalCards: 3,
-      },
-    )).toEqual({
-      messages: [{
-        role: "user",
-        content: [{ type: "text", text: "hello" }],
-      }],
-      model: "gpt-5.4",
+describe("backend-owned chat api helpers", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+    resetApiClientStateForTests();
+    primeSessionCsrfToken("csrf-chat");
+  });
+
+  afterEach(() => {
+    resetApiClientStateForTests();
+    vi.unstubAllGlobals();
+  });
+
+  it("loads the latest backend snapshot through GET /chat", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      sessionId: "session-1",
+      runState: "idle",
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    }));
+
+    const snapshot = await getChatSnapshot();
+
+    expect(snapshot.sessionId).toBe("session-1");
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8080/v1/chat", expect.any(Object));
+  });
+
+  it("starts a backend-owned chat run with the compact request shape", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ok: true,
+      sessionId: "session-1",
+      runId: "run-1",
+      runState: "running",
+    }));
+
+    await startChatRun({
+      sessionId: "session-1",
+      content: [{ type: "text", text: "hello" }],
       timezone: "Europe/Madrid",
-      devicePlatform: "web",
-      chatSessionId: "chat-session-1",
-      codeInterpreterContainerId: "container-1",
-      userContext: {
-        totalCards: 3,
-      },
     });
+
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8080/v1/chat", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        sessionId: "session-1",
+        content: [{ type: "text", text: "hello" }],
+        timezone: "Europe/Madrid",
+      }),
+    }));
+  });
+
+  it("resets the backend-owned session through DELETE /chat", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ok: true,
+      sessionId: "session-2",
+    }));
+
+    const response = await resetChatSession("session-1");
+
+    expect(response.sessionId).toBe("session-2");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/v1/chat?sessionId=session-1",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
+  it("stops the backend-owned run through POST /chat/stop", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ok: true,
+      sessionId: "session-1",
+      runId: "run-1",
+      stopped: true,
+      stillRunning: false,
+    }));
+
+    const response = await stopChatRun("session-1");
+
+    expect(response.stopped).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8080/v1/chat/stop", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ sessionId: "session-1" }),
+    }));
   });
 });
 
