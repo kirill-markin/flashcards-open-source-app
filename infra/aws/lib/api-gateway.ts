@@ -283,6 +283,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   me.addResource("delete").addMethod("POST", integration);
 
   const chat = restApi.root.addResource("chat");
+  chat.addMethod("GET", integration);
+  chat.addMethod("POST", integration);
+  chat.addMethod("DELETE", integration);
+  chat.addResource("stop").addMethod("POST", integration);
   const turn = chat.addResource("turn");
   turn.addMethod("POST", streamingIntegration);
   chat.addResource("transcriptions").addMethod("POST", integration);

@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildAIChatSystemInstructions } from "./chat/aiChatRuntimeShared";
+import { buildAIChatSystemInstructions } from "./chat/legacy/aiChatRuntimeShared";
 import {
   createAIChatErrorEvent,
   createAIChatErrorResponse,
   parseAIChatDiagnosticsBody,
   parseAIChatTurnRequestBody,
   streamAIChatResponse,
-} from "./chat/http";
+} from "./chat/legacy/http";
 import { HttpError } from "./errors";
-import { isSupportedAIChatModel as isSupportedAnthropicAIChatModel } from "./chat/anthropic/aiChatAgent";
-import { isSupportedAIChatModel as isSupportedOpenAIChatModel } from "./chat/openai/aiChatAgent";
+import { isSupportedAIChatModel as isSupportedAnthropicAIChatModel } from "./chat/legacy/anthropic/aiChatAgent";
+import { isSupportedAIChatModel as isSupportedOpenAIChatModel } from "./chat/legacy/openai/aiChatAgent";
 
 test("parseAIChatTurnRequestBody rejects tool-role history", () => {
   assert.throws(

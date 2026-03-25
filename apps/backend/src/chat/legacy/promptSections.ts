@@ -1,4 +1,4 @@
-import { SQL_TOOL_PROMPT_EXAMPLE_LINES } from "../aiTools/sqlToolContract";
+import { SQL_TOOL_PROMPT_EXAMPLE_LINES } from "../../aiTools/sqlToolContract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");

@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
 import OpenAI, { toFile } from "openai";
-import packageJson from "../../../package.json";
+import packageJson from "../../../../package.json";
 import type {
   ResponseFunctionToolCall,
   ResponseInputItem,

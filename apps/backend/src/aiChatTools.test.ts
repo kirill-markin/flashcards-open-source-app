@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { OPENAI_AI_CHAT_TOOLS } from "./chat/openai/aiChatTools";
+import { OPENAI_AI_CHAT_TOOLS } from "./chat/legacy/openai/aiChatTools";
 
 type ObjectToolParameters = Readonly<{
   type: "object";
