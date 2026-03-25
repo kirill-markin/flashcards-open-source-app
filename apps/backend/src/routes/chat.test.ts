@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
+import { ChatSessionNotFoundError } from "../chat/store";
 import { HttpError } from "../errors";
 import type { RequestContext } from "../server/requestContext";
 import {
@@ -13,6 +14,9 @@ function createChatTestApp(
   options: Readonly<{
     enabled?: boolean;
     requestContext?: RequestContext;
+    getChatSessionSnapshotFn?: typeof import("../chat/store").getChatSessionSnapshot;
+    getLatestChatSessionIdFn?: typeof import("../chat/store").getLatestChatSessionId;
+    createFreshChatSessionFn?: typeof import("../chat/store").createFreshChatSession;
   }>,
 ): Hono {
   const app = new Hono();
@@ -27,6 +31,9 @@ function createChatTestApp(
   app.route("/", createChatRoutes({
     allowedOrigins: [],
     enabled: options.enabled,
+    getChatSessionSnapshotFn: options.getChatSessionSnapshotFn,
+    getLatestChatSessionIdFn: options.getLatestChatSessionIdFn,
+    createFreshChatSessionFn: options.createFreshChatSessionFn,
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {
         authorizationHeader: undefined,
@@ -141,6 +148,96 @@ test("new chat routes accept the server-owned request shape and answer not ready
   assert.deepEqual(await response.json(), {
     error: "Backend-owned AI chat is not implemented yet.",
     code: "AI_CHAT_V2_NOT_READY",
+  });
+});
+
+test("new chat GET route returns the persisted snapshot", async () => {
+  const app = createChatTestApp({
+    enabled: true,
+    getChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(workspaceId, "workspace-1");
+      assert.equal(sessionId, "session-1");
+
+      return {
+        sessionId: "session-1",
+        runState: "idle",
+        updatedAt: 1_742_811_200_000,
+        activeRunHeartbeatAt: null,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Stored answer" }],
+          timestamp: 1_742_811_200_000,
+          isError: false,
+          isStopped: false,
+        }],
+      };
+    },
+  });
+
+  const response = await app.request("https://api.example.com/chat?sessionId=session-1", {
+    method: "GET",
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    sessionId: "session-1",
+    runState: "idle",
+    updatedAt: 1_742_811_200_000,
+    mainContentInvalidationVersion: 0,
+    messages: [{
+      role: "assistant",
+      content: [{ type: "text", text: "Stored answer" }],
+      timestamp: 1_742_811_200_000,
+      isError: false,
+      isStopped: false,
+    }],
+  });
+});
+
+test("new chat GET route maps missing sessions to 404", async () => {
+  const app = createChatTestApp({
+    enabled: true,
+    getChatSessionSnapshotFn: async () => {
+      throw new ChatSessionNotFoundError("session-404");
+    },
+  });
+
+  const response = await app.request("https://api.example.com/chat?sessionId=session-404", {
+    method: "GET",
+  });
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), {
+    error: "Chat session not found: session-404",
+    code: null,
+  });
+});
+
+test("new chat DELETE route creates a fresh empty session", async () => {
+  const app = createChatTestApp({
+    enabled: true,
+    getLatestChatSessionIdFn: async (userId, workspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(workspaceId, "workspace-1");
+      return "session-old";
+    },
+    createFreshChatSessionFn: async (userId, workspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(workspaceId, "workspace-1");
+      return "session-new";
+    },
+  });
+
+  const response = await app.request("https://api.example.com/chat", {
+    method: "DELETE",
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    sessionId: "session-new",
   });
 });
 

@@ -1,9 +1,18 @@
 import { Hono } from "hono";
 import { isBackendOwnedChatEnabled } from "../chat/config";
+import {
+  createFreshChatSession,
+  ChatSessionNotFoundError,
+  getChatSessionSnapshot,
+  getLatestChatSessionId,
+  type ChatSessionSnapshot,
+} from "../chat/store";
+import type { ContentPart } from "../chat/types";
 import type { AuthTransport } from "../auth";
 import { HttpError } from "../errors";
 import {
   loadRequestContextFromRequest,
+  requireSelectedWorkspaceId,
   type RequestContext,
 } from "../server/requestContext";
 import {
@@ -60,6 +69,9 @@ type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   enabled?: boolean;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  getChatSessionSnapshotFn?: typeof getChatSessionSnapshot;
+  getLatestChatSessionIdFn?: typeof getLatestChatSessionId;
+  createFreshChatSessionFn?: typeof createFreshChatSession;
 }>;
 
 const LEGACY_CHAT_REQUEST_FIELDS = [
@@ -192,6 +204,44 @@ function createNotReadyError(): HttpError {
   return new HttpError(501, "Backend-owned AI chat is not implemented yet.", "AI_CHAT_V2_NOT_READY");
 }
 
+type ChatHistoryResponse = Readonly<{
+  sessionId: string;
+  runState: ChatSessionSnapshot["runState"];
+  updatedAt: number;
+  mainContentInvalidationVersion: number;
+  messages: ReadonlyArray<Readonly<{
+    role: "user" | "assistant";
+    content: ReadonlyArray<ContentPart>;
+    timestamp: number;
+    isError: boolean;
+    isStopped: boolean;
+  }>>;
+}>;
+
+function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryResponse {
+  return {
+    sessionId: snapshot.sessionId,
+    runState: snapshot.runState,
+    updatedAt: snapshot.updatedAt,
+    mainContentInvalidationVersion: snapshot.mainContentInvalidationVersion,
+    messages: snapshot.messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+      timestamp: message.timestamp,
+      isError: message.isError,
+      isStopped: message.isStopped,
+    })),
+  };
+}
+
+function mapStoreError(error: unknown): never {
+  if (error instanceof ChatSessionNotFoundError) {
+    throw new HttpError(404, error.message);
+  }
+
+  throw error;
+}
+
 async function loadSupportedRequestContext(
   request: Request,
   allowedOrigins: ReadonlyArray<string>,
@@ -206,11 +256,30 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const enabled = options.enabled ?? isBackendOwnedChatEnabled();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
+  const getChatSessionSnapshotFn = options.getChatSessionSnapshotFn ?? getChatSessionSnapshot;
+  const getLatestChatSessionIdFn = options.getLatestChatSessionIdFn ?? getLatestChatSessionId;
+  const createFreshChatSessionFn = options.createFreshChatSessionFn ?? createFreshChatSession;
 
   app.get("/chat", async (context) => {
     assertBackendOwnedChatEnabled(enabled);
-    await loadSupportedRequestContext(context.req.raw, options.allowedOrigins, loadRequestContextFromRequestFn);
-    throw createNotReadyError();
+    const requestContext = await loadSupportedRequestContext(
+      context.req.raw,
+      options.allowedOrigins,
+      loadRequestContextFromRequestFn,
+    );
+    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const sessionId = context.req.query("sessionId") ?? undefined;
+
+    try {
+      const snapshot = await getChatSessionSnapshotFn(
+        requestContext.userId,
+        workspaceId,
+        sessionId,
+      );
+      return context.json(toChatHistoryResponse(snapshot));
+    } catch (error) {
+      return mapStoreError(error);
+    }
   });
 
   app.post("/chat", async (context) => {
@@ -222,8 +291,40 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
 
   app.delete("/chat", async (context) => {
     assertBackendOwnedChatEnabled(enabled);
-    await loadSupportedRequestContext(context.req.raw, options.allowedOrigins, loadRequestContextFromRequestFn);
-    throw createNotReadyError();
+    const requestContext = await loadSupportedRequestContext(
+      context.req.raw,
+      options.allowedOrigins,
+      loadRequestContextFromRequestFn,
+    );
+    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const sessionId = context.req.query("sessionId") ?? undefined;
+
+    try {
+      if (sessionId !== undefined) {
+        await getChatSessionSnapshotFn(
+          requestContext.userId,
+          workspaceId,
+          sessionId,
+        );
+      } else {
+        await getLatestChatSessionIdFn(
+          requestContext.userId,
+          workspaceId,
+        );
+      }
+    } catch (error) {
+      return mapStoreError(error);
+    }
+
+    const newSessionId = await createFreshChatSessionFn(
+      requestContext.userId,
+      workspaceId,
+    );
+
+    return context.json({
+      ok: true,
+      sessionId: newSessionId,
+    });
   });
 
   app.post("/chat/stop", async (context) => {

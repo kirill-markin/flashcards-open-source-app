@@ -218,14 +218,14 @@ There is no separate background scheduler worker.
 
 ## AI chat architecture
 
-The app uses backend-executed AI chat:
+The app is in a dual-mode AI chat migration:
 
-- The model call is remote and goes through `POST /v1/chat/turn`.
-- The response is streamed over SSE from the dedicated streaming Lambda.
-- Available model vendors are OpenAI and Anthropic.
-- Shared workspace data access is intentionally normalized around one SQL tool contract.
-- The backend executes AI chat tools and continues provider loops internally.
-- Web, iOS, and Android act as stream plus sync clients and do not execute chat tools locally.
+- Legacy chat still uses `POST /v1/chat/turn`.
+- Legacy responses are streamed over SSE from the dedicated streaming Lambda.
+- Legacy chat still carries the older provider-selection shape.
+- The new backend-owned v2 chat uses `/v1/chat` and stores canonical sessions and transcript items in Postgres under the `ai` schema.
+- V2 is intentionally server-owned: the backend owns session ids, run state, transcript history, and future recovery behavior.
+- During the migration window, web and mobile clients can move to v2 independently while legacy chat continues to serve older builds.
 
 ## Agent API architecture
 
