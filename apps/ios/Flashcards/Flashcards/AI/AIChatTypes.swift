@@ -1,6 +1,10 @@
 import Foundation
 
 let aiChatDefaultModelId: String = "gpt-5.4"
+let aiChatDefaultModelLabel: String = "GPT-5.4"
+let aiChatDefaultProviderLabel: String = "OpenAI"
+let aiChatDefaultReasoningEffort: String = "medium"
+let aiChatDefaultReasoningLabel: String = "Medium"
 let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 let aiChatOptimisticAssistantStatusText: String = "Looking through your cards..."
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
@@ -32,9 +36,9 @@ let aiChatToolNames: Set<String> = [
     "sql",
 ]
 let aiChatExternalProviderDisclosureItems: [String] = [
-    "Typed prompts and card-derived context needed for your request can be sent to external AI providers.",
-    "Uploaded files and images can be uploaded for AI processing.",
-    "Dictated audio and transcription requests can be sent for speech processing.",
+    "Typed prompts and card-derived context needed for your request can be sent to OpenAI.",
+    "Uploaded files and images can be uploaded to OpenAI for AI processing.",
+    "Dictated audio and transcription requests can be sent to OpenAI for speech processing.",
     "Technical diagnostics about failed or slow AI requests can be sent to help debug the hosted AI service.",
 ]
 
@@ -104,21 +108,55 @@ func aiChatDecoderSummary(error: Error) -> String {
     return Flashcards.errorMessage(error: error)
 }
 
-struct AIChatModelDef: Hashable, Identifiable, Sendable {
+struct AIChatProviderDef: Codable, Hashable, Sendable {
     let id: String
     let label: String
-
-    static let all: [AIChatModelDef] = [
-        AIChatModelDef(id: "gpt-5.4", label: "GPT-5.4"),
-        AIChatModelDef(id: "gpt-5.2", label: "GPT-5.2"),
-        AIChatModelDef(id: "gpt-4.1", label: "GPT-4.1"),
-        AIChatModelDef(id: "gpt-4.1-mini", label: "GPT-4.1 Mini"),
-        AIChatModelDef(id: "gpt-4.1-nano", label: "GPT-4.1 Nano"),
-        AIChatModelDef(id: "claude-opus-4-6", label: "Claude Opus 4.6"),
-        AIChatModelDef(id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6"),
-        AIChatModelDef(id: "claude-haiku-4-5", label: "Claude Haiku 4.5"),
-    ]
 }
+
+struct AIChatReasoningDef: Codable, Hashable, Sendable {
+    let effort: String
+    let label: String
+}
+
+struct AIChatFeaturesDef: Codable, Hashable, Sendable {
+    let modelPickerEnabled: Bool
+    let dictationEnabled: Bool
+    let attachmentsEnabled: Bool
+}
+
+struct AIChatServerModelDef: Codable, Hashable, Sendable {
+    let id: String
+    let label: String
+    let badgeLabel: String
+}
+
+struct AIChatServerConfig: Codable, Hashable, Sendable {
+    let provider: AIChatProviderDef
+    let model: AIChatServerModelDef
+    let reasoning: AIChatReasoningDef
+    let features: AIChatFeaturesDef
+}
+
+let aiChatDefaultServerConfig = AIChatServerConfig(
+    provider: AIChatProviderDef(
+        id: "openai",
+        label: aiChatDefaultProviderLabel
+    ),
+    model: AIChatServerModelDef(
+        id: aiChatDefaultModelId,
+        label: aiChatDefaultModelLabel,
+        badgeLabel: "\(aiChatDefaultModelLabel) · \(aiChatDefaultReasoningLabel)"
+    ),
+    reasoning: AIChatReasoningDef(
+        effort: aiChatDefaultReasoningEffort,
+        label: aiChatDefaultReasoningLabel
+    ),
+    features: AIChatFeaturesDef(
+        modelPickerEnabled: false,
+        dictationEnabled: true,
+        attachmentsEnabled: true
+    )
+)
 
 enum AIChatRole: String, Codable, Hashable, Sendable {
     case user
@@ -271,15 +309,56 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
 
 struct AIChatPersistedState: Codable, Hashable, Sendable {
     let messages: [AIChatMessage]
-    let selectedModelId: String
     let chatSessionId: String
     let codeInterpreterContainerId: String?
+    let lastKnownChatConfig: AIChatServerConfig?
+
+    var selectedModelId: String {
+        self.lastKnownChatConfig?.model.id ?? aiChatDefaultModelId
+    }
 
     private enum CodingKeys: String, CodingKey {
         case messages
         case selectedModelId
         case chatSessionId
         case codeInterpreterContainerId
+        case lastKnownChatConfig
+    }
+
+    init(
+        messages: [AIChatMessage],
+        chatSessionId: String,
+        codeInterpreterContainerId: String?,
+        lastKnownChatConfig: AIChatServerConfig?
+    ) {
+        self.messages = messages
+        self.chatSessionId = chatSessionId
+        self.codeInterpreterContainerId = codeInterpreterContainerId
+        self.lastKnownChatConfig = lastKnownChatConfig
+    }
+
+    init(
+        messages: [AIChatMessage],
+        selectedModelId: String,
+        chatSessionId: String,
+        codeInterpreterContainerId: String?,
+        lastKnownChatConfig: AIChatServerConfig?
+    ) {
+        self.messages = messages
+        self.chatSessionId = chatSessionId
+        self.codeInterpreterContainerId = codeInterpreterContainerId
+        self.lastKnownChatConfig = lastKnownChatConfig ?? (
+            selectedModelId == aiChatDefaultModelId ? nil : AIChatServerConfig(
+                provider: aiChatDefaultServerConfig.provider,
+                model: AIChatServerModelDef(
+                    id: selectedModelId,
+                    label: selectedModelId,
+                    badgeLabel: selectedModelId
+                ),
+                reasoning: aiChatDefaultServerConfig.reasoning,
+                features: aiChatDefaultServerConfig.features
+            )
+        )
     }
 
     init(
@@ -288,18 +367,54 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         chatSessionId: String,
         codeInterpreterContainerId: String?
     ) {
-        self.messages = messages
-        self.selectedModelId = selectedModelId
-        self.chatSessionId = chatSessionId
-        self.codeInterpreterContainerId = codeInterpreterContainerId
+        self.init(
+            messages: messages,
+            selectedModelId: selectedModelId,
+            chatSessionId: chatSessionId,
+            codeInterpreterContainerId: codeInterpreterContainerId,
+            lastKnownChatConfig: nil
+        )
+    }
+
+    init(
+        messages: [AIChatMessage],
+        selectedModelId: String
+    ) {
+        self.init(
+            messages: messages,
+            selectedModelId: selectedModelId,
+            chatSessionId: makeAIChatSessionId(),
+            codeInterpreterContainerId: nil,
+            lastKnownChatConfig: nil
+        )
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.messages = try container.decode([AIChatMessage].self, forKey: .messages)
-        self.selectedModelId = try container.decode(String.self, forKey: .selectedModelId)
         self.chatSessionId = try container.decodeIfPresent(String.self, forKey: .chatSessionId) ?? makeAIChatSessionId()
         self.codeInterpreterContainerId = try container.decodeIfPresent(String.self, forKey: .codeInterpreterContainerId)
+        let lastKnownChatConfig = try container.decodeIfPresent(AIChatServerConfig.self, forKey: .lastKnownChatConfig)
+        let legacySelectedModelId = try container.decodeIfPresent(String.self, forKey: .selectedModelId) ?? aiChatDefaultModelId
+        self.lastKnownChatConfig = lastKnownChatConfig ?? (
+            legacySelectedModelId == aiChatDefaultModelId ? nil : AIChatServerConfig(
+                provider: aiChatDefaultServerConfig.provider,
+                model: AIChatServerModelDef(
+                    id: legacySelectedModelId,
+                    label: legacySelectedModelId,
+                    badgeLabel: legacySelectedModelId
+                ),
+                reasoning: aiChatDefaultServerConfig.reasoning,
+                features: aiChatDefaultServerConfig.features
+            )
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.messages, forKey: .messages)
+        try container.encode(self.chatSessionId, forKey: .chatSessionId)
+        try container.encodeIfPresent(self.lastKnownChatConfig, forKey: .lastKnownChatConfig)
     }
 }
 
@@ -584,6 +699,19 @@ protocol AIChatStreaming: Sendable {
         session: CloudLinkedSession,
         body: AIChatLatencyReportBody
     ) async
+
+    func loadServerConfig(
+        session: CloudLinkedSession
+    ) async throws -> AIChatServerConfig
+}
+
+extension AIChatStreaming {
+    func loadServerConfig(
+        session: CloudLinkedSession
+    ) async throws -> AIChatServerConfig {
+        _ = session
+        return aiChatDefaultServerConfig
+    }
 }
 
 protocol AIChatContextLoading: Sendable {

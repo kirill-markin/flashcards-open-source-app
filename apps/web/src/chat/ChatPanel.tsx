@@ -133,6 +133,7 @@ export function ChatPanel(props: Props): ReactElement {
     isAssistantRunActive,
     isStopping,
     currentSessionId,
+    chatConfig,
     composerAction,
     sendMessage: sendChatMessage,
     stopMessage,
@@ -547,6 +548,8 @@ export function ChatPanel(props: Props): ReactElement {
   const isDictationVisible = dictationState !== "idle";
   const isDraftInputBlocked = dictationState !== "idle";
   const isChatActionLocked = appData.isSessionVerified === false;
+  const areAttachmentsEnabled = chatConfig.features.attachmentsEnabled;
+  const isDictationEnabled = chatConfig.features.dictationEnabled;
   const canSendPendingMessage = isHistoryLoaded
     && composerAction === "send"
     && !isStopping
@@ -595,7 +598,10 @@ export function ChatPanel(props: Props): ReactElement {
       ) : null}
 
       <div className="chat-header">
-        <span className="chat-header-title">AI chat</span>
+        <div>
+          <span className="chat-header-title">AI chat</span>
+          <div className="chat-subtitle">{chatConfig.provider.label} · {chatConfig.model.badgeLabel}</div>
+        </div>
         <div className="chat-header-actions">
           <button
             type="button"
@@ -709,13 +715,13 @@ export function ChatPanel(props: Props): ReactElement {
 
         <div className="chat-controls">
           <div className="chat-controls-right">
-            <FileAttachment onAttach={handleAttach} disabled={isDraftInputBlocked} />
+            <FileAttachment onAttach={handleAttach} disabled={isDraftInputBlocked || !areAttachmentsEnabled} />
             <button
               type="button"
               className={`chat-mic-btn${dictationState === "recording" ? " chat-mic-btn-recording" : ""}`}
               aria-label={microphoneAriaLabel}
               onClick={() => void handleMicrophoneClick()}
-              disabled={isChatActionLocked || dictationState === "requesting_permission" || dictationState === "transcribing"}
+              disabled={isChatActionLocked || dictationState === "requesting_permission" || dictationState === "transcribing" || !isDictationEnabled}
             >
               {dictationState === "recording" ? (
                 <span className="chat-stop-btn-icon" aria-hidden="true" />

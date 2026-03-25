@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
@@ -31,6 +32,7 @@ import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
 import com.flashcardsopensourceapp.data.local.model.aiChatDefaultModelId
+import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeAiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -135,12 +137,9 @@ class AiViewModelTest {
     }
 
     @Test
-    fun guestModeLocksSelectedModelToDefault() = runTest(dispatcher) {
+    fun guestModeUsesDefaultChatConfigWithoutServerSnapshot() = runTest(dispatcher) {
         val aiChatRepository = FakeAiChatRepository(
-            hasConsent = true,
-            persistedState = makeDefaultAiChatPersistedState().copy(
-                selectedModelId = "claude-sonnet-4-6"
-            )
+            hasConsent = true
         )
         val viewModel = AiViewModel(
             aiChatRepository = aiChatRepository,
@@ -152,13 +151,8 @@ class AiViewModelTest {
         val collectionJob = startCollecting(scope = this, viewModel = viewModel)
 
         advanceUntilIdle()
-        assertEquals(aiChatDefaultModelId, viewModel.uiState.value.selectedModelId)
-        assertEquals(1, viewModel.uiState.value.availableModels.size)
-
-        viewModel.selectModel(modelId = "claude-sonnet-4-6")
-        advanceUntilIdle()
-
-        assertEquals(aiChatDefaultModelId, viewModel.uiState.value.selectedModelId)
+        assertEquals(aiChatDefaultModelId, viewModel.uiState.value.chatConfig.model.id)
+        assertEquals(defaultAiChatServerConfig.model.badgeLabel, viewModel.uiState.value.chatConfig.model.badgeLabel)
         collectionJob.cancel()
     }
 
@@ -191,7 +185,8 @@ class AiViewModelTest {
                 onEvent(AiChatStreamEvent.Done)
                 AiChatStreamOutcome(
                     requestId = "request-1",
-                    codeInterpreterContainerId = "container-1"
+                    chatSessionId = "session-1",
+                    chatConfig = defaultAiChatServerConfig
                 )
             }
         )
@@ -617,7 +612,8 @@ private class FakeAiChatRepository(
     ) -> AiChatStreamOutcome = { _, _, _ ->
         AiChatStreamOutcome(
             requestId = null,
-            codeInterpreterContainerId = null
+            chatSessionId = "session-1",
+            chatConfig = defaultAiChatServerConfig
         )
     }
 ) : AiChatRepository {
@@ -655,6 +651,32 @@ private class FakeAiChatRepository(
         storedStates.remove(workspaceId)
     }
 
+    override suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot? {
+        val persistedState = storedStates[workspaceId] ?: return null
+        return AiChatSessionSnapshot(
+            sessionId = sessionId ?: persistedState.chatSessionId,
+            runState = "idle",
+            updatedAtMillis = 1L,
+            mainContentInvalidationVersion = 0L,
+            messages = persistedState.messages,
+            chatConfig = persistedState.lastKnownChatConfig ?: defaultAiChatServerConfig
+        )
+    }
+
+    override suspend fun resetChatSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
+        _ = sessionId
+        val resetState = makeDefaultAiChatPersistedState()
+        storedStates[workspaceId] = resetState
+        return AiChatSessionSnapshot(
+            sessionId = resetState.chatSessionId,
+            runState = "idle",
+            updatedAtMillis = 1L,
+            mainContentInvalidationVersion = 0L,
+            messages = emptyList(),
+            chatConfig = defaultAiChatServerConfig
+        )
+    }
+
     override suspend fun transcribeAudio(
         workspaceId: String?,
         fileName: String,
@@ -677,9 +699,10 @@ private class FakeAiChatRepository(
     override suspend fun streamTurn(
         workspaceId: String?,
         state: AiChatPersistedState,
-        totalCards: Int,
+        content: List<AiChatContentPart>,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome {
+        _ = content
         return streamHandler(workspaceId, state, onEvent)
     }
 }

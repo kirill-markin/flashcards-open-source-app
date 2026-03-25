@@ -181,6 +181,10 @@ private struct AIChatLatencyTracker {
     var emitted: Bool
 }
 
+private struct AIChatServerConfigEnvelope: Decodable {
+    let chatConfig: AIChatServerConfig
+}
+
 private func createAIChatLatencyTracker(tapStartedAt: Date) -> AIChatLatencyTracker {
     AIChatLatencyTracker(
         tapStartedAt: tapStartedAt,
@@ -246,6 +250,52 @@ final class AIChatService: AIChatStreaming, @unchecked Sendable {
         self.session = session
         self.encoder = encoder
         self.decoder = decoder
+    }
+
+    func loadServerConfig(
+        session: CloudLinkedSession
+    ) async throws -> AIChatServerConfig {
+        var request = URLRequest(url: try self.makeURL(
+            apiBaseUrl: session.apiBaseUrl,
+            path: "/chat",
+            clientRequestId: UUID().uuidString.lowercased()
+        ))
+        request.httpMethod = "GET"
+        request.setValue(session.authorization.headerValue, forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await self.session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw LocalStoreError.validation("AI chat config request did not receive an HTTP response.")
+        }
+        if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
+            let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: extractChatRequestId(httpResponse: httpResponse))
+            throw AIChatServiceError.invalidResponse(
+                errorDetails,
+                makeRequestFailureMessage(
+                    statusCode: httpResponse.statusCode,
+                    errorDetails: errorDetails,
+                    configurationMode: session.configurationMode
+                ),
+                AIChatFailureDiagnostics(
+                    clientRequestId: UUID().uuidString.lowercased(),
+                    backendRequestId: extractChatRequestId(httpResponse: httpResponse),
+                    stage: .responseNotOk,
+                    errorKind: .invalidHttpResponse,
+                    statusCode: httpResponse.statusCode,
+                    eventType: nil,
+                    toolName: nil,
+                    toolCallId: nil,
+                    lineNumber: nil,
+                    rawSnippet: truncatedSnippet(String(decoding: data, as: UTF8.self)),
+                    decoderSummary: nil,
+                    continuationAttempt: nil,
+                    continuationToolCallIds: []
+                )
+            )
+        }
+
+        let payload = try self.decoder.decode(AIChatServerConfigEnvelope.self, from: data)
+        return payload.chatConfig
     }
 
     func streamTurn(

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { isBackendOwnedChatEnabled } from "../chat/config";
+import { getChatConfig, isBackendOwnedChatEnabled, type ChatConfig } from "../chat/config";
 import {
   getRecoveredChatSessionSnapshot,
   prepareChatRun,
@@ -201,14 +201,14 @@ function assertBackendOwnedChatEnabled(enabled: boolean): void {
 }
 
 function assertSupportedTransport(requestContext: RequestContext): void {
-  const supportedTransports = new Set<AuthTransport>(["bearer", "session"]);
+  const supportedTransports = new Set<AuthTransport>(["bearer", "session", "guest"]);
   if (supportedTransports.has(requestContext.transport)) {
     return;
   }
 
   throw new HttpError(
     403,
-    "This endpoint requires Bearer or session authentication.",
+    "This endpoint requires Bearer, session, or guest authentication.",
     "AI_CHAT_V2_HUMAN_AUTH_REQUIRED",
   );
 }
@@ -218,6 +218,7 @@ type ChatHistoryResponse = Readonly<{
   runState: ChatSessionSnapshot["runState"];
   updatedAt: number;
   mainContentInvalidationVersion: number;
+  chatConfig: ChatConfig;
   messages: ReadonlyArray<Readonly<{
     role: "user" | "assistant";
     content: ChatSessionSnapshot["messages"][number]["content"];
@@ -232,6 +233,13 @@ type ChatStartResponse = Readonly<{
   sessionId: string;
   runId: string;
   runState: "running";
+  chatConfig: ChatConfig;
+}>;
+
+type ChatResetResponse = Readonly<{
+  ok: true;
+  sessionId: string;
+  chatConfig: ChatConfig;
 }>;
 
 function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryResponse {
@@ -240,6 +248,7 @@ function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryRespon
     runState: snapshot.runState,
     updatedAt: snapshot.updatedAt,
     mainContentInvalidationVersion: snapshot.mainContentInvalidationVersion,
+    chatConfig: getChatConfig(),
     messages: snapshot.messages.map((message) => ({
       role: message.role,
       content: message.content,
@@ -340,6 +349,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       sessionId: preparedRun.sessionId,
       runId: preparedRun.runId,
       runState: "running",
+      chatConfig: getChatConfig(),
     } satisfies ChatStartResponse);
   });
 
@@ -378,7 +388,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     return context.json({
       ok: true,
       sessionId: newSessionId,
-    });
+      chatConfig: getChatConfig(),
+    } satisfies ChatResetResponse);
   });
 
   app.post("/chat/stop", async (context) => {

@@ -96,11 +96,33 @@ export type ChatSessionHistoryMessage = Readonly<{
   isStopped: boolean;
 }>;
 
+export type ChatConfig = Readonly<{
+  provider: Readonly<{
+    id: "openai";
+    label: string;
+  }>;
+  model: Readonly<{
+    id: string;
+    label: string;
+    badgeLabel: string;
+  }>;
+  reasoning: Readonly<{
+    effort: "low" | "medium" | "high" | "minimal";
+    label: string;
+  }>;
+  features: Readonly<{
+    modelPickerEnabled: boolean;
+    dictationEnabled: boolean;
+    attachmentsEnabled: boolean;
+  }>;
+}>;
+
 export type ChatSessionSnapshot = Readonly<{
   sessionId: string;
   runState: "idle" | "running" | "interrupted";
   updatedAt: number;
   mainContentInvalidationVersion: number;
+  chatConfig: ChatConfig;
   messages: ReadonlyArray<ChatSessionHistoryMessage>;
 }>;
 
@@ -115,11 +137,13 @@ export type StartChatRunResponse = Readonly<{
   sessionId: string;
   runId: string;
   runState: "running";
+  chatConfig: ChatConfig;
 }>;
 
 export type ResetChatSessionResponse = Readonly<{
   ok: true;
   sessionId: string;
+  chatConfig: ChatConfig;
 }>;
 
 export type StopChatRunResponse = Readonly<{

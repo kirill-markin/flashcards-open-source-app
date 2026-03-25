@@ -13,11 +13,55 @@ export type ChatModelDef = Readonly<{
   vendor: typeof CHAT_VENDOR;
 }>;
 
+export type ChatConfig = Readonly<{
+  provider: Readonly<{
+    id: typeof CHAT_VENDOR;
+    label: typeof CHAT_PROVIDER_LABEL;
+  }>;
+  model: Readonly<{
+    id: typeof CHAT_MODEL_ID;
+    label: typeof CHAT_MODEL_LABEL;
+    badgeLabel: typeof CHAT_MODEL_BADGE_LABEL;
+  }>;
+  reasoning: Readonly<{
+    effort: typeof CHAT_MODEL_REASONING_EFFORT;
+    label: typeof CHAT_MODEL_REASONING_LABEL;
+  }>;
+  features: Readonly<{
+    modelPickerEnabled: false;
+    dictationEnabled: true;
+    attachmentsEnabled: true;
+  }>;
+}>;
+
 export const CHAT_MODEL: ChatModelDef = {
   id: CHAT_MODEL_ID,
   label: CHAT_MODEL_LABEL,
   vendor: CHAT_VENDOR,
 };
+
+export function getChatConfig(): ChatConfig {
+  return {
+    provider: {
+      id: CHAT_VENDOR,
+      label: CHAT_PROVIDER_LABEL,
+    },
+    model: {
+      id: CHAT_MODEL_ID,
+      label: CHAT_MODEL_LABEL,
+      badgeLabel: CHAT_MODEL_BADGE_LABEL,
+    },
+    reasoning: {
+      effort: CHAT_MODEL_REASONING_EFFORT,
+      label: CHAT_MODEL_REASONING_LABEL,
+    },
+    features: {
+      modelPickerEnabled: false,
+      dictationEnabled: true,
+      attachmentsEnabled: true,
+    },
+  };
+}
 
 export function isBackendOwnedChatEnabled(): boolean {
   const raw = process.env.AI_CHAT_V2_ENABLED;

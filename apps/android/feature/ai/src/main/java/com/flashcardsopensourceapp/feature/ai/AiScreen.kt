@@ -87,7 +87,6 @@ import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatModelOption
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
@@ -117,7 +116,6 @@ fun AiRoute(
     onDraftMessageChange: (String) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
-    onSelectModel: (String) -> Unit,
     onNewChat: () -> Unit,
     onOpenAccountStatus: () -> Unit,
     onDismissErrorMessage: () -> Unit,
@@ -139,7 +137,6 @@ fun AiRoute(
     val dictationRecorder = remember(context) {
         AndroidAiChatDictationRecorder(context = context)
     }
-    var isModelSheetVisible by remember { mutableStateOf(value = false) }
     var isAttachmentSheetVisible by remember { mutableStateOf(value = false) }
     val currentConsentRequired by rememberUpdatedState(uiState.isConsentRequired)
     val currentDictationState by rememberUpdatedState(uiState.dictationState)
@@ -347,18 +344,14 @@ fun AiRoute(
                 },
                 actions = {
                     AssistChip(
-                        onClick = {
-                            if (uiState.isModelPickerEnabled) {
-                                isModelSheetVisible = true
-                            }
-                        },
-                        enabled = uiState.isModelPickerEnabled,
+                        onClick = {},
+                        enabled = false,
                         label = {
-                            Text(modelLabel(modelId = uiState.selectedModelId, options = uiState.availableModels))
+                            Text(uiState.chatConfig.model.badgeLabel)
                         },
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Outlined.ModelTraining,
+                                imageVector = Icons.Outlined.AutoAwesome,
                                 contentDescription = null
                             )
                         }
@@ -383,10 +376,6 @@ fun AiRoute(
             if (uiState.isConsentRequired.not()) {
                 AiComposer(
                     uiState = uiState,
-                    selectedModelLabel = modelLabel(
-                        modelId = uiState.selectedModelId,
-                        options = uiState.availableModels
-                    ),
                     onDraftMessageChange = onDraftMessageChange,
                     onSendMessage = onSendMessage,
                     onCancelStreaming = onCancelStreaming,
@@ -432,20 +421,6 @@ fun AiRoute(
                 )
             )
         }
-    }
-
-    if (isModelSheetVisible) {
-        ModelPickerSheet(
-            selectedModelId = uiState.selectedModelId,
-            availableModels = uiState.availableModels,
-            onDismiss = {
-                isModelSheetVisible = false
-            },
-            onSelectModel = { modelId ->
-                onSelectModel(modelId)
-                isModelSheetVisible = false
-            }
-        )
     }
 
     if (isAttachmentSheetVisible) {
@@ -568,7 +543,7 @@ private fun ConsentGate(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "AI requests from $currentWorkspaceName can send prompts, uploaded files, images, and dictated audio to external providers.",
+                    text = "AI requests from $currentWorkspaceName can send prompts, uploaded files, images, and dictated audio to OpenAI.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Button(
@@ -1086,7 +1061,6 @@ private fun AccountUpgradeCard(
 @Composable
 private fun AiComposer(
     uiState: AiUiState,
-    selectedModelLabel: String,
     onDraftMessageChange: (String) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
@@ -1116,7 +1090,7 @@ private fun AiComposer(
                     onClick = {},
                     enabled = false,
                     label = {
-                        Text(selectedModelLabel)
+                        Text(uiState.chatConfig.model.badgeLabel)
                     },
                     leadingIcon = {
                         Icon(
@@ -1127,7 +1101,7 @@ private fun AiComposer(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (uiState.isLinked) "Linked account" else "Guest AI",
+                    text = uiState.chatConfig.provider.label,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -1212,7 +1186,7 @@ private fun AiComposer(
             ) {
                 Button(
                     onClick = onOpenAttachmentMenu,
-                    enabled = canManageAttachments,
+                    enabled = canManageAttachments && uiState.chatConfig.features.attachmentsEnabled,
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -1225,7 +1199,7 @@ private fun AiComposer(
 
                 Button(
                     onClick = onToggleDictation,
-                    enabled = uiState.isStreaming.not() && isDictationBusy.not(),
+                    enabled = uiState.isStreaming.not() && isDictationBusy.not() && uiState.chatConfig.features.dictationEnabled,
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -1361,67 +1335,6 @@ private fun AttachmentSheet(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ModelPickerSheet(
-    selectedModelId: String,
-    availableModels: List<AiChatModelOption>,
-    onDismiss: () -> Unit,
-    onSelectModel: (String) -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss
-    ) {
-        LazyColumn(
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            item {
-                Text(
-                    text = "Models",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(start = 24.dp, top = 8.dp, end = 24.dp, bottom = 16.dp)
-                )
-            }
-
-            items(availableModels, key = { model -> model.id }) { model ->
-                ListItem(
-                    headlineContent = {
-                        Text(model.label)
-                    },
-                    supportingContent = {
-                        if (model.id == selectedModelId) {
-                            Text("Selected")
-                        }
-                    },
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                TextButton(
-                    onClick = {
-                        onSelectModel(model.id)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Text(
-                        text = if (model.id == selectedModelId) "Keep selected" else "Use ${model.label}"
-                    )
-                }
-                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-            }
-        }
-    }
-}
-
-private fun modelLabel(
-    modelId: String,
-    options: List<AiChatModelOption>
-): String {
-    return options.firstOrNull { option ->
-        option.id == modelId
-    }?.label ?: modelId
 }
 
 private fun dictationStatusLabel(

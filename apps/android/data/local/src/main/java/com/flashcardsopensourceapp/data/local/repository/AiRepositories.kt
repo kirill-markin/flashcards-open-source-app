@@ -2,17 +2,19 @@ package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatTurnRequest
-import com.flashcardsopensourceapp.data.local.model.AiChatUserContext
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
-import com.flashcardsopensourceapp.data.local.model.buildAiChatWireMessages
+import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.buildAiChatRequestContent
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteService
@@ -56,6 +58,32 @@ class LocalAiChatRepository(
         historyStore.clearState(workspaceId = workspaceId)
     }
 
+    override suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot? {
+        val session = authorizedSession(workspaceId = workspaceId)
+        return try {
+            aiChatRemoteService.loadSnapshot(
+                apiBaseUrl = session.apiBaseUrl,
+                authorizationHeader = session.authorizationHeader,
+                sessionId = sessionId
+            )
+        } catch (error: AiChatRemoteException) {
+            if (error.statusCode == 404) {
+                null
+            } else {
+                throw error
+            }
+        }
+    }
+
+    override suspend fun resetChatSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
+        val session = authorizedSession(workspaceId = workspaceId)
+        return aiChatRemoteService.resetChatSession(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            sessionId = sessionId
+        )
+    }
+
     override suspend fun transcribeAudio(
         workspaceId: String?,
         fileName: String,
@@ -91,18 +119,14 @@ class LocalAiChatRepository(
     override suspend fun streamTurn(
         workspaceId: String?,
         state: AiChatPersistedState,
-        totalCards: Int,
+        content: List<AiChatContentPart>,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome {
         val session = authorizedSession(workspaceId = workspaceId)
         val request = AiChatTurnRequest(
-            messages = buildAiChatWireMessages(messages = state.messages),
-            model = state.selectedModelId,
+            sessionId = state.chatSessionId,
+            content = buildAiChatRequestContent(content = content),
             timezone = TimeZone.getDefault().id,
-            devicePlatform = "android",
-            chatSessionId = state.chatSessionId,
-            codeInterpreterContainerId = state.codeInterpreterContainerId,
-            userContext = AiChatUserContext(totalCards = totalCards)
         )
 
         return aiChatRemoteService.streamTurn(

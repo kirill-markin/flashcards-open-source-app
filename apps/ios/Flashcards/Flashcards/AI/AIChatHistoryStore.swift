@@ -49,31 +49,28 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
         guard let data = self.userDefaults.data(forKey: self.storageKey()) else {
             return AIChatPersistedState(
                 messages: [],
-                selectedModelId: aiChatDefaultModelId,
                 chatSessionId: makeAIChatSessionId(),
-                codeInterpreterContainerId: nil
+                codeInterpreterContainerId: nil,
+                lastKnownChatConfig: nil
             )
         }
 
         do {
             let state = try self.decoder.decode(AIChatPersistedState.self, from: data)
             let trimmedMessages = Array(state.messages.suffix(aiChatMaxMessages))
-            let selectedModelId = AIChatModelDef.all.contains { model in
-                model.id == state.selectedModelId
-            } ? state.selectedModelId : aiChatDefaultModelId
             return AIChatPersistedState(
                 messages: trimmedMessages,
-                selectedModelId: selectedModelId,
                 chatSessionId: state.chatSessionId,
-                codeInterpreterContainerId: state.codeInterpreterContainerId
+                codeInterpreterContainerId: state.codeInterpreterContainerId,
+                lastKnownChatConfig: state.lastKnownChatConfig
             )
         } catch {
             self.userDefaults.removeObject(forKey: self.storageKey())
             return AIChatPersistedState(
                 messages: [],
-                selectedModelId: aiChatDefaultModelId,
                 chatSessionId: makeAIChatSessionId(),
-                codeInterpreterContainerId: nil
+                codeInterpreterContainerId: nil,
+                lastKnownChatConfig: nil
             )
         }
     }
@@ -81,9 +78,9 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     func saveState(state: AIChatPersistedState) async {
         let trimmedState = AIChatPersistedState(
             messages: Array(state.messages.suffix(aiChatMaxMessages)),
-            selectedModelId: state.selectedModelId,
             chatSessionId: state.chatSessionId,
-            codeInterpreterContainerId: state.codeInterpreterContainerId
+            codeInterpreterContainerId: state.codeInterpreterContainerId,
+            lastKnownChatConfig: state.lastKnownChatConfig
         )
 
         do {

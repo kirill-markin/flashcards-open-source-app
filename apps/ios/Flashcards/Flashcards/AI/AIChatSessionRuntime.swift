@@ -60,9 +60,9 @@ actor AIChatSessionRuntime {
         self.historyCheckpointInterval = historyCheckpointInterval
         self.persistedState = AIChatPersistedState(
             messages: [],
-            selectedModelId: aiChatDefaultModelId,
             chatSessionId: makeAIChatSessionId(),
-            codeInterpreterContainerId: nil
+            codeInterpreterContainerId: nil,
+            lastKnownChatConfig: nil
         )
         self.pendingAssistantText = ""
         self.hasFlushedFirstAssistantDelta = false
@@ -116,9 +116,9 @@ actor AIChatSessionRuntime {
             if let codeInterpreterContainerId = outcome.codeInterpreterContainerId {
                 self.persistedState = AIChatPersistedState(
                     messages: self.persistedState.messages,
-                    selectedModelId: self.persistedState.selectedModelId,
                     chatSessionId: self.persistedState.chatSessionId,
-                    codeInterpreterContainerId: codeInterpreterContainerId
+                    codeInterpreterContainerId: codeInterpreterContainerId,
+                    lastKnownChatConfig: self.persistedState.lastKnownChatConfig
                 )
             }
             await self.finish(eventHandler: eventHandler)
@@ -375,9 +375,9 @@ private func appendAssistantText(state: AIChatPersistedState, text: String) -> A
     )
     return AIChatPersistedState(
         messages: messages,
-        selectedModelId: state.selectedModelId,
         chatSessionId: state.chatSessionId,
-        codeInterpreterContainerId: state.codeInterpreterContainerId
+        codeInterpreterContainerId: state.codeInterpreterContainerId,
+        lastKnownChatConfig: state.lastKnownChatConfig
     )
 }
 
@@ -416,9 +416,9 @@ private func upsertAssistantToolCall(
     )
     return AIChatPersistedState(
         messages: messages,
-        selectedModelId: state.selectedModelId,
         chatSessionId: state.chatSessionId,
-        codeInterpreterContainerId: state.codeInterpreterContainerId
+        codeInterpreterContainerId: state.codeInterpreterContainerId,
+        lastKnownChatConfig: state.lastKnownChatConfig
     )
 }
 
@@ -452,9 +452,9 @@ private func markAssistantError(state: AIChatPersistedState, message: String) ->
 
     return AIChatPersistedState(
         messages: messages,
-        selectedModelId: state.selectedModelId,
         chatSessionId: state.chatSessionId,
-        codeInterpreterContainerId: state.codeInterpreterContainerId
+        codeInterpreterContainerId: state.codeInterpreterContainerId,
+        lastKnownChatConfig: state.lastKnownChatConfig
     )
 }
 
@@ -488,9 +488,9 @@ private func markAssistantAccountUpgradePrompt(
 
     return AIChatPersistedState(
         messages: messages,
-        selectedModelId: state.selectedModelId,
         chatSessionId: state.chatSessionId,
-        codeInterpreterContainerId: state.codeInterpreterContainerId
+        codeInterpreterContainerId: state.codeInterpreterContainerId,
+        lastKnownChatConfig: state.lastKnownChatConfig
     )
 }
 

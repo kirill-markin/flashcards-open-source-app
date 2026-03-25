@@ -3,6 +3,10 @@ package com.flashcardsopensourceapp.data.local.model
 import java.util.UUID
 
 const val aiChatDefaultModelId: String = "gpt-5.4"
+const val aiChatDefaultModelLabel: String = "GPT-5.4"
+const val aiChatDefaultProviderLabel: String = "OpenAI"
+const val aiChatDefaultReasoningEffort: String = "medium"
+const val aiChatDefaultReasoningLabel: String = "Medium"
 const val aiChatConsentRequiredMessage: String =
     "Review AI data use and accept it on this device before using AI features."
 const val aiChatOptimisticAssistantStatusText: String = "Looking through your cards..."
@@ -31,20 +35,63 @@ val aiChatSupportedFileExtensions: Set<String> = setOf(
     "docx"
 )
 
-data class AiChatModelOption(
+data class AiChatProvider(
     val id: String,
     val label: String
 )
 
-val aiChatModelOptions: List<AiChatModelOption> = listOf(
-    AiChatModelOption(id = "gpt-5.4", label = "GPT-5.4"),
-    AiChatModelOption(id = "gpt-5.2", label = "GPT-5.2"),
-    AiChatModelOption(id = "gpt-4.1", label = "GPT-4.1"),
-    AiChatModelOption(id = "gpt-4.1-mini", label = "GPT-4.1 Mini"),
-    AiChatModelOption(id = "gpt-4.1-nano", label = "GPT-4.1 Nano"),
-    AiChatModelOption(id = "claude-opus-4-6", label = "Claude Opus 4.6"),
-    AiChatModelOption(id = "claude-sonnet-4-6", label = "Claude Sonnet 4.6"),
-    AiChatModelOption(id = "claude-haiku-4-5", label = "Claude Haiku 4.5")
+data class AiChatReasoning(
+    val effort: String,
+    val label: String
+)
+
+data class AiChatFeatures(
+    val modelPickerEnabled: Boolean,
+    val dictationEnabled: Boolean,
+    val attachmentsEnabled: Boolean
+)
+
+data class AiChatServerModel(
+    val id: String,
+    val label: String,
+    val badgeLabel: String
+)
+
+data class AiChatServerConfig(
+    val provider: AiChatProvider,
+    val model: AiChatServerModel,
+    val reasoning: AiChatReasoning,
+    val features: AiChatFeatures
+)
+
+data class AiChatSessionSnapshot(
+    val sessionId: String,
+    val runState: String,
+    val updatedAtMillis: Long,
+    val mainContentInvalidationVersion: Long,
+    val messages: List<AiChatMessage>,
+    val chatConfig: AiChatServerConfig
+)
+
+val defaultAiChatServerConfig: AiChatServerConfig = AiChatServerConfig(
+    provider = AiChatProvider(
+        id = "openai",
+        label = aiChatDefaultProviderLabel
+    ),
+    model = AiChatServerModel(
+        id = aiChatDefaultModelId,
+        label = aiChatDefaultModelLabel,
+        badgeLabel = "$aiChatDefaultModelLabel · $aiChatDefaultReasoningLabel"
+    ),
+    reasoning = AiChatReasoning(
+        effort = aiChatDefaultReasoningEffort,
+        label = aiChatDefaultReasoningLabel
+    ),
+    features = AiChatFeatures(
+        modelPickerEnabled = false,
+        dictationEnabled = true,
+        attachmentsEnabled = true
+    )
 )
 
 enum class AiChatRole {
@@ -119,14 +166,13 @@ data class AiChatMessage(
 
 data class AiChatPersistedState(
     val messages: List<AiChatMessage>,
-    val selectedModelId: String,
     val chatSessionId: String,
-    val codeInterpreterContainerId: String?
-)
-
-data class AiChatUserContext(
-    val totalCards: Int
-)
+    val codeInterpreterContainerId: String?,
+    val lastKnownChatConfig: AiChatServerConfig?
+) {
+    val selectedModelId: String
+        get() = effectiveAiChatServerConfig(lastKnownChatConfig).model.id
+}
 
 sealed interface AiChatWireContentPart {
     data class Text(
@@ -153,19 +199,10 @@ sealed interface AiChatWireContentPart {
     ) : AiChatWireContentPart
 }
 
-data class AiChatWireMessage(
-    val role: String,
-    val content: List<AiChatWireContentPart>
-)
-
 data class AiChatTurnRequest(
-    val messages: List<AiChatWireMessage>,
-    val model: String,
+    val sessionId: String?,
+    val content: List<AiChatWireContentPart>,
     val timezone: String,
-    val devicePlatform: String,
-    val chatSessionId: String,
-    val codeInterpreterContainerId: String?,
-    val userContext: AiChatUserContext
 )
 
 data class AiToolCallRequest(
@@ -214,7 +251,8 @@ sealed interface AiChatStreamEvent {
 
 data class AiChatStreamOutcome(
     val requestId: String?,
-    val codeInterpreterContainerId: String?
+    val chatSessionId: String,
+    val chatConfig: AiChatServerConfig?
 )
 
 data class StoredGuestAiSession(
@@ -232,45 +270,37 @@ fun makeAiChatSessionId(): String {
 fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
     return AiChatPersistedState(
         messages = emptyList(),
-        selectedModelId = aiChatDefaultModelId,
         chatSessionId = makeAiChatSessionId(),
-        codeInterpreterContainerId = null
+        codeInterpreterContainerId = null,
+        lastKnownChatConfig = null
     )
 }
 
-fun buildAiChatWireMessages(messages: List<AiChatMessage>): List<AiChatWireMessage> {
-    return messages.map { message ->
-        AiChatWireMessage(
-            role = when (message.role) {
-                AiChatRole.USER -> "user"
-                AiChatRole.ASSISTANT -> "assistant"
-            },
-            content = message.content.mapNotNull { part ->
-                when (part) {
-                    is AiChatContentPart.Text -> AiChatWireContentPart.Text(text = part.text)
-                    is AiChatContentPart.Image -> AiChatWireContentPart.Image(
-                        mediaType = part.mediaType,
-                        base64Data = part.base64Data
-                    )
+fun buildAiChatRequestContent(content: List<AiChatContentPart>): List<AiChatWireContentPart> {
+    return content.mapNotNull { part ->
+        when (part) {
+            is AiChatContentPart.Text -> AiChatWireContentPart.Text(text = part.text)
+            is AiChatContentPart.Image -> AiChatWireContentPart.Image(
+                mediaType = part.mediaType,
+                base64Data = part.base64Data
+            )
 
-                    is AiChatContentPart.File -> AiChatWireContentPart.File(
-                        fileName = part.fileName,
-                        mediaType = part.mediaType,
-                        base64Data = part.base64Data
-                    )
+            is AiChatContentPart.File -> AiChatWireContentPart.File(
+                fileName = part.fileName,
+                mediaType = part.mediaType,
+                base64Data = part.base64Data
+            )
 
-                    is AiChatContentPart.ToolCall -> AiChatWireContentPart.ToolCall(
-                        toolCallId = part.toolCall.toolCallId,
-                        name = part.toolCall.name,
-                        status = part.toolCall.status,
-                        input = part.toolCall.input,
-                        output = part.toolCall.output
-                    )
+            is AiChatContentPart.ToolCall -> AiChatWireContentPart.ToolCall(
+                toolCallId = part.toolCall.toolCallId,
+                name = part.toolCall.name,
+                status = part.toolCall.status,
+                input = part.toolCall.input,
+                output = part.toolCall.output
+            )
 
-                    is AiChatContentPart.AccountUpgradePrompt -> null
-                }
-            }
-        )
+            is AiChatContentPart.AccountUpgradePrompt -> null
+        }
     }
 }
 
@@ -300,26 +330,8 @@ fun requireSupportedAiChatAttachmentExtension(fileExtension: String) {
     }
 }
 
-fun enforceAllowedAiChatModel(
-    selectedModelId: String,
-    isLinked: Boolean
-): String {
-    if (isLinked) {
-        return selectedModelId
-    }
-
-    return aiChatDefaultModelId
-}
-
-fun availableAiChatModels(isLinked: Boolean): List<AiChatModelOption> {
-    if (isLinked) {
-        return aiChatModelOptions
-    }
-
-    return listOf(
-        AiChatModelOption(
-            id = aiChatDefaultModelId,
-            label = "GPT-5.4"
-        )
-    )
+fun effectiveAiChatServerConfig(
+    persistedConfig: AiChatServerConfig?
+): AiChatServerConfig {
+    return persistedConfig ?: defaultAiChatServerConfig
 }

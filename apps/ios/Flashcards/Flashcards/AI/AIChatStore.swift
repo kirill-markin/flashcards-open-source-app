@@ -88,7 +88,7 @@ final class AIChatStore {
     var inputText: String
     private(set) var messages: [AIChatMessage]
     private(set) var pendingAttachments: [AIChatAttachment]
-    private(set) var selectedModelId: String
+    private(set) var serverChatConfig: AIChatServerConfig
     private(set) var isStreaming: Bool
     private(set) var dictationState: AIChatDictationState
     private(set) var activeAlert: AIChatAlert?
@@ -150,7 +150,7 @@ final class AIChatStore {
         self.inputText = ""
         self.messages = persistedState.messages
         self.pendingAttachments = []
-        self.selectedModelId = persistedState.selectedModelId
+        self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.chatSessionId = persistedState.chatSessionId
         self.codeInterpreterContainerId = persistedState.codeInterpreterContainerId
         self.isStreaming = false
@@ -161,11 +161,7 @@ final class AIChatStore {
         self.activeDictationTask = nil
         self.activeWarmUpTask = nil
         self.activeConversationId = nil
-        self.enforceAllowedSelectedModelIfNeeded()
-    }
-
-    var isModelLocked: Bool {
-        self.isStreaming || self.messages.isEmpty == false || self.usesGuestAIRestrictions
+        self.refreshServerConfigIfPossible()
     }
 
     var canSendMessage: Bool {
@@ -173,10 +169,6 @@ final class AIChatStore {
             && self.dictationState == .idle
             && self.hasExternalProviderConsent
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
-    }
-
-    var availableModels: [AIChatModelDef] {
-        self.usesGuestAIRestrictions ? [AIChatModelDef(id: aiChatDefaultModelId, label: "GPT-5.4")] : AIChatModelDef.all
     }
 
     var usesGuestAIRestrictions: Bool {
@@ -187,20 +179,10 @@ final class AIChatStore {
         hasAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
     }
 
-    func setSelectedModel(modelId: String) {
-        if self.isModelLocked {
+    func appendAttachment(_ attachment: AIChatAttachment) {
+        guard self.serverChatConfig.features.attachmentsEnabled else {
             return
         }
-
-        self.selectedModelId = modelId
-        self.enforceAllowedSelectedModelIfNeeded()
-        let state = self.currentPersistedState()
-        Task {
-            await self.historyStore.saveState(state: state)
-        }
-    }
-
-    func appendAttachment(_ attachment: AIChatAttachment) {
         guard self.hasExternalProviderConsent else {
             self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
             return
@@ -242,9 +224,9 @@ final class AIChatStore {
         self.activeConversationId = nil
         let clearedState = AIChatPersistedState(
             messages: [],
-            selectedModelId: self.selectedModelId,
             chatSessionId: makeAIChatSessionId(),
-            codeInterpreterContainerId: nil
+            codeInterpreterContainerId: nil,
+            lastKnownChatConfig: self.serverChatConfig
         )
         self.chatSessionId = clearedState.chatSessionId
         self.codeInterpreterContainerId = clearedState.codeInterpreterContainerId
@@ -272,7 +254,7 @@ final class AIChatStore {
         self.inputText = ""
         self.messages = persistedState.messages
         self.pendingAttachments = []
-        self.selectedModelId = persistedState.selectedModelId
+        self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.chatSessionId = persistedState.chatSessionId
         self.codeInterpreterContainerId = persistedState.codeInterpreterContainerId
         self.isStreaming = false
@@ -281,7 +263,7 @@ final class AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
-        self.enforceAllowedSelectedModelIfNeeded()
+        self.refreshServerConfigIfPossible()
     }
 
     func cancelStreaming() {
@@ -297,6 +279,10 @@ final class AIChatStore {
     }
 
     func toggleDictation() {
+        guard self.serverChatConfig.features.dictationEnabled || self.dictationState != .idle else {
+            return
+        }
+
         switch self.dictationState {
         case .idle:
             guard self.hasExternalProviderConsent else {
@@ -379,7 +365,6 @@ final class AIChatStore {
         }
 
         let tapStartedAt = Date()
-        self.enforceAllowedSelectedModelIfNeeded()
 
         let content = self.makeOutgoingContent()
         if content.isEmpty {
@@ -614,9 +599,9 @@ final class AIChatStore {
     private func currentPersistedState() -> AIChatPersistedState {
         return AIChatPersistedState(
             messages: self.messages,
-            selectedModelId: self.selectedModelId,
             chatSessionId: self.chatSessionId,
-            codeInterpreterContainerId: self.codeInterpreterContainerId
+            codeInterpreterContainerId: self.codeInterpreterContainerId,
+            lastKnownChatConfig: self.serverChatConfig
         )
     }
 
@@ -639,9 +624,19 @@ final class AIChatStore {
         }
     }
 
-    private func enforceAllowedSelectedModelIfNeeded() {
-        if self.usesGuestAIRestrictions && self.selectedModelId != aiChatDefaultModelId {
-            self.selectedModelId = aiChatDefaultModelId
+    private func refreshServerConfigIfPossible() {
+        guard self.hasExternalProviderConsent else {
+            return
+        }
+
+        Task {
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                let serverConfig = try await self.chatService.loadServerConfig(session: session)
+                self.serverChatConfig = serverConfig
+                await self.historyStore.saveState(state: self.currentPersistedState())
+            } catch {
+            }
         }
     }
 
