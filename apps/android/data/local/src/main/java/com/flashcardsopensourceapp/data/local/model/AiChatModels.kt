@@ -167,12 +167,8 @@ data class AiChatMessage(
 data class AiChatPersistedState(
     val messages: List<AiChatMessage>,
     val chatSessionId: String,
-    val codeInterpreterContainerId: String?,
     val lastKnownChatConfig: AiChatServerConfig?
-) {
-    val selectedModelId: String
-        get() = effectiveAiChatServerConfig(lastKnownChatConfig).model.id
-}
+)
 
 sealed interface AiChatWireContentPart {
     data class Text(
@@ -199,7 +195,7 @@ sealed interface AiChatWireContentPart {
     ) : AiChatWireContentPart
 }
 
-data class AiChatTurnRequest(
+data class AiChatStartRunRequest(
     val sessionId: String?,
     val content: List<AiChatWireContentPart>,
     val timezone: String,
@@ -271,7 +267,6 @@ fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
     return AiChatPersistedState(
         messages = emptyList(),
         chatSessionId = makeAiChatSessionId(),
-        codeInterpreterContainerId = null,
         lastKnownChatConfig = null
     )
 }

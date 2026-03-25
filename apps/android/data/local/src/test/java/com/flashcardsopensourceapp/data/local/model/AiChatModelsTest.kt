@@ -6,35 +6,27 @@ import org.junit.Test
 
 class AiChatModelsTest {
     @Test
-    fun buildAiChatWireMessagesIncludesImageAndFileContent() {
-        val messages = listOf(
-            AiChatMessage(
-                messageId = "message-1",
-                role = AiChatRole.USER,
-                content = listOf(
-                    AiChatContentPart.Image(
-                        fileName = "photo.jpg",
-                        mediaType = "image/jpeg",
-                        base64Data = "abc"
-                    ),
-                    AiChatContentPart.File(
-                        fileName = "notes.md",
-                        mediaType = "text/markdown",
-                        base64Data = "def"
-                    ),
-                    AiChatContentPart.Text(text = "Summarize these")
-                ),
-                timestampMillis = 1L,
-                isError = false
-            )
+    fun buildAiChatRequestContentIncludesImageAndFileContent() {
+        val content = listOf(
+            AiChatContentPart.Image(
+                fileName = "photo.jpg",
+                mediaType = "image/jpeg",
+                base64Data = "abc"
+            ),
+            AiChatContentPart.File(
+                fileName = "notes.md",
+                mediaType = "text/markdown",
+                base64Data = "def"
+            ),
+            AiChatContentPart.Text(text = "Summarize these")
         )
 
-        val wireMessages = buildAiChatWireMessages(messages = messages)
+        val requestContent = buildAiChatRequestContent(content = content)
 
-        assertEquals(1, wireMessages.size)
-        assertTrue(wireMessages.single().content[0] is AiChatWireContentPart.Image)
-        assertTrue(wireMessages.single().content[1] is AiChatWireContentPart.File)
-        assertTrue(wireMessages.single().content[2] is AiChatWireContentPart.Text)
+        assertEquals(3, requestContent.size)
+        assertTrue(requestContent[0] is AiChatWireContentPart.Image)
+        assertTrue(requestContent[1] is AiChatWireContentPart.File)
+        assertTrue(requestContent[2] is AiChatWireContentPart.Text)
     }
 
     @Test

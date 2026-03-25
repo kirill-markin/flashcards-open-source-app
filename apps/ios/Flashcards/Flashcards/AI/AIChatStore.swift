@@ -97,12 +97,11 @@ final class AIChatStore {
 
     @ObservationIgnored private let flashcardsStore: FlashcardsStore
     @ObservationIgnored private let historyStore: any AIChatHistoryStoring
-    @ObservationIgnored private let chatService: any AIChatStreaming
+    @ObservationIgnored private let chatService: any AIChatSessionServicing
     @ObservationIgnored private let voiceRecorder: any AIChatVoiceRecording
     @ObservationIgnored private let audioTranscriber: any AIChatAudioTranscribing
     @ObservationIgnored private let runtime: AIChatSessionRuntime
     @ObservationIgnored private var chatSessionId: String
-    @ObservationIgnored private var codeInterpreterContainerId: String?
     @ObservationIgnored private var activeSendTask: Task<Void, Never>?
     @ObservationIgnored private var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored private var activeWarmUpTask: Task<Void, Never>?
@@ -111,7 +110,7 @@ final class AIChatStore {
     convenience init(
         flashcardsStore: FlashcardsStore,
         historyStore: any AIChatHistoryStoring,
-        chatService: any AIChatStreaming,
+        chatService: any AIChatSessionServicing,
         contextLoader: any AIChatContextLoading
     ) {
         self.init(
@@ -127,7 +126,7 @@ final class AIChatStore {
     init(
         flashcardsStore: FlashcardsStore,
         historyStore: any AIChatHistoryStoring,
-        chatService: any AIChatStreaming,
+        chatService: any AIChatSessionServicing,
         contextLoader: any AIChatContextLoading,
         voiceRecorder: any AIChatVoiceRecording,
         audioTranscriber: any AIChatAudioTranscribing
@@ -140,9 +139,7 @@ final class AIChatStore {
         self.runtime = AIChatSessionRuntime(
             historyStore: historyStore,
             chatService: chatService,
-            contextLoader: contextLoader,
-            streamFlushInterval: 0.1,
-            historyCheckpointInterval: 2.0
+            contextLoader: contextLoader
         )
 
         historyStore.activateWorkspace(workspaceId: flashcardsStore.workspace?.workspaceId)
@@ -152,7 +149,6 @@ final class AIChatStore {
         self.pendingAttachments = []
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.chatSessionId = persistedState.chatSessionId
-        self.codeInterpreterContainerId = persistedState.codeInterpreterContainerId
         self.isStreaming = false
         self.dictationState = .idle
         self.activeAlert = nil
@@ -161,7 +157,7 @@ final class AIChatStore {
         self.activeDictationTask = nil
         self.activeWarmUpTask = nil
         self.activeConversationId = nil
-        self.refreshServerConfigIfPossible()
+        self.refreshSnapshotIfPossible()
     }
 
     var canSendMessage: Bool {
@@ -225,13 +221,28 @@ final class AIChatStore {
         let clearedState = AIChatPersistedState(
             messages: [],
             chatSessionId: makeAIChatSessionId(),
-            codeInterpreterContainerId: nil,
             lastKnownChatConfig: self.serverChatConfig
         )
         self.chatSessionId = clearedState.chatSessionId
-        self.codeInterpreterContainerId = clearedState.codeInterpreterContainerId
         Task {
             await self.historyStore.saveState(state: clearedState)
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                let response = try await self.chatService.resetSession(
+                    session: session,
+                    sessionId: nil
+                )
+                await MainActor.run {
+                    self.chatSessionId = response.sessionId
+                    self.serverChatConfig = response.chatConfig
+                }
+                await self.historyStore.saveState(state: AIChatPersistedState(
+                    messages: [],
+                    chatSessionId: response.sessionId,
+                    lastKnownChatConfig: response.chatConfig
+                ))
+            } catch {
+            }
         }
     }
 
@@ -256,14 +267,13 @@ final class AIChatStore {
         self.pendingAttachments = []
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.chatSessionId = persistedState.chatSessionId
-        self.codeInterpreterContainerId = persistedState.codeInterpreterContainerId
         self.isStreaming = false
         self.dictationState = .idle
         self.activeAlert = nil
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
-        self.refreshServerConfigIfPossible()
+        self.refreshSnapshotIfPossible()
     }
 
     func cancelStreaming() {
@@ -364,8 +374,6 @@ final class AIChatStore {
             return
         }
 
-        let tapStartedAt = Date()
-
         let content = self.makeOutgoingContent()
         if content.isEmpty {
             return
@@ -381,7 +389,6 @@ final class AIChatStore {
         let conversationId = UUID().uuidString.lowercased()
 
         let task = Task {
-            var diagnosticsSession: CloudLinkedSession?
             var didStartStreamingRequest = false
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
@@ -409,29 +416,17 @@ final class AIChatStore {
                 self.isStreaming = true
                 self.activeConversationId = conversationId
                 didStartStreamingRequest = true
-                diagnosticsSession = session
                 let initialState = self.currentPersistedState()
-                let result = await self.runtime.run(
+                await self.runtime.run(
                     session: session,
                     initialState: initialState,
-                    tapStartedAt: tapStartedAt,
+                    outgoingContent: content,
                     eventHandler: { [weak self] event in
                         await self?.handleRuntimeEvent(event, conversationId: conversationId)
                     }
                 )
-                if let diagnosticsBody = result.failureReportBody, let diagnosticsSession {
-                    Task {
-                        await self.chatService.reportFailureDiagnostics(session: diagnosticsSession, body: diagnosticsBody)
-                    }
-                }
-                if let latencyReportBody = result.latencyReportBody, let diagnosticsSession {
-                    Task {
-                        await self.chatService.reportLatencyDiagnostics(session: diagnosticsSession, body: latencyReportBody)
-                    }
-                }
                 let latestPersistedState = self.historyStore.loadState()
                 self.chatSessionId = latestPersistedState.chatSessionId
-                self.codeInterpreterContainerId = latestPersistedState.codeInterpreterContainerId
                 if session.authorization.isGuest == false {
                     do {
                         _ = try await self.flashcardsStore.runLinkedSync(linkedSession: session)
@@ -600,7 +595,6 @@ final class AIChatStore {
         return AIChatPersistedState(
             messages: self.messages,
             chatSessionId: self.chatSessionId,
-            codeInterpreterContainerId: self.codeInterpreterContainerId,
             lastKnownChatConfig: self.serverChatConfig
         )
     }
@@ -608,7 +602,6 @@ final class AIChatStore {
     private func handleSendMessageError(_ error: Error, didStartStreamingRequest: Bool) {
         let latestPersistedState = self.historyStore.loadState()
         self.chatSessionId = latestPersistedState.chatSessionId
-        self.codeInterpreterContainerId = latestPersistedState.codeInterpreterContainerId
         self.repairStatus = nil
         self.isStreaming = false
 
@@ -624,7 +617,7 @@ final class AIChatStore {
         }
     }
 
-    private func refreshServerConfigIfPossible() {
+    private func refreshSnapshotIfPossible() {
         guard self.hasExternalProviderConsent else {
             return
         }
@@ -632,9 +625,11 @@ final class AIChatStore {
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let serverConfig = try await self.chatService.loadServerConfig(session: session)
-                self.serverChatConfig = serverConfig
-                await self.historyStore.saveState(state: self.currentPersistedState())
+                let snapshot = try await self.chatService.loadSnapshot(
+                    session: session,
+                    sessionId: self.chatSessionId
+                )
+                self.applySnapshot(snapshot)
             } catch {
             }
         }
@@ -646,14 +641,10 @@ final class AIChatStore {
         }
 
         switch event {
-        case .appendAssistantText(let text):
-            self.appendAssistantText(text: text)
+        case .applySnapshot(let snapshot):
+            self.applySnapshot(snapshot)
         case .appendAssistantAccountUpgradePrompt(let message, let buttonTitle):
             self.appendAssistantAccountUpgradePrompt(message: message, buttonTitle: buttonTitle)
-        case .upsertToolCall(let toolCall):
-            self.upsertToolCall(toolCall: toolCall)
-        case .setRepairStatus(let status):
-            self.repairStatus = status
         case .finish:
             self.repairStatus = nil
             if self.activeConversationId == conversationId {
@@ -668,54 +659,14 @@ final class AIChatStore {
         }
     }
 
-    private func appendAssistantText(text: String) {
-        guard let lastIndex = self.messages.indices.last else {
-            return
+    private func applySnapshot(_ snapshot: AIChatSessionSnapshot) {
+        self.messages = snapshot.messages
+        self.chatSessionId = snapshot.sessionId
+        self.serverChatConfig = snapshot.chatConfig
+        self.isStreaming = snapshot.runState == "running"
+        Task {
+            await self.historyStore.saveState(state: self.currentPersistedState())
         }
-        guard self.messages[lastIndex].role == .assistant else {
-            return
-        }
-
-        let lastMessage = self.messages[lastIndex]
-        self.messages[lastIndex] = AIChatMessage(
-            id: lastMessage.id,
-            role: lastMessage.role,
-            content: appendingAIChatText(content: lastMessage.content, text: text),
-            timestamp: lastMessage.timestamp,
-            isError: lastMessage.isError
-        )
-    }
-
-    private func upsertToolCall(toolCall: AIChatToolCall) {
-        guard let lastIndex = self.messages.indices.last else {
-            return
-        }
-        guard self.messages[lastIndex].role == .assistant else {
-            return
-        }
-
-        self.repairStatus = nil
-        let lastMessage = self.messages[lastIndex]
-        var updatedContent = removingOptimisticAIChatStatus(content: lastMessage.content)
-        if let contentIndex = updatedContent.firstIndex(where: { part in
-            guard case .toolCall(let existingToolCall) = part else {
-                return false
-            }
-
-            return existingToolCall.id == toolCall.id
-        }) {
-            updatedContent[contentIndex] = .toolCall(toolCall)
-        } else {
-            updatedContent.append(.toolCall(toolCall))
-        }
-
-        self.messages[lastIndex] = AIChatMessage(
-            id: lastMessage.id,
-            role: lastMessage.role,
-            content: updatedContent,
-            timestamp: lastMessage.timestamp,
-            isError: lastMessage.isError
-        )
     }
 
     private func markAssistantError(message: String) {

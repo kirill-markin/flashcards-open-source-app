@@ -125,7 +125,7 @@ interface AiChatRepository {
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
     suspend fun clearPersistedState(workspaceId: String?)
     suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot?
-    suspend fun resetChatSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot
+    suspend fun resetSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot
     suspend fun transcribeAudio(
         workspaceId: String?,
         fileName: String,
@@ -133,7 +133,7 @@ interface AiChatRepository {
         audioBytes: ByteArray
     ): String
     suspend fun warmUpLinkedSession()
-    suspend fun streamTurn(
+    suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
         content: List<com.flashcardsopensourceapp.data.local.model.AiChatContentPart>,

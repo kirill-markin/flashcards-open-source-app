@@ -3,6 +3,8 @@ import Foundation
 let aiChatHistoryStorageKey: String = "ai-chat-history"
 let aiChatHistoryStorageKeyPrefix: String = "ai-chat-history::"
 private let aiChatMaxMessages: Int = 200
+private let aiChatHistoryCleanupVersionKey: String = "ai-chat-history-cleanup-version"
+private let aiChatHistoryCleanupVersion: Int = 1
 
 func makeAIChatHistoryStorageKey(workspaceId: String) -> String {
     "\(aiChatHistoryStorageKeyPrefix)\(workspaceId)"
@@ -46,11 +48,11 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     func loadState() -> AIChatPersistedState {
+        self.resetLegacyStateIfNeeded()
         guard let data = self.userDefaults.data(forKey: self.storageKey()) else {
             return AIChatPersistedState(
                 messages: [],
                 chatSessionId: makeAIChatSessionId(),
-                codeInterpreterContainerId: nil,
                 lastKnownChatConfig: nil
             )
         }
@@ -61,7 +63,6 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
             return AIChatPersistedState(
                 messages: trimmedMessages,
                 chatSessionId: state.chatSessionId,
-                codeInterpreterContainerId: state.codeInterpreterContainerId,
                 lastKnownChatConfig: state.lastKnownChatConfig
             )
         } catch {
@@ -69,17 +70,16 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
             return AIChatPersistedState(
                 messages: [],
                 chatSessionId: makeAIChatSessionId(),
-                codeInterpreterContainerId: nil,
                 lastKnownChatConfig: nil
             )
         }
     }
 
     func saveState(state: AIChatPersistedState) async {
+        self.resetLegacyStateIfNeeded()
         let trimmedState = AIChatPersistedState(
             messages: Array(state.messages.suffix(aiChatMaxMessages)),
             chatSessionId: state.chatSessionId,
-            codeInterpreterContainerId: state.codeInterpreterContainerId,
             lastKnownChatConfig: state.lastKnownChatConfig
         )
 
@@ -101,5 +101,15 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
         }
 
         return makeAIChatHistoryStorageKey(workspaceId: workspaceId)
+    }
+
+    private func resetLegacyStateIfNeeded() {
+        let storedVersion = self.userDefaults.integer(forKey: aiChatHistoryCleanupVersionKey)
+        if storedVersion >= aiChatHistoryCleanupVersion {
+            return
+        }
+
+        clearStoredAIChatHistories(userDefaults: self.userDefaults)
+        self.userDefaults.set(aiChatHistoryCleanupVersion, forKey: aiChatHistoryCleanupVersionKey)
     }
 }

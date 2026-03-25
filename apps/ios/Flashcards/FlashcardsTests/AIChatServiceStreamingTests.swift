@@ -5,9 +5,9 @@ import XCTest
 final class AIChatServiceStreamingTests: AIChatTestCaseBase {
     func testAIChatServiceFormatsApiErrorsWithRequestId() async throws {
         AIChatMockUrlProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/turn")
+            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat")
+            XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
-            XCTAssertEqual(try readTotalCards(from: request), 3)
 
             let response = HTTPURLResponse(
                 url: try XCTUnwrap(request.url),
@@ -29,27 +29,15 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
             encoder: JSONEncoder(),
             decoder: JSONDecoder()
         )
-        let latencyRecorder = LatencyRecorder()
 
         do {
-            _ = try await service.streamTurn(
-                session: CloudLinkedSession(
-                    userId: "user-1",
-                    workspaceId: "workspace-1",
-                    email: "user@example.com",
-                    configurationMode: .official,
-                    apiBaseUrl: "https://api.example.com",
-                    authorization: .bearer("test-token")
-                ),
-                request: self.makeRequestBody(text: "hello"),
-                tapStartedAt: Date(timeIntervalSince1970: 0),
-                onDelta: { _ in },
-                onToolCall: { _ in },
-                onToolCallRequest: { _ in },
-                onRepairAttempt: { _ in },
-                onLatencyReported: { body in
-                    await latencyRecorder.record(body)
-                }
+            _ = try await service.startRun(
+                session: self.makeLinkedSession(),
+                request: AIChatStartRunRequestBody(
+                    sessionId: "session-1",
+                    content: [.text("hello")],
+                    timezone: "Europe/Madrid"
+                )
             )
             XCTFail("Expected invalid response error")
         } catch let error as AIChatServiceError {
@@ -62,36 +50,45 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
                 """
             )
         }
-
-        let latencyBody = await latencyRecorder.latest()
-        XCTAssertEqual(latencyBody?.kind, "latency")
-        XCTAssertEqual(latencyBody?.result, AIChatLatencyResult.responseNotOk.rawValue)
-        XCTAssertEqual(latencyBody?.statusCode, 403)
-        XCTAssertEqual(latencyBody?.didReceiveFirstSseLine, false)
-        XCTAssertEqual(latencyBody?.didReceiveFirstDelta, false)
     }
 
-    func testAIChatServiceReadsSequentialSSEEventsWithoutFramingFailure() async throws {
+    func testAIChatServiceStartsRunsWithCompactBackendOwnedRequestShape() async throws {
         AIChatMockUrlProtocol.requestHandler = { request in
-            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat/turn")
-            XCTAssertEqual(try readTotalCards(from: request), 3)
+            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat")
+            XCTAssertEqual(request.httpMethod, "POST")
+
+            let bodyData = try XCTUnwrap(request.httpBody)
+            let jsonObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+            XCTAssertEqual(jsonObject["sessionId"] as? String, "session-1")
+            XCTAssertEqual(jsonObject["timezone"] as? String, "Europe/Madrid")
+            XCTAssertNil(jsonObject["messages"])
+            XCTAssertNil(jsonObject["model"])
+            XCTAssertNil(jsonObject["userContext"])
+
+            let content = try XCTUnwrap(jsonObject["content"] as? [[String: Any]])
+            XCTAssertEqual(content.count, 1)
+            XCTAssertEqual(content[0]["type"] as? String, "text")
+            XCTAssertEqual(content[0]["text"] as? String, "hello")
 
             let response = HTTPURLResponse(
                 url: try XCTUnwrap(request.url),
                 statusCode: 200,
                 httpVersion: nil,
-                headerFields: [
-                    "Content-Type": "text/event-stream",
-                    "X-Chat-Request-Id": "request-stream-1"
-                ]
+                headerFields: ["Content-Type": "application/json"]
             )!
             let data = """
-            data: {"type":"delta","text":"Hi"}
-
-            data: {"type":"delta","text":"!"}
-
-            data: {"type":"done"}
-
+            {
+              "ok": true,
+              "sessionId": "session-1",
+              "runId": "run-1",
+              "runState": "running",
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": { "modelPickerEnabled": false, "dictationEnabled": true, "attachmentsEnabled": true }
+              }
+            }
             """.data(using: .utf8)!
             return (response, data)
         }
@@ -101,58 +98,55 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
             encoder: JSONEncoder(),
             decoder: JSONDecoder()
         )
-        let recorder = DeltaRecorder()
-        let latencyRecorder = LatencyRecorder()
 
-        let outcome = try await service.streamTurn(
-            session: CloudLinkedSession(
-                userId: "user-1",
-                workspaceId: "workspace-1",
-                email: "user@example.com",
-                configurationMode: .official,
-                apiBaseUrl: "https://api.example.com",
-                authorization: .bearer("test-token")
-            ),
-            request: self.makeRequestBody(text: "say hi"),
-            tapStartedAt: Date(timeIntervalSince1970: 0),
-            onDelta: { text in
-                await recorder.append(text)
-            },
-            onToolCall: { _ in },
-            onToolCallRequest: { _ in },
-            onRepairAttempt: { _ in },
-            onLatencyReported: { body in
-                await latencyRecorder.record(body)
-            }
+        let response = try await service.startRun(
+            session: self.makeLinkedSession(),
+            request: AIChatStartRunRequestBody(
+                sessionId: "session-1",
+                content: [.text("hello")],
+                timezone: "Europe/Madrid"
+            )
         )
 
-        let deltas = await recorder.snapshot()
-        let latencyBody = await latencyRecorder.latest()
-        XCTAssertEqual(deltas, ["Hi", "!"])
-        XCTAssertEqual(outcome.requestId, "request-stream-1")
-        XCTAssertFalse(outcome.awaitsToolResults)
-        XCTAssertTrue(outcome.requestedToolCalls.isEmpty)
-        XCTAssertEqual(latencyBody?.kind, "latency")
-        XCTAssertEqual(latencyBody?.result, AIChatLatencyResult.success.rawValue)
-        XCTAssertEqual(latencyBody?.firstEventType, "delta")
-        XCTAssertEqual(latencyBody?.didReceiveFirstSseLine, true)
-        XCTAssertEqual(latencyBody?.didReceiveFirstDelta, true)
-        XCTAssertNil(latencyBody?.backendRequestId?.range(of: "user@example.com"))
+        XCTAssertEqual(response.sessionId, "session-1")
+        XCTAssertEqual(response.runId, "run-1")
+        XCTAssertEqual(response.chatConfig.model.id, aiChatDefaultModelId)
     }
 
-    func testAIChatServiceMapsAvailabilityErrorsForCustomServers() async throws {
+    func testAIChatServiceLoadsServerSnapshotsFromChatEndpoint() async throws {
         AIChatMockUrlProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat?sessionId=session-1")
+            XCTAssertEqual(request.httpMethod, "GET")
+
             let response = HTTPURLResponse(
                 url: try XCTUnwrap(request.url),
-                statusCode: 503,
+                statusCode: 200,
                 httpVersion: nil,
-                headerFields: [
-                    "Content-Type": "application/json",
-                    "X-Request-Id": "request-availability-1"
-                ]
+                headerFields: ["Content-Type": "application/json"]
             )!
             let data = """
-            {"error":"AI chat is not configured on this server.","requestId":"request-availability-1","code":"LOCAL_CHAT_NOT_CONFIGURED"}
+            {
+              "sessionId": "session-1",
+              "runState": "idle",
+              "updatedAt": 1742811200000,
+              "mainContentInvalidationVersion": 0,
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": { "modelPickerEnabled": false, "dictationEnabled": true, "attachmentsEnabled": true }
+              },
+              "messages": [
+                {
+                  "messageId": "message-1",
+                  "role": "assistant",
+                  "content": [{ "type": "text", "text": "Stored answer" }],
+                  "timestamp": 1742811200000,
+                  "isError": false,
+                  "isStopped": false
+                }
+              ]
+            }
             """.data(using: .utf8)!
             return (response, data)
         }
@@ -163,70 +157,93 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
             decoder: JSONDecoder()
         )
 
-        do {
-            _ = try await service.streamTurn(
-                session: CloudLinkedSession(
-                    userId: "user-1",
-                    workspaceId: "workspace-1",
-                    email: "user@example.com",
-                    configurationMode: .custom,
-                    apiBaseUrl: "https://api.example.com",
-                    authorization: .bearer("test-token")
-                ),
-                request: self.makeRequestBody(text: "hello"),
-                tapStartedAt: nil,
-                onDelta: { _ in },
-                onToolCall: { _ in },
-                onToolCallRequest: { _ in },
-                onRepairAttempt: { _ in },
-                onLatencyReported: { _ in }
-            )
-            XCTFail("Expected invalid response error")
-        } catch let error as AIChatServiceError {
-            XCTAssertEqual(
-                error.errorDescription,
-                """
-                AI chat request failed with status 503: AI is unavailable on this server. Contact the server operator. Reference: request-availability-1
-                Request: request-availability-1
-                Stage: response_not_ok
-                """
-            )
-        }
-    }
-
-    private func makeRequestBody(text: String) -> AILocalChatRequestBody {
-        AILocalChatRequestBody(
-            messages: [
-                AILocalChatWireMessage(
-                    role: "user",
-                    content: [.text(text)]
-                )
-            ],
-            model: aiChatDefaultModelId,
-            timezone: "Europe/Madrid",
-            devicePlatform: "ios",
-            chatSessionId: "session-1",
-            codeInterpreterContainerId: nil,
-            userContext: AILocalChatUserContext(totalCards: 3)
+        let snapshot = try await service.loadSnapshot(
+            session: self.makeLinkedSession(),
+            sessionId: "session-1"
         )
-    }
-}
 
-private func readTotalCards(from request: URLRequest) throws -> Int {
-    let bodyData = try XCTUnwrap(request.httpBody)
-    let jsonObject = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
-    let userContext = try XCTUnwrap(jsonObject?["userContext"] as? [String: Any])
-    return try XCTUnwrap(userContext["totalCards"] as? Int)
-}
-
-private actor LatencyRecorder {
-    private var bodies: [AIChatLatencyReportBody] = []
-
-    func record(_ body: AIChatLatencyReportBody) {
-        self.bodies.append(body)
+        XCTAssertEqual(snapshot.sessionId, "session-1")
+        XCTAssertEqual(snapshot.runState, "idle")
+        XCTAssertEqual(snapshot.messages.count, 1)
+        XCTAssertEqual(snapshot.messages[0].text, "Stored answer")
     }
 
-    func latest() -> AIChatLatencyReportBody? {
-        self.bodies.last
+    func testAIChatServiceUsesResetAndStopEndpoints() async throws {
+        var seenUrls: [String] = []
+        AIChatMockUrlProtocol.requestHandler = { request in
+            seenUrls.append(try XCTUnwrap(request.url?.absoluteString))
+
+            if request.url?.path == "/chat", request.httpMethod == "DELETE" {
+                let response = HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                let data = """
+                {
+                  "ok": true,
+                  "sessionId": "session-reset",
+                  "chatConfig": {
+                    "provider": { "id": "openai", "label": "OpenAI" },
+                    "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                    "reasoning": { "effort": "medium", "label": "Medium" },
+                    "features": { "modelPickerEnabled": false, "dictationEnabled": true, "attachmentsEnabled": true }
+                  }
+                }
+                """.data(using: .utf8)!
+                return (response, data)
+            }
+
+            let response = HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let data = """
+            {
+              "ok": true,
+              "sessionId": "session-1",
+              "runId": "run-1",
+              "stopped": true,
+              "stillRunning": false
+            }
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = AIChatService(
+            session: self.makeSession(),
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let resetResponse = try await service.resetSession(
+            session: self.makeLinkedSession(),
+            sessionId: "session-1"
+        )
+        let stopResponse = try await service.stopRun(
+            session: self.makeLinkedSession(),
+            sessionId: "session-1"
+        )
+
+        XCTAssertEqual(resetResponse.sessionId, "session-reset")
+        XCTAssertTrue(stopResponse.stopped)
+        XCTAssertEqual(seenUrls, [
+            "https://api.example.com/chat?sessionId=session-1",
+            "https://api.example.com/chat/stop"
+        ])
+    }
+
+    private func makeLinkedSession() -> CloudLinkedSession {
+        CloudLinkedSession(
+            userId: "user-1",
+            workspaceId: "workspace-1",
+            email: "user@example.com",
+            configurationMode: .official,
+            apiBaseUrl: "https://api.example.com",
+            authorization: .bearer("test-token")
+        )
     }
 }
