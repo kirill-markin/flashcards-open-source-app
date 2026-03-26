@@ -1,3 +1,7 @@
+/**
+ * Route factory and request parsing for the backend-owned chat surface.
+ * These routes accept user turn input, resolve or create server-owned sessions, and schedule persisted runs for asynchronous execution.
+ */
 import { Hono } from "hono";
 import { getChatConfig, isBackendOwnedChatEnabled, type ChatConfig } from "../chat/config";
 import {
@@ -100,6 +104,9 @@ const LEGACY_CHAT_REQUEST_FIELDS = [
   "thinkingLevel",
 ] as const;
 
+/**
+ * Accepts nullable string fields in the new chat request contract without permitting empty strings.
+ */
 function expectNullableString(value: unknown, fieldName: string): string | null {
   if (value === null) {
     return null;
@@ -108,6 +115,9 @@ function expectNullableString(value: unknown, fieldName: string): string | null 
   return expectNonEmptyString(value, fieldName);
 }
 
+/**
+ * Parses one content part from the backend-owned chat request contract.
+ */
 function parseChatContentPart(value: unknown, context: string): ChatContentPart {
   const body = expectRecord(value);
   const type = expectNonEmptyString(body.type, `${context}.type`);
@@ -155,6 +165,9 @@ function parseChatContentPart(value: unknown, context: string): ChatContentPart 
   throw new HttpError(400, `${context}.type is invalid`);
 }
 
+/**
+ * Parses the user-supplied content array for a backend-owned chat turn.
+ */
 function parseChatContentParts(value: unknown, context: string): ReadonlyArray<ChatContentPart> {
   if (!Array.isArray(value) || value.length === 0) {
     throw new HttpError(400, `${context} must be a non-empty array`);
@@ -163,6 +176,9 @@ function parseChatContentParts(value: unknown, context: string): ReadonlyArray<C
   return value.map((part, index) => parseChatContentPart(part, `${context}[${index}]`));
 }
 
+/**
+ * Rejects request fields that only belong to the legacy client-owned chat contract.
+ */
 function assertNoLegacyFields(body: Record<string, unknown>): void {
   for (const fieldName of LEGACY_CHAT_REQUEST_FIELDS) {
     if (fieldName in body) {
@@ -171,6 +187,9 @@ function assertNoLegacyFields(body: Record<string, unknown>): void {
   }
 }
 
+/**
+ * Parses the new backend-owned chat request body that contains only the current turn input.
+ */
 export function parseChatRequestBody(value: unknown): ChatRequestBody {
   const body = expectRecord(value);
   assertNoLegacyFields(body);
@@ -186,6 +205,9 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
   };
 }
 
+/**
+ * Parses the stop request body for cancelling the active run of a server-owned chat session.
+ */
 export function parseStopChatRequestBody(value: unknown): StopChatRequestBody {
   const body = expectRecord(value);
 
@@ -194,12 +216,18 @@ export function parseStopChatRequestBody(value: unknown): StopChatRequestBody {
   };
 }
 
+/**
+ * Hides the backend-owned chat surface until rollout enables it.
+ */
 function assertBackendOwnedChatEnabled(enabled: boolean): void {
   if (!enabled) {
     throw new HttpError(404, "Not found", "AI_CHAT_V2_DISABLED");
   }
 }
 
+/**
+ * Restricts the backend-owned chat surface to human-facing auth transports.
+ */
 function assertSupportedTransport(requestContext: RequestContext): void {
   const supportedTransports = new Set<AuthTransport>(["bearer", "session", "guest"]);
   if (supportedTransports.has(requestContext.transport)) {
@@ -242,6 +270,9 @@ type ChatResetResponse = Readonly<{
   chatConfig: ChatConfig;
 }>;
 
+/**
+ * Converts a persisted session snapshot into the response contract consumed by thin clients.
+ */
 function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryResponse {
   return {
     sessionId: snapshot.sessionId,
@@ -259,6 +290,9 @@ function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryRespon
   };
 }
 
+/**
+ * Maps store-layer errors into the HTTP error contract used by the thin chat clients.
+ */
 function mapStoreError(error: unknown): never {
   if (error instanceof ChatSessionNotFoundError) {
     throw new HttpError(404, error.message);
@@ -271,6 +305,9 @@ function mapStoreError(error: unknown): never {
   throw error;
 }
 
+/**
+ * Loads request context and enforces the auth transports supported by backend-owned chat.
+ */
 async function loadSupportedRequestContext(
   request: Request,
   allowedOrigins: ReadonlyArray<string>,
@@ -281,6 +318,9 @@ async function loadSupportedRequestContext(
   return requestContext;
 }
 
+/**
+ * Mounts the backend-owned `/chat` routes for history, start, reset, and stop operations.
+ */
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const enabled = options.enabled ?? isBackendOwnedChatEnabled();

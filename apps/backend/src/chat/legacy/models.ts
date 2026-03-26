@@ -1,3 +1,8 @@
+/**
+ * Legacy chat backend model catalog for old `/chat/turn` clients.
+ * The backend-first `/chat` endpoints use a fixed server-owned provider/model configuration instead of this chooser.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 export type ChatModelVendor = "openai" | "anthropic";
 
 export type ChatModelDef = Readonly<{

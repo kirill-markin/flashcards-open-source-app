@@ -1,3 +1,7 @@
+/**
+ * Content-ordering helpers for backend-owned assistant messages.
+ * These functions keep streamed text, tool calls, and reasoning summaries stable inside persisted chat items.
+ */
 import type {
   ContentPart,
   ReasoningSummaryContentPart,
@@ -45,6 +49,9 @@ const normalizeResponseIndex = (
 ): number =>
   responseIndex ?? 0;
 
+/**
+ * Rejects assistant content that still uses the pre-stream-position format.
+ */
 const assertSupportedAssistantContent = (
   content: ReadonlyArray<ContentPart>,
 ): void => {
@@ -65,6 +72,9 @@ const normalizeSequenceNumber = (
 ): number =>
   sequenceNumber === null ? Number.MAX_SAFE_INTEGER : sequenceNumber;
 
+/**
+ * Orders streamed assistant parts so persisted content can be rebuilt deterministically across reconnects.
+ */
 export const compareStreamPosition = (
   left: StreamPosition,
   right: StreamPosition,
@@ -164,6 +174,9 @@ const isSameReasoningSummary = (
 ): boolean =>
   existing.streamPosition.itemId === incoming.streamPosition.itemId;
 
+/**
+ * Appends streamed assistant text while preserving deterministic part ordering.
+ */
 export const appendAssistantTextContent = (
   content: ReadonlyArray<ContentPart>,
   params: AppendAssistantTextParams,
@@ -193,6 +206,9 @@ export const appendAssistantTextContent = (
   });
 };
 
+/**
+ * Upserts one tool-call snapshot into persisted assistant content.
+ */
 export const upsertToolCallContent = (
   content: ReadonlyArray<ContentPart>,
   toolCall: ToolCallContentPart,
@@ -254,6 +270,9 @@ export const upsertToolCallContent = (
   });
 };
 
+/**
+ * Upserts one reasoning summary snapshot into persisted assistant content.
+ */
 export const upsertReasoningSummaryContent = (
   content: ReadonlyArray<ContentPart>,
   reasoningSummary: ReasoningSummaryContentPart,
@@ -287,6 +306,9 @@ export const upsertReasoningSummaryContent = (
   return insertOrderedAssistantPart(content, reasoningSummary);
 };
 
+/**
+ * Marks any still-open tool calls as completed when a run stops before provider output arrives.
+ */
 export const finalizePendingToolCallContent = (
   content: ReadonlyArray<ContentPart>,
   providerStatus: string,
@@ -305,6 +327,9 @@ export const finalizePendingToolCallContent = (
     };
   });
 
+/**
+ * Applies a terminal assistant error to the stored message list without losing earlier successful content.
+ */
 export const applyAssistantError = (
   messages: ReadonlyArray<StoredMessage>,
   errorText: string,

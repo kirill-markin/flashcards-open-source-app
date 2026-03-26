@@ -1,3 +1,7 @@
+/**
+ * Tool-call state machine for the backend-owned OpenAI loop.
+ * These helpers merge provider deltas into stable tool-call events that can be persisted and replayed.
+ */
 import type { ChatStreamEvent } from "../types";
 
 export const INTERRUPTED_TOOL_CALL_OUTPUT = "Interrupted before output was captured.";
@@ -103,6 +107,9 @@ function createToolCallEvent(
   };
 }
 
+/**
+ * Returns the stable tool-call identifier required to merge provider updates across events.
+ */
 export function getRequiredToolCallId(rawItem: FunctionToolCallRawItem | ToolCallOutputRawItem): string {
   if ("callId" in rawItem && typeof rawItem.callId === "string" && rawItem.callId.length > 0) {
     return rawItem.callId;
@@ -221,6 +228,9 @@ function findToolStateByItemId(toolStates: ToolCallStateMap, itemId: string): To
   return null;
 }
 
+/**
+ * Merges a new provider snapshot onto the last known tool-call snapshot without losing earlier metadata.
+ */
 function mergeToolCallSnapshot(previousSnapshot: ToolCallEvent, nextSnapshot: ToolCallEvent): ToolCallEvent {
   return createToolCallEvent(
     nextSnapshot.id,
@@ -237,10 +247,16 @@ function mergeToolCallSnapshot(previousSnapshot: ToolCallEvent, nextSnapshot: To
   );
 }
 
+/**
+ * Creates the empty tool-call state map used by each OpenAI loop invocation.
+ */
 export function createToolCallStateMap(): ToolCallStateMap {
   return new Map();
 }
 
+/**
+ * Applies a provider function-call start/update event to the tracked tool-call state.
+ */
 export function applyToolCallStarted(
   toolStates: ToolCallStateMap,
   rawItem: FunctionToolCallRawItem,
@@ -269,6 +285,9 @@ export function applyToolCallStarted(
   };
 }
 
+/**
+ * Appends streamed function-call argument deltas to the tracked tool-call snapshot.
+ */
 export function applyFunctionCallArgumentsDelta(
   toolStates: ToolCallStateMap,
   deltaEvent: FunctionCallArgumentsDeltaEvent,
@@ -300,6 +319,9 @@ export function applyFunctionCallArgumentsDelta(
   };
 }
 
+/**
+ * Applies the final function-call arguments payload emitted by the provider.
+ */
 export function applyFunctionCallArgumentsDone(
   toolStates: ToolCallStateMap,
   doneEvent: FunctionCallArgumentsDoneEvent,
@@ -331,6 +353,9 @@ export function applyFunctionCallArgumentsDone(
   };
 }
 
+/**
+ * Applies a completed tool output event and marks the tracked tool call as finished.
+ */
 export function applyToolCallOutput(
   toolStates: ToolCallStateMap,
   rawItem: ToolCallOutputRawItem,

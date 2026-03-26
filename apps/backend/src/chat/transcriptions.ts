@@ -1,3 +1,7 @@
+/**
+ * Backend-owned audio transcription helpers used by dictation before the user reviews and sends the draft.
+ * The upload is validated and transcribed on the server so the chat surface stays resilient across reconnects.
+ */
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import OpenAI, { toFile } from "openai";
@@ -55,10 +59,16 @@ type ChatTranscriptionFailureDetails = Readonly<{
   error: string;
 }>;
 
+/**
+ * Creates the OpenAI transcription client used by the shared dictation path.
+ */
 function createOpenAITranscriptionClient(): OpenAITranscriptionClient {
   return new OpenAI();
 }
 
+/**
+ * Normalizes uploaded filenames so extension checks stay consistent across platforms.
+ */
 function normalizeFileExtension(fileName: string): string | null {
   const extensionIndex = fileName.lastIndexOf(".");
   if (extensionIndex < 0 || extensionIndex === fileName.length - 1) {
@@ -68,6 +78,9 @@ function normalizeFileExtension(fileName: string): string | null {
   return fileName.slice(extensionIndex + 1).toLowerCase();
 }
 
+/**
+ * Validates whether an uploaded dictation file matches the server-supported audio formats.
+ */
 function isSupportedAudioUpload(file: File): boolean {
   const normalizedMediaType = file.type.trim().toLowerCase();
   const normalizedExtension = normalizeFileExtension(file.name);
@@ -76,6 +89,9 @@ function isSupportedAudioUpload(file: File): boolean {
     || (normalizedExtension !== null && SUPPORTED_AUDIO_FILE_EXTENSIONS.has(normalizedExtension));
 }
 
+/**
+ * Parses and validates the multipart upload accepted by the shared dictation endpoint.
+ */
 export async function parseChatTranscriptionUpload(request: Request): Promise<ChatTranscriptionUpload> {
   let formData: FormData;
 
@@ -113,11 +129,17 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
   };
 }
 
+/**
+ * Extracts the upstream provider message used by transcription error normalization.
+ */
 function getUpstreamMessage(error: unknown): string | null {
   const message = getAIProviderFailureMetadata(error).upstreamMessage;
   return message === "" ? null : message;
 }
 
+/**
+ * Detects provider messages that should be exposed as invalid-audio errors to the user.
+ */
 function isInvalidAudioMessage(message: string | null): boolean {
   if (message === null) {
     return false;
@@ -126,6 +148,9 @@ function isInvalidAudioMessage(message: string | null): boolean {
   return /corrupted|unsupported|processing failed|unprocessable/i.test(message);
 }
 
+/**
+ * Classifies whether a provider failure should become a user-facing invalid-audio response.
+ */
 function isInvalidAudioFailure(error: unknown): boolean {
   const upstreamStatus = getAIProviderFailureMetadata(error).upstreamStatus;
   if (upstreamStatus === null) {
@@ -135,6 +160,9 @@ function isInvalidAudioFailure(error: unknown): boolean {
   return [400, 415, 422, 500].includes(upstreamStatus) && isInvalidAudioMessage(getUpstreamMessage(error));
 }
 
+/**
+ * Logs transcription failures with structured provider metadata for debugging.
+ */
 function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): void {
   console.error(JSON.stringify({
     domain: "chat",
@@ -153,6 +181,9 @@ function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): 
   }));
 }
 
+/**
+ * Sends a validated audio upload to OpenAI and returns the trimmed transcript text.
+ */
 export async function transcribeChatAudioUpload(
   upload: ChatTranscriptionUpload,
   client?: OpenAITranscriptionClient,

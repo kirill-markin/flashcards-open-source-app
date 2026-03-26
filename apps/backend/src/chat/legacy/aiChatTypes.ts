@@ -1,8 +1,14 @@
+/**
+ * Legacy chat backend wire types for old `/chat/turn` clients.
+ * The backend-first `/chat` stack persists sessions, items, and runs with a different server-owned model.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 export type AIChatDevicePlatform = "ios" | "android" | "web";
 
 /**
- * High-level user facts injected into the system prompt before the model
- * reaches for workspace SQL. Keep this small, factual, and easy to extend.
+ * High-level user facts for the legacy `/chat/turn` prompt contract.
+ * The backend-first `/chat` stack derives and persists chat context differently on the server.
+ * TODO: Remove this legacy type after most users have updated to app versions that use the new chat endpoints.
  */
 export type AIChatUserContext = Readonly<{
   totalCards: number;

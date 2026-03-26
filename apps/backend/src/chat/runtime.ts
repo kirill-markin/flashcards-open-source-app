@@ -1,3 +1,7 @@
+/**
+ * Backend-owned run executor for persisted chat sessions.
+ * The worker uses this module to consume provider events, update the assistant item incrementally, and finalize run state independently of client connections.
+ */
 import OpenAI from "openai";
 import {
   appendAssistantTextContent,
@@ -83,11 +87,17 @@ const DEFAULT_CHAT_RUNTIME_DEPENDENCIES: ChatRuntimeDependencies = {
   endTaskProtection: async (): Promise<void> => undefined,
 };
 
+/**
+ * Narrows the provider abort case used when a user stop request interrupts the active run.
+ */
 function isUserAbortError(error: unknown): boolean {
   return error instanceof OpenAI.APIUserAbortError
     || (error instanceof Error && error.name === "AbortError");
 }
 
+/**
+ * Converts one streamed tool-call event into the persisted assistant content-part shape.
+ */
 function createToolCallContentPart(
   event: Extract<ChatStreamEvent, { type: "tool_call" }>,
 ): ToolCallContentPart {
@@ -109,6 +119,9 @@ function createToolCallContentPart(
   };
 }
 
+/**
+ * Converts one streamed reasoning summary into the persisted assistant content-part shape.
+ */
 function createReasoningSummaryContentPart(
   event: Extract<ChatStreamEvent, { type: "reasoning_summary" }>,
 ): ReasoningSummaryContentPart {
@@ -125,6 +138,9 @@ function createReasoningSummaryContentPart(
   };
 }
 
+/**
+ * Applies one streamed assistant text delta to the persisted assistant content array.
+ */
 function applyAssistantDelta(
   content: ReadonlyArray<ContentPart>,
   event: Extract<ChatStreamEvent, { type: "delta" }>,
@@ -141,6 +157,9 @@ function applyAssistantDelta(
   });
 }
 
+/**
+ * Persists the in-progress assistant item after ordinary streamed updates.
+ */
 async function updateAssistantInProgress(
   dependencies: ChatRuntimeDependencies,
   userId: string,
@@ -155,6 +174,9 @@ async function updateAssistantInProgress(
   });
 }
 
+/**
+ * Persists tool-call progress and invalidates main content when a completed tool requests a UI refresh.
+ */
 async function persistToolCallProgress(
   dependencies: ChatRuntimeDependencies,
   userId: string,
@@ -199,6 +221,9 @@ async function persistToolCallProgress(
   seenInvalidationVersions.set(event.id, mainContentInvalidationVersion);
 }
 
+/**
+ * Finalizes any open tool calls when the run stops before a terminal provider event arrives.
+ */
 function finalizeAssistantToolCalls(
   assistantContent: ReadonlyArray<ContentPart>,
 ): ReadonlyArray<ContentPart> {
@@ -209,6 +234,9 @@ function finalizeAssistantToolCalls(
   );
 }
 
+/**
+ * Runs one persisted chat session using injectable dependencies for tests and worker orchestration.
+ */
 export async function runPersistedChatSessionWithDeps(
   params: StartPersistedChatRunParams,
   dependencies: ChatRuntimeDependencies,
@@ -377,6 +405,9 @@ export async function runPersistedChatSessionWithDeps(
   }
 }
 
+/**
+ * Runs one persisted chat session with the production runtime dependencies.
+ */
 export async function runPersistedChatSession(
   params: StartPersistedChatRunParams,
 ): Promise<void> {

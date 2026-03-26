@@ -1,3 +1,7 @@
+/**
+ * Run lifecycle orchestration for backend-owned chat sessions.
+ * This module prepares queued runs, recovers stale work, coordinates worker ownership, and finalizes persisted run state.
+ */
 import type { QueryResultRow } from "pg";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
@@ -466,6 +470,9 @@ async function recoverStaleRunWithExecutor(
   return true;
 }
 
+/**
+ * Builds the diagnostic payload that travels with a claimed run into the worker runtime.
+ */
 function createDiagnostics(
   scope: WorkspaceDatabaseScope,
   run: ChatRunRow,
@@ -486,6 +493,9 @@ function createDiagnostics(
   };
 }
 
+/**
+ * Returns a session snapshot and recovers any stale active run before the snapshot is returned to a client.
+ */
 export async function getRecoveredChatSessionSnapshot(
   userId: string,
   workspaceId: string,
@@ -508,6 +518,9 @@ export async function getRecoveredChatSessionSnapshot(
   });
 }
 
+/**
+ * Persists the user turn, creates the assistant placeholder, and enqueues a new run for the target session.
+ */
 export async function prepareChatRun(
   userId: string,
   workspaceId: string,
@@ -568,6 +581,9 @@ export async function prepareChatRun(
   });
 }
 
+/**
+ * Claims a queued or stale running chat run for worker execution and rebuilds the local replay context.
+ */
 export async function claimChatRun(
   userId: string,
   workspaceId: string,
@@ -642,6 +658,9 @@ export async function claimChatRun(
   });
 }
 
+/**
+ * Refreshes worker ownership for a claimed run and reports whether cancellation or ownership loss occurred.
+ */
 export async function touchClaimedChatRunHeartbeat(
   userId: string,
   workspaceId: string,
@@ -693,6 +712,9 @@ export async function touchClaimedChatRunHeartbeat(
   });
 }
 
+/**
+ * Finalizes a claimed run as completed and clears the session's active-run pointer.
+ */
 export async function completeClaimedChatRun(
   userId: string,
   workspaceId: string,
@@ -733,6 +755,9 @@ export async function completeClaimedChatRun(
   });
 }
 
+/**
+ * Persists the terminal assistant state for a failed or interrupted run and finalizes the run status.
+ */
 export async function persistClaimedChatRunTerminalError(
   userId: string,
   workspaceId: string,
@@ -802,6 +827,9 @@ export async function persistClaimedChatRunTerminalError(
   });
 }
 
+/**
+ * Persists the stopped assistant state for a user-cancelled run and finalizes the run status.
+ */
 export async function persistClaimedChatRunCancelled(
   userId: string,
   workspaceId: string,
@@ -842,6 +870,9 @@ export async function persistClaimedChatRunCancelled(
   });
 }
 
+/**
+ * Marks a queued run as interrupted when worker dispatch fails before any worker can claim it.
+ */
 export async function markQueuedChatRunDispatchFailed(
   userId: string,
   workspaceId: string,
@@ -859,6 +890,9 @@ export async function markQueuedChatRunDispatchFailed(
   });
 }
 
+/**
+ * Requests cancellation for the active run of a session and returns whether the run stopped immediately.
+ */
 export async function requestChatRunCancellation(
   userId: string,
   workspaceId: string,

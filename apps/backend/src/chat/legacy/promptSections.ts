@@ -1,17 +1,42 @@
+/**
+ * Legacy chat backend prompt builders for old `/chat/turn` clients.
+ * The backend-first `/chat` stack builds and replays server-owned prompts differently.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 import { SQL_TOOL_PROMPT_EXAMPLE_LINES } from "../../aiTools/sqlToolContract";
 
+/**
+ * This legacy chat backend helper joins prompt lines for old `/chat/turn` prompt assembly.
+ * The backend-first `/chat` stack composes prompts through a different server-owned runtime flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");
 }
 
+/**
+ * This legacy chat backend helper assembles prompt sections for old `/chat/turn` clients.
+ * The backend-first `/chat` stack builds prompts differently around persisted sessions and runs.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildPromptFromSections(sections: ReadonlyArray<string>): string {
   return sections.filter((section) => section !== "").join("\n\n");
 }
 
+/**
+ * This legacy chat backend helper defines the assistant role prompt for old `/chat/turn` clients.
+ * The backend-first `/chat` stack owns its system prompt through a different server-side contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildAssistantRoleSection(): string {
   return "You are a flashcards assistant for an offline-first flashcards app.";
 }
 
+/**
+ * This legacy chat backend helper defines the cloud workspace prompt section for old `/chat/turn` clients.
+ * The backend-first `/chat` stack no longer relies on this legacy cloud/local prompt split.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildCloudWorkspaceSection(): string {
   return joinLines([
     "You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.",
@@ -20,6 +45,11 @@ export function buildCloudWorkspaceSection(): string {
   ]);
 }
 
+/**
+ * This legacy chat backend helper defines the local workspace prompt section for old `/chat/turn` clients.
+ * The backend-first `/chat` stack represents workspace access through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildLocalWorkspaceSection(): string {
   return joinLines([
     "You work over the synced workspace state managed by the backend.",
@@ -27,6 +57,11 @@ export function buildLocalWorkspaceSection(): string {
   ]);
 }
 
+/**
+ * This legacy chat backend helper defines the card-side prompt rules for old `/chat/turn` clients.
+ * The backend-first `/chat` stack enforces the same product contract through a different server-owned chat flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildCardSideContractSection(): string {
   return joinLines([
     "Card side contract:",
@@ -42,6 +77,11 @@ export function buildCardSideContractSection(): string {
   ]);
 }
 
+/**
+ * This legacy chat backend helper defines card-effort prompt rules for old `/chat/turn` clients.
+ * The backend-first `/chat` stack keeps this guidance in a different server-owned prompt pipeline.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildCardEffortSection(): string {
   return joinLines([
     "Card effort rules:",
@@ -52,6 +92,11 @@ export function buildCardEffortSection(): string {
   ]);
 }
 
+/**
+ * This legacy chat backend helper defines plain-text reply rules for old `/chat/turn` clients.
+ * The backend-first `/chat` stack formats replies through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildPlainTextChatFormattingSection(): string {
   return joinLines([
     "Chat response formatting:",
@@ -65,6 +110,11 @@ export function buildPlainTextChatFormattingSection(): string {
   ]);
 }
 
+/**
+ * This legacy chat backend helper wraps write-policy prompt lines for old `/chat/turn` clients.
+ * The backend-first `/chat` stack assembles tool and write policies through a different server-owned prompt flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildWritePolicySection(lines: ReadonlyArray<string>): string {
   return joinLines([
     "Write policy:",
@@ -72,6 +122,11 @@ export function buildWritePolicySection(lines: ReadonlyArray<string>): string {
   ]);
 }
 
+/**
+ * This legacy chat backend helper returns shared write-policy lines for old `/chat/turn` clients.
+ * The backend-first `/chat` stack keeps write constraints in a different server-owned prompt contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildSharedWritePolicyLines(): ReadonlyArray<string> {
   return [
     "- Before any create, update, or delete tool call, you MUST first describe the exact changes you plan to make.",
@@ -87,6 +142,11 @@ export function buildSharedWritePolicyLines(): ReadonlyArray<string> {
   ];
 }
 
+/**
+ * This legacy chat backend helper returns cloud-specific write-policy lines for old `/chat/turn` clients.
+ * The backend-first `/chat` stack does not use this legacy cloud-vs-local split.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildCloudWritePolicyLines(): ReadonlyArray<string> {
   return [
     ...buildSharedWritePolicyLines(),
@@ -96,6 +156,11 @@ export function buildCloudWritePolicyLines(): ReadonlyArray<string> {
   ];
 }
 
+/**
+ * This legacy chat backend helper returns local write-policy lines for old `/chat/turn` clients.
+ * The backend-first `/chat` stack keeps equivalent guidance in a different server-owned prompt pipeline.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildLocalWritePolicyLines(): ReadonlyArray<string> {
   return [
     "- Before any create, update, or delete tool call, you must first describe the exact changes you plan to make.",
@@ -113,14 +178,29 @@ export function buildLocalWritePolicyLines(): ReadonlyArray<string> {
   ];
 }
 
+/**
+ * This legacy chat backend helper defines concise-style guidance for old `/chat/turn` clients.
+ * The backend-first `/chat` stack keeps reply-style guidance in a different server-owned prompt contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildConciseStyleSection(): string {
   return "Be concise, direct, and operational.";
 }
 
+/**
+ * This legacy chat backend helper defines cloud-only capabilities for old `/chat/turn` clients.
+ * The backend-first `/chat` stack no longer routes through this legacy cloud capability layer.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildCloudCapabilitiesSection(): string {
   return "When helpful, use web search for current information and code execution for calculations, text transforms, or attachment analysis.";
 }
 
+/**
+ * This legacy chat backend helper defines tool-call rules for old `/chat/turn` clients.
+ * The backend-first `/chat` stack enforces tool-call structure through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildLocalToolCallRulesSection(): string {
   return joinLines([
     "Tool-call rules:",
@@ -139,8 +219,9 @@ export function buildLocalToolCallRulesSection(): string {
 }
 
 /**
- * Local tool-call examples are sourced from the SQL tool contract layer so
- * prompt examples cannot drift from validator and schema definitions.
+ * This legacy chat backend helper sources tool-call examples for old `/chat/turn` clients.
+ * The backend-first `/chat` stack documents tool usage through a different server-owned runtime path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function buildLocalToolCallExamplesSection(): string {
   return joinLines([
@@ -149,6 +230,11 @@ export function buildLocalToolCallExamplesSection(): string {
   ]);
 }
 
+/**
+ * This legacy chat backend helper defines repair guidance for old `/chat/turn` clients.
+ * The backend-first `/chat` stack drives tool-call repair through a different server-owned runtime loop.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildLocalRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
@@ -157,8 +243,9 @@ export function buildLocalRepairSection(): string {
 }
 
 /**
- * Keep this block limited to short, stable user facts that help the model
- * start from the right high-level context without replacing workspace tools.
+ * This legacy chat backend helper defines lightweight user context for old `/chat/turn` clients.
+ * The backend-first `/chat` stack now keeps session and run context on the server differently.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function buildUserContextSection(totalCards: number): string {
   return joinLines([
@@ -167,6 +254,11 @@ export function buildUserContextSection(totalCards: number): string {
   ]);
 }
 
+/**
+ * This legacy chat backend helper renders current timestamps into the old `/chat/turn` prompt.
+ * The backend-first `/chat` stack injects time context through a different server-owned prompt flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildDatetimeSection(timezone: string): string {
   const now = new Date();
   const utc = now.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");

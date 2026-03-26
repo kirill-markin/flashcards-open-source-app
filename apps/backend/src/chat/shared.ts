@@ -1,3 +1,7 @@
+/**
+ * Shared system-prompt builders for the backend-owned chat stack.
+ * These helpers keep the new server-owned chat contract aligned across routes, runtime, and replay.
+ */
 import { SQL_TOOL_PROMPT_EXAMPLE_LINES } from "../aiTools/sqlToolContract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
@@ -106,6 +110,9 @@ function buildDatetimeSection(timezone: string): string {
   return `Current datetime - UTC: ${utc} | User local (${timezone}): ${local}`;
 }
 
+/**
+ * Builds the canonical system instructions for backend-owned chat turns.
+ */
 export function buildSystemInstructions(timezone: string): string {
   return buildPromptFromSections([
     buildAssistantRoleSection(),

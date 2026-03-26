@@ -1,3 +1,7 @@
+/**
+ * Tool execution bridge for backend-owned OpenAI chat.
+ * The runtime always routes provider tool calls through this module so SQL validation and output envelopes stay consistent.
+ */
 import type OpenAI from "openai";
 import { HttpError } from "../../errors";
 import { ensureAIChatSyncDevice } from "../../aiChatSyncIdentity";
@@ -112,6 +116,9 @@ const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
   createToolDependencies,
 };
 
+/**
+ * Executes one provider tool call with injectable dependencies for tests and loop orchestration.
+ */
 export async function executeChatToolCallWithDependencies(
   toolName: string,
   rawArguments: string,
@@ -168,6 +175,9 @@ export async function executeChatToolCallWithDependencies(
   }
 }
 
+/**
+ * Executes one provider tool call with the production dependency set.
+ */
 export async function executeChatToolCall(
   toolName: string,
   rawArguments: string,

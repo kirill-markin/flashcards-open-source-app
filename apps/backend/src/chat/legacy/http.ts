@@ -1,3 +1,8 @@
+/**
+ * Legacy chat backend HTTP parsing and streaming for old `/chat/turn` clients.
+ * The backend-first `/chat` endpoints store sessions and runs on the server and expose a different contract.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 import { HttpError } from "../../errors";
 import {
   assertGuestAiLimitAvailable,
@@ -82,6 +87,11 @@ type AIChatStructuredError = Error & Readonly<{
   classification: string;
 }>;
 
+/**
+ * This legacy chat backend helper parses one content part from the old `/chat/turn` request body.
+ * The backend-first `/chat` endpoints accept a different server-owned request contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function parseAIChatContentPart(
   value: unknown,
   context: string,
@@ -143,6 +153,11 @@ function parseAIChatContentPart(
   throw new HttpError(400, `${context}.type is invalid`);
 }
 
+/**
+ * This legacy chat backend helper parses content-part arrays from old `/chat/turn` requests.
+ * The backend-first `/chat` stack validates content against a different server-owned contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function parseAIChatContentParts(
   value: unknown,
   context: string,
@@ -154,6 +169,11 @@ function parseAIChatContentParts(
   return value.map((partValue, index) => parseAIChatContentPart(partValue, `${context}[${index}]`));
 }
 
+/**
+ * This legacy chat backend helper parses message history from old `/chat/turn` requests.
+ * The backend-first `/chat` endpoints own transcript state on the server instead of trusting client-provided history.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function parseAIChatMessages(value: unknown): ReadonlyArray<AIChatWireMessage> {
   if (!Array.isArray(value) || value.length === 0) {
     throw new HttpError(400, "messages must be a non-empty array");
@@ -188,6 +208,11 @@ function parseAIChatMessages(value: unknown): ReadonlyArray<AIChatWireMessage> {
   });
 }
 
+/**
+ * This legacy chat backend helper parses lightweight user context from old `/chat/turn` requests.
+ * The backend-first `/chat` stack builds server-owned session context differently.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function parseAIChatUserContext(value: unknown): AIChatUserContext {
   const body = expectRecord(value);
 
@@ -196,6 +221,11 @@ function parseAIChatUserContext(value: unknown): AIChatUserContext {
   };
 }
 
+/**
+ * This legacy chat backend entrypoint parses the old `/chat/turn` request contract.
+ * The backend-first `/chat` endpoints use a session-based server-owned contract instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function parseAIChatTurnRequestBody(value: unknown): AIChatTurnRequestBody {
   const body = expectRecord(value);
   const model = expectNonEmptyString(body.model, "model");
@@ -218,6 +248,11 @@ export function parseAIChatTurnRequestBody(value: unknown): AIChatTurnRequestBod
   };
 }
 
+/**
+ * This legacy chat backend helper creates structured runtime errors for the old `/chat/turn` flow.
+ * The backend-first `/chat` stack persists run failures in server-owned chat records instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function makeAIChatStructuredError(
   message: string,
   code: string,
@@ -231,6 +266,11 @@ function makeAIChatStructuredError(
   });
 }
 
+/**
+ * This legacy chat backend helper validates boolean diagnostic fields for old `/chat/turn` clients.
+ * The backend-first `/chat` stack reports diagnostics through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function expectBoolean(value: unknown, context: string): boolean {
   if (typeof value !== "boolean") {
     throw new HttpError(400, `${context} must be a boolean`);
@@ -239,6 +279,11 @@ function expectBoolean(value: unknown, context: string): boolean {
   return value;
 }
 
+/**
+ * This legacy chat backend helper validates string arrays in old `/chat/turn` diagnostics payloads.
+ * The backend-first `/chat` stack reports runtime metadata through a different server-owned contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function expectStringArray(value: unknown, context: string): ReadonlyArray<string> {
   if (!Array.isArray(value)) {
     throw new HttpError(400, `${context} must be an array`);
@@ -247,6 +292,11 @@ function expectStringArray(value: unknown, context: string): ReadonlyArray<strin
   return value.map((item, index) => expectNonEmptyString(item, `${context}[${index}]`));
 }
 
+/**
+ * This legacy chat backend entrypoint parses diagnostics emitted by old `/chat/turn` clients.
+ * The backend-first `/chat` endpoints have different server-owned observability boundaries.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function parseAIChatDiagnosticsBody(value: unknown): ParsedAIChatDiagnosticsBody {
   const body = expectRecord(value);
   const kind = expectNonEmptyString(body.kind, "kind");
@@ -304,10 +354,20 @@ export function parseAIChatDiagnosticsBody(value: unknown): ParsedAIChatDiagnost
   };
 }
 
+/**
+ * This legacy chat backend helper extracts internal error text for old `/chat/turn` failure reporting.
+ * The backend-first `/chat` stack stores normalized run failures differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * This legacy chat backend helper narrows legacy structured runtime errors from old `/chat/turn` flows.
+ * The backend-first `/chat` stack represents runtime failure state differently through persisted runs.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function getAIChatStructuredError(error: unknown): AIChatStructuredError | null {
   if (
     typeof error !== "object"
@@ -329,6 +389,11 @@ function getAIChatStructuredError(error: unknown): AIChatStructuredError | null 
   });
 }
 
+/**
+ * This legacy chat backend entrypoint logs client-side diagnostics for old `/chat/turn` flows.
+ * The backend-first `/chat` stack uses a different server-owned session and run model for diagnostics.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function logAIChatDiagnostics(
   requestContext: RequestContext,
   body: ParsedAIChatDiagnosticsBody,
@@ -357,6 +422,11 @@ export function logAIChatDiagnostics(
   }));
 }
 
+/**
+ * This legacy chat backend helper logs terminal streaming failures for old `/chat/turn` requests.
+ * The backend-first `/chat` stack persists terminal run state on the server instead of relying on this path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function logAIChatTerminalError(
   requestId: string,
   code: string,
@@ -387,6 +457,11 @@ function logAIChatTerminalError(
   }));
 }
 
+/**
+ * This legacy chat backend entrypoint creates an SSE error event for old `/chat/turn` clients.
+ * The backend-first `/chat` stack exposes failure state through server-owned sessions and runs instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function createAIChatErrorEvent(
   message: string,
   requestId: string,
@@ -402,6 +477,11 @@ export function createAIChatErrorEvent(
   };
 }
 
+/**
+ * This legacy chat backend helper converts thrown errors into SSE error events for old `/chat/turn` clients.
+ * The backend-first `/chat` stack derives failure state from server-owned runs instead of this legacy adapter.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function createAIChatErrorEventFromError(
   error: unknown,
   requestId: string,
@@ -433,6 +513,11 @@ function createAIChatErrorEventFromError(
   );
 }
 
+/**
+ * This legacy chat backend entrypoint creates an SSE error response for old `/chat/turn` clients.
+ * The backend-first `/chat` endpoints expose errors through a different session-based surface.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function createAIChatErrorResponse(
   message: string,
   requestId: string,
@@ -461,6 +546,11 @@ export function createAIChatErrorResponse(
   });
 }
 
+/**
+ * This legacy chat backend helper derives the provider safety identifier for old `/chat/turn` requests.
+ * The backend-first `/chat` stack manages provider context through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function getProviderSafetyUserId(requestContext: RequestContext): string | null {
   if (requestContext.transport === "none") {
     return null;
@@ -493,6 +583,11 @@ type PreparedAIChatTurnModule = Readonly<{
   }>>;
 }>;
 
+/**
+ * This legacy chat backend entrypoint streams the old `/chat/turn` response surface.
+ * The backend-first `/chat` endpoints own session state, run recovery, and streaming differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export async function streamAIChatResponse(
   body: AIChatTurnRequestBody,
   requestId: string,

@@ -1,3 +1,7 @@
+/**
+ * Route factory for the shared backend-owned dictation endpoint.
+ * The endpoint stays thin: it authenticates, enforces guest quota, and delegates upload parsing and transcription to the chat module.
+ */
 import { Hono } from "hono";
 import {
   parseChatTranscriptionUpload,
@@ -18,6 +22,9 @@ type ChatTranscriptionsRoutesOptions = Readonly<{
   transcribeAudioFn?: (upload: ChatTranscriptionUpload) => Promise<string>;
 }>;
 
+/**
+ * Mounts the shared `/chat/transcriptions` endpoint used by web and mobile dictation flows.
+ */
 export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;

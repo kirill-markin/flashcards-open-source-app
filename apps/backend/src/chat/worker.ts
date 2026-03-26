@@ -1,3 +1,7 @@
+/**
+ * Worker entrypoint for backend-owned chat runs.
+ * The HTTP route prepares and persists the run; the worker claims it and executes the model loop independently of the client connection.
+ */
 import { logCloudRouteEvent } from "../server/logging";
 import { claimChatRun } from "./runs";
 import { runPersistedChatSession } from "./runtime";
@@ -8,6 +12,9 @@ export type ChatWorkerEvent = Readonly<{
   workspaceId: string;
 }>;
 
+/**
+ * Claims and executes one persisted chat run if it is still pending.
+ */
 export async function handleChatWorkerEvent(event: ChatWorkerEvent): Promise<void> {
   const claimedRun = await claimChatRun(event.userId, event.workspaceId, event.runId);
   if (claimedRun === null) {

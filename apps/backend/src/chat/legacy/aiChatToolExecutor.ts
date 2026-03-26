@@ -1,3 +1,8 @@
+/**
+ * Legacy chat backend SQL tool execution for old `/chat/turn` clients.
+ * The backend-first `/chat` endpoints execute and persist tool progress differently on the server.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../../agentEnvelope";
 import { executeAgentSql } from "../../aiTools/agentSql";
 import {
@@ -16,6 +21,11 @@ export type AIChatToolExecutionContext = Readonly<{
   devicePlatform: "ios" | "android" | "web";
 }>;
 
+/**
+ * This legacy chat backend helper wires SQL tool dependencies for old `/chat/turn` clients.
+ * The backend-first `/chat` stack connects tools through a different server-owned runtime path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function createAIChatAgentDependencies(
   devicePlatform: "ios" | "android" | "web",
 ): AgentToolOperationDependencies {
@@ -29,6 +39,11 @@ function createAIChatAgentDependencies(
   };
 }
 
+/**
+ * This legacy chat backend helper adapts tool dependencies for old `/chat/turn` clients.
+ * The backend-first `/chat` stack wires tool execution through a different server-owned runtime path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function toToolErrorOutput(
   context: AIChatToolExecutionContext,
   error: unknown,
@@ -54,6 +69,11 @@ function toToolErrorOutput(
   ));
 }
 
+/**
+ * This legacy chat backend entrypoint executes SQL tool calls for old `/chat/turn` clients.
+ * The backend-first `/chat` stack records tool execution inside persisted sessions and runs instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export async function executeAIChatSqlTool(
   context: AIChatToolExecutionContext,
   sql: string,
