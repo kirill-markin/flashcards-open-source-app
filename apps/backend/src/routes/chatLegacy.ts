@@ -1,3 +1,8 @@
+/**
+ * Legacy chat backend routes for old `/chat/turn` clients.
+ * The backend-first `/chat` endpoints keep sessions and runs on the server and expose a different contract.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { AuthError } from "../auth";
@@ -20,6 +25,11 @@ type ChatLegacyRoutesOptions = Readonly<{
   streamAIChatResponseFn?: typeof streamAIChatResponse;
 }>;
 
+/**
+ * This legacy chat backend route factory mounts the old `/chat/turn` endpoints for pre-migration clients.
+ * The backend-first `/chat` endpoints manage sessions, runs, and recovery differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function createChatLegacyRoutes(options: ChatLegacyRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;

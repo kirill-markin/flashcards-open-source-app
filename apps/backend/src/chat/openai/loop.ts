@@ -1,3 +1,7 @@
+/**
+ * OpenAI model loop for backend-owned chat runs.
+ * The loop replays persisted history, streams provider events, executes tool calls, and returns replay items for the next recovery point.
+ */
 import type OpenAI from "openai";
 import {
   applyFunctionCallArgumentsDelta,
@@ -328,6 +332,9 @@ function buildOpenAIInput(
   ];
 }
 
+/**
+ * Returns the stable prompt cache key used for all model calls within one chat session.
+ */
 export function buildPromptCacheKey(sessionId: string): string {
   return sessionId;
 }
@@ -590,6 +597,9 @@ async function runLoopWithDeps(
   throw new Error("OpenAI chat loop exceeded the expected control flow");
 }
 
+/**
+ * Starts the OpenAI loop with injectable dependencies for tests and worker orchestration.
+ */
 export async function startOpenAILoopWithDeps(
   params: StartOpenAILoopParams,
   dependencies: OpenAILoopDependencies,
@@ -605,6 +615,9 @@ export async function startOpenAILoopWithDeps(
   };
 }
 
+/**
+ * Starts the OpenAI loop with the production dependency set.
+ */
 export async function startOpenAILoop(
   params: StartOpenAILoopParams,
 ): Promise<OpenAIStreamResult> {

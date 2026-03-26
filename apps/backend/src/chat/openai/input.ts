@@ -1,3 +1,7 @@
+/**
+ * Builds OpenAI Responses input from backend-owned chat history and the current turn input.
+ * The server reconstructs provider input from persisted messages instead of trusting client-owned transcripts.
+ */
 import type OpenAI from "openai";
 import type { ContentPart, FileContentPart, ImageContentPart } from "../types";
 import { buildSystemInstructions } from "../shared";
@@ -76,6 +80,10 @@ function stringifyJson(value: unknown): string {
   }
 }
 
+/**
+ * Removes the last user message from persisted history when it matches the current turn input exactly.
+ * This prevents replaying the same turn twice when a run is prepared after the user item is already stored.
+ */
 function normalizeHistoryMessages(
   localMessages: ReadonlyArray<ServerChatMessage>,
   turnInput: ReadonlyArray<ContentPart>,
@@ -92,6 +100,9 @@ function normalizeHistoryMessages(
   return localMessages.slice(0, -1);
 }
 
+/**
+ * Rebuilds provider replay items for assistant messages that were already persisted with OpenAI output.
+ */
 function buildAssistantHistoryItems(
   message: ServerChatMessage,
 ): ReadonlyArray<OpenAIInputItem> {
@@ -113,6 +124,9 @@ async function buildUserInputMessage(
   };
 }
 
+/**
+ * Builds the complete OpenAI Responses input array for one backend-owned chat run.
+ */
 export async function buildChatCompletionInput(
   localMessages: ReadonlyArray<ServerChatMessage>,
   turnInput: ReadonlyArray<ContentPart>,

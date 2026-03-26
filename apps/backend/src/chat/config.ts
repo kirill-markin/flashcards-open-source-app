@@ -1,3 +1,7 @@
+/**
+ * Server-owned chat configuration shared by backend routes and clients that only need display metadata.
+ * This module is the canonical source for the fixed provider, model, and reasoning settings.
+ */
 export const CHAT_VENDOR = "openai" as const;
 export const CHAT_MODEL_ID = "gpt-5.4" as const;
 export const CHAT_MODEL_REASONING_EFFORT = "medium" as const;
@@ -40,6 +44,9 @@ export const CHAT_MODEL: ChatModelDef = {
   vendor: CHAT_VENDOR,
 };
 
+/**
+ * Returns the fixed backend-owned chat configuration that clients can render but not override.
+ */
 export function getChatConfig(): ChatConfig {
   return {
     provider: {
@@ -63,6 +70,9 @@ export function getChatConfig(): ChatConfig {
   };
 }
 
+/**
+ * Gates the backend-first chat surface so legacy endpoints can stay mounted during rollout.
+ */
 export function isBackendOwnedChatEnabled(): boolean {
   const raw = process.env.AI_CHAT_V2_ENABLED;
   return raw === "1" || raw === "true";

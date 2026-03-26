@@ -1,3 +1,8 @@
+/**
+ * Legacy chat backend shared runtime helpers for old `/chat/turn` clients.
+ * The backend-first `/chat` stack persists sessions and runs on the server and no longer relies on this legacy runtime shape.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 import { Buffer } from "node:buffer";
 import { ZodError } from "zod";
 import type {
@@ -65,6 +70,11 @@ type RepairableToolCallError = Readonly<{
   rawDetails: string;
 }>;
 
+/**
+ * This legacy chat backend helper formats validation paths for old `/chat/turn` tool-call repair.
+ * The backend-first `/chat` stack validates and repairs tool calls through a different server-owned loop.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function formatIssuePath(path: ReadonlyArray<PropertyKey>): string {
   if (path.length === 0) {
     return "root";
@@ -73,6 +83,11 @@ function formatIssuePath(path: ReadonlyArray<PropertyKey>): string {
   return path.map((segment) => String(segment)).join(".");
 }
 
+/**
+ * This legacy chat backend helper formats validation paths for old `/chat/turn` tool-call repair.
+ * The backend-first `/chat` stack validates and repairs tool calls through a different server-owned loop.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function formatSchemaIssues(error: ZodError): string {
   return error.issues.map((issue) => {
     const path = formatIssuePath(issue.path);
@@ -89,6 +104,11 @@ function formatSchemaIssues(error: ZodError): string {
   }).join("; ");
 }
 
+/**
+ * This legacy chat backend helper describes the client platform in old `/chat/turn` system prompts.
+ * The backend-first `/chat` stack injects platform context through a different server-owned runtime path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function platformPromptLabel(devicePlatform: AIChatDevicePlatform): string {
   if (devicePlatform === "web") {
     return "The user is chatting with you in the web browser chat.";
@@ -101,19 +121,39 @@ function platformPromptLabel(devicePlatform: AIChatDevicePlatform): string {
   return "The user is chatting with you in the iOS app chat on iPhone.";
 }
 
+/**
+ * This legacy chat backend helper normalizes media types for old `/chat/turn` attachment handling.
+ * The backend-first `/chat` stack maps attachments through a different server-owned input pipeline.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function normalizeMediaType(mediaType: string): string {
   return mediaType.trim().toLowerCase();
 }
 
+/**
+ * This legacy chat backend helper normalizes filenames for old `/chat/turn` attachment handling.
+ * The backend-first `/chat` stack handles attachment metadata through a different server-owned flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function normalizeFileName(fileName: string): string {
   return fileName.trim().toLowerCase();
 }
 
+/**
+ * This legacy chat backend helper checks text-like file extensions for old `/chat/turn` attachments.
+ * The backend-first `/chat` stack decides attachment treatment through a different server-owned input contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function hasInlineTextFileExtension(fileName: string): boolean {
   const normalizedFileName = normalizeFileName(fileName);
   return [...INLINE_TEXT_FILE_EXTENSIONS].some((extension) => normalizedFileName.endsWith(extension));
 }
 
+/**
+ * This legacy chat backend helper recognizes CSV files for old `/chat/turn` attachments.
+ * The backend-first `/chat` stack routes spreadsheet-like input through a different server-owned pipeline.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isCsvFile(mediaType: string, fileName: string): boolean {
   const normalizedMediaType = normalizeMediaType(mediaType);
   const normalizedFileName = normalizeFileName(fileName);
@@ -122,6 +162,11 @@ function isCsvFile(mediaType: string, fileName: string): boolean {
     || normalizedFileName.endsWith(".csv");
 }
 
+/**
+ * This legacy chat backend helper recognizes spreadsheet attachments for old `/chat/turn` clients.
+ * The backend-first `/chat` stack handles file capabilities through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function isSpreadsheetFile(mediaType: string, fileName: string): boolean {
   const normalizedMediaType = normalizeMediaType(mediaType);
   const normalizedFileName = normalizeFileName(fileName);
@@ -136,6 +181,11 @@ export function isSpreadsheetFile(mediaType: string, fileName: string): boolean 
     || normalizedFileName.endsWith(".xlsx");
 }
 
+/**
+ * This legacy chat backend helper escapes XML attributes for old `/chat/turn` inline attachment blocks.
+ * The backend-first `/chat` stack no longer relies on this legacy inline-XML prompt format.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function escapeXmlAttribute(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -144,6 +194,11 @@ function escapeXmlAttribute(value: string): string {
     .replaceAll(">", "&gt;");
 }
 
+/**
+ * This legacy chat backend helper escapes XML text for old `/chat/turn` inline attachment blocks.
+ * The backend-first `/chat` stack structures attachment context through a different server-owned flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function escapeXmlText(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -151,6 +206,11 @@ function escapeXmlText(value: string): string {
     .replaceAll(">", "&gt;");
 }
 
+/**
+ * This legacy chat backend helper explains attachment handling in the old `/chat/turn` system prompt.
+ * The backend-first `/chat` stack now owns attachment processing through a different server-side contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function buildLocalAttachmentHandlingSection(): string {
   return [
     "Attachment handling:",
@@ -164,14 +224,9 @@ function buildLocalAttachmentHandlingSection(): string {
 }
 
 /**
- * Builds the canonical system instructions for backend-executed AI chat. Every
- * provider must use the same tool-call rules and write-policy wording so
- * OpenAI and Anthropic turns produce compatible SQL tool requests. The
- * attachment section documents the hybrid delivery strategy for small text
- * files and instructs models how to find mounted files inside code execution.
- *
- * iOS consumer:
- * `apps/ios/Flashcards/Flashcards/AI/AIChatSessionRuntime.swift`
+ * This legacy chat backend entrypoint builds canonical system instructions for old `/chat/turn` providers.
+ * The backend-first `/chat` stack owns prompts through a different server-owned session and run model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function buildAIChatSystemInstructions(
   timezone: string,
@@ -197,9 +252,9 @@ export function buildAIChatSystemInstructions(
 }
 
 /**
- * Returns true when a file should be considered for inline text duplication in
- * addition to tool/container delivery. CSV is intentionally excluded because
- * it is more often processed programmatically than read conversationally.
+ * This legacy chat backend helper decides whether old `/chat/turn` attachments should also be duplicated inline.
+ * The backend-first `/chat` stack handles attachment fan-out through a different server-owned input path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function isInlineTextAttachmentCandidate(part: AIChatFileContentPart): boolean {
   if (isCsvFile(part.mediaType, part.fileName)) {
@@ -219,8 +274,9 @@ export function isInlineTextAttachmentCandidate(part: AIChatFileContentPart): bo
 }
 
 /**
- * Decodes a text-like attachment as strict UTF-8 when it is small enough to
- * duplicate inline. Invalid UTF-8 and oversized files are left tool-only.
+ * This legacy chat backend helper decodes small text attachments for old `/chat/turn` inline prompt duplication.
+ * The backend-first `/chat` stack handles attachment decoding through a different server-owned pipeline.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function decodeInlineTextAttachment(part: AIChatFileContentPart): string | null {
   if (isInlineTextAttachmentCandidate(part) === false) {
@@ -240,8 +296,9 @@ export function decodeInlineTextAttachment(part: AIChatFileContentPart): string 
 }
 
 /**
- * Formats the duplicated inline text payload so the model can read small text
- * attachments directly from the prompt without guessing file boundaries.
+ * This legacy chat backend helper formats inline text attachment payloads for old `/chat/turn` prompts.
+ * The backend-first `/chat` stack does not depend on this legacy XML-like attachment block format.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function buildInlineTextAttachmentBlock(
   part: AIChatFileContentPart,
@@ -255,9 +312,9 @@ export function buildInlineTextAttachmentBlock(
 }
 
 /**
- * Explains how the same uploaded file is exposed to code execution. The hint
- * avoids promising an exact mounted filename while still pointing the model to
- * the documented /mnt/data pattern.
+ * This legacy chat backend helper explains code-execution file mounting for old `/chat/turn` prompts.
+ * The backend-first `/chat` stack delivers file context through a different server-owned attachment flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function buildExecutionEnvironmentHintBlock(part: AIChatFileContentPart): string {
   return [
@@ -271,8 +328,9 @@ export function buildExecutionEnvironmentHintBlock(part: AIChatFileContentPart):
 }
 
 /**
- * Returns the full inline attachment context for small text files. The caller
- * can append this directly as a text block next to the uploaded file handle.
+ * This legacy chat backend helper returns combined inline attachment context for old `/chat/turn` prompts.
+ * The backend-first `/chat` stack no longer relies on this legacy prompt-side attachment bundling.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function buildInlineTextAttachmentContext(part: AIChatFileContentPart): string | null {
   const textContent = decodeInlineTextAttachment(part);
@@ -286,6 +344,11 @@ export function buildInlineTextAttachmentContext(part: AIChatFileContentPart): s
   ].join("\n");
 }
 
+/**
+ * This legacy chat backend helper builds repair prompts for invalid old `/chat/turn` tool calls.
+ * The backend-first `/chat` stack repairs tool calls through a different server-owned runtime loop.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function buildRepairPrompt(toolName: string | null, details: string): string {
   return [
     "Your previous tool call arguments were invalid.",
@@ -299,6 +362,11 @@ function buildRepairPrompt(toolName: string | null, details: string): string {
   ].join("\n");
 }
 
+/**
+ * This legacy chat backend helper creates structured repair errors for old `/chat/turn` tool validation.
+ * The backend-first `/chat` stack models repair state differently inside persisted server runs.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function createRepairableToolCallError(
   toolName: string | null,
   repairPrompt: string,
@@ -311,6 +379,11 @@ function createRepairableToolCallError(
   };
 }
 
+/**
+ * This legacy chat backend helper looks up the old `/chat/turn` validator for a tool name.
+ * The backend-first `/chat` stack resolves tool schemas through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function getAIChatToolArgumentValidator(
   toolName: string,
 ): typeof OPENAI_AI_CHAT_TOOL_ARGUMENT_VALIDATORS[keyof typeof OPENAI_AI_CHAT_TOOL_ARGUMENT_VALIDATORS] | undefined {
@@ -320,9 +393,9 @@ function getAIChatToolArgumentValidator(
 }
 
 /**
- * Validates AI chat tool arguments against the shared canonical tool
- * schema. The returned JSON string is normalized and safe to persist in
- * chat history and replay in later turns.
+ * This legacy chat backend entrypoint validates tool arguments for old `/chat/turn` assistant calls.
+ * The backend-first `/chat` stack validates and persists tool input through a different server-owned flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function validateAIChatToolArguments(toolName: string, rawArguments: string): string {
   let parsedArguments: unknown;
@@ -360,6 +433,11 @@ export function validateAIChatToolArguments(toolName: string, rawArguments: stri
   return JSON.stringify(result.data);
 }
 
+/**
+ * This legacy chat backend helper narrows repairable validation errors for old `/chat/turn` flows.
+ * The backend-first `/chat` stack tracks tool-call repair state differently inside persisted runs.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function isRepairableToolCallError(error: unknown): error is RepairableToolCallError {
   return typeof error === "object"
     && error !== null
@@ -368,6 +446,11 @@ export function isRepairableToolCallError(error: unknown): error is RepairableTo
     && "rawDetails" in error;
 }
 
+/**
+ * This legacy chat backend helper creates repair status events for old `/chat/turn` streaming clients.
+ * The backend-first `/chat` stack emits recovery progress through a different server-owned runtime contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function makeAIChatRepairStatusEvent(
   attempt: number,
   toolName: string | null,
@@ -386,8 +469,9 @@ export function makeAIChatRepairStatusEvent(
 }
 
 /**
- * Normalizes one validated AI chat tool call into the persisted assistant-tool
- * record format shared by iOS and web chat histories.
+ * This legacy chat backend helper normalizes one validated tool call into the old `/chat/turn` assistant format.
+ * The backend-first `/chat` stack stores tool calls in a different server-owned item model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
  */
 export function toAIChatAssistantToolCall(
   toolCallId: string,
@@ -401,10 +485,20 @@ export function toAIChatAssistantToolCall(
   };
 }
 
+/**
+ * This legacy chat backend helper checks whether a tool name belongs to the old `/chat/turn` tool set.
+ * The backend-first `/chat` stack resolves tools through a different server-owned runtime path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function isAIChatToolName(name: string): boolean {
   return AI_CHAT_TOOL_NAME_SET.has(name);
 }
 
+/**
+ * This legacy chat backend helper summarizes content parts into the old `/chat/turn` assistant text format.
+ * The backend-first `/chat` stack stores structured content and stream positions differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function summarizeAIChatContentParts(parts: ReadonlyArray<AIChatContentPart>): string {
   return parts.map((part) => {
     if (part.type === "text") {
@@ -429,6 +523,11 @@ export function summarizeAIChatContentParts(parts: ReadonlyArray<AIChatContentPa
   }).filter((part) => part !== "").join("\n");
 }
 
+/**
+ * This legacy chat backend helper extracts normalized assistant tool calls from old `/chat/turn` content parts.
+ * The backend-first `/chat` stack persists tool calls in a different server-owned message model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function extractAIChatAssistantToolCalls(
   parts: ReadonlyArray<AIChatContentPart>,
 ): ReadonlyArray<AIChatAssistantToolCall> {
@@ -445,6 +544,11 @@ export function extractAIChatAssistantToolCalls(
   });
 }
 
+/**
+ * This legacy chat backend helper rebuilds completed tool-call content parts for old `/chat/turn` histories.
+ * The backend-first `/chat` stack stores tool progress and outputs through a different server-owned item model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function buildAssistantToolCallContentParts(
   toolCalls: ReadonlyArray<AIChatAssistantToolCall>,
   outputsByToolCallId: ReadonlyMap<string, string>,

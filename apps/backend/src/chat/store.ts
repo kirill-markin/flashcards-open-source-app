@@ -1,3 +1,7 @@
+/**
+ * Persistence helpers for backend-owned chat sessions, items, and derived snapshots.
+ * This module is the main bridge between the runtime and the `ai.chat_*` tables.
+ */
 import type { QueryResultRow } from "pg";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
@@ -324,6 +328,9 @@ function mapPersistedMessagesToStoredMessages(
   }));
 }
 
+/**
+ * Builds the lightweight replay message shape consumed by the runtime from persisted chat items.
+ */
 export function buildLocalChatMessages(
   messages: ReadonlyArray<PersistedChatMessageItem>,
 ): ReadonlyArray<ServerChatMessage> {
@@ -388,6 +395,9 @@ function toChatItemPayload(
   };
 }
 
+/**
+ * Inserts one persisted chat item inside an existing transaction scope.
+ */
 export async function insertChatItemWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -404,6 +414,9 @@ export async function insertChatItemWithExecutor(
   });
 }
 
+/**
+ * Updates one persisted assistant item inside an existing transaction scope.
+ */
 export async function updateChatItemWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -462,6 +475,9 @@ async function createChatSessionWithExecutor(
   });
 }
 
+/**
+ * Selects the requested session inside an existing transaction scope.
+ */
 export async function selectRequestedChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -490,6 +506,9 @@ async function selectLatestChatSessionWithExecutor(
   });
 }
 
+/**
+ * Resolves the requested session or throws when it does not exist for the scoped workspace.
+ */
 export async function resolveRequestedChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -503,6 +522,9 @@ export async function resolveRequestedChatSessionWithExecutor(
   throw new ChatSessionNotFoundError(sessionId);
 }
 
+/**
+ * Resolves the latest session for the workspace or creates a fresh one when none exists yet.
+ */
 export async function resolveLatestOrCreateChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -515,6 +537,9 @@ export async function resolveLatestOrCreateChatSessionWithExecutor(
   return createChatSessionWithExecutor(executor, scope);
 }
 
+/**
+ * Returns the requested session id when it exists inside the current transaction scope.
+ */
 export const getChatSessionIdWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -525,6 +550,9 @@ export const getChatSessionIdWithExecutor = async (
     return row?.session_id ?? null;
   });
 
+/**
+ * Returns the latest session id visible inside the current transaction scope.
+ */
 export const getLatestChatSessionIdWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -534,6 +562,9 @@ export const getLatestChatSessionIdWithExecutor = async (
     return row?.session_id ?? null;
   });
 
+/**
+ * Creates a fresh chat session and returns its identifier inside the current transaction scope.
+ */
 export const createFreshChatSessionWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -543,6 +574,9 @@ export const createFreshChatSessionWithExecutor = async (
     return row.session_id;
   });
 
+/**
+ * Lists persisted chat message items for a session inside the current transaction scope.
+ */
 export const listChatMessagesWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -553,6 +587,9 @@ export const listChatMessagesWithExecutor = async (
     return rows.map((row) => mapChatItemRow(row));
   });
 
+/**
+ * Builds the full session snapshot, including ordered messages, inside the current transaction scope.
+ */
 export const getChatSessionSnapshotWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -571,6 +608,9 @@ export const getChatSessionSnapshotWithExecutor = async (
     };
   });
 
+/**
+ * Touches the heartbeat stored on the session row for the active run inside the current transaction scope.
+ */
 export const touchChatSessionHeartbeatWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -590,6 +630,9 @@ export const touchChatSessionHeartbeatWithExecutor = async (
     }
   });
 
+/**
+ * Updates the session-level run state and active-run pointer inside the current transaction scope.
+ */
 export const updateChatSessionRunStateWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -610,6 +653,9 @@ export const updateChatSessionRunStateWithExecutor = async (
     }
   });
 
+/**
+ * Returns the requested session id through the public store surface.
+ */
 export const getChatSessionId = async (
   userId: string,
   workspaceId: string,
@@ -621,6 +667,9 @@ export const getChatSessionId = async (
       return row?.session_id ?? null;
     });
 
+/**
+ * Returns the latest session id through the public store surface.
+ */
 export const getLatestChatSessionId = async (
   userId: string,
   workspaceId: string,
@@ -631,6 +680,9 @@ export const getLatestChatSessionId = async (
       return row?.session_id ?? null;
     });
 
+/**
+ * Creates a fresh chat session through the public store surface.
+ */
 export const createFreshChatSession = async (
   userId: string,
   workspaceId: string,
@@ -638,6 +690,9 @@ export const createFreshChatSession = async (
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
     createFreshChatSessionWithExecutor(executor, { userId, workspaceId }));
 
+/**
+ * Lists persisted chat items for a session through the public store surface.
+ */
 export const listChatMessages = async (
   userId: string,
   workspaceId: string,
@@ -646,6 +701,9 @@ export const listChatMessages = async (
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
     listChatMessagesWithExecutor(executor, { userId, workspaceId }, sessionId));
 
+/**
+ * Returns a full chat session snapshot through the public store surface.
+ */
 export const getChatSessionSnapshot = async (
   userId: string,
   workspaceId: string,
@@ -654,6 +712,9 @@ export const getChatSessionSnapshot = async (
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
     getChatSessionSnapshotWithExecutor(executor, { userId, workspaceId }, sessionId));
 
+/**
+ * Updates the persisted assistant item through the public store surface.
+ */
 export const updateAssistantMessageItem = async (
   userId: string,
   workspaceId: string,
@@ -662,6 +723,9 @@ export const updateAssistantMessageItem = async (
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
     updateChatItemWithExecutor(executor, { userId, workspaceId }, params));
 
+/**
+ * Updates the persisted assistant item and bumps the main-content invalidation version.
+ */
 export const updateAssistantMessageItemAndInvalidateMainContent = async (
   userId: string,
   workspaceId: string,
@@ -672,6 +736,9 @@ export const updateAssistantMessageItemAndInvalidateMainContent = async (
   return result.mainContentInvalidationVersion;
 };
 
+/**
+ * Updates the session heartbeat stored alongside the active run.
+ */
 export const touchChatSessionHeartbeat = async (
   userId: string,
   workspaceId: string,
@@ -688,6 +755,9 @@ export const touchChatSessionHeartbeat = async (
       activeRunId,
     ));
 
+/**
+ * Completes a run in the store-only layer used by older call sites and tests.
+ */
 export const completeChatRun = async (
   userId: string,
   workspaceId: string,
@@ -715,6 +785,9 @@ export const completeChatRun = async (
     );
   });
 
+/**
+ * Marks unfinished tool calls as stopped-by-user in assistant content.
+ */
 export const buildUserStoppedAssistantContent = (
   content: ReadonlyArray<ContentPart>,
 ): ReadonlyArray<ContentPart> =>
@@ -731,6 +804,9 @@ export const buildUserStoppedAssistantContent = (
     };
   });
 
+/**
+ * Finds the in-progress assistant item that should be updated when a user stops the active run.
+ */
 export const buildUserStoppedChatRunUpdatePlan = (
   messages: ReadonlyArray<PersistedChatMessageItem>,
 ): UserStoppedChatRunUpdatePlan => {

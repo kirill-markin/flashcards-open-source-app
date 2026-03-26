@@ -1,3 +1,8 @@
+/**
+ * Legacy Anthropic chat agent for old `/chat/turn` clients.
+ * The backend-first `/chat` stack owns sessions, runs, and replay state on the server and no longer uses this flow.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 import { Buffer } from "node:buffer";
 import Anthropic, { toFile } from "@anthropic-ai/sdk";
 import type {
@@ -245,6 +250,11 @@ export class AIChatRuntimeError extends Error {
   }
 }
 
+/**
+ * This legacy Anthropic chat helper emits structured logs for old `/chat/turn` requests.
+ * The backend-first `/chat` stack records run and provider events through a different server-owned path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function logAIChatEvent(event: AIChatLogEvent): void {
   console.error(JSON.stringify({
     domain: "chat",
@@ -254,22 +264,42 @@ function logAIChatEvent(event: AIChatLogEvent): void {
   }));
 }
 
+/**
+ * This legacy Anthropic chat helper creates the provider client for old `/chat/turn` requests.
+ * The backend-first `/chat` stack initializes provider access through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function createClient(): AnthropicMessagesClient {
   return new Anthropic() as unknown as AnthropicMessagesClient;
 }
 
+/**
+ * This legacy Anthropic chat helper narrows text delta events for old `/chat/turn` streaming.
+ * The backend-first `/chat` stack streams and persists deltas through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isAnthropicTextDeltaEvent(
   event: AnthropicAIChatStreamEvent,
 ): event is AnthropicTextDeltaEvent {
   return event.type === "content_block_delta";
 }
 
+/**
+ * This legacy Anthropic chat helper narrows content-block start events for old `/chat/turn` streaming.
+ * The backend-first `/chat` stack reports provider progress through a different server-owned event model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isAnthropicContentBlockStartEvent(
   event: AnthropicAIChatStreamEvent,
 ): event is AnthropicContentBlockStartEvent {
   return event.type === "content_block_start";
 }
 
+/**
+ * This legacy Anthropic chat helper builds the provider tool list for old `/chat/turn` requests.
+ * The backend-first `/chat` stack exposes tools through a different server-owned runtime contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function anthropicAIChatTools(): ReadonlyArray<Readonly<Record<string, unknown>>> {
   return [
     ...OPENAI_AI_CHAT_TOOLS.map((tool) => ({
@@ -289,10 +319,20 @@ function anthropicAIChatTools(): ReadonlyArray<Readonly<Record<string, unknown>>
   ];
 }
 
+/**
+ * This legacy Anthropic chat helper parses tool input from old `/chat/turn` responses.
+ * The backend-first `/chat` stack validates and stores tool input through a different server-owned flow.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function parseToolInput(rawInput: string): unknown {
   return JSON.parse(rawInput) as unknown;
 }
 
+/**
+ * This legacy Anthropic chat helper finds the latest user message in client-owned old `/chat/turn` history.
+ * The backend-first `/chat` stack owns transcript ordering on the server instead of trusting client history.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function latestUserMessageIndex(messages: ReadonlyArray<AIChatMessage>): number {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     if (messages[index]?.role === "user") {
@@ -303,6 +343,11 @@ function latestUserMessageIndex(messages: ReadonlyArray<AIChatMessage>): number 
   return -1;
 }
 
+/**
+ * This legacy Anthropic chat helper checks whether a legacy message part should be uploaded.
+ * The backend-first `/chat` stack prepares attachments through a different server-owned pipeline.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isUploadableFileMessagePart(message: AIChatMessage, partIndex: number): boolean {
   if (message.role !== "user") {
     return false;
@@ -312,6 +357,11 @@ function isUploadableFileMessagePart(message: AIChatMessage, partIndex: number):
   return part?.type === "file" && part.mediaType !== "application/pdf";
 }
 
+/**
+ * This legacy Anthropic chat helper uploads the latest user files for old `/chat/turn` requests.
+ * The backend-first `/chat` stack prepares attachments through a different server-owned input path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 async function uploadLatestUserFiles(
   client: AnthropicMessagesClient,
   messages: ReadonlyArray<AIChatMessage>,
@@ -364,6 +414,11 @@ async function uploadLatestUserFiles(
   };
 }
 
+/**
+ * This legacy Anthropic chat helper validates image media types for old `/chat/turn` requests.
+ * The backend-first `/chat` stack maps attachments through a different server-owned pipeline.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function assertImageMediaType(mediaType: string): "image/jpeg" | "image/png" | "image/gif" | "image/webp" {
   if (mediaType === "image/jpeg" || mediaType === "image/png" || mediaType === "image/gif" || mediaType === "image/webp") {
     return mediaType;
@@ -376,6 +431,11 @@ function assertImageMediaType(mediaType: string): "image/jpeg" | "image/png" | "
   );
 }
 
+/**
+ * This legacy Anthropic chat helper maps one latest-user part into provider content blocks for old `/chat/turn` requests.
+ * The backend-first `/chat` stack builds provider input from server-owned sessions and replay items instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function mapLatestUserPartToAnthropicContentBlocks(
   message: Extract<AIChatMessage, { role: "user" }>,
   messageIndex: number,
@@ -450,10 +510,20 @@ function mapLatestUserPartToAnthropicContentBlocks(
   );
 }
 
+/**
+ * This legacy Anthropic chat helper flattens assistant content into the old `/chat/turn` replay format.
+ * The backend-first `/chat` stack stores structured assistant content differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function assistantTextContent(message: Extract<AIChatMessage, { role: "assistant" }>): string {
   return summarizeAIChatContentParts(message.content);
 }
 
+/**
+ * This legacy Anthropic chat helper converts one legacy chat message into provider input for old `/chat/turn` requests.
+ * The backend-first `/chat` stack builds provider input from server-owned sessions and replay items instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function messageToAnthropicMessage(
   message: AIChatMessage,
   messageIndex: number,
@@ -519,6 +589,11 @@ function messageToAnthropicMessage(
   };
 }
 
+/**
+ * This legacy Anthropic chat helper assembles provider input for old `/chat/turn` requests.
+ * The backend-first `/chat` stack rebuilds provider input from persisted server-owned state instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function buildInput(
   messages: ReadonlyArray<AIChatMessage>,
   uploadPlan: UploadPlan,
@@ -557,22 +632,47 @@ function buildInput(
   return items;
 }
 
+/**
+ * This legacy Anthropic chat helper identifies SQL tool-use blocks in old `/chat/turn` responses.
+ * The backend-first `/chat` stack normalizes tool calls through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isAIChatToolUseBlock(block: AnthropicContentBlock): block is AnthropicToolUseBlock {
   return block.type === "tool_use" && "name" in block && typeof block.name === "string" && isAIChatToolName(block.name);
 }
 
+/**
+ * This legacy Anthropic chat helper identifies server-side tool-use blocks in old `/chat/turn` responses.
+ * The backend-first `/chat` stack reports provider tool progress through a different server-owned model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isServerToolUseBlock(block: AnthropicContentBlock): block is AnthropicServerToolUseBlock {
   return block.type === "server_tool_use";
 }
 
+/**
+ * This legacy Anthropic chat helper identifies web-search result blocks in old `/chat/turn` responses.
+ * The backend-first `/chat` stack persists tool outputs through a different server-owned model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isWebSearchToolResultBlock(block: AnthropicContentBlock): block is AnthropicWebSearchToolResultBlock {
   return block.type === "web_search_tool_result";
 }
 
+/**
+ * This legacy Anthropic chat helper identifies code-execution result blocks in old `/chat/turn` responses.
+ * The backend-first `/chat` stack persists tool outputs through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isCodeExecutionToolResultBlock(block: AnthropicContentBlock): block is AnthropicCodeExecutionToolResultBlock {
   return CODE_EXECUTION_RESULT_TYPES.has(block.type);
 }
 
+/**
+ * This legacy Anthropic chat helper validates one tool call from the old `/chat/turn` Anthropic response.
+ * The backend-first `/chat` stack normalizes tool calls through a different server-owned runtime loop.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function normalizeToolCall(
   toolCall: AnthropicToolUseBlock,
   params: Readonly<{ requestId: string; model: string }>,
@@ -596,6 +696,11 @@ function normalizeToolCall(
   };
 }
 
+/**
+ * This legacy Anthropic chat helper normalizes tool calls from old `/chat/turn` responses.
+ * The backend-first `/chat` stack records tool calls through a different server-owned item model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function normalizeToolCalls(
   toolCalls: ReadonlyArray<AnthropicToolUseBlock>,
   params: Readonly<{ requestId: string; model: string }>,
@@ -610,6 +715,11 @@ function normalizeToolCalls(
   });
 }
 
+/**
+ * This legacy Anthropic chat helper extracts SQL from old `/chat/turn` tool payloads.
+ * The backend-first `/chat` stack validates tool input through a different server-owned execution path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function parseSqlToolInput(input: string): string {
   const parsed = JSON.parse(input) as Readonly<{ sql?: unknown }>;
   if (typeof parsed.sql !== "string" || parsed.sql.trim() === "") {
@@ -623,6 +733,11 @@ function parseSqlToolInput(input: string): string {
   return parsed.sql;
 }
 
+/**
+ * This legacy Anthropic chat helper serializes unknown provider values for old `/chat/turn` tool events.
+ * The backend-first `/chat` stack stores structured tool output differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function stringifyUnknown(value: unknown): string | null {
   if (value === undefined) {
     return null;
@@ -631,6 +746,11 @@ function stringifyUnknown(value: unknown): string | null {
   return JSON.stringify(value);
 }
 
+/**
+ * This legacy Anthropic chat helper summarizes web-search result content for old `/chat/turn` tool events.
+ * The backend-first `/chat` stack persists tool outputs through a different server-owned model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function summarizeWebSearchResultContent(
   content: ReadonlyArray<AnthropicWebSearchResult> | AnthropicWebSearchToolResultError,
 ): string | null {
@@ -647,6 +767,11 @@ function summarizeWebSearchResultContent(
     .join("\n");
 }
 
+/**
+ * This legacy Anthropic chat helper summarizes code-execution result content for old `/chat/turn` tool events.
+ * The backend-first `/chat` stack persists tool outputs through a different server-owned run model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function summarizeCodeExecutionResultContent(
   content: AnthropicCodeExecutionResultBlock | AnthropicCodeExecutionToolResultError,
 ): string | null {
@@ -671,10 +796,20 @@ function summarizeCodeExecutionResultContent(
   return JSON.stringify(content);
 }
 
+/**
+ * This legacy Anthropic chat entrypoint checks whether a model belongs to the old `/chat/turn` Anthropic catalog.
+ * The backend-first `/chat` stack uses a different server-owned model configuration.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function isSupportedAIChatModel(model: string): boolean {
   return AI_CHAT_MODEL_IDS.has(model);
 }
 
+/**
+ * This legacy Anthropic chat generator streams one old `/chat/turn` turn with an injected provider client.
+ * The backend-first `/chat` stack owns run lifecycle, recovery, and persistence differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export async function* streamAIChatAgentTurn(
   params: StreamAIChatTurnParams,
   client: AnthropicMessagesClient,
@@ -933,12 +1068,22 @@ export async function* streamAIChatAgentTurn(
   );
 }
 
+/**
+ * This legacy Anthropic chat entrypoint streams an old `/chat/turn` turn with a locally created client.
+ * The backend-first `/chat` stack executes turns through server-owned sessions and runs instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export async function* streamAIChatTurn(
   params: StreamAIChatTurnParams,
 ): AsyncGenerator<AIChatTurnStreamEvent> {
   yield* streamAIChatAgentTurn(params, createClient());
 }
 
+/**
+ * This legacy Anthropic chat entrypoint prepares the old `/chat/turn` execution plan.
+ * The backend-first `/chat` stack prepares turns through a different session-based server-owned contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export async function prepareAIChatTurn(
   params: StreamAIChatTurnParams,
 ): Promise<PreparedAIChatTurn> {

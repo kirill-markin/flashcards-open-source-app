@@ -1,3 +1,7 @@
+/**
+ * Conversion helpers between persisted replay items and OpenAI Responses input items.
+ * The backend-owned chat stack stores only the minimal replay shape needed to resume stateless turns safely.
+ */
 import type OpenAI from "openai";
 import type { ChatMessage } from "../types";
 
@@ -52,6 +56,9 @@ export type ServerChatMessage = ChatMessage & Readonly<{
   openaiItems?: ReadonlyArray<StoredOpenAIReplayItem>;
 }>;
 
+/**
+ * Converts one provider item into the persisted replay shape stored with assistant messages.
+ */
 export function toStoredOpenAIReplayItem(
   item: OpenAI.Responses.ResponseOutputItem | OpenAI.Responses.ResponseInputItem.FunctionCallOutput,
 ): StoredOpenAIReplayItem {
@@ -100,6 +107,9 @@ export function toStoredOpenAIReplayItem(
   throw new Error(`Unsupported OpenAI response item for chat replay: ${item.type}`);
 }
 
+/**
+ * Normalizes one persisted or legacy replay item into the canonical replay shape used by the new runtime.
+ */
 function normalizeStoredOpenAIReplayItem(
   item: StoredOpenAIReplayItem | LegacyStoredOpenAIReplayItem,
 ): StoredOpenAIReplayItem | null {
@@ -148,6 +158,9 @@ function normalizeStoredOpenAIReplayItem(
   return null;
 }
 
+/**
+ * Normalizes stored replay items and drops reasoning items that cannot be replayed safely.
+ */
 export function normalizeStoredOpenAIReplayItems(
   items: ReadonlyArray<StoredOpenAIReplayItem | LegacyStoredOpenAIReplayItem>,
 ): NormalizeStoredOpenAIReplayItemsResult {
@@ -172,6 +185,9 @@ export function normalizeStoredOpenAIReplayItems(
   };
 }
 
+/**
+ * Casts a persisted replay item back into the OpenAI Responses input shape expected by replay.
+ */
 export function toOpenAIResponseInputItem(
   item: StoredOpenAIReplayItem,
 ): OpenAI.Responses.ResponseInputItem {

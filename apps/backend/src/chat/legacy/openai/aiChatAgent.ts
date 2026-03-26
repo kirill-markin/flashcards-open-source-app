@@ -1,3 +1,8 @@
+/**
+ * Legacy OpenAI chat agent for old `/chat/turn` clients.
+ * The backend-first `/chat` stack owns sessions, runs, and replay state on the server and no longer uses this flow.
+ * TODO: Remove this legacy module after most users have updated to app versions that use the new chat endpoints.
+ */
 import { Buffer } from "node:buffer";
 import OpenAI, { toFile } from "openai";
 import packageJson from "../../../../package.json";
@@ -416,6 +421,11 @@ export class AIChatRuntimeError extends Error {
   }
 }
 
+/**
+ * This legacy OpenAI chat helper emits structured logs for old `/chat/turn` requests.
+ * The backend-first `/chat` stack records run and provider events through a different server-owned path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function logAIChatEvent(event: AIChatLogEvent): void {
   console.error(JSON.stringify({
     domain: "chat",
@@ -425,10 +435,20 @@ function logAIChatEvent(event: AIChatLogEvent): void {
   }));
 }
 
+/**
+ * This legacy OpenAI chat helper creates the provider client for old `/chat/turn` requests.
+ * The backend-first `/chat` stack initializes provider access through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function createClient(): OpenAIResponsesClient {
   return new OpenAI();
 }
 
+/**
+ * This legacy OpenAI chat helper records OpenAI client capabilities for old `/chat/turn` diagnostics.
+ * The backend-first `/chat` stack tracks runtime capabilities through a different server-owned path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function logOpenAIClientInitialization(
   params: Readonly<{
     requestId: string;
@@ -451,6 +471,11 @@ function logOpenAIClientInitialization(
   });
 }
 
+/**
+ * This legacy OpenAI chat helper validates client capabilities for old `/chat/turn` requests.
+ * The backend-first `/chat` stack checks provider readiness through a different server-owned runtime path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function assertOpenAIResponsesClient(
   params: Readonly<{
     requestId: string;
@@ -470,10 +495,20 @@ function assertOpenAIResponsesClient(
   }
 }
 
+/**
+ * This legacy OpenAI chat helper derives the code interpreter container name for old `/chat/turn` sessions.
+ * The backend-first `/chat` stack keeps run and attachment state in different server-owned records.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function codeInterpreterContainerName(chatSessionId: string): string {
   return `flashcards-local-chat-${chatSessionId}`;
 }
 
+/**
+ * This legacy OpenAI chat helper trims large provider values for old `/chat/turn` logs.
+ * The backend-first `/chat` stack records structured diagnostics differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function truncateForLog(value: string | null, maxChars: number): string | null {
   if (value === null) {
     return null;
@@ -491,16 +526,31 @@ function truncateForLog(value: string | null, maxChars: number): string | null {
   return `${trimmedValue.slice(0, maxChars)}...`;
 }
 
+/**
+ * This legacy OpenAI chat helper narrows text delta events for old `/chat/turn` streaming.
+ * The backend-first `/chat` stack streams and persists deltas through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isOpenAITextDeltaEvent(event: OpenAIToolEvent): event is OpenAITextDeltaEvent {
   return event.type === "response.output_text.delta";
 }
 
+/**
+ * This legacy OpenAI chat helper narrows web-search progress events for old `/chat/turn` streaming.
+ * The backend-first `/chat` stack reports tool progress through a different server-owned event model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isOpenAIWebSearchProgressEvent(
   event: OpenAIToolEvent,
 ): event is OpenAIWebSearchProgressEvent {
   return event.type === "response.web_search_call.in_progress" || event.type === "response.web_search_call.searching";
 }
 
+/**
+ * This legacy OpenAI chat helper narrows code-interpreter progress events for old `/chat/turn` streaming.
+ * The backend-first `/chat` stack tracks tool progress through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isOpenAICodeInterpreterProgressEvent(
   event: OpenAIToolEvent,
 ): event is OpenAICodeInterpreterProgressEvent {
@@ -508,34 +558,64 @@ function isOpenAICodeInterpreterProgressEvent(
     || event.type === "response.code_interpreter_call.interpreting";
 }
 
+/**
+ * This legacy OpenAI chat helper narrows output-item completion events for old `/chat/turn` streaming.
+ * The backend-first `/chat` stack replays output state through a different server-owned item model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isOpenAIOutputItemDoneEvent(event: OpenAIToolEvent): event is OpenAIOutputItemDoneEvent {
   return event.type === "response.output_item.done";
 }
 
+/**
+ * This legacy OpenAI chat helper identifies SQL function calls in old `/chat/turn` responses.
+ * The backend-first `/chat` stack normalizes tool calls through a different server-owned runtime path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isFunctionToolCall(
   item: Readonly<{ type: string }>,
 ): item is ResponseFunctionToolCall {
   return item.type === "function_call";
 }
 
+/**
+ * This legacy OpenAI chat helper identifies web-search output items in old `/chat/turn` responses.
+ * The backend-first `/chat` stack handles provider tool outputs through a different server-owned model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isWebSearchCallOutputItem(
   item: OpenAIOutputItem,
 ): item is Extract<OpenAIOutputItem, { type: "web_search_call" }> {
   return item.type === "web_search_call";
 }
 
+/**
+ * This legacy OpenAI chat helper identifies code-interpreter output items in old `/chat/turn` responses.
+ * The backend-first `/chat` stack persists provider tool outputs differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isCodeInterpreterCallOutputItem(
   item: OpenAIOutputItem,
 ): item is Extract<OpenAIOutputItem, { type: "code_interpreter_call" }> {
   return item.type === "code_interpreter_call";
 }
 
+/**
+ * This legacy OpenAI chat helper identifies assistant message items in old `/chat/turn` responses.
+ * The backend-first `/chat` stack stores assistant output through a different server-owned item model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function isMessageOutputItem(
   item: OpenAIOutputItem,
 ): item is Extract<OpenAIOutputItem, { type: "message" }> {
   return item.type === "message";
 }
 
+/**
+ * This legacy OpenAI chat helper summarizes final provider output for old `/chat/turn` logging.
+ * The backend-first `/chat` stack derives response summaries from persisted server-owned state instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function summarizeFinalResponse(
   finalResponse: Readonly<{
     output: ReadonlyArray<OpenAIOutputItem>;
@@ -604,6 +684,11 @@ function summarizeFinalResponse(
   };
 }
 
+/**
+ * This legacy OpenAI chat helper finds the latest user message in client-owned old `/chat/turn` history.
+ * The backend-first `/chat` stack owns transcript ordering on the server instead of trusting client history.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function latestUserMessageIndex(
   messages: ReadonlyArray<AIChatMessage>,
 ): number {
@@ -616,6 +701,11 @@ function latestUserMessageIndex(
   return -1;
 }
 
+/**
+ * This legacy OpenAI chat helper summarizes attachments from client-owned old `/chat/turn` history.
+ * The backend-first `/chat` stack persists attachment state in server-owned chat items instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function latestUserAttachments(messages: ReadonlyArray<AIChatMessage>): ReadonlyArray<LatestUserAttachmentSummary> {
   const latestUserIndex = latestUserMessageIndex(messages);
   if (latestUserIndex < 0) {
@@ -641,6 +731,11 @@ function latestUserAttachments(messages: ReadonlyArray<AIChatMessage>): Readonly
   });
 }
 
+/**
+ * This legacy OpenAI chat helper verifies spreadsheet containers in the old `/chat/turn` code-interpreter flow.
+ * The backend-first `/chat` stack tracks attachment execution through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 async function verifySpreadsheetContainers(
   client: OpenAIResponsesClient,
   params: Readonly<{
@@ -715,6 +810,11 @@ async function verifySpreadsheetContainers(
   }
 }
 
+/**
+ * This legacy OpenAI chat helper uploads the latest user files for old `/chat/turn` requests.
+ * The backend-first `/chat` stack prepares attachments through a different server-owned input pipeline.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 async function uploadLatestUserFiles(
   client: OpenAIResponsesClient,
   messages: ReadonlyArray<AIChatMessage>,
@@ -772,6 +872,11 @@ async function uploadLatestUserFiles(
   };
 }
 
+/**
+ * This legacy OpenAI chat helper logs code-interpreter container inventory for old `/chat/turn` diagnostics.
+ * The backend-first `/chat` stack keeps attachment and run state in different server-owned records.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 async function logCodeInterpreterContainerInventory(
   client: OpenAIResponsesClient,
   params: Readonly<{
@@ -799,6 +904,11 @@ async function logCodeInterpreterContainerInventory(
   });
 }
 
+/**
+ * This legacy OpenAI chat helper resolves or recreates the container used by old `/chat/turn` code execution.
+ * The backend-first `/chat` stack no longer depends on this legacy container/session contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 async function resolveCodeInterpreterContainer(
   client: OpenAIResponsesClient,
   params: StreamAIChatTurnParams,
@@ -924,10 +1034,20 @@ async function resolveCodeInterpreterContainer(
   };
 }
 
+/**
+ * This legacy OpenAI chat helper flattens assistant content into the old `/chat/turn` replay format.
+ * The backend-first `/chat` stack stores structured assistant content and replay items differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function assistantTextContent(message: Extract<AIChatMessage, { role: "assistant" }>): string {
   return summarizeAIChatContentParts(message.content);
 }
 
+/**
+ * This legacy OpenAI chat helper converts legacy chat messages into OpenAI Responses input items.
+ * The backend-first `/chat` stack builds provider input from server-owned sessions and replay items instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function messageToResponseItems(
   message: AIChatMessage,
   messageIndex: number,
@@ -1025,6 +1145,11 @@ function messageToResponseItems(
   }];
 }
 
+/**
+ * This legacy OpenAI chat helper assembles provider input for old `/chat/turn` requests.
+ * The backend-first `/chat` stack rebuilds provider input from persisted server-owned state instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function buildInput(
   messages: ReadonlyArray<AIChatMessage>,
   uploadPlan: UploadPlan,
@@ -1060,6 +1185,11 @@ function buildInput(
   return items;
 }
 
+/**
+ * This legacy OpenAI chat helper validates one tool call from the old `/chat/turn` OpenAI response.
+ * The backend-first `/chat` stack normalizes tool calls through a different server-owned runtime loop.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function normalizeToolCall(
   toolCall: ResponseFunctionToolCall,
   params: Readonly<{ requestId: string; model: string }>,
@@ -1079,6 +1209,11 @@ function normalizeToolCall(
   };
 }
 
+/**
+ * This legacy OpenAI chat helper filters and validates tool calls from old `/chat/turn` responses.
+ * The backend-first `/chat` stack records tool calls through a different server-owned item model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function normalizeToolCalls(
   toolCalls: ReadonlyArray<ResponseFunctionToolCall>,
   params: Readonly<{ requestId: string; model: string }>,
@@ -1088,6 +1223,11 @@ function normalizeToolCalls(
     .map((toolCall) => normalizeToolCall(toolCall, params));
 }
 
+/**
+ * This legacy OpenAI chat helper extracts SQL from old `/chat/turn` tool payloads.
+ * The backend-first `/chat` stack validates tool input through a different server-owned execution path.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function parseSqlToolInput(input: string): string {
   const parsed = JSON.parse(input) as Readonly<{ sql?: unknown }>;
   if (typeof parsed.sql !== "string" || parsed.sql.trim() === "") {
@@ -1101,6 +1241,11 @@ function parseSqlToolInput(input: string): string {
   return parsed.sql;
 }
 
+/**
+ * This legacy OpenAI chat helper summarizes web-search action payloads for old `/chat/turn` tool events.
+ * The backend-first `/chat` stack stores tool progress and outputs differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function summarizeWebSearchAction(action: Readonly<Record<string, unknown>> | undefined): string | null {
   if (action === undefined) {
     return null;
@@ -1109,6 +1254,11 @@ function summarizeWebSearchAction(action: Readonly<Record<string, unknown>> | un
   return JSON.stringify(action);
 }
 
+/**
+ * This legacy OpenAI chat helper summarizes code-interpreter outputs for old `/chat/turn` tool events.
+ * The backend-first `/chat` stack persists tool output through a different server-owned run model.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 function summarizeCodeInterpreterOutputs(
   outputs: ReadonlyArray<
     | Readonly<{ type: "logs"; logs: string }>
@@ -1135,10 +1285,20 @@ function summarizeCodeInterpreterOutputs(
   return parts.length === 0 ? null : parts.join("\n");
 }
 
+/**
+ * This legacy OpenAI chat entrypoint checks whether a model belongs to the old `/chat/turn` OpenAI catalog.
+ * The backend-first `/chat` stack uses a different server-owned model configuration.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export function isSupportedAIChatModel(model: string): boolean {
   return AI_CHAT_MODEL_IDS.has(model);
 }
 
+/**
+ * This legacy OpenAI chat generator runs a prepared old `/chat/turn` streaming turn.
+ * The backend-first `/chat` stack owns run lifecycle, recovery, and persistence differently on the server.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 async function* streamPreparedAIChatAgentTurn(
   params: StreamAIChatTurnParams,
   client: OpenAIResponsesClient,
@@ -1459,6 +1619,11 @@ async function* streamPreparedAIChatAgentTurn(
   );
 }
 
+/**
+ * This legacy OpenAI chat helper prepares uploads and container state for an old `/chat/turn` turn.
+ * The backend-first `/chat` stack performs preparation through different server-owned session and run records.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 async function prepareAIChatAgentTurn(
   params: StreamAIChatTurnParams,
   client: OpenAIResponsesClient,
@@ -1494,6 +1659,11 @@ async function prepareAIChatAgentTurn(
   };
 }
 
+/**
+ * This legacy OpenAI chat entrypoint streams an old `/chat/turn` turn with an injected OpenAI client.
+ * The backend-first `/chat` stack executes turns through a different server-owned runtime.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export async function* streamAIChatAgentTurn(
   params: StreamAIChatTurnParams,
   client: OpenAIResponsesClient,
@@ -1502,6 +1672,11 @@ export async function* streamAIChatAgentTurn(
   yield* preparedTurn.stream;
 }
 
+/**
+ * This legacy OpenAI chat entrypoint streams an old `/chat/turn` turn with a locally created client.
+ * The backend-first `/chat` stack executes turns through server-owned sessions and runs instead.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export async function* streamAIChatTurn(
   params: StreamAIChatTurnParams,
 ): AsyncGenerator<AIChatTurnStreamEvent> {
@@ -1509,6 +1684,11 @@ export async function* streamAIChatTurn(
   yield* preparedTurn.stream;
 }
 
+/**
+ * This legacy OpenAI chat entrypoint prepares the old `/chat/turn` execution plan.
+ * The backend-first `/chat` stack prepares turns through a different session-based server-owned contract.
+ * TODO: Remove this legacy function after most users have updated to app versions that use the new chat endpoints.
+ */
 export async function prepareAIChatTurn(
   params: StreamAIChatTurnParams,
 ): Promise<PreparedAIChatTurn> {
