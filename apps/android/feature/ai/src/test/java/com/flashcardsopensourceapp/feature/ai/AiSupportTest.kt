@@ -10,6 +10,22 @@ import org.junit.Test
 
 class AiSupportTest {
     @Test
+    fun consentDisclosureQuotesPersonalWorkspaceName() {
+        assertEquals(
+            "AI requests from the \"Personal\" workspace can send prompts, uploaded files, images, and dictated audio to OpenAI.",
+            formatAiConsentWorkspaceDisclosureText(currentWorkspaceName = "Personal")
+        )
+    }
+
+    @Test
+    fun consentDisclosureKeepsQuotedCustomWorkspaceName() {
+        assertEquals(
+            "AI requests from the \"fromPersonal\" workspace can send prompts, uploaded files, images, and dictated audio to OpenAI.",
+            formatAiConsentWorkspaceDisclosureText(currentWorkspaceName = "fromPersonal")
+        )
+    }
+
+    @Test
     fun toolCallSummaryMatchesWebAndIosFormatting() {
         assertEquals("SQL: SELECT * FROM cards", formatAiToolCallSummaryText(name = "sql", input = "{\"sql\":\"SELECT * FROM cards\"}"))
         assertEquals("Code execution", formatAiToolCallSummaryText(name = "code_execution", input = null))

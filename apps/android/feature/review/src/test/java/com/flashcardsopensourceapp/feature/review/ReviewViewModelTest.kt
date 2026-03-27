@@ -77,7 +77,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertTrue(reviewViewModel.uiState.value.isAnswerVisible)
-        assertEquals("card-1", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
         collectionJob.cancel()
     }
 
@@ -98,7 +98,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals("card-2", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
-        assertEquals("card-3", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
+        assertEquals("card-1", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
         assertEquals(2, reviewViewModel.uiState.value.remainingCount)
         assertEquals(0, reviewViewModel.uiState.value.reviewedInSessionCount)
 
@@ -107,7 +107,7 @@ class ReviewViewModelTest {
 
         assertEquals(1, reviewViewModel.uiState.value.reviewedInSessionCount)
         assertEquals("card-2", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
-        assertEquals("card-3", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
+        assertEquals("card-1", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
         collectionJob.cancel()
     }
 
@@ -144,7 +144,7 @@ class ReviewViewModelTest {
         reviewViewModel.rateCard(rating = ReviewRating.HARD)
         advanceUntilIdle()
 
-        assertEquals("card-1", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
         assertEquals(0, reviewViewModel.uiState.value.reviewedInSessionCount)
         assertEquals("Review failed to save.", reviewViewModel.uiState.value.errorMessage)
         collectionJob.cancel()
@@ -163,7 +163,7 @@ class ReviewViewModelTest {
 
         assertEquals(20, previewCardEntries(viewModel = reviewViewModel).size)
         reviewViewModel.loadNextPreviewPageIfNeeded(
-            itemCardId = previewCardEntries(viewModel = reviewViewModel).last().card.cardId
+            itemCardId = previewCardEntries(viewModel = reviewViewModel).last().presentation.card.cardId
         )
         advanceUntilIdle()
 
@@ -188,7 +188,7 @@ class ReviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(3, secondViewModel.uiState.value.remainingCount)
-        assertEquals("card-1", secondViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-3", secondViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
         firstCollectionJob.cancel()
         secondCollectionJob.cancel()
     }
@@ -393,14 +393,14 @@ class ReviewViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals("card-1", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
-        assertEquals("card-2", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
+        assertEquals("card-4", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
 
         reviewViewModel.rateCard(rating = ReviewRating.GOOD)
         advanceUntilIdle()
 
-        assertEquals("card-2", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
-        assertEquals("card-3", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-2", reviewViewModel.uiState.value.preparedNextCard?.card?.cardId)
         collectionJob.cancel()
     }
 
@@ -449,7 +449,7 @@ class ReviewViewModelTest {
         reviewViewModel.rateCard(rating = ReviewRating.GOOD)
         advanceUntilIdle()
 
-        assertEquals("card-2", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
+        assertEquals("card-3", reviewViewModel.uiState.value.preparedCurrentCard?.card?.cardId)
         syncRepository.startSync()
         advanceUntilIdle()
         reviewRepository.replaceCards(

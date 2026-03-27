@@ -11,12 +11,17 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
+import com.flashcardsopensourceapp.feature.review.reviewFilterButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import com.flashcardsopensourceapp.feature.settings.schedulerApplyButtonTag
@@ -25,11 +30,13 @@ import com.flashcardsopensourceapp.feature.settings.schedulerLearningStepsFieldT
 import com.flashcardsopensourceapp.feature.settings.schedulerMaximumIntervalFieldTag
 import com.flashcardsopensourceapp.feature.settings.schedulerRelearningStepsFieldTag
 import com.flashcardsopensourceapp.feature.settings.schedulerSaveButtonTag
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
@@ -56,11 +63,40 @@ class MainActivityTest {
         dismissAiConsentIfNeeded()
         composeRule.onNodeWithText("Android AI").fetchSemanticsNode()
 
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Workspace").fetchSemanticsNode()
+        openSettingsTab()
+        composeRule.onNode(
+            matcher = hasText("Workspace").and(other = hasClickAction())
+        ).fetchSemanticsNode()
 
         composeRule.onNodeWithText("Review").performClick()
         composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
+    }
+
+    @Test
+    fun settingsScreensShowTitlesAndBackNavigation() {
+        waitForCardsEmptyState()
+
+        openSettingsTab()
+        composeRule.onNodeWithText("Current Workspace").fetchSemanticsNode()
+
+        composeRule.onNode(
+            matcher = hasText("Workspace").and(other = hasClickAction())
+        ).performClick()
+        composeRule.onNodeWithText("Workspace Settings").fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription("Back").fetchSemanticsNode()
+        tapBackIcon()
+
+        composeRule.onNode(
+            matcher = hasText("Account").and(other = hasClickAction())
+        ).performClick()
+        composeRule.onNodeWithText("Account Settings").fetchSemanticsNode()
+        composeRule.onNodeWithText("Account status").performClick()
+        composeRule.onNodeWithText("Account Status").fetchSemanticsNode()
+        composeRule.onNodeWithText("Sign in or sign up").performClick()
+        composeRule.onNodeWithText("Sign in").fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription("Back").fetchSemanticsNode()
+        tapBackIcon()
+        composeRule.onNodeWithText("Account Status").fetchSemanticsNode()
     }
 
     @Test
@@ -148,8 +184,10 @@ class MainActivityTest {
     fun schedulerSettingsFlowUpdatesWorkspaceSummaryFromEmptyState() {
         waitForCardsEmptyState()
 
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Workspace").performClick()
+        openSettingsTab()
+        composeRule.onNode(
+            matcher = hasText("Workspace").and(other = hasClickAction())
+        ).performClick()
         composeRule.onNodeWithText("Scheduler").performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(schedulerDesiredRetentionFieldTag).fetchSemanticsNodes().isNotEmpty()
@@ -186,30 +224,38 @@ class MainActivityTest {
     fun settingsAccountDeviceAccessAndExportFlowsOpenFromEmptyState() {
         waitForCardsEmptyState()
 
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Workspace").performClick()
+        openSettingsTab()
+        composeRule.onNode(
+            matcher = hasText("Workspace").and(other = hasClickAction())
+        ).performClick()
         composeRule.onNodeWithText("Overview").performClick()
         composeRule.onNodeWithText("Danger zone").fetchSemanticsNode()
         composeRule.onNodeWithText("Workspace rename is available only for linked cloud workspaces.").fetchSemanticsNode()
         tapBackIcon()
         tapBackIcon()
 
-        composeRule.onNodeWithText("Settings").performClick()
-        composeRule.onNodeWithText("Account").performClick()
+        openSettingsTab()
+        composeRule.onNode(
+            matcher = hasText("Account").and(other = hasClickAction())
+        ).performClick()
         composeRule.onNodeWithText("Account status").performClick()
         composeRule.onNodeWithText("Cloud status").fetchSemanticsNode()
         tapBackIcon()
 
         composeRule.onNodeWithText("Agent connections").performClick()
+        composeRule.onNodeWithText("Agent Connections").fetchSemanticsNode()
         composeRule.onNodeWithText("Sign in to the cloud account to manage long-lived bot connections.").fetchSemanticsNode()
         tapBackIcon()
 
-        composeRule.onNodeWithText("Danger zone").performClick()
+        composeRule.onNode(
+            matcher = hasText("Danger zone").and(other = hasClickAction())
+        ).performClick()
+        composeRule.onNodeWithText("Danger Zone").fetchSemanticsNode()
         composeRule.onNodeWithText("Delete my account").fetchSemanticsNode()
         tapBackIcon()
         tapBackIcon()
 
-        openSettingsSection(sectionTitle = "This device")
+        openSettingsSection(sectionTitle = "This Device")
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Workspace ID").fetchSemanticsNodes().isNotEmpty()
         }
@@ -232,9 +278,14 @@ class MainActivityTest {
         waitForCardsEmptyState()
 
         composeRule.onNodeWithText("Review").performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewEmptyStateContentTag).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
         composeRule.onNodeWithText("Create card").fetchSemanticsNode()
         composeRule.onNodeWithText("Create with AI").fetchSemanticsNode()
+        assertReviewEmptyStateIsCentered()
 
         composeRule.onNodeWithText("Create card").performClick()
         composeRule.onNodeWithText("New card").fetchSemanticsNode()
@@ -260,9 +311,7 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performScrollTo()
         composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewRateGoodButtonTag).performScrollTo()
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).performClick()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
@@ -271,12 +320,60 @@ class MainActivityTest {
         composeRule.onNodeWithText("Session complete").fetchSemanticsNode()
     }
 
+    @Test
+    fun reviewScreenShowsVisibleFilterAndOverlayActions() {
+        waitForCardsEmptyState()
+        createCard(
+            frontText = "Visible review contract",
+            backText = "First line.\n\nSecond line that is long enough to require scrolling behind the action overlay.",
+            tags = listOf("review", "android")
+        )
+
+        composeRule.onNodeWithText("Review").performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewFilterButtonTag).fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag(reviewFilterButtonTag).fetchSemanticsNode()
+        composeRule.onNodeWithText("All cards").fetchSemanticsNode()
+        composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode()
+        assertTrue(composeRule.onAllNodesWithText("Edit card").fetchSemanticsNodes().isEmpty())
+
+        composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
+        composeRule.onNodeWithText("Review scope").fetchSemanticsNode()
+        composeRule.onNodeWithText("Review the full local queue").performClick()
+
+        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Again").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText("Hard").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText("Good").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText("Easy").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
+    }
+
     private fun waitForCardsEmptyState() {
         openCardsTab()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithText(emptyCardsMessage).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun assertReviewEmptyStateIsCentered() {
+        val containerBounds = composeRule.onNodeWithTag(reviewEmptyStateTag).fetchSemanticsNode().boundsInRoot
+        val contentBounds = composeRule.onNodeWithTag(reviewEmptyStateContentTag).fetchSemanticsNode().boundsInRoot
+        val containerCenterX = (containerBounds.left + containerBounds.right) / 2f
+        val containerCenterY = (containerBounds.top + containerBounds.bottom) / 2f
+        val contentCenterX = (contentBounds.left + contentBounds.right) / 2f
+        val contentCenterY = (contentBounds.top + contentBounds.bottom) / 2f
+        val maxCenterOffsetPx = 4f
+
+        assertTrue(abs(containerCenterX - contentCenterX) <= maxCenterOffsetPx)
+        assertTrue(abs(containerCenterY - contentCenterY) <= maxCenterOffsetPx)
+        assertTrue(contentBounds.width < composeRule.onRoot().fetchSemanticsNode().boundsInRoot.width)
     }
 
     private fun createCard(frontText: String, backText: String, tags: List<String>) {
@@ -324,6 +421,12 @@ class MainActivityTest {
         ).performClick()
     }
 
+    private fun openSettingsTab() {
+        composeRule.onNode(
+            matcher = hasText("Settings").and(other = hasClickAction())
+        ).performClick()
+    }
+
     private fun dismissAiConsentIfNeeded() {
         if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
             composeRule.onNodeWithText("OK").performClick()
@@ -348,11 +451,15 @@ class MainActivityTest {
     }
 
     private fun openSettingsSection(sectionTitle: String) {
-        composeRule.onNodeWithText("Settings").performClick()
+        openSettingsTab()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText(sectionTitle).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(
+                matcher = hasText(sectionTitle).and(other = hasClickAction())
+            ).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText(sectionTitle).performClick()
+        composeRule.onNode(
+            matcher = hasText(sectionTitle).and(other = hasClickAction())
+        ).performClick()
     }
 
     private fun scrollToText(text: String) {

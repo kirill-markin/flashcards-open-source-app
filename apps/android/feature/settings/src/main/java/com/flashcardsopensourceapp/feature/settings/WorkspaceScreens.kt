@@ -70,7 +70,7 @@ fun WorkspaceSettingsRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Workspace")
+                    Text("Workspace Settings")
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -84,13 +84,8 @@ fun WorkspaceSettingsRoute(
         }
     ) { innerPadding ->
         LazyColumn(
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                top = innerPadding.calculateTopPadding() + 16.dp,
-                end = 16.dp,
-                bottom = innerPadding.calculateBottomPadding() + 24.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
             modifier = Modifier.fillMaxSize()
         ) {
             item {
@@ -179,131 +174,138 @@ fun WorkspaceOverviewRoute(
     onOpenDeleteConfirmation: () -> Unit,
     onDeleteConfirmationTextChange: (String) -> Unit,
     onDismissDeleteConfirmation: () -> Unit,
-    onDeleteWorkspace: () -> Unit
+    onDeleteWorkspace: () -> Unit,
+    onBack: () -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (uiState.errorMessage.isNotEmpty()) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(20.dp)
-                    )
-                }
-            }
-        }
-
-        if (uiState.successMessage.isNotEmpty()) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = uiState.successMessage,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(20.dp)
-                    )
-                }
-            }
-        }
-
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(text = "Workspace", style = MaterialTheme.typography.titleMedium)
-                    if (uiState.isLinked) {
-                        OutlinedTextField(
-                            value = uiState.workspaceNameDraft,
-                            onValueChange = onWorkspaceNameChange,
-                            label = {
-                                Text("Workspace name")
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Button(
-                            onClick = onSaveWorkspaceName,
-                            enabled = uiState.isSavingName.not()
-                                && uiState.workspaceNameDraft.trim().isNotEmpty()
-                                && uiState.workspaceNameDraft != uiState.workspaceName,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (uiState.isSavingName) "Saving..." else "Save name")
-                        }
-                    } else {
+    SettingsScreenScaffold(
+        title = "Overview",
+        onBack = onBack,
+        isBackEnabled = true
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (uiState.errorMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = uiState.workspaceName,
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                        Text(
-                            text = "Workspace rename is available only for linked cloud workspaces.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(20.dp)
                         )
                     }
-
-                    HorizontalDivider()
-                    OverviewRow(title = "Cards", value = uiState.totalCards)
-                    OverviewRow(title = "Decks", value = uiState.deckCount)
-                    OverviewRow(title = "Tags", value = uiState.tagCount)
                 }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Today",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    OverviewRow(title = "Due", value = uiState.dueCount)
-                    OverviewRow(title = "New", value = uiState.newCount)
-                    OverviewRow(title = "Reviewed", value = uiState.reviewedCount)
+            if (uiState.successMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = uiState.successMessage,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
                 }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Danger zone",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        text = "Permanently delete this workspace and all cards, decks, reviews, and sync history inside it.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedButton(
-                        onClick = onRequestDeleteWorkspace,
-                        enabled = uiState.isLinked && uiState.isDeletePreviewLoading.not() && uiState.isDeletingWorkspace.not(),
-                        modifier = Modifier.fillMaxWidth()
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(text = "Workspace", style = MaterialTheme.typography.titleMedium)
+                        if (uiState.isLinked) {
+                            OutlinedTextField(
+                                value = uiState.workspaceNameDraft,
+                                onValueChange = onWorkspaceNameChange,
+                                label = {
+                                    Text("Workspace name")
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Button(
+                                onClick = onSaveWorkspaceName,
+                                enabled = uiState.isSavingName.not()
+                                    && uiState.workspaceNameDraft.trim().isNotEmpty()
+                                    && uiState.workspaceNameDraft != uiState.workspaceName,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(if (uiState.isSavingName) "Saving..." else "Save name")
+                            }
+                        } else {
+                            Text(
+                                text = uiState.workspaceName,
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                            Text(
+                                text = "Workspace rename is available only for linked cloud workspaces.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        HorizontalDivider()
+                        OverviewRow(title = "Cards", value = uiState.totalCards)
+                        OverviewRow(title = "Decks", value = uiState.deckCount)
+                        OverviewRow(title = "Tags", value = uiState.tagCount)
+                    }
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            if (uiState.isDeletePreviewLoading) {
-                                "Loading..."
-                            } else {
-                                "Delete workspace"
-                            }
+                            text = "Today",
+                            style = MaterialTheme.typography.titleMedium
                         )
+                        OverviewRow(title = "Due", value = uiState.dueCount)
+                        OverviewRow(title = "New", value = uiState.newCount)
+                        OverviewRow(title = "Reviewed", value = uiState.reviewedCount)
                     }
-                    if (uiState.isLinked.not()) {
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(20.dp)
+                    ) {
                         Text(
-                            text = "Workspace delete is available only for linked cloud workspaces.",
+                            text = "Danger zone",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Permanently delete this workspace and all cards, decks, reviews, and sync history inside it.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        OutlinedButton(
+                            onClick = onRequestDeleteWorkspace,
+                            enabled = uiState.isLinked && uiState.isDeletePreviewLoading.not() && uiState.isDeletingWorkspace.not(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                if (uiState.isDeletePreviewLoading) {
+                                    "Loading..."
+                                } else {
+                                    "Delete workspace"
+                                }
+                            )
+                        }
+                        if (uiState.isLinked.not()) {
+                            Text(
+                                text = "Workspace delete is available only for linked cloud workspaces.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

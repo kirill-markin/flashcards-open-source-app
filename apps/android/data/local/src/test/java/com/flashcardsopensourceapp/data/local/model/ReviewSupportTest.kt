@@ -42,6 +42,27 @@ class ReviewSupportTest {
     }
 
     @Test
+    fun buildReviewSessionSnapshotPreservesCardSchedulingMetadata() {
+        val snapshot = buildReviewSessionSnapshot(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCardIds = emptySet(),
+            decks = sampleDecks(),
+            cards = sampleCards(),
+            tagsSummary = sampleTagsSummary(),
+            settings = sampleSchedulerSettings(),
+            reviewedAtMillis = 1_000L
+        )
+
+        val reviewedCard = snapshot.cards.first { card ->
+            card.cardId == "card-1"
+        }
+
+        assertEquals(0L, reviewedCard.dueAtMillis)
+        assertEquals(2, reviewedCard.reps)
+        assertEquals(1, reviewedCard.lapses)
+    }
+
+    @Test
     fun buildReviewSessionSnapshotFallsBackToAllCardsWhenTagIsMissing() {
         val snapshot = buildReviewSessionSnapshot(
             selectedFilter = ReviewFilter.Tag(tag = "missing"),
@@ -58,7 +79,7 @@ class ReviewSupportTest {
     }
 
     @Test
-    fun buildReviewTimelinePagePlacesRemainingCardsBeforeAlreadyRatedTail() {
+    fun buildReviewTimelinePagePlacesRemainingCardsBeforeAlreadyRatedTailWithNewestCreatedAtFirst() {
         val page = buildReviewTimelinePage(
             selectedFilter = ReviewFilter.AllCards,
             pendingReviewedCardIds = setOf("card-1", "card-3"),
@@ -71,7 +92,7 @@ class ReviewSupportTest {
         )
 
         assertEquals(
-            listOf("card-2", "card-4", "card-1", "card-3"),
+            listOf("card-4", "card-2", "card-3", "card-1"),
             page.cards.map { card -> card.cardId }
         )
         assertEquals(
@@ -84,6 +105,68 @@ class ReviewSupportTest {
             page.cards.map { card -> card.queueStatus }
         )
         assertTrue(page.hasMoreCards.not())
+    }
+
+    @Test
+    fun buildReviewTimelinePageUsesCardIdAsFinalStableTieBreak() {
+        val cards = sampleCards() + listOf(
+            CardSummary(
+                cardId = "card-a",
+                workspaceId = "workspace-local",
+                frontText = "Same timestamp A",
+                backText = "Same timestamp A back",
+                tags = listOf("stable"),
+                effortLevel = EffortLevel.FAST,
+                dueAtMillis = null,
+                createdAtMillis = 200L,
+                updatedAtMillis = 200L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
+            ),
+            CardSummary(
+                cardId = "card-b",
+                workspaceId = "workspace-local",
+                frontText = "Same timestamp B",
+                backText = "Same timestamp B back",
+                tags = listOf("stable"),
+                effortLevel = EffortLevel.FAST,
+                dueAtMillis = null,
+                createdAtMillis = 200L,
+                updatedAtMillis = 200L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
+            )
+        )
+
+        val page = buildReviewTimelinePage(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCardIds = emptySet(),
+            decks = sampleDecks(),
+            cards = cards,
+            tagsSummary = sampleTagsSummary(),
+            reviewedAtMillis = 1_000L,
+            offset = 0,
+            limit = 3
+        )
+
+        assertEquals(
+            listOf("card-a", "card-b", "card-4"),
+            page.cards.map { card -> card.cardId }
+        )
     }
 
     @Test
@@ -120,7 +203,7 @@ class ReviewSupportTest {
         )
 
         assertEquals(
-            listOf("card-2", "card-3", "card-4", "card-5", "card-1"),
+            listOf("card-4", "card-3", "card-2", "card-5", "card-1"),
             page.cards.map { card -> card.cardId }
         )
         assertEquals(
@@ -144,11 +227,11 @@ class ReviewSupportTest {
                 backText = "A value that cannot be reassigned after creation.",
                 tags = listOf("basics"),
                 effortLevel = EffortLevel.FAST,
-                dueAtMillis = null,
+                dueAtMillis = 0L,
                 createdAtMillis = 100L,
                 updatedAtMillis = 100L,
-                reps = 0,
-                lapses = 0,
+                reps = 2,
+                lapses = 1,
                 fsrsCardState = FsrsCardState.NEW,
                 fsrsStepIndex = null,
                 fsrsStability = null,

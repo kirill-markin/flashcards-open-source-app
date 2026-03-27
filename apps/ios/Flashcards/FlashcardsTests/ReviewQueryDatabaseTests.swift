@@ -162,4 +162,104 @@ final class ReviewQueryDatabaseTests: XCTestCase {
         XCTAssertEqual(secondPage.cards.map(\.cardId), [firstCard.cardId])
         XCTAssertFalse(secondPage.hasMoreCards)
     }
+
+    func testLoadReviewTimelinePagePlacesNullDueCardsBeforeEqualDueCardsAndUsesStableTieBreaks() throws {
+        let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
+        let workspaceId = try testWorkspaceId(database: database)
+
+        let nullOlder = try database.saveCard(
+            workspaceId: workspaceId,
+            input: CardEditorInput(
+                frontText: "Null older",
+                backText: "Back",
+                tags: ["queue"],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+        let nullNewer = try database.saveCard(
+            workspaceId: workspaceId,
+            input: CardEditorInput(
+                frontText: "Null newer",
+                backText: "Back",
+                tags: ["queue"],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+        let sameDueOlder = try database.saveCard(
+            workspaceId: workspaceId,
+            input: CardEditorInput(
+                frontText: "Same due older",
+                backText: "Back",
+                tags: ["queue"],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+        let sameDueNewer = try database.saveCard(
+            workspaceId: workspaceId,
+            input: CardEditorInput(
+                frontText: "Same due newer",
+                backText: "Back",
+                tags: ["queue"],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+
+        try database.core.execute(
+            sql: """
+            UPDATE cards
+            SET due_at = CASE card_id
+                WHEN ? THEN NULL
+                WHEN ? THEN NULL
+                WHEN ? THEN ?
+                WHEN ? THEN ?
+                ELSE due_at
+            END,
+            created_at = CASE card_id
+                WHEN ? THEN ?
+                WHEN ? THEN ?
+                WHEN ? THEN ?
+                WHEN ? THEN ?
+                ELSE created_at
+            END
+            WHERE card_id IN (?, ?, ?, ?)
+            """,
+            values: [
+                .text(nullOlder.cardId),
+                .text(nullNewer.cardId),
+                .text(sameDueOlder.cardId),
+                .text("2026-03-09T08:00:00.000Z"),
+                .text(sameDueNewer.cardId),
+                .text("2026-03-09T08:00:00.000Z"),
+                .text(nullOlder.cardId),
+                .text("2026-03-09T10:00:00.000Z"),
+                .text(nullNewer.cardId),
+                .text("2026-03-09T11:00:00.000Z"),
+                .text(sameDueOlder.cardId),
+                .text("2026-03-09T12:00:00.000Z"),
+                .text(sameDueNewer.cardId),
+                .text("2026-03-09T13:00:00.000Z"),
+                .text(nullOlder.cardId),
+                .text(nullNewer.cardId),
+                .text(sameDueOlder.cardId),
+                .text(sameDueNewer.cardId)
+            ]
+        )
+
+        let page = try database.loadReviewTimelinePage(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: .allCards,
+            now: Date(),
+            limit: 4,
+            offset: 0
+        )
+
+        XCTAssertEqual(
+            page.cards.map(\.cardId),
+            [nullNewer.cardId, nullOlder.cardId, sameDueNewer.cardId, sameDueOlder.cardId]
+        )
+    }
 }
