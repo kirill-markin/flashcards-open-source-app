@@ -20,8 +20,37 @@ env:
   STACK_NAME: FlashcardsOpenSourceApp
 
 jobs:
+  guard:
+    name: Check deploy preconditions
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Allow manual deploy
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "Manual deploy requested. Skipping upstream CI conclusion check."
+
+      - name: Block deploy when upstream CI failed
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+        run: |
+          echo "Deploy to AWS blocked because upstream workflow did not succeed." >&2
+          echo "workflow=${{ github.event.workflow_run.name }}" >&2
+          echo "conclusion=${{ github.event.workflow_run.conclusion }}" >&2
+          echo "branch=${{ github.event.workflow_run.head_branch }}" >&2
+          echo "head_sha=${{ github.event.workflow_run.head_sha }}" >&2
+          exit 1
+
+      - name: Confirm upstream CI success
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        run: |
+          echo "Upstream workflow succeeded."
+          echo "workflow=${{ github.event.workflow_run.name }}"
+          echo "conclusion=${{ github.event.workflow_run.conclusion }}"
+          echo "branch=${{ github.event.workflow_run.head_branch }}"
+          echo "head_sha=${{ github.event.workflow_run.head_sha }}"
+
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    name: Deploy to AWS
+    needs: guard
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
 

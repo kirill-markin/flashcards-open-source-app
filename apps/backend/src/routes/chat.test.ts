@@ -226,7 +226,6 @@ test("new chat GET route returns the recovered persisted snapshot", async () => 
 
 test("new chat GET route maps missing sessions to 404", async () => {
   const app = createChatTestApp({
-    enabled: true,
     getRecoveredChatSessionSnapshotFn: async () => {
       throw new ChatSessionNotFoundError("session-404");
     },
@@ -245,7 +244,6 @@ test("new chat GET route maps missing sessions to 404", async () => {
 
 test("new chat DELETE route creates a fresh empty session", async () => {
   const app = createChatTestApp({
-    enabled: true,
     getLatestChatSessionIdFn: async (userId, workspaceId) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");
@@ -272,7 +270,6 @@ test("new chat DELETE route creates a fresh empty session", async () => {
 
 test("new chat stop route delegates to persisted run cancellation", async () => {
   const app = createChatTestApp({
-    enabled: true,
     getRecoveredChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");
