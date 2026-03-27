@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
@@ -18,6 +19,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewFilterButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
@@ -33,6 +36,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
@@ -274,9 +278,14 @@ class MainActivityTest {
         waitForCardsEmptyState()
 
         composeRule.onNodeWithText("Review").performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewEmptyStateContentTag).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
         composeRule.onNodeWithText("Create card").fetchSemanticsNode()
         composeRule.onNodeWithText("Create with AI").fetchSemanticsNode()
+        assertReviewEmptyStateIsCentered()
 
         composeRule.onNodeWithText("Create card").performClick()
         composeRule.onNodeWithText("New card").fetchSemanticsNode()
@@ -351,6 +360,20 @@ class MainActivityTest {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithText(emptyCardsMessage).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun assertReviewEmptyStateIsCentered() {
+        val containerBounds = composeRule.onNodeWithTag(reviewEmptyStateTag).fetchSemanticsNode().boundsInRoot
+        val contentBounds = composeRule.onNodeWithTag(reviewEmptyStateContentTag).fetchSemanticsNode().boundsInRoot
+        val containerCenterX = (containerBounds.left + containerBounds.right) / 2f
+        val containerCenterY = (containerBounds.top + containerBounds.bottom) / 2f
+        val contentCenterX = (contentBounds.left + contentBounds.right) / 2f
+        val contentCenterY = (contentBounds.top + contentBounds.bottom) / 2f
+        val maxCenterOffsetPx = 4f
+
+        assertTrue(abs(containerCenterX - contentCenterX) <= maxCenterOffsetPx)
+        assertTrue(abs(containerCenterY - contentCenterY) <= maxCenterOffsetPx)
+        assertTrue(contentBounds.width < composeRule.onRoot().fetchSemanticsNode().boundsInRoot.width)
     }
 
     private fun createCard(frontText: String, backText: String, tags: List<String>) {
