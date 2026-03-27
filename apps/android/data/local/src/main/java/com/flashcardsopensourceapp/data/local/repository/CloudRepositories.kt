@@ -384,7 +384,7 @@ class LocalCloudAccountRepository(
         }
     }
 
-    private fun fetchCloudAccount(
+    private suspend fun fetchCloudAccount(
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration
     ): CloudAccountSnapshot {
@@ -394,7 +394,7 @@ class LocalCloudAccountRepository(
         )
     }
 
-    private fun resolveWorkspaceSelection(
+    private suspend fun resolveWorkspaceSelection(
         authenticatedSession: AuthenticatedCloudSession,
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
@@ -707,7 +707,7 @@ class LocalSyncRepository(
         }
     }
 
-    private fun authenticatedSession(): AuthenticatedCloudSession {
+    private suspend fun authenticatedSession(): AuthenticatedCloudSession {
         val configuration = preferencesStore.currentServerConfiguration()
         val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
             "Cloud account is not signed in."
