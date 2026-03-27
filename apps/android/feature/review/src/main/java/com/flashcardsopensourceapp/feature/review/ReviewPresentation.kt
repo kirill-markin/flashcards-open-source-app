@@ -23,11 +23,10 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
+import com.flashcardsopensourceapp.data.local.model.formatCardDueLabel
+import com.flashcardsopensourceapp.data.local.model.formatCardEffortLabel
+import com.flashcardsopensourceapp.data.local.model.formatCardTagsLabel
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
 
 /*
  Keep review content presentation heuristics aligned with:
@@ -173,32 +172,16 @@ fun makeReviewRenderedContent(text: String): ReviewRenderedContent {
     }
 }
 
-private val reviewDueLabelFormatter: DateTimeFormatter = DateTimeFormatter
-    .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-    .withLocale(Locale.getDefault())
-
 fun formatReviewEffortLabel(effortLevel: EffortLevel): String {
-    return effortLevel.name.lowercase().replaceFirstChar { character ->
-        character.uppercase()
-    }
+    return formatCardEffortLabel(effortLevel = effortLevel)
 }
 
 fun formatReviewTagsLabel(tags: List<String>): String {
-    return if (tags.isEmpty()) {
-        "No tags"
-    } else {
-        tags.joinToString(separator = ", ")
-    }
+    return formatCardTagsLabel(tags = tags)
 }
 
 fun formatReviewDueLabel(dueAtMillis: Long?): String {
-    if (dueAtMillis == null) {
-        return "new"
-    }
-
-    return reviewDueLabelFormatter.format(
-        Instant.ofEpochMilli(dueAtMillis).atZone(ZoneId.systemDefault())
-    )
+    return formatCardDueLabel(dueAtMillis = dueAtMillis)
 }
 
 fun prepareReviewCardPresentation(

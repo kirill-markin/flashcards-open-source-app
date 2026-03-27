@@ -112,6 +112,18 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Android card").fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("This came from the Android app.").fetchSemanticsNodes().isEmpty()
+        }
+        composeRule.onNode(
+            matcher = hasText("Fast", substring = true)
+        ).fetchSemanticsNode()
+        composeRule.onNode(
+            matcher = hasText("draft, android", substring = true)
+        ).fetchSemanticsNode()
+        composeRule.onNode(
+            matcher = hasText("new", substring = true)
+        ).fetchSemanticsNode()
 
         openCardFilter()
         composeRule.onNodeWithText("draft (1)").performClick()
@@ -128,6 +140,9 @@ class MainActivityTest {
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("This came from the Android app.").fetchSemanticsNodes().isEmpty()
         }
 
         composeRule.onNodeWithText("Updated Android card").performClick()
