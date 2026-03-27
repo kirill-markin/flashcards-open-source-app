@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -46,6 +48,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -75,6 +78,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -107,6 +111,8 @@ private enum class AttachmentAction {
     CHOOSE_PHOTO,
     CHOOSE_FILE
 }
+
+private const val aiUserMessageBubbleTag = "ai_user_message_bubble"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -723,11 +729,7 @@ private fun MessageRow(
     isLastMessage: Boolean,
     onOpenAccountStatus: () -> Unit
 ) {
-    val alignment = if (message.role == AiChatRole.USER) {
-        Alignment.CenterEnd
-    } else {
-        Alignment.CenterStart
-    }
+    val alignment = if (message.role == AiChatRole.USER) Alignment.CenterEnd else Alignment.CenterStart
     val containerColor = if (message.role == AiChatRole.USER) {
         MaterialTheme.colorScheme.primaryContainer
     } else if (message.isError) {
@@ -735,79 +737,112 @@ private fun MessageRow(
     } else {
         MaterialTheme.colorScheme.surfaceContainerHighest
     }
+    val showsStreamingIndicator = message.role == AiChatRole.ASSISTANT
+        && isLastMessage
+        && isStreaming
 
     Box(
         contentAlignment = alignment,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(if (message.role == AiChatRole.USER) 0.88f else 1f)
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .background(containerColor)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = if (message.role == AiChatRole.USER) "You" else "AI",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                val showsStreamingIndicator = message.role == AiChatRole.ASSISTANT
-                    && isLastMessage
-                    && isStreaming
-
-                message.content.forEach { contentPart ->
-                    when (contentPart) {
-                        is AiChatContentPart.Text -> {
-                            if (showsStreamingIndicator && contentPart.text == aiChatOptimisticAssistantStatusText) {
-                                TypingIndicatorRow()
-                            } else {
-                                SelectionContainer {
-                                    Text(text = contentPart.text)
-                                }
-                            }
-                        }
-
-                        is AiChatContentPart.Image -> {
-                            AttachmentContentCard(
-                                title = contentPart.fileName ?: "Image attachment",
-                                subtitle = contentPart.mediaType,
-                                icon = Icons.Outlined.Image
-                            )
-                        }
-
-                        is AiChatContentPart.File -> {
-                            AttachmentContentCard(
-                                title = contentPart.fileName,
-                                subtitle = contentPart.mediaType,
-                                icon = Icons.Outlined.Description
-                            )
-                        }
-
-                        is AiChatContentPart.ToolCall -> {
-                            ToolCallCard(toolCall = contentPart.toolCall)
-                        }
-
-                        is AiChatContentPart.AccountUpgradePrompt -> {
-                            AccountUpgradeCard(
-                                message = contentPart.message,
-                                buttonTitle = contentPart.buttonTitle,
-                                onOpenAccountStatus = onOpenAccountStatus
-                            )
-                        }
-                    }
-                }
-
-                if (showsStreamingIndicator && message.content.none { contentPart ->
-                        contentPart is AiChatContentPart.Text && contentPart.text == aiChatOptimisticAssistantStatusText
-                    }
+        if (message.role == AiChatRole.USER) {
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = containerColor),
+                    modifier = Modifier
+                        .align(alignment = Alignment.CenterEnd)
+                        .widthIn(max = maxWidth * 0.88f)
+                        .testTag(tag = aiUserMessageBubbleTag)
                 ) {
-                    TypingIndicatorRow()
+                    MessageBubbleContent(
+                        message = message,
+                        showsStreamingIndicator = showsStreamingIndicator,
+                        onOpenAccountStatus = onOpenAccountStatus,
+                        modifier = Modifier.padding(all = 16.dp)
+                    )
                 }
             }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                MessageBubbleContent(
+                    message = message,
+                    showsStreamingIndicator = showsStreamingIndicator,
+                    onOpenAccountStatus = onOpenAccountStatus,
+                    modifier = Modifier
+                        .background(color = containerColor)
+                        .padding(all = 16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MessageBubbleContent(
+    message: AiChatMessage,
+    showsStreamingIndicator: Boolean,
+    onOpenAccountStatus: () -> Unit,
+    modifier: Modifier
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+    ) {
+        Text(
+            text = if (message.role == AiChatRole.USER) "You" else "AI",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        message.content.forEach { contentPart ->
+            when (contentPart) {
+                is AiChatContentPart.Text -> {
+                    if (showsStreamingIndicator && contentPart.text == aiChatOptimisticAssistantStatusText) {
+                        TypingIndicatorRow()
+                    } else {
+                        SelectionContainer {
+                            Text(text = contentPart.text)
+                        }
+                    }
+                }
+
+                is AiChatContentPart.Image -> {
+                    AttachmentContentCard(
+                        title = contentPart.fileName ?: "Image attachment",
+                        subtitle = contentPart.mediaType,
+                        icon = Icons.Outlined.Image
+                    )
+                }
+
+                is AiChatContentPart.File -> {
+                    AttachmentContentCard(
+                        title = contentPart.fileName,
+                        subtitle = contentPart.mediaType,
+                        icon = Icons.Outlined.Description
+                    )
+                }
+
+                is AiChatContentPart.ToolCall -> {
+                    ToolCallCard(toolCall = contentPart.toolCall)
+                }
+
+                is AiChatContentPart.AccountUpgradePrompt -> {
+                    AccountUpgradeCard(
+                        message = contentPart.message,
+                        buttonTitle = contentPart.buttonTitle,
+                        onOpenAccountStatus = onOpenAccountStatus
+                    )
+                }
+            }
+        }
+
+        if (showsStreamingIndicator && message.content.none { contentPart ->
+                contentPart is AiChatContentPart.Text && contentPart.text == aiChatOptimisticAssistantStatusText
+            }
+        ) {
+            TypingIndicatorRow()
         }
     }
 }
