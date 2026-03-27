@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinitionJsonObject
 import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
@@ -384,7 +385,7 @@ class LocalCloudAccountRepository(
         }
     }
 
-    private fun fetchCloudAccount(
+    private suspend fun fetchCloudAccount(
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration
     ): CloudAccountSnapshot {
@@ -394,7 +395,7 @@ class LocalCloudAccountRepository(
         )
     }
 
-    private fun resolveWorkspaceSelection(
+    private suspend fun resolveWorkspaceSelection(
         authenticatedSession: AuthenticatedCloudSession,
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
@@ -707,7 +708,7 @@ class LocalSyncRepository(
         }
     }
 
-    private fun authenticatedSession(): AuthenticatedCloudSession {
+    private suspend fun authenticatedSession(): AuthenticatedCloudSession {
         val configuration = preferencesStore.currentServerConfiguration()
         val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
             "Cloud account is not signed in."
@@ -818,10 +819,7 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
 }
 
 private fun buildDeckFilterDefinitionJson(filterDefinition: com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition): JSONObject {
-    return JSONObject()
-        .put("version", filterDefinition.version)
-        .put("effortLevels", JSONArray(filterDefinition.effortLevels.map { effortLevel -> effortLevel.name.lowercase() }))
-        .put("tags", JSONArray(filterDefinition.tags))
+    return buildDeckFilterDefinitionJsonObject(filterDefinition = filterDefinition)
 }
 
 private fun com.flashcardsopensourceapp.data.local.model.SyncEntityType.toRemoteValue(): String {

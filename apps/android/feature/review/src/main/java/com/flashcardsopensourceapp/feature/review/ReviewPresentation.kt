@@ -19,9 +19,15 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /*
  Keep review content presentation heuristics aligned with:
@@ -96,9 +102,22 @@ data class ReviewInlineSegment(
 
 data class PreparedReviewCardPresentation(
     val card: ReviewCard,
+    val effortLabel: String,
+    val tagsLabel: String,
+    val dueLabel: String,
+    val repsLabel: String,
+    val lapsesLabel: String,
     val frontContent: ReviewRenderedContent,
     val backContent: ReviewRenderedContent,
     val answerOptions: List<ReviewAnswerOption>
+)
+
+data class PreparedReviewPreviewCardPresentation(
+    val card: ReviewCard,
+    val effortLabel: String,
+    val tagsLabel: String,
+    val dueLabel: String,
+    val backText: String
 )
 
 sealed interface ReviewPreviewListItem {
@@ -110,12 +129,10 @@ sealed interface ReviewPreviewListItem {
     ) : ReviewPreviewListItem
 
     data class CardEntry(
-        val card: ReviewCard,
-        val isCurrent: Boolean,
-        val isAlreadyRated: Boolean,
-        val isFuture: Boolean
+        val presentation: PreparedReviewPreviewCardPresentation,
+        val isCurrent: Boolean
     ) : ReviewPreviewListItem {
-        override val itemId: String = card.cardId
+        override val itemId: String = presentation.card.cardId
     }
 }
 
@@ -156,6 +173,34 @@ fun makeReviewRenderedContent(text: String): ReviewRenderedContent {
     }
 }
 
+private val reviewDueLabelFormatter: DateTimeFormatter = DateTimeFormatter
+    .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+    .withLocale(Locale.getDefault())
+
+fun formatReviewEffortLabel(effortLevel: EffortLevel): String {
+    return effortLevel.name.lowercase().replaceFirstChar { character ->
+        character.uppercase()
+    }
+}
+
+fun formatReviewTagsLabel(tags: List<String>): String {
+    return if (tags.isEmpty()) {
+        "No tags"
+    } else {
+        tags.joinToString(separator = ", ")
+    }
+}
+
+fun formatReviewDueLabel(dueAtMillis: Long?): String {
+    if (dueAtMillis == null) {
+        return "new"
+    }
+
+    return reviewDueLabelFormatter.format(
+        Instant.ofEpochMilli(dueAtMillis).atZone(ZoneId.systemDefault())
+    )
+}
+
 fun prepareReviewCardPresentation(
     card: ReviewCard,
     answerOptions: List<ReviewAnswerOption>
@@ -168,9 +213,24 @@ fun prepareReviewCardPresentation(
 
     return PreparedReviewCardPresentation(
         card = card,
+        effortLabel = formatReviewEffortLabel(effortLevel = card.effortLevel),
+        tagsLabel = formatReviewTagsLabel(tags = card.tags),
+        dueLabel = formatReviewDueLabel(dueAtMillis = card.dueAtMillis),
+        repsLabel = "Reps ${card.reps}",
+        lapsesLabel = "Lapses ${card.lapses}",
         frontContent = makeReviewRenderedContent(text = card.frontText),
         backContent = makeReviewRenderedContent(text = normalizedBackText),
         answerOptions = answerOptions
+    )
+}
+
+fun prepareReviewPreviewCardPresentation(card: ReviewCard): PreparedReviewPreviewCardPresentation {
+    return PreparedReviewPreviewCardPresentation(
+        card = card,
+        effortLabel = formatReviewEffortLabel(effortLevel = card.effortLevel),
+        tagsLabel = formatReviewTagsLabel(tags = card.tags),
+        dueLabel = formatReviewDueLabel(dueAtMillis = card.dueAtMillis),
+        backText = card.backText
     )
 }
 
@@ -178,36 +238,28 @@ fun buildReviewPreviewItems(
     cards: List<ReviewCard>,
     currentCardId: String?
 ): List<ReviewPreviewListItem> {
-    var previousStatus: ReviewCardQueueStatus? = null
+    val visibleCards = cards.filter { card ->
+        card.queueStatus != ReviewCardQueueStatus.RATED
+    }
+    val firstFutureCardId = visibleCards.firstOrNull { card ->
+        card.queueStatus == ReviewCardQueueStatus.FUTURE
+    }?.cardId
 
     return buildList {
-        cards.forEach { card ->
-            if (card.queueStatus != previousStatus) {
-                when (card.queueStatus) {
-                    ReviewCardQueueStatus.ACTIVE -> Unit
-                    ReviewCardQueueStatus.FUTURE -> add(
-                        ReviewPreviewListItem.SectionHeader(
-                            itemId = "section-future",
-                            title = "Later in this filter"
-                        )
+        visibleCards.forEach { card ->
+            if (card.cardId == firstFutureCardId) {
+                add(
+                    ReviewPreviewListItem.SectionHeader(
+                        itemId = "section-future",
+                        title = "Later"
                     )
-
-                    ReviewCardQueueStatus.RATED -> add(
-                        ReviewPreviewListItem.SectionHeader(
-                            itemId = "section-rated",
-                            title = "Already rated in this session"
-                        )
-                    )
-                }
-                previousStatus = card.queueStatus
+                )
             }
 
             add(
                 ReviewPreviewListItem.CardEntry(
-                    card = card,
-                    isCurrent = currentCardId == card.cardId,
-                    isAlreadyRated = card.queueStatus == ReviewCardQueueStatus.RATED,
-                    isFuture = card.queueStatus == ReviewCardQueueStatus.FUTURE
+                    presentation = prepareReviewPreviewCardPresentation(card = card),
+                    isCurrent = currentCardId == card.cardId
                 )
             )
         }

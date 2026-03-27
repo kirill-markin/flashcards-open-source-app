@@ -517,6 +517,9 @@ fun AppNavHost(
                     coroutineScope.launch {
                         currentWorkspaceViewModel.retryLastWorkspaceAction()
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -582,6 +585,9 @@ fun AppNavHost(
                     coroutineScope.launch {
                         workspaceOverviewViewModel.deleteWorkspace()
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -790,7 +796,12 @@ fun AppNavHost(
                 factory = createWorkspaceExportViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
             )
 
-            WorkspaceExportRoute(viewModel = workspaceExportViewModel)
+            WorkspaceExportRoute(
+                viewModel = workspaceExportViewModel,
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(route = SettingsAccountDestination.route) { backStackEntry ->
@@ -827,6 +838,9 @@ fun AppNavHost(
                 },
                 onOpenDangerZone = {
                     navController.navigate(route = SettingsAccountDangerZoneDestination.route)
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -858,6 +872,9 @@ fun AppNavHost(
                     coroutineScope.launch {
                         accountStatusViewModel.confirmLogout()
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -866,6 +883,9 @@ fun AppNavHost(
             AccountAdvancedRoute(
                 onOpenServer = {
                     navController.navigate(route = SettingsAccountServerDestination.route)
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -895,6 +915,9 @@ fun AppNavHost(
                     coroutineScope.launch {
                         serverSettingsViewModel.resetToOfficialServer()
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -919,6 +942,9 @@ fun AppNavHost(
                             navController.navigate(route = SettingsAccountSignInCodeDestination.route)
                         }
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -949,6 +975,9 @@ fun AppNavHost(
                             navController.navigate(route = SettingsAccountPostAuthDestination.route)
                         }
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -1006,16 +1035,27 @@ fun AppNavHost(
                         )
                         navController.navigate(route = SettingsAccountStatusDestination.route)
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
 
         composable(route = SettingsAccountLegalSupportDestination.route) {
-            AccountLegalSupportRoute()
+            AccountLegalSupportRoute(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(route = SettingsAccountOpenSourceDestination.route) {
-            AccountOpenSourceRoute()
+            AccountOpenSourceRoute(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(route = SettingsAccountAgentConnectionsDestination.route) {
@@ -1037,6 +1077,9 @@ fun AppNavHost(
                     coroutineScope.launch {
                         agentConnectionsViewModel.revokeConnection(connectionId = connectionId)
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -1058,6 +1101,9 @@ fun AppNavHost(
                     coroutineScope.launch {
                         accountDangerZoneViewModel.deleteAccount()
                     }
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -1072,7 +1118,12 @@ fun AppNavHost(
             )
             val uiState by deviceDiagnosticsViewModel.uiState.collectAsStateWithLifecycle()
 
-            DeviceDiagnosticsRoute(uiState = uiState)
+            DeviceDiagnosticsRoute(
+                uiState = uiState,
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(route = SettingsAccessDestination.route) {
@@ -1081,6 +1132,9 @@ fun AppNavHost(
                     navController.navigate(
                         route = SettingsAccessDetailDestination.createRoute(capability = capability.name.lowercase())
                     )
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

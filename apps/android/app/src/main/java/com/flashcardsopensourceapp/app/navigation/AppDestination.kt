@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.app.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CollectionsBookmark
-import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.FlipToFront
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -22,7 +22,7 @@ sealed interface TopLevelDestination {
 data object ReviewDestination : TopLevelDestination {
     override val route: String = "review"
     override val label: String = "Review"
-    override val icon: ImageVector = Icons.Outlined.PlayCircle
+    override val icon: ImageVector = Icons.Outlined.FlipToFront
 }
 
 data object ReviewPreviewDestination {

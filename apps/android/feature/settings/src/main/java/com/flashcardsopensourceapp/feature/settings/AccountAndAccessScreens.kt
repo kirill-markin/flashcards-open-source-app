@@ -54,7 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flashcardsopensourceapp.core.ui.components.NoticeCard
+import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
 import kotlinx.coroutines.launch
@@ -68,138 +68,153 @@ fun AccountRoute(
     onOpenOpenSource: () -> Unit,
     onOpenAdvanced: () -> Unit,
     onOpenAgentConnections: () -> Unit,
-    onOpenDangerZone: () -> Unit
+    onOpenDangerZone: () -> Unit,
+    onBack: () -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            NoticeCard(
-                title = "Android cloud account foundation",
-                body = "This account area now covers linked sign-in, manual sync, linked workspace switching, and custom server configuration while keeping the UI native to Android.",
-                modifier = Modifier
-            )
-        }
-
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Account status")
-                    },
-                    supportingContent = {
-                        Text("Workspace: $workspaceName")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.PersonOutline,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable(onClick = onOpenStatus)
-                )
+    SettingsScreenScaffold(
+        title = "Account Settings",
+        onBack = onBack,
+        isBackEnabled = true
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Account status")
+                        },
+                        supportingContent = {
+                            Text("Workspace: $workspaceName")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.PersonOutline,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenStatus)
+                    )
+                }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Legal & support")
-                    },
-                    supportingContent = {
-                        Text("Privacy, terms, support, and contact")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.Handshake,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable(onClick = onOpenLegalSupport)
-                )
+            item {
+                SectionTitle(text = "Support")
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Open source")
-                    },
-                    supportingContent = {
-                        Text("GitHub repository and self-hosting direction")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.Code,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable(onClick = onOpenOpenSource)
-                )
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Legal & support")
+                        },
+                        supportingContent = {
+                            Text("Privacy, terms, support, and contact")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Handshake,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenLegalSupport)
+                    )
+                }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Advanced")
-                    },
-                    supportingContent = {
-                        Text("Server configuration")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.SettingsEthernet,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable(onClick = onOpenAdvanced)
-                )
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Open source")
+                        },
+                        supportingContent = {
+                            Text("GitHub repository and self-hosting direction")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Code,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenOpenSource)
+                    )
+                }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Agent connections")
-                    },
-                    supportingContent = {
-                        Text("Review and revoke long-lived bot connections")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.Link,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable(onClick = onOpenAgentConnections)
-                )
+            item {
+                SectionTitle(text = "Advanced")
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Danger zone")
-                    },
-                    supportingContent = {
-                        Text("Delete account")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.WarningAmber,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable(onClick = onOpenDangerZone)
-                )
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Advanced")
+                        },
+                        supportingContent = {
+                            Text("Server configuration")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.SettingsEthernet,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenAdvanced)
+                    )
+                }
+            }
+
+            item {
+                SectionTitle(text = "Connections")
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Agent connections")
+                        },
+                        supportingContent = {
+                            Text("Review and revoke long-lived bot connections")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Link,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenAgentConnections)
+                    )
+                }
+            }
+
+            item {
+                SectionTitle(text = "Danger zone")
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Danger zone")
+                        },
+                        supportingContent = {
+                            Text("Delete account")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.WarningAmber,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenDangerZone)
+                    )
+                }
             }
         }
     }
@@ -212,104 +227,111 @@ fun AccountStatusRoute(
     onSyncNow: () -> Unit,
     onRequestLogout: () -> Unit,
     onDismissLogoutConfirmation: () -> Unit,
-    onConfirmLogout: () -> Unit
+    onConfirmLogout: () -> Unit,
+    onBack: () -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (uiState.errorMessage.isNotEmpty()) {
+    SettingsScreenScaffold(
+        title = "Account Status",
+        onBack = onBack,
+        isBackEnabled = uiState.isSubmitting.not()
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (uiState.errorMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+            }
+
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(20.dp)
+                    ListItem(
+                        headlineContent = {
+                            Text("Cloud status")
+                        },
+                        supportingContent = {
+                            Text(uiState.cloudStatusTitle)
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.LockOpen,
+                                contentDescription = null
+                            )
+                        }
                     )
                 }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Cloud status")
-                    },
-                    supportingContent = {
-                        Text(uiState.cloudStatusTitle)
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.LockOpen,
-                            contentDescription = null
-                        )
+            item {
+                DeviceInfoCard(
+                    title = "Account",
+                    rows = buildList {
+                        add("Workspace" to uiState.workspaceName)
+                        add("Device ID" to uiState.deviceId)
+                        add("Sync" to uiState.syncStatusText)
+                        add("Last successful sync" to uiState.lastSuccessfulSync)
+                        if (uiState.linkedEmail != null) {
+                            add("Linked email" to uiState.linkedEmail)
+                        }
                     }
                 )
             }
-        }
 
-        item {
-            DeviceInfoCard(
-                title = "Account",
-                rows = buildList {
-                    add("Workspace" to uiState.workspaceName)
-                    add("Device ID" to uiState.deviceId)
-                    add("Sync" to uiState.syncStatusText)
-                    add("Last successful sync" to uiState.lastSuccessfulSync)
-                    if (uiState.linkedEmail != null) {
-                        add("Linked email" to uiState.linkedEmail)
-                    }
-                }
-            )
-        }
-
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Actions",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    if (uiState.isGuest) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(20.dp)
+                    ) {
                         Text(
-                            text = "Guest AI is active on this device. Create an account or log in to upgrade it into a linked cloud account.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Actions",
+                            style = MaterialTheme.typography.titleMedium
                         )
-                    }
-                    if (uiState.isLinked || uiState.isLinkingReady.not()) {
-                        Button(
-                            onClick = onOpenSignIn,
-                            enabled = uiState.isSubmitting.not(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        if (uiState.isGuest) {
                             Text(
-                                when {
-                                    uiState.isLinked -> "Switch account"
-                                    uiState.isGuest -> "Sign in or sign up"
-                                    else -> "Sign in or sign up"
-                                }
+                                text = "Guest AI is active on this device. Create an account or log in to upgrade it into a linked cloud account.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                    if (uiState.isLinked) {
-                        Button(
-                            onClick = onSyncNow,
-                            enabled = uiState.isSubmitting.not(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (uiState.isSubmitting) "Syncing..." else "Sync now")
+                        if (uiState.isLinked || uiState.isLinkingReady.not()) {
+                            Button(
+                                onClick = onOpenSignIn,
+                                enabled = uiState.isSubmitting.not(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    when {
+                                        uiState.isLinked -> "Switch account"
+                                        uiState.isGuest -> "Sign in or sign up"
+                                        else -> "Sign in or sign up"
+                                    }
+                                )
+                            }
                         }
-                        OutlinedButton(
-                            onClick = onRequestLogout,
-                            enabled = uiState.isSubmitting.not(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Log out")
+                        if (uiState.isLinked) {
+                            Button(
+                                onClick = onSyncNow,
+                                enabled = uiState.isSubmitting.not(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(if (uiState.isSubmitting) "Syncing..." else "Sync now")
+                            }
+                            OutlinedButton(
+                                onClick = onRequestLogout,
+                                enabled = uiState.isSubmitting.not(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Log out")
+                            }
                         }
                     }
                 }
@@ -357,7 +379,8 @@ fun CurrentWorkspaceRoute(
     onSwitchToExistingWorkspace: (String) -> Unit,
     onCreateWorkspace: () -> Unit,
     onOpenSignIn: () -> Unit,
-    onRetryLastWorkspaceAction: () -> Unit
+    onRetryLastWorkspaceAction: () -> Unit,
+    onBack: () -> Unit
 ) {
     LaunchedEffect(uiState.isLinked, uiState.workspaces.isEmpty(), uiState.isLoading) {
         if (uiState.isLinked && uiState.workspaces.isEmpty() && uiState.isLoading.not()) {
@@ -365,11 +388,16 @@ fun CurrentWorkspaceRoute(
         }
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
+    SettingsScreenScaffold(
+        title = "Current Workspace",
+        onBack = onBack,
+        isBackEnabled = uiState.isSwitching.not()
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -498,33 +526,43 @@ fun CurrentWorkspaceRoute(
                 }
             }
         }
+        }
     }
 }
 
 @Composable
-fun AccountAdvancedRoute(onOpenServer: () -> Unit) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("Server")
-                    },
-                    supportingContent = {
-                        Text("Official or self-hosted server configuration")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.SettingsEthernet,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable(onClick = onOpenServer)
-                )
+fun AccountAdvancedRoute(
+    onOpenServer: () -> Unit,
+    onBack: () -> Unit
+) {
+    SettingsScreenScaffold(
+        title = "Advanced",
+        onBack = onBack,
+        isBackEnabled = true
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Server")
+                        },
+                        supportingContent = {
+                            Text("Official or self-hosted server configuration")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.SettingsEthernet,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenServer)
+                    )
+                }
             }
         }
     }
@@ -536,13 +574,19 @@ fun ServerSettingsRoute(
     onCustomOriginChange: (String) -> Unit,
     onValidateCustomServer: () -> Unit,
     onApplyPreviewConfiguration: () -> Unit,
-    onResetToOfficialServer: () -> Unit
+    onResetToOfficialServer: () -> Unit,
+    onBack: () -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
+    SettingsScreenScaffold(
+        title = "Server",
+        onBack = onBack,
+        isBackEnabled = uiState.isApplying.not()
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
         item {
             DeviceInfoCard(
                 title = "Current server",
@@ -621,6 +665,7 @@ fun ServerSettingsRoute(
                 Text("Reset to official server")
             }
         }
+        }
     }
 }
 
@@ -628,57 +673,64 @@ fun ServerSettingsRoute(
 fun CloudSignInEmailRoute(
     uiState: CloudSignInUiState,
     onEmailChange: (String) -> Unit,
-    onSendCode: () -> Unit
+    onSendCode: () -> Unit,
+    onBack: () -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = if (uiState.isGuestUpgrade) {
-                        "Sign in with email to upgrade Guest AI into a linked cloud account on Android."
-                    } else {
-                        "Sign in with email to link Android to your cloud workspace."
-                    },
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp)
-                )
-            }
-        }
-
-        if (uiState.errorMessage.isNotEmpty()) {
+    SettingsScreenScaffold(
+        title = "Sign in",
+        onBack = onBack,
+        isBackEnabled = uiState.isSendingCode.not()
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.error,
+                        text = if (uiState.isGuestUpgrade) {
+                            "Sign in with email to upgrade this Guest AI session into a linked cloud account."
+                        } else {
+                            "Sign in with email to link this Android device to your cloud workspace."
+                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(20.dp)
                     )
                 }
             }
-        }
 
-        item {
-            OutlinedTextField(
-                value = uiState.email,
-                onValueChange = onEmailChange,
-                label = {
-                    Text("Email")
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            if (uiState.errorMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+            }
 
-        item {
-            Button(
-                onClick = onSendCode,
-                enabled = uiState.isSendingCode.not(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (uiState.isSendingCode) "Sending..." else "Send one-time code")
+            item {
+                OutlinedTextField(
+                    value = uiState.email,
+                    onValueChange = onEmailChange,
+                    label = {
+                        Text("Email")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                Button(
+                    onClick = onSendCode,
+                    enabled = uiState.isSendingCode.not(),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (uiState.isSendingCode) "Sending..." else "Send one-time code")
+                }
             }
         }
     }
@@ -688,57 +740,64 @@ fun CloudSignInEmailRoute(
 fun CloudSignInCodeRoute(
     uiState: CloudSignInUiState,
     onCodeChange: (String) -> Unit,
-    onVerifyCode: () -> Unit
+    onVerifyCode: () -> Unit,
+    onBack: () -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = if (uiState.isGuestUpgrade) {
-                        "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"} to upgrade Guest AI."
-                    } else {
-                        "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"}."
-                    },
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp)
-                )
-            }
-        }
-
-        if (uiState.errorMessage.isNotEmpty()) {
+    SettingsScreenScaffold(
+        title = "Verify code",
+        onBack = onBack,
+        isBackEnabled = uiState.isVerifyingCode.not()
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.error,
+                        text = if (uiState.isGuestUpgrade) {
+                            "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"} to finish upgrading Guest AI."
+                        } else {
+                            "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"}."
+                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(20.dp)
                     )
                 }
             }
-        }
 
-        item {
-            OutlinedTextField(
-                value = uiState.code,
-                onValueChange = onCodeChange,
-                label = {
-                    Text("One-time code")
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            if (uiState.errorMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+            }
 
-        item {
-            Button(
-                onClick = onVerifyCode,
-                enabled = uiState.isVerifyingCode.not(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (uiState.isVerifyingCode) "Verifying..." else "Verify code")
+            item {
+                OutlinedTextField(
+                    value = uiState.code,
+                    onValueChange = onCodeChange,
+                    label = {
+                        Text("One-time code")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                Button(
+                    onClick = onVerifyCode,
+                    enabled = uiState.isVerifyingCode.not(),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (uiState.isVerifyingCode) "Verifying..." else "Verify code")
+                }
             }
         }
     }
@@ -750,7 +809,8 @@ fun CloudPostAuthRoute(
     onAutoContinue: () -> Unit,
     onSelectWorkspace: (CloudWorkspaceLinkSelection) -> Unit,
     onRetry: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onBack: () -> Unit
 ) {
     LaunchedEffect(uiState.mode, uiState.pendingWorkspaceTitle) {
         if (uiState.mode == CloudPostAuthMode.READY_TO_AUTO_LINK) {
@@ -758,112 +818,117 @@ fun CloudPostAuthRoute(
         }
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Finishing cloud setup",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    if (uiState.verifiedEmail != null) {
-                        Text(
-                            text = uiState.verifiedEmail,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+    val isBackEnabled = uiState.mode != CloudPostAuthMode.PROCESSING
+        && uiState.mode != CloudPostAuthMode.READY_TO_AUTO_LINK
 
-                    when (uiState.mode) {
-                        CloudPostAuthMode.READY_TO_AUTO_LINK -> {
+    SettingsScreenScaffold(
+        title = "Cloud sync",
+        onBack = onBack,
+        isBackEnabled = isBackEnabled
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        if (uiState.verifiedEmail != null) {
                             Text(
-                                if (uiState.isGuestUpgrade) {
-                                    "Preparing to upgrade Guest AI into ${uiState.pendingWorkspaceTitle ?: "your workspace"}..."
-                                } else {
-                                    "Preparing ${uiState.pendingWorkspaceTitle ?: "your workspace"}..."
-                                }
-                            )
-                        }
-
-                        CloudPostAuthMode.CHOOSE_WORKSPACE -> {
-                            Text(
-                                if (uiState.isGuestUpgrade) {
-                                    "Choose the linked workspace that should receive this Guest AI session, or create a new one."
-                                } else {
-                                    "Choose a linked workspace to open on this Android device, or create a new one."
-                                }
-                            )
-                        }
-
-                        CloudPostAuthMode.PROCESSING -> {
-                            CircularProgressIndicator()
-                            Text(uiState.processingTitle)
-                            Text(
-                                text = uiState.processingMessage,
+                                text = uiState.verifiedEmail,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        CloudPostAuthMode.FAILED -> {
-                            Text(
-                                text = uiState.errorMessage,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
+                        when (uiState.mode) {
+                            CloudPostAuthMode.READY_TO_AUTO_LINK -> {
+                                Text(
+                                    if (uiState.isGuestUpgrade) {
+                                        "Preparing to upgrade Guest AI into ${uiState.pendingWorkspaceTitle ?: "your workspace"}..."
+                                    } else {
+                                        "Preparing ${uiState.pendingWorkspaceTitle ?: "your workspace"}..."
+                                    }
+                                )
+                            }
 
-                        CloudPostAuthMode.IDLE -> {
-                            Text(
-                                text = "Cloud account setup is idle.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            CloudPostAuthMode.CHOOSE_WORKSPACE -> {
+                                Text(
+                                    if (uiState.isGuestUpgrade) {
+                                        "Choose the linked workspace that should receive this Guest AI session, or create a new one."
+                                    } else {
+                                        "Choose a linked workspace to open on this Android device, or create a new one."
+                                    }
+                                )
+                            }
+
+                            CloudPostAuthMode.PROCESSING -> {
+                                CircularProgressIndicator()
+                                Text(uiState.processingTitle)
+                                Text(
+                                    text = uiState.processingMessage,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            CloudPostAuthMode.FAILED -> {
+                                Text(
+                                    text = uiState.errorMessage,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+
+                            CloudPostAuthMode.IDLE -> {
+                                Text(
+                                    text = "Cloud account setup is idle.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (uiState.mode == CloudPostAuthMode.CHOOSE_WORKSPACE) {
-            items(uiState.workspaces, key = { item -> item.workspaceId }) { workspace ->
-                OutlinedButton(
-                    onClick = {
-                        if (workspace.isCreateNew) {
-                            onSelectWorkspace(CloudWorkspaceLinkSelection.CreateNew)
-                        } else {
-                            onSelectWorkspace(
-                                CloudWorkspaceLinkSelection.Existing(workspaceId = workspace.workspaceId)
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(workspace.title)
+            if (uiState.mode == CloudPostAuthMode.CHOOSE_WORKSPACE) {
+                items(uiState.workspaces, key = { item -> item.workspaceId }) { workspace ->
+                    OutlinedButton(
+                        onClick = {
+                            if (workspace.isCreateNew) {
+                                onSelectWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+                            } else {
+                                onSelectWorkspace(
+                                    CloudWorkspaceLinkSelection.Existing(workspaceId = workspace.workspaceId)
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(workspace.title)
+                    }
                 }
             }
-        }
 
-        if (uiState.mode == CloudPostAuthMode.FAILED) {
-            item {
-                Button(
-                    onClick = onRetry,
-                    enabled = uiState.canRetry,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Retry")
+            if (uiState.mode == CloudPostAuthMode.FAILED) {
+                item {
+                    Button(
+                        onClick = onRetry,
+                        enabled = uiState.canRetry,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Retry")
+                    }
                 }
-            }
-            item {
-                OutlinedButton(
-                    onClick = onLogout,
-                    enabled = uiState.canLogout,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Log out")
+                item {
+                    OutlinedButton(
+                        onClick = onLogout,
+                        enabled = uiState.canLogout,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Log out")
+                    }
                 }
             }
         }
@@ -874,7 +939,8 @@ fun CloudPostAuthRoute(
 fun AgentConnectionsRoute(
     uiState: AgentConnectionsUiState,
     onReload: () -> Unit,
-    onRevokeConnection: (String) -> Unit
+    onRevokeConnection: (String) -> Unit,
+    onBack: () -> Unit
 ) {
     LaunchedEffect(uiState.isLinked) {
         if (uiState.isLinked) {
@@ -882,108 +948,110 @@ fun AgentConnectionsRoute(
         }
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (uiState.errorMessage.isNotEmpty()) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(20.dp)
-                    )
-                }
-            }
-        }
-
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Agent connections",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    if (uiState.isLinked) {
+    SettingsScreenScaffold(
+        title = "Agent Connections",
+        onBack = onBack,
+        isBackEnabled = uiState.revokingConnectionId == null
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (uiState.errorMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Review and revoke long-lived bot connections tied to this cloud account.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        OutlinedButton(
-                            onClick = onReload,
-                            enabled = uiState.isLoading.not(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (uiState.isLoading) "Loading..." else "Reload")
-                        }
-                    } else {
-                        Text(
-                            text = "Sign in to the cloud account to manage long-lived bot connections.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(20.dp)
                         )
                     }
                 }
             }
-        }
 
-        if (uiState.instructions.isNotEmpty()) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = uiState.instructions,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.padding(20.dp)
-                    )
-                }
-            }
-        }
-
-        if (uiState.isLinked && uiState.isLoading.not() && uiState.connections.isEmpty()) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "No long-lived bot connections were created for this account.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(20.dp)
-                    )
-                }
-            }
-        }
-
-        items(uiState.connections, key = { item -> item.connectionId }) { connection ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(connection.label, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = connection.connectionId,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text("Created: ${connection.createdAtLabel}")
-                    Text("Last used: ${connection.lastUsedAtLabel}")
-                    Text("Revoked: ${connection.revokedAtLabel}")
-                    OutlinedButton(
-                        onClick = {
-                            onRevokeConnection(connection.connectionId)
-                        },
-                        enabled = connection.isRevoked.not() && uiState.revokingConnectionId != connection.connectionId,
-                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            if (uiState.revokingConnectionId == connection.connectionId) {
-                                "Revoking..."
-                            } else {
-                                "Revoke"
+                        if (uiState.isLinked) {
+                            Text(
+                                text = "Review and revoke long-lived bot connections tied to this cloud account.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            OutlinedButton(
+                                onClick = onReload,
+                                enabled = uiState.isLoading.not(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(if (uiState.isLoading) "Loading..." else "Reload")
                             }
+                        } else {
+                            Text(
+                                text = "Sign in to the cloud account to manage long-lived bot connections.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (uiState.instructions.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = uiState.instructions,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(20.dp)
                         )
+                    }
+                }
+            }
+
+            if (uiState.isLinked && uiState.isLoading.not() && uiState.connections.isEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "No long-lived bot connections were created for this account.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+            }
+
+            items(uiState.connections, key = { item -> item.connectionId }) { connection ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(connection.label, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = connection.connectionId,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text("Created: ${connection.createdAtLabel}")
+                        Text("Last used: ${connection.lastUsedAtLabel}")
+                        Text("Revoked: ${connection.revokedAtLabel}")
+                        OutlinedButton(
+                            onClick = {
+                                onRevokeConnection(connection.connectionId)
+                            },
+                            enabled = connection.isRevoked.not() && uiState.revokingConnectionId != connection.connectionId,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                if (uiState.revokingConnectionId == connection.connectionId) {
+                                    "Revoking..."
+                                } else {
+                                    "Revoke"
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -997,67 +1065,74 @@ fun AccountDangerZoneRoute(
     onRequestDeleteConfirmation: () -> Unit,
     onDismissDeleteConfirmation: () -> Unit,
     onConfirmationTextChange: (String) -> Unit,
-    onDeleteAccount: () -> Unit
+    onDeleteAccount: () -> Unit,
+    onBack: () -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (uiState.errorMessage.isNotEmpty()) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(20.dp)
-                    )
-                }
-            }
-        }
-
-        if (uiState.successMessage.isNotEmpty()) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = uiState.successMessage,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(20.dp)
-                    )
-                }
-            }
-        }
-
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Danger zone",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        text = "Permanently delete this account and all cloud data.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (uiState.deleteState == DestructiveActionState.IN_PROGRESS) {
-                        CircularProgressIndicator()
-                    }
-                    Button(
-                        onClick = onRequestDeleteConfirmation,
-                        enabled = uiState.isLinked && uiState.isDeleting.not(),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(if (uiState.isDeleting) "Deleting..." else "Delete my account")
-                    }
-                    if (uiState.isLinked.not()) {
+    SettingsScreenScaffold(
+        title = "Danger Zone",
+        onBack = onBack,
+        isBackEnabled = uiState.isDeleting.not()
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (uiState.errorMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Sign in to a linked cloud account before deleting it.",
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+            }
+
+            if (uiState.successMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = uiState.successMessage,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(
+                            text = "Danger zone",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Permanently delete this account and all cloud data.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (uiState.deleteState == DestructiveActionState.IN_PROGRESS) {
+                            CircularProgressIndicator()
+                        }
+                        Button(
+                            onClick = onRequestDeleteConfirmation,
+                            enabled = uiState.isLinked && uiState.isDeleting.not(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (uiState.isDeleting) "Deleting..." else "Delete my account")
+                        }
+                        if (uiState.isLinked.not()) {
+                            Text(
+                                text = "Sign in to a linked cloud account before deleting it.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -1125,101 +1200,166 @@ fun AccountDangerZoneRoute(
 }
 
 @Composable
-fun AccountLegalSupportRoute() {
+fun AccountLegalSupportRoute(onBack: () -> Unit) {
     val context = LocalContext.current
     val privacyUrl = stringResource(id = R.string.flashcards_privacy_policy_url)
     val termsUrl = stringResource(id = R.string.flashcards_terms_of_service_url)
     val supportUrl = stringResource(id = R.string.flashcards_support_url)
     val supportEmail = stringResource(id = R.string.flashcards_support_email_address)
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsLinkItem(
-                    title = "Privacy policy",
-                    summary = "Open hosted privacy details",
-                    icon = Icons.Outlined.Description,
-                    onClick = {
-                        openExternalUrl(context = context, url = privacyUrl)
-                    }
-                )
+    SettingsScreenScaffold(
+        title = "Legal & Support",
+        onBack = onBack,
+        isBackEnabled = true
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = "Privacy policy",
+                        summary = "Open hosted privacy details",
+                        icon = Icons.Outlined.Description,
+                        onClick = {
+                            openExternalUrl(context = context, url = privacyUrl)
+                        }
+                    )
+                }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsLinkItem(
-                    title = "Terms of service",
-                    summary = "Open hosted terms",
-                    icon = Icons.Outlined.Description,
-                    onClick = {
-                        openExternalUrl(context = context, url = termsUrl)
-                    }
-                )
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = "Terms of service",
+                        summary = "Open hosted terms",
+                        icon = Icons.Outlined.Description,
+                        onClick = {
+                            openExternalUrl(context = context, url = termsUrl)
+                        }
+                    )
+                }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsLinkItem(
-                    title = "Support",
-                    summary = "Open hosted support page",
-                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
-                    onClick = {
-                        openExternalUrl(context = context, url = supportUrl)
-                    }
-                )
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = "Support",
+                        summary = "Open hosted support page",
+                        icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                        onClick = {
+                            openExternalUrl(context = context, url = supportUrl)
+                        }
+                    )
+                }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsLinkItem(
-                    title = "Support email",
-                    summary = supportEmail,
-                    icon = Icons.Outlined.MailOutline,
-                    onClick = {
-                        sendSupportEmail(context = context, emailAddress = supportEmail)
-                    }
-                )
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = "Support email",
+                        summary = supportEmail,
+                        icon = Icons.Outlined.MailOutline,
+                        onClick = {
+                            sendSupportEmail(context = context, emailAddress = supportEmail)
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun AccountOpenSourceRoute() {
+fun AccountOpenSourceRoute(onBack: () -> Unit) {
     val context = LocalContext.current
     val repositoryUrl = stringResource(id = R.string.flashcards_repository_url)
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "The Android client stays aligned with the same open-source flashcards product and keeps room for self-hosting later, without copying the iOS visual language.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp)
-                )
+    SettingsScreenScaffold(
+        title = "Open Source",
+        onBack = onBack,
+        isBackEnabled = true
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsLinkItem(
+                        title = "GitHub repository",
+                        summary = "Open MIT-licensed source repository",
+                        icon = Icons.Outlined.Code,
+                        onClick = {
+                            openExternalUrl(context = context, url = repositoryUrl)
+                        }
+                    )
+                }
             }
         }
+    }
+}
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsLinkItem(
-                    title = "GitHub repository",
-                    summary = "Open MIT-licensed source repository",
-                    icon = Icons.Outlined.Code,
-                    onClick = {
-                        openExternalUrl(context = context, url = repositoryUrl)
-                    }
+@Composable
+fun DeviceDiagnosticsRoute(
+    uiState: DeviceDiagnosticsUiState,
+    onBack: () -> Unit
+) {
+    SettingsScreenScaffold(
+        title = "This Device",
+        onBack = onBack,
+        isBackEnabled = true
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                DeviceInfoCard(
+                    title = "Workspace",
+                    rows = listOf(
+                        "Name" to uiState.workspaceName,
+                        "Workspace ID" to uiState.workspaceId
+                    )
+                )
+            }
+
+            item {
+                DeviceInfoCard(
+                    title = "App",
+                    rows = listOf(
+                        "Version" to uiState.appVersion,
+                        "Build" to uiState.buildNumber,
+                        "Client" to uiState.clientLabel,
+                        "Storage" to uiState.storageLabel
+                    )
+                )
+            }
+
+            item {
+                DeviceInfoCard(
+                    title = "Device",
+                    rows = listOf(
+                        "Operating system" to uiState.operatingSystem,
+                        "Model" to uiState.deviceModel
+                    )
+                )
+            }
+
+            item {
+                DeviceInfoCard(
+                    title = "Local sync diagnostics",
+                    rows = listOf(
+                        "Outbox entries" to uiState.outboxEntriesCount.toString(),
+                        "Last sync cursor" to uiState.lastSyncCursor,
+                        "Last sync attempt" to uiState.lastSyncAttempt,
+                        "Last successful sync" to uiState.lastSuccessfulSync,
+                        "Last sync error" to uiState.lastSyncError
+                    )
                 )
             }
         }
@@ -1227,71 +1367,10 @@ fun AccountOpenSourceRoute() {
 }
 
 @Composable
-fun DeviceDiagnosticsRoute(uiState: DeviceDiagnosticsUiState) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "This Android device screen stays diagnostic-first: local workspace details, build info, and sync plumbing status without pretending cloud sync already exists.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp)
-                )
-            }
-        }
-
-        item {
-            DeviceInfoCard(
-                title = "Workspace",
-                rows = listOf(
-                    "Name" to uiState.workspaceName,
-                    "Workspace ID" to uiState.workspaceId
-                )
-            )
-        }
-
-        item {
-            DeviceInfoCard(
-                title = "App",
-                rows = listOf(
-                    "Version" to uiState.appVersion,
-                    "Build" to uiState.buildNumber,
-                    "Client" to uiState.clientLabel,
-                    "Storage" to uiState.storageLabel
-                )
-            )
-        }
-
-        item {
-            DeviceInfoCard(
-                title = "Device",
-                rows = listOf(
-                    "Operating system" to uiState.operatingSystem,
-                    "Model" to uiState.deviceModel
-                )
-            )
-        }
-
-        item {
-            DeviceInfoCard(
-                title = "Local sync diagnostics",
-                rows = listOf(
-                    "Outbox entries" to uiState.outboxEntriesCount.toString(),
-                    "Last sync cursor" to uiState.lastSyncCursor,
-                    "Last sync attempt" to uiState.lastSyncAttempt,
-                    "Last successful sync" to uiState.lastSuccessfulSync,
-                    "Last sync error" to uiState.lastSyncError
-                )
-            )
-        }
-    }
-}
-
-@Composable
-fun AccessRoute(onOpenCapability: (AccessCapability) -> Unit) {
+fun AccessRoute(
+    onOpenCapability: (AccessCapability) -> Unit,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
     val capabilityStates = AccessCapability.entries.map { capability ->
@@ -1314,40 +1393,36 @@ fun AccessRoute(onOpenCapability: (AccessCapability) -> Unit) {
         )
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Android access follows native platform behavior: runtime permissions for camera and microphone, system pickers for photos and files.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp)
-                )
-            }
-        }
-
-        items(capabilityStates, key = { item -> item.capability.name }) { item ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text(item.title)
-                    },
-                    supportingContent = {
-                        Text(item.status.name.lowercase().replaceFirstChar(Char::uppercase))
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        onOpenCapability(item.capability)
-                    }
-                )
+    SettingsScreenScaffold(
+        title = "Access",
+        onBack = onBack,
+        isBackEnabled = true
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(capabilityStates, key = { item -> item.capability.name }) { item ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(item.title)
+                        },
+                        supportingContent = {
+                            Text(item.status.name.lowercase().replaceFirstChar(Char::uppercase))
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Info,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            onOpenCapability(item.capability)
+                        }
+                    )
+                }
             }
         }
     }
@@ -1461,7 +1536,8 @@ fun AccessDetailRoute(
 
 @Composable
 fun WorkspaceExportRoute(
-    viewModel: WorkspaceExportViewModel
+    viewModel: WorkspaceExportViewModel,
+    onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -1496,87 +1572,83 @@ fun WorkspaceExportRoute(
         }
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = {
-                        Text("CSV export")
-                    },
-                    supportingContent = {
-                        Text("${uiState.activeCardsCount} active cards from ${uiState.workspaceName}")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Outlined.SaveAlt,
-                            contentDescription = null
-                        )
-                    }
-                )
-            }
-        }
-
-        if (uiState.errorMessage.isNotEmpty()) {
+    SettingsScreenScaffold(
+        title = "Export",
+        onBack = onBack,
+        isBackEnabled = uiState.isExporting.not()
+    ) { innerPadding ->
+        LazyColumn(
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(20.dp)
+                    ListItem(
+                        headlineContent = {
+                            Text("CSV export")
+                        },
+                        supportingContent = {
+                            Text("${uiState.activeCardsCount} active cards from ${uiState.workspaceName}")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.SaveAlt,
+                                contentDescription = null
+                            )
+                        }
                     )
                 }
             }
-        }
 
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Android export uses the system document picker so you can choose the save location yourself. The file includes front text, back text, and tags for the current workspace.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp)
-                )
-            }
-        }
-
-        item {
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        viewModel.clearErrorMessage()
-                        val exportData = viewModel.prepareExportData()
-                        if (exportData == null) {
-                            return@launch
-                        }
-
-                        pendingExportData = exportData
-                        createDocumentLauncher.launch(
-                            makeWorkspaceExportFilename(
-                                workspaceName = exportData.workspaceName,
-                                date = LocalDate.now()
-                            )
+            if (uiState.errorMessage.isNotEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(20.dp)
                         )
                     }
-                },
-                enabled = uiState.isExporting.not(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (uiState.isExporting) "Preparing export..." else "Export CSV")
+                }
             }
-        }
 
-        item {
-            OutlinedButton(
-                onClick = {
-                    viewModel.clearErrorMessage()
-                },
-                enabled = uiState.errorMessage.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Dismiss error")
+            item {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            viewModel.clearErrorMessage()
+                            val exportData = viewModel.prepareExportData()
+                            if (exportData == null) {
+                                return@launch
+                            }
+
+                            pendingExportData = exportData
+                            createDocumentLauncher.launch(
+                                makeWorkspaceExportFilename(
+                                    workspaceName = exportData.workspaceName,
+                                    date = LocalDate.now()
+                                )
+                            )
+                        }
+                    },
+                    enabled = uiState.isExporting.not(),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (uiState.isExporting) "Preparing export..." else "Export CSV")
+                }
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = {
+                        viewModel.clearErrorMessage()
+                    },
+                    enabled = uiState.errorMessage.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Dismiss error")
+                }
             }
         }
     }

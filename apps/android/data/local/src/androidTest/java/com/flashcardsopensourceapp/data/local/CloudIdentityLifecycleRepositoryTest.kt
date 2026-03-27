@@ -446,10 +446,10 @@ private class FakeCloudRemoteGateway(
     var prepareGuestUpgradeCalls: Int = 0
     var completeGuestUpgradeCalls: Int = 0
 
-    override fun validateConfiguration(configuration: CloudServiceConfiguration) {
+    override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
     }
 
-    override fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult {
+    override suspend fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult {
         return CloudSendCodeResult.OtpRequired(
             challenge = CloudOtpChallenge(
                 email = email,
@@ -459,7 +459,7 @@ private class FakeCloudRemoteGateway(
         )
     }
 
-    override fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials {
+    override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials {
         return StoredCloudCredentials(
             refreshToken = "refresh-token",
             idToken = "id-token",
@@ -467,7 +467,7 @@ private class FakeCloudRemoteGateway(
         )
     }
 
-    override fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials {
+    override suspend fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials {
         return StoredCloudCredentials(
             refreshToken = refreshToken,
             idToken = "id-token",
@@ -475,18 +475,18 @@ private class FakeCloudRemoteGateway(
         )
     }
 
-    override fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
+    override suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
         fetchAccountError?.let { error ->
             throw error
         }
         return accountSnapshot
     }
 
-    override fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary> {
+    override suspend fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary> {
         return fetchCloudAccount(apiBaseUrl = apiBaseUrl, bearerToken = bearerToken).workspaces
     }
 
-    override fun prepareGuestUpgrade(
+    override suspend fun prepareGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String
@@ -497,7 +497,7 @@ private class FakeCloudRemoteGateway(
         }
     }
 
-    override fun completeGuestUpgrade(
+    override suspend fun completeGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String,
@@ -507,7 +507,7 @@ private class FakeCloudRemoteGateway(
         return resolveWorkspaceSelection(selection = selection)
     }
 
-    override fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
+    override suspend fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
         return CloudWorkspaceSummary(
             workspaceId = "workspace-new",
             name = name,
@@ -516,13 +516,13 @@ private class FakeCloudRemoteGateway(
         )
     }
 
-    override fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary {
+    override suspend fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary {
         return accountSnapshot.workspaces.first { workspace ->
             workspace.workspaceId == workspaceId
         }
     }
 
-    override fun renameWorkspace(
+    override suspend fun renameWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -531,7 +531,7 @@ private class FakeCloudRemoteGateway(
         throw UnsupportedOperationException()
     }
 
-    override fun loadWorkspaceDeletePreview(
+    override suspend fun loadWorkspaceDeletePreview(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String
@@ -539,7 +539,7 @@ private class FakeCloudRemoteGateway(
         throw UnsupportedOperationException()
     }
 
-    override fun deleteWorkspace(
+    override suspend fun deleteWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -548,7 +548,7 @@ private class FakeCloudRemoteGateway(
         throw UnsupportedOperationException()
     }
 
-    override fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) {
+    override suspend fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) {
         deleteAccountCalls += 1
         if (deleteFailuresRemaining > 0) {
             deleteFailuresRemaining -= 1
@@ -556,11 +556,11 @@ private class FakeCloudRemoteGateway(
         }
     }
 
-    override fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult {
+    override suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult {
         throw UnsupportedOperationException()
     }
 
-    override fun revokeAgentConnection(
+    override suspend fun revokeAgentConnection(
         apiBaseUrl: String,
         bearerToken: String,
         connectionId: String
@@ -568,15 +568,15 @@ private class FakeCloudRemoteGateway(
         throw UnsupportedOperationException()
     }
 
-    override fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse {
+    override suspend fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse {
         return RemotePushResponse(operations = emptyList())
     }
 
-    override fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse {
+    override suspend fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse {
         return RemotePullResponse(changes = emptyList(), nextHotChangeId = 0L, hasMore = false)
     }
 
-    override fun bootstrapPull(
+    override suspend fun bootstrapPull(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -591,7 +591,7 @@ private class FakeCloudRemoteGateway(
         )
     }
 
-    override fun bootstrapPush(
+    override suspend fun bootstrapPush(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -603,7 +603,7 @@ private class FakeCloudRemoteGateway(
         )
     }
 
-    override fun pullReviewHistory(
+    override suspend fun pullReviewHistory(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -616,7 +616,7 @@ private class FakeCloudRemoteGateway(
         )
     }
 
-    override fun importReviewHistory(
+    override suspend fun importReviewHistory(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,

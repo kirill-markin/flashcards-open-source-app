@@ -283,6 +283,14 @@ function getReviewOrderCreatedTimestamp(card: Card): number {
   return createdAtTimestamp;
 }
 
+/**
+ * Keep review queue ordering aligned with:
+ * - apps/ios/Flashcards/Flashcards/ReviewQuerySupport.swift::compareCardsForReviewOrder
+ * - apps/ios/Flashcards/Flashcards/Database/CardStore+ReadSQL.swift review queue ORDER BY
+ * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
+ * Ordering contract: due cards first, then earlier dueAt, then newer createdAt, then cardId ascending.
+ * If this changes, mirror the same change across all three clients in the same change.
+ */
 export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowTimestamp: number): number {
   const leftIsDue = isCardDue(leftCard, nowTimestamp);
   const rightIsDue = isCardDue(rightCard, nowTimestamp);

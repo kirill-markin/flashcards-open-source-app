@@ -65,4 +65,29 @@ class CloudSupportTest {
 
         assertEquals(timestampMillis, parseIsoTimestamp(value = formattedValue))
     }
+
+    @Test
+    fun deckFilterJsonUsesCloudCanonicalLowercaseEffortLevels() {
+        val filterDefinition = buildDeckFilterDefinition(
+            effortLevels = listOf(EffortLevel.FAST, EffortLevel.LONG),
+            tags = listOf("android")
+        )
+
+        val encoded = encodeDeckFilterDefinitionJson(filterDefinition = filterDefinition)
+
+        assertEquals(
+            """{"version":2,"effortLevels":["fast","long"],"tags":["android"]}""",
+            encoded
+        )
+    }
+
+    @Test
+    fun decodeDeckFilterDefinitionJsonAcceptsCloudCanonicalLowercaseEffortLevels() {
+        val decoded = decodeDeckFilterDefinitionJson(
+            filterDefinitionJson = """{"version":2,"effortLevels":["fast","medium"],"tags":["android"]}"""
+        )
+
+        assertEquals(listOf(EffortLevel.FAST, EffortLevel.MEDIUM), decoded.effortLevels)
+        assertEquals(listOf("android"), decoded.tags)
+    }
 }
