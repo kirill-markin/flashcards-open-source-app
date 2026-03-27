@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -64,6 +65,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
@@ -76,7 +78,6 @@ const val reviewRateGoodButtonTag: String = "review_rate_good_button"
 const val reviewFilterButtonTag: String = "review_filter_button"
 const val reviewEditCardButtonTag: String = "review_edit_card_button"
 
-private val reviewTopBarFilterBottomPadding = 12.dp
 private val reviewBottomOverlayBottomPadding = 12.dp
 private val reviewBottomOverlayHorizontalPadding = 16.dp
 private val reviewShowAnswerContentBottomPadding = 120.dp
@@ -86,6 +87,7 @@ private val reviewRatingButtonMinHeight = 68.dp
 private val reviewMetadataIconSize = 18.dp
 private val reviewEditButtonSize = 26.dp
 private val reviewEditIconSize = 14.dp
+private val reviewTopBarFilterMaxWidth = 160.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -198,44 +200,34 @@ private fun ReviewTopBar(
     onOpenFilter: () -> Unit,
     onOpenPreview: () -> Unit
 ) {
-    Column {
-        TopAppBar(
-            title = {
-                Text("Review")
-            },
-            actions = {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .padding(end = 16.dp)
-                    )
-                } else {
-                    TextButton(
-                        onClick = onOpenPreview,
-                        enabled = totalCount > 0
-                    ) {
-                        Text("$remainingCount / $totalCount")
-                    }
+    TopAppBar(
+        title = {
+            Text("Review")
+        },
+        actions = {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                TextButton(
+                    onClick = onOpenPreview,
+                    enabled = totalCount > 0
+                ) {
+                    Text("$remainingCount / $totalCount")
                 }
             }
-        )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = reviewTopBarFilterBottomPadding
-                )
-        ) {
             FilterChip(
                 selected = false,
                 onClick = onOpenFilter,
                 label = {
-                    Text(selectedFilterTitle)
+                    Text(
+                        text = selectedFilterTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 },
                 leadingIcon = {
                     Icon(
@@ -243,10 +235,13 @@ private fun ReviewTopBar(
                         contentDescription = null
                     )
                 },
-                modifier = Modifier.testTag(reviewFilterButtonTag)
+                modifier = Modifier
+                    .widthIn(max = reviewTopBarFilterMaxWidth)
+                    .padding(end = 16.dp)
+                    .testTag(reviewFilterButtonTag)
             )
         }
-    }
+    )
 }
 
 private fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible: Boolean): androidx.compose.ui.unit.Dp {
