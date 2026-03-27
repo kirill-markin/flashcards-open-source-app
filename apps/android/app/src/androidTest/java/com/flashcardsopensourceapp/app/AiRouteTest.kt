@@ -11,7 +11,9 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -185,6 +187,54 @@ class AiRouteTest {
     }
 
     @Test
+    fun shortUserMessageUsesCompactRightAlignedBubble() {
+        composeRule.setContent {
+            FlashcardsTheme {
+                AiRoute(
+                    uiState = makeAiUiState(
+                        messages = listOf(
+                            AiChatMessage(
+                                messageId = "user-short",
+                                role = AiChatRole.USER,
+                                content = listOf(AiChatContentPart.Text(text = "hi")),
+                                timestampMillis = 1L,
+                                isError = false
+                            )
+                        )
+                    ),
+                    onAcceptConsent = {},
+                    onDraftMessageChange = {},
+                    onSendMessage = {},
+                    onCancelStreaming = {},
+                    onNewChat = {},
+                    onOpenAccountStatus = {},
+                    onDismissErrorMessage = {},
+                    onDismissAlert = {},
+                    onAddPendingAttachment = {},
+                    onRemovePendingAttachment = {},
+                    onStartDictationPermissionRequest = {},
+                    onStartDictationRecording = {},
+                    onTranscribeRecordedAudio = { _, _, _ -> },
+                    onCancelDictation = {},
+                    onWarmUpSessionIfNeeded = {},
+                    onShowAlert = {},
+                    onShowErrorMessage = {}
+                )
+            }
+        }
+
+        val rootBounds = composeRule.onRoot().fetchSemanticsNode().boundsInRoot
+        val bubbleBounds = composeRule
+            .onNodeWithTag(aiUserMessageBubbleTag)
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val rootCenterX = (rootBounds.left + rootBounds.right) / 2f
+
+        assertTrue(bubbleBounds.width < rootBounds.width * 0.5f)
+        assertTrue(bubbleBounds.left > rootCenterX)
+    }
+
+    @Test
     fun accountUpgradePromptNavigatesToAccountStatusDestination() {
         composeRule.setContent {
             FlashcardsTheme {
@@ -245,6 +295,8 @@ class AiRouteTest {
         composeRule.onNodeWithText("Account status destination").assertIsDisplayed()
     }
 }
+
+private const val aiUserMessageBubbleTag = "ai_user_message_bubble"
 
 private fun makeAiUiState(
     messages: List<AiChatMessage> = emptyList(),
