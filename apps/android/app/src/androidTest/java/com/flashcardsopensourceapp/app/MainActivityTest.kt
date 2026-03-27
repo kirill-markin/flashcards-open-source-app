@@ -17,6 +17,8 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewFilterButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import com.flashcardsopensourceapp.feature.settings.schedulerApplyButtonTag
@@ -25,6 +27,7 @@ import com.flashcardsopensourceapp.feature.settings.schedulerLearningStepsFieldT
 import com.flashcardsopensourceapp.feature.settings.schedulerMaximumIntervalFieldTag
 import com.flashcardsopensourceapp.feature.settings.schedulerRelearningStepsFieldTag
 import com.flashcardsopensourceapp.feature.settings.schedulerSaveButtonTag
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -260,15 +263,47 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performScrollTo()
         composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
-        composeRule.onNodeWithTag(reviewRateGoodButtonTag).performScrollTo()
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).performClick()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Session complete").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Session complete").fetchSemanticsNode()
+    }
+
+    @Test
+    fun reviewScreenShowsVisibleFilterAndOverlayActions() {
+        waitForCardsEmptyState()
+        createCard(
+            frontText = "Visible review contract",
+            backText = "First line.\n\nSecond line that is long enough to require scrolling behind the action overlay.",
+            tags = listOf("review", "android")
+        )
+
+        composeRule.onNodeWithText("Review").performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewFilterButtonTag).fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag(reviewFilterButtonTag).fetchSemanticsNode()
+        composeRule.onNodeWithText("All cards").fetchSemanticsNode()
+        composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode()
+        assertTrue(composeRule.onAllNodesWithText("Edit card").fetchSemanticsNodes().isEmpty())
+
+        composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
+        composeRule.onNodeWithText("Review scope").fetchSemanticsNode()
+        composeRule.onNodeWithText("Review the full local queue").performClick()
+
+        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Again").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText("Hard").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText("Good").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithText("Easy").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
     }
 
     private fun waitForCardsEmptyState() {

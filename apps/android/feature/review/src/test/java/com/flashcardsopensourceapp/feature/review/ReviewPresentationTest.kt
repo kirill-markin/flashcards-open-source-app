@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Locale
 
 class ReviewPresentationTest {
     @Test
@@ -67,6 +68,32 @@ class ReviewPresentationTest {
     }
 
     @Test
+    fun prepareReviewCardPresentationBuildsMetadataLabels() {
+        val previousLocale = Locale.getDefault()
+        Locale.setDefault(Locale.US)
+
+        try {
+            val presentation = prepareReviewCardPresentation(
+                card = sampleCard(
+                    queueStatus = ReviewCardQueueStatus.ACTIVE,
+                    dueAtMillis = 1_700_000_000_000L,
+                    reps = 3,
+                    lapses = 1
+                ),
+                answerOptions = emptyList()
+            )
+
+            assertEquals("Fast", presentation.effortLabel)
+            assertEquals("android", presentation.tagsLabel)
+            assertEquals("Reps 3", presentation.repsLabel)
+            assertEquals("Lapses 1", presentation.lapsesLabel)
+            assertTrue(presentation.dueLabel.isNotBlank())
+        } finally {
+            Locale.setDefault(previousLocale)
+        }
+    }
+
+    @Test
     fun buildReviewPreviewItemsGroupsFutureAndRatedSections() {
         val items = buildReviewPreviewItems(
             cards = listOf(
@@ -95,6 +122,9 @@ class ReviewPresentationTest {
     private fun sampleCard(
         cardId: String = "card-1",
         backText: String = "Back",
+        dueAtMillis: Long? = null,
+        reps: Int = 0,
+        lapses: Int = 0,
         queueStatus: ReviewCardQueueStatus
     ): ReviewCard {
         return ReviewCard(
@@ -103,7 +133,10 @@ class ReviewPresentationTest {
             backText = backText,
             tags = listOf("android"),
             effortLevel = EffortLevel.FAST,
+            dueAtMillis = dueAtMillis,
             createdAtMillis = 1L,
+            reps = reps,
+            lapses = lapses,
             queueStatus = queueStatus
         )
     }
