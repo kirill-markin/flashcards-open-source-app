@@ -216,12 +216,13 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .success)
         let transcriber = StubAudioTranscriber(result: .success("dictated text"))
+        let chatService = SuspendingChatService()
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
                 savedState: AIChatPersistedState(messages: [])
             ),
-            chatService: SuspendingChatService(),
+            chatService: chatService,
             contextLoader: contextLoader,
             voiceRecorder: recorder,
             audioTranscriber: transcriber
@@ -245,6 +246,13 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.completedDictationTranscript?.transcript, "dictated text")
 
         chatStore.cancelStreaming()
+        try await self.waitForAsyncCondition(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000,
+            failureMessage: "Timed out waiting for canceled chat cleanup"
+        ) {
+            await chatService.hasStoppedRun()
+        }
     }
 
     func testAIChatStoreBlocksDictationWhenExternalAIConsentIsMissing() throws {

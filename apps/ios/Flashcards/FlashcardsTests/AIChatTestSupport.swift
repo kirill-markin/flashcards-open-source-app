@@ -270,6 +270,10 @@ actor SuspendingChatService: AIChatSessionServicing {
             stillRunning: false
         )
     }
+
+    func hasStoppedRun() -> Bool {
+        self.hasStopped
+    }
 }
 
 struct BulkDeleteCardsPayload: Decodable {
@@ -569,6 +573,26 @@ class AIChatTestCaseBase: XCTestCase {
         }
 
         XCTFail("Timed out waiting for repair status")
+    }
+
+    @MainActor
+    func waitForAsyncCondition(
+        timeoutNanoseconds: UInt64,
+        pollNanoseconds: UInt64,
+        failureMessage: String,
+        condition: @escaping @Sendable () async -> Bool
+    ) async throws {
+        let iterationCount = max(Int(timeoutNanoseconds / pollNanoseconds), 1)
+
+        for _ in 0..<iterationCount {
+            if await condition() {
+                return
+            }
+
+            try await Task.sleep(nanoseconds: pollNanoseconds)
+        }
+
+        XCTFail(failureMessage)
     }
 
     func makeSession() -> URLSession {
