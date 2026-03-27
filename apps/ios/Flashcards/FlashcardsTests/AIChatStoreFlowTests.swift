@@ -204,7 +204,14 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         chatStore.sendMessage()
         try await Task.sleep(nanoseconds: 100_000_000)
         chatStore.cancelStreaming()
-        try await self.waitForChatCompletion(chatStore: chatStore)
+        try await self.waitForAsyncCondition(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000,
+            failureMessage: "Timed out waiting for canceled chat run to stop"
+        ) {
+            let stoppedSessionIds = await service.stoppedSessionIds()
+            return chatStore.isStreaming == false && stoppedSessionIds == ["session-1"]
+        }
 
         let stoppedSessionIds = await service.stoppedSessionIds()
         XCTAssertEqual(stoppedSessionIds, ["session-1"])
