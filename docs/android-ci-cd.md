@@ -4,7 +4,7 @@ This repository uses a split Android pipeline:
 
 - GitHub Actions is the primary CI entrypoint for pull requests and `main`
 - Firebase Test Lab runs instrumentation tests on Google-managed devices
-- A dedicated GitHub Actions release workflow builds a signed Android App Bundle and uploads it to the Google Play internal track after `main` passes Android CI
+- A dedicated GitHub Actions release workflow builds a signed Android App Bundle and uploads it to the Google Play production track after `main` passes Android CI
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
 This setup keeps fast repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
@@ -58,7 +58,7 @@ GitHub Actions workflow: `.github/workflows/android-release.yml`
 - Builds `:app:bundleRelease`
 - Signs the bundle with the Android upload keystore from GitHub secrets
 - Uploads the signed `.aab` as a workflow artifact
-- Publishes the bundle to the Google Play internal track using Workload Identity Federation and the Play Developer API
+- Publishes the bundle to the Google Play production track using Workload Identity Federation and the Play Developer API
 
 Cloud Build config: `cloudbuild.android.yaml`
 
@@ -234,8 +234,8 @@ Before the release workflow can publish to Google Play, complete this one-time s
 1. Create the app with package name `com.flashcardsopensourceapp.app`.
 2. Complete the required Play Console setup sections for the app shell, including app access, ads declaration, content rating, target audience, privacy policy, and Data safety if Play requires them for release submission.
 3. Enable Play App Signing for the app.
-4. Create the internal testing track.
-5. Invite `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` in Play Console under Users and permissions, then grant the app-specific permissions needed to release builds to testing tracks.
+4. Configure production availability in Play Console, including countries and regions for the production track.
+5. Invite `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` in Play Console under Users and permissions, then grant the app-specific permissions needed to release builds to the production track.
 6. Make the first signed upload manually in Play Console using the same upload keystore that CI will use later.
 
 That first manual upload is the safest bootstrap step because it establishes the app entry, Play App Signing state, and first track release before CI takes over subsequent uploads.

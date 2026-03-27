@@ -16,8 +16,8 @@ permissions:
   id-token: write
 
 jobs:
-  publish-internal:
-    name: Publish Android bundle to Google Play internal track
+  publish-production:
+    name: Publish Android bundle to Google Play production track
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -142,14 +142,12 @@ jobs:
           if-no-files-found: error
           path: apps/android/app/build/outputs/bundle/release/app-release.aab
 
-      - name: Upload bundle to Google Play internal track
+      - name: Upload bundle to Google Play production track
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
           packageName: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
           releaseFiles: apps/android/app/build/outputs/bundle/release/app-release.aab
-          track: internal
-          # Use draft releases until the Play app is ready for non-draft publishing.
-          status: draft
-          # status: completed
+          track: production
+          status: completed
           releaseName: ${{ env.ANDROID_PLAY_RELEASE_NAME }}
