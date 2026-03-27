@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -334,34 +335,6 @@ private fun LoadingReviewState() {
                 .padding(32.dp)
         ) {
             CircularProgressIndicator()
-        }
-    }
-}
-
-@Composable
-private fun ReviewSessionSummary(
-    remainingCount: Int,
-    totalCount: Int,
-    reviewedInSessionCount: Int
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(20.dp)
-        ) {
-            Text(
-                text = "Session progress",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Remaining: $remainingCount / $totalCount",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = "Reviewed in this session: $reviewedInSessionCount",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -895,7 +868,7 @@ fun ReviewPreviewRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Review queue")
+                    Text(uiState.selectedFilterTitle)
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -918,14 +891,6 @@ fun ReviewPreviewRoute(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            item {
-                ReviewSessionSummary(
-                    remainingCount = uiState.remainingCount,
-                    totalCount = uiState.totalCount,
-                    reviewedInSessionCount = uiState.reviewedInSessionCount
-                )
-            }
-
             if (uiState.isPreviewLoading && uiState.previewItems.isEmpty()) {
                 item {
                     LoadingReviewState()
@@ -940,8 +905,8 @@ fun ReviewPreviewRoute(
             } else if (uiState.previewItems.isEmpty()) {
                 item {
                     StaticEmptyReviewState(
-                        title = "No cards in preview",
-                        body = "This review filter does not have any cards to show right now."
+                        title = "No Matching Cards",
+                        body = "This review filter does not include any cards yet."
                     )
                 }
             } else {
@@ -963,10 +928,10 @@ fun ReviewPreviewRoute(
                             )
 
                             LaunchedEffect(
-                                key1 = item.card.cardId,
+                                key1 = item.presentation.card.cardId,
                                 key2 = uiState.previewItems.size
                             ) {
-                                onLoadNextPreviewPageIfNeeded(item.card.cardId)
+                                onLoadNextPreviewPageIfNeeded(item.presentation.card.cardId)
                             }
                         }
                     }
@@ -1016,77 +981,105 @@ private fun PreviewCardRow(
     item: ReviewPreviewListItem.CardEntry,
     onOpenCard: (String) -> Unit
 ) {
-    val card = item.card
-    val containerColor = when {
-        item.isCurrent -> MaterialTheme.colorScheme.secondaryContainer
-        item.isAlreadyRated -> MaterialTheme.colorScheme.surfaceVariant
-        item.isFuture -> MaterialTheme.colorScheme.surfaceContainerLow
-        else -> MaterialTheme.colorScheme.surface
-    }
+    val previewCard = item.presentation
 
     Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (item.isCurrent) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                onOpenCard(card.cardId)
+                onOpenCard(previewCard.card.cardId)
             }
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .background(color = containerColor)
                 .padding(16.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = card.frontText,
+                    text = previewCard.card.frontText,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
                 if (item.isCurrent) {
-                    Text(
-                        text = "Current",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                } else if (item.isAlreadyRated) {
-                    Text(
-                        text = "Rated",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else if (item.isFuture) {
-                    Text(
-                        text = "Later",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        shape = MaterialTheme.shapes.large
+                    ) {
+                        Text(
+                            text = "Current",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
 
             Text(
-                text = card.backText,
+                text = previewCard.backText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (item.isAlreadyRated) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
 
-            if (card.tags.isNotEmpty()) {
-                Text(
-                    text = card.tags.joinToString(separator = " | "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                PreviewMetadataItem(
+                    icon = Icons.Outlined.AccessTime,
+                    label = previewCard.dueLabel
+                )
+                PreviewMetadataItem(
+                    icon = Icons.Outlined.Timer,
+                    label = previewCard.effortLabel
+                )
+                PreviewMetadataItem(
+                    icon = Icons.AutoMirrored.Outlined.Label,
+                    label = previewCard.tagsLabel
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PreviewMetadataItem(
+    icon: ImageVector,
+    label: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(reviewMetadataIconSize)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

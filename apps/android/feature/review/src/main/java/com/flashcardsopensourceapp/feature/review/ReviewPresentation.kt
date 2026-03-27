@@ -112,6 +112,14 @@ data class PreparedReviewCardPresentation(
     val answerOptions: List<ReviewAnswerOption>
 )
 
+data class PreparedReviewPreviewCardPresentation(
+    val card: ReviewCard,
+    val effortLabel: String,
+    val tagsLabel: String,
+    val dueLabel: String,
+    val backText: String
+)
+
 sealed interface ReviewPreviewListItem {
     val itemId: String
 
@@ -121,12 +129,10 @@ sealed interface ReviewPreviewListItem {
     ) : ReviewPreviewListItem
 
     data class CardEntry(
-        val card: ReviewCard,
-        val isCurrent: Boolean,
-        val isAlreadyRated: Boolean,
-        val isFuture: Boolean
+        val presentation: PreparedReviewPreviewCardPresentation,
+        val isCurrent: Boolean
     ) : ReviewPreviewListItem {
-        override val itemId: String = card.cardId
+        override val itemId: String = presentation.card.cardId
     }
 }
 
@@ -218,40 +224,42 @@ fun prepareReviewCardPresentation(
     )
 }
 
+fun prepareReviewPreviewCardPresentation(card: ReviewCard): PreparedReviewPreviewCardPresentation {
+    return PreparedReviewPreviewCardPresentation(
+        card = card,
+        effortLabel = formatReviewEffortLabel(effortLevel = card.effortLevel),
+        tagsLabel = formatReviewTagsLabel(tags = card.tags),
+        dueLabel = formatReviewDueLabel(dueAtMillis = card.dueAtMillis),
+        backText = card.backText
+    )
+}
+
 fun buildReviewPreviewItems(
     cards: List<ReviewCard>,
     currentCardId: String?
 ): List<ReviewPreviewListItem> {
-    var previousStatus: ReviewCardQueueStatus? = null
+    val visibleCards = cards.filter { card ->
+        card.queueStatus != ReviewCardQueueStatus.RATED
+    }
+    val firstFutureCardId = visibleCards.firstOrNull { card ->
+        card.queueStatus == ReviewCardQueueStatus.FUTURE
+    }?.cardId
 
     return buildList {
-        cards.forEach { card ->
-            if (card.queueStatus != previousStatus) {
-                when (card.queueStatus) {
-                    ReviewCardQueueStatus.ACTIVE -> Unit
-                    ReviewCardQueueStatus.FUTURE -> add(
-                        ReviewPreviewListItem.SectionHeader(
-                            itemId = "section-future",
-                            title = "Later in this filter"
-                        )
+        visibleCards.forEach { card ->
+            if (card.cardId == firstFutureCardId) {
+                add(
+                    ReviewPreviewListItem.SectionHeader(
+                        itemId = "section-future",
+                        title = "Later"
                     )
-
-                    ReviewCardQueueStatus.RATED -> add(
-                        ReviewPreviewListItem.SectionHeader(
-                            itemId = "section-rated",
-                            title = "Already rated in this session"
-                        )
-                    )
-                }
-                previousStatus = card.queueStatus
+                )
             }
 
             add(
                 ReviewPreviewListItem.CardEntry(
-                    card = card,
-                    isCurrent = currentCardId == card.cardId,
-                    isAlreadyRated = card.queueStatus == ReviewCardQueueStatus.RATED,
-                    isFuture = card.queueStatus == ReviewCardQueueStatus.FUTURE
+                    presentation = prepareReviewPreviewCardPresentation(card = card),
+                    isCurrent = currentCardId == card.cardId
                 )
             )
         }
