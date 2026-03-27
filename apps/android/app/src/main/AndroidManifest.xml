@@ -21,7 +21,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.FlashcardsOpenSourceApp">
+            android:theme="@style/Theme.FlashcardsOpenSourceApp.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
