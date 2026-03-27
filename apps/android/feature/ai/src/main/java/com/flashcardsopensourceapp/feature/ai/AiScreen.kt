@@ -568,7 +568,7 @@ private fun ConsentGate(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "AI requests from $currentWorkspaceName can send prompts, uploaded files, images, and dictated audio to external providers.",
+                    text = formatAiConsentWorkspaceDisclosureText(currentWorkspaceName = currentWorkspaceName),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Button(
