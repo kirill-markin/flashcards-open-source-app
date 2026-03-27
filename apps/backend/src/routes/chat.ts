@@ -3,7 +3,7 @@
  * These routes accept user turn input, resolve or create server-owned sessions, and schedule persisted runs for asynchronous execution.
  */
 import { Hono } from "hono";
-import { getChatConfig, isBackendOwnedChatEnabled, type ChatConfig } from "../chat/config";
+import { getChatConfig, type ChatConfig } from "../chat/config";
 import {
   getRecoveredChatSessionSnapshot,
   prepareChatRun,
@@ -78,7 +78,6 @@ type StopChatRequestBody = Readonly<{
 
 type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
-  enabled?: boolean;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
   getLatestChatSessionIdFn?: typeof getLatestChatSessionId;
@@ -217,15 +216,6 @@ export function parseStopChatRequestBody(value: unknown): StopChatRequestBody {
 }
 
 /**
- * Hides the backend-owned chat surface until rollout enables it.
- */
-function assertBackendOwnedChatEnabled(enabled: boolean): void {
-  if (!enabled) {
-    throw new HttpError(404, "Not found", "AI_CHAT_V2_DISABLED");
-  }
-}
-
-/**
  * Restricts the backend-owned chat surface to human-facing auth transports.
  */
 function assertSupportedTransport(requestContext: RequestContext): void {
@@ -323,7 +313,6 @@ async function loadSupportedRequestContext(
  */
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
-  const enabled = options.enabled ?? isBackendOwnedChatEnabled();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const getRecoveredChatSessionSnapshotFn = options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot;
   const getLatestChatSessionIdFn = options.getLatestChatSessionIdFn ?? getLatestChatSessionId;
@@ -333,7 +322,6 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const requestChatRunCancellationFn = options.requestChatRunCancellationFn ?? requestChatRunCancellation;
 
   app.get("/chat", async (context) => {
-    assertBackendOwnedChatEnabled(enabled);
     const requestContext = await loadSupportedRequestContext(
       context.req.raw,
       options.allowedOrigins,
@@ -355,7 +343,6 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   });
 
   app.post("/chat", async (context) => {
-    assertBackendOwnedChatEnabled(enabled);
     const requestContext = await loadSupportedRequestContext(
       context.req.raw,
       options.allowedOrigins,
@@ -394,7 +381,6 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   });
 
   app.delete("/chat", async (context) => {
-    assertBackendOwnedChatEnabled(enabled);
     const requestContext = await loadSupportedRequestContext(
       context.req.raw,
       options.allowedOrigins,
@@ -433,7 +419,6 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   });
 
   app.post("/chat/stop", async (context) => {
-    assertBackendOwnedChatEnabled(enabled);
     const requestContext = await loadSupportedRequestContext(
       context.req.raw,
       options.allowedOrigins,
