@@ -89,7 +89,8 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.messages[0].text, "hello")
         XCTAssertEqual(chatStore.messages[1].role, .assistant)
         XCTAssertEqual(chatStore.messages[1].text, "Stored answer")
-        XCTAssertEqual(await service.startedRequests().count, 1)
+        let startedRequests = await service.startedRequests()
+        XCTAssertEqual(startedRequests.count, 1)
     }
 
     @MainActor
@@ -198,7 +199,8 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         chatStore.cancelStreaming()
         try await self.waitForChatCompletion(chatStore: chatStore)
 
-        XCTAssertEqual(await service.stoppedSessionIds(), ["session-1"])
+        let stoppedSessionIds = await service.stoppedSessionIds()
+        XCTAssertEqual(stoppedSessionIds, ["session-1"])
     }
 
     @MainActor
@@ -235,7 +237,8 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         try await Task.sleep(nanoseconds: 100_000_000)
 
         XCTAssertTrue(chatStore.messages.isEmpty)
-        XCTAssertEqual(await service.resetSessionIds(), [nil])
+        let resetSessionIds = await service.resetSessionIds()
+        XCTAssertEqual(resetSessionIds, [nil])
     }
 }
 

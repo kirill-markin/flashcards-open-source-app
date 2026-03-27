@@ -169,9 +169,9 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
     }
 
     func testAIChatServiceUsesResetAndStopEndpoints() async throws {
-        var seenUrls: [String] = []
+        let recorder = RequestRecorder()
         AIChatMockUrlProtocol.requestHandler = { request in
-            seenUrls.append(try XCTUnwrap(request.url?.absoluteString))
+            recorder.append(request)
 
             if request.url?.path == "/chat", request.httpMethod == "DELETE" {
                 let response = HTTPURLResponse(
@@ -230,6 +230,9 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
 
         XCTAssertEqual(resetResponse.sessionId, "session-reset")
         XCTAssertTrue(stopResponse.stopped)
+        let seenUrls = try recorder.snapshot().map { request in
+            try XCTUnwrap(request.url?.absoluteString)
+        }
         XCTAssertEqual(seenUrls, [
             "https://api.example.com/chat?sessionId=session-1",
             "https://api.example.com/chat/stop"
