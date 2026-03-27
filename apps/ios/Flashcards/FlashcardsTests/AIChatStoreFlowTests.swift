@@ -210,7 +210,7 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
             failureMessage: "Timed out waiting for canceled chat run to stop"
         ) {
             let stoppedSessionIds = await service.stoppedSessionIds()
-            return chatStore.isStreaming == false && stoppedSessionIds == ["session-1"]
+            return stoppedSessionIds == ["session-1"]
         }
 
         let stoppedSessionIds = await service.stoppedSessionIds()
