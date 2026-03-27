@@ -252,22 +252,38 @@ struct AIChatView: View {
     }
 
     var chatContent: some View {
+        Group {
+            if self.chatStore.messages.isEmpty {
+                self.emptyChatState
+            } else {
+                self.messageList
+            }
+        }
+    }
+
+    var emptyChatState: some View {
+        ContentUnavailableView {
+            Text("Try asking")
+        } description: {
+            VStack(spacing: 8) {
+                Text("Summarize weak areas from my due cards.")
+                Text("Find cards tagged with grammar and suggest cleanup.")
+                Text("Propose a new deck filter and explain the exact change.")
+            }
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            self.isComposerFocused = false
+        }
+    }
+
+    var messageList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
-                if self.chatStore.messages.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Try asking")
-                            .font(.headline)
-                        Text("Summarize weak areas from my due cards.")
-                        Text("Find cards tagged with grammar and suggest cleanup.")
-                        Text("Propose a new deck filter and explain the exact change.")
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .foregroundStyle(.secondary)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                }
-
                 ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
                     self.messageRow(
                         message: message,

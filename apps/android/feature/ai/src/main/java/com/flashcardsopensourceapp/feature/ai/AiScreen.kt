@@ -82,11 +82,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.flashcardsopensourceapp.core.ui.components.NoticeCard
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
@@ -112,7 +112,11 @@ private enum class AttachmentAction {
     CHOOSE_FILE
 }
 
+const val aiEmptyStateTag: String = "ai_empty_state"
+const val aiEmptyStateContentTag: String = "ai_empty_state_content"
+
 private const val aiUserMessageBubbleTag = "ai_user_message_bubble"
+private val aiEmptyStateMaxWidth = 420.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -615,6 +619,23 @@ private fun AiConversation(
     onOpenAccountStatus: () -> Unit,
     contentPadding: PaddingValues
 ) {
+    if (messages.isEmpty()) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding)
+                .testTag(aiEmptyStateTag)
+        ) {
+            AiConversationEmptyState(
+                currentWorkspaceName = currentWorkspaceName,
+                modifier = Modifier
+            )
+        }
+
+        return
+    }
+
     val listState = rememberLazyListState()
     val currentMessages by rememberUpdatedState(messages)
     val currentStreamingState by rememberUpdatedState(isStreaming)
@@ -682,35 +703,6 @@ private fun AiConversation(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        item {
-            NoticeCard(
-                title = "Android AI",
-                body = "Android AI now supports native attachments, dictation, linked-session warm-up, and multimodal chat input while keeping the UI fully Material.",
-                modifier = Modifier
-            )
-        }
-
-        if (messages.isEmpty()) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(20.dp)
-                    ) {
-                        Text(
-                            text = "Try asking",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Summarize weak areas from my due cards in $currentWorkspaceName."
-                        )
-                        Text(text = "Find cards tagged with grammar and suggest cleanup.")
-                        Text(text = "Propose a new deck filter and explain the exact change.")
-                    }
-                }
-            }
-        }
-
         items(items = messages, key = { message -> message.messageId }) { message ->
             MessageRow(
                 message = message,
@@ -719,6 +711,44 @@ private fun AiConversation(
                 onOpenAccountStatus = onOpenAccountStatus
             )
         }
+    }
+}
+
+@Composable
+private fun AiConversationEmptyState(
+    currentWorkspaceName: String,
+    modifier: Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .widthIn(max = aiEmptyStateMaxWidth)
+            .testTag(aiEmptyStateContentTag)
+    ) {
+        Text(
+            text = "Try asking",
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Summarize weak areas from my due cards in $currentWorkspaceName.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Find cards tagged with grammar and suggest cleanup.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Propose a new deck filter and explain the exact change.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -1557,9 +1587,9 @@ private fun startDictationRecording(
 private fun conversationLastItemIndex(
     messages: List<AiChatMessage>
 ): Int {
-    return if (messages.isEmpty()) {
-        1
-    } else {
-        messages.size
+    if (messages.isEmpty()) {
+        throw IllegalArgumentException("Conversation list requires at least one message.")
     }
+
+    return messages.lastIndex
 }

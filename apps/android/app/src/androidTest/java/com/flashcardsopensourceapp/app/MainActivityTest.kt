@@ -18,6 +18,8 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
+import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
@@ -61,7 +63,9 @@ class MainActivityTest {
 
         composeRule.onNodeWithText("AI").performClick()
         dismissAiConsentIfNeeded()
-        composeRule.onNodeWithText("Android AI").fetchSemanticsNode()
+        composeRule.onNodeWithTag(aiEmptyStateTag).fetchSemanticsNode()
+        composeRule.onNodeWithText("Try asking").fetchSemanticsNode()
+        composeRule.onNodeWithText("Message").fetchSemanticsNode()
 
         openSettingsTab()
         composeRule.onNode(
@@ -309,7 +313,9 @@ class MainActivityTest {
         composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
         composeRule.onNodeWithText("Create with AI").performClick()
         dismissAiConsentIfNeeded()
-        composeRule.onNodeWithText("Android AI").fetchSemanticsNode()
+        composeRule.onNodeWithTag(aiEmptyStateTag).fetchSemanticsNode()
+        composeRule.onNodeWithTag(aiEmptyStateContentTag).fetchSemanticsNode()
+        assertAiEmptyStateIsCentered()
         composeRule.onNodeWithText("Message").fetchSemanticsNode()
     }
 
@@ -380,6 +386,20 @@ class MainActivityTest {
     private fun assertReviewEmptyStateIsCentered() {
         val containerBounds = composeRule.onNodeWithTag(reviewEmptyStateTag).fetchSemanticsNode().boundsInRoot
         val contentBounds = composeRule.onNodeWithTag(reviewEmptyStateContentTag).fetchSemanticsNode().boundsInRoot
+        val containerCenterX = (containerBounds.left + containerBounds.right) / 2f
+        val containerCenterY = (containerBounds.top + containerBounds.bottom) / 2f
+        val contentCenterX = (contentBounds.left + contentBounds.right) / 2f
+        val contentCenterY = (contentBounds.top + contentBounds.bottom) / 2f
+        val maxCenterOffsetPx = 4f
+
+        assertTrue(abs(containerCenterX - contentCenterX) <= maxCenterOffsetPx)
+        assertTrue(abs(containerCenterY - contentCenterY) <= maxCenterOffsetPx)
+        assertTrue(contentBounds.width < composeRule.onRoot().fetchSemanticsNode().boundsInRoot.width)
+    }
+
+    private fun assertAiEmptyStateIsCentered() {
+        val containerBounds = composeRule.onNodeWithTag(aiEmptyStateTag).fetchSemanticsNode().boundsInRoot
+        val contentBounds = composeRule.onNodeWithTag(aiEmptyStateContentTag).fetchSemanticsNode().boundsInRoot
         val containerCenterX = (containerBounds.left + containerBounds.right) / 2f
         val containerCenterY = (containerBounds.top + containerBounds.bottom) / 2f
         val contentCenterX = (contentBounds.left + contentBounds.right) / 2f
