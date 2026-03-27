@@ -19,7 +19,6 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Button
@@ -55,7 +54,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
@@ -64,6 +62,9 @@ import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.buildCardFilter
 import com.flashcardsopensourceapp.data.local.model.cardFilterActiveDimensionCount
 import com.flashcardsopensourceapp.data.local.model.formatCardFilterSummary
+import com.flashcardsopensourceapp.data.local.model.formatCardDueLabel
+import com.flashcardsopensourceapp.data.local.model.formatCardEffortLabel
+import com.flashcardsopensourceapp.data.local.model.formatCardTagsLabel
 import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -276,20 +277,21 @@ private fun CardRow(
                 onOpenCard(card.cardId)
             }
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        ListItem(
+            headlineContent = {
                 Text(
                     text = card.frontText,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
+                    style = MaterialTheme.typography.titleMedium
                 )
+            },
+            supportingContent = {
+                Text(
+                    text = buildCardMetadataSummary(card = card),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingContent = {
                 Box {
                     IconButton(
                         onClick = {
@@ -341,23 +343,7 @@ private fun CardRow(
                     }
                 }
             }
-            Text(
-                text = card.backText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Effort: ${formatEffortLevelTitle(effortLevel = card.effortLevel)}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            if (card.tags.isNotEmpty()) {
-                Text(
-                    text = card.tags.joinToString(separator = " | "),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-        }
+        )
     }
 
     if (isDeleteDialogVisible) {
@@ -1088,9 +1074,15 @@ private fun formatTagSelectionSummary(tags: List<String>): String {
 }
 
 private fun formatEffortLevelTitle(effortLevel: EffortLevel): String {
-    return effortLevel.name.lowercase().replaceFirstChar { character ->
-        character.uppercase()
-    }
+    return formatCardEffortLabel(effortLevel = effortLevel)
+}
+
+private fun buildCardMetadataSummary(card: CardSummary): String {
+    return listOf(
+        formatCardEffortLabel(effortLevel = card.effortLevel),
+        formatCardTagsLabel(tags = card.tags),
+        formatCardDueLabel(dueAtMillis = card.dueAtMillis)
+    ).joinToString(separator = " | ")
 }
 
 private fun toggleEffortSelection(selectedEffort: List<EffortLevel>, effortLevel: EffortLevel): List<EffortLevel> {
