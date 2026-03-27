@@ -8,6 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
@@ -184,6 +185,95 @@ class CloudRemoteServiceTest {
             assertTrue(requestBodies.single().contains("\"cursor\":null"))
         }
     }
+
+    @Test
+    fun fetchCloudAccountFailsWithExplicitContractMismatchForWrongUserIdType() = runBlocking {
+        val server = createJsonServer(mutableListOf()) { exchange ->
+            when (exchange.requestURI.path to exchange.requestURI.query) {
+                "/me" to null -> jsonResponse(
+                    exchange = exchange,
+                    statusCode = 200,
+                    body = JSONObject()
+                        .put("userId", 42)
+                        .put("selectedWorkspaceId", JSONObject.NULL)
+                        .put("profile", JSONObject().put("email", JSONObject.NULL))
+                        .toString()
+                )
+
+                "/workspaces" to "limit=100" -> jsonResponse(
+                    exchange = exchange,
+                    statusCode = 200,
+                    body = JSONObject()
+                        .put("workspaces", org.json.JSONArray())
+                        .put("nextCursor", JSONObject.NULL)
+                        .toString()
+                )
+
+                else -> jsonResponse(exchange = exchange, statusCode = 404, body = "{}")
+            }
+        }
+
+        server.use {
+            val error = expectThrows<CloudContractMismatchException> {
+                runBlocking {
+                    CloudRemoteService().fetchCloudAccount(
+                        apiBaseUrl = it.baseUrl,
+                        bearerToken = "token-1"
+                    )
+                }
+            }
+
+            assertEquals(
+                "Cloud contract mismatch for me.userId: expected string, got integer",
+                error.message
+            )
+        }
+    }
+
+    @Test
+    fun bootstrapPullFailsWithExplicitContractMismatchForWrongHasMoreType() = runBlocking {
+        val server = createJsonServer(mutableListOf()) { exchange ->
+            when (exchange.requestURI.path) {
+                "/workspaces/workspace-1/sync/bootstrap" -> jsonResponse(
+                    exchange = exchange,
+                    statusCode = 200,
+                    body = JSONObject()
+                        .put("entries", org.json.JSONArray())
+                        .put("nextCursor", JSONObject.NULL)
+                        .put("hasMore", "false")
+                        .put("bootstrapHotChangeId", 7)
+                        .put("remoteIsEmpty", false)
+                        .toString()
+                )
+
+                else -> jsonResponse(exchange = exchange, statusCode = 404, body = "{}")
+            }
+        }
+
+        server.use {
+            val error = expectThrows<CloudContractMismatchException> {
+                runBlocking {
+                    CloudRemoteService().bootstrapPull(
+                        apiBaseUrl = it.baseUrl,
+                        bearerToken = "token-1",
+                        workspaceId = "workspace-1",
+                        body = JSONObject()
+                            .put("mode", "pull")
+                            .put("deviceId", "device-1")
+                            .put("platform", "android")
+                            .put("appVersion", "0.1.0")
+                            .put("cursor", JSONObject.NULL)
+                            .put("limit", 100)
+                    )
+                }
+            }
+
+            assertEquals(
+                "Cloud contract mismatch for bootstrap.hasMore: expected boolean, got string",
+                error.message
+            )
+        }
+    }
 }
 
 private class TestJsonServer(
@@ -234,4 +324,18 @@ private fun jsonResponse(exchange: HttpExchange, statusCode: Int, body: String) 
     exchange.responseBody.use { output ->
         output.write(bytes)
     }
+}
+
+private inline fun <reified T : Throwable> expectThrows(block: () -> Unit): T {
+    try {
+        block()
+    } catch (error: Throwable) {
+        if (error is T) {
+            return error
+        }
+        throw error
+    }
+
+    fail("Expected ${T::class.java.simpleName} to be thrown.")
+    throw IllegalStateException("Unreachable")
 }

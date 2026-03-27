@@ -35,7 +35,9 @@ import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.computeReviewSchedule
+import com.flashcardsopensourceapp.data.local.model.decodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.decodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.encodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.isCardDue
@@ -54,8 +56,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import org.json.JSONArray
-import org.json.JSONObject
 import java.util.UUID
 
 class LocalCardsRepository(
@@ -761,42 +761,9 @@ private fun makeWorkspaceTagsSummary(cards: List<CardSummary>): WorkspaceTagsSum
 }
 
 private fun encodeDeckFilterDefinition(filterDefinition: DeckFilterDefinition): String {
-    val jsonObject = JSONObject()
-    val effortArray = JSONArray()
-    val tagArray = JSONArray()
-
-    filterDefinition.effortLevels.distinct().forEach { effortLevel ->
-        effortArray.put(effortLevel.name)
-    }
-    filterDefinition.tags.forEach { tag ->
-        tagArray.put(tag)
-    }
-
-    jsonObject.put("version", filterDefinition.version)
-    jsonObject.put("effortLevels", effortArray)
-    jsonObject.put("tags", tagArray)
-
-    return jsonObject.toString()
+    return encodeDeckFilterDefinitionJson(filterDefinition = filterDefinition)
 }
 
 private fun decodeDeckFilterDefinition(filterDefinitionJson: String): DeckFilterDefinition {
-    val jsonObject = JSONObject(filterDefinitionJson)
-    val version = jsonObject.getInt("version")
-    val effortLevels = jsonObject.optJSONArray("effortLevels")?.toStringList()?.map { value ->
-        enumValueOf<com.flashcardsopensourceapp.data.local.model.EffortLevel>(value)
-    } ?: emptyList()
-    val tags = jsonObject.optJSONArray("tags")?.toStringList() ?: emptyList()
-
-    return buildDeckFilterDefinition(
-        effortLevels = effortLevels,
-        tags = tags
-    ).copy(version = version)
-}
-
-private fun JSONArray.toStringList(): List<String> {
-    return buildList {
-        for (index in 0 until length()) {
-            add(getString(index))
-        }
-    }
+    return decodeDeckFilterDefinitionJson(filterDefinitionJson = filterDefinitionJson)
 }
