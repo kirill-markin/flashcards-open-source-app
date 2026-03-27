@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
@@ -77,6 +78,8 @@ const val reviewShowAnswerButtonTag: String = "review_show_answer_button"
 const val reviewRateGoodButtonTag: String = "review_rate_good_button"
 const val reviewFilterButtonTag: String = "review_filter_button"
 const val reviewEditCardButtonTag: String = "review_edit_card_button"
+const val reviewEmptyStateTag: String = "review_empty_state"
+const val reviewEmptyStateContentTag: String = "review_empty_state_content"
 
 private val reviewBottomOverlayBottomPadding = 12.dp
 private val reviewBottomOverlayHorizontalPadding = 16.dp
@@ -88,6 +91,7 @@ private val reviewMetadataIconSize = 18.dp
 private val reviewEditButtonSize = 26.dp
 private val reviewEditIconSize = 14.dp
 private val reviewTopBarFilterMaxWidth = 160.dp
+private val reviewEmptyStateMaxWidth = 420.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -265,6 +269,25 @@ private fun ReviewContent(
     onSwitchToAllCards: () -> Unit,
     contentPadding: PaddingValues
 ) {
+    if (uiState.isLoading.not() && uiState.preparedCurrentCard == null && uiState.emptyState != null) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding)
+                .testTag(reviewEmptyStateTag)
+        ) {
+            ActionableEmptyReviewState(
+                emptyState = uiState.emptyState,
+                onCreateCard = onCreateCard,
+                onCreateCardWithAi = onCreateCardWithAi,
+                onSwitchToAllCards = onSwitchToAllCards
+            )
+        }
+
+        return
+    }
+
     LazyColumn(
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -361,39 +384,48 @@ private fun ActionableEmptyReviewState(
         ReviewEmptyState.SESSION_COMPLETE -> "You are done for now. Add more material or come back when more cards are due."
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier
+            .widthIn(max = reviewEmptyStateMaxWidth)
+            .testTag(reviewEmptyStateContentTag)
+    ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(20.dp)
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center
             )
             Text(
                 text = body,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
-            OutlinedButton(
-                onClick = onCreateCard,
-                modifier = Modifier.fillMaxWidth()
+        }
+
+        OutlinedButton(
+            onClick = onCreateCard,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Create card")
+        }
+        Button(
+            onClick = onCreateCardWithAi,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Create with AI")
+        }
+        if (emptyState == ReviewEmptyState.FILTER_EMPTY) {
+            TextButton(
+                onClick = onSwitchToAllCards
             ) {
-                Text("Create card")
-            }
-            Button(
-                onClick = onCreateCardWithAi,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Create with AI")
-            }
-            if (emptyState == ReviewEmptyState.FILTER_EMPTY) {
-                TextButton(
-                    onClick = onSwitchToAllCards,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("Switch to all cards")
-                }
+                Text("Switch to all cards")
             }
         }
     }
