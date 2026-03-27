@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
+import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -72,6 +73,9 @@ class AiRouteTest {
         }
 
         composeRule.onNodeWithText("Before you use AI").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            formatAiConsentWorkspaceDisclosureText(currentWorkspaceName = "Personal")
+        ).assertIsDisplayed()
         composeRule.onNodeWithText("Privacy Policy").assertIsDisplayed()
         composeRule.onNodeWithText("Terms of Service").assertIsDisplayed()
         composeRule.onNodeWithText("Support").assertIsDisplayed()
