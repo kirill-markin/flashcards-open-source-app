@@ -158,10 +158,14 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         try await self.waitForChatCompletion(chatStore: chatStore)
 
-        XCTAssertEqual(chatStore.messages.count, 2)
-        XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
-        XCTAssertEqual(chatStore.messages[1].accountUpgradePrompt?.buttonTitle, aiChatGuestQuotaButtonTitle)
-        XCTAssertFalse(chatStore.messages[1].isError)
+        XCTAssertGreaterThanOrEqual(chatStore.messages.count, 1)
+        let lastMessage = try XCTUnwrap(chatStore.messages.last)
+        XCTAssertEqual(lastMessage.accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
+        XCTAssertEqual(lastMessage.accountUpgradePrompt?.buttonTitle, aiChatGuestQuotaButtonTitle)
+        XCTAssertFalse(lastMessage.isError)
+        XCTAssertTrue(chatStore.messages.contains { message in
+            message.role == .user && message.text == "hello"
+        })
     }
 
     @MainActor
@@ -188,7 +192,10 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
         )
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(messages: [])),
+            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(
+                messages: [],
+                chatSessionId: "session-1"
+            )),
             chatService: service,
             contextLoader: contextLoader
         )

@@ -334,9 +334,11 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         self.id = try container.decode(String.self, forKey: .id)
         self.role = try container.decode(AIChatRole.self, forKey: .role)
         self.content = try container.decode([AIChatContentPart].self, forKey: .content)
-        if let timestamp = try container.decodeIfPresent(String.self, forKey: .timestamp) {
+        if let timestampMillis = try? container.decode(Int.self, forKey: .timestamp) {
+            self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
+        } else if let timestamp = try? container.decode(String.self, forKey: .timestamp) {
             self.timestamp = timestamp
-        } else if let timestampMillis = try container.decodeIfPresent(Int.self, forKey: .timestampMillis) {
+        } else if let timestampMillis = try? container.decode(Int.self, forKey: .timestampMillis) {
             self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
         } else {
             throw DecodingError.keyNotFound(

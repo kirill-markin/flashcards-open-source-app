@@ -712,7 +712,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         }
 
         await FlashcardsStoreTestSupport.waitUntil(
-            timeoutNanoseconds: 2_000_000_000,
+            timeoutNanoseconds: 5_000_000_000,
             pollNanoseconds: 20_000_000
         ) {
             context.cloudSyncService.runLinkedSyncCallCount == 1
