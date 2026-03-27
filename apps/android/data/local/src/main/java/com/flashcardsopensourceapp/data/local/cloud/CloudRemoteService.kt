@@ -296,13 +296,13 @@ class CloudRemoteService : CloudRemoteGateway {
     override
     suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
         val meResponse = getJson(apiBaseUrl, "/me", authorizationHeader = "Bearer $bearerToken")
-        val selectedWorkspaceId = meResponse.optString("selectedWorkspaceId").ifBlank { null }
+        val selectedWorkspaceId = meResponse.optNullableString("selectedWorkspaceId")
         val profile = meResponse.optJSONObject("profile")
         val workspacesResponse = getJson(apiBaseUrl, buildPaginatedPath("/workspaces", null), "Bearer $bearerToken")
         val workspaces = mutableListOf<CloudWorkspaceSummary>()
         appendWorkspacePage(workspaces, workspacesResponse, selectedWorkspaceId)
 
-        var nextCursor = workspacesResponse.optString("nextCursor").ifBlank { null }
+        var nextCursor = workspacesResponse.optNullableString("nextCursor")
         while (nextCursor != null) {
             val nextPage = getJson(
                 apiBaseUrl,
@@ -310,12 +310,12 @@ class CloudRemoteService : CloudRemoteGateway {
                 "Bearer $bearerToken"
             )
             appendWorkspacePage(workspaces, nextPage, selectedWorkspaceId)
-            nextCursor = nextPage.optString("nextCursor").ifBlank { null }
+            nextCursor = nextPage.optNullableString("nextCursor")
         }
 
         return CloudAccountSnapshot(
             userId = meResponse.getString("userId"),
-            email = profile?.optString("email")?.ifBlank { null },
+            email = profile?.optNullableString("email"),
             workspaces = workspaces
         )
     }
@@ -492,7 +492,7 @@ class CloudRemoteService : CloudRemoteGateway {
             for (index in 0 until items.length()) {
                 connections.add(parseAgentApiKeyConnection(items.getJSONObject(index)))
             }
-            nextCursor = response.optString("nextCursor").ifBlank { null }
+            nextCursor = response.optNullableString("nextCursor")
         } while (nextCursor != null)
 
         return AgentApiKeyConnectionsResult(
@@ -585,7 +585,7 @@ class CloudRemoteService : CloudRemoteGateway {
 
         return RemoteBootstrapPullResponse(
             entries = parseBootstrapEntries(response.getJSONArray("entries")),
-            nextCursor = response.optString("nextCursor").ifBlank { null },
+            nextCursor = response.optNullableString("nextCursor"),
             hasMore = response.getBoolean("hasMore"),
             bootstrapHotChangeId = response.getLong("bootstrapHotChangeId"),
             remoteIsEmpty = response.getBoolean("remoteIsEmpty")
@@ -685,8 +685,8 @@ class CloudRemoteService : CloudRemoteGateway {
             connectionId = connection.getString("connectionId"),
             label = connection.getString("label"),
             createdAtMillis = parseIsoTimestamp(connection.getString("createdAt")),
-            lastUsedAtMillis = connection.optString("lastUsedAt").ifBlank { null }?.let(::parseIsoTimestamp),
-            revokedAtMillis = connection.optString("revokedAt").ifBlank { null }?.let(::parseIsoTimestamp)
+            lastUsedAtMillis = connection.optNullableString("lastUsedAt")?.let(::parseIsoTimestamp),
+            revokedAtMillis = connection.optNullableString("revokedAt")?.let(::parseIsoTimestamp)
         )
     }
 
@@ -866,13 +866,21 @@ private fun parseCloudErrorPayload(responseBody: String): Pair<String?, String?>
 
     return try {
         val payload = JSONObject(responseBody)
-        val topLevelCode = payload.optString("code", "").ifBlank { null }
-        val nestedCode = payload.optJSONObject("error")?.optString("code", "")?.ifBlank { null }
-        val requestId = payload.optString("requestId", "").ifBlank { null }
+        val topLevelCode = payload.optNullableString("code")
+        val nestedCode = payload.optJSONObject("error")?.optNullableString("code")
+        val requestId = payload.optNullableString("requestId")
         Pair(topLevelCode ?: nestedCode, requestId)
     } catch (_: Exception) {
         null
     }
+}
+
+private fun JSONObject.optNullableString(key: String): String? {
+    if (has(key).not() || isNull(key)) {
+        return null
+    }
+
+    return getString(key).ifBlank { null }
 }
 
 private fun JSONObject.optLongOrNull(key: String): Long? {
