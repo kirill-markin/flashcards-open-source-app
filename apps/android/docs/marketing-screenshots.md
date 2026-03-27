@@ -11,6 +11,13 @@ The first screenshot flow captures the review screen with the `mitigate` vocabul
 - Wrapper script: `scripts/capture-android-review-screenshot.sh`
 - Output PNG: `apps/android/docs/media/play-store-screenshots/review-card-result-google-play-mitigate.png`
 
+The second screenshot flow captures the `Cards` tab filled with exam-vocabulary cards on the same topic family.
+
+- Instrumentation test: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingCardsScreenshotTest.kt`
+- Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
+- Wrapper script: `scripts/capture-android-cards-screenshot.sh`
+- Output PNG: `apps/android/docs/media/play-store-screenshots/cards-list-google-play-vocabulary.png`
+
 ## Run the flow
 
 Prerequisites:
@@ -22,6 +29,7 @@ Command:
 
 ```bash
 bash scripts/capture-android-review-screenshot.sh
+bash scripts/capture-android-cards-screenshot.sh
 ```
 
 The script runs the dedicated `androidTest`, waits for the app to reach the target review state, saves a PNG into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls that PNG into the committed marketing media directory.
