@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -30,6 +31,8 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
+import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
+import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -81,6 +84,10 @@ class AiRouteTest {
         composeRule.onNodeWithText("Terms of Service").assertIsDisplayed()
         composeRule.onNodeWithText("Support").assertIsDisplayed()
         composeRule.onNodeWithText("OK").performClick()
+        composeRule.onNodeWithTag(aiEmptyStateTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(aiEmptyStateContentTag).assertIsDisplayed()
+        composeRule.onNodeWithText("Try asking").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("Android AI").fetchSemanticsNodes().isEmpty())
         composeRule.onNodeWithText("Message").assertIsDisplayed()
     }
 
