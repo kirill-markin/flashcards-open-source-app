@@ -369,7 +369,10 @@ data class ReviewCard(
     val backText: String,
     val tags: List<String>,
     val effortLevel: EffortLevel,
+    val dueAtMillis: Long?,
     val createdAtMillis: Long,
+    val reps: Int,
+    val lapses: Int,
     val queueStatus: ReviewCardQueueStatus
 )
 

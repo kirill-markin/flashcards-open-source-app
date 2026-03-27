@@ -19,9 +19,15 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /*
  Keep review content presentation heuristics aligned with:
@@ -96,6 +102,11 @@ data class ReviewInlineSegment(
 
 data class PreparedReviewCardPresentation(
     val card: ReviewCard,
+    val effortLabel: String,
+    val tagsLabel: String,
+    val dueLabel: String,
+    val repsLabel: String,
+    val lapsesLabel: String,
     val frontContent: ReviewRenderedContent,
     val backContent: ReviewRenderedContent,
     val answerOptions: List<ReviewAnswerOption>
@@ -156,6 +167,34 @@ fun makeReviewRenderedContent(text: String): ReviewRenderedContent {
     }
 }
 
+private val reviewDueLabelFormatter: DateTimeFormatter = DateTimeFormatter
+    .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+    .withLocale(Locale.getDefault())
+
+fun formatReviewEffortLabel(effortLevel: EffortLevel): String {
+    return effortLevel.name.lowercase().replaceFirstChar { character ->
+        character.uppercase()
+    }
+}
+
+fun formatReviewTagsLabel(tags: List<String>): String {
+    return if (tags.isEmpty()) {
+        "No tags"
+    } else {
+        tags.joinToString(separator = ", ")
+    }
+}
+
+fun formatReviewDueLabel(dueAtMillis: Long?): String {
+    if (dueAtMillis == null) {
+        return "new"
+    }
+
+    return reviewDueLabelFormatter.format(
+        Instant.ofEpochMilli(dueAtMillis).atZone(ZoneId.systemDefault())
+    )
+}
+
 fun prepareReviewCardPresentation(
     card: ReviewCard,
     answerOptions: List<ReviewAnswerOption>
@@ -168,6 +207,11 @@ fun prepareReviewCardPresentation(
 
     return PreparedReviewCardPresentation(
         card = card,
+        effortLabel = formatReviewEffortLabel(effortLevel = card.effortLevel),
+        tagsLabel = formatReviewTagsLabel(tags = card.tags),
+        dueLabel = formatReviewDueLabel(dueAtMillis = card.dueAtMillis),
+        repsLabel = "Reps ${card.reps}",
+        lapsesLabel = "Lapses ${card.lapses}",
         frontContent = makeReviewRenderedContent(text = card.frontText),
         backContent = makeReviewRenderedContent(text = normalizedBackText),
         answerOptions = answerOptions

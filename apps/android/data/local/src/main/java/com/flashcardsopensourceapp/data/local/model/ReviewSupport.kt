@@ -295,7 +295,10 @@ fun toReviewCard(
         backText = card.backText,
         tags = card.tags,
         effortLevel = card.effortLevel,
+        dueAtMillis = card.dueAtMillis,
         createdAtMillis = card.createdAtMillis,
+        reps = card.reps,
+        lapses = card.lapses,
         queueStatus = queueStatus
     )
 }

@@ -42,6 +42,23 @@ class ReviewSupportTest {
     }
 
     @Test
+    fun buildReviewSessionSnapshotPreservesCardSchedulingMetadata() {
+        val snapshot = buildReviewSessionSnapshot(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCardIds = emptySet(),
+            decks = sampleDecks(),
+            cards = sampleCards(),
+            tagsSummary = sampleTagsSummary(),
+            settings = sampleSchedulerSettings(),
+            reviewedAtMillis = 1_000L
+        )
+
+        assertEquals(0L, snapshot.cards.first().dueAtMillis)
+        assertEquals(2, snapshot.cards.first().reps)
+        assertEquals(1, snapshot.cards.first().lapses)
+    }
+
+    @Test
     fun buildReviewSessionSnapshotFallsBackToAllCardsWhenTagIsMissing() {
         val snapshot = buildReviewSessionSnapshot(
             selectedFilter = ReviewFilter.Tag(tag = "missing"),
@@ -144,11 +161,11 @@ class ReviewSupportTest {
                 backText = "A value that cannot be reassigned after creation.",
                 tags = listOf("basics"),
                 effortLevel = EffortLevel.FAST,
-                dueAtMillis = null,
+                dueAtMillis = 0L,
                 createdAtMillis = 100L,
                 updatedAtMillis = 100L,
-                reps = 0,
-                lapses = 0,
+                reps = 2,
+                lapses = 1,
                 fsrsCardState = FsrsCardState.NEW,
                 fsrsStepIndex = null,
                 fsrsStability = null,
