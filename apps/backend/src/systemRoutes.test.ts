@@ -11,8 +11,6 @@ const originalAllowInsecureLocalAuth = process.env.ALLOW_INSECURE_LOCAL_AUTH;
 const originalPublicApiBaseUrl = process.env.PUBLIC_API_BASE_URL;
 const originalPublicAuthBaseUrl = process.env.PUBLIC_AUTH_BASE_URL;
 const originalGuestAiWeightedMonthlyTokenCap = process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
-const originalAiChatV2Enabled = process.env.AI_CHAT_V2_ENABLED;
-
 function restoreEnvironment(): void {
   if (originalAuthMode === undefined) {
     delete process.env.AUTH_MODE;
@@ -42,12 +40,6 @@ function restoreEnvironment(): void {
     delete process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP;
   } else {
     process.env.GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP = originalGuestAiWeightedMonthlyTokenCap;
-  }
-
-  if (originalAiChatV2Enabled === undefined) {
-    delete process.env.AI_CHAT_V2_ENABLED;
-  } else {
-    process.env.AI_CHAT_V2_ENABLED = originalAiChatV2Enabled;
   }
 
   resetAuthConfigForTests();
@@ -143,10 +135,9 @@ test("openapi endpoints return the same JSON document", async () => {
   assert.equal("/agent/sql" in openapiBody.paths, true);
 });
 
-test("createApp mounts legacy chat routes and keeps backend-owned chat hidden by default", async () => {
+test("createApp mounts legacy and backend-owned chat routes together", async () => {
   process.env.AUTH_MODE = "none";
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
-  delete process.env.AI_CHAT_V2_ENABLED;
   resetAuthConfigForTests();
   resetGuestAiQuotaConfigForTests();
 
@@ -168,7 +159,7 @@ test("createApp mounts legacy chat routes and keeps backend-owned chat hidden by
 
   assert.notEqual(legacyResponse.status, 404);
   assert.notEqual(transcriptionsResponse.status, 404);
-  assert.equal(reservedV2Response.status, 404);
+  assert.notEqual(reservedV2Response.status, 404);
 });
 
 test("api gateway manual chat resource list includes both reserved and legacy chat paths", () => {

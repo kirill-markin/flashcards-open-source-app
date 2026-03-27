@@ -14,7 +14,6 @@ import {
 
 function createChatTestApp(
   options: Readonly<{
-    enabled?: boolean;
     requestContext?: RequestContext;
     getRecoveredChatSessionSnapshotFn?: typeof import("../chat/runs").getRecoveredChatSessionSnapshot;
     getLatestChatSessionIdFn?: typeof import("../chat/store").getLatestChatSessionId;
@@ -39,7 +38,6 @@ function createChatTestApp(
   });
   app.route("/", createChatRoutes({
     allowedOrigins: [],
-    enabled: options.enabled,
     getRecoveredChatSessionSnapshotFn: options.getRecoveredChatSessionSnapshotFn,
     getLatestChatSessionIdFn: options.getLatestChatSessionIdFn,
     createFreshChatSessionFn: options.createFreshChatSessionFn,
@@ -94,23 +92,8 @@ test("parseStopChatRequestBody requires a non-empty sessionId", () => {
   );
 });
 
-test("new chat routes stay hidden while the feature gate is disabled", async () => {
-  const app = createChatTestApp({ enabled: false });
-
-  const response = await app.request("https://api.example.com/chat", {
-    method: "GET",
-  });
-
-  assert.equal(response.status, 404);
-  assert.deepEqual(await response.json(), {
-    error: "Not found",
-    code: "AI_CHAT_V2_DISABLED",
-  });
-});
-
-test("new chat routes allow guest transport when enabled", async () => {
+test("new chat routes allow guest transport", async () => {
   const app = createChatTestApp({
-    enabled: true,
     requestContext: {
       userId: "guest-user-1",
       subjectUserId: "guest-user-1",
@@ -150,7 +133,6 @@ test("new chat routes allow guest transport when enabled", async () => {
 test("new chat POST route prepares a persisted run and dispatches the worker", async () => {
   let invokedPayload: Readonly<Record<string, string>> | null = null;
   const app = createChatTestApp({
-    enabled: true,
     prepareChatRunFn: async (userId, workspaceId, sessionId, content, requestId, timezone) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");
@@ -198,7 +180,6 @@ test("new chat POST route prepares a persisted run and dispatches the worker", a
 
 test("new chat GET route returns the recovered persisted snapshot", async () => {
   const app = createChatTestApp({
-    enabled: true,
     getRecoveredChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");

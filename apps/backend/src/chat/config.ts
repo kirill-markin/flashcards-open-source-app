@@ -69,11 +69,3 @@ export function getChatConfig(): ChatConfig {
     },
   };
 }
-
-/**
- * Gates the backend-first chat surface so legacy endpoints can stay mounted during rollout.
- */
-export function isBackendOwnedChatEnabled(): boolean {
-  const raw = process.env.AI_CHAT_V2_ENABLED;
-  return raw === "1" || raw === "true";
-}
