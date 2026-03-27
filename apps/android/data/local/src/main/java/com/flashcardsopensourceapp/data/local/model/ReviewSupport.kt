@@ -1,5 +1,11 @@
 package com.flashcardsopensourceapp.data.local.model
 
+// Keep review queue ordering aligned with:
+// - apps/ios/Flashcards/Flashcards/ReviewQuerySupport.swift::compareCardsForReviewOrder
+// - apps/ios/Flashcards/Flashcards/Database/CardStore+ReadSQL.swift review queue ORDER BY
+// - apps/web/src/appData/domain.ts::compareCardsForReviewOrder
+// Ordering contract: due cards first, then earlier dueAt, then newer createdAt, then cardId ascending.
+// If this changes, mirror the same change across all three clients in the same change.
 private fun sortCardsForReviewQueue(cards: List<CardSummary>): List<CardSummary> {
     return cards.sortedWith(
         compareBy<CardSummary> { card ->
@@ -7,7 +13,7 @@ private fun sortCardsForReviewQueue(cards: List<CardSummary>): List<CardSummary>
                 card.dueAtMillis == null -> 0L
                 else -> card.dueAtMillis
             }
-        }.thenBy { card ->
+        }.thenByDescending { card ->
             card.createdAtMillis
         }.thenBy { card ->
             card.cardId

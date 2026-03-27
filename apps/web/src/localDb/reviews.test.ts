@@ -2,12 +2,14 @@
 
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
+import { replaceCards } from "./cards";
 import { loadReviewQueueChunk, loadReviewQueueSnapshot, loadReviewTimelinePage } from "./reviews";
 import {
   deckFastGrammar,
   deckLongCode,
   isCardDueForTest,
   legacyReviewCards,
+  makeCard,
   resolveLegacyReviewFilterForTest,
   sampleCards,
   seedCursorFixtures,
@@ -105,6 +107,84 @@ describe("localDb reviews", () => {
         "null-newer",
         "null-older",
         "due-same-newer",
+        "due-same-older",
+      ]);
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
+  it("keeps null due and equal due ordering aligned with stable cardId tie-breaks", async () => {
+    const nowTimestamp = Date.parse("2025-01-08T00:00:00.000Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "card-b",
+          frontText: "Null newer B",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2025-01-03T10:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "card-a",
+          frontText: "Null newer A",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2025-01-03T10:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "null-older",
+          frontText: "Null older",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2025-01-03T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "due-same-b",
+          frontText: "Due same B",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2025-01-04T10:00:00.000Z",
+          createdAt: "2025-01-05T10:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "due-same-a",
+          frontText: "Due same A",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2025-01-04T10:00:00.000Z",
+          createdAt: "2025-01-05T10:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "due-same-older",
+          frontText: "Due same older",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2025-01-04T10:00:00.000Z",
+          createdAt: "2025-01-05T09:00:00.000Z",
+        }),
+      ]);
+
+      const result = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 6, 0);
+
+      expect(result.cards.map((card) => card.cardId)).toEqual([
+        "card-a",
+        "card-b",
+        "null-older",
+        "due-same-a",
+        "due-same-b",
         "due-same-older",
       ]);
     } finally {
