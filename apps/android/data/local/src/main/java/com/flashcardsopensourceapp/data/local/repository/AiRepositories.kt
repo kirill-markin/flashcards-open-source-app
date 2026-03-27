@@ -140,7 +140,7 @@ class LocalAiChatRepository(
         )
     }
 
-    private fun refreshedCredentials(
+    private suspend fun refreshedCredentials(
         storedCredentials: StoredCloudCredentials,
         authBaseUrl: String
     ): StoredCloudCredentials {

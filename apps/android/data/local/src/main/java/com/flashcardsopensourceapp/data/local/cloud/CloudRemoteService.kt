@@ -15,6 +15,8 @@ import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.makeIdTokenExpiryTimestampMillis
 import com.flashcardsopensourceapp.data.local.model.parseIsoTimestamp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -105,58 +107,58 @@ class CloudRemoteException(
 ) : Exception(message)
 
 interface CloudRemoteGateway {
-    fun validateConfiguration(configuration: CloudServiceConfiguration)
-    fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult
-    fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials
-    fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials
-    fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot
-    fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary>
-    fun prepareGuestUpgrade(apiBaseUrl: String, bearerToken: String, guestToken: String): CloudGuestUpgradeMode
-    fun completeGuestUpgrade(
+    suspend fun validateConfiguration(configuration: CloudServiceConfiguration)
+    suspend fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult
+    suspend fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials
+    suspend fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials
+    suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot
+    suspend fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary>
+    suspend fun prepareGuestUpgrade(apiBaseUrl: String, bearerToken: String, guestToken: String): CloudGuestUpgradeMode
+    suspend fun completeGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String,
         selection: CloudGuestUpgradeSelection
     ): CloudWorkspaceSummary
 
-    fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary
-    fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary
-    fun renameWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String, name: String): CloudWorkspaceSummary
-    fun loadWorkspaceDeletePreview(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceDeletePreview
-    fun deleteWorkspace(
+    suspend fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary
+    suspend fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary
+    suspend fun renameWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String, name: String): CloudWorkspaceSummary
+    suspend fun loadWorkspaceDeletePreview(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceDeletePreview
+    suspend fun deleteWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceDeleteResult
 
-    fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
-    fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult
-    fun revokeAgentConnection(apiBaseUrl: String, bearerToken: String, connectionId: String): AgentApiKeyConnectionsResult
-    fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse
-    fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse
-    fun bootstrapPull(
+    suspend fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
+    suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult
+    suspend fun revokeAgentConnection(apiBaseUrl: String, bearerToken: String, connectionId: String): AgentApiKeyConnectionsResult
+    suspend fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse
+    suspend fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse
+    suspend fun bootstrapPull(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPullResponse
 
-    fun bootstrapPush(
+    suspend fun bootstrapPush(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPushResponse
 
-    fun pullReviewHistory(
+    suspend fun pullReviewHistory(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryPullResponse
 
-    fun importReviewHistory(
+    suspend fun importReviewHistory(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -166,7 +168,7 @@ interface CloudRemoteGateway {
 
 class CloudRemoteService : CloudRemoteGateway {
     override
-    fun validateConfiguration(configuration: CloudServiceConfiguration) {
+    suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
         getJson(
             baseUrl = configuration.authBaseUrl,
             path = "/health",
@@ -180,7 +182,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult {
+    suspend fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult {
         val response = postJson(
             baseUrl = authBaseUrl,
             path = "/api/send-code",
@@ -225,7 +227,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials {
+    suspend fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials {
         val response = postJson(
             baseUrl = authBaseUrl,
             path = "/api/verify-code",
@@ -262,7 +264,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials {
+    suspend fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials {
         val response = postJson(
             baseUrl = authBaseUrl,
             path = "/api/refresh-token",
@@ -292,7 +294,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
+    suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
         val meResponse = getJson(apiBaseUrl, "/me", authorizationHeader = "Bearer $bearerToken")
         val selectedWorkspaceId = meResponse.optString("selectedWorkspaceId").ifBlank { null }
         val profile = meResponse.optJSONObject("profile")
@@ -319,12 +321,12 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary> {
+    suspend fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary> {
         return fetchCloudAccount(apiBaseUrl = apiBaseUrl, bearerToken = bearerToken).workspaces
     }
 
     override
-    fun prepareGuestUpgrade(
+    suspend fun prepareGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String
@@ -339,7 +341,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun completeGuestUpgrade(
+    suspend fun completeGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String,
@@ -357,7 +359,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
+    suspend fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces",
@@ -368,7 +370,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary {
+    suspend fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/select",
@@ -379,7 +381,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun renameWorkspace(
+    suspend fun renameWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -395,7 +397,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun loadWorkspaceDeletePreview(
+    suspend fun loadWorkspaceDeletePreview(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String
@@ -415,7 +417,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun deleteWorkspace(
+    suspend fun deleteWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -436,7 +438,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun deleteAccount(
+    suspend fun deleteAccount(
         apiBaseUrl: String,
         bearerToken: String,
         confirmationText: String
@@ -474,7 +476,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult {
+    suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult {
         val connections = mutableListOf<AgentApiKeyConnection>()
         var nextCursor: String? = null
         var instructions: String = ""
@@ -500,7 +502,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun revokeAgentConnection(
+    suspend fun revokeAgentConnection(
         apiBaseUrl: String,
         bearerToken: String,
         connectionId: String
@@ -518,7 +520,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse {
+    suspend fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/push",
@@ -552,7 +554,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse {
+    suspend fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/pull",
@@ -568,7 +570,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun bootstrapPull(
+    suspend fun bootstrapPull(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -591,7 +593,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun bootstrapPush(
+    suspend fun bootstrapPush(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -611,7 +613,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun pullReviewHistory(
+    suspend fun pullReviewHistory(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -632,7 +634,7 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    fun importReviewHistory(
+    suspend fun importReviewHistory(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
@@ -760,7 +762,7 @@ class CloudRemoteService : CloudRemoteGateway {
         return "$basePath?$query"
     }
 
-    private fun getJson(
+    private suspend fun getJson(
         baseUrl: String,
         path: String,
         authorizationHeader: String?
@@ -774,7 +776,7 @@ class CloudRemoteService : CloudRemoteGateway {
         )
     }
 
-    private fun postJson(
+    private suspend fun postJson(
         baseUrl: String,
         path: String,
         body: JSONObject?,
@@ -789,13 +791,13 @@ class CloudRemoteService : CloudRemoteGateway {
         )
     }
 
-    private fun executeJsonRequest(
+    private suspend fun executeJsonRequest(
         baseUrl: String,
         path: String,
         method: String,
         authorizationHeader: String?,
         body: JSONObject?
-    ): JSONObject {
+    ): JSONObject = withContext(Dispatchers.IO) {
         val normalizedBaseUrl = if (baseUrl.endsWith("/")) {
             baseUrl.dropLast(1)
         } else {
@@ -818,7 +820,7 @@ class CloudRemoteService : CloudRemoteGateway {
             }
         }
 
-        return try {
+        try {
             val statusCode = connection.responseCode
             val responseBody = readConnectionBody(connection = connection, useErrorStream = statusCode >= 400)
             if (statusCode < 200 || statusCode >= 300) {
