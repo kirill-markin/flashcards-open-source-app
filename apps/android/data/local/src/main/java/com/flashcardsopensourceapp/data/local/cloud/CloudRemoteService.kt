@@ -14,10 +14,10 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.makeIdTokenExpiryTimestampMillis
-import com.flashcardsopensourceapp.data.local.model.parseIsoTimestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -188,14 +188,14 @@ class CloudRemoteService : CloudRemoteGateway {
             path = "/api/send-code",
             body = JSONObject().put("email", email.trim().lowercase())
         )
-        require(response.optBoolean("ok")) {
+        require(response.requireCloudBoolean("ok", "sendCode.ok")) {
             "Cloud send-code did not return ok=true."
         }
 
-        val idToken = response.optString("idToken")
-        val refreshToken = response.optString("refreshToken")
-        val expiresIn = response.optInt("expiresIn", 0)
-        if (idToken.isNotBlank() && refreshToken.isNotBlank() && expiresIn > 0) {
+        val idToken = response.optCloudStringOrNull("idToken", "sendCode.idToken")
+        val refreshToken = response.optCloudStringOrNull("refreshToken", "sendCode.refreshToken")
+        val expiresIn = response.optCloudIntOrNull("expiresIn", "sendCode.expiresIn")
+        if (idToken != null && refreshToken != null && expiresIn != null && expiresIn > 0) {
             return CloudSendCodeResult.Verified(
                 credentials = StoredCloudCredentials(
                     refreshToken = refreshToken,
@@ -208,8 +208,8 @@ class CloudRemoteService : CloudRemoteGateway {
             )
         }
 
-        val csrfToken = response.optString("csrfToken")
-        val otpSessionToken = response.optString("otpSessionToken")
+        val csrfToken = response.requireCloudString("csrfToken", "sendCode.csrfToken")
+        val otpSessionToken = response.requireCloudString("otpSessionToken", "sendCode.otpSessionToken")
         require(csrfToken.isNotBlank()) {
             "Cloud send-code response is missing csrfToken."
         }
@@ -236,13 +236,13 @@ class CloudRemoteService : CloudRemoteGateway {
                 .put("csrfToken", challenge.csrfToken)
                 .put("otpSessionToken", challenge.otpSessionToken)
         )
-        require(response.optBoolean("ok")) {
+        require(response.requireCloudBoolean("ok", "verifyCode.ok")) {
             "Cloud verify-code did not return ok=true."
         }
 
-        val refreshToken = response.optString("refreshToken")
-        val idToken = response.optString("idToken")
-        val expiresIn = response.optInt("expiresIn", 0)
+        val refreshToken = response.requireCloudString("refreshToken", "verifyCode.refreshToken")
+        val idToken = response.requireCloudString("idToken", "verifyCode.idToken")
+        val expiresIn = response.requireCloudInt("expiresIn", "verifyCode.expiresIn")
         require(refreshToken.isNotBlank()) {
             "Cloud verify-code response is missing refreshToken."
         }
@@ -270,12 +270,12 @@ class CloudRemoteService : CloudRemoteGateway {
             path = "/api/refresh-token",
             body = JSONObject().put("refreshToken", refreshToken)
         )
-        require(response.optBoolean("ok")) {
+        require(response.requireCloudBoolean("ok", "refreshToken.ok")) {
             "Cloud refresh-token did not return ok=true."
         }
 
-        val idToken = response.optString("idToken")
-        val expiresIn = response.optInt("expiresIn", 0)
+        val idToken = response.requireCloudString("idToken", "refreshToken.idToken")
+        val expiresIn = response.requireCloudInt("expiresIn", "refreshToken.expiresIn")
         require(idToken.isNotBlank()) {
             "Cloud refresh-token response is missing idToken."
         }
@@ -296,13 +296,13 @@ class CloudRemoteService : CloudRemoteGateway {
     override
     suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
         val meResponse = getJson(apiBaseUrl, "/me", authorizationHeader = "Bearer $bearerToken")
-        val selectedWorkspaceId = meResponse.optNullableString("selectedWorkspaceId")
-        val profile = meResponse.optJSONObject("profile")
+        val selectedWorkspaceId = meResponse.requireCloudNullableString("selectedWorkspaceId", "me.selectedWorkspaceId")
+        val profile = meResponse.requireCloudObject("profile", "me.profile")
         val workspacesResponse = getJson(apiBaseUrl, buildPaginatedPath("/workspaces", null), "Bearer $bearerToken")
         val workspaces = mutableListOf<CloudWorkspaceSummary>()
         appendWorkspacePage(workspaces, workspacesResponse, selectedWorkspaceId)
 
-        var nextCursor = workspacesResponse.optNullableString("nextCursor")
+        var nextCursor = workspacesResponse.requireCloudNullableString("nextCursor", "workspaces.nextCursor")
         while (nextCursor != null) {
             val nextPage = getJson(
                 apiBaseUrl,
@@ -310,12 +310,12 @@ class CloudRemoteService : CloudRemoteGateway {
                 "Bearer $bearerToken"
             )
             appendWorkspacePage(workspaces, nextPage, selectedWorkspaceId)
-            nextCursor = nextPage.optNullableString("nextCursor")
+            nextCursor = nextPage.requireCloudNullableString("nextCursor", "workspaces.nextCursor")
         }
 
         return CloudAccountSnapshot(
-            userId = meResponse.getString("userId"),
-            email = profile?.optNullableString("email"),
+            userId = meResponse.requireCloudString("userId", "me.userId"),
+            email = profile.requireCloudNullableString("email", "me.profile.email"),
             workspaces = workspaces
         )
     }
@@ -337,7 +337,10 @@ class CloudRemoteService : CloudRemoteGateway {
             authorizationHeader = "Bearer $bearerToken",
             body = JSONObject().put("guestToken", guestToken)
         )
-        return parseGuestUpgradeMode(response.getString("mode"))
+        return parseGuestUpgradeMode(
+            rawMode = response.requireCloudString("mode", "guestUpgradePrepare.mode"),
+            fieldPath = "guestUpgradePrepare.mode"
+        )
     }
 
     override
@@ -355,7 +358,11 @@ class CloudRemoteService : CloudRemoteGateway {
                 .put("guestToken", guestToken)
                 .put("selection", encodeGuestUpgradeSelection(selection = selection))
         )
-        return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
+        return parseWorkspace(
+            workspace = response.requireCloudObject("workspace", "guestUpgradeComplete.workspace"),
+            isSelected = true,
+            fieldPath = "guestUpgradeComplete.workspace"
+        )
     }
 
     override
@@ -366,7 +373,11 @@ class CloudRemoteService : CloudRemoteGateway {
             authorizationHeader = "Bearer $bearerToken",
             body = JSONObject().put("name", name)
         )
-        return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
+        return parseWorkspace(
+            workspace = response.requireCloudObject("workspace", "createWorkspace.workspace"),
+            isSelected = true,
+            fieldPath = "createWorkspace.workspace"
+        )
     }
 
     override
@@ -377,7 +388,11 @@ class CloudRemoteService : CloudRemoteGateway {
             authorizationHeader = "Bearer $bearerToken",
             body = null
         )
-        return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
+        return parseWorkspace(
+            workspace = response.requireCloudObject("workspace", "selectWorkspace.workspace"),
+            isSelected = true,
+            fieldPath = "selectWorkspace.workspace"
+        )
     }
 
     override
@@ -393,7 +408,11 @@ class CloudRemoteService : CloudRemoteGateway {
             authorizationHeader = "Bearer $bearerToken",
             body = JSONObject().put("name", name)
         )
-        return parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
+        return parseWorkspace(
+            workspace = response.requireCloudObject("workspace", "renameWorkspace.workspace"),
+            isSelected = true,
+            fieldPath = "renameWorkspace.workspace"
+        )
     }
 
     override
@@ -408,11 +427,14 @@ class CloudRemoteService : CloudRemoteGateway {
             authorizationHeader = "Bearer $bearerToken"
         )
         return CloudWorkspaceDeletePreview(
-            workspaceId = response.getString("workspaceId"),
-            workspaceName = response.getString("workspaceName"),
-            activeCardCount = response.getInt("activeCardCount"),
-            confirmationText = response.getString("confirmationText"),
-            isLastAccessibleWorkspace = response.getBoolean("isLastAccessibleWorkspace")
+            workspaceId = response.requireCloudString("workspaceId", "workspaceDeletePreview.workspaceId"),
+            workspaceName = response.requireCloudString("workspaceName", "workspaceDeletePreview.workspaceName"),
+            activeCardCount = response.requireCloudInt("activeCardCount", "workspaceDeletePreview.activeCardCount"),
+            confirmationText = response.requireCloudString("confirmationText", "workspaceDeletePreview.confirmationText"),
+            isLastAccessibleWorkspace = response.requireCloudBoolean(
+                "isLastAccessibleWorkspace",
+                "workspaceDeletePreview.isLastAccessibleWorkspace"
+            )
         )
     }
 
@@ -430,10 +452,14 @@ class CloudRemoteService : CloudRemoteGateway {
             body = JSONObject().put("confirmationText", confirmationText)
         )
         return CloudWorkspaceDeleteResult(
-            ok = response.getBoolean("ok"),
-            deletedWorkspaceId = response.getString("deletedWorkspaceId"),
-            deletedCardsCount = response.getInt("deletedCardsCount"),
-            workspace = parseWorkspace(response.getJSONObject("workspace"), isSelected = true)
+            ok = response.requireCloudBoolean("ok", "deleteWorkspace.ok"),
+            deletedWorkspaceId = response.requireCloudString("deletedWorkspaceId", "deleteWorkspace.deletedWorkspaceId"),
+            deletedCardsCount = response.requireCloudInt("deletedCardsCount", "deleteWorkspace.deletedCardsCount"),
+            workspace = parseWorkspace(
+                workspace = response.requireCloudObject("workspace", "deleteWorkspace.workspace"),
+                isSelected = true,
+                fieldPath = "deleteWorkspace.workspace"
+            )
         )
     }
 
@@ -449,7 +475,7 @@ class CloudRemoteService : CloudRemoteGateway {
             authorizationHeader = "Bearer $bearerToken",
             body = JSONObject().put("confirmationText", confirmationText)
         )
-        require(response.optBoolean("ok")) {
+        require(response.requireCloudBoolean("ok", "deleteAccount.ok")) {
             "Cloud delete-account did not return ok=true."
         }
     }
@@ -465,12 +491,14 @@ class CloudRemoteService : CloudRemoteGateway {
         }
     }
 
-    private fun parseGuestUpgradeMode(rawMode: String): CloudGuestUpgradeMode {
+    private fun parseGuestUpgradeMode(rawMode: String, fieldPath: String): CloudGuestUpgradeMode {
         return when (rawMode) {
             "bound" -> CloudGuestUpgradeMode.BOUND
             "merge_required" -> CloudGuestUpgradeMode.MERGE_REQUIRED
             else -> {
-                throw IllegalStateException("Unsupported guest upgrade mode: $rawMode")
+                throw CloudContractMismatchException(
+                    "Cloud contract mismatch for $fieldPath: expected one of [bound, merge_required], got invalid string \"$rawMode\""
+                )
             }
         }
     }
@@ -487,12 +515,17 @@ class CloudRemoteService : CloudRemoteGateway {
                 path = buildPaginatedPath(basePath = "/agent-api-keys", cursor = nextCursor),
                 authorizationHeader = "Bearer $bearerToken"
             )
-            instructions = response.optString("instructions")
-            val items = response.getJSONArray("connections")
+            instructions = response.requireCloudString("instructions", "agentApiKeys.instructions")
+            val items = response.requireCloudArray("connections", "agentApiKeys.connections")
             for (index in 0 until items.length()) {
-                connections.add(parseAgentApiKeyConnection(items.getJSONObject(index)))
+                connections.add(
+                    parseAgentApiKeyConnection(
+                        connection = items.requireCloudObject(index, "agentApiKeys.connections[$index]"),
+                        fieldPath = "agentApiKeys.connections[$index]"
+                    )
+                )
             }
-            nextCursor = response.optNullableString("nextCursor")
+            nextCursor = response.requireCloudNullableString("nextCursor", "agentApiKeys.nextCursor")
         } while (nextCursor != null)
 
         return AgentApiKeyConnectionsResult(
@@ -514,8 +547,13 @@ class CloudRemoteService : CloudRemoteGateway {
             body = null
         )
         return AgentApiKeyConnectionsResult(
-            connections = listOf(parseAgentApiKeyConnection(response.getJSONObject("connection"))),
-            instructions = response.optString("instructions")
+            connections = listOf(
+                parseAgentApiKeyConnection(
+                    connection = response.requireCloudObject("connection", "revokeAgentConnection.connection"),
+                    fieldPath = "revokeAgentConnection.connection"
+                )
+            ),
+            instructions = response.requireCloudString("instructions", "revokeAgentConnection.instructions")
         )
     }
 
@@ -527,15 +565,15 @@ class CloudRemoteService : CloudRemoteGateway {
             authorizationHeader = "Bearer $bearerToken",
             body = body
         )
-        val operations = response.getJSONArray("operations")
+        val operations = response.requireCloudArray("operations", "push.operations")
         return RemotePushResponse(
             operations = buildList {
                 for (index in 0 until operations.length()) {
-                    val entry = operations.getJSONObject(index)
-                    val status = entry.getString("status")
+                    val entry = operations.requireCloudObject(index, "push.operations[$index]")
+                    val status = entry.requireCloudString("status", "push.operations[$index].status")
                     if (status != "applied" && status != "duplicate") {
                         throw CloudRemoteException(
-                            message = "Cloud push failed for operation ${entry.getString("operationId")}: ${entry.optString("error")}",
+                            message = "Cloud push failed for operation ${entry.requireCloudString("operationId", "push.operations[$index].operationId")}: ${entry.optCloudStringOrNull("error", "push.operations[$index].error").orEmpty()}",
                             statusCode = 200,
                             responseBody = response.toString(),
                             errorCode = null,
@@ -544,8 +582,11 @@ class CloudRemoteService : CloudRemoteGateway {
                     }
                     add(
                         RemotePushOperationResult(
-                            operationId = entry.getString("operationId"),
-                            resultingHotChangeId = entry.optLongOrNull("resultingHotChangeId")
+                            operationId = entry.requireCloudString("operationId", "push.operations[$index].operationId"),
+                            resultingHotChangeId = entry.optCloudLongOrNull(
+                                "resultingHotChangeId",
+                                "push.operations[$index].resultingHotChangeId"
+                            )
                         )
                     )
                 }
@@ -563,9 +604,9 @@ class CloudRemoteService : CloudRemoteGateway {
         )
 
         return RemotePullResponse(
-            changes = parseHotChanges(response.getJSONArray("changes")),
-            nextHotChangeId = response.getLong("nextHotChangeId"),
-            hasMore = response.getBoolean("hasMore")
+            changes = parseHotChanges(response.requireCloudArray("changes", "pull.changes")),
+            nextHotChangeId = response.requireCloudLong("nextHotChangeId", "pull.nextHotChangeId"),
+            hasMore = response.requireCloudBoolean("hasMore", "pull.hasMore")
         )
     }
 
@@ -584,11 +625,11 @@ class CloudRemoteService : CloudRemoteGateway {
         )
 
         return RemoteBootstrapPullResponse(
-            entries = parseBootstrapEntries(response.getJSONArray("entries")),
-            nextCursor = response.optNullableString("nextCursor"),
-            hasMore = response.getBoolean("hasMore"),
-            bootstrapHotChangeId = response.getLong("bootstrapHotChangeId"),
-            remoteIsEmpty = response.getBoolean("remoteIsEmpty")
+            entries = parseBootstrapEntries(response.requireCloudArray("entries", "bootstrap.entries")),
+            nextCursor = response.requireCloudNullableString("nextCursor", "bootstrap.nextCursor"),
+            hasMore = response.requireCloudBoolean("hasMore", "bootstrap.hasMore"),
+            bootstrapHotChangeId = response.requireCloudLong("bootstrapHotChangeId", "bootstrap.bootstrapHotChangeId"),
+            remoteIsEmpty = response.requireCloudBoolean("remoteIsEmpty", "bootstrap.remoteIsEmpty")
         )
     }
 
@@ -607,8 +648,8 @@ class CloudRemoteService : CloudRemoteGateway {
         )
 
         return RemoteBootstrapPushResponse(
-            appliedEntriesCount = response.getInt("appliedEntriesCount"),
-            bootstrapHotChangeId = response.optLongOrNull("bootstrapHotChangeId")
+            appliedEntriesCount = response.requireCloudInt("appliedEntriesCount", "bootstrapPush.appliedEntriesCount"),
+            bootstrapHotChangeId = response.optCloudLongOrNull("bootstrapHotChangeId", "bootstrapPush.bootstrapHotChangeId")
         )
     }
 
@@ -627,9 +668,9 @@ class CloudRemoteService : CloudRemoteGateway {
         )
 
         return RemoteReviewHistoryPullResponse(
-            reviewEvents = parseReviewHistoryEvents(response.getJSONArray("reviewEvents")),
-            nextReviewSequenceId = response.getLong("nextReviewSequenceId"),
-            hasMore = response.getBoolean("hasMore")
+            reviewEvents = parseReviewHistoryEvents(response.requireCloudArray("reviewEvents", "reviewHistoryPull.reviewEvents")),
+            nextReviewSequenceId = response.requireCloudLong("nextReviewSequenceId", "reviewHistoryPull.nextReviewSequenceId"),
+            hasMore = response.requireCloudBoolean("hasMore", "reviewHistoryPull.hasMore")
         )
     }
 
@@ -648,9 +689,9 @@ class CloudRemoteService : CloudRemoteGateway {
         )
 
         return RemoteReviewHistoryImportResponse(
-            importedCount = response.getInt("importedCount"),
-            duplicateCount = response.getInt("duplicateCount"),
-            nextReviewSequenceId = response.optLongOrNull("nextReviewSequenceId")
+            importedCount = response.requireCloudInt("importedCount", "reviewHistoryImport.importedCount"),
+            duplicateCount = response.requireCloudInt("duplicateCount", "reviewHistoryImport.duplicateCount"),
+            nextReviewSequenceId = response.optCloudLongOrNull("nextReviewSequenceId", "reviewHistoryImport.nextReviewSequenceId")
         )
     }
 
@@ -659,48 +700,59 @@ class CloudRemoteService : CloudRemoteGateway {
         response: JSONObject,
         selectedWorkspaceId: String?
     ) {
-        val items = response.getJSONArray("workspaces")
+        val items = response.requireCloudArray("workspaces", "workspaces.workspaces")
         for (index in 0 until items.length()) {
-            val workspace = items.getJSONObject(index)
+            val workspace = items.requireCloudObject(index, "workspaces.workspaces[$index]")
             workspaces.add(
                 parseWorkspace(
                     workspace = workspace,
-                    isSelected = workspace.getString("workspaceId") == selectedWorkspaceId
+                    isSelected = workspace.requireCloudString("workspaceId", "workspaces.workspaces[$index].workspaceId") == selectedWorkspaceId,
+                    fieldPath = "workspaces.workspaces[$index]"
                 )
             )
         }
     }
 
-    private fun parseWorkspace(workspace: JSONObject, isSelected: Boolean): CloudWorkspaceSummary {
+    private fun parseWorkspace(
+        workspace: JSONObject,
+        isSelected: Boolean,
+        fieldPath: String
+    ): CloudWorkspaceSummary {
         return CloudWorkspaceSummary(
-            workspaceId = workspace.getString("workspaceId"),
-            name = workspace.getString("name"),
-            createdAtMillis = parseIsoTimestamp(workspace.getString("createdAt")),
+            workspaceId = workspace.requireCloudString("workspaceId", "$fieldPath.workspaceId"),
+            name = workspace.requireCloudString("name", "$fieldPath.name"),
+            createdAtMillis = workspace.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
             isSelected = isSelected
         )
     }
 
-    private fun parseAgentApiKeyConnection(connection: JSONObject): AgentApiKeyConnection {
+    private fun parseAgentApiKeyConnection(
+        connection: JSONObject,
+        fieldPath: String
+    ): AgentApiKeyConnection {
         return AgentApiKeyConnection(
-            connectionId = connection.getString("connectionId"),
-            label = connection.getString("label"),
-            createdAtMillis = parseIsoTimestamp(connection.getString("createdAt")),
-            lastUsedAtMillis = connection.optNullableString("lastUsedAt")?.let(::parseIsoTimestamp),
-            revokedAtMillis = connection.optNullableString("revokedAt")?.let(::parseIsoTimestamp)
+            connectionId = connection.requireCloudString("connectionId", "$fieldPath.connectionId"),
+            label = connection.requireCloudString("label", "$fieldPath.label"),
+            createdAtMillis = connection.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
+            lastUsedAtMillis = connection.requireCloudNullableIsoTimestampMillis("lastUsedAt", "$fieldPath.lastUsedAt"),
+            revokedAtMillis = connection.requireCloudNullableIsoTimestampMillis("revokedAt", "$fieldPath.revokedAt")
         )
     }
 
     private fun parseHotChanges(changes: JSONArray): List<RemoteSyncChange> {
         return buildList {
             for (index in 0 until changes.length()) {
-                val change = changes.getJSONObject(index)
+                val change = changes.requireCloudObject(index, "pull.changes[$index]")
                 add(
                     RemoteSyncChange(
-                        changeId = change.getLong("changeId"),
-                        entityType = parseSyncEntityType(change.getString("entityType")),
-                        entityId = change.getString("entityId"),
-                        action = change.getString("action"),
-                        payload = change.getJSONObject("payload")
+                        changeId = change.requireCloudLong("changeId", "pull.changes[$index].changeId"),
+                        entityType = parseSyncEntityType(
+                            rawValue = change.requireCloudString("entityType", "pull.changes[$index].entityType"),
+                            fieldPath = "pull.changes[$index].entityType"
+                        ),
+                        entityId = change.requireCloudString("entityId", "pull.changes[$index].entityId"),
+                        action = change.requireCloudString("action", "pull.changes[$index].action"),
+                        payload = change.requireCloudObject("payload", "pull.changes[$index].payload")
                     )
                 )
             }
@@ -710,13 +762,16 @@ class CloudRemoteService : CloudRemoteGateway {
     private fun parseBootstrapEntries(entries: JSONArray): List<RemoteBootstrapEntry> {
         return buildList {
             for (index in 0 until entries.length()) {
-                val entry = entries.getJSONObject(index)
+                val entry = entries.requireCloudObject(index, "bootstrap.entries[$index]")
                 add(
                     RemoteBootstrapEntry(
-                        entityType = parseSyncEntityType(entry.getString("entityType")),
-                        entityId = entry.getString("entityId"),
-                        action = entry.getString("action"),
-                        payload = entry.getJSONObject("payload")
+                        entityType = parseSyncEntityType(
+                            rawValue = entry.requireCloudString("entityType", "bootstrap.entries[$index].entityType"),
+                            fieldPath = "bootstrap.entries[$index].entityType"
+                        ),
+                        entityId = entry.requireCloudString("entityId", "bootstrap.entries[$index].entityId"),
+                        action = entry.requireCloudString("action", "bootstrap.entries[$index].action"),
+                        payload = entry.requireCloudObject("payload", "bootstrap.entries[$index].payload")
                     )
                 )
             }
@@ -726,30 +781,47 @@ class CloudRemoteService : CloudRemoteGateway {
     private fun parseReviewHistoryEvents(events: JSONArray): List<RemoteReviewHistoryEvent> {
         return buildList {
             for (index in 0 until events.length()) {
-                val event = events.getJSONObject(index)
+                val event = events.requireCloudObject(index, "reviewHistoryPull.reviewEvents[$index]")
                 add(
                     RemoteReviewHistoryEvent(
-                        reviewEventId = event.getString("reviewEventId"),
-                        workspaceId = event.getString("workspaceId"),
-                        cardId = event.getString("cardId"),
-                        deviceId = event.getString("deviceId"),
-                        clientEventId = event.getString("clientEventId"),
-                        rating = event.getInt("rating"),
-                        reviewedAtClient = event.getString("reviewedAtClient"),
-                        reviewedAtServer = event.getString("reviewedAtServer")
+                        reviewEventId = event.requireCloudString(
+                            "reviewEventId",
+                            "reviewHistoryPull.reviewEvents[$index].reviewEventId"
+                        ),
+                        workspaceId = event.requireCloudString(
+                            "workspaceId",
+                            "reviewHistoryPull.reviewEvents[$index].workspaceId"
+                        ),
+                        cardId = event.requireCloudString("cardId", "reviewHistoryPull.reviewEvents[$index].cardId"),
+                        deviceId = event.requireCloudString("deviceId", "reviewHistoryPull.reviewEvents[$index].deviceId"),
+                        clientEventId = event.requireCloudString(
+                            "clientEventId",
+                            "reviewHistoryPull.reviewEvents[$index].clientEventId"
+                        ),
+                        rating = event.requireCloudInt("rating", "reviewHistoryPull.reviewEvents[$index].rating"),
+                        reviewedAtClient = event.requireCloudString(
+                            "reviewedAtClient",
+                            "reviewHistoryPull.reviewEvents[$index].reviewedAtClient"
+                        ),
+                        reviewedAtServer = event.requireCloudString(
+                            "reviewedAtServer",
+                            "reviewHistoryPull.reviewEvents[$index].reviewedAtServer"
+                        )
                     )
                 )
             }
         }
     }
 
-    private fun parseSyncEntityType(rawValue: String): SyncEntityType {
+    private fun parseSyncEntityType(rawValue: String, fieldPath: String): SyncEntityType {
         return when (rawValue) {
             "card" -> SyncEntityType.CARD
             "deck" -> SyncEntityType.DECK
             "workspace_scheduler_settings" -> SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS
             "review_event" -> SyncEntityType.REVIEW_EVENT
-            else -> throw IllegalArgumentException("Unsupported remote sync entity type: $rawValue")
+            else -> throw CloudContractMismatchException(
+                "Cloud contract mismatch for $fieldPath: expected one of [card, deck, workspace_scheduler_settings, review_event], got invalid string \"$rawValue\""
+            )
         }
     }
 
@@ -866,27 +938,12 @@ private fun parseCloudErrorPayload(responseBody: String): Pair<String?, String?>
 
     return try {
         val payload = JSONObject(responseBody)
-        val topLevelCode = payload.optNullableString("code")
-        val nestedCode = payload.optJSONObject("error")?.optNullableString("code")
-        val requestId = payload.optNullableString("requestId")
+        val topLevelCode = payload.optCloudStringOrNull("code", "error.code")
+        val nestedError = payload.optCloudObjectOrNull("error", "error.error")
+        val nestedCode = nestedError?.optCloudStringOrNull("code", "error.error.code")
+        val requestId = payload.optCloudStringOrNull("requestId", "error.requestId")
         Pair(topLevelCode ?: nestedCode, requestId)
-    } catch (_: Exception) {
-        null
-    }
-}
-
-private fun JSONObject.optNullableString(key: String): String? {
-    if (has(key).not() || isNull(key)) {
-        return null
-    }
-
-    return getString(key).ifBlank { null }
-}
-
-private fun JSONObject.optLongOrNull(key: String): Long? {
-    return if (has(key) && isNull(key).not()) {
-        getLong(key)
-    } else {
+    } catch (_: JSONException) {
         null
     }
 }

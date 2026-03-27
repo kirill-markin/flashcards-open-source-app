@@ -410,16 +410,26 @@ class SyncLocalStore(
 
     suspend fun applyBootstrapEntries(workspaceId: String, entries: List<RemoteBootstrapEntry>) {
         database.withTransaction {
-            entries.forEach { entry ->
-                applyHotPayload(workspaceId = workspaceId, entityType = entry.entityType, payload = entry.payload)
+            entries.forEachIndexed { index, entry ->
+                applyHotPayload(
+                    workspaceId = workspaceId,
+                    entityType = entry.entityType,
+                    payload = entry.payload,
+                    fieldPath = "bootstrap.entries[$index].payload"
+                )
             }
         }
     }
 
     suspend fun applyPullChanges(workspaceId: String, changes: List<RemoteSyncChange>) {
         database.withTransaction {
-            changes.forEach { change ->
-                applyHotPayload(workspaceId = workspaceId, entityType = change.entityType, payload = change.payload)
+            changes.forEachIndexed { index, change ->
+                applyHotPayload(
+                    workspaceId = workspaceId,
+                    entityType = change.entityType,
+                    payload = change.payload,
+                    fieldPath = "pull.changes[$index].payload"
+                )
             }
         }
     }
@@ -476,35 +486,45 @@ class SyncLocalStore(
     private suspend fun applyHotPayload(
         workspaceId: String,
         entityType: SyncEntityType,
-        payload: JSONObject
+        payload: JSONObject,
+        fieldPath: String
     ) {
         when (entityType) {
-            SyncEntityType.CARD -> applyRemoteCard(workspaceId, payload)
-            SyncEntityType.DECK -> applyRemoteDeck(workspaceId, payload)
-            SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> applyRemoteSettings(workspaceId, payload)
+            SyncEntityType.CARD -> applyRemoteCard(workspaceId, payload, fieldPath)
+            SyncEntityType.DECK -> applyRemoteDeck(workspaceId, payload, fieldPath)
+            SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> applyRemoteSettings(workspaceId, payload, fieldPath)
             SyncEntityType.REVIEW_EVENT -> error("Hot-state payload unexpectedly contained review event.")
         }
     }
 
-    private suspend fun applyRemoteCard(workspaceId: String, payload: JSONObject) {
+    private suspend fun applyRemoteCard(workspaceId: String, payload: JSONObject, fieldPath: String) {
         val card = CardEntity(
-            cardId = payload.getString("cardId"),
+            cardId = payload.requireCloudString("cardId", "$fieldPath.cardId"),
             workspaceId = workspaceId,
-            frontText = payload.getString("frontText"),
-            backText = payload.getString("backText"),
-            effortLevel = parseEffortLevel(payload.getString("effortLevel")),
-            dueAtMillis = payload.optString("dueAt").ifBlank { null }?.let(::parseIsoTimestamp),
-            createdAtMillis = parseIsoTimestamp(payload.getString("createdAt")),
-            updatedAtMillis = parseIsoTimestamp(payload.getString("clientUpdatedAt")),
-            reps = payload.getInt("reps"),
-            lapses = payload.getInt("lapses"),
-            fsrsCardState = parseFsrsCardState(payload.getString("fsrsCardState")),
-            fsrsStepIndex = payload.optIntOrNull("fsrsStepIndex"),
-            fsrsStability = payload.optDoubleOrNull("fsrsStability"),
-            fsrsDifficulty = payload.optDoubleOrNull("fsrsDifficulty"),
-            fsrsLastReviewedAtMillis = payload.optString("fsrsLastReviewedAt").ifBlank { null }?.let(::parseIsoTimestamp),
-            fsrsScheduledDays = payload.optIntOrNull("fsrsScheduledDays"),
-            deletedAtMillis = payload.optString("deletedAt").ifBlank { null }?.let(::parseIsoTimestamp)
+            frontText = payload.requireCloudString("frontText", "$fieldPath.frontText"),
+            backText = payload.requireCloudString("backText", "$fieldPath.backText"),
+            effortLevel = parseEffortLevel(
+                rawValue = payload.requireCloudString("effortLevel", "$fieldPath.effortLevel"),
+                fieldPath = "$fieldPath.effortLevel"
+            ),
+            dueAtMillis = payload.requireCloudNullableIsoTimestampMillis("dueAt", "$fieldPath.dueAt"),
+            createdAtMillis = payload.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
+            updatedAtMillis = payload.requireCloudIsoTimestampMillis("clientUpdatedAt", "$fieldPath.clientUpdatedAt"),
+            reps = payload.requireCloudInt("reps", "$fieldPath.reps"),
+            lapses = payload.requireCloudInt("lapses", "$fieldPath.lapses"),
+            fsrsCardState = parseFsrsCardState(
+                rawValue = payload.requireCloudString("fsrsCardState", "$fieldPath.fsrsCardState"),
+                fieldPath = "$fieldPath.fsrsCardState"
+            ),
+            fsrsStepIndex = payload.optCloudIntOrNull("fsrsStepIndex", "$fieldPath.fsrsStepIndex"),
+            fsrsStability = payload.optCloudDoubleOrNull("fsrsStability", "$fieldPath.fsrsStability"),
+            fsrsDifficulty = payload.optCloudDoubleOrNull("fsrsDifficulty", "$fieldPath.fsrsDifficulty"),
+            fsrsLastReviewedAtMillis = payload.requireCloudNullableIsoTimestampMillis(
+                "fsrsLastReviewedAt",
+                "$fieldPath.fsrsLastReviewedAt"
+            ),
+            fsrsScheduledDays = payload.optCloudIntOrNull("fsrsScheduledDays", "$fieldPath.fsrsScheduledDays"),
+            deletedAtMillis = payload.requireCloudNullableIsoTimestampMillis("deletedAt", "$fieldPath.deletedAt")
         )
         val existingCard = database.cardDao().loadCard(card.cardId)
         if (existingCard == null) {
@@ -516,19 +536,19 @@ class SyncLocalStore(
         replaceCardTags(
             workspaceId = workspaceId,
             cardId = card.cardId,
-            tags = payload.optJSONArray("tags")?.toStringList() ?: emptyList()
+            tags = payload.requireCloudArray("tags", "$fieldPath.tags").toCloudStringList("$fieldPath.tags")
         )
     }
 
-    private suspend fun applyRemoteDeck(workspaceId: String, payload: JSONObject) {
+    private suspend fun applyRemoteDeck(workspaceId: String, payload: JSONObject, fieldPath: String) {
         val deck = DeckEntity(
-            deckId = payload.getString("deckId"),
+            deckId = payload.requireCloudString("deckId", "$fieldPath.deckId"),
             workspaceId = workspaceId,
-            name = payload.getString("name"),
-            filterDefinitionJson = payload.getJSONObject("filterDefinition").toString(),
-            createdAtMillis = parseIsoTimestamp(payload.getString("createdAt")),
-            updatedAtMillis = parseIsoTimestamp(payload.getString("clientUpdatedAt")),
-            deletedAtMillis = payload.optString("deletedAt").ifBlank { null }?.let(::parseIsoTimestamp)
+            name = payload.requireCloudString("name", "$fieldPath.name"),
+            filterDefinitionJson = payload.requireCloudObject("filterDefinition", "$fieldPath.filterDefinition").toString(),
+            createdAtMillis = payload.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
+            updatedAtMillis = payload.requireCloudIsoTimestampMillis("clientUpdatedAt", "$fieldPath.clientUpdatedAt"),
+            deletedAtMillis = payload.requireCloudNullableIsoTimestampMillis("deletedAt", "$fieldPath.deletedAt")
         )
         val existingDeck = database.deckDao().loadDeck(deck.deckId)
         if (existingDeck == null) {
@@ -538,21 +558,23 @@ class SyncLocalStore(
         }
     }
 
-    private suspend fun applyRemoteSettings(workspaceId: String, payload: JSONObject) {
+    private suspend fun applyRemoteSettings(workspaceId: String, payload: JSONObject, fieldPath: String) {
         database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(
             WorkspaceSchedulerSettingsEntity(
                 workspaceId = workspaceId,
-                algorithm = payload.getString("algorithm"),
-                desiredRetention = payload.getDouble("desiredRetention"),
+                algorithm = payload.requireCloudString("algorithm", "$fieldPath.algorithm"),
+                desiredRetention = payload.requireCloudDouble("desiredRetention", "$fieldPath.desiredRetention"),
                 learningStepsMinutesJson = encodeSchedulerStepListJson(
-                    payload.getJSONArray("learningStepsMinutes").toIntList()
+                    payload.requireCloudArray("learningStepsMinutes", "$fieldPath.learningStepsMinutes")
+                        .toCloudIntList("$fieldPath.learningStepsMinutes")
                 ),
                 relearningStepsMinutesJson = encodeSchedulerStepListJson(
-                    payload.getJSONArray("relearningStepsMinutes").toIntList()
+                    payload.requireCloudArray("relearningStepsMinutes", "$fieldPath.relearningStepsMinutes")
+                        .toCloudIntList("$fieldPath.relearningStepsMinutes")
                 ),
-                maximumIntervalDays = payload.getInt("maximumIntervalDays"),
-                enableFuzz = payload.getBoolean("enableFuzz"),
-                updatedAtMillis = parseIsoTimestamp(payload.getString("clientUpdatedAt"))
+                maximumIntervalDays = payload.requireCloudInt("maximumIntervalDays", "$fieldPath.maximumIntervalDays"),
+                enableFuzz = payload.requireCloudBoolean("enableFuzz", "$fieldPath.enableFuzz"),
+                updatedAtMillis = payload.requireCloudIsoTimestampMillis("clientUpdatedAt", "$fieldPath.clientUpdatedAt")
             )
         )
     }
@@ -592,60 +614,76 @@ class SyncLocalStore(
 
     private fun decodeOutboxOperation(entry: OutboxEntryEntity): SyncOperation {
         val payloadJson = JSONObject(entry.payloadJson)
+        val entityType = parseSyncEntityType(entry.entityType)
         return SyncOperation(
             operationId = entry.outboxEntryId,
-            entityType = parseSyncEntityType(entry.entityType),
+            entityType = entityType,
             entityId = entry.entityId,
             action = parseSyncAction(entry.operationType),
             clientUpdatedAt = entry.clientUpdatedAtIso,
-            payload = when (parseSyncEntityType(entry.entityType)) {
+            payload = when (entityType) {
                 SyncEntityType.CARD -> SyncOperationPayload.Card(
                     CardSyncPayload(
-                        cardId = payloadJson.getString("cardId"),
-                        frontText = payloadJson.getString("frontText"),
-                        backText = payloadJson.getString("backText"),
-                        tags = payloadJson.optJSONArray("tags")?.toStringList() ?: emptyList(),
-                        effortLevel = payloadJson.getString("effortLevel"),
-                        dueAt = payloadJson.optString("dueAt").ifBlank { null },
-                        createdAt = payloadJson.getString("createdAt"),
-                        reps = payloadJson.getInt("reps"),
-                        lapses = payloadJson.getInt("lapses"),
-                        fsrsCardState = payloadJson.getString("fsrsCardState"),
-                        fsrsStepIndex = payloadJson.optIntOrNull("fsrsStepIndex"),
-                        fsrsStability = payloadJson.optDoubleOrNull("fsrsStability"),
-                        fsrsDifficulty = payloadJson.optDoubleOrNull("fsrsDifficulty"),
-                        fsrsLastReviewedAt = payloadJson.optString("fsrsLastReviewedAt").ifBlank { null },
-                        fsrsScheduledDays = payloadJson.optIntOrNull("fsrsScheduledDays"),
-                        deletedAt = payloadJson.optString("deletedAt").ifBlank { null }
+                        cardId = payloadJson.requireCloudString("cardId", "outbox.card.cardId"),
+                        frontText = payloadJson.requireCloudString("frontText", "outbox.card.frontText"),
+                        backText = payloadJson.requireCloudString("backText", "outbox.card.backText"),
+                        tags = payloadJson.requireCloudArray("tags", "outbox.card.tags").toCloudStringList("outbox.card.tags"),
+                        effortLevel = payloadJson.requireCloudString("effortLevel", "outbox.card.effortLevel"),
+                        dueAt = payloadJson.requireCloudNullableString("dueAt", "outbox.card.dueAt"),
+                        createdAt = payloadJson.requireCloudString("createdAt", "outbox.card.createdAt"),
+                        reps = payloadJson.requireCloudInt("reps", "outbox.card.reps"),
+                        lapses = payloadJson.requireCloudInt("lapses", "outbox.card.lapses"),
+                        fsrsCardState = payloadJson.requireCloudString("fsrsCardState", "outbox.card.fsrsCardState"),
+                        fsrsStepIndex = payloadJson.optCloudIntOrNull("fsrsStepIndex", "outbox.card.fsrsStepIndex"),
+                        fsrsStability = payloadJson.optCloudDoubleOrNull("fsrsStability", "outbox.card.fsrsStability"),
+                        fsrsDifficulty = payloadJson.optCloudDoubleOrNull("fsrsDifficulty", "outbox.card.fsrsDifficulty"),
+                        fsrsLastReviewedAt = payloadJson.requireCloudNullableString(
+                            "fsrsLastReviewedAt",
+                            "outbox.card.fsrsLastReviewedAt"
+                        ),
+                        fsrsScheduledDays = payloadJson.optCloudIntOrNull("fsrsScheduledDays", "outbox.card.fsrsScheduledDays"),
+                        deletedAt = payloadJson.requireCloudNullableString("deletedAt", "outbox.card.deletedAt")
                     )
                 )
                 SyncEntityType.DECK -> SyncOperationPayload.Deck(
                     DeckSyncPayload(
-                        deckId = payloadJson.getString("deckId"),
-                        name = payloadJson.getString("name"),
-                        filterDefinition = parseDeckFilterDefinition(payloadJson.getJSONObject("filterDefinition")),
-                        createdAt = payloadJson.getString("createdAt"),
-                        deletedAt = payloadJson.optString("deletedAt").ifBlank { null }
+                        deckId = payloadJson.requireCloudString("deckId", "outbox.deck.deckId"),
+                        name = payloadJson.requireCloudString("name", "outbox.deck.name"),
+                        filterDefinition = parseDeckFilterDefinition(
+                            jsonObject = payloadJson.requireCloudObject("filterDefinition", "outbox.deck.filterDefinition"),
+                            fieldPath = "outbox.deck.filterDefinition"
+                        ),
+                        createdAt = payloadJson.requireCloudString("createdAt", "outbox.deck.createdAt"),
+                        deletedAt = payloadJson.requireCloudNullableString("deletedAt", "outbox.deck.deletedAt")
                     )
                 )
                 SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> SyncOperationPayload.WorkspaceSchedulerSettings(
                     WorkspaceSchedulerSettingsSyncPayload(
-                        algorithm = payloadJson.getString("algorithm"),
-                        desiredRetention = payloadJson.getDouble("desiredRetention"),
-                        learningStepsMinutes = payloadJson.getJSONArray("learningStepsMinutes").toIntList(),
-                        relearningStepsMinutes = payloadJson.getJSONArray("relearningStepsMinutes").toIntList(),
-                        maximumIntervalDays = payloadJson.getInt("maximumIntervalDays"),
-                        enableFuzz = payloadJson.getBoolean("enableFuzz")
+                        algorithm = payloadJson.requireCloudString("algorithm", "outbox.settings.algorithm"),
+                        desiredRetention = payloadJson.requireCloudDouble("desiredRetention", "outbox.settings.desiredRetention"),
+                        learningStepsMinutes = payloadJson.requireCloudArray(
+                            "learningStepsMinutes",
+                            "outbox.settings.learningStepsMinutes"
+                        ).toCloudIntList("outbox.settings.learningStepsMinutes"),
+                        relearningStepsMinutes = payloadJson.requireCloudArray(
+                            "relearningStepsMinutes",
+                            "outbox.settings.relearningStepsMinutes"
+                        ).toCloudIntList("outbox.settings.relearningStepsMinutes"),
+                        maximumIntervalDays = payloadJson.requireCloudInt(
+                            "maximumIntervalDays",
+                            "outbox.settings.maximumIntervalDays"
+                        ),
+                        enableFuzz = payloadJson.requireCloudBoolean("enableFuzz", "outbox.settings.enableFuzz")
                     )
                 )
                 SyncEntityType.REVIEW_EVENT -> SyncOperationPayload.ReviewEvent(
                     ReviewEventSyncPayload(
-                        reviewEventId = payloadJson.getString("reviewEventId"),
-                        cardId = payloadJson.getString("cardId"),
-                        deviceId = payloadJson.getString("deviceId"),
-                        clientEventId = payloadJson.getString("clientEventId"),
-                        rating = payloadJson.getInt("rating"),
-                        reviewedAtClient = payloadJson.getString("reviewedAtClient")
+                        reviewEventId = payloadJson.requireCloudString("reviewEventId", "outbox.reviewEvent.reviewEventId"),
+                        cardId = payloadJson.requireCloudString("cardId", "outbox.reviewEvent.cardId"),
+                        deviceId = payloadJson.requireCloudString("deviceId", "outbox.reviewEvent.deviceId"),
+                        clientEventId = payloadJson.requireCloudString("clientEventId", "outbox.reviewEvent.clientEventId"),
+                        rating = payloadJson.requireCloudInt("rating", "outbox.reviewEvent.rating"),
+                        reviewedAtClient = payloadJson.requireCloudString("reviewedAtClient", "outbox.reviewEvent.reviewedAtClient")
                     )
                 )
             }
@@ -687,64 +725,41 @@ private fun SyncAction.toRemoteValue(): String {
     }
 }
 
-private fun parseEffortLevel(rawValue: String): EffortLevel {
+private fun parseEffortLevel(rawValue: String, fieldPath: String): EffortLevel {
     return when (rawValue) {
         "fast" -> EffortLevel.FAST
         "medium" -> EffortLevel.MEDIUM
         "long" -> EffortLevel.LONG
-        else -> throw IllegalArgumentException("Unsupported effort level: $rawValue")
+        else -> throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected one of [fast, medium, long], got invalid string \"$rawValue\""
+        )
     }
 }
 
-private fun parseFsrsCardState(rawValue: String): FsrsCardState {
+private fun parseFsrsCardState(rawValue: String, fieldPath: String): FsrsCardState {
     return when (rawValue) {
         "new" -> FsrsCardState.NEW
         "learning" -> FsrsCardState.LEARNING
         "review" -> FsrsCardState.REVIEW
         "relearning" -> FsrsCardState.RELEARNING
-        else -> throw IllegalArgumentException("Unsupported FSRS card state: $rawValue")
+        else -> throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected one of [new, learning, review, relearning], got invalid string \"$rawValue\""
+        )
     }
 }
 
-private fun parseDeckFilterDefinition(jsonObject: JSONObject): DeckFilterDefinition {
-    val effortLevels = jsonObject.optJSONArray("effortLevels")?.toStringList()?.map(::parseEffortLevel) ?: emptyList()
-    val tags = jsonObject.optJSONArray("tags")?.toStringList() ?: emptyList()
+private fun parseDeckFilterDefinition(jsonObject: JSONObject, fieldPath: String): DeckFilterDefinition {
+    val effortLevels = jsonObject.optJSONArray("effortLevels")
+        ?.toCloudStringList("$fieldPath.effortLevels")
+        ?.mapIndexed { index, value ->
+            parseEffortLevel(value, "$fieldPath.effortLevels[$index]")
+        }
+        ?: emptyList()
+    val tags = jsonObject.optJSONArray("tags")?.toCloudStringList("$fieldPath.tags") ?: emptyList()
     return buildDeckFilterDefinition(
         effortLevels = effortLevels,
         tags = tags
-    ).copy(version = jsonObject.optInt("version", 2))
-}
-
-private fun JSONArray.toStringList(): List<String> {
-    return buildList {
-        for (index in 0 until length()) {
-            add(getString(index))
-        }
-    }
-}
-
-private fun JSONArray.toIntList(): List<Int> {
-    return buildList {
-        for (index in 0 until length()) {
-            add(getInt(index))
-        }
-    }
-}
-
-private fun JSONObject.optIntOrNull(key: String): Int? {
-    return if (has(key) && isNull(key).not()) {
-        getInt(key)
-    } else {
-        null
-    }
-}
-
-private fun JSONObject.optDoubleOrNull(key: String): Double? {
-    return if (has(key) && isNull(key).not()) {
-        getDouble(key)
-    } else {
-        null
-    }
+    ).copy(version = jsonObject.optCloudIntOrNull("version", "$fieldPath.version") ?: 2)
 }
 
 private fun toCardSummary(card: CardWithRelations): CardSummary {

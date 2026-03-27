@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinitionJsonObject
 import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
@@ -818,10 +819,7 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
 }
 
 private fun buildDeckFilterDefinitionJson(filterDefinition: com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition): JSONObject {
-    return JSONObject()
-        .put("version", filterDefinition.version)
-        .put("effortLevels", JSONArray(filterDefinition.effortLevels.map { effortLevel -> effortLevel.name.lowercase() }))
-        .put("tags", JSONArray(filterDefinition.tags))
+    return buildDeckFilterDefinitionJsonObject(filterDefinition = filterDefinition)
 }
 
 private fun com.flashcardsopensourceapp.data.local.model.SyncEntityType.toRemoteValue(): String {

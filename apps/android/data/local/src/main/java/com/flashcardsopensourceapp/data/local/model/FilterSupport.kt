@@ -1,5 +1,8 @@
 package com.flashcardsopensourceapp.data.local.model
 
+import org.json.JSONArray
+import org.json.JSONObject
+
 private const val maximumSearchTokenCount: Int = 5
 
 fun tokenizeSearchText(searchText: String): List<String> {
@@ -117,6 +120,36 @@ fun formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition): String {
     return parts.joinToString(separator = " AND ")
 }
 
+fun encodeDeckFilterDefinitionJson(filterDefinition: DeckFilterDefinition): String {
+    return buildDeckFilterDefinitionJsonObject(filterDefinition = filterDefinition).toString()
+}
+
+fun buildDeckFilterDefinitionJsonObject(filterDefinition: DeckFilterDefinition): JSONObject {
+    return JSONObject()
+        .put("version", filterDefinition.version)
+        .put(
+            "effortLevels",
+            JSONArray(filterDefinition.effortLevels.map { effortLevel ->
+                effortLevel.toDeckFilterJsonValue()
+            })
+        )
+        .put("tags", JSONArray(filterDefinition.tags))
+}
+
+fun decodeDeckFilterDefinitionJson(filterDefinitionJson: String): DeckFilterDefinition {
+    val jsonObject = JSONObject(filterDefinitionJson)
+    val version = jsonObject.getInt("version")
+    val effortLevels = jsonObject.optJSONArray("effortLevels")?.toStringList()?.map { value ->
+        parseDeckFilterEffortLevel(rawValue = value)
+    } ?: emptyList()
+    val tags = jsonObject.optJSONArray("tags")?.toStringList() ?: emptyList()
+
+    return buildDeckFilterDefinition(
+        effortLevels = effortLevels,
+        tags = tags
+    ).copy(version = version)
+}
+
 fun matchesCardFilter(filter: CardFilter, card: CardSummary): Boolean {
     if (filter.effort.isNotEmpty() && filter.effort.contains(card.effortLevel).not()) {
         return false
@@ -179,5 +212,30 @@ fun queryCards(cards: List<CardSummary>, searchText: String, filter: CardFilter)
             values = listOf(card.frontText, card.backText, card.effortLevel.name.lowercase()) + card.tags,
             searchTokens = searchTokens
         )
+    }
+}
+
+private fun EffortLevel.toDeckFilterJsonValue(): String {
+    return when (this) {
+        EffortLevel.FAST -> "fast"
+        EffortLevel.MEDIUM -> "medium"
+        EffortLevel.LONG -> "long"
+    }
+}
+
+private fun parseDeckFilterEffortLevel(rawValue: String): EffortLevel {
+    return when (rawValue.lowercase()) {
+        "fast" -> EffortLevel.FAST
+        "medium" -> EffortLevel.MEDIUM
+        "long" -> EffortLevel.LONG
+        else -> throw IllegalArgumentException("Unsupported deck filter effort level: $rawValue")
+    }
+}
+
+private fun JSONArray.toStringList(): List<String> {
+    return buildList {
+        for (index in 0 until length()) {
+            add(getString(index))
+        }
     }
 }
