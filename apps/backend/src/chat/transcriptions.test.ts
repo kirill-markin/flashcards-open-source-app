@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { APIConnectionError, APIError } from "openai/error";
 import { HttpError } from "../errors";
-import { transcribeChatAudioUpload, transcribeChatAudioUploadWithDependencies } from "./transcriptions";
+import {
+  parseChatTranscriptionUpload,
+  transcribeChatAudioUpload,
+  transcribeChatAudioUploadWithDependencies,
+} from "./transcriptions";
 
 const originalOpenAiApiKey = process.env.OPENAI_API_KEY;
 
@@ -24,6 +28,9 @@ test("transcribeChatAudioUpload returns a stable not-configured error when the p
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.webm", { type: "audio/webm" }),
       source: "web",
+    }, {
+      requestId: "request-1",
+      sessionId: "session-1",
     }),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 503
@@ -53,6 +60,9 @@ test("transcribeChatAudioUpload maps invalid upstream audio failures to 422", as
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.webm", { type: "audio/webm" }),
       source: "web",
+    }, {
+      requestId: "request-1",
+      sessionId: "session-1",
     }, client),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 422
@@ -77,6 +87,9 @@ test("transcribeChatAudioUpload keeps provider connectivity failures as 503", as
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.m4a", { type: "audio/mp4" }),
       source: "ios",
+    }, {
+      requestId: "request-1",
+      sessionId: "session-1",
     }, client),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 503
@@ -106,6 +119,9 @@ test("transcribeChatAudioUpload maps provider auth failures to a stable 503 erro
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.m4a", { type: "audio/mp4" }),
       source: "ios",
+    }, {
+      requestId: "request-1",
+      sessionId: "session-1",
     }, client),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 503
@@ -135,6 +151,9 @@ test("transcribeChatAudioUpload maps provider rate limits to a stable 429 error"
     () => transcribeChatAudioUpload({
       file: new File(["audio"], "clip.m4a", { type: "audio/mp4" }),
       source: "ios",
+    }, {
+      requestId: "request-1",
+      sessionId: "session-1",
     }, client),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 429
@@ -151,6 +170,10 @@ test("transcribeChatAudioUploadWithDependencies uses the observed client factory
     {
       file: new File(["audio"], "clip.webm", { type: "audio/webm" }),
       source: "web",
+    },
+    {
+      requestId: "request-1",
+      sessionId: "session-1",
     },
     undefined,
     {
@@ -169,4 +192,21 @@ test("transcribeChatAudioUploadWithDependencies uses the observed client factory
 
   assert.equal(text, "Hello from dictation");
   assert.equal(usedObservedClientFactory, true);
+});
+
+test("parseChatTranscriptionUpload accepts an optional sessionId", async () => {
+  const request = new Request("https://api.example.com/chat/transcriptions", {
+    method: "POST",
+    body: (() => {
+      const formData = new FormData();
+      formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
+      formData.append("source", "web");
+      formData.append("sessionId", "session-1");
+      return formData;
+    })(),
+  });
+
+  const upload = await parseChatTranscriptionUpload(request);
+
+  assert.equal(upload.sessionId, "session-1");
 });

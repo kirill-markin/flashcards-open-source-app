@@ -52,7 +52,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
         guard let data = self.userDefaults.data(forKey: self.storageKey()) else {
             return AIChatPersistedState(
                 messages: [],
-                chatSessionId: makeAIChatSessionId(),
+                chatSessionId: "",
                 lastKnownChatConfig: nil
             )
         }
@@ -69,7 +69,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
             self.userDefaults.removeObject(forKey: self.storageKey())
             return AIChatPersistedState(
                 messages: [],
-                chatSessionId: makeAIChatSessionId(),
+                chatSessionId: "",
                 lastKnownChatConfig: nil
             )
         }

@@ -475,7 +475,7 @@ describe("transcribeChatAudio", () => {
     vi.unstubAllGlobals();
   });
 
-  it("sends only file and source in the multipart request", async () => {
+  it("sends file, source, and optional sessionId in the multipart request", async () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe("http://localhost:8080/v1/chat/transcriptions");
       expect(init?.method).toBe("POST");
@@ -483,19 +483,24 @@ describe("transcribeChatAudio", () => {
       expect(body).toBeInstanceOf(FormData);
       const formData = body as FormData;
       expect(formData.get("source")).toBe("web");
+      expect(formData.get("sessionId")).toBe("session-1");
       expect(formData.get("durationSeconds")).toBeNull();
       const file = formData.get("file");
       expect(file).toBeInstanceOf(File);
       expect((file as File).name).toBe("chat-dictation.webm");
       expect((file as File).type).toBe("audio/webm");
-      return createJsonResponse(200, { text: "dictated text" });
+      return createJsonResponse(200, { text: "dictated text", sessionId: "session-2" });
     });
 
     const transcript = await transcribeChatAudio(
       new Blob(["dictation"], { type: "audio/webm" }),
-      "web"
+      "web",
+      "session-1",
     );
 
-    expect(transcript).toBe("dictated text");
+    expect(transcript).toEqual({
+      text: "dictated text",
+      sessionId: "session-2",
+    });
   });
 });

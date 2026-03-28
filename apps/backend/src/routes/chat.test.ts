@@ -16,7 +16,6 @@ function createChatTestApp(
   options: Readonly<{
     requestContext?: RequestContext;
     getRecoveredChatSessionSnapshotFn?: typeof import("../chat/runs").getRecoveredChatSessionSnapshot;
-    getLatestChatSessionIdFn?: typeof import("../chat/store").getLatestChatSessionId;
     createFreshChatSessionFn?: typeof import("../chat/store").createFreshChatSession;
     prepareChatRunFn?: typeof import("../chat/runs").prepareChatRun;
     invokeChatWorkerFn?: typeof import("../chat/workerInvoke").invokeChatWorkerOrPersistFailure;
@@ -39,7 +38,6 @@ function createChatTestApp(
   app.route("/", createChatRoutes({
     allowedOrigins: [],
     getRecoveredChatSessionSnapshotFn: options.getRecoveredChatSessionSnapshotFn,
-    getLatestChatSessionIdFn: options.getLatestChatSessionIdFn,
     createFreshChatSessionFn: options.createFreshChatSessionFn,
     prepareChatRunFn: options.prepareChatRunFn,
     invokeChatWorkerFn: options.invokeChatWorkerFn,
@@ -242,12 +240,60 @@ test("new chat GET route maps missing sessions to 404", async () => {
   });
 });
 
-test("new chat DELETE route creates a fresh empty session", async () => {
+test("new chat DELETE route keeps the current empty session", async () => {
   const app = createChatTestApp({
-    getLatestChatSessionIdFn: async (userId, workspaceId) => {
+    getRecoveredChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
       assert.equal(userId, "user-1");
       assert.equal(workspaceId, "workspace-1");
-      return "session-old";
+      assert.equal(sessionId, undefined);
+      return {
+        sessionId: "session-old",
+        runState: "idle",
+        activeRunId: null,
+        updatedAt: 1,
+        activeRunHeartbeatAt: null,
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      };
+    },
+    createFreshChatSessionFn: async () => {
+      throw new Error("should not create a new session for an empty chat");
+    },
+  });
+
+  const response = await app.request("https://api.example.com/chat", {
+    method: "DELETE",
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    sessionId: "session-old",
+    chatConfig: getChatConfig(),
+  });
+});
+
+test("new chat DELETE route creates a fresh session when the current session has messages", async () => {
+  const app = createChatTestApp({
+    getRecoveredChatSessionSnapshotFn: async (userId, workspaceId, sessionId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(workspaceId, "workspace-1");
+      assert.equal(sessionId, undefined);
+      return {
+        sessionId: "session-old",
+        runState: "idle",
+        activeRunId: null,
+        updatedAt: 1,
+        activeRunHeartbeatAt: null,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "user",
+          content: [{ type: "text", text: "hello" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+        }],
+      };
     },
     createFreshChatSessionFn: async (userId, workspaceId) => {
       assert.equal(userId, "user-1");

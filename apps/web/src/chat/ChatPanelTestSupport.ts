@@ -303,7 +303,10 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       stopped: true,
       stillRunning: false,
     });
-    transcribeChatAudioMock.mockResolvedValue("dictated text");
+    transcribeChatAudioMock.mockResolvedValue({
+      text: "dictated text",
+      sessionId: "session-1",
+    });
     listOutboxRecordsMock.mockResolvedValue([]);
     checkFileSizeMock.mockReturnValue(null);
     prepareAttachmentMock.mockResolvedValue({

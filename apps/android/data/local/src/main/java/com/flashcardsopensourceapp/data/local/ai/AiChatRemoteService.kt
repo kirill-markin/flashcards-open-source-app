@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamError
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
+import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
@@ -265,10 +266,11 @@ class AiChatRemoteService {
     suspend fun transcribeAudio(
         apiBaseUrl: String,
         authorizationHeader: String,
+        sessionId: String?,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
-    ): String = withContext(Dispatchers.IO) {
+    ): AiChatTranscriptionResult = withContext(Dispatchers.IO) {
         val boundary = "flashcards-${UUID.randomUUID()}"
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
@@ -284,6 +286,7 @@ class AiChatRemoteService {
                 outputStream.write(
                     encodeMultipartAudioBody(
                         boundary = boundary,
+                        sessionId = sessionId,
                         fileName = fileName,
                         mediaType = mediaType,
                         audioBytes = audioBytes
@@ -292,7 +295,10 @@ class AiChatRemoteService {
             }
 
             val response = readJsonResponse(connection = connection)
-            return@withContext response.requireCloudString("text", "text")
+            return@withContext AiChatTranscriptionResult(
+                text = response.requireCloudString("text", "text"),
+                sessionId = response.requireCloudString("sessionId", "sessionId")
+            )
         } finally {
             connection.disconnect()
         }
@@ -540,11 +546,27 @@ class AiChatRemoteService {
 
     private fun encodeMultipartAudioBody(
         boundary: String,
+        sessionId: String?,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
     ): ByteArray {
         val outputStream = ByteArrayOutputStream()
+        if (sessionId.isNullOrBlank().not()) {
+            outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
+            outputStream.write(
+                "Content-Disposition: form-data; name=\"sessionId\"\r\n\r\n"
+                    .toByteArray(StandardCharsets.UTF_8)
+            )
+            outputStream.write(requireNotNull(sessionId).toByteArray(StandardCharsets.UTF_8))
+            outputStream.write("\r\n".toByteArray(StandardCharsets.UTF_8))
+        }
+
+        outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
+        outputStream.write(
+            "Content-Disposition: form-data; name=\"source\"\r\n\r\nandroid\r\n"
+                .toByteArray(StandardCharsets.UTF_8)
+        )
         outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
         outputStream.write(
             "Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n"

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
+import type { AppEnv } from "../app";
+import { ChatSessionNotFoundError } from "../chat/store";
 import { HttpError } from "../errors";
 import type { RequestContext } from "../server/requestContext";
 import { createChatTranscriptionsRoutes } from "./chatTranscriptions";
@@ -8,10 +10,15 @@ import { createChatTranscriptionsRoutes } from "./chatTranscriptions";
 function createChatTranscriptionsTestApp(
   options: Readonly<{
     requestContext?: RequestContext;
+    getRecoveredChatSessionSnapshotFn?: Parameters<typeof createChatTranscriptionsRoutes>[0]["getRecoveredChatSessionSnapshotFn"];
     transcribeAudioFn: Parameters<typeof createChatTranscriptionsRoutes>[0]["transcribeAudioFn"];
   }>,
-): Hono {
-  const app = new Hono();
+): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
+  app.use("*", async (context, next) => {
+    context.set("requestId", "request-1");
+    await next();
+  });
   app.onError((error, context) => {
     if (error instanceof HttpError) {
       context.status(error.statusCode as never);
@@ -22,6 +29,15 @@ function createChatTranscriptionsTestApp(
   });
   app.route("/", createChatTranscriptionsRoutes({
     allowedOrigins: [],
+    getRecoveredChatSessionSnapshotFn: options.getRecoveredChatSessionSnapshotFn ?? (async (_userId, _workspaceId, sessionId) => ({
+      sessionId: sessionId ?? "session-1",
+      runState: "idle",
+      activeRunId: null,
+      updatedAt: 1,
+      activeRunHeartbeatAt: null,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    })),
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {
         authorizationHeader: undefined,
@@ -52,10 +68,23 @@ function createChatTranscriptionsTestApp(
 test("chat transcriptions route accepts multipart uploads without durationSeconds and returns text", async () => {
   let observedSource: string | null = null;
   let observedFileName: string | null = null;
+  let observedRequestId: string | null = null;
+  let observedSessionId: string | null = null;
   const app = createChatTranscriptionsTestApp({
-    transcribeAudioFn: async (upload) => {
+    getRecoveredChatSessionSnapshotFn: async () => ({
+      sessionId: "session-1",
+      runState: "idle",
+      activeRunId: null,
+      updatedAt: 1,
+      activeRunHeartbeatAt: null,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    }),
+    transcribeAudioFn: async (upload, requestContext) => {
       observedSource = upload.source;
       observedFileName = upload.file.name;
+      observedRequestId = requestContext.requestId;
+      observedSessionId = requestContext.sessionId;
       return "recognized text";
     },
   });
@@ -70,9 +99,86 @@ test("chat transcriptions route accepts multipart uploads without durationSecond
   });
 
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { text: "recognized text" });
+  assert.deepEqual(await response.json(), { text: "recognized text", sessionId: "session-1" });
   assert.equal(observedSource, "web");
   assert.equal(observedFileName, "clip.webm");
+  assert.equal(observedRequestId, "request-1");
+  assert.equal(observedSessionId, "session-1");
+});
+
+test("chat transcriptions route preserves a valid provided sessionId", async () => {
+  const app = createChatTranscriptionsTestApp({
+    getRecoveredChatSessionSnapshotFn: async (_userId, _workspaceId, sessionId) => ({
+      sessionId: sessionId ?? "session-fallback",
+      runState: "idle",
+      activeRunId: null,
+      updatedAt: 1,
+      activeRunHeartbeatAt: null,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    }),
+    transcribeAudioFn: async (_upload, requestContext) => {
+      return requestContext.sessionId;
+    },
+  });
+
+  const formData = new FormData();
+  formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
+  formData.append("source", "web");
+  formData.append("sessionId", "session-provided");
+
+  const response = await app.request("https://api.example.com/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    text: "session-provided",
+    sessionId: "session-provided",
+  });
+});
+
+test("chat transcriptions route repairs stale sessionId values to the current session", async () => {
+  let recoveryCalls = 0;
+  const app = createChatTranscriptionsTestApp({
+    getRecoveredChatSessionSnapshotFn: async (_userId, _workspaceId, sessionId) => {
+      recoveryCalls += 1;
+      if (sessionId === "session-stale") {
+        throw new ChatSessionNotFoundError("session-stale");
+      }
+
+      return {
+        sessionId: "session-current",
+        runState: "idle",
+        activeRunId: null,
+        updatedAt: 1,
+        activeRunHeartbeatAt: null,
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      };
+    },
+    transcribeAudioFn: async (_upload, requestContext) => {
+      return `repaired:${requestContext.sessionId}`;
+    },
+  });
+
+  const formData = new FormData();
+  formData.append("file", new File(["audio"], "clip.webm", { type: "audio/webm" }));
+  formData.append("source", "web");
+  formData.append("sessionId", "session-stale");
+
+  const response = await app.request("https://api.example.com/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    text: "repaired:session-current",
+    sessionId: "session-current",
+  });
+  assert.equal(recoveryCalls, 2);
 });
 
 test("chat transcriptions route blocks guest uploads immediately when guest AI quota defaults to zero", async () => {

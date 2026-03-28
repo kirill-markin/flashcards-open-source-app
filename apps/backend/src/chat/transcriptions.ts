@@ -3,7 +3,6 @@
  * The upload is validated and transcribed on the server so the chat surface stays resilient across reconnects.
  */
 import { Buffer } from "node:buffer";
-import { randomUUID } from "node:crypto";
 import { toFile } from "openai";
 import { HttpError } from "../errors";
 import { getObservedOpenAIClient } from "./openai/client";
@@ -13,7 +12,7 @@ import {
   makeAIEndpointNotConfiguredError,
 } from "./legacy/aiAvailabilityErrors";
 
-export type ChatTranscriptionSource = "ios" | "web";
+export type ChatTranscriptionSource = "android" | "ios" | "web";
 
 type OpenAITranscriptionClient = Readonly<{
   audio: Readonly<{
@@ -31,6 +30,12 @@ type OpenAITranscriptionClient = Readonly<{
 export type ChatTranscriptionUpload = Readonly<{
   file: File;
   source: ChatTranscriptionSource;
+  sessionId?: string;
+}>;
+
+export type ChatTranscriptionRequestContext = Readonly<{
+  requestId: string;
+  sessionId: string;
 }>;
 
 const CHAT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
@@ -48,6 +53,7 @@ const SUPPORTED_AUDIO_MEDIA_TYPES = new Set([
 
 type ChatTranscriptionFailureDetails = Readonly<{
   requestId: string;
+  sessionId: string;
   source: ChatTranscriptionSource;
   fileName: string;
   fileSize: number;
@@ -124,13 +130,23 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
   }
 
   const sourceValue = formData.get("source");
-  if (sourceValue !== "ios" && sourceValue !== "web") {
-    throw new HttpError(400, "source must be either ios or web", "CHAT_TRANSCRIPTION_SOURCE_INVALID");
+  if (sourceValue !== "android" && sourceValue !== "ios" && sourceValue !== "web") {
+    throw new HttpError(
+      400,
+      "source must be either android, ios, or web",
+      "CHAT_TRANSCRIPTION_SOURCE_INVALID",
+    );
   }
+
+  const sessionValue = formData.get("sessionId");
+  const sessionId = typeof sessionValue === "string" && sessionValue.trim() !== ""
+    ? sessionValue.trim()
+    : undefined;
 
   return {
     file: fileValue,
     source: sourceValue,
+    sessionId,
   };
 }
 
@@ -173,6 +189,7 @@ function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): 
     domain: "chat",
     action: "chat_transcription_failed",
     requestId: details.requestId,
+    sessionId: details.sessionId,
     source: details.source,
     provider: details.provider,
     fileName: details.fileName,
@@ -195,10 +212,12 @@ const DEFAULT_CHAT_TRANSCRIPTION_DEPENDENCIES: ChatTranscriptionDependencies = {
  */
 export async function transcribeChatAudioUpload(
   upload: ChatTranscriptionUpload,
+  requestContext: ChatTranscriptionRequestContext,
   client?: OpenAITranscriptionClient,
 ): Promise<string> {
   return transcribeChatAudioUploadWithDependencies(
     upload,
+    requestContext,
     client,
     DEFAULT_CHAT_TRANSCRIPTION_DEPENDENCIES,
   );
@@ -206,6 +225,7 @@ export async function transcribeChatAudioUpload(
 
 export async function transcribeChatAudioUploadWithDependencies(
   upload: ChatTranscriptionUpload,
+  requestContext: ChatTranscriptionRequestContext,
   client: OpenAITranscriptionClient | undefined,
   dependencies: ChatTranscriptionDependencies,
 ): Promise<string> {
@@ -231,9 +251,9 @@ export async function transcribeChatAudioUploadWithDependencies(
     return trimmedText;
   } catch (error) {
     const metadata = getAIProviderFailureMetadata(error);
-    const requestId = randomUUID();
     logChatTranscriptionFailure({
-      requestId,
+      requestId: requestContext.requestId,
+      sessionId: requestContext.sessionId,
       source: upload.source,
       provider: "openai",
       fileName: upload.file.name,

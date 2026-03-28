@@ -135,6 +135,7 @@ export function ChatPanel(props: Props): ReactElement {
     currentSessionId,
     chatConfig,
     composerAction,
+    acceptServerSessionId,
     sendMessage: sendChatMessage,
     stopMessage,
     clearConversation,
@@ -416,10 +417,19 @@ export function ChatPanel(props: Props): ReactElement {
         return;
       }
 
-      const transcript = await transcribeChatAudio(audioBlob, "web");
+      const transcription = await transcribeChatAudio(
+        audioBlob,
+        "web",
+        currentSessionId ?? undefined,
+      );
       if (isMountedRef.current) {
+        acceptServerSessionId(transcription.sessionId);
         setInputText((currentText) => {
-          const insertionResult = insertDictationTranscriptIntoDraft(currentText, transcript, draftSelectionRef.current);
+          const insertionResult = insertDictationTranscriptIntoDraft(
+            currentText,
+            transcription.text,
+            draftSelectionRef.current,
+          );
           const nextSelection = shouldRestoreTextareaFocusAfterDictationRef.current
             ? insertionResult.selection
             : null;

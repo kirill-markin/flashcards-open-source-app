@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
@@ -113,14 +114,16 @@ class LocalAiChatRepository(
 
     override suspend fun transcribeAudio(
         workspaceId: String?,
+        sessionId: String?,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
-    ): String {
+    ): AiChatTranscriptionResult {
         val session = authorizedSession(workspaceId = workspaceId)
         return aiChatRemoteService.transcribeAudio(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
+            sessionId = sessionId,
             fileName = fileName,
             mediaType = mediaType,
             audioBytes = audioBytes

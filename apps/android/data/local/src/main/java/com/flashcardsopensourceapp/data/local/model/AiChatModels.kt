@@ -251,6 +251,11 @@ data class AiChatStreamOutcome(
     val chatConfig: AiChatServerConfig?
 )
 
+data class AiChatTranscriptionResult(
+    val text: String,
+    val sessionId: String
+)
+
 data class StoredGuestAiSession(
     val guestToken: String,
     val userId: String,

@@ -32,7 +32,16 @@ protocol AIChatVoiceRecording: AnyObject {
 }
 
 protocol AIChatAudioTranscribing: Sendable {
-    func transcribe(session: CloudLinkedSession, recordedAudio: AIChatRecordedAudio) async throws -> String
+    func transcribe(
+        session: CloudLinkedSession,
+        sessionId: String?,
+        recordedAudio: AIChatRecordedAudio
+    ) async throws -> AIChatTranscriptionResult
+}
+
+struct AIChatTranscriptionResult: Sendable, Equatable {
+    let text: String
+    let sessionId: String
 }
 
 enum AIChatVoiceRecorderError: LocalizedError, Equatable {
@@ -174,8 +183,13 @@ final class AIChatDisabledVoiceRecorder: AIChatVoiceRecording {
 }
 
 struct AIChatDisabledAudioTranscriber: AIChatAudioTranscribing {
-    func transcribe(session: CloudLinkedSession, recordedAudio: AIChatRecordedAudio) async throws -> String {
+    func transcribe(
+        session: CloudLinkedSession,
+        sessionId: String?,
+        recordedAudio: AIChatRecordedAudio
+    ) async throws -> AIChatTranscriptionResult {
         _ = session
+        _ = sessionId
         _ = recordedAudio
         throw AIChatTranscriptionError.serviceUnavailable
     }
@@ -183,6 +197,7 @@ struct AIChatDisabledAudioTranscriber: AIChatAudioTranscribing {
 
 private struct AIChatTranscriptionResponse: Decodable {
     let text: String
+    let sessionId: String
 }
 
 final class AIChatTranscriptionService: @unchecked Sendable {
@@ -196,8 +211,16 @@ final class AIChatTranscriptionService: @unchecked Sendable {
 }
 
 extension AIChatTranscriptionService: AIChatAudioTranscribing {
-    func transcribe(session: CloudLinkedSession, recordedAudio: AIChatRecordedAudio) async throws -> String {
-        let request = try self.makeRequest(session: session, recordedAudio: recordedAudio)
+    func transcribe(
+        session: CloudLinkedSession,
+        sessionId: String?,
+        recordedAudio: AIChatRecordedAudio
+    ) async throws -> AIChatTranscriptionResult {
+        let request = try self.makeRequest(
+            session: session,
+            sessionId: sessionId,
+            recordedAudio: recordedAudio
+        )
 
         do {
             let (data, response) = try await self.session.data(for: request)
@@ -214,7 +237,10 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
             }
 
             let transcriptionResponse = try self.decoder.decode(AIChatTranscriptionResponse.self, from: data)
-            return transcriptionResponse.text
+            return AIChatTranscriptionResult(
+                text: transcriptionResponse.text,
+                sessionId: transcriptionResponse.sessionId
+            )
         } catch let error as AIChatTranscriptionError {
             throw error
         } catch {
@@ -222,7 +248,11 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         }
     }
 
-    private func makeRequest(session: CloudLinkedSession, recordedAudio: AIChatRecordedAudio) throws -> URLRequest {
+    private func makeRequest(
+        session: CloudLinkedSession,
+        sessionId: String?,
+        recordedAudio: AIChatRecordedAudio
+    ) throws -> URLRequest {
         let trimmedBaseUrl = session.apiBaseUrl.hasSuffix("/") ? String(session.apiBaseUrl.dropLast()) : session.apiBaseUrl
         guard let url = URL(string: "\(trimmedBaseUrl)/chat/transcriptions") else {
             throw AIChatTranscriptionError.invalidBaseUrl
@@ -233,7 +263,11 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         request.httpMethod = "POST"
         request.setValue(session.authorization.headerValue, forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try self.makeMultipartBody(boundary: boundary, recordedAudio: recordedAudio)
+        request.httpBody = try self.makeMultipartBody(
+            boundary: boundary,
+            sessionId: sessionId,
+            recordedAudio: recordedAudio
+        )
         return request
     }
 
@@ -266,9 +300,18 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         )
     }
 
-    private func makeMultipartBody(boundary: String, recordedAudio: AIChatRecordedAudio) throws -> Data {
+    private func makeMultipartBody(
+        boundary: String,
+        sessionId: String?,
+        recordedAudio: AIChatRecordedAudio
+    ) throws -> Data {
         let audioData = try Data(contentsOf: recordedAudio.fileUrl)
         var body = Data()
+        if let sessionId, sessionId.isEmpty == false {
+            body.append(Data("--\(boundary)\r\n".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"sessionId\"\r\n\r\n".utf8))
+            body.append(Data("\(sessionId)\r\n".utf8))
+        }
         body.append(Data("--\(boundary)\r\n".utf8))
         body.append(Data("Content-Disposition: form-data; name=\"source\"\r\n\r\n".utf8))
         body.append(Data("ios\r\n".utf8))
