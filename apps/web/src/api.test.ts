@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ApiContractError,
   AuthRedirectError,
   createWorkspace,
   deleteWorkspace,
@@ -8,6 +9,7 @@ import {
   listWorkspaces,
   loadWorkspaceDeletePreview,
   primeSessionCsrfToken,
+  pullSyncChanges,
   renameWorkspace,
   resetChatSession,
   resetApiClientStateForTests,
@@ -49,6 +51,150 @@ function createSessionPayload(csrfToken: string): Readonly<{
       createdAt: "2026-03-09T00:00:00.000Z",
     },
   };
+}
+
+type TestCardPayload = Readonly<{
+  cardId: string;
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  effortLevel: "medium";
+  dueAt: null;
+  createdAt: string;
+  reps: number;
+  lapses: number;
+  fsrsCardState: "new";
+  fsrsStepIndex: null;
+  fsrsStability: null;
+  fsrsDifficulty: null;
+  fsrsLastReviewedAt: null;
+  fsrsScheduledDays: null;
+  clientUpdatedAt: string;
+  lastModifiedByDeviceId: string;
+  lastOperationId: string;
+  updatedAt: string;
+  deletedAt: null;
+}>;
+
+type TestSyncPullPayload = Readonly<{
+  changes: ReadonlyArray<Readonly<{
+    changeId: number;
+    entityType: "card";
+    entityId: string;
+    action: "upsert";
+    payload: TestCardPayload;
+  }>>;
+  nextHotChangeId: number;
+  hasMore: boolean;
+}>;
+
+type TestChatSnapshotPayload = Readonly<{
+  sessionId: string;
+  runState: "idle";
+  updatedAt: number;
+  mainContentInvalidationVersion: number;
+  chatConfig: typeof defaultChatConfig;
+  messages: ReadonlyArray<Readonly<{
+    role: "assistant";
+    content: ReadonlyArray<Readonly<{
+      type: "tool_call";
+      id: string;
+      name: string;
+      status: "completed";
+      providerStatus: null;
+      input: null;
+      output: null;
+      streamPosition: Readonly<{
+        itemId: string;
+        outputIndex: number;
+        contentIndex: null;
+        sequenceNumber: null;
+      }>;
+    }>>;
+    timestamp: number;
+    isError: boolean;
+    isStopped: boolean;
+  }>>;
+}>;
+
+function createCardPayload(): TestCardPayload {
+  return {
+    cardId: "card-1",
+    frontText: "Question",
+    backText: "Answer",
+    tags: ["tag-1"],
+    effortLevel: "medium",
+    dueAt: null,
+    createdAt: "2026-03-09T00:00:00.000Z",
+    reps: 1,
+    lapses: 0,
+    fsrsCardState: "new",
+    fsrsStepIndex: null,
+    fsrsStability: null,
+    fsrsDifficulty: null,
+    fsrsLastReviewedAt: null,
+    fsrsScheduledDays: null,
+    clientUpdatedAt: "2026-03-09T00:00:00.000Z",
+    lastModifiedByDeviceId: "device-1",
+    lastOperationId: "operation-1",
+    updatedAt: "2026-03-09T00:00:00.000Z",
+    deletedAt: null,
+  };
+}
+
+function createSyncPullPayload(): TestSyncPullPayload {
+  return {
+    changes: [{
+      changeId: 1,
+      entityType: "card",
+      entityId: "card-1",
+      action: "upsert",
+      payload: createCardPayload(),
+    }],
+    nextHotChangeId: 2,
+    hasMore: false,
+  };
+}
+
+function createChatSnapshotPayload(): TestChatSnapshotPayload {
+  return {
+    sessionId: "session-1",
+    runState: "idle",
+    updatedAt: 1,
+    mainContentInvalidationVersion: 0,
+    chatConfig: defaultChatConfig,
+    messages: [{
+      role: "assistant",
+      content: [{
+        type: "tool_call",
+        id: "tool-1",
+        name: "sql",
+        status: "completed",
+        providerStatus: null,
+        input: null,
+        output: null,
+        streamPosition: {
+          itemId: "item-1",
+          outputIndex: 0,
+          contentIndex: null,
+          sequenceNumber: null,
+        },
+      }],
+      timestamp: 1,
+      isError: false,
+      isStopped: false,
+    }],
+  };
+}
+
+async function captureRejectedError(promise: Promise<unknown>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (error) {
+    return error;
+  }
+
+  throw new Error("Expected promise to reject");
 }
 
 function getHeaderValue(init: RequestInit | undefined, headerName: string): string | null {
@@ -366,6 +512,181 @@ describe("web auth recovery", () => {
     expect(meCallCount).toBe(1);
     expect(refreshCallCount).toBe(1);
     expect(redirectUrls).toEqual([]);
+  });
+});
+
+describe("api contract validation", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+    resetApiClientStateForTests();
+    primeSessionCsrfToken("csrf-contract");
+  });
+
+  afterEach(() => {
+    resetApiClientStateForTests();
+    vi.unstubAllGlobals();
+  });
+
+  it("ignores extra fields in /me while returning only the declared shape", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ...createSessionPayload("csrf-extra"),
+      extraTopLevel: "ignored",
+      profile: {
+        ...createSessionPayload("csrf-extra").profile,
+        extraNested: true,
+      },
+    }));
+
+    const session = await getSession();
+
+    expect(session).toEqual(createSessionPayload("csrf-extra"));
+  });
+
+  it("ignores extra fields in paginated workspace responses", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      workspaces: [{
+        workspaceId: "workspace-1",
+        name: "Primary",
+        createdAt: "2026-03-09T00:00:00.000Z",
+        isSelected: true,
+        ignoredField: "ignored",
+      }],
+      nextCursor: null,
+      ignoredTopLevel: 1,
+    }));
+
+    const workspaces = await listWorkspaces();
+
+    expect(workspaces).toEqual([{
+      workspaceId: "workspace-1",
+      name: "Primary",
+      createdAt: "2026-03-09T00:00:00.000Z",
+      isSelected: true,
+    }]);
+  });
+
+  it("ignores extra fields in nested chat snapshots", async () => {
+    const snapshotPayload = createChatSnapshotPayload();
+    const messagePayload = snapshotPayload.messages[0];
+    const toolCallPayload = messagePayload.content[0];
+
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ...snapshotPayload,
+      ignoredTopLevel: "ignored",
+      chatConfig: {
+        ...defaultChatConfig,
+        ignoredConfigField: true,
+      },
+      messages: [{
+        ...messagePayload,
+        ignoredMessageField: "ignored",
+        content: [{
+          ...toolCallPayload,
+          ignoredContentField: "ignored",
+          streamPosition: {
+            ...toolCallPayload.streamPosition,
+            ignoredStreamField: "ignored",
+          },
+        }],
+      }],
+    }));
+
+    const snapshot = await getChatSnapshot();
+
+    expect(snapshot).toEqual(snapshotPayload);
+  });
+
+  it("fails when a required top-level session field is missing", async () => {
+    const payload = createSessionPayload("csrf-missing-top-level");
+    const { userId: _ignoredUserId, ...invalidPayload } = payload;
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, invalidPayload));
+
+    const error = await captureRejectedError(getSession());
+
+    expect(error).toBeInstanceOf(ApiContractError);
+    expect(error).toMatchObject({
+      message: "Invalid API response for GET /me: userId must be string",
+    });
+  });
+
+  it("fails when a required nested session field is missing", async () => {
+    const payload = createSessionPayload("csrf-missing-nested");
+    const { locale: _ignoredLocale, ...invalidProfile } = payload.profile;
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ...payload,
+      profile: invalidProfile,
+    }));
+
+    const error = await captureRejectedError(getSession());
+
+    expect(error).toBeInstanceOf(ApiContractError);
+    expect(error).toMatchObject({
+      message: "Invalid API response for GET /me: profile.locale must be string",
+    });
+  });
+
+  it("fails when a sync response contains a wrong primitive type", async () => {
+    const payload = createSyncPullPayload();
+    const change = payload.changes[0] as Readonly<Record<string, unknown>>;
+    const cardPayload = change.payload as Readonly<Record<string, unknown>>;
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ...payload,
+      changes: [{
+        ...change,
+        payload: {
+          ...cardPayload,
+          frontText: 42,
+        },
+      }],
+    }));
+
+    const error = await captureRejectedError(
+      pullSyncChanges("workspace-1", "device-1", "web", "1.0.0", 0, 100),
+    );
+
+    expect(error).toBeInstanceOf(ApiContractError);
+    expect(error).toMatchObject({
+      message: "Invalid API response for POST /workspaces/workspace-1/sync/pull: changes[0].payload.frontText must be string",
+    });
+  });
+
+  it("fails when a chat response contains an invalid enum value", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ...createChatSnapshotPayload(),
+      runState: "paused",
+    }));
+
+    const error = await captureRejectedError(getChatSnapshot());
+
+    expect(error).toBeInstanceOf(ApiContractError);
+    expect(error).toMatchObject({
+      message: "Invalid API response for GET /chat: runState must be one of \"idle\", \"running\", \"interrupted\"",
+    });
+  });
+
+  it("fails when a chat response contains an invalid content item shape", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse(200, {
+      ...createChatSnapshotPayload(),
+      messages: [{
+        role: "assistant",
+        content: [{
+          type: "text",
+        }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+      }],
+    }));
+
+    const error = await captureRejectedError(getChatSnapshot());
+
+    expect(error).toBeInstanceOf(ApiContractError);
+    expect(error).toMatchObject({
+      message: "Invalid API response for GET /chat: messages[0].content[0].text must be string",
+    });
   });
 });
 
