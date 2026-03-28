@@ -247,6 +247,12 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
             timeoutNanoseconds: 2_000_000_000,
             pollNanoseconds: 20_000_000
         )
+        await FlashcardsStoreTestSupport.waitUntil(
+            timeoutNanoseconds: 2_000_000_000,
+            pollNanoseconds: 20_000_000
+        ) {
+            store.displayedReviewDueCount == 2 && store.reviewTotalCount == 2
+        }
 
         let initialQueue = store.effectiveReviewQueue
         let firstCard = try XCTUnwrap(initialQueue.first)
