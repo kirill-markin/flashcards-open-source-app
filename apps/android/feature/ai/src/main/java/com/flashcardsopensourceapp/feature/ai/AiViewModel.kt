@@ -8,27 +8,13 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
-import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
-import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
-import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
-import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaButtonTitle
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaReachedMessage
-import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
-import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -44,21 +30,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
-
-private data class AiDraftState(
-    val workspaceId: String?,
-    val persistedState: AiChatPersistedState,
-    val draftMessage: String,
-    val pendingAttachments: List<AiChatAttachment>,
-    val isStreaming: Boolean,
-    val dictationState: AiChatDictationState,
-    val repairStatus: AiChatRepairAttemptStatus?,
-    val activeAlert: AiAlertState?,
-    val errorMessage: String
-)
 
 class AiViewModel(
     private val aiChatRepository: AiChatRepository,
@@ -73,27 +46,12 @@ class AiViewModel(
     private val metadataState = workspaceRepository.observeAppMetadata().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = AppMetadataSummary(
-            currentWorkspaceName = "Loading...",
-            workspaceName = "Loading...",
-            deckCount = 0,
-            cardCount = 0,
-            localStorageLabel = "Room + SQLite",
-            syncStatusText = "Loading..."
-        )
+        initialValue = initialAiAppMetadataSummary()
     )
     private val cloudSettingsState = cloudAccountRepository.observeCloudSettings().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = com.flashcardsopensourceapp.data.local.model.CloudSettings(
-            deviceId = "",
-            cloudState = CloudAccountState.DISCONNECTED,
-            linkedUserId = null,
-            linkedWorkspaceId = null,
-            linkedEmail = null,
-            activeWorkspaceId = null,
-            updatedAtMillis = 0L
-        )
+        initialValue = initialAiCloudSettings()
     )
     private val serverConfigurationState = cloudAccountRepository.observeServerConfiguration().stateIn(
         scope = viewModelScope,
@@ -106,17 +64,7 @@ class AiViewModel(
         initialValue = aiChatRepository.hasConsent()
     )
     private val draftState = MutableStateFlow(
-        value = AiDraftState(
-            workspaceId = null,
-            persistedState = makeDefaultAiChatPersistedState(),
-            draftMessage = "",
-            pendingAttachments = emptyList(),
-            isStreaming = false,
-            dictationState = AiChatDictationState.IDLE,
-            repairStatus = null,
-            activeAlert = null,
-            errorMessage = ""
-        )
+        value = makeDefaultAiDraftState()
     )
     private var activeSendJob: Job? = null
     private var activeWarmUpJob: Job? = null
@@ -127,53 +75,16 @@ class AiViewModel(
         consentState,
         draftState
     ) { metadata, cloudSettings, hasConsent, draft ->
-        val isLinked = cloudSettings.cloudState == CloudAccountState.LINKED
-        val hasMessages = draft.persistedState.messages.isNotEmpty()
-        val hasDraftText = draft.draftMessage.trim().isNotEmpty()
-        val canEditConversation = draft.isStreaming.not() && draft.dictationState == AiChatDictationState.IDLE
-        val chatConfig = effectiveAiChatServerConfig(draft.persistedState.lastKnownChatConfig)
-
-        AiUiState(
-            currentWorkspaceName = metadata.currentWorkspaceName,
-            messages = draft.persistedState.messages,
-            pendingAttachments = draft.pendingAttachments,
-            draftMessage = draft.draftMessage,
-            chatConfig = chatConfig,
-            isConsentRequired = hasConsent.not(),
-            isLinked = isLinked,
-            isStreaming = draft.isStreaming,
-            canStopStreaming = draft.isStreaming,
-            dictationState = draft.dictationState,
-            canSend = hasConsent
-                && draft.isStreaming.not()
-                && draft.dictationState == AiChatDictationState.IDLE
-                && (hasDraftText || draft.pendingAttachments.isNotEmpty()),
-            canStartNewChat = canEditConversation
-                && (hasMessages || hasDraftText || draft.pendingAttachments.isNotEmpty()),
-            repairStatus = draft.repairStatus,
-            activeAlert = draft.activeAlert,
-            errorMessage = draft.errorMessage
+        mapToAiUiState(
+            metadata = metadata,
+            cloudState = cloudSettings.cloudState,
+            hasConsent = hasConsent,
+            draft = draft
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = AiUiState(
-            currentWorkspaceName = "Loading...",
-            messages = emptyList(),
-            pendingAttachments = emptyList(),
-            draftMessage = "",
-            chatConfig = defaultAiChatServerConfig,
-            isConsentRequired = aiChatRepository.hasConsent().not(),
-            isLinked = false,
-            isStreaming = false,
-            canStopStreaming = false,
-            dictationState = AiChatDictationState.IDLE,
-            canSend = false,
-            canStartNewChat = false,
-            repairStatus = null,
-            activeAlert = null,
-            errorMessage = ""
-        )
+        initialValue = makeInitialAiUiState(hasConsent = aiChatRepository.hasConsent())
     )
 
     init {
@@ -305,7 +216,7 @@ class AiViewModel(
                 }
                 persistCurrentState()
             } catch (error: Exception) {
-                val message = makeUserFacingErrorMessage(
+                val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.DICTATION,
                     configuration = serverConfigurationState.value
@@ -325,15 +236,16 @@ class AiViewModel(
         if (draftState.value.isStreaming) {
             return
         }
+
         viewModelScope.launch {
             try {
                 val snapshot = aiChatRepository.resetSession(
                     workspaceId = draftState.value.workspaceId,
                     sessionId = null
                 )
-                applyServerSnapshot(snapshot)
+                applyServerSnapshot(snapshot = snapshot)
             } catch (error: Exception) {
-                handleSendFailure(error)
+                handleSendFailure(error = error)
             }
         }
     }
@@ -421,7 +333,7 @@ class AiViewModel(
             try {
                 aiChatRepository.warmUpLinkedSession()
             } catch (error: Exception) {
-                val message = makeUserFacingErrorMessage(
+                val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.CHAT,
                     configuration = serverConfigurationState.value
@@ -471,8 +383,13 @@ class AiViewModel(
 
         val nextPersistedState = draftState.value.persistedState.copy(
             messages = draftState.value.persistedState.messages + listOf(
-                makeUserMessage(content = outgoingContent),
-                makeAssistantStatusMessage()
+                makeUserMessage(
+                    content = outgoingContent,
+                    timestampMillis = System.currentTimeMillis()
+                ),
+                makeAssistantStatusMessage(
+                    timestampMillis = System.currentTimeMillis()
+                )
             )
         )
         draftState.update { state ->
@@ -587,7 +504,8 @@ class AiViewModel(
                             persistedState = appendAssistantAccountUpgradePrompt(
                                 state = state.persistedState,
                                 message = aiChatGuestQuotaReachedMessage,
-                                buttonTitle = aiChatGuestQuotaButtonTitle
+                                buttonTitle = aiChatGuestQuotaButtonTitle,
+                                timestampMillis = System.currentTimeMillis()
                             ),
                             isStreaming = false,
                             repairStatus = null
@@ -617,7 +535,8 @@ class AiViewModel(
                         state.copy(
                             persistedState = markAssistantError(
                                 state = state.persistedState,
-                                message = message
+                                message = message,
+                                timestampMillis = System.currentTimeMillis()
                             ),
                             isStreaming = false,
                             repairStatus = null,
@@ -650,7 +569,8 @@ class AiViewModel(
                     persistedState = appendAssistantAccountUpgradePrompt(
                         state = state.persistedState,
                         message = aiChatGuestQuotaReachedMessage,
-                        buttonTitle = aiChatGuestQuotaButtonTitle
+                        buttonTitle = aiChatGuestQuotaButtonTitle,
+                        timestampMillis = System.currentTimeMillis()
                     ),
                     errorMessage = ""
                 )
@@ -658,7 +578,7 @@ class AiViewModel(
             return
         }
 
-        val message = makeUserFacingErrorMessage(
+        val message = makeAiUserFacingErrorMessage(
             error = error,
             surface = AiErrorSurface.CHAT,
             configuration = serverConfigurationState.value
@@ -685,7 +605,8 @@ class AiViewModel(
             state.copy(
                 persistedState = markAssistantError(
                     state = repairedState,
-                    message = message
+                    message = message,
+                    timestampMillis = System.currentTimeMillis()
                 ),
                 errorMessage = message
             )
@@ -697,16 +618,9 @@ class AiViewModel(
         activeWarmUpJob?.cancel()
         viewModelScope.launch {
             val persistedState = aiChatRepository.loadPersistedState(workspaceId = workspaceId)
-            draftState.value = AiDraftState(
+            draftState.value = makeAiDraftState(
                 workspaceId = workspaceId,
-                persistedState = persistedState,
-                draftMessage = "",
-                pendingAttachments = emptyList(),
-                isStreaming = false,
-                dictationState = AiChatDictationState.IDLE,
-                repairStatus = null,
-                activeAlert = null,
-                errorMessage = ""
+                persistedState = persistedState
             )
             persistCurrentState()
             try {
@@ -715,7 +629,7 @@ class AiViewModel(
                     sessionId = persistedState.chatSessionId
                 )
                 when {
-                    snapshot != null -> applyServerSnapshot(snapshot)
+                    snapshot != null -> applyServerSnapshot(snapshot = snapshot)
                     persistedState.chatSessionId.isNotBlank() -> {
                         AiChatDiagnosticsLogger.warn(
                             event = "switch_workspace_repaired_missing_session",
@@ -781,58 +695,6 @@ class AiViewModel(
             )
         }
     }
-
-    private fun makeUserFacingErrorMessage(
-        error: Exception,
-        surface: AiErrorSurface,
-        configuration: CloudServiceConfiguration
-    ): String {
-        val remoteError = error as? AiChatRemoteException
-        return makeAiChatUserFacingErrorMessage(
-            rawMessage = error.message ?: "AI request failed.",
-            code = remoteError?.code,
-            requestId = remoteError?.requestId,
-            configurationMode = configuration.mode,
-            surface = surface
-        )
-    }
-}
-
-private fun clearOptimisticAssistantStatusIfNeeded(
-    state: AiChatPersistedState
-): AiChatPersistedState {
-    val lastMessage = state.messages.lastOrNull() ?: return state
-    if (lastMessage.role != AiChatRole.ASSISTANT) {
-        return state
-    }
-
-    val updatedContent = removingOptimisticAssistantStatus(content = lastMessage.content)
-    if (updatedContent == lastMessage.content) {
-        return state
-    }
-    if (updatedContent.isEmpty()) {
-        return state.copy(messages = state.messages.dropLast(1))
-    }
-
-    return state.copy(
-        messages = state.messages.dropLast(1) + lastMessage.copy(content = updatedContent)
-    )
-}
-
-private fun clearMissingChatSessionIdIfNeeded(
-    state: AiChatPersistedState,
-    error: Exception
-): AiChatPersistedState {
-    val remoteError = error as? AiChatRemoteException ?: return state
-    if (remoteError.statusCode != 404) {
-        return state
-    }
-    val errorMessage = remoteError.message ?: return state
-    if (errorMessage.startsWith(prefix = "Chat session not found:").not()) {
-        return state
-    }
-
-    return state.copy(chatSessionId = "")
 }
 
 fun createAiViewModelFactory(
@@ -849,300 +711,4 @@ fun createAiViewModelFactory(
             )
         }
     }
-}
-
-private fun makeUserMessage(content: List<AiChatContentPart>): AiChatMessage {
-    return AiChatMessage(
-        messageId = UUID.randomUUID().toString().lowercase(),
-        role = AiChatRole.USER,
-        content = content,
-        timestampMillis = System.currentTimeMillis(),
-        isError = false
-    )
-}
-
-private fun makeAssistantStatusMessage(): AiChatMessage {
-    return AiChatMessage(
-        messageId = UUID.randomUUID().toString().lowercase(),
-        role = AiChatRole.ASSISTANT,
-        content = listOf(
-            AiChatContentPart.Text(text = aiChatOptimisticAssistantStatusText)
-        ),
-        timestampMillis = System.currentTimeMillis(),
-        isError = false
-    )
-}
-
-private fun makeUserContent(
-    draftMessage: String,
-    pendingAttachments: List<AiChatAttachment>
-): List<AiChatContentPart> {
-    val attachmentContent = pendingAttachments.map(::makeAttachmentContentPart)
-    val trimmedMessage = draftMessage.trim()
-    if (trimmedMessage.isEmpty()) {
-        return attachmentContent
-    }
-
-    return attachmentContent + AiChatContentPart.Text(text = trimmedMessage)
-}
-
-private fun makeAttachmentContentPart(attachment: AiChatAttachment): AiChatContentPart {
-    return if (attachment.isImage) {
-        AiChatContentPart.Image(
-            fileName = attachment.fileName,
-            mediaType = attachment.mediaType,
-            base64Data = attachment.base64Data
-        )
-    } else {
-        AiChatContentPart.File(
-            fileName = attachment.fileName,
-            mediaType = attachment.mediaType,
-            base64Data = attachment.base64Data
-        )
-    }
-}
-
-private fun appendTranscriptToDraft(
-    currentDraft: String,
-    transcript: String
-): String {
-    val trimmedTranscript = transcript.trim()
-    if (trimmedTranscript.isEmpty()) {
-        return currentDraft
-    }
-
-    val trimmedDraft = currentDraft.trimEnd()
-    if (trimmedDraft.isEmpty()) {
-        return trimmedTranscript
-    }
-
-    return "$trimmedDraft\n$trimmedTranscript"
-}
-
-private fun appendAssistantText(
-    state: AiChatPersistedState,
-    text: String
-): AiChatPersistedState {
-    if (state.messages.isEmpty()) {
-        return state
-    }
-
-    val lastMessage = state.messages.last()
-    if (lastMessage.role != AiChatRole.ASSISTANT) {
-        return state
-    }
-
-    val updatedContent = if (isOptimisticAssistantStatus(content = lastMessage.content)) {
-        listOf(AiChatContentPart.Text(text = text))
-    } else if (lastMessage.content.lastOrNull() is AiChatContentPart.Text) {
-        lastMessage.content.dropLast(1) + AiChatContentPart.Text(
-            text = (lastMessage.content.last() as AiChatContentPart.Text).text + text
-        )
-    } else {
-        lastMessage.content + AiChatContentPart.Text(text = text)
-    }
-
-    return state.copy(
-        messages = state.messages.dropLast(1) + lastMessage.copy(content = updatedContent)
-    )
-}
-
-private fun upsertAssistantToolCall(
-    state: AiChatPersistedState,
-    toolCall: AiChatToolCall
-): AiChatPersistedState {
-    if (state.messages.isEmpty()) {
-        return state
-    }
-
-    val lastMessage = state.messages.last()
-    if (lastMessage.role != AiChatRole.ASSISTANT) {
-        return state
-    }
-
-    val currentContent = removingOptimisticAssistantStatus(content = lastMessage.content)
-    val existingIndex = currentContent.indexOfFirst { part ->
-        part is AiChatContentPart.ToolCall && part.toolCall.toolCallId == toolCall.toolCallId
-    }
-    val updatedContent = if (existingIndex == -1) {
-        currentContent + AiChatContentPart.ToolCall(toolCall = toolCall)
-    } else {
-        currentContent.mapIndexed { index, part ->
-            if (index == existingIndex) {
-                AiChatContentPart.ToolCall(toolCall = toolCall)
-            } else {
-                part
-            }
-        }
-    }
-
-    return state.copy(
-        messages = state.messages.dropLast(1) + lastMessage.copy(content = updatedContent)
-    )
-}
-
-private fun upsertAssistantToolCallRequest(
-    state: AiChatPersistedState,
-    toolCallRequest: AiToolCallRequest
-): AiChatPersistedState {
-    return upsertAssistantToolCall(
-        state = state,
-        toolCall = AiChatToolCall(
-            toolCallId = toolCallRequest.toolCallId,
-            name = toolCallRequest.name,
-            status = AiChatToolCallStatus.STARTED,
-            input = toolCallRequest.input,
-            output = null
-        )
-    )
-}
-
-private fun markAssistantError(
-    state: AiChatPersistedState,
-    message: String
-): AiChatPersistedState {
-    if (state.messages.isEmpty()) {
-        return state.copy(
-            messages = listOf(
-                AiChatMessage(
-                    messageId = UUID.randomUUID().toString().lowercase(),
-                    role = AiChatRole.ASSISTANT,
-                    content = listOf(AiChatContentPart.Text(text = message)),
-                    timestampMillis = System.currentTimeMillis(),
-                    isError = true
-                )
-            )
-        )
-    }
-
-    val lastMessage = state.messages.last()
-    if (lastMessage.role != AiChatRole.ASSISTANT) {
-        return state.copy(
-            messages = state.messages + AiChatMessage(
-                messageId = UUID.randomUUID().toString().lowercase(),
-                role = AiChatRole.ASSISTANT,
-                content = listOf(AiChatContentPart.Text(text = message)),
-                timestampMillis = System.currentTimeMillis(),
-                isError = true
-            )
-        )
-    }
-
-    val currentText = if (isOptimisticAssistantStatus(content = lastMessage.content)) {
-        ""
-    } else {
-        lastMessage.content.filterIsInstance<AiChatContentPart.Text>()
-            .joinToString(separator = "") { part -> part.text }
-    }
-    val separator = if (currentText.isEmpty()) "" else "\n\n"
-    return state.copy(
-        messages = state.messages.dropLast(1) + lastMessage.copy(
-            content = appendingAssistantTextPart(
-                content = lastMessage.content,
-                text = separator + message
-            ),
-            isError = true
-        )
-    )
-}
-
-private fun appendAssistantAccountUpgradePrompt(
-    state: AiChatPersistedState,
-    message: String,
-    buttonTitle: String
-): AiChatPersistedState {
-    val prompt = AiChatContentPart.AccountUpgradePrompt(
-        message = message,
-        buttonTitle = buttonTitle
-    )
-
-    if (state.messages.isEmpty()) {
-        return state.copy(
-            messages = listOf(
-                AiChatMessage(
-                    messageId = UUID.randomUUID().toString().lowercase(),
-                    role = AiChatRole.ASSISTANT,
-                    content = listOf(prompt),
-                    timestampMillis = System.currentTimeMillis(),
-                    isError = false
-                )
-            )
-        )
-    }
-
-    val lastMessage = state.messages.last()
-    if (lastMessage.role != AiChatRole.ASSISTANT) {
-        return state.copy(
-            messages = state.messages + AiChatMessage(
-                messageId = UUID.randomUUID().toString().lowercase(),
-                role = AiChatRole.ASSISTANT,
-                content = listOf(prompt),
-                timestampMillis = System.currentTimeMillis(),
-                isError = false
-            )
-        )
-    }
-
-    return state.copy(
-        messages = state.messages.dropLast(1) + lastMessage.copy(
-            content = listOf(prompt),
-            isError = false
-        )
-    )
-}
-
-private fun appendingAssistantTextPart(
-    content: List<AiChatContentPart>,
-    text: String
-): List<AiChatContentPart> {
-    if (isOptimisticAssistantStatus(content = content)) {
-        return listOf(AiChatContentPart.Text(text = text))
-    }
-
-    val textParts = content.filterIsInstance<AiChatContentPart.Text>()
-    if (textParts.isEmpty()) {
-        return content + AiChatContentPart.Text(text = text)
-    }
-
-    val lastTextPart = textParts.last()
-    val textIndex = content.indexOfLast { part ->
-        part is AiChatContentPart.Text
-    }
-    return content.mapIndexed { index, part ->
-        if (index == textIndex) {
-            AiChatContentPart.Text(text = lastTextPart.text + text)
-        } else {
-            part
-        }
-    }
-}
-
-private fun removingOptimisticAssistantStatus(
-    content: List<AiChatContentPart>
-): List<AiChatContentPart> {
-    if (isOptimisticAssistantStatus(content = content)) {
-        return emptyList()
-    }
-
-    return content.filterNot { part ->
-        part is AiChatContentPart.Text && part.text == aiChatOptimisticAssistantStatusText
-    }
-}
-
-private fun isOptimisticAssistantStatus(
-    content: List<AiChatContentPart>
-): Boolean {
-    return content.size == 1
-        && content[0] is AiChatContentPart.Text
-        && (content[0] as AiChatContentPart.Text).text == aiChatOptimisticAssistantStatusText
-}
-
-private fun remoteErrorFields(error: AiChatRemoteException?): List<Pair<String, String?>> {
-    return listOf(
-        "requestId" to error?.requestId,
-        "statusCode" to error?.statusCode?.toString(),
-        "code" to error?.code,
-        "stage" to error?.stage,
-        "responseBody" to error?.responseBody
-    )
 }
