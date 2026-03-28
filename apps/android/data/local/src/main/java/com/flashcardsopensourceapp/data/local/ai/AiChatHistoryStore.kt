@@ -80,7 +80,6 @@ class AiChatHistoryStore(
             ?.takeLast(aiChatMaxMessages)
             ?: emptyList()
         val chatSessionId = jsonObject.optString("chatSessionId", "")
-            .ifBlank { makeDefaultAiChatPersistedState().chatSessionId }
         val lastKnownChatConfig = jsonObject.optJSONObject("lastKnownChatConfig")
             ?.let(::decodeChatConfig)
 

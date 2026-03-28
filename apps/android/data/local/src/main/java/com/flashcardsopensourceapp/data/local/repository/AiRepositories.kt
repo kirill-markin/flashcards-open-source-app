@@ -124,7 +124,7 @@ class LocalAiChatRepository(
     ): AiChatStreamOutcome {
         val session = authorizedSession(workspaceId = workspaceId)
         val request = AiChatStartRunRequest(
-            sessionId = state.chatSessionId,
+            sessionId = state.chatSessionId.ifBlank { null },
             content = buildAiChatRequestContent(content = content),
             timezone = TimeZone.getDefault().id,
         )
