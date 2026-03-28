@@ -16,10 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Autorenew
@@ -37,34 +35,25 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,7 +71,7 @@ const val reviewEditCardButtonTag: String = "review_edit_card_button"
 const val reviewEmptyStateTag: String = "review_empty_state"
 const val reviewEmptyStateContentTag: String = "review_empty_state_content"
 
-private val reviewBottomOverlayBottomPadding = 12.dp
+internal val reviewBottomOverlayBottomPadding = 12.dp
 private val reviewBottomOverlayHorizontalPadding = 16.dp
 private val reviewShowAnswerContentBottomPadding = 120.dp
 private val reviewAnswerGridContentBottomPadding = 184.dp
@@ -96,108 +85,7 @@ private val reviewEmptyStateMaxWidth = 420.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReviewRoute(
-    uiState: ReviewUiState,
-    onSelectFilter: (ReviewFilter) -> Unit,
-    onOpenPreview: () -> Unit,
-    onOpenCurrentCard: (String) -> Unit,
-    onOpenDeckManagement: () -> Unit,
-    onCreateCard: () -> Unit,
-    onCreateCardWithAi: () -> Unit,
-    onSwitchToAllCards: () -> Unit,
-    onRevealAnswer: () -> Unit,
-    onRateAgain: () -> Unit,
-    onRateHard: () -> Unit,
-    onRateGood: () -> Unit,
-    onRateEasy: () -> Unit,
-    onDismissErrorMessage: () -> Unit
-) {
-    var isFilterSheetVisible by remember { mutableStateOf(value = false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(uiState.errorMessage) {
-        if (uiState.errorMessage.isEmpty()) {
-            return@LaunchedEffect
-        }
-
-        snackbarHostState.showSnackbar(message = uiState.errorMessage)
-        onDismissErrorMessage()
-    }
-
-    Scaffold(
-        topBar = {
-            ReviewTopBar(
-                selectedFilterTitle = uiState.selectedFilterTitle,
-                isLoading = uiState.isLoading,
-                remainingCount = uiState.remainingCount,
-                totalCount = uiState.totalCount,
-                onOpenFilter = {
-                    isFilterSheetVisible = true
-                },
-                onOpenPreview = onOpenPreview
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            ReviewContent(
-                uiState = uiState,
-                onOpenCurrentCard = onOpenCurrentCard,
-                onCreateCard = onCreateCard,
-                onCreateCardWithAi = onCreateCardWithAi,
-                onSwitchToAllCards = onSwitchToAllCards,
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 16.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + reviewContentBottomPadding(
-                        hasCurrentCard = uiState.preparedCurrentCard != null,
-                        isAnswerVisible = uiState.isAnswerVisible
-                    )
-                )
-            )
-
-            if (uiState.isLoading.not() && uiState.preparedCurrentCard != null) {
-                ReviewBottomActionOverlay(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    currentCard = uiState.preparedCurrentCard,
-                    isAnswerVisible = uiState.isAnswerVisible,
-                    bottomInsetPadding = innerPadding.calculateBottomPadding() + reviewBottomOverlayBottomPadding,
-                    onRevealAnswer = onRevealAnswer,
-                    onRateAgain = onRateAgain,
-                    onRateHard = onRateHard,
-                    onRateGood = onRateGood,
-                    onRateEasy = onRateEasy
-                )
-            }
-        }
-    }
-
-    if (isFilterSheetVisible) {
-        ReviewFilterSheet(
-            selectedFilter = uiState.selectedFilter,
-            availableDeckFilters = uiState.availableDeckFilters,
-            availableTagFilters = uiState.availableTagFilters,
-            onDismiss = {
-                isFilterSheetVisible = false
-            },
-            onSelectFilter = { nextFilter ->
-                onSelectFilter(nextFilter)
-                isFilterSheetVisible = false
-            },
-            onManageDecks = {
-                isFilterSheetVisible = false
-                onOpenDeckManagement()
-            }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReviewTopBar(
+internal fun ReviewTopBar(
     selectedFilterTitle: String,
     isLoading: Boolean,
     remainingCount: Int,
@@ -249,7 +137,7 @@ private fun ReviewTopBar(
     )
 }
 
-private fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible: Boolean): androidx.compose.ui.unit.Dp {
+internal fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible: Boolean): androidx.compose.ui.unit.Dp {
     if (hasCurrentCard.not()) {
         return 16.dp
     }
@@ -262,7 +150,7 @@ private fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible:
 }
 
 @Composable
-private fun ReviewContent(
+internal fun ReviewContent(
     uiState: ReviewUiState,
     onOpenCurrentCard: (String) -> Unit,
     onCreateCard: () -> Unit,
@@ -326,7 +214,7 @@ private fun ReviewContent(
 }
 
 @Composable
-private fun LoadingReviewState() {
+internal fun LoadingReviewState() {
     Card(modifier = Modifier.fillMaxWidth()) {
         Box(
             contentAlignment = Alignment.Center,
@@ -534,7 +422,7 @@ private fun ReviewMetadataItem(
 }
 
 @Composable
-private fun ReviewBottomActionOverlay(
+internal fun ReviewBottomActionOverlay(
     modifier: Modifier,
     currentCard: PreparedReviewCardPresentation,
     isAnswerVisible: Boolean,
@@ -713,7 +601,7 @@ private fun RatingButton(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReviewFilterSheet(
+internal fun ReviewFilterSheet(
     selectedFilter: ReviewFilter,
     availableDeckFilters: List<ReviewDeckFilterOption>,
     availableTagFilters: List<ReviewTagFilterOption>,
@@ -831,7 +719,7 @@ private fun ReviewFilterOptionRow(
 }
 
 @Composable
-private fun StaticEmptyReviewState(title: String, body: String) {
+internal fun StaticEmptyReviewState(title: String, body: String) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -850,119 +738,8 @@ private fun StaticEmptyReviewState(title: String, body: String) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReviewPreviewRoute(
-    uiState: ReviewUiState,
-    onStartPreview: () -> Unit,
-    onLoadNextPreviewPageIfNeeded: (String) -> Unit,
-    onRetryPreview: () -> Unit,
-    onOpenCard: (String) -> Unit,
-    onBack: () -> Unit
-) {
-    LaunchedEffect(Unit) {
-        onStartPreview()
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(uiState.selectedFilterTitle)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        LazyColumn(
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                top = innerPadding.calculateTopPadding() + 16.dp,
-                end = 16.dp,
-                bottom = innerPadding.calculateBottomPadding() + 16.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            if (uiState.isPreviewLoading && uiState.previewItems.isEmpty()) {
-                item {
-                    LoadingReviewState()
-                }
-            } else if (uiState.previewItems.isEmpty() && uiState.previewErrorMessage.isNotEmpty()) {
-                item {
-                    PreviewErrorCard(
-                        message = uiState.previewErrorMessage,
-                        onRetry = onRetryPreview
-                    )
-                }
-            } else if (uiState.previewItems.isEmpty()) {
-                item {
-                    StaticEmptyReviewState(
-                        title = "No Matching Cards",
-                        body = "This review filter does not include any cards yet."
-                    )
-                }
-            } else {
-                itemsIndexed(
-                    items = uiState.previewItems,
-                    key = { _, item ->
-                        item.itemId
-                    }
-                ) { _, item ->
-                    when (item) {
-                        is ReviewPreviewListItem.SectionHeader -> {
-                            PreviewSectionSeparator(title = item.title)
-                        }
-
-                        is ReviewPreviewListItem.CardEntry -> {
-                            PreviewCardRow(
-                                item = item,
-                                onOpenCard = onOpenCard
-                            )
-
-                            LaunchedEffect(
-                                key1 = item.presentation.card.cardId,
-                                key2 = uiState.previewItems.size
-                            ) {
-                                onLoadNextPreviewPageIfNeeded(item.presentation.card.cardId)
-                            }
-                        }
-                    }
-                }
-
-                if (uiState.previewErrorMessage.isNotEmpty()) {
-                    item {
-                        PreviewErrorCard(
-                            message = uiState.previewErrorMessage,
-                            onRetry = onRetryPreview
-                        )
-                    }
-                } else if (uiState.isPreviewLoading) {
-                    item {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PreviewSectionSeparator(title: String) {
+internal fun PreviewSectionSeparator(title: String) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
@@ -977,7 +754,7 @@ private fun PreviewSectionSeparator(title: String) {
 }
 
 @Composable
-private fun PreviewCardRow(
+internal fun PreviewCardRow(
     item: ReviewPreviewListItem.CardEntry,
     onOpenCard: (String) -> Unit
 ) {
@@ -1084,7 +861,7 @@ private fun PreviewMetadataItem(
 }
 
 @Composable
-private fun PreviewErrorCard(
+internal fun PreviewErrorCard(
     message: String,
     onRetry: () -> Unit
 ) {

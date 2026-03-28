@@ -120,7 +120,7 @@ private val aiEmptyStateMaxWidth = 420.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiRoute(
+internal fun AiRouteContent(
     uiState: AiUiState,
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
