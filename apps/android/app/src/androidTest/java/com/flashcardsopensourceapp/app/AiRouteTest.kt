@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
+import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -302,8 +303,6 @@ class AiRouteTest {
         composeRule.onNodeWithText("Account status destination").assertIsDisplayed()
     }
 }
-
-private const val aiUserMessageBubbleTag = "ai_user_message_bubble"
 
 private fun makeAiUiState(
     messages: List<AiChatMessage> = emptyList(),
