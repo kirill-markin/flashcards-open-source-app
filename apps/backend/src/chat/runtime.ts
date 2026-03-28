@@ -3,6 +3,7 @@
  * The worker uses this module to consume provider events, update the assistant item incrementally, and finalize run state independently of client connections.
  */
 import OpenAI from "openai";
+import { startChatTurnObservation } from "../telemetry/langfuse";
 import {
   appendAssistantTextContent,
   finalizePendingToolCallContent,
@@ -64,6 +65,7 @@ export class ChatRunOwnershipLostError extends Error {
 }
 
 export type ChatRuntimeDependencies = Readonly<{
+  startChatTurnObservation: typeof startChatTurnObservation;
   startOpenAILoop: typeof startOpenAILoop;
   completeChatRun: typeof completeClaimedChatRun;
   persistAssistantCancelled: typeof persistClaimedChatRunCancelled;
@@ -76,6 +78,7 @@ export type ChatRuntimeDependencies = Readonly<{
 }>;
 
 const DEFAULT_CHAT_RUNTIME_DEPENDENCIES: ChatRuntimeDependencies = {
+  startChatTurnObservation,
   startOpenAILoop,
   completeChatRun: completeClaimedChatRun,
   persistAssistantCancelled: persistClaimedChatRunCancelled,
@@ -283,96 +286,111 @@ export async function runPersistedChatSessionWithDeps(
       abortController.abort();
     }
 
-    const started = await dependencies.startOpenAILoop({
-      requestId: params.requestId,
-      userId: params.userId,
-      workspaceId: params.workspaceId,
-      sessionId: params.sessionId,
-      timezone: params.timezone,
-      localMessages: params.localMessages,
-      turnInput: params.turnInput,
-      signal: abortController.signal,
-    });
-
-    for await (const event of started.events) {
-      if (stopRequestedByUser || ownershipLost) {
-        break;
-      }
-
-      if (event.type === "delta") {
-        assistantContent = applyAssistantDelta(assistantContent, event);
-        await updateAssistantInProgress(
-          dependencies,
-          params.userId,
-          params.workspaceId,
-          params.assistantItemId,
-          assistantContent,
-        );
-      } else if (event.type === "tool_call") {
-        assistantContent = upsertToolCallContent(assistantContent, createToolCallContentPart(event));
-        await persistToolCallProgress(
-          dependencies,
-          params.userId,
-          params.workspaceId,
-          params.assistantItemId,
-          assistantContent,
-          event,
-          seenInvalidationVersions,
-        );
-      } else if (event.type === "reasoning_summary") {
-        assistantContent = upsertReasoningSummaryContent(
-          assistantContent,
-          createReasoningSummaryContentPart(event),
-        );
-        await updateAssistantInProgress(
-          dependencies,
-          params.userId,
-          params.workspaceId,
-          params.assistantItemId,
-          assistantContent,
-        );
-      } else if (event.type === "error") {
-        assistantContent = finalizeAssistantToolCalls(assistantContent);
-        await dependencies.persistAssistantTerminalError(params.userId, params.workspaceId, {
-          runId: params.runId,
+    await dependencies.startChatTurnObservation(
+      {
+        requestId: params.requestId,
+        userId: params.userId,
+        workspaceId: params.workspaceId,
+        sessionId: params.sessionId,
+        model: params.diagnostics.model,
+        turnIndex: params.diagnostics.messageCount,
+        runState: "running",
+        turnInput: params.turnInput,
+      },
+      async (rootObservation): Promise<void> => {
+        const started = await dependencies.startOpenAILoop({
+          requestId: params.requestId,
+          userId: params.userId,
+          workspaceId: params.workspaceId,
           sessionId: params.sessionId,
-          assistantItemId: params.assistantItemId,
-          assistantContent,
-          errorMessage: event.message,
-          sessionState: "idle",
+          timezone: params.timezone,
+          localMessages: params.localMessages,
+          turnInput: params.turnInput,
+          rootObservation,
+          signal: abortController.signal,
         });
-        isFinalized = true;
-      }
-    }
 
-    if (ownershipLost) {
-      throw new ChatRunOwnershipLostError(params.runId);
-    }
+        for await (const event of started.events) {
+          if (stopRequestedByUser || ownershipLost) {
+            break;
+          }
 
-    if (stopRequestedByUser) {
-      assistantContent = finalizeAssistantToolCalls(assistantContent);
-      await dependencies.persistAssistantCancelled(params.userId, params.workspaceId, {
-        runId: params.runId,
-        sessionId: params.sessionId,
-        assistantItemId: params.assistantItemId,
-        assistantContent,
-      });
-      isFinalized = true;
-      return;
-    }
+          if (event.type === "delta") {
+            assistantContent = applyAssistantDelta(assistantContent, event);
+            await updateAssistantInProgress(
+              dependencies,
+              params.userId,
+              params.workspaceId,
+              params.assistantItemId,
+              assistantContent,
+            );
+          } else if (event.type === "tool_call") {
+            assistantContent = upsertToolCallContent(assistantContent, createToolCallContentPart(event));
+            await persistToolCallProgress(
+              dependencies,
+              params.userId,
+              params.workspaceId,
+              params.assistantItemId,
+              assistantContent,
+              event,
+              seenInvalidationVersions,
+            );
+          } else if (event.type === "reasoning_summary") {
+            assistantContent = upsertReasoningSummaryContent(
+              assistantContent,
+              createReasoningSummaryContentPart(event),
+            );
+            await updateAssistantInProgress(
+              dependencies,
+              params.userId,
+              params.workspaceId,
+              params.assistantItemId,
+              assistantContent,
+            );
+          } else if (event.type === "error") {
+            assistantContent = finalizeAssistantToolCalls(assistantContent);
+            await dependencies.persistAssistantTerminalError(params.userId, params.workspaceId, {
+              runId: params.runId,
+              sessionId: params.sessionId,
+              assistantItemId: params.assistantItemId,
+              assistantContent,
+              errorMessage: event.message,
+              sessionState: "idle",
+            });
+            isFinalized = true;
+          }
+        }
 
-    if (!isFinalized) {
-      const completion = await started.completion;
-      assistantContent = finalizeAssistantToolCalls(assistantContent);
-      await dependencies.completeChatRun(params.userId, params.workspaceId, {
-        runId: params.runId,
-        sessionId: params.sessionId,
-        assistantItemId: params.assistantItemId,
-        assistantContent,
-        assistantOpenAIItems: completion.openaiItems,
-      });
-      isFinalized = true;
-    }
+        if (ownershipLost) {
+          throw new ChatRunOwnershipLostError(params.runId);
+        }
+
+        if (stopRequestedByUser) {
+          assistantContent = finalizeAssistantToolCalls(assistantContent);
+          await dependencies.persistAssistantCancelled(params.userId, params.workspaceId, {
+            runId: params.runId,
+            sessionId: params.sessionId,
+            assistantItemId: params.assistantItemId,
+            assistantContent,
+          });
+          isFinalized = true;
+          return;
+        }
+
+        if (!isFinalized) {
+          const completion = await started.completion;
+          assistantContent = finalizeAssistantToolCalls(assistantContent);
+          await dependencies.completeChatRun(params.userId, params.workspaceId, {
+            runId: params.runId,
+            sessionId: params.sessionId,
+            assistantItemId: params.assistantItemId,
+            assistantContent,
+            assistantOpenAIItems: completion.openaiItems,
+          });
+          isFinalized = true;
+        }
+      },
+    );
   } catch (error) {
     if (ownershipLost || error instanceof ChatRunOwnershipLostError) {
       return;

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { LangfuseObservation } from "@langfuse/tracing";
 import type { StoredOpenAIReplayItem } from "./openai/replayItems";
 import type { ChatStreamEvent } from "./types";
 import {
@@ -83,6 +84,9 @@ function createDependencies(
     updateAssistantMessageItemCalls,
     updateAssistantMessageItemAndInvalidateMainContentCalls,
     dependencies: {
+      startChatTurnObservation: async (_params, fn): Promise<void> => {
+        await fn(null);
+      },
       startOpenAILoop: startOpenAILoopImpl,
       completeChatRun: async (_userId, _workspaceId, params): Promise<void> => {
         completeChatRunCalls.push(params as unknown as Readonly<Record<string, unknown>>);
@@ -172,6 +176,26 @@ test("runPersistedChatSessionWithDeps persists invalidation only for completed m
 
   assert.equal(updateAssistantMessageItemAndInvalidateMainContentCalls.length, 1);
   assert.equal(completeChatRunCalls.length, 1);
+});
+
+test("runPersistedChatSessionWithDeps passes the root Langfuse observation into the OpenAI loop", async () => {
+  const rootObservation = { id: "root-observation" } as unknown as LangfuseObservation;
+  const observedRoots: Array<LangfuseObservation | null> = [];
+  const { dependencies } = createDependencies(
+    async (params) => {
+      observedRoots.push(params.rootObservation);
+      return createStartedResponse([{ type: "done" }], null, []);
+    },
+  );
+
+  await runPersistedChatSessionWithDeps(createParams(), {
+    ...dependencies,
+    startChatTurnObservation: async (_params, fn): Promise<void> => {
+      await fn(rootObservation);
+    },
+  });
+
+  assert.deepEqual(observedRoots, [rootObservation]);
 });
 
 test("runPersistedChatSessionWithDeps persists cancellation when heartbeat reports a user stop", async () => {

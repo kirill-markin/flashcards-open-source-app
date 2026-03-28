@@ -4,8 +4,9 @@
  */
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
-import OpenAI, { toFile } from "openai";
+import { toFile } from "openai";
 import { HttpError } from "../errors";
+import { getObservedOpenAIClient } from "./openai/client";
 import {
   classifyAIEndpointFailure,
   getAIProviderFailureMetadata,
@@ -59,11 +60,15 @@ type ChatTranscriptionFailureDetails = Readonly<{
   error: string;
 }>;
 
+type ChatTranscriptionDependencies = Readonly<{
+  getObservedOpenAIClient: () => OpenAITranscriptionClient;
+}>;
+
 /**
  * Creates the OpenAI transcription client used by the shared dictation path.
  */
 function createOpenAITranscriptionClient(): OpenAITranscriptionClient {
-  return new OpenAI();
+  return getObservedOpenAIClient() as unknown as OpenAITranscriptionClient;
 }
 
 /**
@@ -181,6 +186,10 @@ function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): 
   }));
 }
 
+const DEFAULT_CHAT_TRANSCRIPTION_DEPENDENCIES: ChatTranscriptionDependencies = {
+  getObservedOpenAIClient: createOpenAITranscriptionClient,
+};
+
 /**
  * Sends a validated audio upload to OpenAI and returns the trimmed transcript text.
  */
@@ -188,13 +197,25 @@ export async function transcribeChatAudioUpload(
   upload: ChatTranscriptionUpload,
   client?: OpenAITranscriptionClient,
 ): Promise<string> {
+  return transcribeChatAudioUploadWithDependencies(
+    upload,
+    client,
+    DEFAULT_CHAT_TRANSCRIPTION_DEPENDENCIES,
+  );
+}
+
+export async function transcribeChatAudioUploadWithDependencies(
+  upload: ChatTranscriptionUpload,
+  client: OpenAITranscriptionClient | undefined,
+  dependencies: ChatTranscriptionDependencies,
+): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (apiKey === undefined || apiKey.trim() === "") {
     throw makeAIEndpointNotConfiguredError("transcription");
   }
 
   try {
-    const transcriptionClient = client ?? createOpenAITranscriptionClient();
+    const transcriptionClient = client ?? dependencies.getObservedOpenAIClient();
     const buffer = Buffer.from(await upload.file.arrayBuffer());
     const file = await toFile(buffer, upload.file.name, { type: upload.file.type });
     // OpenAI transcription requests do not expose an end-user safety identifier field.

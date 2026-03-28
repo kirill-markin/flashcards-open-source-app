@@ -1,6 +1,8 @@
 import { handle } from "hono/aws-lambda";
 import { createApp } from "./app";
+import { initializeLangfuseTelemetry } from "./telemetry/langfuse";
 
+initializeLangfuseTelemetry();
 const app = createApp("");
 
 /**

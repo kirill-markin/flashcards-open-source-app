@@ -38,6 +38,8 @@ APEX_REDIRECT_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "${DOMAIN_NAME
 
 OPENAI_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/openai-api-key")"
 ANTHROPIC_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/anthropic-api-key")"
+LANGFUSE_PUBLIC_KEY_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/langfuse-public-key")"
+LANGFUSE_SECRET_KEY_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/langfuse-secret-key")"
 RESEND_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/resend-api-key")"
 DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/demo-password-dostip")"
 RESEND_SENDER_EMAIL=""
@@ -58,6 +60,8 @@ export APEX_REDIRECT_CERTIFICATE_ARN
 export GITHUB_OIDC_PROVIDER_ARN
 export OPENAI_SECRET_ARN
 export ANTHROPIC_SECRET_ARN
+export LANGFUSE_PUBLIC_KEY_SECRET_ARN
+export LANGFUSE_SECRET_KEY_SECRET_ARN
 export RESEND_SECRET_ARN
 export RESEND_SENDER_EMAIL
 export DEMO_PASSWORD_SECRET_ARN
@@ -81,6 +85,9 @@ values = {
     "githubOidcProviderArn": os.environ.get("GITHUB_OIDC_PROVIDER_ARN", ""),
     "openAiApiKeySecretArn": os.environ.get("OPENAI_SECRET_ARN", ""),
     "anthropicApiKeySecretArn": os.environ.get("ANTHROPIC_SECRET_ARN", ""),
+    "langfusePublicKeySecretArn": os.environ.get("LANGFUSE_PUBLIC_KEY_SECRET_ARN", ""),
+    "langfuseSecretKeySecretArn": os.environ.get("LANGFUSE_SECRET_KEY_SECRET_ARN", ""),
+    "langfuseBaseUrl": os.environ.get("LANGFUSE_BASE_URL", ""),
     "resendApiKeySecretArn": os.environ.get("RESEND_SECRET_ARN", ""),
     "resendSenderEmail": os.environ.get("RESEND_SENDER_EMAIL", ""),
     "demoEmailDostip": os.environ.get("DEMO_EMAIL_DOSTIP", ""),

@@ -10,7 +10,7 @@ This stack deploys v1 backend infrastructure for `flashcards-open-source-app`.
 - API Gateway (REST API) for backend + API Gateway (REST API) for auth + three Lambdas (backend + auth + Cognito custom email sender)
 - S3 bucket + CloudFront distribution for the web app
 - Secrets Manager — DB credentials (auto-generated), backend/auth DB passwords, session encryption key
-- Optional Secrets Manager secrets for Resend, the review/demo auth password, and AI provider API keys
+- Optional Secrets Manager secrets for Resend, the review/demo auth password, AI provider API keys, and Langfuse telemetry keys
 - CloudWatch alarms + SNS notifications
 - AWS Backup plan for RDS
 - GitHub Actions OIDC deployment role
@@ -38,6 +38,7 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `RESEND_API_KEY`
 - `RESEND_ADMIN_API_KEY`
 - `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` when needed
+- `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
 - `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` when you want deployed guest AI enabled
 
@@ -72,7 +73,7 @@ You can still run CDK manually from `infra/aws`; the local helper scripts assemb
 - `bash scripts/setup-resend-secret.sh --region <aws-region>`
   Stores `RESEND_API_KEY` in AWS Secrets Manager and derives `no-reply@mail.<domain>` from `DOMAIN_NAME`.
 - `bash scripts/setup-ai-secrets.sh --region <aws-region>`
-  Stores optional AI provider keys in AWS Secrets Manager.
+  Stores optional AI provider keys and Langfuse keys in AWS Secrets Manager.
 - `bash scripts/setup-auth-secrets.sh --region <aws-region>`
   Stores the shared insecure review/demo password in AWS Secrets Manager when `DEMO_PASSWORD_DOSTIP` is set.
 
@@ -100,6 +101,28 @@ This AWS sync does not manage the Android Google Cloud and Firebase Test Lab rep
 
 - docs: [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md)
 - sync command: `bash scripts/setup-github-android.sh`
+
+## Langfuse tracing
+
+The modern backend-owned AI surfaces can export Langfuse traces:
+
+- persisted `/chat` worker runs use trace name `chat_turn`
+- `/chat/transcriptions` uses trace name `chat_transcription`
+- legacy `/chat/turn` is intentionally not instrumented
+
+Required deploy inputs when Langfuse is enabled:
+
+- AWS secret `flashcards-open-source-app/langfuse-public-key`
+- AWS secret `flashcards-open-source-app/langfuse-secret-key`
+- optional GitHub variable `CDK_LANGFUSE_BASE_URL`
+
+The helper flow is:
+
+1. Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` in root `.env`.
+2. Run `bash scripts/setup-ai-secrets.sh --region <aws-region>`.
+3. Run `bash scripts/setup-github.sh`.
+4. Deploy as usual.
+5. Verify traces in Langfuse using [`docs/langfuse-operations.md`](../../docs/langfuse-operations.md).
 
 ## Review/demo accounts
 

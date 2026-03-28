@@ -16,6 +16,9 @@ export interface ApiGatewayProps {
   apiCertificateArn: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   anthropicApiKeySecretArn: string | undefined;
+  langfusePublicKeySecretArn: string | undefined;
+  langfuseSecretKeySecretArn: string | undefined;
+  langfuseBaseUrl: string | undefined;
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   userPoolId: string;
@@ -44,6 +47,9 @@ interface BackendFunctionProps {
   userPoolClientId: string;
   openAiApiKeySecretArn: string | undefined;
   anthropicApiKeySecretArn: string | undefined;
+  langfusePublicKeySecretArn: string | undefined;
+  langfuseSecretKeySecretArn: string | undefined;
+  langfuseBaseUrl: string | undefined;
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
 }
@@ -61,6 +67,35 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     ],
   },
 };
+
+function getLangfuseSecretConfig(
+  props: Readonly<{
+    langfusePublicKeySecretArn: string | undefined;
+    langfuseSecretKeySecretArn: string | undefined;
+    langfuseBaseUrl: string | undefined;
+  }>,
+): Readonly<{
+  publicKeySecretArn: string;
+  secretKeySecretArn: string;
+  baseUrl: string;
+}> | null {
+  const hasPublicKeySecret = props.langfusePublicKeySecretArn !== undefined && props.langfusePublicKeySecretArn !== "";
+  const hasSecretKeySecret = props.langfuseSecretKeySecretArn !== undefined && props.langfuseSecretKeySecretArn !== "";
+
+  if (!hasPublicKeySecret && !hasSecretKeySecret) {
+    return null;
+  }
+
+  if (!hasPublicKeySecret || !hasSecretKeySecret) {
+    throw new Error("langfusePublicKeySecretArn and langfuseSecretKeySecretArn must both be set when Langfuse is configured");
+  }
+
+  return {
+    publicKeySecretArn: props.langfusePublicKeySecretArn as string,
+    secretKeySecretArn: props.langfuseSecretKeySecretArn as string,
+    baseUrl: props.langfuseBaseUrl ?? "https://cloud.langfuse.com",
+  };
+}
 
 function addLambdaSecretEnvironment(
   scope: Construct,
@@ -84,6 +119,7 @@ function addLambdaSecretEnvironment(
  * chat-specific streaming handler.
  */
 function createBackendFunction(scope: Construct, props: BackendFunctionProps): lambdaNodejs.NodejsFunction {
+  const langfuseConfig = getLangfuseSecretConfig(props);
   const fn = new lambdaNodejs.NodejsFunction(scope, props.constructId, {
     entry: props.entry,
     handler: "handler",
@@ -108,6 +144,9 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: props.guestAiWeightedMonthlyTokenCap ?? "0",
+      ...(langfuseConfig === null
+        ? {}
+        : { LANGFUSE_BASE_URL: langfuseConfig.baseUrl }),
     },
   });
 
@@ -131,6 +170,22 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     `${props.constructId}AnthropicApiKeySecret`,
     "ANTHROPIC_API_KEY",
   );
+  if (langfuseConfig !== null) {
+    addLambdaSecretEnvironment(
+      scope,
+      fn,
+      langfuseConfig.publicKeySecretArn,
+      `${props.constructId}LangfusePublicKeySecret`,
+      "LANGFUSE_PUBLIC_KEY",
+    );
+    addLambdaSecretEnvironment(
+      scope,
+      fn,
+      langfuseConfig.secretKeySecretArn,
+      `${props.constructId}LangfuseSecretKeySecret`,
+      "LANGFUSE_SECRET_KEY",
+    );
+  }
   if (props.demoEmailDostip !== undefined && props.demoEmailDostip !== "") {
     fn.addEnvironment("DEMO_EMAIL_DOSTIP", props.demoEmailDostip);
   }
@@ -174,6 +229,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+    langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
+    langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
+    langfuseBaseUrl: props.langfuseBaseUrl,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });
@@ -192,6 +250,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+    langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
+    langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
+    langfuseBaseUrl: props.langfuseBaseUrl,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });
@@ -210,6 +271,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
     anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
+    langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
+    langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
+    langfuseBaseUrl: props.langfuseBaseUrl,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });

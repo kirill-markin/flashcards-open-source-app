@@ -9,6 +9,8 @@ TEMP_DIR="$(mktemp -d)"
 
 OPENAI_SECRET_NAME="flashcards-open-source-app/openai-api-key"
 ANTHROPIC_SECRET_NAME="flashcards-open-source-app/anthropic-api-key"
+LANGFUSE_PUBLIC_KEY_SECRET_NAME="flashcards-open-source-app/langfuse-public-key"
+LANGFUSE_SECRET_KEY_SECRET_NAME="flashcards-open-source-app/langfuse-secret-key"
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/root-env.sh"
@@ -71,8 +73,18 @@ create_or_update_secret() {
     --output text
 }
 
-if [[ -z "${OPENAI_API_KEY:-}" && -z "${ANTHROPIC_API_KEY:-}" ]]; then
-  echo "Skipping optional AI secret setup: OPENAI_API_KEY and ANTHROPIC_API_KEY are not set."
+if [[ -n "${LANGFUSE_PUBLIC_KEY:-}" && -z "${LANGFUSE_SECRET_KEY:-}" ]]; then
+  echo "ERROR: LANGFUSE_PUBLIC_KEY is set but LANGFUSE_SECRET_KEY is missing." >&2
+  exit 1
+fi
+
+if [[ -z "${LANGFUSE_PUBLIC_KEY:-}" && -n "${LANGFUSE_SECRET_KEY:-}" ]]; then
+  echo "ERROR: LANGFUSE_SECRET_KEY is set but LANGFUSE_PUBLIC_KEY is missing." >&2
+  exit 1
+fi
+
+if [[ -z "${OPENAI_API_KEY:-}" && -z "${ANTHROPIC_API_KEY:-}" && -z "${LANGFUSE_PUBLIC_KEY:-}" && -z "${LANGFUSE_SECRET_KEY:-}" ]]; then
+  echo "Skipping optional AI secret setup: OPENAI_API_KEY, ANTHROPIC_API_KEY, and LANGFUSE_* are not set."
   exit 0
 fi
 
@@ -90,4 +102,18 @@ if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
     "${ANTHROPIC_API_KEY}" \
     "Anthropic API key for flashcards-open-source-app backend chat")
   echo "Configured Anthropic API key secret in AWS Secrets Manager: ${ANTHROPIC_SECRET_ARN}"
+fi
+
+if [[ -n "${LANGFUSE_PUBLIC_KEY:-}" ]]; then
+  LANGFUSE_PUBLIC_SECRET_ARN=$(create_or_update_secret \
+    "$LANGFUSE_PUBLIC_KEY_SECRET_NAME" \
+    "${LANGFUSE_PUBLIC_KEY}" \
+    "Langfuse public key for flashcards-open-source-app backend AI telemetry")
+  echo "Configured Langfuse public key secret in AWS Secrets Manager: ${LANGFUSE_PUBLIC_SECRET_ARN}"
+
+  LANGFUSE_SECRET_SECRET_ARN=$(create_or_update_secret \
+    "$LANGFUSE_SECRET_KEY_SECRET_NAME" \
+    "${LANGFUSE_SECRET_KEY}" \
+    "Langfuse secret key for flashcards-open-source-app backend AI telemetry")
+  echo "Configured Langfuse secret key secret in AWS Secrets Manager: ${LANGFUSE_SECRET_SECRET_ARN}"
 fi

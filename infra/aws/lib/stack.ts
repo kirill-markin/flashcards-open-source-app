@@ -37,6 +37,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
     const anthropicApiKeySecretArn = getOptionalContextValue(this, "anthropicApiKeySecretArn");
+    const langfusePublicKeySecretArn = getOptionalContextValue(this, "langfusePublicKeySecretArn");
+    const langfuseSecretKeySecretArn = getOptionalContextValue(this, "langfuseSecretKeySecretArn");
+    const langfuseBaseUrl = getOptionalContextValue(this, "langfuseBaseUrl");
     const demoEmailDostip = getOptionalContextValue(this, "demoEmailDostip");
     const demoPasswordSecretArn = getOptionalContextValue(this, "demoPasswordSecretArn");
     const guestAiWeightedMonthlyTokenCap = getOptionalContextValue(this, "guestAiWeightedMonthlyTokenCap");
@@ -80,6 +83,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apiCertificateArn,
       openAiApiKeySecretArn,
       anthropicApiKeySecretArn,
+      langfusePublicKeySecretArn,
+      langfuseSecretKeySecretArn,
+      langfuseBaseUrl,
       demoEmailDostip,
       guestAiWeightedMonthlyTokenCap,
       userPoolId: authResult.userPool.userPoolId,

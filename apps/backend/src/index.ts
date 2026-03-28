@@ -1,7 +1,9 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
+import { initializeLangfuseTelemetry } from "./telemetry/langfuse";
 
 async function main(): Promise<void> {
+  initializeLangfuseTelemetry();
   const app = createApp("/v1");
   const port = Number.parseInt(process.env.PORT ?? "8080", 10);
 
