@@ -101,6 +101,7 @@ type WorkspaceSchedulerRow = Readonly<{
 }>;
 
 type GuestUpgradeMode = "bound" | "merge_required";
+type GuestUpgradeSelectionType = GuestUpgradeSelection["type"];
 
 export type GuestSessionSnapshot = Readonly<{
   guestToken: string;
@@ -128,6 +129,18 @@ export type GuestUpgradeCompletion = Readonly<{
     createdAt: string;
     isSelected: true;
   }>;
+}>;
+
+type GuestUpgradeHistoryWrite = Readonly<{
+  upgradeId: string;
+  sourceGuestUserId: string;
+  sourceGuestWorkspaceId: string;
+  sourceGuestSessionId: string;
+  targetSubjectUserId: string;
+  targetUserId: string;
+  targetWorkspaceId: string;
+  selectionType: GuestUpgradeSelectionType;
+  deviceIdMap: ReadonlyMap<string, string>;
 }>;
 
 function toIsoString(value: Date | string): string {
@@ -446,6 +459,60 @@ async function recreateGuestDevicesInExecutor(
   return new Map<string, string>(deviceIdMapEntries);
 }
 
+/**
+ * Persists durable guest-merge aliases before live guest rows are deleted.
+ *
+ * Lookup semantics:
+ * - source_guest_user_id -> current target user/workspace
+ * - source_guest_device_id -> recreated target_device_id
+ *
+ * The history tables intentionally avoid live-row foreign keys for guest and
+ * target identity rows so destructive guest cleanup cannot erase this audit
+ * trail.
+ */
+async function recordGuestUpgradeHistoryInExecutor(
+  executor: DatabaseExecutor,
+  history: GuestUpgradeHistoryWrite,
+): Promise<void> {
+  await executor.query(
+    [
+      "INSERT INTO auth.guest_upgrade_history",
+      "(",
+      "upgrade_id, source_guest_user_id, source_guest_workspace_id, source_guest_session_id,",
+      "target_subject_user_id, target_user_id, target_workspace_id, selection_type",
+      ")",
+      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    ].join(" "),
+    [
+      history.upgradeId,
+      history.sourceGuestUserId,
+      history.sourceGuestWorkspaceId,
+      history.sourceGuestSessionId,
+      history.targetSubjectUserId,
+      history.targetUserId,
+      history.targetWorkspaceId,
+      history.selectionType,
+    ],
+  );
+
+  for (const [sourceGuestDeviceId, targetDeviceId] of history.deviceIdMap) {
+    await executor.query(
+      [
+        "INSERT INTO auth.guest_device_aliases",
+        "(",
+        "source_guest_device_id, upgrade_id, target_device_id",
+        ")",
+        "VALUES ($1, $2, $3)",
+      ].join(" "),
+      [
+        sourceGuestDeviceId,
+        history.upgradeId,
+        targetDeviceId,
+      ],
+    );
+  }
+}
+
 function requireMappedDeviceId(
   deviceIdMap: ReadonlyMap<string, string>,
   oldDeviceId: string,
@@ -629,50 +696,64 @@ async function insertMergedReviewEventsInExecutor(
   }
 }
 
+/**
+ * Merges portable guest workspace state into the selected destination workspace
+ * and returns the durable alias metadata that must be recorded before the live
+ * guest rows are deleted.
+ *
+ * V1 intentionally preserves only correlation metadata for future debugging.
+ * Guest-only chat rows and other cascade-deleted live records still disappear
+ * during cleanup and are not copied here.
+ */
 async function mergeGuestWorkspaceIntoTargetInExecutor(
   executor: DatabaseExecutor,
-  guestUserId: string,
-  guestWorkspaceId: string,
-  targetUserId: string,
-  targetWorkspaceId: string,
-): Promise<void> {
-  const mergeId = randomUUID().toLowerCase();
-  const guestDevices = await loadGuestDevicesInExecutor(executor, guestUserId, guestWorkspaceId);
-  const guestCards = await loadGuestCardsInExecutor(executor, guestUserId, guestWorkspaceId);
-  const guestDecks = await loadGuestDecksInExecutor(executor, guestUserId, guestWorkspaceId);
-  const guestReviewEvents = await loadGuestReviewEventsInExecutor(executor, guestUserId, guestWorkspaceId);
-  const guestScheduler = await loadWorkspaceSchedulerInExecutor(executor, guestUserId, guestWorkspaceId);
-  const targetScheduler = await loadWorkspaceSchedulerInExecutor(executor, targetUserId, targetWorkspaceId);
+  params: Readonly<{
+    guestSessionId: string;
+    guestUserId: string;
+    guestWorkspaceId: string;
+    targetSubjectUserId: string;
+    targetUserId: string;
+    targetWorkspaceId: string;
+    selectionType: GuestUpgradeSelectionType;
+  }>,
+): Promise<GuestUpgradeHistoryWrite> {
+  const upgradeId = randomUUID().toLowerCase();
+  const guestDevices = await loadGuestDevicesInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  const guestCards = await loadGuestCardsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  const guestDecks = await loadGuestDecksInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  const guestReviewEvents = await loadGuestReviewEventsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  const guestScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  const targetScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.targetUserId, params.targetWorkspaceId);
 
-  await deleteGuestWorkspaceContentInExecutor(executor, guestUserId, guestWorkspaceId);
+  await deleteGuestWorkspaceContentInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
 
   const deviceIdMap = await recreateGuestDevicesInExecutor(
     executor,
     guestDevices,
-    targetUserId,
-    targetWorkspaceId,
+    params.targetUserId,
+    params.targetWorkspaceId,
   );
 
   await insertMergedCardsInExecutor(
     executor,
-    targetUserId,
-    targetWorkspaceId,
+    params.targetUserId,
+    params.targetWorkspaceId,
     guestCards,
     deviceIdMap,
-    mergeId,
+    upgradeId,
   );
   await insertMergedDecksInExecutor(
     executor,
-    targetUserId,
-    targetWorkspaceId,
+    params.targetUserId,
+    params.targetWorkspaceId,
     guestDecks,
     deviceIdMap,
-    mergeId,
+    upgradeId,
   );
   await insertMergedReviewEventsInExecutor(
     executor,
-    targetUserId,
-    targetWorkspaceId,
+    params.targetUserId,
+    params.targetWorkspaceId,
     guestReviewEvents,
     deviceIdMap,
   );
@@ -680,8 +761,8 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
   if (schedulerWinnerIsGuest(guestScheduler, targetScheduler)) {
     const nextDeviceId = requireMappedDeviceId(deviceIdMap, guestScheduler.fsrs_last_modified_by_device_id);
     await applyWorkspaceDatabaseScopeInExecutor(executor, {
-      userId: targetUserId,
-      workspaceId: targetWorkspaceId,
+      userId: params.targetUserId,
+      workspaceId: params.targetWorkspaceId,
     });
     await executor.query(
       [
@@ -710,20 +791,32 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
         nextDeviceId,
         guestScheduler.fsrs_last_operation_id,
         toIsoString(guestScheduler.fsrs_updated_at),
-        targetWorkspaceId,
+        params.targetWorkspaceId,
       ],
     );
     await insertSyncChange(
       executor,
-      targetWorkspaceId,
+      params.targetWorkspaceId,
       "workspace_scheduler_settings",
-      targetWorkspaceId,
+      params.targetWorkspaceId,
       "upsert",
       nextDeviceId,
-      `guest-merge-${mergeId}-scheduler-${targetWorkspaceId}`,
+      `guest-merge-${upgradeId}-scheduler-${params.targetWorkspaceId}`,
       toIsoString(guestScheduler.fsrs_client_updated_at),
     );
   }
+
+  return {
+    upgradeId,
+    sourceGuestUserId: params.guestUserId,
+    sourceGuestWorkspaceId: params.guestWorkspaceId,
+    sourceGuestSessionId: params.guestSessionId,
+    targetSubjectUserId: params.targetSubjectUserId,
+    targetUserId: params.targetUserId,
+    targetWorkspaceId: params.targetWorkspaceId,
+    selectionType: params.selectionType,
+    deviceIdMap,
+  };
 }
 
 export async function authenticateGuestSession(guestToken: string): Promise<Readonly<{
@@ -777,39 +870,133 @@ export async function createGuestSession(): Promise<GuestSessionSnapshot> {
   });
 }
 
+/**
+ * Prepares one guest upgrade attempt using the already-open executor.
+ *
+ * `bound` keeps the existing guest user id and therefore does not create any
+ * destructive merge history. Only `merge_required` leads to guest cleanup and
+ * history recording later during completion.
+ */
+export async function prepareGuestUpgradeInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  cognitoSubject: string,
+  email: string | null,
+): Promise<GuestUpgradePreparation> {
+  const guestSession = await loadGuestSessionInExecutor(executor, guestToken, true);
+  const existingMappedUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
+
+  if (existingMappedUserId === null || existingMappedUserId === guestSession.user_id) {
+    await applyUserDatabaseScopeInExecutor(executor, { userId: guestSession.user_id });
+    await executor.query(
+      [
+        "INSERT INTO auth.user_identities (provider_type, provider_subject, user_id)",
+        "VALUES ('cognito', $1, $2)",
+        "ON CONFLICT (provider_type, provider_subject) DO NOTHING",
+      ].join(" "),
+      [cognitoSubject, guestSession.user_id],
+    );
+    await executor.query(
+      "UPDATE org.user_settings SET email = $1 WHERE user_id = $2",
+      [email, guestSession.user_id],
+    );
+
+    return {
+      mode: "bound",
+    };
+  }
+
+  return {
+    mode: "merge_required",
+  };
+}
+
 export async function prepareGuestUpgrade(
   guestToken: string,
   cognitoSubject: string,
   email: string | null,
 ): Promise<GuestUpgradePreparation> {
-  return transaction(async (executor) => {
-    const guestSession = await loadGuestSessionInExecutor(executor, guestToken, true);
-    const existingMappedUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
+  return transaction(async (executor) => prepareGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, email));
+}
 
-    if (existingMappedUserId === null || existingMappedUserId === guestSession.user_id) {
-      await applyUserDatabaseScopeInExecutor(executor, { userId: guestSession.user_id });
-      await executor.query(
-        [
-          "INSERT INTO auth.user_identities (provider_type, provider_subject, user_id)",
-          "VALUES ('cognito', $1, $2)",
-          "ON CONFLICT (provider_type, provider_subject) DO NOTHING",
-        ].join(" "),
-        [cognitoSubject, guestSession.user_id],
-      );
-      await executor.query(
-        "UPDATE org.user_settings SET email = $1 WHERE user_id = $2",
-        [email, guestSession.user_id],
-      );
+/**
+ * Completes one guest upgrade attempt using the already-open executor.
+ *
+ * For `merge_required`, V1 records durable guest/user/device aliases before the
+ * live guest rows are deleted. Server-side guest chat rows still disappear via
+ * cascade and are intentionally not copied in this version.
+ */
+export async function completeGuestUpgradeInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  cognitoSubject: string,
+  selection: GuestUpgradeSelection,
+): Promise<GuestUpgradeCompletion> {
+  const guestSession = await loadGuestSessionInExecutor(executor, guestToken, true);
+  const targetUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
+  if (targetUserId === null) {
+    throw new HttpError(409, "Create or sign in to the destination account first.", "GUEST_UPGRADE_ACCOUNT_REQUIRED");
+  }
 
-      return {
-        mode: "bound",
-      };
-    }
-
+  if (targetUserId === guestSession.user_id) {
+    const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.user_id);
     return {
-      mode: "merge_required",
+      workspace: await loadWorkspaceSummaryInExecutor(executor, guestSession.user_id, guestWorkspaceId),
     };
-  });
+  }
+
+  const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.user_id);
+  const targetWorkspaceId = selection.type === "existing"
+    ? selection.workspaceId
+    : await (async () => {
+      const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestSession.user_id, guestWorkspaceId);
+      await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
+      const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, guestWorkspaceName);
+      await executor.query(
+        "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+        [nextWorkspaceId, targetUserId],
+      );
+      return nextWorkspaceId;
+    })();
+
+  await assertTargetWorkspaceAccessInExecutor(executor, targetUserId, targetWorkspaceId);
+  const guestUpgradeHistory = await mergeGuestWorkspaceIntoTargetInExecutor(
+    executor,
+    {
+      guestSessionId: guestSession.session_id,
+      guestUserId: guestSession.user_id,
+      guestWorkspaceId,
+      targetSubjectUserId: cognitoSubject,
+      targetUserId,
+      targetWorkspaceId,
+      selectionType: selection.type,
+    },
+  );
+  await recordGuestUpgradeHistoryInExecutor(executor, guestUpgradeHistory);
+
+  await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
+  await executor.query(
+    "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+    [targetWorkspaceId, targetUserId],
+  );
+
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestSession.user_id });
+  await executor.query(
+    "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1",
+    [guestSession.session_id],
+  );
+  await executor.query(
+    "DELETE FROM org.workspaces WHERE workspace_id = $1",
+    [guestWorkspaceId],
+  );
+  await executor.query(
+    "DELETE FROM org.user_settings WHERE user_id = $1",
+    [guestSession.user_id],
+  );
+
+  return {
+    workspace: await loadWorkspaceSummaryInExecutor(executor, targetUserId, targetWorkspaceId),
+  };
 }
 
 export async function completeGuestUpgrade(
@@ -817,65 +1004,5 @@ export async function completeGuestUpgrade(
   cognitoSubject: string,
   selection: GuestUpgradeSelection,
 ): Promise<GuestUpgradeCompletion> {
-  return transaction(async (executor) => {
-    const guestSession = await loadGuestSessionInExecutor(executor, guestToken, true);
-    const targetUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
-    if (targetUserId === null) {
-      throw new HttpError(409, "Create or sign in to the destination account first.", "GUEST_UPGRADE_ACCOUNT_REQUIRED");
-    }
-
-    if (targetUserId === guestSession.user_id) {
-      const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.user_id);
-      return {
-        workspace: await loadWorkspaceSummaryInExecutor(executor, guestSession.user_id, guestWorkspaceId),
-      };
-    }
-
-    const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.user_id);
-    const targetWorkspaceId = selection.type === "existing"
-      ? selection.workspaceId
-      : await (async () => {
-        const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestSession.user_id, guestWorkspaceId);
-        await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
-        const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, guestWorkspaceName);
-        await executor.query(
-          "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
-          [nextWorkspaceId, targetUserId],
-        );
-        return nextWorkspaceId;
-      })();
-
-    await assertTargetWorkspaceAccessInExecutor(executor, targetUserId, targetWorkspaceId);
-    await mergeGuestWorkspaceIntoTargetInExecutor(
-      executor,
-      guestSession.user_id,
-      guestWorkspaceId,
-      targetUserId,
-      targetWorkspaceId,
-    );
-
-    await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
-    await executor.query(
-      "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
-      [targetWorkspaceId, targetUserId],
-    );
-
-    await applyUserDatabaseScopeInExecutor(executor, { userId: guestSession.user_id });
-    await executor.query(
-      "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1",
-      [guestSession.session_id],
-    );
-    await executor.query(
-      "DELETE FROM org.workspaces WHERE workspace_id = $1",
-      [guestWorkspaceId],
-    );
-    await executor.query(
-      "DELETE FROM org.user_settings WHERE user_id = $1",
-      [guestSession.user_id],
-    );
-
-    return {
-      workspace: await loadWorkspaceSummaryInExecutor(executor, targetUserId, targetWorkspaceId),
-    };
-  });
+  return transaction(async (executor) => completeGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, selection));
 }
