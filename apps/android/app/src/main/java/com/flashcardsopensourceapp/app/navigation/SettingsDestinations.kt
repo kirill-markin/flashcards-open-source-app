@@ -1,81 +1,23 @@
 package com.flashcardsopensourceapp.app.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.CollectionsBookmark
-import androidx.compose.material.icons.outlined.FlipToFront
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.ui.graphics.vector.ImageVector
-
-/*
- Keep Android navigation destinations aligned with:
- - apps/web/src/routes.ts
- - apps/ios/Flashcards/Flashcards/FlashcardsTypes.swift
- */
-
-sealed interface TopLevelDestination {
-    val route: String
-    val label: String
-    val icon: ImageVector
+internal data object SettingsRootGraph {
+    const val route: String = "settings/root"
 }
 
-data object ReviewDestination : TopLevelDestination {
-    override val route: String = "review"
-    override val label: String = "Review"
-    override val icon: ImageVector = Icons.Outlined.FlipToFront
+internal data object SettingsWorkspaceGraph {
+    const val route: String = "settings/workspace/graph"
 }
 
-data object ReviewPreviewDestination {
-    const val route: String = "review/preview"
+internal data object SettingsAccountGraph {
+    const val route: String = "settings/account/graph"
 }
 
-data object CardsDestination : TopLevelDestination {
-    override val route: String = "cards"
-    override val label: String = "Cards"
-    override val icon: ImageVector = Icons.Outlined.CollectionsBookmark
+internal data object SettingsAccountAuthGraph {
+    const val route: String = "settings/account/auth/graph"
 }
 
-data object AiDestination : TopLevelDestination {
-    override val route: String = "ai"
-    override val label: String = "AI"
-    override val icon: ImageVector = Icons.Outlined.AutoAwesome
-}
-
-data object SettingsDestination : TopLevelDestination {
-    override val route: String = "settings"
-    override val label: String = "Settings"
-    override val icon: ImageVector = Icons.Outlined.Settings
-}
-
-data object CardEditorDestination {
-    const val routePrefix: String = "cards/editor"
-    const val routeArgument: String = "cardId"
-    const val routePattern: String = "$routePrefix/{$routeArgument}"
-
-    fun createRoute(cardId: String): String {
-        return "$routePrefix/$cardId"
-    }
-}
-
-data object CardEditorTextDestination {
-    const val routePrefix: String = "cards/editor/text"
-    const val cardIdArgument: String = "cardId"
-    const val fieldArgument: String = "field"
-    const val routePattern: String = "$routePrefix/{$cardIdArgument}/{$fieldArgument}"
-
-    fun createRoute(cardId: String, field: String): String {
-        return "$routePrefix/$cardId/$field"
-    }
-}
-
-data object CardEditorTagsDestination {
-    const val routePrefix: String = "cards/editor/tags"
-    const val routeArgument: String = "cardId"
-    const val routePattern: String = "$routePrefix/{$routeArgument}"
-
-    fun createRoute(cardId: String): String {
-        return "$routePrefix/$cardId"
-    }
+internal data object SettingsAccessGraph {
+    const val route: String = "settings/access/graph"
 }
 
 data object SettingsWorkspaceDestination {
@@ -191,10 +133,3 @@ data object SettingsAccessDetailDestination {
         return "$routePrefix/$capability"
     }
 }
-
-val topLevelDestinations: List<TopLevelDestination> = listOf(
-    ReviewDestination,
-    CardsDestination,
-    AiDestination,
-    SettingsDestination
-)
