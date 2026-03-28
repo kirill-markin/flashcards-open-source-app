@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
@@ -452,6 +453,18 @@ class AiViewModel(
             return
         }
 
+        AiChatDiagnosticsLogger.info(
+            event = "ui_send_message_requested",
+            fields = listOf(
+                "workspaceId" to draftState.value.workspaceId,
+                "cloudState" to cloudSettingsState.value.cloudState.name,
+                "chatSessionId" to draftState.value.persistedState.chatSessionId,
+                "messageCount" to draftState.value.persistedState.messages.size.toString(),
+                "pendingAttachmentCount" to draftState.value.pendingAttachments.size.toString(),
+                "outgoingContentSummary" to AiChatDiagnosticsLogger.summarizeOutgoingContent(content = outgoingContent)
+            )
+        )
+
         val nextPersistedState = draftState.value.persistedState.copy(
             messages = draftState.value.persistedState.messages + listOf(
                 makeUserMessage(content = outgoingContent),
@@ -584,6 +597,18 @@ class AiViewModel(
                         configurationMode = serverConfigurationState.value.mode,
                         surface = AiErrorSurface.CHAT
                     )
+                    AiChatDiagnosticsLogger.error(
+                        event = "stream_error_event_received",
+                        fields = listOf(
+                            "workspaceId" to draftState.value.workspaceId,
+                            "cloudState" to cloudSettingsState.value.cloudState.name,
+                            "chatSessionId" to draftState.value.persistedState.chatSessionId,
+                            "requestId" to event.error.requestId,
+                            "code" to event.error.code,
+                            "stage" to event.error.stage,
+                            "message" to event.error.message
+                        )
+                    )
                     draftState.update { state ->
                         state.copy(
                             persistedState = markAssistantError(
@@ -604,6 +629,18 @@ class AiViewModel(
     private fun handleSendFailure(error: Exception) {
         val remoteError = error as? AiChatRemoteException
         if (remoteError?.code == "GUEST_AI_LIMIT_REACHED") {
+            AiChatDiagnosticsLogger.warn(
+                event = "send_failure_guest_quota_reached",
+                fields = listOf(
+                    "workspaceId" to draftState.value.workspaceId,
+                    "cloudState" to cloudSettingsState.value.cloudState.name,
+                    "chatSessionId" to draftState.value.persistedState.chatSessionId,
+                    "requestId" to remoteError.requestId,
+                    "statusCode" to remoteError.statusCode?.toString(),
+                    "code" to remoteError.code,
+                    "stage" to remoteError.stage
+                )
+            )
             draftState.update { state ->
                 state.copy(
                     persistedState = appendAssistantAccountUpgradePrompt(
@@ -622,13 +659,28 @@ class AiViewModel(
             surface = AiErrorSurface.CHAT,
             configuration = serverConfigurationState.value
         )
+        val previousState = draftState.value.persistedState
+        val repairedState = clearMissingChatSessionIdIfNeeded(
+            state = previousState,
+            error = error
+        )
+        AiChatDiagnosticsLogger.error(
+            event = "send_failure_handled",
+            fields = listOf(
+                "workspaceId" to draftState.value.workspaceId,
+                "cloudState" to cloudSettingsState.value.cloudState.name,
+                "previousChatSessionId" to previousState.chatSessionId,
+                "repairedChatSessionId" to repairedState.chatSessionId,
+                "clearedMissingChatSessionId" to (previousState.chatSessionId != repairedState.chatSessionId).toString(),
+                "messageCount" to previousState.messages.size.toString(),
+                "userFacingMessage" to message
+            ) + remoteErrorFields(error = remoteError),
+            throwable = error
+        )
         draftState.update { state ->
             state.copy(
                 persistedState = markAssistantError(
-                    state = clearMissingChatSessionIdIfNeeded(
-                        state = state.persistedState,
-                        error = error
-                    ),
+                    state = repairedState,
                     message = message
                 ),
                 errorMessage = message
@@ -661,6 +713,15 @@ class AiViewModel(
                 when {
                     snapshot != null -> applyServerSnapshot(snapshot)
                     persistedState.chatSessionId.isNotBlank() -> {
+                        AiChatDiagnosticsLogger.warn(
+                            event = "switch_workspace_repaired_missing_session",
+                            fields = listOf(
+                                "workspaceId" to workspaceId,
+                                "cloudState" to cloudSettingsState.value.cloudState.name,
+                                "missingChatSessionId" to persistedState.chatSessionId,
+                                "messageCount" to persistedState.messages.size.toString()
+                            )
+                        )
                         val repairedState = persistedState.copy(chatSessionId = "")
                         draftState.update { state ->
                             state.copy(persistedState = repairedState)
@@ -672,7 +733,17 @@ class AiViewModel(
                         )?.let(::applyServerSnapshot)
                     }
                 }
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                AiChatDiagnosticsLogger.error(
+                    event = "switch_workspace_snapshot_load_failed",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "chatSessionId" to persistedState.chatSessionId,
+                        "messageCount" to persistedState.messages.size.toString()
+                    ) + remoteErrorFields(error = error as? AiChatRemoteException),
+                    throwable = error
+                )
             }
         }
     }
@@ -1060,4 +1131,14 @@ private fun isOptimisticAssistantStatus(
     return content.size == 1
         && content[0] is AiChatContentPart.Text
         && (content[0] as AiChatContentPart.Text).text == aiChatOptimisticAssistantStatusText
+}
+
+private fun remoteErrorFields(error: AiChatRemoteException?): List<Pair<String, String?>> {
+    return listOf(
+        "requestId" to error?.requestId,
+        "statusCode" to error?.statusCode?.toString(),
+        "code" to error?.code,
+        "stage" to error?.stage,
+        "responseBody" to error?.responseBody
+    )
 }

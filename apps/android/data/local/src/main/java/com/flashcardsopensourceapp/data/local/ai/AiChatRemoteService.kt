@@ -335,6 +335,28 @@ class AiChatRemoteService {
         }
         val requestId = connection.getHeaderField(chatRequestIdHeaderName)
         val parsedError = parseBackendErrorPayload(rawBody = responseBody)
+        val fields = listOf(
+            "url" to connection.url.toString(),
+            "method" to connection.requestMethod,
+            "statusCode" to connection.responseCode.toString(),
+            "code" to parsedError?.code,
+            "stage" to parsedError?.stage,
+            "requestId" to (parsedError?.requestId ?: requestId),
+            "message" to parsedError?.message,
+            "responseBody" to responseBody
+        )
+
+        if (connection.responseCode >= 500) {
+            AiChatDiagnosticsLogger.error(
+                event = "http_request_failed",
+                fields = fields
+            )
+        } else {
+            AiChatDiagnosticsLogger.warn(
+                event = "http_request_failed",
+                fields = fields
+            )
+        }
 
         return AiChatRemoteException(
             message = parsedError?.message ?: "AI chat request failed.",

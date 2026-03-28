@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
+import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
@@ -68,8 +69,34 @@ class LocalAiChatRepository(
             )
         } catch (error: AiChatRemoteException) {
             if (error.statusCode == 404) {
+                AiChatDiagnosticsLogger.warn(
+                    event = "load_snapshot_missing_session",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "sessionId" to sessionId,
+                        "apiBaseUrl" to session.apiBaseUrl,
+                        "requestId" to error.requestId,
+                        "statusCode" to error.statusCode.toString(),
+                        "code" to error.code,
+                        "stage" to error.stage
+                    )
+                )
                 null
             } else {
+                AiChatDiagnosticsLogger.error(
+                    event = "load_snapshot_failed",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "sessionId" to sessionId,
+                        "apiBaseUrl" to session.apiBaseUrl,
+                        "requestId" to error.requestId,
+                        "statusCode" to error.statusCode?.toString(),
+                        "code" to error.code,
+                        "stage" to error.stage,
+                        "responseBody" to error.responseBody
+                    ),
+                    throwable = error
+                )
                 throw error
             }
         }
@@ -129,12 +156,43 @@ class LocalAiChatRepository(
             timezone = TimeZone.getDefault().id,
         )
 
-        return aiChatRemoteService.startRun(
-            apiBaseUrl = session.apiBaseUrl,
-            authorizationHeader = session.authorizationHeader,
-            request = request,
-            onEvent = onEvent
+        AiChatDiagnosticsLogger.info(
+            event = "start_run_requested",
+            fields = listOf(
+                "workspaceId" to workspaceId,
+                "chatSessionId" to request.sessionId,
+                "apiBaseUrl" to session.apiBaseUrl,
+                "messageCount" to state.messages.size.toString(),
+                "contentSummary" to AiChatDiagnosticsLogger.summarizeOutgoingContent(content = content)
+            )
         )
+
+        return try {
+            aiChatRemoteService.startRun(
+                apiBaseUrl = session.apiBaseUrl,
+                authorizationHeader = session.authorizationHeader,
+                request = request,
+                onEvent = onEvent
+            )
+        } catch (error: AiChatRemoteException) {
+            AiChatDiagnosticsLogger.error(
+                event = "start_run_failed",
+                fields = listOf(
+                    "workspaceId" to workspaceId,
+                    "chatSessionId" to request.sessionId,
+                    "apiBaseUrl" to session.apiBaseUrl,
+                    "messageCount" to state.messages.size.toString(),
+                    "contentSummary" to AiChatDiagnosticsLogger.summarizeOutgoingContent(content = content),
+                    "requestId" to error.requestId,
+                    "statusCode" to error.statusCode?.toString(),
+                    "code" to error.code,
+                    "stage" to error.stage,
+                    "responseBody" to error.responseBody
+                ),
+                throwable = error
+            )
+            throw error
+        }
     }
 
     private suspend fun authorizedSession(workspaceId: String?): AuthorizedAiChatSession {
