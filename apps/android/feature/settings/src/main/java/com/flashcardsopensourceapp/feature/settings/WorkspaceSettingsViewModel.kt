@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -12,17 +13,26 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 class WorkspaceSettingsViewModel(
-    workspaceRepository: WorkspaceRepository
+    workspaceRepository: WorkspaceRepository,
+    reviewNotificationsStore: ReviewNotificationsStore
 ) : ViewModel() {
     val uiState: StateFlow<WorkspaceSettingsUiState> = combine(
         workspaceRepository.observeWorkspaceOverview(),
-        workspaceRepository.observeWorkspaceSchedulerSettings()
-    ) { overview, schedulerSettings ->
+        workspaceRepository.observeWorkspaceSchedulerSettings(),
+        workspaceRepository.observeWorkspace()
+    ) { overview, schedulerSettings, workspace ->
         WorkspaceSettingsUiState(
             workspaceName = overview?.workspaceName ?: "Unavailable",
             deckCount = overview?.deckCount ?: 0,
             totalCards = overview?.totalCards ?: 0,
             tagCount = overview?.tagsCount ?: 0,
+            notificationsSummary = workspace?.let { currentWorkspace ->
+                if (reviewNotificationsStore.loadSettings(workspaceId = currentWorkspace.workspaceId).isEnabled) {
+                    "On"
+                } else {
+                    "Off"
+                }
+            } ?: "Unavailable",
             schedulerSummary = schedulerSettings?.let(::formatWorkspaceSchedulerSummary) ?: "Unavailable",
             exportSummary = "CSV"
         )
@@ -34,16 +44,23 @@ class WorkspaceSettingsViewModel(
             deckCount = 0,
             totalCards = 0,
             tagCount = 0,
+            notificationsSummary = "Loading...",
             schedulerSummary = "Loading...",
             exportSummary = "CSV"
         )
     )
 }
 
-fun createWorkspaceSettingsViewModelFactory(workspaceRepository: WorkspaceRepository): ViewModelProvider.Factory {
+fun createWorkspaceSettingsViewModelFactory(
+    workspaceRepository: WorkspaceRepository,
+    reviewNotificationsStore: ReviewNotificationsStore
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            WorkspaceSettingsViewModel(workspaceRepository = workspaceRepository)
+            WorkspaceSettingsViewModel(
+                workspaceRepository = workspaceRepository,
+                reviewNotificationsStore = reviewNotificationsStore
+            )
         }
     }
 }

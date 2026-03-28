@@ -44,6 +44,8 @@ struct RootTabView: View {
                             AccessSettingsView()
                         case .workspace:
                             WorkspaceSettingsView()
+                        case .workspaceNotifications:
+                            ReviewNotificationsSettingsView()
                         case .workspaceOverview:
                             WorkspaceOverviewView()
                         case .workspaceScheduler:

@@ -35,7 +35,7 @@ describe("AccessSettingsScreen", () => {
     container.remove();
   });
 
-  it("renders access entries for photos, camera, and microphone", async () => {
+  it("renders access entries for notifications, photos, camera, and microphone", async () => {
     await act(async () => {
       root.render(
         <MemoryRouter initialEntries={["/settings/access"]}>
@@ -45,6 +45,8 @@ describe("AccessSettingsScreen", () => {
     });
 
     expect(container.textContent).toContain("Access");
+    expect(container.textContent).toContain("Notifications");
+    expect(container.textContent).toContain("This device");
     expect(container.textContent).toContain("Photos and files");
     expect(container.textContent).toContain("Per action");
     expect(container.textContent).toContain("Camera");

@@ -86,11 +86,13 @@ extension FlashcardsStore {
             }
         }
         self.globalErrorMessage = ""
+        self.reloadReviewNotificationsSettings()
         self.localReadVersion += 1
         if didSwitchWorkspace {
             self.cachedAIChatStore?.activateWorkspace()
         }
         self.refreshReviewState(now: now)
+        self.refreshReviewNotificationsScheduling(now: now)
     }
 
     @discardableResult
@@ -131,6 +133,8 @@ extension FlashcardsStore {
         self.deckItems = nextDeckItems
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
+        self.reloadReviewNotificationsSettings()
+        self.refreshReviewNotificationsScheduling(now: now)
 
         return didChange
     }

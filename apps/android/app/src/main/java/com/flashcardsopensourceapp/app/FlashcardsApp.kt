@@ -99,10 +99,16 @@ fun FlashcardsApp(appGraph: AppGraph) {
                 when (event) {
                     Lifecycle.Event.ON_RESUME -> {
                         isAppResumed = true
+                        appGraph.reviewNotificationsManager.markAppResumed(
+                            nowMillis = System.currentTimeMillis()
+                        )
                     }
 
                     Lifecycle.Event.ON_PAUSE -> {
                         isAppResumed = false
+                        appGraph.reviewNotificationsManager.markAppPaused(
+                            nowMillis = System.currentTimeMillis()
+                        )
                     }
 
                     else -> Unit

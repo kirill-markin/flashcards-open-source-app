@@ -12,6 +12,10 @@ import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
+import com.flashcardsopensourceapp.data.local.notifications.NotificationPermissionPromptState
+import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
+import com.flashcardsopensourceapp.data.local.notifications.defaultNotificationPermissionPromptState
+import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationPermissionPromptThreshold
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
@@ -41,7 +45,8 @@ private data class ReviewDraftState(
     val hasMorePreviewCards: Boolean,
     val isPreviewLoading: Boolean,
     val previewErrorMessage: String,
-    val errorMessage: String
+    val errorMessage: String,
+    val isNotificationPermissionPromptVisible: Boolean
 )
 
 private data class ObservedReviewSessionState(
@@ -54,9 +59,31 @@ class ReviewViewModel(
     private val reviewRepository: ReviewRepository,
     private val syncRepository: SyncRepository,
     private val messageController: TransientMessageController,
+    private val reviewNotificationsStore: ReviewNotificationsStore,
+    private val shouldShowNotificationPermissionPrePrompt: () -> Boolean,
+    private val onReviewNotificationsChanged: () -> Unit,
+    private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
+    constructor(
+        reviewRepository: ReviewRepository,
+        syncRepository: SyncRepository,
+        messageController: TransientMessageController,
+        reviewPreferencesStore: ReviewPreferencesStore,
+        workspaceRepository: WorkspaceRepository
+    ) : this(
+        reviewRepository = reviewRepository,
+        syncRepository = syncRepository,
+        messageController = messageController,
+        reviewNotificationsStore = NoOpReviewNotificationsStore,
+        shouldShowNotificationPermissionPrePrompt = { false },
+        onReviewNotificationsChanged = {},
+        onNotificationPermissionGranted = {},
+        reviewPreferencesStore = reviewPreferencesStore,
+        workspaceRepository = workspaceRepository
+    )
+
     private val draftState = MutableStateFlow(
         value = ReviewDraftState(
             requestedFilter = ReviewFilter.AllCards,
@@ -69,7 +96,8 @@ class ReviewViewModel(
             hasMorePreviewCards = true,
             isPreviewLoading = false,
             previewErrorMessage = "",
-            errorMessage = ""
+            errorMessage = "",
+            isNotificationPermissionPromptVisible = false
         )
     )
 
@@ -183,7 +211,8 @@ class ReviewViewModel(
             hasMorePreviewCards = state.hasMorePreviewCards,
             emptyState = emptyState,
             previewErrorMessage = state.previewErrorMessage,
-            errorMessage = state.errorMessage
+            errorMessage = state.errorMessage,
+            isNotificationPermissionPromptVisible = state.isNotificationPermissionPromptVisible
         )
     }.stateIn(
         scope = viewModelScope,
@@ -206,7 +235,8 @@ class ReviewViewModel(
             hasMorePreviewCards = true,
             emptyState = null,
             previewErrorMessage = "",
-            errorMessage = ""
+            errorMessage = "",
+            isNotificationPermissionPromptVisible = false
         )
     )
 
@@ -224,6 +254,7 @@ class ReviewViewModel(
             )
         }
         persistSelectedReviewFilter(reviewFilter = reviewFilter)
+        onReviewNotificationsChanged()
     }
 
     private fun persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
@@ -247,6 +278,44 @@ class ReviewViewModel(
     fun dismissErrorMessage() {
         draftState.update { state ->
             state.copy(errorMessage = "")
+        }
+    }
+
+    fun dismissNotificationPermissionPrompt() {
+        draftState.update { state ->
+            state.copy(isNotificationPermissionPromptVisible = false)
+        }
+        reviewNotificationsStore.savePromptState(
+            state = NotificationPermissionPromptState(
+                hasShownPrePrompt = true,
+                hasRequestedSystemPermission = false,
+                hasDismissedPrePrompt = true
+            )
+        )
+    }
+
+    fun continueNotificationPermissionPrompt() {
+        draftState.update { state ->
+            state.copy(isNotificationPermissionPromptVisible = false)
+        }
+        reviewNotificationsStore.savePromptState(
+            state = NotificationPermissionPromptState(
+                hasShownPrePrompt = true,
+                hasRequestedSystemPermission = true,
+                hasDismissedPrePrompt = false
+            )
+        )
+    }
+
+    fun handleNotificationPermissionGranted() {
+        onNotificationPermissionGranted()
+    }
+
+    fun handleReviewNotificationTap(payload: ReviewNotificationTapPayload) {
+        selectFilter(reviewFilter = payload.reviewFilter)
+        val currentCardId = uiState.value.preparedCurrentCard?.card?.cardId
+        if (currentCardId != null && currentCardId != payload.cardId) {
+            messageController.showMessage(message = "Review queue updated. Continuing with the latest due card.")
         }
     }
 
@@ -332,6 +401,7 @@ class ReviewViewModel(
                         optimisticPreparedCurrentCard = null
                     )
                 }
+                handleSuccessfulReviewRecorded()
             } catch (error: Throwable) {
                 if (operationWorkspaceGeneration != workspaceGeneration) {
                     return@launch
@@ -345,6 +415,34 @@ class ReviewViewModel(
                 }
             }
         }
+    }
+
+    private fun handleSuccessfulReviewRecorded() {
+        val nextReviewCount = reviewNotificationsStore.loadSuccessfulReviewCount() + 1
+        reviewNotificationsStore.saveSuccessfulReviewCount(count = nextReviewCount)
+        onReviewNotificationsChanged()
+
+        val promptState = reviewNotificationsStore.loadPromptState()
+        if (nextReviewCount < reviewNotificationPermissionPromptThreshold) {
+            return
+        }
+        if (promptState.hasShownPrePrompt || promptState.hasRequestedSystemPermission || promptState.hasDismissedPrePrompt) {
+            return
+        }
+        if (shouldShowNotificationPermissionPrePrompt().not()) {
+            return
+        }
+
+        draftState.update { state ->
+            state.copy(isNotificationPermissionPromptVisible = true)
+        }
+        reviewNotificationsStore.savePromptState(
+            state = NotificationPermissionPromptState(
+                hasShownPrePrompt = true,
+                hasRequestedSystemPermission = false,
+                hasDismissedPrePrompt = false
+            )
+        )
     }
 
     private fun loadPreviewPage(offset: Int, replaceCards: Boolean) {
@@ -521,10 +619,28 @@ class ReviewViewModel(
     }
 }
 
+private object NoOpReviewNotificationsStore : ReviewNotificationsStore {
+    override fun loadSettings(workspaceId: String) = throw UnsupportedOperationException("Notifications store is unavailable.")
+    override fun saveSettings(workspaceId: String, settings: com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsSettings) = Unit
+    override fun loadPromptState(): NotificationPermissionPromptState = defaultNotificationPermissionPromptState()
+    override fun savePromptState(state: NotificationPermissionPromptState) = Unit
+    override fun loadSuccessfulReviewCount(): Int = 0
+    override fun saveSuccessfulReviewCount(count: Int) = Unit
+    override fun loadLastActiveAtMillis(): Long? = null
+    override fun saveLastActiveAtMillis(timestampMillis: Long) = Unit
+    override fun clearLastActiveAtMillis() = Unit
+    override fun loadScheduledPayloads(workspaceId: String) = emptyList<com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload>()
+    override fun saveScheduledPayloads(workspaceId: String, payloads: List<com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload>) = Unit
+}
+
 fun createReviewViewModelFactory(
     reviewRepository: ReviewRepository,
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
+    reviewNotificationsStore: ReviewNotificationsStore,
+    shouldShowNotificationPermissionPrePrompt: () -> Boolean,
+    onReviewNotificationsChanged: () -> Unit,
+    onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
     workspaceRepository: WorkspaceRepository
 ): ViewModelProvider.Factory {
@@ -534,6 +650,10 @@ fun createReviewViewModelFactory(
                 reviewRepository = reviewRepository,
                 syncRepository = syncRepository,
                 messageController = messageController,
+                reviewNotificationsStore = reviewNotificationsStore,
+                shouldShowNotificationPermissionPrePrompt = shouldShowNotificationPermissionPrePrompt,
+                onReviewNotificationsChanged = onReviewNotificationsChanged,
+                onNotificationPermissionGranted = onNotificationPermissionGranted,
                 reviewPreferencesStore = reviewPreferencesStore,
                 workspaceRepository = workspaceRepository
             )
@@ -553,7 +673,8 @@ private fun makeWorkspaceScopedDraftState(reviewFilter: ReviewFilter): ReviewDra
         hasMorePreviewCards = true,
         isPreviewLoading = false,
         previewErrorMessage = "",
-        errorMessage = ""
+        errorMessage = "",
+        isNotificationPermissionPromptVisible = false
     )
 }
 
@@ -570,7 +691,8 @@ private fun applyReviewFilterChange(
         hasMorePreviewCards = true,
         isPreviewLoading = false,
         previewErrorMessage = "",
-        errorMessage = ""
+        errorMessage = "",
+        isNotificationPermissionPromptVisible = false
     )
 }
 
@@ -587,7 +709,8 @@ private fun applyResolvedReviewFilter(
         hasMorePreviewCards = true,
         isPreviewLoading = false,
         previewErrorMessage = "",
-        errorMessage = ""
+        errorMessage = "",
+        isNotificationPermissionPromptVisible = false
     )
 }
 

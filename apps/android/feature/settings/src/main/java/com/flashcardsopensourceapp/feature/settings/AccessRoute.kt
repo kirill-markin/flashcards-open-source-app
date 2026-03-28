@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AccessRoute(
+    onOpenNotifications: () -> Unit,
     onOpenCapability: (AccessCapability) -> Unit,
     onBack: () -> Unit
 ) {
@@ -54,6 +55,26 @@ fun AccessRoute(
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
             modifier = Modifier.fillMaxSize()
         ) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Notifications")
+                        },
+                        supportingContent = {
+                            Text("Study reminder settings for this device")
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Info,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenNotifications)
+                    )
+                }
+            }
+
             items(capabilityStates, key = { item -> item.capability.name }) { item ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(

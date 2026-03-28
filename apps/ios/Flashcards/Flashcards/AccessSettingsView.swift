@@ -4,6 +4,14 @@ struct AccessSettingsView: View {
     var body: some View {
         List {
             Section("Permissions") {
+                NavigationLink(value: SettingsNavigationDestination.workspaceNotifications) {
+                    SettingsNavigationRow(
+                        title: "Notifications",
+                        value: "This Device",
+                        systemImage: "bell.badge"
+                    )
+                }
+
                 ForEach(AccessPermissionKind.allCases) { kind in
                     NavigationLink {
                         AccessPermissionDetailView(kind: kind)

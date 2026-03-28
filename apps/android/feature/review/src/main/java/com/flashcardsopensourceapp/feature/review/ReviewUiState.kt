@@ -28,5 +28,6 @@ data class ReviewUiState(
     val hasMorePreviewCards: Boolean,
     val emptyState: ReviewEmptyState?,
     val previewErrorMessage: String,
-    val errorMessage: String
+    val errorMessage: String,
+    val isNotificationPermissionPromptVisible: Boolean
 )

@@ -1,11 +1,13 @@
 package com.flashcardsopensourceapp.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import com.flashcardsopensourceapp.app.notifications.parseReviewNotificationTapPayload
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -15,6 +17,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val application = application as FlashcardsApplication
+        handleIntent(intent = intent, application = application)
 
         lifecycleScope.launch {
             application.appGraph.ensureLocalWorkspaceShell(
@@ -25,5 +28,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             FlashcardsApp(appGraph = application.appGraph)
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val application = application as FlashcardsApplication
+        handleIntent(intent = intent, application = application)
+    }
+
+    private fun handleIntent(intent: Intent?, application: FlashcardsApplication) {
+        val payload = intent?.let(::parseReviewNotificationTapPayload) ?: return
+        application.appGraph.appHandoffCoordinator.requestReviewNotification(payload = payload)
     }
 }

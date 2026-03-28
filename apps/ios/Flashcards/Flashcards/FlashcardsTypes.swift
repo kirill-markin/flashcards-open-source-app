@@ -42,6 +42,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case device
     case access
     case workspace
+    case workspaceNotifications
     case workspaceOverview
     case workspaceScheduler
     case workspaceExport

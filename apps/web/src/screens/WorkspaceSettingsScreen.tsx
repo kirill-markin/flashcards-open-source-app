@@ -3,6 +3,7 @@ import { useAppData } from "../appData";
 import {
   settingsDecksRoute,
   settingsExportRoute,
+  settingsNotificationsRoute,
   settingsOverviewRoute,
   settingsSchedulerRoute,
   settingsTagsRoute,
@@ -112,6 +113,12 @@ export function WorkspaceSettingsScreen(): ReactElement {
             description="Review the active scheduler configuration for future reviews."
             value={workspaceSettings === null ? "Unavailable" : workspaceSettings.algorithm.toUpperCase()}
             to={settingsSchedulerRoute}
+          />
+          <SettingsNavigationCard
+            title="Notifications"
+            description="Review device-local reminder settings for study notifications on this workspace."
+            value="This device"
+            to={settingsNotificationsRoute}
           />
           <SettingsNavigationCard
             title="Export"

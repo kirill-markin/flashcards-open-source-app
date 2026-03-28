@@ -72,6 +72,9 @@ final class FlashcardsStore {
     var reviewSubmissionFailure: ReviewSubmissionFailure?
     var currentTransientBanner: TransientBanner?
     var queuedTransientBanners: [TransientBanner]
+    var reviewNotificationsSettings: ReviewNotificationsSettings
+    var notificationPermissionPromptState: NotificationPermissionPromptState
+    var isReviewNotificationPrePromptPresented: Bool
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
     var localReadVersion: Int
@@ -275,6 +278,12 @@ final class FlashcardsStore {
         self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
         self.currentTransientBanner = nil
         self.queuedTransientBanners = []
+        self.reviewNotificationsSettings = makeDefaultReviewNotificationsSettings()
+        self.notificationPermissionPromptState = loadNotificationPermissionPromptState(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
+        self.isReviewNotificationPrePromptPresented = false
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
         self.localReadVersion = 0
@@ -303,6 +312,11 @@ final class FlashcardsStore {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
+        self.reviewNotificationsSettings = loadReviewNotificationsSettings(
+            userDefaults: userDefaults,
+            decoder: decoder,
+            workspaceId: self.workspace?.workspaceId
+        )
 
         if self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) {
             self.accountDeletionState = .inProgress

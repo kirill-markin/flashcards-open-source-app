@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.di
 import android.content.Context
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
+import com.flashcardsopensourceapp.app.notifications.ReviewNotificationsManager
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
@@ -15,6 +16,8 @@ import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.buildAppDatabase
 import com.flashcardsopensourceapp.data.local.database.closeAppDatabase
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
+import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -45,6 +48,7 @@ class AppGraph(
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
+    val reviewNotificationsStore: ReviewNotificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
     private val aiChatRemoteService = AiChatRemoteService()
     private val syncLocalStore = SyncLocalStore(
         database = database,
@@ -99,6 +103,12 @@ class AppGraph(
         historyStore = aiChatHistoryStore,
         aiChatPreferencesStore = aiChatPreferencesStore,
         guestSessionStore = guestAiSessionStore
+    )
+    val reviewNotificationsManager = ReviewNotificationsManager(
+        context = context,
+        database = database,
+        reviewPreferencesStore = reviewPreferencesStore,
+        reviewNotificationsStore = reviewNotificationsStore
     )
 
     init {
