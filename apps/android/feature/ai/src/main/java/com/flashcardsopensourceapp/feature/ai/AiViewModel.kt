@@ -324,7 +324,7 @@ class AiViewModel(
             try {
                 val snapshot = aiChatRepository.resetSession(
                     workspaceId = draftState.value.workspaceId,
-                    sessionId = draftState.value.persistedState.chatSessionId
+                    sessionId = null
                 )
                 applyServerSnapshot(snapshot)
             } catch (error: Exception) {
@@ -625,7 +625,10 @@ class AiViewModel(
         draftState.update { state ->
             state.copy(
                 persistedState = markAssistantError(
-                    state = state.persistedState,
+                    state = clearMissingChatSessionIdIfNeeded(
+                        state = state.persistedState,
+                        error = error
+                    ),
                     message = message
                 ),
                 errorMessage = message
@@ -655,8 +658,19 @@ class AiViewModel(
                     workspaceId = workspaceId,
                     sessionId = persistedState.chatSessionId
                 )
-                if (snapshot != null) {
-                    applyServerSnapshot(snapshot)
+                when {
+                    snapshot != null -> applyServerSnapshot(snapshot)
+                    persistedState.chatSessionId.isNotBlank() -> {
+                        val repairedState = persistedState.copy(chatSessionId = "")
+                        draftState.update { state ->
+                            state.copy(persistedState = repairedState)
+                        }
+                        persistCurrentState()
+                        aiChatRepository.loadChatSnapshot(
+                            workspaceId = workspaceId,
+                            sessionId = null
+                        )?.let(::applyServerSnapshot)
+                    }
                 }
             } catch (_: Exception) {
             }
@@ -728,6 +742,22 @@ private fun clearOptimisticAssistantStatusIfNeeded(
     return state.copy(
         messages = state.messages.dropLast(1) + lastMessage.copy(content = updatedContent)
     )
+}
+
+private fun clearMissingChatSessionIdIfNeeded(
+    state: AiChatPersistedState,
+    error: Exception
+): AiChatPersistedState {
+    val remoteError = error as? AiChatRemoteException ?: return state
+    if (remoteError.statusCode != 404) {
+        return state
+    }
+    val errorMessage = remoteError.message ?: return state
+    if (errorMessage.startsWith(prefix = "Chat session not found:").not()) {
+        return state
+    }
+
+    return state.copy(chatSessionId = "")
 }
 
 fun createAiViewModelFactory(

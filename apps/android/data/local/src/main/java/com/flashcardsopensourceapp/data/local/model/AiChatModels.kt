@@ -259,14 +259,10 @@ data class StoredGuestAiSession(
     val apiBaseUrl: String
 )
 
-fun makeAiChatSessionId(): String {
-    return UUID.randomUUID().toString().lowercase()
-}
-
 fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
     return AiChatPersistedState(
         messages = emptyList(),
-        chatSessionId = makeAiChatSessionId(),
+        chatSessionId = "",
         lastKnownChatConfig = null
     )
 }

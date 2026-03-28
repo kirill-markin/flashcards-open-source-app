@@ -297,6 +297,7 @@ class AiViewModelTest {
         val aiChatRepository = FakeAiChatRepository(
             hasConsent = true,
             persistedState = makeDefaultAiChatPersistedState().copy(
+                chatSessionId = "session-old",
                 messages = listOf(
                     com.flashcardsopensourceapp.data.local.model.AiChatMessage(
                         messageId = "message-1",
@@ -326,7 +327,87 @@ class AiViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.messages.isEmpty())
+        assertEquals(null, aiChatRepository.lastResetSessionId)
         assertFalse(previousChatSessionId == aiChatRepository.lastSavedState?.chatSessionId)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun switchWorkspaceRepairsMissingStoredSessionAndLoadsLatestSnapshot() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            persistedState = makeDefaultAiChatPersistedState().copy(
+                chatSessionId = "missing-session"
+            ),
+            loadSnapshotHandler = { _, sessionId, persistedState ->
+                when (sessionId) {
+                    "missing-session" -> null
+                    null -> AiChatSessionSnapshot(
+                        sessionId = "server-session-1",
+                        runState = "idle",
+                        updatedAtMillis = 1L,
+                        mainContentInvalidationVersion = 0L,
+                        messages = persistedState.messages,
+                        chatConfig = defaultAiChatServerConfig
+                    )
+
+                    else -> throw AssertionError("Unexpected session id: $sessionId")
+                }
+            }
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("missing-session", null),
+            aiChatRepository.loadSnapshotSessionIds.takeLast(n = 2)
+        )
+        assertEquals("server-session-1", aiChatRepository.lastSavedState?.chatSessionId)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun sendFailureWithMissingChatSessionClearsPersistedSessionId() = runTest(dispatcher) {
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            persistedState = makeDefaultAiChatPersistedState().copy(
+                chatSessionId = "missing-session"
+            ),
+            streamHandler = { _, _, _ ->
+                throw AiChatRemoteException(
+                    message = "Chat session not found: missing-session",
+                    statusCode = 404,
+                    code = null,
+                    stage = "response_not_ok",
+                    requestId = "request-404",
+                    responseBody = null
+                )
+            }
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.updateDraftMessage("hi")
+        advanceUntilIdle()
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals("", aiChatRepository.lastSavedState?.chatSessionId)
         collectionJob.cancel()
     }
 
@@ -605,6 +686,20 @@ private class FakeAiChatRepository(
     private val transcriptionText: String = "",
     private val transcriptionError: Exception? = null,
     private val warmUpError: Exception? = null,
+    private val loadSnapshotHandler: (
+        String?,
+        String?,
+        AiChatPersistedState
+    ) -> AiChatSessionSnapshot? = { _, sessionId, persistedState ->
+        AiChatSessionSnapshot(
+            sessionId = sessionId ?: persistedState.chatSessionId,
+            runState = "idle",
+            updatedAtMillis = 1L,
+            mainContentInvalidationVersion = 0L,
+            messages = persistedState.messages,
+            chatConfig = persistedState.lastKnownChatConfig ?: defaultAiChatServerConfig
+        )
+    },
     private val streamHandler: suspend (
         String?,
         AiChatPersistedState,
@@ -620,6 +715,8 @@ private class FakeAiChatRepository(
     private val consentState = MutableStateFlow(hasConsent)
     private val storedStates = mutableMapOf<String?, AiChatPersistedState>()
     var lastSavedState: AiChatPersistedState? = null
+    var lastResetSessionId: String? = "unset"
+    val loadSnapshotSessionIds = mutableListOf<String?>()
     var warmUpCalls: Int = 0
 
     init {
@@ -652,18 +749,13 @@ private class FakeAiChatRepository(
     }
 
     override suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot? {
+        loadSnapshotSessionIds += sessionId
         val persistedState = storedStates[workspaceId] ?: return null
-        return AiChatSessionSnapshot(
-            sessionId = sessionId ?: persistedState.chatSessionId,
-            runState = "idle",
-            updatedAtMillis = 1L,
-            mainContentInvalidationVersion = 0L,
-            messages = persistedState.messages,
-            chatConfig = persistedState.lastKnownChatConfig ?: defaultAiChatServerConfig
-        )
+        return loadSnapshotHandler(workspaceId, sessionId, persistedState)
     }
 
     override suspend fun resetSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
+        lastResetSessionId = sessionId
         val resetState = makeDefaultAiChatPersistedState()
         storedStates[workspaceId] = resetState
         return AiChatSessionSnapshot(
