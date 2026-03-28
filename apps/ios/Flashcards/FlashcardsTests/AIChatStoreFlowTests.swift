@@ -202,7 +202,14 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
 
         chatStore.inputText = "hello"
         chatStore.sendMessage()
-        try await Task.sleep(nanoseconds: 100_000_000)
+        try await self.waitForAsyncCondition(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000,
+            failureMessage: "Timed out waiting for backend chat run start"
+        ) {
+            let startedRequests = await service.startedRequests()
+            return startedRequests.count == 1
+        }
         chatStore.cancelStreaming()
         try await self.waitForAsyncCondition(
             timeoutNanoseconds: 3_000_000_000,

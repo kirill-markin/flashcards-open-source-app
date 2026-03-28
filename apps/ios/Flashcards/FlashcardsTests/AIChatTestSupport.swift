@@ -208,9 +208,11 @@ struct StubLocalizedError: LocalizedError {
 
 actor SuspendingChatService: AIChatSessionServicing {
     private var hasStopped: Bool
+    private var hasStarted: Bool
 
     init() {
         self.hasStopped = false
+        self.hasStarted = false
     }
 
     func loadSnapshot(
@@ -234,6 +236,7 @@ actor SuspendingChatService: AIChatSessionServicing {
     ) async throws -> AIChatStartRunResponse {
         _ = session
         self.hasStopped = false
+        self.hasStarted = true
         return AIChatStartRunResponse(
             ok: true,
             sessionId: request.sessionId ?? "session-suspending",
@@ -273,6 +276,10 @@ actor SuspendingChatService: AIChatSessionServicing {
 
     func hasStoppedRun() -> Bool {
         self.hasStopped
+    }
+
+    func hasStartedRun() -> Bool {
+        self.hasStarted
     }
 }
 

@@ -240,7 +240,13 @@ final class AIChatDictationTests: AIChatTestCaseBase {
 
         chatStore.inputText = "first"
         chatStore.sendMessage()
-        try await self.waitForChatStart(chatStore: chatStore)
+        try await self.waitForAsyncCondition(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000,
+            failureMessage: "Timed out waiting for backend chat run start"
+        ) {
+            await chatService.hasStartedRun()
+        }
         XCTAssertTrue(chatStore.isStreaming)
 
         chatStore.inputText = "next"
