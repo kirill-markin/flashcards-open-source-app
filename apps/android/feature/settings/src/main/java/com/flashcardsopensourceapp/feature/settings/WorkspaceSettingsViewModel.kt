@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +23,7 @@ class WorkspaceSettingsViewModel(
             deckCount = overview?.deckCount ?: 0,
             totalCards = overview?.totalCards ?: 0,
             tagCount = overview?.tagsCount ?: 0,
-            schedulerSummary = schedulerSettings?.let(::formatSchedulerSummary) ?: "Unavailable",
+            schedulerSummary = schedulerSettings?.let(::formatWorkspaceSchedulerSummary) ?: "Unavailable",
             exportSummary = "CSV"
         )
     }.stateIn(
@@ -47,12 +46,4 @@ fun createWorkspaceSettingsViewModelFactory(workspaceRepository: WorkspaceReposi
             WorkspaceSettingsViewModel(workspaceRepository = workspaceRepository)
         }
     }
-}
-
-private fun formatSchedulerSummary(settings: WorkspaceSchedulerSettings): String {
-    return "${settings.algorithm.uppercase()} ${formatDesiredRetention(value = settings.desiredRetention)}"
-}
-
-private fun formatDesiredRetention(value: Double): String {
-    return String.format("%.2f", value)
 }
