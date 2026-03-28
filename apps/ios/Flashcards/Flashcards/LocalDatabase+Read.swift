@@ -114,6 +114,33 @@ extension LocalDatabase {
         )
     }
 
+    func loadCurrentReviewNotificationCard(
+        workspaceId: String,
+        reviewFilter: ReviewFilter,
+        now: Date
+    ) throws -> CurrentReviewNotificationCard? {
+        let resolvedReviewQuery = try self.loadResolvedReviewQuery(
+            workspaceId: workspaceId,
+            reviewFilter: reviewFilter
+        )
+        let reviewHeadState = try self.loadReviewHead(
+            workspaceId: workspaceId,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+            now: now,
+            limit: 1
+        )
+        guard let currentCard = reviewHeadState.seedReviewQueue.first else {
+            return nil
+        }
+
+        return CurrentReviewNotificationCard(
+            reviewFilter: makePersistedReviewFilter(reviewFilter: resolvedReviewQuery.reviewFilter),
+            cardId: currentCard.cardId,
+            frontText: currentCard.frontText
+        )
+    }
+
     func loadReviewQueueChunk(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,
