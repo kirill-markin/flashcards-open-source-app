@@ -1,3 +1,26 @@
+import {
+  ApiContractError,
+  parseAgentApiKeyConnectionsEnvelopeResponse,
+  parseAgentApiKeyRevokeResponse,
+  parseChatSessionSnapshotResponse,
+  parseChatTranscriptionResponse,
+  parseDeleteAccountResponse,
+  parseDeleteWorkspaceResponse,
+  parseQueryCardsPageResponse,
+  parseResetChatSessionResponse,
+  parseSessionInfoResponse,
+  parseStartChatRunResponse,
+  parseStopChatRunResponse,
+  parseSyncBootstrapPullResultResponse,
+  parseSyncBootstrapPushResultResponse,
+  parseSyncPullResultResponse,
+  parseSyncPushResultResponse,
+  parseSyncReviewHistoryImportResultResponse,
+  parseSyncReviewHistoryPullResultResponse,
+  parseWorkspaceDeletePreviewResponse,
+  parseWorkspaceEnvelopeResponse,
+  parseWorkspacesEnvelopeResponse,
+} from "./apiContracts";
 import { getAppConfig } from "./config";
 import type {
   AgentApiKeyConnection,
@@ -47,16 +70,8 @@ export class AuthRedirectError extends Error {
   }
 }
 
-type WorkspaceEnvelope = Readonly<{
-  workspace: WorkspaceSummary;
-}>;
+export { ApiContractError };
 
-type WorkspacesEnvelope = Readonly<{
-  workspaces: ReadonlyArray<WorkspaceSummary>;
-  nextCursor: string | null;
-}>;
-
-type JsonObject = Record<string, unknown>;
 type SessionCsrfState = "unknown" | "session" | "non-session";
 type AuthRecoveryMode = "allow" | "skip";
 type NavigateToUrl = (url: string) => void;
@@ -251,8 +266,7 @@ async function parseJsonPayload(response: Response): Promise<unknown> {
  */
 async function loadSessionInfoWithoutRecovery(): Promise<SessionInfo> {
   const response = await rawRequestResponse("/me", { method: "GET" });
-  const payload = expectObject(await parseJsonPayload(response));
-  const session = payload as unknown as SessionInfo;
+  const session = parseSessionInfoResponse(await parseJsonPayload(response), "GET /me");
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   redirectInFlight = false;
   return session;
@@ -352,14 +366,6 @@ async function requestJson(
   return parseJsonPayload(response);
 }
 
-function expectObject(value: unknown): JsonObject {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("API response must be a JSON object");
-  }
-
-  return value as JsonObject;
-}
-
 /**
  * Loads the authenticated browser session from `/me` and refreshes the cached
  * CSRF token when the backend authenticates the request via shared cookies.
@@ -381,8 +387,7 @@ export async function revalidateSession(): Promise<SessionInfo> {
  * from one expired session token without forcing a full page reload.
  */
 async function loadSessionInfoWithRecovery(): Promise<SessionInfo> {
-  const payload = expectObject(await requestJson("/me", { method: "GET" }, allowAuthRecovery));
-  const session = payload as unknown as SessionInfo;
+  const session = parseSessionInfoResponse(await requestJson("/me", { method: "GET" }, allowAuthRecovery), "GET /me");
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   redirectInFlight = false;
   return session;
@@ -400,7 +405,10 @@ export async function listWorkspaces(): Promise<ReadonlyArray<WorkspaceSummary>>
       searchParams.set("cursor", nextCursor);
     }
 
-    const payload = expectObject(await requestJson(`/workspaces?${searchParams.toString()}`, { method: "GET" }, allowAuthRecovery)) as unknown as WorkspacesEnvelope;
+    const payload = parseWorkspacesEnvelopeResponse(
+      await requestJson(`/workspaces?${searchParams.toString()}`, { method: "GET" }, allowAuthRecovery),
+      "GET /workspaces",
+    );
     workspaces.push(...payload.workspaces);
     nextCursor = payload.nextCursor;
   } while (nextCursor !== null);
@@ -409,39 +417,39 @@ export async function listWorkspaces(): Promise<ReadonlyArray<WorkspaceSummary>>
 }
 
 export async function createWorkspace(name: string): Promise<WorkspaceSummary> {
-  const payload = expectObject(await requestJson("/workspaces", {
+  const payload = parseWorkspaceEnvelopeResponse(await requestJson("/workspaces", {
     method: "POST",
     body: JSON.stringify({ name }),
-  }, allowAuthRecovery)) as unknown as WorkspaceEnvelope;
+  }, allowAuthRecovery), "POST /workspaces");
   return payload.workspace;
 }
 
 export async function selectWorkspace(workspaceId: string): Promise<WorkspaceSummary> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/select`, {
+  const payload = parseWorkspaceEnvelopeResponse(await requestJson(`/workspaces/${workspaceId}/select`, {
     method: "POST",
-  }, allowAuthRecovery)) as unknown as WorkspaceEnvelope;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/select`);
   return payload.workspace;
 }
 
 export async function renameWorkspace(workspaceId: string, name: string): Promise<WorkspaceSummary> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/rename`, {
+  const payload = parseWorkspaceEnvelopeResponse(await requestJson(`/workspaces/${workspaceId}/rename`, {
     method: "POST",
     body: JSON.stringify({ name }),
-  }, allowAuthRecovery)) as unknown as WorkspaceEnvelope;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/rename`);
   return payload.workspace;
 }
 
 export async function loadWorkspaceDeletePreview(workspaceId: string): Promise<WorkspaceDeletePreview> {
-  return expectObject(await requestJson(`/workspaces/${workspaceId}/delete-preview`, {
+  return parseWorkspaceDeletePreviewResponse(await requestJson(`/workspaces/${workspaceId}/delete-preview`, {
     method: "GET",
-  }, allowAuthRecovery)) as unknown as WorkspaceDeletePreview;
+  }, allowAuthRecovery), `GET /workspaces/${workspaceId}/delete-preview`);
 }
 
 export async function deleteWorkspace(workspaceId: string, confirmationText: string): Promise<DeleteWorkspaceResponse> {
-  return expectObject(await requestJson(`/workspaces/${workspaceId}/delete`, {
+  return parseDeleteWorkspaceResponse(await requestJson(`/workspaces/${workspaceId}/delete`, {
     method: "POST",
     body: JSON.stringify({ confirmationText }),
-  }, allowAuthRecovery)) as unknown as DeleteWorkspaceResponse;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/delete`);
 }
 
 export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse> {
@@ -457,9 +465,10 @@ export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse
       searchParams.set("cursor", nextCursor);
     }
 
-    const payload = expectObject(
+    const payload = parseAgentApiKeyConnectionsEnvelopeResponse(
       await requestJson(`/agent-api-keys?${searchParams.toString()}`, { method: "GET" }, allowAuthRecovery),
-    ) as unknown as AgentApiKeyConnectionsResponse & Readonly<{ nextCursor: string | null }>;
+      "GET /agent-api-keys",
+    );
     connections.push(...payload.connections);
     instructions = payload.instructions;
     nextCursor = payload.nextCursor;
@@ -472,16 +481,19 @@ export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse
 }
 
 export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiKeyRevokeResponse> {
-  return expectObject(await requestJson(`/agent-api-keys/${connectionId}/revoke`, { method: "POST" }, allowAuthRecovery)) as unknown as AgentApiKeyRevokeResponse;
+  return parseAgentApiKeyRevokeResponse(
+    await requestJson(`/agent-api-keys/${connectionId}/revoke`, { method: "POST" }, allowAuthRecovery),
+    `POST /agent-api-keys/${connectionId}/revoke`,
+  );
 }
 
 export async function deleteMyAccount(confirmationText: string): Promise<Readonly<{ ok: true }>> {
-  return expectObject(await requestJson("/me/delete", {
+  return parseDeleteAccountResponse(await requestJson("/me/delete", {
     method: "POST",
     body: JSON.stringify({
       confirmationText,
     }),
-  }, allowAuthRecovery)) as Readonly<{ ok: true }>;
+  }, allowAuthRecovery), "POST /me/delete");
 }
 
 export async function pushSyncOperations(
@@ -491,7 +503,7 @@ export async function pushSyncOperations(
   appVersion: string,
   operations: ReadonlyArray<SyncPushOperation>,
 ): Promise<SyncPushResult> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/push`, {
+  return parseSyncPushResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/push`, {
     method: "POST",
     body: JSON.stringify({
       deviceId,
@@ -499,9 +511,7 @@ export async function pushSyncOperations(
       appVersion,
       operations,
     }),
-  }, allowAuthRecovery));
-
-  return payload as unknown as SyncPushResult;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/push`);
 }
 
 export async function pullSyncChanges(
@@ -512,7 +522,7 @@ export async function pullSyncChanges(
   afterHotChangeId: number,
   limit: number,
 ): Promise<SyncPullResult> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/pull`, {
+  return parseSyncPullResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/pull`, {
     method: "POST",
     body: JSON.stringify({
       deviceId,
@@ -521,9 +531,7 @@ export async function pullSyncChanges(
       afterHotChangeId,
       limit,
     }),
-  }, allowAuthRecovery));
-
-  return payload as unknown as SyncPullResult;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/pull`);
 }
 
 export async function bootstrapPullSyncState(
@@ -534,7 +542,7 @@ export async function bootstrapPullSyncState(
   cursor: string | null,
   limit: number,
 ): Promise<SyncBootstrapPullResult> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
+  return parseSyncBootstrapPullResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
     method: "POST",
     body: JSON.stringify({
       mode: "pull",
@@ -544,9 +552,7 @@ export async function bootstrapPullSyncState(
       cursor,
       limit,
     }),
-  }, allowAuthRecovery));
-
-  return payload as unknown as SyncBootstrapPullResult;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/bootstrap`);
 }
 
 export async function bootstrapPushSyncState(
@@ -556,7 +562,7 @@ export async function bootstrapPushSyncState(
   appVersion: string,
   entries: ReadonlyArray<SyncBootstrapEntry>,
 ): Promise<SyncBootstrapPushResult> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
+  return parseSyncBootstrapPushResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
     method: "POST",
     body: JSON.stringify({
       mode: "push",
@@ -565,9 +571,7 @@ export async function bootstrapPushSyncState(
       appVersion,
       entries,
     }),
-  }, allowAuthRecovery));
-
-  return payload as unknown as SyncBootstrapPushResult;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/bootstrap`);
 }
 
 export async function pullReviewHistorySync(
@@ -578,7 +582,7 @@ export async function pullReviewHistorySync(
   afterReviewSequenceId: number,
   limit: number,
 ): Promise<SyncReviewHistoryPullResult> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/review-history/pull`, {
+  return parseSyncReviewHistoryPullResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/review-history/pull`, {
     method: "POST",
     body: JSON.stringify({
       deviceId,
@@ -587,9 +591,7 @@ export async function pullReviewHistorySync(
       afterReviewSequenceId,
       limit,
     }),
-  }, allowAuthRecovery));
-
-  return payload as unknown as SyncReviewHistoryPullResult;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/review-history/pull`);
 }
 
 export async function importReviewHistorySync(
@@ -599,7 +601,7 @@ export async function importReviewHistorySync(
   appVersion: string,
   reviewEvents: ReadonlyArray<ReviewEvent>,
 ): Promise<SyncReviewHistoryImportResult> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/sync/review-history/import`, {
+  return parseSyncReviewHistoryImportResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/review-history/import`, {
     method: "POST",
     body: JSON.stringify({
       deviceId,
@@ -607,21 +609,17 @@ export async function importReviewHistorySync(
       appVersion,
       reviewEvents,
     }),
-  }, allowAuthRecovery));
-
-  return payload as unknown as SyncReviewHistoryImportResult;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/review-history/import`);
 }
 
 export async function queryCards(
   workspaceId: string,
   input: QueryCardsInput,
 ): Promise<QueryCardsPage> {
-  const payload = expectObject(await requestJson(`/workspaces/${workspaceId}/cards/query`, {
+  return parseQueryCardsPageResponse(await requestJson(`/workspaces/${workspaceId}/cards/query`, {
     method: "POST",
     body: JSON.stringify(input),
-  }, allowAuthRecovery));
-
-  return payload as unknown as QueryCardsPage;
+  }, allowAuthRecovery), `POST /workspaces/${workspaceId}/cards/query`);
 }
 
 export async function getChatSnapshot(sessionId?: string): Promise<ChatSessionSnapshot> {
@@ -629,16 +627,16 @@ export async function getChatSnapshot(sessionId?: string): Promise<ChatSessionSn
     ? "/chat"
     : `/chat?sessionId=${encodeURIComponent(sessionId)}`;
 
-  return expectObject(await requestJson(pathname, {
+  return parseChatSessionSnapshotResponse(await requestJson(pathname, {
     method: "GET",
-  }, allowAuthRecovery)) as unknown as ChatSessionSnapshot;
+  }, allowAuthRecovery), "GET /chat");
 }
 
 export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
-  return expectObject(await requestJson("/chat", {
+  return parseStartChatRunResponse(await requestJson("/chat", {
     method: "POST",
     body: JSON.stringify(body),
-  }, allowAuthRecovery)) as unknown as StartChatRunResponse;
+  }, allowAuthRecovery), "POST /chat");
 }
 
 export async function resetChatSession(sessionId?: string): Promise<ResetChatSessionResponse> {
@@ -646,16 +644,16 @@ export async function resetChatSession(sessionId?: string): Promise<ResetChatSes
     ? "/chat"
     : `/chat?sessionId=${encodeURIComponent(sessionId)}`;
 
-  return expectObject(await requestJson(pathname, {
+  return parseResetChatSessionResponse(await requestJson(pathname, {
     method: "DELETE",
-  }, allowAuthRecovery)) as unknown as ResetChatSessionResponse;
+  }, allowAuthRecovery), "DELETE /chat");
 }
 
 export async function stopChatRun(sessionId: string): Promise<StopChatRunResponse> {
-  return expectObject(await requestJson("/chat/stop", {
+  return parseStopChatRunResponse(await requestJson("/chat/stop", {
     method: "POST",
     body: JSON.stringify({ sessionId }),
-  }, allowAuthRecovery)) as unknown as StopChatRunResponse;
+  }, allowAuthRecovery), "POST /chat/stop");
 }
 
 function extensionForAudioMediaType(mediaType: string): string {
@@ -699,11 +697,10 @@ export async function transcribeChatAudio(
     formData.append("sessionId", sessionId);
   }
 
-  const payload = expectObject(await requestJson("/chat/transcriptions", {
+  return parseChatTranscriptionResponse(await requestJson("/chat/transcriptions", {
     method: "POST",
     body: formData,
-  }, allowAuthRecovery)) as unknown as ChatTranscriptionResponse;
-  return payload;
+  }, allowAuthRecovery), "POST /chat/transcriptions");
 }
 
 /**
