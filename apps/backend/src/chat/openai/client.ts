@@ -3,8 +3,11 @@
  * The client is memoized per process because the server owns model selection and provider configuration.
  */
 import OpenAI from "openai";
+import { observeOpenAI } from "@langfuse/openai";
+import { isLangfuseConfigured } from "../../telemetry/langfuse";
 
 let client: OpenAI | null = null;
+let observedClient: OpenAI | null = null;
 
 /**
  * Reads the required OpenAI API key for the backend-owned chat stack.
@@ -36,5 +39,14 @@ export function getOpenAIClient(): OpenAI {
  * Returns the OpenAI client instance that should be used by observed runtime paths.
  */
 export function getObservedOpenAIClient(): OpenAI {
-  return getOpenAIClient();
+  if (!isLangfuseConfigured(process.env)) {
+    return getOpenAIClient();
+  }
+
+  if (observedClient !== null) {
+    return observedClient;
+  }
+
+  observedClient = observeOpenAI(getOpenAIClient());
+  return observedClient;
 }

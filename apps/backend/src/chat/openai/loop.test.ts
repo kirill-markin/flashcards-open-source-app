@@ -77,6 +77,7 @@ test("startOpenAILoopWithDeps streams deltas and returns replay items", async ()
       timezone: "UTC",
       localMessages: [],
       turnInput: [{ type: "text", text: "hi" }],
+      rootObservation: null,
     },
     {
       buildChatCompletionInput: async () => [],

@@ -3,6 +3,7 @@
  * The loop replays persisted history, streams provider events, executes tool calls, and returns replay items for the next recovery point.
  */
 import type OpenAI from "openai";
+import type { LangfuseObservation } from "@langfuse/tracing";
 import {
   applyFunctionCallArgumentsDelta,
   applyFunctionCallArgumentsDone,
@@ -14,6 +15,7 @@ import {
 } from "./toolCalls";
 import { buildChatCompletionInput } from "./input";
 import { getObservedOpenAIClient } from "./client";
+import { runOneToolCall as runObservedToolCall } from "./toolExecutor";
 import {
   toOpenAIResponseInputItem,
   toStoredOpenAIReplayItem,
@@ -22,7 +24,6 @@ import {
   type StoredOpenAIReplayMessage,
 } from "./replayItems";
 import {
-  executeChatToolCall,
   OPENAI_CHAT_TOOLS,
   type ExecutedChatToolCall,
 } from "./tools";
@@ -44,6 +45,7 @@ type OpenAILoopDependencies = Readonly<{
     item: OpenAI.Responses.ResponseFunctionToolCall;
     userId: string;
     workspaceId: string;
+    rootObservation: LangfuseObservation | null;
   }>) => Promise<ExecutedChatToolCall>;
 }>;
 
@@ -85,6 +87,7 @@ export type StartOpenAILoopParams = Readonly<{
   timezone: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
+  rootObservation: LangfuseObservation | null;
   signal?: AbortSignal;
 }>;
 
@@ -241,16 +244,10 @@ async function runOneToolCall(
     item: OpenAI.Responses.ResponseFunctionToolCall;
     userId: string;
     workspaceId: string;
+    rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
-  return executeChatToolCall(
-    params.item.name,
-    params.item.arguments,
-    {
-      userId: params.userId,
-      workspaceId: params.workspaceId,
-    },
-  );
+  return runObservedToolCall(params);
 }
 
 const DEFAULT_OPENAI_LOOP_DEPENDENCIES: OpenAILoopDependencies = {
@@ -561,6 +558,7 @@ async function runLoopWithDeps(
         item: functionCall,
         userId: params.userId,
         workspaceId: params.workspaceId,
+        rootObservation: params.rootObservation,
       });
       const update = applyToolCallOutput(
         toolStates,

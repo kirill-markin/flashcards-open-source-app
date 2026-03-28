@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { APIConnectionError, APIError } from "openai/error";
 import { HttpError } from "../errors";
-import { transcribeChatAudioUpload } from "./transcriptions";
+import { transcribeChatAudioUpload, transcribeChatAudioUploadWithDependencies } from "./transcriptions";
 
 const originalOpenAiApiKey = process.env.OPENAI_API_KEY;
 
@@ -141,4 +141,32 @@ test("transcribeChatAudioUpload maps provider rate limits to a stable 429 error"
       && error.code === "CHAT_TRANSCRIPTION_RATE_LIMITED"
       && error.message === "AI audio transcription is temporarily unavailable on this server. Try again later.",
   );
+});
+
+test("transcribeChatAudioUploadWithDependencies uses the observed client factory when no client is provided", async () => {
+  process.env.OPENAI_API_KEY = "test-key";
+  let usedObservedClientFactory = false;
+
+  const text = await transcribeChatAudioUploadWithDependencies(
+    {
+      file: new File(["audio"], "clip.webm", { type: "audio/webm" }),
+      source: "web",
+    },
+    undefined,
+    {
+      getObservedOpenAIClient: () => {
+        usedObservedClientFactory = true;
+        return {
+          audio: {
+            transcriptions: {
+              create: async () => ({ text: "Hello from dictation" }),
+            },
+          },
+        };
+      },
+    },
+  );
+
+  assert.equal(text, "Hello from dictation");
+  assert.equal(usedObservedClientFactory, true);
 });
