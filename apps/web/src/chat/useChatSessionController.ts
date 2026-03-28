@@ -49,6 +49,7 @@ export type ChatSessionController = Readonly<{
   currentSessionId: string | null;
   chatConfig: ChatConfig;
   composerAction: ChatComposerAction;
+  acceptServerSessionId: (sessionId: string) => void;
   sendMessage: (params: SendChatMessageParams) => Promise<void>;
   stopMessage: () => Promise<void>;
   clearConversation: () => Promise<void>;
@@ -290,6 +291,7 @@ export function useChatSessionController(
     currentSessionId,
     chatConfig: chatConfig ?? defaultChatConfig,
     composerAction,
+    acceptServerSessionId: setCurrentSessionId,
     sendMessage,
     stopMessage,
     clearConversation,

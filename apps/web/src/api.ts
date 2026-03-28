@@ -685,18 +685,25 @@ function normalizeAudioMediaType(mediaType: string): string {
   return "audio/webm";
 }
 
-export async function transcribeChatAudio(blob: Blob, source: ChatTranscriptionSource): Promise<string> {
+export async function transcribeChatAudio(
+  blob: Blob,
+  source: ChatTranscriptionSource,
+  sessionId?: string,
+): Promise<ChatTranscriptionResponse> {
   const mediaType = normalizeAudioMediaType(blob.type === "" ? "audio/webm" : blob.type);
   const file = new File([blob], `chat-dictation.${extensionForAudioMediaType(mediaType)}`, { type: mediaType });
   const formData = new FormData();
   formData.append("file", file);
   formData.append("source", source);
+  if (sessionId !== undefined) {
+    formData.append("sessionId", sessionId);
+  }
 
   const payload = expectObject(await requestJson("/chat/transcriptions", {
     method: "POST",
     body: formData,
   }, allowAuthRecovery)) as unknown as ChatTranscriptionResponse;
-  return payload.text;
+  return payload;
 }
 
 /**

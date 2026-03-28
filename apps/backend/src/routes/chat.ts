@@ -15,7 +15,6 @@ import {
   ChatSessionConflictError,
   ChatSessionNotFoundError,
   createFreshChatSession,
-  getLatestChatSessionId,
   type ChatSessionSnapshot,
 } from "../chat/store";
 import { invokeChatWorkerOrPersistFailure } from "../chat/workerInvoke";
@@ -80,7 +79,6 @@ type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
-  getLatestChatSessionIdFn?: typeof getLatestChatSessionId;
   createFreshChatSessionFn?: typeof createFreshChatSession;
   prepareChatRunFn?: typeof prepareChatRun;
   invokeChatWorkerFn?: typeof invokeChatWorkerOrPersistFailure;
@@ -315,7 +313,6 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const getRecoveredChatSessionSnapshotFn = options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot;
-  const getLatestChatSessionIdFn = options.getLatestChatSessionIdFn ?? getLatestChatSessionId;
   const createFreshChatSessionFn = options.createFreshChatSessionFn ?? createFreshChatSession;
   const prepareChatRunFn = options.prepareChatRunFn ?? prepareChatRun;
   const invokeChatWorkerFn = options.invokeChatWorkerFn ?? invokeChatWorkerOrPersistFailure;
@@ -389,21 +386,23 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     const workspaceId = requireSelectedWorkspaceId(requestContext);
     const sessionId = context.req.query("sessionId") ?? undefined;
 
+    let snapshot: ChatSessionSnapshot;
     try {
-      if (sessionId !== undefined) {
-        await getRecoveredChatSessionSnapshotFn(
-          requestContext.userId,
-          workspaceId,
-          sessionId,
-        );
-      } else {
-        await getLatestChatSessionIdFn(
-          requestContext.userId,
-          workspaceId,
-        );
-      }
+      snapshot = await getRecoveredChatSessionSnapshotFn(
+        requestContext.userId,
+        workspaceId,
+        sessionId,
+      );
     } catch (error) {
       return mapStoreError(error);
+    }
+
+    if (snapshot.messages.length === 0) {
+      return context.json({
+        ok: true,
+        sessionId: snapshot.sessionId,
+        chatConfig: getChatConfig(),
+      } satisfies ChatResetResponse);
     }
 
     const newSessionId = await createFreshChatSessionFn(

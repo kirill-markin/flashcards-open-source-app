@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
+import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
@@ -504,7 +505,10 @@ class AiViewModelTest {
     fun transcriptionAppendsTranscriptToDraftWithoutSending() = runTest(dispatcher) {
         val aiChatRepository = FakeAiChatRepository(
             hasConsent = true,
-            transcriptionText = "Added by dictation"
+            transcriptionResult = AiChatTranscriptionResult(
+                text = "Added by dictation",
+                sessionId = "session-dictation-1"
+            )
         )
         val viewModel = AiViewModel(
             aiChatRepository = aiChatRepository,
@@ -528,6 +532,7 @@ class AiViewModelTest {
         assertEquals(AiChatDictationState.IDLE, viewModel.uiState.value.dictationState)
         assertEquals("Draft\nAdded by dictation", viewModel.uiState.value.draftMessage)
         assertTrue(viewModel.uiState.value.messages.isEmpty())
+        assertEquals("session-dictation-1", aiChatRepository.lastSavedState?.chatSessionId)
         collectionJob.cancel()
     }
 
@@ -683,7 +688,10 @@ class AiViewModelTest {
 private class FakeAiChatRepository(
     hasConsent: Boolean,
     persistedState: AiChatPersistedState = makeDefaultAiChatPersistedState(),
-    private val transcriptionText: String = "",
+    private val transcriptionResult: AiChatTranscriptionResult = AiChatTranscriptionResult(
+        text = "",
+        sessionId = "session-1"
+    ),
     private val transcriptionError: Exception? = null,
     private val warmUpError: Exception? = null,
     private val loadSnapshotHandler: (
@@ -770,14 +778,15 @@ private class FakeAiChatRepository(
 
     override suspend fun transcribeAudio(
         workspaceId: String?,
+        sessionId: String?,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
-    ): String {
+    ): AiChatTranscriptionResult {
         transcriptionError?.let { error ->
             throw error
         }
-        return transcriptionText
+        return transcriptionResult
     }
 
     override suspend fun warmUpLinkedSession() {

@@ -380,7 +380,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     init(messages: [AIChatMessage]) {
         self.init(
             messages: messages,
-            chatSessionId: makeAIChatSessionId(),
+            chatSessionId: "",
             lastKnownChatConfig: nil
         )
     }

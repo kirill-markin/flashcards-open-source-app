@@ -278,12 +278,14 @@ class AiViewModel(
 
         viewModelScope.launch {
             try {
-                val transcript = aiChatRepository.transcribeAudio(
+                val transcription = aiChatRepository.transcribeAudio(
                     workspaceId = draftState.value.workspaceId,
+                    sessionId = draftState.value.persistedState.chatSessionId.ifBlank { null },
                     fileName = fileName,
                     mediaType = mediaType,
                     audioBytes = audioBytes
-                ).trim()
+                )
+                val transcript = transcription.text.trim()
 
                 require(transcript.isNotEmpty()) {
                     noSpeechRecordedMessage
@@ -291,6 +293,7 @@ class AiViewModel(
 
                 draftState.update { state ->
                     state.copy(
+                        persistedState = state.persistedState.copy(chatSessionId = transcription.sessionId),
                         draftMessage = appendTranscriptToDraft(
                             currentDraft = state.draftMessage,
                             transcript = transcript
@@ -300,6 +303,7 @@ class AiViewModel(
                         errorMessage = ""
                     )
                 }
+                persistCurrentState()
             } catch (error: Exception) {
                 val message = makeUserFacingErrorMessage(
                     error = error,

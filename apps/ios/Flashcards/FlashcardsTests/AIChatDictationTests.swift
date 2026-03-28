@@ -82,12 +82,15 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .success)
-        let transcriber = StubAudioTranscriber(result: .success("dictated text"))
+        let transcriber = StubAudioTranscriber(result: .success(
+            AIChatTranscriptionResult(text: "dictated text", sessionId: "session-1")
+        ))
+        let historyStore = InMemoryHistoryStore(
+            savedState: AIChatPersistedState(messages: [])
+        )
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
-            historyStore: InMemoryHistoryStore(
-                savedState: AIChatPersistedState(messages: [])
-            ),
+            historyStore: historyStore,
             chatService: FailingChatService(),
             contextLoader: contextLoader,
             voiceRecorder: recorder,
@@ -104,13 +107,16 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.inputText, "hello")
         XCTAssertEqual(chatStore.completedDictationTranscript?.transcript, "dictated text")
         XCTAssertNil(chatStore.activeAlert)
+        XCTAssertEqual(historyStore.savedState.chatSessionId, "session-1")
     }
 
     func testAIChatStoreSilentlyStopsWhenMicrophonePermissionIsDeniedFromPrompt() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .permissionDenied)
-        let transcriber = StubAudioTranscriber(result: .success("ignored"))
+        let transcriber = StubAudioTranscriber(result: .success(
+            AIChatTranscriptionResult(text: "ignored", sessionId: "session-1")
+        ))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
@@ -132,7 +138,9 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .permissionBlocked)
-        let transcriber = StubAudioTranscriber(result: .success("ignored"))
+        let transcriber = StubAudioTranscriber(result: .success(
+            AIChatTranscriptionResult(text: "ignored", sessionId: "session-1")
+        ))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
@@ -215,7 +223,9 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .success)
-        let transcriber = StubAudioTranscriber(result: .success("dictated text"))
+        let transcriber = StubAudioTranscriber(result: .success(
+            AIChatTranscriptionResult(text: "dictated text", sessionId: "session-1")
+        ))
         let chatService = SuspendingChatService()
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
@@ -259,7 +269,9 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
         let contextLoader = StubContextLoader()
         let recorder = StubVoiceRecorder(mode: .success)
-        let transcriber = StubAudioTranscriber(result: .success("dictated text"))
+        let transcriber = StubAudioTranscriber(result: .success(
+            AIChatTranscriptionResult(text: "dictated text", sessionId: "session-1")
+        ))
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(
@@ -420,10 +432,15 @@ private final class StubVoiceRecorder: AIChatVoiceRecording {
 }
 
 private struct StubAudioTranscriber: AIChatAudioTranscribing {
-    let result: Result<String, Error>
+    let result: Result<AIChatTranscriptionResult, Error>
 
-    func transcribe(session: CloudLinkedSession, recordedAudio: AIChatRecordedAudio) async throws -> String {
+    func transcribe(
+        session: CloudLinkedSession,
+        sessionId: String?,
+        recordedAudio: AIChatRecordedAudio
+    ) async throws -> AIChatTranscriptionResult {
         _ = session
+        _ = sessionId
         _ = recordedAudio
         return try self.result.get()
     }

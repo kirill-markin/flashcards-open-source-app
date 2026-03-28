@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { propagateAttributes, startObservation } from "@langfuse/tracing";
-import { getLangfuseConfigValidationErrors, initializeLangfuseTelemetryWithDeps, resetLangfuseTelemetryForTests, sanitizeTelemetryValue, startChatTurnObservationWithDeps } from "./langfuse";
+import {
+  getLangfuseConfigValidationErrors,
+  initializeLangfuseTelemetryWithDeps,
+  resetLangfuseTelemetryForTests,
+  sanitizeTelemetryValue,
+  startChatTranscriptionObservationWithDeps,
+  startChatTurnObservationWithDeps,
+} from "./langfuse";
 
 const originalLangfusePublicKey = process.env.LANGFUSE_PUBLIC_KEY;
 const originalLangfuseSecretKey = process.env.LANGFUSE_SECRET_KEY;
@@ -116,4 +123,66 @@ test("startChatTurnObservationWithDeps falls back to a null observation when tra
   ));
 
   assert.deepEqual(observedRoots, [null]);
+});
+
+test("startChatTranscriptionObservationWithDeps attaches safe transcription metadata including sessionId", async () => {
+  process.env.LANGFUSE_PUBLIC_KEY = "pk-lf-test";
+  process.env.LANGFUSE_SECRET_KEY = "sk-lf-test";
+  process.env.LANGFUSE_BASE_URL = "https://cloud.langfuse.com";
+
+  const startedObservations: Array<{
+    name: string;
+    input: unknown;
+    metadata: unknown;
+  }> = [];
+
+  const result = await startChatTranscriptionObservationWithDeps(
+    {
+      requestId: "req-1",
+      userId: "user-1",
+      sessionId: "session-1",
+      source: "web",
+      fileName: "clip.webm",
+      mediaType: "audio/webm",
+      fileSize: 128,
+    },
+    async (): Promise<string> => "recognized text",
+    {
+      createTraceId: async () => "1234567890abcdef1234567890abcdef",
+      propagateAttributes,
+      startObservation: ((name, params) => {
+        startedObservations.push({
+          name,
+          input: params?.input,
+          metadata: params?.metadata,
+        });
+        return {
+          updateOtelSpanAttributes: () => undefined,
+          end: () => undefined,
+        } as unknown;
+      }) as typeof startObservation,
+    },
+  );
+
+  assert.equal(result, "recognized text");
+  assert.equal(startedObservations.length, 1);
+  assert.deepEqual(startedObservations[0], {
+    name: "chat_transcription",
+    input: {
+      sessionId: "session-1",
+      source: "web",
+      fileName: "clip.webm",
+      mediaType: "audio/webm",
+      fileSize: 128,
+    },
+    metadata: {
+      requestId: "req-1",
+      userId: "user-1",
+      sessionId: "session-1",
+      source: "web",
+      fileName: "clip.webm",
+      mediaType: "audio/webm",
+      fileSize: "128",
+    },
+  });
 });

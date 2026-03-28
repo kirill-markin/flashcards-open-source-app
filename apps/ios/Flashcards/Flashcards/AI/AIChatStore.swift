@@ -220,7 +220,7 @@ final class AIChatStore {
         self.activeConversationId = nil
         let clearedState = AIChatPersistedState(
             messages: [],
-            chatSessionId: makeAIChatSessionId(),
+            chatSessionId: "",
             lastKnownChatConfig: self.serverChatConfig
         )
         self.chatSessionId = clearedState.chatSessionId
@@ -519,13 +519,16 @@ final class AIChatStore {
                     try? FileManager.default.removeItem(at: recordedAudio.fileUrl)
                 }
 
-                let transcript = try await self.audioTranscriber.transcribe(
+                let transcription = try await self.audioTranscriber.transcribe(
                     session: session,
+                    sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
                     recordedAudio: recordedAudio
                 )
+                self.chatSessionId = transcription.sessionId
+                await self.historyStore.saveState(state: self.currentPersistedState())
                 self.completedDictationTranscript = AIChatCompletedDictationTranscript(
                     id: UUID().uuidString.lowercased(),
-                    transcript: transcript
+                    transcript: transcription.text
                 )
             } catch is CancellationError {
             } catch let recorderError as AIChatVoiceRecorderError {
@@ -625,11 +628,24 @@ final class AIChatStore {
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let snapshot = try await self.chatService.loadSnapshot(
-                    session: session,
-                    sessionId: self.chatSessionId
-                )
-                self.applySnapshot(snapshot)
+                let currentSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
+                do {
+                    let snapshot = try await self.chatService.loadSnapshot(
+                        session: session,
+                        sessionId: currentSessionId
+                    )
+                    self.applySnapshot(snapshot)
+                } catch {
+                    guard currentSessionId != nil else {
+                        throw error
+                    }
+
+                    let repairedSnapshot = try await self.chatService.loadSnapshot(
+                        session: session,
+                        sessionId: nil
+                    )
+                    self.applySnapshot(repairedSnapshot)
+                }
             } catch {
             }
         }

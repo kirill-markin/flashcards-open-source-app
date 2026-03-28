@@ -86,6 +86,7 @@ export type ChatTranscriptionSource = "ios" | "web";
 
 export type ChatTranscriptionResponse = Readonly<{
   text: string;
+  sessionId: string;
 }>;
 
 export type ChatSessionHistoryMessage = Readonly<{

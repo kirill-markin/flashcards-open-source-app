@@ -20,6 +20,7 @@ type ChatTurnTelemetryParams = Readonly<{
 type ChatTranscriptionTelemetryParams = Readonly<{
   requestId: string;
   userId: string;
+  sessionId: string;
   source: string;
   fileName: string;
   mediaType: string;
@@ -148,6 +149,7 @@ function buildChatTranscriptionMetadata(
   return {
     requestId: metadataValue(params.requestId),
     userId: metadataValue(params.userId),
+    sessionId: metadataValue(params.sessionId),
     source: metadataValue(params.source),
     fileName: metadataValue(params.fileName),
     mediaType: metadataValue(params.mediaType),
@@ -410,6 +412,7 @@ export async function startChatTranscriptionObservationWithDeps<Result>(
           "chat_transcription",
           {
             input: {
+              sessionId: params.sessionId,
               source: params.source,
               fileName: params.fileName,
               mediaType: params.mediaType,

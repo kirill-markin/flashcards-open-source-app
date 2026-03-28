@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
+import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
@@ -128,10 +129,11 @@ interface AiChatRepository {
     suspend fun resetSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot
     suspend fun transcribeAudio(
         workspaceId: String?,
+        sessionId: String?,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
-    ): String
+    ): AiChatTranscriptionResult
     suspend fun warmUpLinkedSession()
     suspend fun startRun(
         workspaceId: String?,
