@@ -123,7 +123,10 @@ class MainActivityTest {
             matcher = hasText("Fast", substring = true)
         ).fetchSemanticsNode()
         composeRule.onNode(
-            matcher = hasText("draft, android", substring = true)
+            matcher = hasText("draft", substring = true)
+        ).fetchSemanticsNode()
+        composeRule.onNode(
+            matcher = hasText("android", substring = true)
         ).fetchSemanticsNode()
         composeRule.onNode(
             matcher = hasText("new", substring = true)
