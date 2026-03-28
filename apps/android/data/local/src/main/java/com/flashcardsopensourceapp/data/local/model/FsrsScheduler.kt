@@ -87,8 +87,6 @@ private data class ShortTermWeights(
     val w18: Double
 )
 
-private const val defaultDesiredRetention: Double = 0.90
-private const val defaultMaximumIntervalDays: Int = 36_500
 private const val fsrsMinimumStability: Double = 0.001
 private const val w17W18Ceiling: Double = 2.0
 private const val millisecondsPerMinute: Long = 60_000L
@@ -97,13 +95,6 @@ private const val millisecondsPerDay: Long = 86_400_000L
 private val schedulerTimestampFormatter: DateTimeFormatter = DateTimeFormatter
     .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US)
     .withZone(ZoneOffset.UTC)
-
-private val reviewAnswerPresentationOrder: List<ReviewRating> = listOf(
-    ReviewRating.AGAIN,
-    ReviewRating.HARD,
-    ReviewRating.GOOD,
-    ReviewRating.EASY
-)
 
 // Keep in sync with apps/backend/src/schedule.ts::DEFAULT_W and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::defaultWeights.
 private val defaultWeights: List<Double> = listOf(
@@ -207,170 +198,6 @@ private class AleaGenerator(seed: String) {
         s2 = nextValue - c
         return s2
     }
-}
-
-private fun validateSchedulerStepList(values: List<Int>, fieldName: String): List<Int> {
-    require(values.isNotEmpty()) {
-        "$fieldName must not be empty."
-    }
-    require(values.all { value -> value > 0 && value < 1_440 }) {
-        "$fieldName must contain positive integer minutes under 1440."
-    }
-
-    for (index in 1 until values.size) {
-        require(values[index] > values[index - 1]) {
-            "$fieldName must be strictly increasing."
-        }
-    }
-
-    return values
-}
-
-fun makeDefaultWorkspaceSchedulerSettings(
-    workspaceId: String,
-    updatedAtMillis: Long
-): WorkspaceSchedulerSettings {
-    return WorkspaceSchedulerSettings(
-        workspaceId = workspaceId,
-        algorithm = "fsrs-6",
-        desiredRetention = defaultDesiredRetention,
-        learningStepsMinutes = listOf(1, 10),
-        relearningStepsMinutes = listOf(10),
-        maximumIntervalDays = defaultMaximumIntervalDays,
-        enableFuzz = true,
-        updatedAtMillis = updatedAtMillis
-    )
-}
-
-fun validateWorkspaceSchedulerSettingsInput(
-    workspaceId: String,
-    desiredRetention: Double,
-    learningStepsMinutes: List<Int>,
-    relearningStepsMinutes: List<Int>,
-    maximumIntervalDays: Int,
-    enableFuzz: Boolean,
-    updatedAtMillis: Long
-): WorkspaceSchedulerSettings {
-    require(desiredRetention > 0 && desiredRetention < 1) {
-        "Desired retention must be greater than 0 and less than 1."
-    }
-    require(maximumIntervalDays > 0) {
-        "Maximum interval must be a positive integer."
-    }
-
-    return WorkspaceSchedulerSettings(
-        workspaceId = workspaceId,
-        algorithm = "fsrs-6",
-        desiredRetention = desiredRetention,
-        learningStepsMinutes = validateSchedulerStepList(
-            values = learningStepsMinutes,
-            fieldName = "Learning steps"
-        ),
-        relearningStepsMinutes = validateSchedulerStepList(
-            values = relearningStepsMinutes,
-            fieldName = "Relearning steps"
-        ),
-        maximumIntervalDays = maximumIntervalDays,
-        enableFuzz = enableFuzz,
-        updatedAtMillis = updatedAtMillis
-    )
-}
-
-fun encodeSchedulerStepListJson(values: List<Int>): String {
-    return "[" + values.joinToString(separator = ",") + "]"
-}
-
-fun decodeSchedulerStepListJson(json: String): List<Int> {
-    val trimmed = json.trim()
-    require(trimmed.startsWith("[") && trimmed.endsWith("]")) {
-        "Scheduler steps JSON must be an array."
-    }
-
-    val body = trimmed.removePrefix("[").removeSuffix("]").trim()
-    if (body.isEmpty()) {
-        return emptyList()
-    }
-
-    return body.split(",").map { value ->
-        value.trim().toInt()
-    }
-}
-
-fun isCardDue(card: CardSummary, nowMillis: Long): Boolean {
-    val dueAtMillis = card.dueAtMillis
-    return dueAtMillis == null || dueAtMillis <= nowMillis
-}
-
-fun isNewCard(card: CardSummary): Boolean {
-    return card.reps == 0 && card.lapses == 0
-}
-
-fun isReviewedCard(card: CardSummary): Boolean {
-    return card.reps > 0 || card.lapses > 0
-}
-
-// Keep in sync with apps/ios/Flashcards/Flashcards/ReviewAnswerSupport.swift::formatReviewIntervalText(now:dueAt:).
-fun formatReviewIntervalText(nowMillis: Long, dueAtMillis: Long?): String {
-    if (dueAtMillis == null) {
-        return "now"
-    }
-
-    val durationSeconds = max(((dueAtMillis - nowMillis) / 1_000L).toInt(), 0)
-    if (durationSeconds < 60) {
-        return "in less than a minute"
-    }
-
-    val durationMinutes = durationSeconds / 60
-    if (durationMinutes < 60) {
-        return "in $durationMinutes minute${if (durationMinutes == 1) "" else "s"}"
-    }
-
-    val durationHours = durationMinutes / 60
-    if (durationHours < 24) {
-        return "in $durationHours hour${if (durationHours == 1) "" else "s"}"
-    }
-
-    val durationDays = durationHours / 24
-    return "in $durationDays day${if (durationDays == 1) "" else "s"}"
-}
-
-// Keep in sync with apps/ios/Flashcards/Flashcards/ReviewAnswerSupport.swift::makeReviewAnswerOptions(card:schedulerSettings:now:).
-fun makeReviewAnswerOptions(
-    card: CardSummary,
-    settings: WorkspaceSchedulerSettings,
-    reviewedAtMillis: Long
-): List<ReviewAnswerOption> {
-    return reviewAnswerPresentationOrder.map { rating ->
-        val schedule = computeReviewSchedule(
-            card = card,
-            settings = settings,
-            rating = rating,
-            reviewedAtMillis = reviewedAtMillis
-        )
-
-        ReviewAnswerOption(
-            rating = rating,
-            intervalDescription = formatReviewIntervalText(
-                nowMillis = reviewedAtMillis,
-                dueAtMillis = schedule.dueAtMillis
-            )
-        )
-    }
-}
-
-// Keep in sync with apps/backend/src/cards.ts::toReviewableCardScheduleState and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::makeReviewableCardScheduleState(card:).
-fun toReviewableCardScheduleState(card: CardSummary): ReviewableCardScheduleState {
-    return ReviewableCardScheduleState(
-        cardId = card.cardId,
-        reps = card.reps,
-        lapses = card.lapses,
-        fsrsCardState = card.fsrsCardState,
-        fsrsStepIndex = card.fsrsStepIndex,
-        fsrsStability = card.fsrsStability,
-        fsrsDifficulty = card.fsrsDifficulty,
-        fsrsLastReviewedAtMillis = card.fsrsLastReviewedAtMillis,
-        fsrsScheduledDays = card.fsrsScheduledDays
-    )
 }
 
 // Keep in sync with apps/backend/src/schedule.ts::roundTo8 and apps/ios/Flashcards/Flashcards/FsrsScheduler.swift::roundTo8(value:).

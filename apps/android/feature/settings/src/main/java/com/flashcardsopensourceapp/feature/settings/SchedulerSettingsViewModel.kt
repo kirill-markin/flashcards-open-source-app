@@ -89,7 +89,7 @@ class SchedulerSettingsViewModel(
             relearningStepsText = effectiveDraft.relearningStepsText,
             maximumIntervalDaysText = effectiveDraft.maximumIntervalDaysText,
             enableFuzz = effectiveDraft.enableFuzz,
-            updatedAtLabel = formatUpdatedAtLabel(updatedAtMillis = resolvedSettings.updatedAtMillis),
+            updatedAtLabel = formatWorkspaceSchedulerUpdatedAtLabel(updatedAtMillis = resolvedSettings.updatedAtMillis),
             errorMessage = effectiveDraft.errorMessage,
             showSaveConfirmation = effectiveDraft.showSaveConfirmation
         )
@@ -233,7 +233,7 @@ fun createSchedulerSettingsViewModelFactory(workspaceRepository: WorkspaceReposi
 
 private fun makeDraftState(settings: WorkspaceSchedulerSettings): SchedulerSettingsDraftState {
     return SchedulerSettingsDraftState(
-        desiredRetentionText = formatDesiredRetention(value = settings.desiredRetention),
+        desiredRetentionText = formatWorkspaceSchedulerDesiredRetention(value = settings.desiredRetention),
         learningStepsText = settings.learningStepsMinutes.joinToString(separator = ", "),
         relearningStepsText = settings.relearningStepsMinutes.joinToString(separator = ", "),
         maximumIntervalDaysText = settings.maximumIntervalDays.toString(),
@@ -293,16 +293,4 @@ private fun parseStepList(text: String, fieldName: String): List<Int> {
     }
 
     return values
-}
-
-private fun formatUpdatedAtLabel(updatedAtMillis: Long): String {
-    if (updatedAtMillis <= 0L) {
-        return "Unavailable"
-    }
-
-    return updatedAtMillis.toString()
-}
-
-private fun formatDesiredRetention(value: Double): String {
-    return String.format("%.2f", value)
 }

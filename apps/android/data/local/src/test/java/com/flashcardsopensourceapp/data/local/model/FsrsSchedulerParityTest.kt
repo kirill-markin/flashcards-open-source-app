@@ -19,7 +19,7 @@ import org.junit.Test
  * - tests/fsrs-full-vectors.json
  * - docs/fsrs-scheduling-logic.md
  */
-class SchedulerSupportTest {
+class FsrsSchedulerParityTest {
     @Test
     fun fullFsrsVectorsMatchSharedParityFixtures() {
         val fixtures = loadFixtures()
