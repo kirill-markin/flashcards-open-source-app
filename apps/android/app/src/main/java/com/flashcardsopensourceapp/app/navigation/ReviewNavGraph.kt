@@ -1,0 +1,100 @@
+package com.flashcardsopensourceapp.app.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.composable
+import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
+import com.flashcardsopensourceapp.feature.review.ReviewRoute
+import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
+
+internal fun NavGraphBuilder.registerReviewNavGraph(
+    appGraph: AppGraph,
+    navController: NavHostController
+) {
+    composable(route = ReviewDestination.route) {
+        val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
+            factory = createReviewViewModelFactory(
+                reviewRepository = appGraph.reviewRepository,
+                syncRepository = appGraph.syncRepository,
+                messageController = appGraph.appMessageBus,
+                reviewPreferencesStore = appGraph.reviewPreferencesStore,
+                workspaceRepository = appGraph.workspaceRepository
+            )
+        )
+        val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+
+        ReviewRoute(
+            uiState = uiState,
+            onSelectFilter = reviewViewModel::selectFilter,
+            onOpenPreview = {
+                navController.navigate(route = ReviewPreviewDestination.route)
+            },
+            onOpenCurrentCard = { cardId ->
+                appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
+            },
+            onOpenDeckManagement = {
+                appGraph.appHandoffCoordinator.requestSettingsNavigation(
+                    target = SettingsNavigationTarget.WORKSPACE_DECKS
+                )
+            },
+            onCreateCard = {
+                appGraph.appHandoffCoordinator.requestCardEditor(cardId = null)
+            },
+            onCreateCardWithAi = {
+                appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = com.flashcardsopensourceapp.feature.ai.AiEntryPrefill.CREATE_CARD)
+                navigateToTopLevelDestination(
+                    navController = navController,
+                    destination = AiDestination
+                )
+            },
+            onSwitchToAllCards = {
+                reviewViewModel.selectFilter(reviewFilter = ReviewFilter.AllCards)
+            },
+            onRevealAnswer = reviewViewModel::revealAnswer,
+            onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.AGAIN) },
+            onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.HARD) },
+            onRateGood = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD) },
+            onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.EASY) },
+            onDismissErrorMessage = reviewViewModel::dismissErrorMessage
+        )
+    }
+
+    composable(route = ReviewPreviewDestination.route) { backStackEntry ->
+        val reviewBackStackEntry = rememberRouteBackStackEntry(
+            navController = navController,
+            currentBackStackEntry = backStackEntry,
+            route = ReviewDestination.route
+        )
+        val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
+            viewModelStoreOwner = reviewBackStackEntry,
+            factory = createReviewViewModelFactory(
+                reviewRepository = appGraph.reviewRepository,
+                syncRepository = appGraph.syncRepository,
+                messageController = appGraph.appMessageBus,
+                reviewPreferencesStore = appGraph.reviewPreferencesStore,
+                workspaceRepository = appGraph.workspaceRepository
+            )
+        )
+        val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+
+        ReviewPreviewRoute(
+            uiState = uiState,
+            onStartPreview = reviewViewModel::startPreview,
+            onLoadNextPreviewPageIfNeeded = reviewViewModel::loadNextPreviewPageIfNeeded,
+            onRetryPreview = reviewViewModel::retryPreview,
+            onOpenCard = { cardId ->
+                appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+}
