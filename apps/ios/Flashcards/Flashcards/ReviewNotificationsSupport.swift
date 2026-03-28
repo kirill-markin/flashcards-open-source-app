@@ -75,6 +75,21 @@ struct ScheduledReviewNotificationPayload: Codable, Hashable, Sendable, Identifi
     }
 }
 
+struct CurrentReviewNotificationCard: Hashable, Sendable {
+    let reviewFilter: PersistedReviewFilter
+    let cardId: String
+    let frontText: String
+}
+
+struct ReviewNotificationSchedulingSnapshot: Sendable {
+    let databaseURL: URL?
+    let workspaceId: String
+    let reviewFilter: ReviewFilter
+    let now: Date
+    let settings: ReviewNotificationsSettings
+    let lastActiveAt: Date?
+}
+
 enum ReviewNotificationPermissionStatus: Hashable, Sendable {
     case allowed
     case notRequested
@@ -217,16 +232,11 @@ func makeReviewNotificationRequestIdentifiers(
     scheduledPayloads.map(\.requestId)
 }
 
-func buildDailyReviewNotificationPayloads(
-    workspaceId: String,
-    reviewFilter: ReviewFilter,
-    cards: [Card],
-    decks: [Deck],
+func buildDailyReviewNotificationDates(
     now: Date,
     calendar: Calendar,
     settings: DailyReviewNotificationsSettings
-) -> [ScheduledReviewNotificationPayload] {
-    let persistedReviewFilter = makePersistedReviewFilter(reviewFilter: reviewFilter)
+) -> [Date] {
     let startOfToday = calendar.startOfDay(for: now)
 
     return (0..<dailyReminderSchedulingHorizonDays).compactMap { offset in
@@ -243,36 +253,7 @@ func buildDailyReviewNotificationPayloads(
         guard let scheduledAt, scheduledAt > now else {
             return nil
         }
-
-        guard let card = currentReviewCard(
-            reviewQueue: makeReviewQueue(
-                reviewFilter: reviewFilter,
-                decks: decks,
-                cards: cards,
-                now: scheduledAt
-            )
-        ) else {
-            return nil
-        }
-
-        let dateFormatter = DateFormatter()
-        dateFormatter.calendar = calendar
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let requestId = makeReviewNotificationRequestIdentifier(
-            workspaceId: workspaceId,
-            kind: ReviewNotificationMode.daily.rawValue,
-            suffix: dateFormatter.string(from: scheduledAt)
-        )
-
-        return ScheduledReviewNotificationPayload(
-            workspaceId: workspaceId,
-            reviewFilter: persistedReviewFilter,
-            cardId: card.cardId,
-            frontText: card.frontText,
-            scheduledAtMillis: Int64(scheduledAt.timeIntervalSince1970 * 1000),
-            requestId: requestId
-        )
+        return scheduledAt
     }
 }
 
@@ -324,16 +305,12 @@ func computeInactivityReminderDate(
     )
 }
 
-func buildInactivityReviewNotificationPayloads(
-    workspaceId: String,
-    reviewFilter: ReviewFilter,
-    cards: [Card],
-    decks: [Deck],
+func buildInactivityReviewNotificationDates(
     lastActiveAt: Date,
     now: Date,
     calendar: Calendar,
     settings: InactivityReviewNotificationsSettings
-) -> [ScheduledReviewNotificationPayload] {
+) -> [Date] {
     guard let firstScheduledAt = computeInactivityReminderDate(
         settings: settings,
         lastActiveAt: lastActiveAt,
@@ -342,12 +319,7 @@ func buildInactivityReviewNotificationPayloads(
         return []
     }
 
-    let persistedReviewFilter = makePersistedReviewFilter(reviewFilter: reviewFilter)
     let firstScheduledDay = calendar.startOfDay(for: firstScheduledAt)
-    let dateFormatter = DateFormatter()
-    dateFormatter.calendar = calendar
-    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-    dateFormatter.dateFormat = "yyyy-MM-dd"
 
     return (0..<dailyReminderSchedulingHorizonDays).compactMap { offset in
         let scheduledAt: Date
@@ -371,30 +343,89 @@ func buildInactivityReviewNotificationPayloads(
         guard scheduledAt > now else {
             return nil
         }
-        guard let card = currentReviewCard(
-            reviewQueue: makeReviewQueue(
-                reviewFilter: reviewFilter,
-                decks: decks,
-                cards: cards,
-                now: scheduledAt
-            )
-        ) else {
-            return nil
-        }
+        return scheduledAt
+    }
+}
 
-        return ScheduledReviewNotificationPayload(
+func buildRepeatedReviewNotificationPayloads(
+    workspaceId: String,
+    currentCard: CurrentReviewNotificationCard,
+    scheduledDates: [Date],
+    calendar: Calendar,
+    mode: ReviewNotificationMode
+) -> [ScheduledReviewNotificationPayload] {
+    let dateFormatter = DateFormatter()
+    dateFormatter.calendar = calendar
+    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+    dateFormatter.dateFormat = "yyyy-MM-dd"
+
+    return scheduledDates.map { scheduledAt in
+        ScheduledReviewNotificationPayload(
             workspaceId: workspaceId,
-            reviewFilter: persistedReviewFilter,
-            cardId: card.cardId,
-            frontText: card.frontText,
+            reviewFilter: currentCard.reviewFilter,
+            cardId: currentCard.cardId,
+            frontText: currentCard.frontText,
             scheduledAtMillis: Int64(scheduledAt.timeIntervalSince1970 * 1000),
             requestId: makeReviewNotificationRequestIdentifier(
                 workspaceId: workspaceId,
-                kind: ReviewNotificationMode.inactivity.rawValue,
+                kind: mode.rawValue,
                 suffix: dateFormatter.string(from: scheduledAt)
             )
         )
     }
+}
+
+func loadScheduledReviewNotificationPayloads(
+    snapshot: ReviewNotificationSchedulingSnapshot
+) async throws -> [ScheduledReviewNotificationPayload] {
+    guard let databaseURL = snapshot.databaseURL else {
+        return []
+    }
+
+    return try await Task.detached(priority: .utility) {
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        defer {
+            try? database.close()
+        }
+
+        guard let currentCard = try database.loadCurrentReviewNotificationCard(
+            workspaceId: snapshot.workspaceId,
+            reviewFilter: snapshot.reviewFilter,
+            now: snapshot.now
+        ) else {
+            return []
+        }
+
+        let calendar = Calendar.autoupdatingCurrent
+        let scheduledDates: [Date]
+        let mode = snapshot.settings.selectedMode
+        switch mode {
+        case .daily:
+            scheduledDates = buildDailyReviewNotificationDates(
+                now: snapshot.now,
+                calendar: calendar,
+                settings: snapshot.settings.daily
+            )
+        case .inactivity:
+            guard let lastActiveAt = snapshot.lastActiveAt else {
+                return []
+            }
+            scheduledDates = buildInactivityReviewNotificationDates(
+                lastActiveAt: lastActiveAt,
+                now: snapshot.now,
+                calendar: calendar,
+                settings: snapshot.settings.inactivity
+            )
+        }
+
+        return buildRepeatedReviewNotificationPayloads(
+            workspaceId: snapshot.workspaceId,
+            currentCard: currentCard,
+            scheduledDates: scheduledDates,
+            calendar: calendar,
+            mode: mode
+        )
+    }.value
 }
 
 func buildReviewNotificationUserInfo(payload: ScheduledReviewNotificationPayload, kind: ReviewNotificationMode) -> [AnyHashable: Any] {

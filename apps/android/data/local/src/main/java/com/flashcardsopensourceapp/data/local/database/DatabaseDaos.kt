@@ -112,6 +112,113 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE cardId = :cardId LIMIT 1")
     suspend fun loadCard(cardId: String): CardEntity?
 
+    @Query(
+        """
+        SELECT * FROM cards
+        WHERE workspaceId = :workspaceId
+            AND deletedAtMillis IS NULL
+            AND (dueAtMillis IS NULL OR dueAtMillis <= :nowMillis)
+        ORDER BY
+            CASE
+                WHEN dueAtMillis IS NULL THEN 0
+                ELSE 1
+            END ASC,
+            dueAtMillis ASC,
+            createdAtMillis DESC,
+            cardId ASC
+        LIMIT 1
+        """
+    )
+    suspend fun loadTopReviewCard(workspaceId: String, nowMillis: Long): CardEntity?
+
+    @Query(
+        """
+        SELECT * FROM cards
+        WHERE workspaceId = :workspaceId
+            AND deletedAtMillis IS NULL
+            AND (dueAtMillis IS NULL OR dueAtMillis <= :nowMillis)
+            AND effortLevel IN (:effortLevels)
+        ORDER BY
+            CASE
+                WHEN dueAtMillis IS NULL THEN 0
+                ELSE 1
+            END ASC,
+            dueAtMillis ASC,
+            createdAtMillis DESC,
+            cardId ASC
+        LIMIT 1
+        """
+    )
+    suspend fun loadTopReviewCardByEffortLevels(
+        workspaceId: String,
+        nowMillis: Long,
+        effortLevels: List<com.flashcardsopensourceapp.data.local.model.EffortLevel>
+    ): CardEntity?
+
+    @Query(
+        """
+        SELECT * FROM cards
+        WHERE workspaceId = :workspaceId
+            AND deletedAtMillis IS NULL
+            AND (dueAtMillis IS NULL OR dueAtMillis <= :nowMillis)
+            AND EXISTS (
+                SELECT 1
+                FROM card_tags
+                INNER JOIN tags ON tags.tagId = card_tags.tagId
+                WHERE card_tags.cardId = cards.cardId
+                    AND tags.workspaceId = cards.workspaceId
+                    AND LOWER(tags.name) IN (:normalizedTagNames)
+            )
+        ORDER BY
+            CASE
+                WHEN dueAtMillis IS NULL THEN 0
+                ELSE 1
+            END ASC,
+            dueAtMillis ASC,
+            createdAtMillis DESC,
+            cardId ASC
+        LIMIT 1
+        """
+    )
+    suspend fun loadTopReviewCardByAnyTags(
+        workspaceId: String,
+        nowMillis: Long,
+        normalizedTagNames: List<String>
+    ): CardEntity?
+
+    @Query(
+        """
+        SELECT * FROM cards
+        WHERE workspaceId = :workspaceId
+            AND deletedAtMillis IS NULL
+            AND (dueAtMillis IS NULL OR dueAtMillis <= :nowMillis)
+            AND effortLevel IN (:effortLevels)
+            AND EXISTS (
+                SELECT 1
+                FROM card_tags
+                INNER JOIN tags ON tags.tagId = card_tags.tagId
+                WHERE card_tags.cardId = cards.cardId
+                    AND tags.workspaceId = cards.workspaceId
+                    AND LOWER(tags.name) IN (:normalizedTagNames)
+            )
+        ORDER BY
+            CASE
+                WHEN dueAtMillis IS NULL THEN 0
+                ELSE 1
+            END ASC,
+            dueAtMillis ASC,
+            createdAtMillis DESC,
+            cardId ASC
+        LIMIT 1
+        """
+    )
+    suspend fun loadTopReviewCardByEffortLevelsAndAnyTags(
+        workspaceId: String,
+        nowMillis: Long,
+        effortLevels: List<com.flashcardsopensourceapp.data.local.model.EffortLevel>,
+        normalizedTagNames: List<String>
+    ): CardEntity?
+
     @Query("SELECT COUNT(*) FROM cards")
     fun observeCardCount(): Flow<Int>
 
@@ -138,6 +245,9 @@ interface TagDao {
 
     @Query("SELECT * FROM tags WHERE workspaceId = :workspaceId")
     suspend fun loadTagsForWorkspace(workspaceId: String): List<TagEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM tags WHERE workspaceId = :workspaceId AND LOWER(name) = LOWER(:tagName) LIMIT 1)")
+    suspend fun hasTag(workspaceId: String, tagName: String): Boolean
 
     @Query("DELETE FROM tags WHERE workspaceId = :workspaceId AND tagId NOT IN (SELECT DISTINCT tagId FROM card_tags)")
     suspend fun deleteUnusedTags(workspaceId: String)

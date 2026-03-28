@@ -272,37 +272,38 @@ extension FlashcardsStore {
             return
         }
 
-        let calendar = Calendar.autoupdatingCurrent
+        let lastActiveAt: Date?
+        if let lastActiveTimestamp = self.userDefaults.object(forKey: reviewNotificationLastActiveAtUserDefaultsKey) as? TimeInterval {
+            lastActiveAt = Date(timeIntervalSince1970: lastActiveTimestamp)
+        } else {
+            lastActiveAt = nil
+        }
+        let snapshot = ReviewNotificationSchedulingSnapshot(
+            databaseURL: self.localDatabaseURL,
+            workspaceId: workspaceId,
+            reviewFilter: self.selectedReviewFilter,
+            now: now,
+            settings: self.reviewNotificationsSettings,
+            lastActiveAt: lastActiveAt
+        )
+
         let payloads: [ScheduledReviewNotificationPayload]
-        let mode = self.reviewNotificationsSettings.selectedMode
-        switch mode {
-        case .daily:
-            payloads = buildDailyReviewNotificationPayloads(
-                workspaceId: workspaceId,
-                reviewFilter: self.selectedReviewFilter,
-                cards: self.cards,
-                decks: self.decks,
-                now: now,
-                calendar: calendar,
-                settings: self.reviewNotificationsSettings.daily
+        do {
+            payloads = try await loadScheduledReviewNotificationPayloads(snapshot: snapshot)
+        } catch {
+            logFlashcardsError(
+                domain: "ios_notifications",
+                action: "schedule_failed",
+                metadata: [
+                    "workspaceId": workspaceId,
+                    "message": Flashcards.errorMessage(error: error)
+                ]
             )
-        case .inactivity:
-            guard let lastActiveTimestamp = self.userDefaults.object(forKey: reviewNotificationLastActiveAtUserDefaultsKey) as? TimeInterval else {
-                self.persistScheduledReviewNotifications(payloads: [])
-                return
-            }
-            payloads = buildInactivityReviewNotificationPayloads(
-                workspaceId: workspaceId,
-                reviewFilter: self.selectedReviewFilter,
-                cards: self.cards,
-                decks: self.decks,
-                lastActiveAt: Date(timeIntervalSince1970: lastActiveTimestamp),
-                now: now,
-                calendar: calendar,
-                settings: self.reviewNotificationsSettings.inactivity
-            )
+            self.persistScheduledReviewNotifications(payloads: [])
+            return
         }
 
+        let mode = self.reviewNotificationsSettings.selectedMode
         for payload in payloads {
             let content = UNMutableNotificationContent()
             content.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Flashcards"

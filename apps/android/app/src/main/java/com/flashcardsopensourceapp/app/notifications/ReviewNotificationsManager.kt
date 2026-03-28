@@ -10,20 +10,13 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.CardWithRelations
-import com.flashcardsopensourceapp.data.local.database.DeckEntity
-import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.notifications.DailyReviewNotificationsSettings
-import com.flashcardsopensourceapp.data.local.model.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.decodeDeckFilterDefinitionJson
-import com.flashcardsopensourceapp.data.local.model.decodeSchedulerStepListJson
-import com.flashcardsopensourceapp.data.local.model.isCardDue
-import com.flashcardsopensourceapp.data.local.model.isNewCard
-import com.flashcardsopensourceapp.data.local.model.isReviewedCard
-import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.model.matchesDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
+import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
+import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.notifications.CurrentReviewNotificationCard
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsSettings
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
@@ -31,12 +24,12 @@ import com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotif
 import com.flashcardsopensourceapp.data.local.notifications.buildDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.decodePersistedReviewFilter
+import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
@@ -116,44 +109,20 @@ class ReviewNotificationsManager(
             return
         }
 
-        val schedulerSettingsEntity = database.workspaceSchedulerSettingsDao()
-            .loadWorkspaceSchedulerSettings(workspaceId = workspace.workspaceId)
-        val schedulerSettings = schedulerSettingsEntity?.let { entity ->
-            WorkspaceSchedulerSettings(
-                workspaceId = entity.workspaceId,
-                algorithm = entity.algorithm,
-                desiredRetention = entity.desiredRetention,
-                learningStepsMinutes = decodeSchedulerStepListJson(entity.learningStepsMinutesJson),
-                relearningStepsMinutes = decodeSchedulerStepListJson(entity.relearningStepsMinutesJson),
-                maximumIntervalDays = entity.maximumIntervalDays,
-                enableFuzz = entity.enableFuzz,
-                updatedAtMillis = entity.updatedAtMillis
-            )
-        } ?: makeDefaultWorkspaceSchedulerSettings(
+        val currentCard = loadCurrentReviewNotificationCard(
             workspaceId = workspace.workspaceId,
-            updatedAtMillis = nowMillis
+            nowMillis = nowMillis
         )
-        val cards = database.cardDao().observeCardsWithRelations().first()
-            .map(::toCardSummary)
-            .filter { card -> card.deletedAtMillis == null }
-        val decks = database.deckDao().observeDecks().first()
-            .filter { deck -> deck.deletedAtMillis == null }
-            .map { deck ->
-                toDeckSummary(
-                    deck = deck,
-                    cards = cards,
-                    nowMillis = nowMillis
-                )
-            }
-        val selectedFilter = reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = workspace.workspaceId)
+        if (currentCard == null) {
+            reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspace.workspaceId, payloads = emptyList())
+            return
+        }
+
         val zoneId = ZoneId.systemDefault()
         val payloads = when (settings.selectedMode) {
             ReviewNotificationMode.DAILY -> buildDailyReminderPayloads(
                 workspaceId = workspace.workspaceId,
-                reviewFilter = selectedFilter,
-                schedulerSettings = schedulerSettings,
-                cards = cards,
-                decks = decks,
+                currentCard = currentCard,
                 nowMillis = nowMillis,
                 zoneId = zoneId,
                 settings = settings.daily
@@ -163,10 +132,7 @@ class ReviewNotificationsManager(
                 val lastActiveAtMillis = reviewNotificationsStore.loadLastActiveAtMillis() ?: nowMillis
                 buildInactivityReminderPayloads(
                     workspaceId = workspace.workspaceId,
-                    reviewFilter = selectedFilter,
-                    schedulerSettings = schedulerSettings,
-                    cards = cards,
-                    decks = decks,
+                    currentCard = currentCard,
                     nowMillis = nowMillis,
                     lastActiveAtMillis = lastActiveAtMillis,
                     zoneId = zoneId,
@@ -215,6 +181,146 @@ class ReviewNotificationsManager(
         workManager.cancelAllWorkByTag(reviewNotificationWorkspaceTag(workspaceId = workspaceId))
         reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspaceId, payloads = emptyList())
     }
+
+    private suspend fun loadCurrentReviewNotificationCard(
+        workspaceId: String,
+        nowMillis: Long
+    ): CurrentReviewNotificationCard? {
+        val selectedFilter = reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = workspaceId)
+
+        return when (selectedFilter) {
+            ReviewFilter.AllCards -> loadCurrentAllCardsReviewNotificationCard(
+                workspaceId = workspaceId,
+                nowMillis = nowMillis
+            )
+            is ReviewFilter.Deck -> loadCurrentDeckReviewNotificationCard(
+                workspaceId = workspaceId,
+                deckId = selectedFilter.deckId,
+                nowMillis = nowMillis
+            )
+            is ReviewFilter.Tag -> loadCurrentTagReviewNotificationCard(
+                workspaceId = workspaceId,
+                tag = selectedFilter.tag,
+                nowMillis = nowMillis
+            )
+        }
+    }
+
+    private suspend fun loadCurrentAllCardsReviewNotificationCard(
+        workspaceId: String,
+        nowMillis: Long
+    ): CurrentReviewNotificationCard? {
+        val card = database.cardDao().loadTopReviewCard(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis
+        ) ?: return null
+
+        return CurrentReviewNotificationCard(
+            reviewFilter = makePersistedReviewFilter(reviewFilter = ReviewFilter.AllCards),
+            cardId = card.cardId,
+            frontText = card.frontText
+        )
+    }
+
+    private suspend fun loadCurrentDeckReviewNotificationCard(
+        workspaceId: String,
+        deckId: String,
+        nowMillis: Long
+    ): CurrentReviewNotificationCard? {
+        val deck = database.deckDao().loadDeck(deckId = deckId)
+        if (deck == null || deck.deletedAtMillis != null) {
+            return loadCurrentAllCardsReviewNotificationCard(
+                workspaceId = workspaceId,
+                nowMillis = nowMillis
+            )
+        }
+
+        val filterDefinition = decodeDeckFilterDefinitionJson(filterDefinitionJson = deck.filterDefinitionJson)
+        val card = loadCurrentDeckReviewCardEntity(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            filterDefinition = filterDefinition
+        ) ?: return null
+
+        return CurrentReviewNotificationCard(
+            reviewFilter = makePersistedReviewFilter(reviewFilter = ReviewFilter.Deck(deckId = deck.deckId)),
+            cardId = card.cardId,
+            frontText = card.frontText
+        )
+    }
+
+    private suspend fun loadCurrentTagReviewNotificationCard(
+        workspaceId: String,
+        tag: String,
+        nowMillis: Long
+    ): CurrentReviewNotificationCard? {
+        val hasTag = database.tagDao().hasTag(
+            workspaceId = workspaceId,
+            tagName = tag
+        )
+        if (hasTag.not()) {
+            return loadCurrentAllCardsReviewNotificationCard(
+                workspaceId = workspaceId,
+                nowMillis = nowMillis
+            )
+        }
+
+        val card = database.cardDao().loadTopReviewCardByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            normalizedTagNames = listOf(normalizeTagKey(tag = tag))
+        ) ?: return null
+
+        return CurrentReviewNotificationCard(
+            reviewFilter = makePersistedReviewFilter(reviewFilter = ReviewFilter.Tag(tag = tag)),
+            cardId = card.cardId,
+            frontText = card.frontText
+        )
+    }
+
+    private suspend fun loadCurrentDeckReviewCardEntity(
+        workspaceId: String,
+        nowMillis: Long,
+        filterDefinition: DeckFilterDefinition
+    ): com.flashcardsopensourceapp.data.local.database.CardEntity? {
+        val normalizedTagNames = normalizeTags(
+            values = filterDefinition.tags,
+            referenceTags = emptyList()
+        ).map { tag ->
+            normalizeTagKey(tag = tag)
+        }
+
+        return when {
+            filterDefinition.effortLevels.isEmpty() && normalizedTagNames.isEmpty() -> {
+                database.cardDao().loadTopReviewCard(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis
+                )
+            }
+            filterDefinition.effortLevels.isNotEmpty() && normalizedTagNames.isEmpty() -> {
+                database.cardDao().loadTopReviewCardByEffortLevels(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    effortLevels = filterDefinition.effortLevels
+                )
+            }
+            filterDefinition.effortLevels.isEmpty() && normalizedTagNames.isNotEmpty() -> {
+                database.cardDao().loadTopReviewCardByAnyTags(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    normalizedTagNames = normalizedTagNames
+                )
+            }
+            else -> {
+                database.cardDao().loadTopReviewCardByEffortLevelsAndAnyTags(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    effortLevels = filterDefinition.effortLevels,
+                    normalizedTagNames = normalizedTagNames
+                )
+            }
+        }
+    }
 }
 
 fun hasNotificationPermission(context: Context): Boolean {
@@ -251,57 +357,5 @@ fun parseReviewNotificationTapPayload(intent: android.content.Intent): ReviewNot
         requestId = requestId,
         frontText = frontText,
         reviewFilter = decodePersistedReviewFilter(filter = persistedFilter)
-    )
-}
-
-private fun toCardSummary(card: CardWithRelations): CardSummary {
-    return CardSummary(
-        cardId = card.card.cardId,
-        workspaceId = card.card.workspaceId,
-        frontText = card.card.frontText,
-        backText = card.card.backText,
-        tags = normalizeTags(
-            values = card.tags.map { tag -> tag.name },
-            referenceTags = emptyList()
-        ),
-        effortLevel = card.card.effortLevel,
-        dueAtMillis = card.card.dueAtMillis,
-        createdAtMillis = card.card.createdAtMillis,
-        updatedAtMillis = card.card.updatedAtMillis,
-        reps = card.card.reps,
-        lapses = card.card.lapses,
-        fsrsCardState = card.card.fsrsCardState,
-        fsrsStepIndex = card.card.fsrsStepIndex,
-        fsrsStability = card.card.fsrsStability,
-        fsrsDifficulty = card.card.fsrsDifficulty,
-        fsrsLastReviewedAtMillis = card.card.fsrsLastReviewedAtMillis,
-        fsrsScheduledDays = card.card.fsrsScheduledDays,
-        deletedAtMillis = card.card.deletedAtMillis
-    )
-}
-
-private fun toDeckSummary(
-    deck: DeckEntity,
-    cards: List<CardSummary>,
-    nowMillis: Long
-): DeckSummary {
-    val filterDefinition = decodeDeckFilterDefinitionJson(filterDefinitionJson = deck.filterDefinitionJson)
-    val matchingCards = cards.filter { card ->
-        matchesDeckFilterDefinition(filterDefinition = filterDefinition, card = card)
-    }
-
-    return DeckSummary(
-        deckId = deck.deckId,
-        workspaceId = deck.workspaceId,
-        name = deck.name,
-        filterDefinition = filterDefinition,
-        totalCards = matchingCards.size,
-        dueCards = matchingCards.count { card ->
-            isCardDue(card = card, nowMillis = nowMillis)
-        },
-        newCards = matchingCards.count(::isNewCard),
-        reviewedCards = matchingCards.count(::isReviewedCard),
-        createdAtMillis = deck.createdAtMillis,
-        updatedAtMillis = deck.updatedAtMillis
     )
 }

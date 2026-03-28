@@ -2,20 +2,12 @@ package com.flashcardsopensourceapp.data.local.notifications
 
 import android.content.Context
 import androidx.core.content.edit
-import com.flashcardsopensourceapp.data.local.model.CardSummary
-import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
-import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
-import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.isCardDue
-import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
-import org.json.JSONArray
-import org.json.JSONObject
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.json.JSONArray
+import org.json.JSONObject
 
 const val reviewNotificationPermissionPromptThreshold: Int = 3
 const val defaultDailyReminderHour: Int = 10
@@ -83,6 +75,12 @@ data class ScheduledReviewNotificationPayload(
     val frontText: String,
     val scheduledAtMillis: Long,
     val requestId: String
+)
+
+data class CurrentReviewNotificationCard(
+    val reviewFilter: PersistedReviewFilter,
+    val cardId: String,
+    val frontText: String
 )
 
 fun defaultReviewNotificationsSettings(): ReviewNotificationsSettings {
@@ -277,21 +275,12 @@ fun decodePersistedReviewFilter(filter: PersistedReviewFilter): ReviewFilter {
 
 fun buildDailyReminderPayloads(
     workspaceId: String,
-    reviewFilter: ReviewFilter,
-    schedulerSettings: WorkspaceSchedulerSettings?,
-    cards: List<CardSummary>,
-    decks: List<DeckSummary>,
+    currentCard: CurrentReviewNotificationCard,
     nowMillis: Long,
     zoneId: ZoneId,
     settings: DailyReviewNotificationsSettings
 ): List<ScheduledReviewNotificationPayload> {
-    val effectiveSchedulerSettings = schedulerSettings ?: makeDefaultWorkspaceSchedulerSettings(
-        workspaceId = workspaceId,
-        updatedAtMillis = nowMillis
-    )
-    val tagsSummary = makeNotificationWorkspaceTagsSummary(cards = cards)
     val now = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
-    val persistedReviewFilter = makePersistedReviewFilter(reviewFilter = reviewFilter)
 
     return (0 until dailyReminderSchedulingHorizonDays).mapNotNull { dayOffset ->
         val candidateDateTime = now.toLocalDate()
@@ -302,20 +291,9 @@ fun buildDailyReminderPayloads(
             return@mapNotNull null
         }
 
-        val sessionSnapshot = buildReviewSessionSnapshot(
-            selectedFilter = reviewFilter,
-            pendingReviewedCardIds = emptySet(),
-            decks = decks,
-            cards = cards,
-            tagsSummary = tagsSummary,
-            settings = effectiveSchedulerSettings,
-            reviewedAtMillis = candidateDateTime.toInstant().toEpochMilli()
-        )
-        val currentCard = sessionSnapshot.cards.firstOrNull() ?: return@mapNotNull null
-
         ScheduledReviewNotificationPayload(
             workspaceId = workspaceId,
-            reviewFilter = persistedReviewFilter,
+            reviewFilter = currentCard.reviewFilter,
             cardId = currentCard.cardId,
             frontText = currentCard.frontText,
             scheduledAtMillis = candidateDateTime.toInstant().toEpochMilli(),
@@ -375,10 +353,7 @@ fun computeInactivityReminderTimestampMillis(
 
 fun buildInactivityReminderPayloads(
     workspaceId: String,
-    reviewFilter: ReviewFilter,
-    schedulerSettings: WorkspaceSchedulerSettings?,
-    cards: List<CardSummary>,
-    decks: List<DeckSummary>,
+    currentCard: CurrentReviewNotificationCard,
     nowMillis: Long,
     lastActiveAtMillis: Long,
     zoneId: ZoneId,
@@ -394,27 +369,12 @@ fun buildInactivityReminderPayloads(
         return emptyList()
     }
 
-    val effectiveSchedulerSettings = schedulerSettings ?: makeDefaultWorkspaceSchedulerSettings(
-        workspaceId = workspaceId,
-        updatedAtMillis = nowMillis
-    )
-
     return scheduledAtMillisList.mapNotNull { scheduledAtMillis ->
-        val sessionSnapshot = buildReviewSessionSnapshot(
-            selectedFilter = reviewFilter,
-            pendingReviewedCardIds = emptySet(),
-            decks = decks,
-            cards = cards,
-            tagsSummary = makeNotificationWorkspaceTagsSummary(cards = cards),
-            settings = effectiveSchedulerSettings,
-            reviewedAtMillis = scheduledAtMillis
-        )
-        val currentCard = sessionSnapshot.cards.firstOrNull() ?: return@mapNotNull null
         val scheduledAtDateTime = Instant.ofEpochMilli(scheduledAtMillis).atZone(zoneId)
 
         ScheduledReviewNotificationPayload(
             workspaceId = workspaceId,
-            reviewFilter = makePersistedReviewFilter(reviewFilter = reviewFilter),
+            reviewFilter = currentCard.reviewFilter,
             cardId = currentCard.cardId,
             frontText = currentCard.frontText,
             scheduledAtMillis = scheduledAtMillis,
@@ -474,24 +434,6 @@ fun makeNotificationRequestId(
     suffix: String
 ): String {
     return "review-notification::$workspaceId::${mode.name.lowercase()}::$suffix"
-}
-
-private fun makeNotificationWorkspaceTagsSummary(cards: List<CardSummary>): WorkspaceTagsSummary {
-    val counts = cards.fold(emptyMap<String, Int>()) { result, card ->
-        card.tags.fold(result) { tagResult, tag ->
-            tagResult + (tag to ((tagResult[tag] ?: 0) + 1))
-        }
-    }
-
-    return WorkspaceTagsSummary(
-        tags = counts.entries.map { entry ->
-            WorkspaceTagSummary(
-                tag = entry.key,
-                cardsCount = entry.value
-            )
-        },
-        totalCards = cards.size
-    )
 }
 
 private fun makeSettingsKey(workspaceId: String): String {
