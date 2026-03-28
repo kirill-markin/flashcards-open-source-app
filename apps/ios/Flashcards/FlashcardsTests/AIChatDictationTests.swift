@@ -344,15 +344,17 @@ final class AIChatDictationTests: AIChatTestCaseBase {
                 httpVersion: nil,
                 headerFields: ["Content-Type": "application/json"]
             ))
-            return (response, Data(#"{"text":"dictated text"}"#.utf8))
+            return (response, Data(#"{"text":"dictated text","sessionId":"session-1"}"#.utf8))
         }
 
         let transcript = try await service.transcribe(
             session: FlashcardsStoreTestSupport.makeLinkedSession(workspaceId: "workspace-1"),
+            sessionId: nil,
             recordedAudio: recordedAudio
         )
 
-        XCTAssertEqual(transcript, "dictated text")
+        XCTAssertEqual(transcript.text, "dictated text")
+        XCTAssertEqual(transcript.sessionId, "session-1")
     }
 
     func testMakeAIChatUserFacingErrorMessagePreservesRequestReferences() {
