@@ -1,0 +1,16 @@
+package com.flashcardsopensourceapp.feature.settings
+
+data class AccountStatusUiState(
+    val workspaceName: String,
+    val cloudStatusTitle: String,
+    val linkedEmail: String?,
+    val deviceId: String,
+    val syncStatusText: String,
+    val lastSuccessfulSync: String,
+    val isGuest: Boolean,
+    val isLinked: Boolean,
+    val isLinkingReady: Boolean,
+    val showLogoutConfirmation: Boolean,
+    val errorMessage: String,
+    val isSubmitting: Boolean
+)
