@@ -9,6 +9,7 @@ private struct CloudSyncPollingTaskID: Hashable {
 @main
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
+    @UIApplicationDelegateAdaptor(ReviewNotificationsAppDelegate.self) private var reviewNotificationsAppDelegate
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
 
@@ -25,13 +26,24 @@ struct FlashcardsApp: App {
                 .task {
                     await store.resumePendingAccountDeletionIfNeeded()
                     await store.syncCloudIfLinked()
+                    store.markReviewNotificationsAppActive(now: Date())
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
                         Task { @MainActor in
                             await store.syncCloudIfLinked()
+                            store.markReviewNotificationsAppActive(now: Date())
                         }
+                    } else if nextPhase == .background || nextPhase == .inactive {
+                        store.markReviewNotificationsAppBackground(now: Date())
                     }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: reviewNotificationTapPayloadNotificationName)) { notification in
+                    guard let payload = notification.object as? ScheduledReviewNotificationPayload else {
+                        return
+                    }
+
+                    store.handleReviewNotificationTap(payload: payload, navigation: navigation)
                 }
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()

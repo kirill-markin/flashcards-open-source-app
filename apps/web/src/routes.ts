@@ -15,6 +15,7 @@ export const settingsAccessRoute: string = "/settings/access";
 export const settingsOverviewRoute: string = "/settings/workspace/overview";
 export const settingsSchedulerRoute: string = "/settings/workspace/scheduler";
 export const settingsExportRoute: string = "/settings/workspace/export";
+export const settingsNotificationsRoute: string = "/settings/workspace/notifications";
 export const settingsAccessDetailRoutePattern: string = "/settings/access/:accessKind";
 export const settingsDecksRoute: string = "/settings/workspace/decks";
 export const settingsDeckNewRoute: string = "/settings/workspace/decks/new";

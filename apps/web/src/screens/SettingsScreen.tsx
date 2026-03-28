@@ -59,7 +59,7 @@ export function SettingsScreen(): ReactElement {
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title="Workspace Settings"
-            description="Review overview, workspace data, scheduler settings, and export."
+            description="Review overview, workspace data, scheduler settings, notifications, and export."
             value="Workspace"
             to={workspaceSettingsRoute}
           />

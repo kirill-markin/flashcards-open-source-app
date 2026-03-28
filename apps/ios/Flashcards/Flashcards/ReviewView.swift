@@ -204,6 +204,28 @@ struct ReviewView: View {
         } message: {
             Text(store.reviewSubmissionFailure?.message ?? "")
         }
+        .alert(
+            "Stay on top of your cards",
+            isPresented: Binding(
+                get: {
+                    store.isReviewNotificationPrePromptPresented
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        store.dismissReviewNotificationPrePrompt(markDismissed: false)
+                    }
+                }
+            )
+        ) {
+            Button("Not now", role: .cancel) {
+                store.dismissReviewNotificationPrePrompt(markDismissed: true)
+            }
+            Button("Continue") {
+                store.continueReviewNotificationPrePrompt()
+            }
+        } message: {
+            Text("Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.")
+        }
     }
 
     private var reviewFilterMenu: some View {

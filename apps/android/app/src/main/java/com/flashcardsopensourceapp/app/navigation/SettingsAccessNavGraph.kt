@@ -19,6 +19,9 @@ internal fun NavGraphBuilder.registerSettingsAccessNavGraph(
     ) {
         composable(route = SettingsAccessDestination.route) {
             AccessRoute(
+                onOpenNotifications = {
+                    navController.navigate(route = SettingsWorkspaceNotificationsDestination.route)
+                },
                 onOpenCapability = { capability ->
                     navController.navigate(
                         route = SettingsAccessDetailDestination.createRoute(capability = capability.name.lowercase())

@@ -5,7 +5,7 @@ import {
   queryBrowserPermissionState,
   type BrowserPermissionState,
 } from "../access/browserAccess";
-import { buildSettingsAccessDetailRoute } from "../routes";
+import { buildSettingsAccessDetailRoute, settingsNotificationsRoute } from "../routes";
 import { SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 type BrowserPermissionSnapshot = Readonly<{
@@ -47,6 +47,12 @@ export function AccessSettingsScreen(): ReactElement {
       activeTab="access"
     >
       <div className="settings-nav-list">
+        <SettingsNavigationCard
+          title="Notifications"
+          description="Review study reminder options for this workspace on the current device."
+          value="This device"
+          to={settingsNotificationsRoute}
+        />
         <SettingsNavigationCard
             title="Photos and files"
             description="Browser file access is granted only when you choose files from the picker."

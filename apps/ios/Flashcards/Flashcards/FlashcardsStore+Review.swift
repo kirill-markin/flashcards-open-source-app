@@ -10,6 +10,7 @@ extension FlashcardsStore {
     func selectReviewFilter(reviewFilter: ReviewFilter) {
         self.extendCloudSyncFastPolling(now: Date())
         self.startReviewLoad(reviewFilter: reviewFilter, now: Date())
+        self.refreshReviewNotificationsScheduling(now: Date())
     }
 
     func startReviewLoad(reviewFilter: ReviewFilter, now: Date) {
@@ -291,6 +292,7 @@ extension FlashcardsStore {
             if didRefreshBootstrapSnapshot || didReconcileReviewState {
                 self.localReadVersion += 1
             }
+            self.handleSuccessfulReviewNotificationTrigger()
             self.triggerCloudSyncIfLinked()
         } catch {
             self.handleReviewSubmissionFailure(request: request, submissionError: error)

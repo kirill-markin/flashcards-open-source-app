@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
+import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,7 +35,9 @@ fun ReviewRoute(
     onRateHard: () -> Unit,
     onRateGood: () -> Unit,
     onRateEasy: () -> Unit,
-    onDismissErrorMessage: () -> Unit
+    onDismissErrorMessage: () -> Unit,
+    onDismissNotificationPermissionPrompt: () -> Unit,
+    onContinueNotificationPermissionPrompt: () -> Unit
 ) {
     var isFilterSheetVisible by remember { mutableStateOf(value = false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -114,6 +117,30 @@ fun ReviewRoute(
             onManageDecks = {
                 isFilterSheetVisible = false
                 onOpenDeckManagement()
+            }
+        )
+    }
+
+    if (uiState.isNotificationPermissionPromptVisible) {
+        AlertDialog(
+            onDismissRequest = onDismissNotificationPermissionPrompt,
+            title = {
+                androidx.compose.material3.Text("Stay on top of your cards")
+            },
+            text = {
+                androidx.compose.material3.Text(
+                    "Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages."
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = onContinueNotificationPermissionPrompt) {
+                    androidx.compose.material3.Text("Continue")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = onDismissNotificationPermissionPrompt) {
+                    androidx.compose.material3.Text("Not now")
+                }
             }
         )
     }

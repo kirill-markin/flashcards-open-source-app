@@ -106,6 +106,10 @@ vi.mock("./screens/OpenSourceSettingsScreen", () => ({
   OpenSourceSettingsScreen: () => <div>open-source-settings-screen</div>,
 }));
 
+vi.mock("./screens/NotificationsSettingsScreen", () => ({
+  NotificationsSettingsScreen: () => <div>notifications-settings-screen</div>,
+}));
+
 vi.mock("./screens/AgentConnectionsScreen", () => ({
   AgentConnectionsScreen: () => <div>agent-connections-screen</div>,
 }));

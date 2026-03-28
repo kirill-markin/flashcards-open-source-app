@@ -6,7 +6,7 @@ enum PersistedReviewFilterKind: String, Codable {
     case tag
 }
 
-struct PersistedReviewFilter: Codable, Hashable {
+struct PersistedReviewFilter: Codable, Hashable, Sendable {
     let kind: PersistedReviewFilterKind
     let deckId: String?
     let tag: String?

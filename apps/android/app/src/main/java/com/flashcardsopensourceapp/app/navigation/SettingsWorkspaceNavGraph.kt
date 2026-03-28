@@ -15,10 +15,12 @@ import com.flashcardsopensourceapp.feature.settings.DeckEditorRoute
 import com.flashcardsopensourceapp.feature.settings.DeckListTargetUiState
 import com.flashcardsopensourceapp.feature.settings.DecksRoute
 import com.flashcardsopensourceapp.feature.settings.SchedulerSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.ReviewNotificationsRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceExportRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceOverviewRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.WorkspaceTagsRoute
+import com.flashcardsopensourceapp.feature.settings.createReviewNotificationsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createAllCardsDeckDetailViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDeckDetailViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createDeckEditorViewModelFactory
@@ -44,7 +46,10 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
     ) {
         composable(route = SettingsWorkspaceDestination.route) {
             val workspaceSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceSettingsViewModel>(
-                factory = createWorkspaceSettingsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+                factory = createWorkspaceSettingsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    reviewNotificationsStore = appGraph.reviewNotificationsStore
+                )
             )
             val uiState by workspaceSettingsViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -59,11 +64,45 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 onOpenTags = {
                     navController.navigate(route = SettingsWorkspaceTagsDestination.route)
                 },
+                onOpenNotifications = {
+                    navController.navigate(route = SettingsWorkspaceNotificationsDestination.route)
+                },
                 onOpenScheduler = {
                     navController.navigate(route = SettingsWorkspaceSchedulerDestination.route)
                 },
                 onOpenExport = {
                     navController.navigate(route = SettingsWorkspaceExportDestination.route)
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = SettingsWorkspaceNotificationsDestination.route) {
+            val reviewNotificationsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.ReviewNotificationsViewModel>(
+                factory = createReviewNotificationsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                    onSettingsChanged = {
+                        appGraph.reviewNotificationsManager.refreshCurrentWorkspaceScheduling()
+                    }
+                )
+            )
+            val uiState by reviewNotificationsViewModel.uiState.collectAsStateWithLifecycle()
+
+            ReviewNotificationsRoute(
+                uiState = uiState,
+                onUpdateEnabled = reviewNotificationsViewModel::updateEnabled,
+                onUpdateMode = reviewNotificationsViewModel::updateMode,
+                onUpdateDailyTime = reviewNotificationsViewModel::updateDailyTime,
+                onUpdateInactivityWindowStart = reviewNotificationsViewModel::updateInactivityWindowStart,
+                onUpdateInactivityWindowEnd = reviewNotificationsViewModel::updateInactivityWindowEnd,
+                onUpdateIdleMinutes = reviewNotificationsViewModel::updateIdleMinutes,
+                onMarkSystemPermissionRequested = reviewNotificationsViewModel::markSystemPermissionRequested,
+                onPermissionGranted = {
+                    appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
+                    appGraph.reviewNotificationsManager.refreshCurrentWorkspaceScheduling()
                 },
                 onBack = {
                     navController.popBackStack()

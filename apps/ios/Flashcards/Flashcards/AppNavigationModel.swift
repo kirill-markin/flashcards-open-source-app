@@ -11,6 +11,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.access]
     case .workspace:
         return [.workspace]
+    case .workspaceNotifications:
+        return [.workspace, .workspaceNotifications]
     case .workspaceOverview:
         return [.workspace, .workspaceOverview]
     case .workspaceScheduler:

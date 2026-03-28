@@ -68,6 +68,10 @@ data object SettingsWorkspaceSchedulerDestination {
     const val route: String = "settings/workspace/scheduler"
 }
 
+data object SettingsWorkspaceNotificationsDestination {
+    const val route: String = "settings/workspace/notifications"
+}
+
 data object SettingsWorkspaceExportDestination {
     const val route: String = "settings/workspace/export"
 }

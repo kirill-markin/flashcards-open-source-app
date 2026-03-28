@@ -50,6 +50,14 @@ struct WorkspaceSettingsView: View {
                     )
                 }
 
+                NavigationLink(value: SettingsNavigationDestination.workspaceNotifications) {
+                    SettingsNavigationRow(
+                        title: "Notifications",
+                        value: "This Device",
+                        systemImage: "bell.badge"
+                    )
+                }
+
                 NavigationLink(value: SettingsNavigationDestination.workspaceExport) {
                     SettingsNavigationRow(
                         title: "Export",

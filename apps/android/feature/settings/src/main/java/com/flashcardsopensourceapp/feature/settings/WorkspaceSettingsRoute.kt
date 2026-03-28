@@ -18,6 +18,7 @@ fun WorkspaceSettingsRoute(
     onOpenOverview: () -> Unit,
     onOpenDecks: () -> Unit,
     onOpenTags: () -> Unit,
+    onOpenNotifications: () -> Unit,
     onOpenScheduler: () -> Unit,
     onOpenExport: () -> Unit,
     onBack: () -> Unit
@@ -70,6 +71,20 @@ fun WorkspaceSettingsRoute(
                             Text("${uiState.tagCount} tags")
                         },
                         modifier = Modifier.clickable(onClick = onOpenTags)
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text("Notifications")
+                        },
+                        supportingContent = {
+                            Text(uiState.notificationsSummary)
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenNotifications)
                     )
                 }
             }

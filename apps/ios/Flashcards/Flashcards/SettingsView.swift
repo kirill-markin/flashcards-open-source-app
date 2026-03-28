@@ -76,7 +76,7 @@ struct SettingsView: View {
                 NavigationLink(value: SettingsNavigationDestination.access) {
                     SettingsNavigationRow(
                         title: "Access",
-                        value: "3 items",
+                        value: "4 items",
                         systemImage: "hand.raised"
                     )
                 }

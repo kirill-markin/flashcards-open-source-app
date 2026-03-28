@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
+import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapPayload
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,11 @@ data class AiEntryPrefillRequest(
 data class CardEditorRequest(
     val requestId: Long,
     val cardId: String?
+)
+
+data class ReviewNotificationRequest(
+    val requestId: Long,
+    val payload: ReviewNotificationTapPayload
 )
 
 enum class SettingsNavigationTarget {
@@ -31,6 +37,7 @@ class AppHandoffCoordinator {
     private val nextRequestId = AtomicLong(0L)
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
+    private val reviewNotificationState = MutableStateFlow<ReviewNotificationRequest?>(value = null)
     private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
 
     fun observeAiEntryPrefill(): StateFlow<AiEntryPrefillRequest?> {
@@ -39,6 +46,10 @@ class AppHandoffCoordinator {
 
     fun observeCardEditor(): StateFlow<CardEditorRequest?> {
         return cardEditorState.asStateFlow()
+    }
+
+    fun observeReviewNotification(): StateFlow<ReviewNotificationRequest?> {
+        return reviewNotificationState.asStateFlow()
     }
 
     fun observeSettingsNavigation(): StateFlow<SettingsNavigationRequest?> {
@@ -73,6 +84,21 @@ class AppHandoffCoordinator {
         }
 
         cardEditorState.value = null
+    }
+
+    fun requestReviewNotification(payload: ReviewNotificationTapPayload) {
+        reviewNotificationState.value = ReviewNotificationRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            payload = payload
+        )
+    }
+
+    fun consumeReviewNotification(requestId: Long) {
+        if (reviewNotificationState.value?.requestId != requestId) {
+            return
+        }
+
+        reviewNotificationState.value = null
     }
 
     fun requestSettingsNavigation(target: SettingsNavigationTarget) {

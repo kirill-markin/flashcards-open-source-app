@@ -1,13 +1,19 @@
 package com.flashcardsopensourceapp.app.navigation
 
+import android.Manifest
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
@@ -19,16 +25,42 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
     navController: NavHostController
 ) {
     composable(route = ReviewDestination.route) {
+        val context = LocalContext.current
+        val activity = context as? ComponentActivity
+        val notificationPermissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
+            }
+        }
         val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
             factory = createReviewViewModelFactory(
                 reviewRepository = appGraph.reviewRepository,
                 syncRepository = appGraph.syncRepository,
                 messageController = appGraph.appMessageBus,
+                reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                shouldShowNotificationPermissionPrePrompt = {
+                    hasNotificationPermission(context = context).not()
+                },
+                onReviewNotificationsChanged = {
+                    appGraph.reviewNotificationsManager.refreshCurrentWorkspaceScheduling()
+                },
+                onNotificationPermissionGranted = {
+                    appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
+                },
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
                 workspaceRepository = appGraph.workspaceRepository
             )
         )
         val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+        val reviewNotificationRequest by appGraph.appHandoffCoordinator.observeReviewNotification().collectAsStateWithLifecycle()
+
+        LaunchedEffect(reviewNotificationRequest?.requestId) {
+            val request = reviewNotificationRequest ?: return@LaunchedEffect
+            reviewViewModel.handleReviewNotificationTap(payload = request.payload)
+            appGraph.appHandoffCoordinator.consumeReviewNotification(requestId = request.requestId)
+        }
 
         ReviewRoute(
             uiState = uiState,
@@ -62,7 +94,14 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.HARD) },
             onRateGood = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD) },
             onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.EASY) },
-            onDismissErrorMessage = reviewViewModel::dismissErrorMessage
+            onDismissErrorMessage = reviewViewModel::dismissErrorMessage,
+            onDismissNotificationPermissionPrompt = reviewViewModel::dismissNotificationPermissionPrompt,
+            onContinueNotificationPermissionPrompt = {
+                reviewViewModel.continueNotificationPermissionPrompt()
+                if (activity != null) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
         )
     }
 
@@ -78,6 +117,16 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 reviewRepository = appGraph.reviewRepository,
                 syncRepository = appGraph.syncRepository,
                 messageController = appGraph.appMessageBus,
+                reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                shouldShowNotificationPermissionPrePrompt = {
+                    false
+                },
+                onReviewNotificationsChanged = {
+                    appGraph.reviewNotificationsManager.refreshCurrentWorkspaceScheduling()
+                },
+                onNotificationPermissionGranted = {
+                    appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
+                },
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
                 workspaceRepository = appGraph.workspaceRepository
             )
