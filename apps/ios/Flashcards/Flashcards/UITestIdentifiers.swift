@@ -1,10 +1,16 @@
 import Foundation
 
 enum UITestIdentifier {
+    static let settingsScreen: String = "settings.screen"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsWorkspaceSettingsRow: String = "settings.workspaceSettingsRow"
     static let settingsAccountSettingsRow: String = "settings.accountSettingsRow"
+    static let currentWorkspaceScreen: String = "currentWorkspace.screen"
+    static let workspaceSettingsScreen: String = "workspaceSettings.screen"
+    static let workspaceOverviewScreen: String = "workspaceOverview.screen"
+    static let accountSettingsScreen: String = "accountSettings.screen"
     static let accountSettingsAccountStatusRow: String = "accountSettings.accountStatusRow"
+    static let accountStatusScreen: String = "accountStatus.screen"
     static let accountStatusSignInButton: String = "accountStatus.signInButton"
     static let accountStatusSyncNowButton: String = "accountStatus.syncNowButton"
     static let cloudSignInEmailField: String = "cloudSignIn.emailField"

@@ -106,6 +106,7 @@ struct WorkspaceOverviewView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.workspaceOverviewScreen)
         .navigationTitle("Overview")
         .task(id: store.localReadVersion) {
             await self.reloadWorkspaceOverview()
