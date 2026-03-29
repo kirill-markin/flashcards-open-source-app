@@ -280,6 +280,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       },
       isSessionVerified: true,
       localCardCount: 1,
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
       runSync: vi.fn(async (): Promise<void> => undefined),
       setErrorMessage: vi.fn(),
     });

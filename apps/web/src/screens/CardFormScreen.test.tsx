@@ -29,6 +29,7 @@ const { mockAppData } = vi.hoisted(() => ({
     deleteCardItem: vi.fn(async (): Promise<Card> => {
       throw new Error("not used");
     }),
+    localReadVersion: 0,
     setErrorMessage: vi.fn(),
   },
 }));
@@ -80,6 +81,12 @@ function click(element: Element | null): void {
   element?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
 
+function changeTextareaValue(textarea: HTMLTextAreaElement, value: string): void {
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+  descriptor?.set?.call(textarea, value);
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 function findButton(container: HTMLDivElement, text: string): HTMLButtonElement | null {
   const button = Array.from(container.querySelectorAll("button")).find((element) => element.textContent?.trim() === text);
   return button instanceof HTMLButtonElement ? button : null;
@@ -126,6 +133,7 @@ describe("CardFormScreen", () => {
     mockAppData.createCardItem.mockReset();
     mockAppData.updateCardItem.mockReset();
     mockAppData.deleteCardItem.mockReset();
+    mockAppData.localReadVersion = 0;
     mockAppData.setErrorMessage.mockClear();
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -276,5 +284,47 @@ describe("CardFormScreen", () => {
     });
 
     expect(container.querySelector('[data-testid="location"]')?.textContent).toBe("/cards");
+  });
+
+  it("keeps create-mode form inputs when local data refreshes", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/cards/new"]}>
+          <Routes>
+            <Route path="/cards/new" element={<CardFormScreen />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    const textareas = container.querySelectorAll("textarea");
+    const frontTextarea = textareas.item(0);
+    const backTextarea = textareas.item(1);
+    if (!(frontTextarea instanceof HTMLTextAreaElement) || !(backTextarea instanceof HTMLTextAreaElement)) {
+      throw new Error("Expected create-mode card textareas to be rendered");
+    }
+
+    await act(async () => {
+      changeTextareaValue(frontTextarea, "Manual front");
+      changeTextareaValue(backTextarea, "Manual back");
+    });
+
+    expect(frontTextarea.value).toBe("Manual front");
+    expect(backTextarea.value).toBe("Manual back");
+
+    mockAppData.localReadVersion = 1;
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={["/cards/new"]}>
+          <Routes>
+            <Route path="/cards/new" element={<CardFormScreen />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    expect(frontTextarea.value).toBe("Manual front");
+    expect(backTextarea.value).toBe("Manual back");
   });
 });

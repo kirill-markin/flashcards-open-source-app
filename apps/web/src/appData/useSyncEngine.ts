@@ -210,6 +210,19 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
   }, [bumpLocalReadVersion, isVisibleWorkspace, refreshLocalMetadata]);
 
+  const waitForWorkspaceSyncToSettle = useCallback(async function waitForWorkspaceSyncToSettle(
+    workspaceId: string,
+  ): Promise<void> {
+    while (true) {
+      const activeSync = syncPromisesRef.current.get(workspaceId);
+      if (activeSync === undefined) {
+        return;
+      }
+
+      await activeSync;
+    }
+  }, []);
+
   const runSyncForWorkspace = useCallback(async function runSyncForWorkspace(
     workspace: WorkspaceSummary,
   ): Promise<void> {
@@ -416,7 +429,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await refreshWorkspaceView(activeWorkspace.workspaceId);
     await runSyncForWorkspace(activeWorkspace);
-  }, [activeWorkspace, refreshWorkspaceView, runSyncForWorkspace]);
+    await waitForWorkspaceSyncToSettle(activeWorkspace.workspaceId);
+  }, [activeWorkspace, refreshWorkspaceView, runSyncForWorkspace, waitForWorkspaceSyncToSettle]);
 
   const getCardById = useCallback(async function getCardById(cardId: string): Promise<Card> {
     if (activeWorkspace === null) {

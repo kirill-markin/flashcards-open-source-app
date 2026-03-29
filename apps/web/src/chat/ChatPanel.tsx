@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -126,6 +127,17 @@ export function ChatPanel(props: Props): ReactElement {
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
 
+  const handleMainContentInvalidated = useCallback((mainContentInvalidationVersion: number): void => {
+    if (mainContentInvalidationVersion <= 0) {
+      return;
+    }
+
+    void appData.refreshLocalData().catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      appData.setErrorMessage(`Chat content refresh failed. ${message}`);
+    });
+  }, [appData]);
+
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const {
     messages,
@@ -141,6 +153,7 @@ export function ChatPanel(props: Props): ReactElement {
     clearConversation,
   } = useChatSessionController({
     workspaceId: activeWorkspaceId,
+    onMainContentInvalidated: handleMainContentInvalidated,
   });
 
   const rootRef = useRef<HTMLDivElement>(null);

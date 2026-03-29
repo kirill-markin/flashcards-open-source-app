@@ -32,6 +32,7 @@ import type { ChatConfig } from "../types";
 
 type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;
+  onMainContentInvalidated: (mainContentInvalidationVersion: number) => void;
 }>;
 
 export type SendChatMessageParams = Readonly<{
@@ -47,6 +48,7 @@ export type ChatSessionController = Readonly<{
   isLiveStreamConnected: boolean;
   isStopping: boolean;
   currentSessionId: string | null;
+  mainContentInvalidationVersion: number;
   chatConfig: ChatConfig;
   composerAction: ChatComposerAction;
   acceptServerSessionId: (sessionId: string) => void;
@@ -66,7 +68,7 @@ function toErrorMessage(error: unknown): string {
 export function useChatSessionController(
   params: UseChatSessionControllerParams,
 ): ChatSessionController {
-  const { workspaceId } = params;
+  const { workspaceId, onMainContentInvalidated } = params;
   const {
     messages,
     replaceMessages,
@@ -80,9 +82,12 @@ export function useChatSessionController(
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [runState, setRunState] = useState<ChatRunState>("idle");
   const [isStopping, setIsStopping] = useState<boolean>(false);
+  const [mainContentInvalidationVersion, setMainContentInvalidationVersion] = useState<number>(0);
   const [chatConfig, setChatConfig] = useState<ChatConfig>(() => loadStoredChatConfig());
 
   const lastSnapshotUpdatedAtRef = useRef<number | null>(null);
+  const hasObservedMainContentInvalidationVersionRef = useRef<boolean>(false);
+  const lastMainContentInvalidationVersionRef = useRef<number>(0);
   const stoppedSessionIdsRef = useRef<Set<string>>(new Set());
 
   const isAssistantRunActive = isChatRunActive(runState);
@@ -95,11 +100,22 @@ export function useChatSessionController(
     const snapshot = await getChatSnapshot(sessionId);
     const isUserStoppedSession = stoppedSessionIdsRef.current.has(snapshot.sessionId);
     const effectiveRunState = getEffectiveSnapshotRunState(snapshot.runState, isUserStoppedSession);
+    const nextMainContentInvalidationVersion = snapshot.mainContentInvalidationVersion;
 
     setCurrentSessionId(snapshot.sessionId);
     setRunState(effectiveRunState);
+    setMainContentInvalidationVersion(nextMainContentInvalidationVersion);
     setChatConfig(snapshot.chatConfig);
     storeChatConfig(snapshot.chatConfig);
+
+    if (hasObservedMainContentInvalidationVersionRef.current) {
+      if (nextMainContentInvalidationVersion > lastMainContentInvalidationVersionRef.current) {
+        onMainContentInvalidated(nextMainContentInvalidationVersion);
+      }
+    } else {
+      hasObservedMainContentInvalidationVersionRef.current = true;
+    }
+    lastMainContentInvalidationVersionRef.current = nextMainContentInvalidationVersion;
 
     if (replaceHistory && (lastSnapshotUpdatedAtRef.current === null || snapshot.updatedAt > lastSnapshotUpdatedAtRef.current)) {
       replaceMessages(snapshot.messages);
@@ -113,7 +129,7 @@ export function useChatSessionController(
       ...snapshot,
       runState: effectiveRunState,
     };
-  }, [replaceMessages]);
+  }, [onMainContentInvalidated, replaceMessages]);
 
   useEffect(() => {
     let isDisposed = false;
@@ -122,6 +138,9 @@ export function useChatSessionController(
     setCurrentSessionId(null);
     setRunState("idle");
     setIsStopping(false);
+    setMainContentInvalidationVersion(0);
+    hasObservedMainContentInvalidationVersionRef.current = false;
+    lastMainContentInvalidationVersionRef.current = 0;
     lastSnapshotUpdatedAtRef.current = null;
     stoppedSessionIdsRef.current.clear();
     replaceMessages([]);
@@ -271,9 +290,12 @@ export function useChatSessionController(
       const response = await resetChatSession(currentSessionId ?? undefined);
       clearHistory();
       stoppedSessionIdsRef.current.clear();
+      hasObservedMainContentInvalidationVersionRef.current = false;
+      lastMainContentInvalidationVersionRef.current = 0;
       lastSnapshotUpdatedAtRef.current = null;
       setCurrentSessionId(response.sessionId);
       setRunState("idle");
+      setMainContentInvalidationVersion(0);
       setChatConfig(response.chatConfig);
       storeChatConfig(response.chatConfig);
     } catch (error) {
@@ -289,6 +311,7 @@ export function useChatSessionController(
     isLiveStreamConnected: false,
     isStopping,
     currentSessionId,
+    mainContentInvalidationVersion,
     chatConfig: chatConfig ?? defaultChatConfig,
     composerAction,
     acceptServerSessionId: setCurrentSessionId,

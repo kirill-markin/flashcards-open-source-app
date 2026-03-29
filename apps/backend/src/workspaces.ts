@@ -223,7 +223,6 @@ async function loadWorkspaceManagementRowInExecutor(
       "FROM org.workspace_memberships memberships",
       "INNER JOIN org.workspaces workspaces ON workspaces.workspace_id = memberships.workspace_id",
       "WHERE memberships.user_id = $1 AND memberships.workspace_id = $2",
-      "FOR UPDATE OF memberships, workspaces",
     ].join(" "),
     [userId, workspaceId],
   );
