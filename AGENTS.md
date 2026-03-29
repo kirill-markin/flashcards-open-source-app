@@ -34,15 +34,13 @@ Before running Android tests, also check which Android emulators are available l
 
 ## Release Gates and Monitoring
 
-Pushes to `main` are expected to travel through the native client release gates before production distribution:
+Pushes to `main` use different release policies by platform:
 
-- Web: GitHub Actions in `.github/workflows/ci.yml` runs web build and native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts` before the deploy workflow can publish web changes
+- Web/backend/auth/infra: GitHub Actions deploys production changes directly from `.github/workflows/deploy.yml`, then runs the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts` as a post-deploy operational signal
 - Android: GitHub Actions in `.github/workflows/android.yml` runs build, lint, and the native instrumentation live smoke in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`, then `.github/workflows/android-release.yml` can publish to Google Play
 - iOS: Xcode Cloud runs the native Swift/XCTest stack, including the XCUITest live smoke in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`, before archive and distribution continue
 
-The release gate order is: native unit/build checks first, then native live smoke tests, then production release.
-
-When a change lands on `main`, monitor every triggered client pipeline until it either reaches release or fails clearly. If a client gate fails, or if the expected release does not happen after the smoke gate, report that to the user and fix the blocking problem instead of assuming deployment completed.
+When a change lands on `main`, monitor every triggered client pipeline until it either reaches release or fails clearly. For web/backend/auth/infra, a failed post-deploy web smoke does not block deploy in this phase and should be fixed forward.
 
 Cross-client live smoke references:
 

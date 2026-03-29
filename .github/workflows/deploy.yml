@@ -1,10 +1,18 @@
 name: Deploy to AWS
 
 on:
-  workflow_run:
-    workflows: ['CI']
-    types: [completed]
+  push:
     branches: [main]
+    paths:
+      - 'api/**'
+      - 'apps/auth/**'
+      - 'apps/backend/**'
+      - 'apps/web/**'
+      - 'db/**'
+      - 'infra/**'
+      - 'scripts/**'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 concurrency:
@@ -20,44 +28,13 @@ env:
   STACK_NAME: FlashcardsOpenSourceApp
 
 jobs:
-  guard:
-    name: Check deploy preconditions
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Allow manual deploy
-        if: github.event_name == 'workflow_dispatch'
-        run: echo "Manual deploy requested. Skipping upstream CI conclusion check."
-
-      - name: Block deploy when upstream CI failed
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
-        run: |
-          echo "Deploy to AWS blocked because upstream workflow did not succeed." >&2
-          echo "workflow=${{ github.event.workflow_run.name }}" >&2
-          echo "conclusion=${{ github.event.workflow_run.conclusion }}" >&2
-          echo "branch=${{ github.event.workflow_run.head_branch }}" >&2
-          echo "head_sha=${{ github.event.workflow_run.head_sha }}" >&2
-          exit 1
-
-      - name: Confirm upstream CI success
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-        run: |
-          echo "Upstream workflow succeeded."
-          echo "workflow=${{ github.event.workflow_run.name }}"
-          echo "conclusion=${{ github.event.workflow_run.conclusion }}"
-          echo "branch=${{ github.event.workflow_run.head_branch }}"
-          echo "head_sha=${{ github.event.workflow_run.head_sha }}"
-
   deploy:
     name: Deploy to AWS
-    needs: guard
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -140,3 +117,144 @@ jobs:
       - name: Migration reminder
         if: github.event_name == 'workflow_dispatch'
         run: echo "::warning::Migrations changed. Run scripts/migrate.sh against target database manually or via your migration pipeline."
+
+      - name: Summarize deployed release
+        run: |
+          {
+            echo "## Production deploy"
+            echo ""
+            echo "- Deployed SHA: \`${GITHUB_SHA}\`"
+            echo "- Web post-deploy smoke: pending next job"
+            echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  web-post-deploy-smoke:
+    name: Web post-deploy smoke
+    needs: deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install web dependencies
+        run: npm ci --prefix apps/web
+
+      - name: Build web app for live smoke
+        env:
+          VITE_APP_BASE_URL: https://app.flashcards-open-source-app.com
+          VITE_API_BASE_URL: https://api.flashcards-open-source-app.com/v1
+          VITE_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
+        run: npm run build --prefix apps/web
+
+      - name: Install Playwright Chromium
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run live web smoke test
+        id: live_smoke
+        working-directory: apps/web
+        env:
+          FLASHCARDS_E2E_APP_BASE_URL: https://app.flashcards-open-source-app.com
+          FLASHCARDS_E2E_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
+          FLASHCARDS_LIVE_REVIEW_EMAIL: google-review@example.com
+        run: |
+          set -euo pipefail
+
+          cert_dir="${RUNNER_TEMP}/web-live-e2e-cert"
+          cert_path="${cert_dir}/app.flashcards-open-source-app.com.crt"
+          key_path="${cert_dir}/app.flashcards-open-source-app.com.key"
+          server_log_path="${RUNNER_TEMP}/web-live-e2e-server.log"
+
+          mkdir -p "${cert_dir}"
+
+          openssl req \
+            -x509 \
+            -newkey rsa:2048 \
+            -sha256 \
+            -nodes \
+            -days 1 \
+            -subj "/CN=app.flashcards-open-source-app.com" \
+            -addext "subjectAltName=DNS:app.flashcards-open-source-app.com" \
+            -keyout "${key_path}" \
+            -out "${cert_path}"
+
+          printf '127.0.0.1 app.flashcards-open-source-app.com\n' | sudo tee -a /etc/hosts >/dev/null
+
+          sudo env PATH="${PATH}" node scripts/serve-dist-https.mjs \
+            --host 0.0.0.0 \
+            --port 443 \
+            --dir dist \
+            --cert "${cert_path}" \
+            --key "${key_path}" >"${server_log_path}" 2>&1 &
+          server_pid=$!
+
+          cleanup() {
+            sudo kill "${server_pid}" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          for _ in $(seq 1 30); do
+            if curl --silent --show-error --fail --insecure https://app.flashcards-open-source-app.com/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl --silent --show-error --fail --insecure https://app.flashcards-open-source-app.com/ >/dev/null
+          npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-playwright-report
+          if-no-files-found: ignore
+          path: apps/web/playwright-report
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-playwright-test-results
+          if-no-files-found: ignore
+          path: apps/web/test-results
+
+      - name: Summarize smoke result
+        if: always()
+        run: |
+          {
+            echo "## Web post-deploy smoke"
+            echo ""
+            echo "- Deployed SHA: \`${GITHUB_SHA}\`"
+            echo "- Result: \`${{ steps.live_smoke.outcome }}\`"
+            echo "- Artifacts: \`web-playwright-report\`, \`web-playwright-test-results\`"
+            echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  deploy-summary:
+    name: Deploy summary
+    if: always()
+    needs:
+      - deploy
+      - web-post-deploy-smoke
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Summarize workflow outcome
+        run: |
+          {
+            echo "## Deploy workflow summary"
+            echo ""
+            echo "- Deployed SHA: \`${GITHUB_SHA}\`"
+            echo "- Deploy job: \`${{ needs.deploy.result }}\`"
+            echo "- Web post-deploy smoke: \`${{ needs.web-post-deploy-smoke.result }}\`"
+            echo "- Artifacts: \`web-playwright-report\`, \`web-playwright-test-results\`"
+            echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } >> "${GITHUB_STEP_SUMMARY}"

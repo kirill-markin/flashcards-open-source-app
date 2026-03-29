@@ -104,10 +104,10 @@ The deploy workflow assembles its own `cdk.context.local.json` inside the job fr
 For the web client, the expected main-branch order is:
 
 1. GitHub `CI` runs native web build and unit coverage
-2. The same `CI` workflow runs the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
-3. The deploy workflow continues only after `CI` succeeds
+2. The deploy workflow releases backend, auth, infra, and web on push to `main`
+3. The deploy workflow then runs the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts` as post-deploy verification
 
-After pushing to `main`, watch both the `CI` workflow and the deploy workflow until the web release either completes or fails clearly.
+After pushing to `main`, watch both the `CI` workflow and the deploy workflow until the web release either completes or fails clearly. A failed web live smoke does not block deploy in this phase; it is an explicit post-deploy signal and should be fixed forward.
 
 Cross-client live smoke references:
 

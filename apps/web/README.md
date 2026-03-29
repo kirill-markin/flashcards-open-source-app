@@ -29,10 +29,10 @@ The live smoke scenario intentionally mirrors the mobile clients:
 
 Web build and deploy details are documented in [`docs/backend-web-deployment.md`](../../docs/backend-web-deployment.md).
 
-The expected release gate is:
+The expected main-branch release flow is:
 
 1. Native web build and unit coverage in GitHub Actions
-2. Native Playwright live smoke on `main`
-3. Web deploy after the GitHub `CI` workflow succeeds
+2. Web deploy on `main`
+3. Native Playwright live smoke after deploy as an operational signal
 
-When a change lands on `main`, follow the GitHub `CI` and deploy workflows through completion instead of assuming the web release finished automatically.
+When a change lands on `main`, follow the GitHub `CI` and deploy workflows through completion instead of assuming the web release finished automatically. A failed web live smoke is visible after deploy and should be fixed forward.
