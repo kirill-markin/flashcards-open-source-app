@@ -10,6 +10,7 @@ APP_PATH=""
 TEST_PATH=""
 RESULTS_BUCKET=""
 RESULTS_DIR=""
+MAX_INFRASTRUCTURE_RETRIES=2
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -95,4 +96,27 @@ if [[ -n "${RESULTS_DIR}" ]]; then
   )
 fi
 
-gcloud "${gcloud_args[@]}"
+attempt_number=1
+
+while true; do
+  set +e
+  gcloud "${gcloud_args[@]}"
+  exit_code=$?
+  set -e
+
+  if [[ ${exit_code} -eq 0 ]]; then
+    exit 0
+  fi
+
+  if [[ ${exit_code} -ne 20 ]]; then
+    exit "${exit_code}"
+  fi
+
+  if [[ ${attempt_number} -gt ${MAX_INFRASTRUCTURE_RETRIES} ]]; then
+    echo "ERROR: Firebase Test Lab infrastructure failure persisted after ${attempt_number} attempts." >&2
+    exit "${exit_code}"
+  fi
+
+  echo "WARNING: Firebase Test Lab returned infrastructure failure (exit code ${exit_code}). Retrying attempt $((attempt_number + 1)) of $((MAX_INFRASTRUCTURE_RETRIES + 1))." >&2
+  attempt_number=$((attempt_number + 1))
+done
