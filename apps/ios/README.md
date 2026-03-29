@@ -67,11 +67,11 @@ Only test the app against the final supported iOS target.
 
 The iOS app uses native Apple test tooling only:
 
-- unit and app-hosted tests live in `apps/ios/Flashcards/FlashcardsTests`
+- FSRS parity and scheduler-focused tests live in `apps/ios/Flashcards/FlashcardsTests`
 - release-gate UI coverage lives in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
-- accessibility identifiers used by the live smoke flow live in `apps/ios/Flashcards/Flashcards/UITestIdentifiers.swift`
+- accessibility identifiers used by the live smoke flows live in `apps/ios/Flashcards/Flashcards/UITestIdentifiers.swift`
 
-The iOS live smoke test is intentionally one connected story across Review, Cards, AI, and Settings. It uses the same linked-account smoke contract as the other clients:
+The iOS release-gate smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Each flow signs into the linked demo account, creates its own isolated workspace, and deletes it before finishing. It uses the same linked-account smoke contract as the other clients:
 
 - Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - Web equivalent: `apps/web/e2e/live-smoke.spec.ts`
@@ -82,9 +82,8 @@ iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
 
 The expected release gate is:
 
-1. Native unit/build checks
-2. Native XCUITest live smoke
-3. Xcode Cloud archive and distribution
+1. Native XCUITest grouped live smoke
+2. Xcode Cloud archive and distribution
 
 When a change lands on `main`, follow the Xcode Cloud workflow until the release either completes or fails with a concrete error. Do not assume the iOS release finished just because GitHub-side jobs are green.
 

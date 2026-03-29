@@ -81,9 +81,8 @@ struct CloudSyncRunner {
     ///
     /// Every request to `\(syncBasePath)/bootstrap` must use the same explicit
     /// nullable `cursor` contract documented in `BootstrapPullRequest` above and
-    /// accepted by `apps/backend/src/sync.ts`. Keep this flow aligned with:
-    /// - `apps/backend/src/sync.ts` `syncBootstrapPullInputSchema`
-    /// - `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`
+    /// accepted by `apps/backend/src/sync.ts`. Keep this flow aligned with
+    /// `apps/backend/src/sync.ts` `syncBootstrapPullInputSchema`.
     ///
     /// If the remote workspace is empty, the local workspace becomes the source
     /// of truth through bootstrap push/import instead of replaying the entire

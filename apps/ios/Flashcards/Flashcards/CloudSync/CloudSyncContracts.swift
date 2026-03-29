@@ -61,8 +61,7 @@ struct PushRequest: Encodable {
 /// Wire contract for `POST /sync/pull`.
 ///
 /// Keep this request aligned with `apps/backend/src/sync.ts`
-/// `syncPullInputSchema` and the sync contract tests in
-/// `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`.
+/// `syncPullInputSchema` and the iOS sync tests that cover pull encoding.
 struct PullRequest: Encodable {
     let deviceId: String
     let platform: String
@@ -75,9 +74,8 @@ struct PullRequest: Encodable {
 ///
 /// The backend parser in `apps/backend/src/sync.ts` expects the `cursor` key to
 /// exist on every request. The first page must therefore send `"cursor": null`
-/// instead of omitting the key entirely. Keep this struct aligned with:
-/// - `apps/backend/src/sync.ts` `syncBootstrapPullInputSchema`
-/// - `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`
+/// instead of omitting the key entirely. Keep this struct aligned with
+/// `apps/backend/src/sync.ts` `syncBootstrapPullInputSchema`.
 struct BootstrapPullRequest: Encodable {
     let mode: String
     let deviceId: String
@@ -98,8 +96,7 @@ struct BootstrapPullRequest: Encodable {
     /// Encodes `cursor` explicitly as JSON `null` on the first bootstrap page.
     ///
     /// If you change this payload shape, update the matching backend validator in
-    /// `apps/backend/src/sync.ts` and the contract tests in
-    /// `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`.
+    /// `apps/backend/src/sync.ts` and the iOS sync tests that cover bootstrap encoding.
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.mode, forKey: .mode)
@@ -153,8 +150,8 @@ struct ReviewHistoryImportRequest: Encodable {
 
 /// Encodes one `/sync/push` operation using the shared backend field names.
 ///
-/// If you change this envelope, update `apps/backend/src/sync.ts` and the sync
-/// contract tests in `apps/ios/Flashcards/FlashcardsTests/CloudSupportTests.swift`.
+/// If you change this envelope, update `apps/backend/src/sync.ts` and the iOS
+/// sync tests that cover push encoding.
 struct SyncOperationEnvelope: Encodable {
     let operation: SyncOperation
 
