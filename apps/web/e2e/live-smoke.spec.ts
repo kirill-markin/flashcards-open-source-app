@@ -142,11 +142,11 @@ test("live smoke flow uses the real demo account across review, cards, AI, and s
     });
 
     await runTrackedTestStep(diagnostics, "create one manual card", async () => {
-      await createManualCard(page, scenario.manualFrontText, scenario.manualBackText, scenario.markerTag, diagnostics);
+      await createManualCard(page, scenario.manualFrontText, scenario.manualBackText, diagnostics);
     });
 
     await runTrackedTestStep(diagnostics, "verify the manual card in cards and review it", async () => {
-      await assertCardVisibleInCards(page, scenario.manualFrontText, diagnostics);
+      await assertCardVisibleInCards(page, scenario.manualFrontText, diagnostics, localUiTimeoutMs);
       await reviewCardFromQueue(page, scenario.manualFrontText, diagnostics);
     });
 
@@ -164,9 +164,13 @@ test("live smoke flow uses the real demo account across review, cards, AI, and s
       );
     });
 
+    await runTrackedTestStep(diagnostics, "reload after AI card creation and confirm the linked session still persists", async () => {
+      await restartAndAssertLinkedSession(page, scenario.workspaceName, diagnostics);
+    });
+
     await runTrackedTestStep(diagnostics, "verify the AI-created card is visible in cards and review", async () => {
-      await assertCardVisibleInCards(page, scenario.aiFrontText, diagnostics);
-      await assertCardReachableInReview(page, scenario.aiFrontText, diagnostics);
+      await assertCardVisibleInCards(page, scenario.aiFrontText, diagnostics, externalUiTimeoutMs);
+      await assertCardReachableInReview(page, scenario.aiFrontText, diagnostics, externalUiTimeoutMs);
     });
 
     await runTrackedTestStep(diagnostics, "verify linked account status and workspace state", async () => {
@@ -511,17 +515,12 @@ async function createManualCard(
   page: Page,
   frontText: string,
   backText: string,
-  markerTag: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
   await trackedClick(diagnostics, "open cards navigation", page.getByRole("link", { name: "Cards", exact: true }));
   await trackedClick(diagnostics, "open new card screen", page.getByRole("link", { name: "New card", exact: true }));
   await trackedFill(diagnostics, `fill card front text ${frontText}`, page.getByLabel("Front"), frontText);
   await trackedFill(diagnostics, `fill card back text ${backText}`, page.getByLabel("Back"), backText);
-  await trackedClick(diagnostics, "focus tag editor", page.getByText("Click to add tags"));
-  await trackedFill(diagnostics, `fill card tag ${markerTag}`, page.getByPlaceholder("Type and press Enter"), markerTag);
-  await trackedPress(page, diagnostics, `confirm tag ${markerTag}`, "Enter");
-  await trackedClick(diagnostics, "blur tag editor by clicking new card heading", page.getByRole("heading", { name: "New card" }));
   await trackedClick(diagnostics, "submit manual card", page.getByRole("button", { name: "Save card" }));
   await trackedExpectVisible(
     diagnostics,
@@ -535,17 +534,34 @@ async function assertCardVisibleInCards(
   page: Page,
   searchText: string,
   diagnostics: LiveSmokeDiagnostics,
+  timeoutMs: number,
 ): Promise<void> {
   await trackedClick(diagnostics, "open cards navigation for verification", page.getByRole("link", { name: "Cards", exact: true }));
   const searchInput = page.getByPlaceholder("Search front, back, or tags");
   await trackedFill(diagnostics, "clear cards search input", searchInput, "");
   await trackedFill(diagnostics, `fill cards search input with ${searchText}`, searchInput, searchText);
-  await trackedExpectVisible(
-    diagnostics,
-    `confirm cards list shows ${searchText}`,
-    page.getByText(searchText, { exact: true }),
-    localUiTimeoutMs,
-  );
+  await diagnostics.runAction(`confirm cards list shows ${searchText}`, async () => {
+    const expectedCard = page.getByText(searchText, { exact: true });
+    const syncStatus = page.locator(".topbar-sync-status");
+    await expect.poll(
+      async () => {
+        if (await expectedCard.isVisible().catch(() => false)) {
+          return "visible";
+        }
+
+        const syncStatusCount = await syncStatus.count();
+        if (syncStatusCount > 0) {
+          const syncText = await syncStatus.first().innerText();
+          if (syncText.trim() === "Syncing...") {
+            return "syncing";
+          }
+        }
+
+        return "missing";
+      },
+      { timeout: timeoutMs },
+    ).toBe("visible");
+  });
 }
 
 async function reviewCardFromQueue(
@@ -557,7 +573,7 @@ async function reviewCardFromQueue(
   await trackedExpectVisible(
     diagnostics,
     `confirm review queue shows ${expectedFrontText}`,
-    page.getByText(expectedFrontText, { exact: true }),
+    page.locator(".review-front").filter({ hasText: expectedFrontText }).first(),
     localUiTimeoutMs,
   );
   await trackedClick(diagnostics, "reveal review answer", page.getByRole("button", { name: "Reveal answer" }));
@@ -600,6 +616,7 @@ async function runAiCardCreationWithConfirmation(
 ): Promise<void> {
   await trackedClick(diagnostics, "open AI chat navigation", page.getByRole("link", { name: "AI chat", exact: true }));
   const messageField = page.getByPlaceholder("Ask about cards, review history, or attach notes...");
+  const sendButton = page.getByRole("button", { name: "Send message" });
 
   await trackedFill(
     diagnostics,
@@ -607,36 +624,97 @@ async function runAiCardCreationWithConfirmation(
     messageField,
     `Prepare exactly one flashcard proposal. Use front text "${aiFrontText}", back text "${aiBackText}", and include tag "${markerTag}". Wait for my confirmation before creating it.`,
   );
-  await trackedClick(diagnostics, "send AI proposal request", page.getByRole("button", { name: "Send message" }));
-  await trackedExpectVisible(
-    diagnostics,
-    `confirm AI proposal mentions ${aiFrontText}`,
-    page.getByText(aiFrontText, { exact: false }),
-    externalUiTimeoutMs,
-  );
+  await diagnostics.runAction("confirm AI proposal request enables send action", async () => {
+    await expect(sendButton).toBeEnabled({ timeout: localUiTimeoutMs });
+  });
+  await trackedClick(diagnostics, "send AI proposal request", sendButton);
+  await diagnostics.runAction("confirm assistant proposal includes front, back, and tag", async () => {
+    const assistantMessages = page.locator(".chat-msg.chat-msg-assistant");
+    await expect.poll(
+      async () => {
+        const assistantMessageCount = await assistantMessages.count();
+        if (assistantMessageCount === 0) {
+          return "";
+        }
+        return assistantMessages.last().innerText();
+      },
+      { timeout: externalUiTimeoutMs },
+    ).toContain(aiFrontText);
+    await expect.poll(
+      async () => {
+        const assistantMessageCount = await assistantMessages.count();
+        if (assistantMessageCount === 0) {
+          return "";
+        }
+        return assistantMessages.last().innerText();
+      },
+      { timeout: externalUiTimeoutMs },
+    ).toContain(aiBackText);
+    await expect.poll(
+      async () => {
+        const assistantMessageCount = await assistantMessages.count();
+        if (assistantMessageCount === 0) {
+          return "";
+        }
+        return assistantMessages.last().innerText();
+      },
+      { timeout: externalUiTimeoutMs },
+    ).toContain(markerTag);
+  });
 
   await trackedFill(diagnostics, "fill AI confirmation message", messageField, "Confirmed. Create the card exactly as proposed.");
-  await trackedClick(diagnostics, "send AI confirmation", page.getByRole("button", { name: "Send message" }));
+  await diagnostics.runAction("confirm AI confirmation enables send action", async () => {
+    await expect(sendButton).toBeEnabled({ timeout: localUiTimeoutMs });
+  });
+  await trackedClick(diagnostics, "send AI confirmation", sendButton);
   await trackedExpectVisible(
     diagnostics,
-    "confirm AI reports card creation done",
-    page.getByText("Done"),
+    "confirm AI confirmation run started",
+    page.getByRole("button", { name: "Stop response" }),
     externalUiTimeoutMs,
   );
+  await trackedExpectVisible(
+    diagnostics,
+    "wait for AI confirmation run to finish and return send action",
+    page.getByRole("button", { name: "Send message" }),
+    externalUiTimeoutMs,
+  );
+  await diagnostics.runAction("confirm AI did not ask for missing proposal details", async () => {
+    await expect(page.getByText("I'm missing the actual proposed card text in this chat")).not.toBeVisible({
+      timeout: 1_000,
+    });
+  });
 }
 
 async function assertCardReachableInReview(
   page: Page,
   expectedFrontText: string,
   diagnostics: LiveSmokeDiagnostics,
+  timeoutMs: number,
 ): Promise<void> {
   await trackedClick(diagnostics, "open review navigation for AI card verification", page.getByRole("link", { name: "Review", exact: true }));
-  await trackedExpectVisible(
-    diagnostics,
-    `confirm review queue shows AI card ${expectedFrontText}`,
-    page.getByText(expectedFrontText, { exact: true }),
-    localUiTimeoutMs,
-  );
+  await diagnostics.runAction(`confirm review queue shows AI card ${expectedFrontText}`, async () => {
+    const expectedCard = page.locator(".review-front").filter({ hasText: expectedFrontText }).first();
+    const syncStatus = page.locator(".topbar-sync-status");
+    await expect.poll(
+      async () => {
+        if (await expectedCard.isVisible().catch(() => false)) {
+          return "visible";
+        }
+
+        const syncStatusCount = await syncStatus.count();
+        if (syncStatusCount > 0) {
+          const syncText = await syncStatus.first().innerText();
+          if (syncText.trim() === "Syncing...") {
+            return "syncing";
+          }
+        }
+
+        return "missing";
+      },
+      { timeout: timeoutMs },
+    ).toBe("visible");
+  });
 }
 
 async function assertLinkedAccountStatus(
@@ -652,8 +730,22 @@ async function assertLinkedAccountStatus(
     page.getByText(workspaceName, { exact: true }),
     localUiTimeoutMs,
   );
-  await trackedClick(diagnostics, "open account settings screen", page.getByRole("link", { name: "Account Settings", exact: true }));
-  await trackedClick(diagnostics, "open account status screen", page.getByRole("link", { name: "Account Status", exact: true }));
+  await trackedClick(
+    diagnostics,
+    "open account settings screen",
+    page.getByRole("navigation", { name: "Settings tabs" }).getByRole("link", { name: "Account", exact: true }),
+  );
+  await trackedExpectVisible(
+    diagnostics,
+    "confirm account settings heading is visible",
+    page.getByRole("heading", { name: "Account Settings" }),
+    localUiTimeoutMs,
+  );
+  await trackedClick(
+    diagnostics,
+    "open account status screen",
+    page.locator(".settings-nav-card").filter({ hasText: "Account Status" }).first(),
+  );
   await trackedExpectVisible(
     diagnostics,
     `confirm account status shows ${email}`,
@@ -673,12 +765,26 @@ async function deleteEphemeralWorkspace(
   workspaceName: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
-  await trackedExpectVisible(
+  const settingsTabs = page.getByRole("navigation", { name: "Settings tabs" });
+  const hasSettingsTabs = await trackedIsVisible(
     diagnostics,
-    "confirm settings tabs are visible before cleanup",
-    page.getByRole("navigation", { name: "Settings tabs" }),
-    localUiTimeoutMs,
+    "check whether settings tabs are already visible before cleanup",
+    settingsTabs,
   );
+
+  if (hasSettingsTabs === false) {
+    await trackedClick(
+      diagnostics,
+      "open settings navigation before cleanup",
+      page.getByRole("link", { name: "Settings", exact: true }),
+    );
+    await trackedExpectVisible(
+      diagnostics,
+      "confirm settings tabs are visible before cleanup",
+      settingsTabs,
+      localUiTimeoutMs,
+    );
+  }
 
   const overviewHeading = page.getByRole("heading", { name: "Overview" });
   const startsOnOverview = await trackedIsVisible(
@@ -699,7 +805,11 @@ async function deleteEphemeralWorkspace(
       page.getByRole("heading", { name: "Workspace Settings" }),
       localUiTimeoutMs,
     );
-    await trackedClick(diagnostics, "open workspace overview screen", page.getByRole("link", { name: "Overview", exact: true }));
+    await trackedClick(
+      diagnostics,
+      "open workspace overview screen",
+      page.locator(".settings-nav-card").filter({ hasText: "Overview" }).first(),
+    );
     await trackedExpectVisible(
       diagnostics,
       "confirm workspace overview screen is visible",

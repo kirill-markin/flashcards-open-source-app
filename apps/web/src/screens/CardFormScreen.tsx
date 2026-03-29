@@ -44,7 +44,9 @@ export function CardFormScreen(): ReactElement {
       ]);
       setTagSuggestions(toTagSuggestions(tagsSummary.tags));
       setCurrentCard(loadedCard);
-      setFormState(toCardFormState(loadedCard));
+      if (loadedCard !== null) {
+        setFormState(toCardFormState(loadedCard));
+      }
     } catch (error) {
       setLoadErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
