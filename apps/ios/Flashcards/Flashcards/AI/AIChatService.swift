@@ -76,7 +76,28 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         )
 
         do {
-            return try self.decoder.decode(AIChatSessionSnapshot.self, from: data)
+            let payload = try self.decoder.decode(AIChatSessionSnapshotPayload.self, from: data)
+            return AIChatSessionSnapshot(
+                sessionId: payload.sessionId,
+                runState: payload.runState,
+                updatedAt: payload.updatedAt,
+                mainContentInvalidationVersion: payload.mainContentInvalidationVersion,
+                chatConfig: payload.chatConfig,
+                messages: payload.messages.enumerated().map { index, message in
+                    AIChatMessage(
+                        id: makeAIChatSnapshotMessageId(
+                            sessionId: payload.sessionId,
+                            index: index,
+                            role: message.role,
+                            timestamp: message.timestamp
+                        ),
+                        role: message.role,
+                        content: message.content,
+                        timestamp: message.timestamp,
+                        isError: message.isError
+                    )
+                }
+            )
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
