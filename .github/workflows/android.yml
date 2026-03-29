@@ -156,7 +156,15 @@ jobs:
           ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
           ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
           ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
+          results_dir="${ANDROID_FTL_RESULTS_DIR}"
+
+          if [[ -n "${results_dir}" ]]; then
+            results_dir="${results_dir}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          fi
+
           bash scripts/run-android-firebase-test-lab.sh \
             --project-id "${GCP_PROJECT_ID}" \
             --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
@@ -164,4 +172,4 @@ jobs:
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
             --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
-            --results-dir "${ANDROID_FTL_RESULTS_DIR}"
+            --results-dir "${results_dir}"
