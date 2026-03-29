@@ -32,7 +32,7 @@ Production delivery on `main` now uses one GitHub Actions release orchestrator:
 Native client gates still use native stacks:
 
 - iOS uses XCTest and XCUITest, including the stateful live smoke in [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift), and the main orchestrator waits on the matching Xcode Cloud checks for the same SHA when `apps/ios` changed
-- Android uses JUnit plus native Compose instrumentation, including the stateful live smoke in [`apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`](apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt), and the main orchestrator publishes to Google Play only after Android CI succeeds for the same SHA
+- Android uses JUnit plus native Compose instrumentation, including the stateful live smoke in [`apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`](apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt); pull requests use the standalone Android CI entry workflow, and the main orchestrator runs the same reusable Android CI before publishing to Google Play
 - Web uses Vitest and Playwright, including the stateful live smoke in [`apps/web/e2e/live-smoke.spec.ts`](apps/web/e2e/live-smoke.spec.ts)
 
 After every push to `main`, watch the single main release orchestrator until it either retains the AWS release, rolls it back, or fails clearly on a non-rollbackable migration path.

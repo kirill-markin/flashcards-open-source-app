@@ -579,64 +579,24 @@ jobs:
             echo "- Retained AWS SHA: \`${{ steps.resolve.outputs.retained_aws_sha || 'n/a' }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-  wait_android_ci:
-    name: Wait for Android CI
+  android_ci:
+    name: Android CI
     needs:
       - changes
       - aws_release_status
     if: ${{ needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    outputs:
-      android_ci_run_url: ${{ steps.wait.outputs.android_ci_run_url }}
-
-    steps:
-      - name: Wait for Android CI to finish for this SHA
-        id: wait
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          deadline_epoch="$(( $(date +%s) + 5400 ))"
-
-          while true; do
-            runs_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/android.yml/runs?branch=main&event=push&head_sha=${GITHUB_SHA}&per_page=10")"
-            run_count="$(jq '.workflow_runs | length' <<< "${runs_json}")"
-
-            if [[ "${run_count}" -gt 0 ]]; then
-              latest_run_json="$(jq '.workflow_runs | sort_by(.created_at) | last' <<< "${runs_json}")"
-              status="$(jq -r '.status' <<< "${latest_run_json}")"
-              conclusion="$(jq -r '.conclusion // "null"' <<< "${latest_run_json}")"
-              run_url="$(jq -r '.html_url' <<< "${latest_run_json}")"
-
-              if [[ "${status}" == "completed" ]]; then
-                echo "android_ci_run_url=${run_url}" >> "${GITHUB_OUTPUT}"
-
-                if [[ "${conclusion}" == "success" ]]; then
-                  exit 0
-                fi
-
-                echo "Android CI finished with conclusion ${conclusion}: ${run_url}" >&2
-                exit 1
-              fi
-            fi
-
-            if [[ "$(date +%s)" -ge "${deadline_epoch}" ]]; then
-              echo "Timed out waiting for Android CI for ${GITHUB_SHA}." >&2
-              exit 1
-            fi
-
-            sleep 30
-          done
+    uses: ./.github/workflows/android-ci-reusable.yml
+    with:
+      run_live_smoke: true
+    secrets: inherit
 
   publish_android:
     name: Publish Android bundle to Google Play production track
     needs:
       - changes
       - aws_release_status
-      - wait_android_ci
-    if: ${{ needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') && needs.wait_android_ci.result == 'success' }}
+      - android_ci
+    if: ${{ needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') && needs.android_ci.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -831,7 +791,7 @@ jobs:
       - web_smoke
       - rollback_aws
       - aws_release_status
-      - wait_android_ci
+      - android_ci
       - publish_android
       - wait_ios
     runs-on: ubuntu-24.04
@@ -852,7 +812,7 @@ jobs:
             echo "- Retained AWS SHA: \`${{ needs.aws_release_status.outputs.retained_aws_sha || 'n/a' }}\`"
             echo "- AWS deploy job: \`${{ needs.aws_deploy.result }}\`"
             echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
-            echo "- Android CI wait job: \`${{ needs.wait_android_ci.result }}\`"
+            echo "- Android CI job: \`${{ needs.android_ci.result }}\`"
             echo "- Android publish job: \`${{ needs.publish_android.result }}\`"
             echo "- iOS wait job: \`${{ needs.wait_ios.result }}\`"
             echo "- iOS summary: \`${{ needs.wait_ios.outputs.ios_summary || 'n/a' }}\`"
@@ -872,7 +832,7 @@ jobs:
 
           if [[ "${{ needs.changes.outputs.android_changed }}" == "true" ]]; then
             if [[ "${{ needs.changes.outputs.aws_changed }}" != "true" || "${aws_release_status}" == "retained" ]]; then
-              if [[ "${{ needs.wait_android_ci.result }}" != "success" ]]; then
+              if [[ "${{ needs.android_ci.result }}" != "success" ]]; then
                 echo "Android CI did not complete successfully for ${GITHUB_SHA}." >&2
                 exit 1
               fi

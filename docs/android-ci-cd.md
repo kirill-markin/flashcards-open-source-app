@@ -1,9 +1,11 @@
 # Android CI/CD
 
-This repository uses a split Android validation pipeline with one main-branch release orchestrator:
+This repository uses one reusable Android validation workflow plus one main-branch release orchestrator:
 
 - GitHub Actions is the primary CI entrypoint for pull requests and `main`
 - Firebase Test Lab runs instrumentation tests on Google-managed devices
+- `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
+- `.github/workflows/android.yml` is the thin pull-request and manual entrypoint that calls that reusable workflow
 - the main GitHub release orchestrator publishes the signed Android App Bundle to the Google Play production track after Android CI succeeds for the same `main` SHA
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 - `.github/workflows/android-release.yml` remains as a manual fallback only
@@ -44,13 +46,13 @@ This Android-specific sync is separate from the AWS deploy sync script `bash scr
 
 ## What runs
 
-GitHub Actions workflow: `.github/workflows/android.yml`
+GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 
 - Builds `:app:assembleDebug`
 - Builds `:app:assembleDebugAndroidTest`
 - Runs `:app:lintDebug`
 - Uploads the debug APK, Android test APK, and lint report as workflow artifacts
-- Validates the Firebase Test Lab configuration on `main` and on manual dispatch
+- Validates the Firebase Test Lab configuration whenever the reusable workflow is called with live smoke enabled
 - Runs Firebase Test Lab against the native stateful live smoke class `com.flashcardsopensourceapp.app.LiveSmokeTest`
 - Fails the workflow instead of silently skipping the live smoke gate when the required repository variables are missing
 
@@ -61,7 +63,7 @@ The intended Android release order is:
 3. If AWS changed too, wait for the main release orchestrator to retain the AWS release for the same SHA
 4. Google Play production release from the main release orchestrator
 
-After pushing to `main`, watch both `Android CI` and the main release orchestrator until publication either completes or fails clearly.
+After pushing to `main`, watch the main release orchestrator until Android publication either completes or fails clearly. For pull requests, watch the standalone `Android CI` entry workflow.
 
 Cross-client live smoke references:
 
