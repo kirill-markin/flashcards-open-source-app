@@ -18,6 +18,7 @@ final class CloudAuthServiceTests: XCTestCase {
         super.tearDown()
     }
 
+    @MainActor
     func testSendCodeReturnsOtpSessionTokenFromResponse() async throws {
         MockUrlProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://auth.example.com/api/send-code")
@@ -35,7 +36,7 @@ final class CloudAuthServiceTests: XCTestCase {
             return (response, data)
         }
 
-        let service = CloudAuthService(session: self.makeSession())
+        let service = self.makeService(session: self.makeSession())
 
         let result = try await service.sendCode(
             email: " User@Example.com ",
@@ -52,6 +53,7 @@ final class CloudAuthServiceTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testSendCodeReturnsVerifiedCredentialsForDemoResponse() async throws {
         MockUrlProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://auth.example.com/api/send-code")
@@ -69,7 +71,7 @@ final class CloudAuthServiceTests: XCTestCase {
             return (response, data)
         }
 
-        let service = CloudAuthService(session: self.makeSession())
+        let service = self.makeService(session: self.makeSession())
 
         let result = try await service.sendCode(
             email: "demo-review@example.com",
@@ -85,6 +87,7 @@ final class CloudAuthServiceTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testVerifyCodeSendsOtpSessionTokenInRequestBody() async throws {
         MockUrlProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://auth.example.com/api/verify-code")
@@ -108,7 +111,7 @@ final class CloudAuthServiceTests: XCTestCase {
             return (response, data)
         }
 
-        let service = CloudAuthService(session: self.makeSession())
+        let service = self.makeService(session: self.makeSession())
         let challenge = CloudOtpChallenge(
             email: "user@example.com",
             csrfToken: "csrf-token",
@@ -129,6 +132,11 @@ final class CloudAuthServiceTests: XCTestCase {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [MockUrlProtocol.self]
         return URLSession(configuration: configuration)
+    }
+
+    @MainActor
+    private func makeService(session: URLSession) -> CloudAuthService {
+        CloudAuthService(session: session)
     }
 }
 
