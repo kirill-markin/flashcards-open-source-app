@@ -25,11 +25,6 @@ private sealed interface CurrentWorkspaceRetryAction {
     data class CompleteLink(
         val selection: CloudWorkspaceLinkSelection
     ) : CurrentWorkspaceRetryAction
-
-    data class SyncOnly(
-        val workspaceId: String,
-        val workspaceTitle: String
-    ) : CurrentWorkspaceRetryAction
 }
 
 private data class CurrentWorkspaceDraftState(
@@ -43,7 +38,7 @@ private data class CurrentWorkspaceDraftState(
 
 class CurrentWorkspaceViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
-    private val syncRepository: SyncRepository,
+    syncRepository: SyncRepository,
     private val messageController: TransientMessageController,
     workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
@@ -63,7 +58,11 @@ class CurrentWorkspaceViewModel(
         cloudAccountRepository.observeCloudSettings(),
         draftState
     ) { metadata, cloudSettings, draft ->
-        val selectionErrorMessage = if (draft.workspaceLoadState == CurrentWorkspaceLoadState.Loaded) {
+        val isOperationActive = draft.operation != CurrentWorkspaceOperation.IDLE
+        val selectionErrorMessage = if (
+            draft.workspaceLoadState == CurrentWorkspaceLoadState.Loaded &&
+            isOperationActive.not()
+        ) {
             currentWorkspaceSelectionErrorMessage(
                 activeWorkspaceId = cloudSettings.activeWorkspaceId,
                 workspaces = draft.workspaces
@@ -71,13 +70,18 @@ class CurrentWorkspaceViewModel(
         } else {
             null
         }
+        val currentWorkspaceName = if (selectionErrorMessage == null) {
+            if (isOperationActive && metadata.currentWorkspaceName == "Unavailable") {
+                draft.pendingWorkspaceTitle ?: metadata.currentWorkspaceName
+            } else {
+                metadata.currentWorkspaceName
+            }
+        } else {
+            "Unavailable"
+        }
         CurrentWorkspaceUiState(
             cloudStatusTitle = displayCloudAccountStateTitle(cloudState = cloudSettings.cloudState),
-            currentWorkspaceName = if (selectionErrorMessage == null) {
-                metadata.currentWorkspaceName
-            } else {
-                "Unavailable"
-            },
+            currentWorkspaceName = currentWorkspaceName,
             linkedEmail = cloudSettings.linkedEmail,
             isGuest = cloudSettings.cloudState == CloudAccountState.GUEST,
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
@@ -182,7 +186,7 @@ class CurrentWorkspaceViewModel(
             )
         }
         try {
-            val workspace = cloudAccountRepository.switchLinkedWorkspace(selection)
+            val workspace = cloudAccountRepository.completeLinkedWorkspaceTransition(selection)
             val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
             require(cloudSettings.activeWorkspaceId == workspace.workspaceId) {
                 "Workspace switch returned '${workspace.workspaceId}', but activeWorkspaceId is '${cloudSettings.activeWorkspaceId}'."
@@ -190,18 +194,26 @@ class CurrentWorkspaceViewModel(
             require(cloudSettings.linkedWorkspaceId == workspace.workspaceId) {
                 "Workspace switch returned '${workspace.workspaceId}', but linkedWorkspaceId is '${cloudSettings.linkedWorkspaceId}'."
             }
+            val workspaces = cloudAccountRepository.listLinkedWorkspaces()
+            val reconciliationErrorMessage = workspaceReconciliationErrorMessage(
+                expectedWorkspaceId = workspace.workspaceId,
+                activeWorkspaceId = cloudSettings.activeWorkspaceId,
+                workspaces = workspaces
+            )
+            require(reconciliationErrorMessage == null) {
+                reconciliationErrorMessage ?: "The linked workspace list did not reconcile to the expected current workspace."
+            }
             draftState.update { state ->
                 state.copy(
-                    workspaces = applyOptimisticWorkspaceSelection(
-                        workspaces = state.workspaces,
-                        selectedWorkspace = workspace
-                    )
+                    operation = CurrentWorkspaceOperation.IDLE,
+                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
+                    pendingWorkspaceTitle = null,
+                    retryAction = null,
+                    errorMessage = "",
+                    workspaces = workspaces
                 )
             }
-            runWorkspaceSync(
-                workspaceId = workspace.workspaceId,
-                workspaceTitle = workspace.name
-            )
+            messageController.showMessage(message = "Current workspace is now ${workspace.name}.")
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
@@ -223,10 +235,6 @@ class CurrentWorkspaceViewModel(
         when (val retryAction = draftState.value.retryAction) {
             null -> Unit
             is CurrentWorkspaceRetryAction.CompleteLink -> switchWorkspace(selection = retryAction.selection)
-            is CurrentWorkspaceRetryAction.SyncOnly -> runWorkspaceSync(
-                workspaceId = retryAction.workspaceId,
-                workspaceTitle = retryAction.workspaceTitle
-            )
         }
     }
 
@@ -236,52 +244,6 @@ class CurrentWorkspaceViewModel(
         }
     }
 
-    private suspend fun runWorkspaceSync(workspaceId: String, workspaceTitle: String) {
-        draftState.update { state ->
-            state.copy(
-                operation = CurrentWorkspaceOperation.SYNCING,
-                pendingWorkspaceTitle = workspaceTitle,
-                retryAction = CurrentWorkspaceRetryAction.SyncOnly(
-                    workspaceId = workspaceId,
-                    workspaceTitle = workspaceTitle
-                ),
-                errorMessage = ""
-            )
-        }
-
-        try {
-            syncRepository.syncNow()
-            val workspaces = cloudAccountRepository.listLinkedWorkspaces()
-            val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
-            val reconciliationErrorMessage = workspaceReconciliationErrorMessage(
-                expectedWorkspaceId = workspaceId,
-                activeWorkspaceId = cloudSettings.activeWorkspaceId,
-                workspaces = workspaces
-            )
-            require(reconciliationErrorMessage == null) {
-                reconciliationErrorMessage ?: "The linked workspace list did not reconcile to the expected current workspace."
-            }
-            draftState.update { state ->
-                state.copy(
-                    operation = CurrentWorkspaceOperation.IDLE,
-                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
-                    pendingWorkspaceTitle = null,
-                    retryAction = null,
-                    errorMessage = "",
-                    workspaces = workspaces
-                )
-            }
-            messageController.showMessage(message = "Current workspace is now $workspaceTitle.")
-        } catch (error: Exception) {
-            draftState.update { state ->
-                state.copy(
-                    operation = CurrentWorkspaceOperation.IDLE,
-                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
-                    errorMessage = error.message ?: "Workspace sync failed."
-                )
-            }
-        }
-    }
 }
 
 private fun applyOptimisticWorkspaceSelection(

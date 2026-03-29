@@ -105,6 +105,7 @@ interface CloudAccountRepository {
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext
     suspend fun completeCloudLink(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
     suspend fun completeGuestUpgrade(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
+    suspend fun completeLinkedWorkspaceTransition(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
     suspend fun logout()
     suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary
     suspend fun loadCurrentWorkspaceDeletePreview(): CloudWorkspaceDeletePreview
