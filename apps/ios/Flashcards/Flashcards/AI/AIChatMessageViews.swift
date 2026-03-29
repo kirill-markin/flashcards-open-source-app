@@ -102,6 +102,7 @@ extension AIChatView {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(message.isError ? Color.red.opacity(0.5) : Color.clear, lineWidth: 1)
         )
+        .accessibilityIdentifier(self.messageBubbleAccessibilityIdentifier(message: message))
     }
 
     @ViewBuilder
@@ -161,6 +162,7 @@ extension AIChatView {
                         Text(aiChatToolStatusLabel(status: toolCall.status))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
+                            .accessibilityIdentifier(aiChatToolStatusAccessibilityIdentifier(status: toolCall.status))
                     }
                     .font(.subheadline)
                 }
@@ -189,5 +191,22 @@ extension AIChatView {
             .padding(12)
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
+    }
+
+    private func messageBubbleAccessibilityIdentifier(message: AIChatMessage) -> String {
+        guard message.role == .assistant, message.isError else {
+            return ""
+        }
+
+        return UITestIdentifier.aiAssistantErrorMessage
+    }
+}
+
+private func aiChatToolStatusAccessibilityIdentifier(status: AIChatToolCallStatus) -> String {
+    switch status {
+    case .started:
+        return ""
+    case .completed:
+        return UITestIdentifier.aiToolCallCompletedStatus
     }
 }

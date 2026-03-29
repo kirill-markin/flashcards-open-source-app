@@ -1,6 +1,18 @@
 import Foundation
 
 private let aiChatSnapshotPollIntervalNanoseconds: UInt64 = 1_000_000_000
+private let aiChatRunTimeoutSeconds: TimeInterval = 60
+
+private enum AIChatRuntimeError: LocalizedError {
+    case runTimedOut(sessionId: String, timeoutSeconds: TimeInterval)
+
+    var errorDescription: String? {
+        switch self {
+        case .runTimedOut(let sessionId, let timeoutSeconds):
+            return "AI chat run timed out after \(Int(timeoutSeconds)) seconds for session \(sessionId)."
+        }
+    }
+}
 
 actor AIChatSessionRuntime {
     private let historyStore: any AIChatHistoryStoring
@@ -29,6 +41,14 @@ actor AIChatSessionRuntime {
         _ = self.contextLoader
         self.persistedState = initialState
         await self.historyStore.saveState(state: initialState)
+        let runStartedAt = Date()
+        logAIChatRuntimeEvent(
+            action: "ai_run_start",
+            metadata: [
+                "sessionId": initialState.chatSessionId.isEmpty ? "-" : initialState.chatSessionId,
+                "outgoingContentCount": String(outgoingContent.count)
+            ]
+        )
 
         do {
             let startResponse = try await self.chatService.startRun(
@@ -45,6 +65,13 @@ actor AIChatSessionRuntime {
                 lastKnownChatConfig: startResponse.chatConfig
             )
             await self.historyStore.saveState(state: self.persistedState)
+            logAIChatRuntimeEvent(
+                action: "ai_run_started",
+                metadata: [
+                    "sessionId": startResponse.sessionId,
+                    "runState": startResponse.runState
+                ]
+            )
 
             var lastSnapshotFingerprint: String? = nil
             while true {
@@ -55,13 +82,55 @@ actor AIChatSessionRuntime {
                     sessionId: self.persistedState.chatSessionId
                 )
                 let fingerprint = makeSnapshotFingerprint(snapshot: snapshot)
+                logAIChatRuntimeEvent(
+                    action: "ai_snapshot_poll",
+                    metadata: [
+                        "sessionId": snapshot.sessionId,
+                        "runState": snapshot.runState,
+                        "messagesCount": String(snapshot.messages.count),
+                        "fingerprint": fingerprint
+                    ]
+                )
                 if lastSnapshotFingerprint != fingerprint {
                     await self.applySnapshot(snapshot, eventHandler: eventHandler)
                     lastSnapshotFingerprint = fingerprint
+                    logAIChatRuntimeEvent(
+                        action: "ai_snapshot_changed",
+                        metadata: [
+                            "sessionId": snapshot.sessionId,
+                            "runState": snapshot.runState,
+                            "messagesCount": String(snapshot.messages.count),
+                            "fingerprint": fingerprint
+                        ]
+                    )
                 }
 
                 if snapshot.runState != "running" {
+                    logAIChatRuntimeEvent(
+                        action: "ai_run_finish",
+                        metadata: [
+                            "sessionId": snapshot.sessionId,
+                            "runState": snapshot.runState,
+                            "durationSeconds": String(Int(Date().timeIntervalSince(runStartedAt)))
+                        ]
+                    )
                     break
+                }
+
+                let elapsedSeconds = Date().timeIntervalSince(runStartedAt)
+                if elapsedSeconds >= aiChatRunTimeoutSeconds {
+                    logAIChatRuntimeEvent(
+                        action: "ai_run_timeout",
+                        metadata: [
+                            "sessionId": snapshot.sessionId,
+                            "runState": snapshot.runState,
+                            "durationSeconds": String(Int(elapsedSeconds))
+                        ]
+                    )
+                    throw AIChatRuntimeError.runTimedOut(
+                        sessionId: snapshot.sessionId,
+                        timeoutSeconds: aiChatRunTimeoutSeconds
+                    )
                 }
 
                 try await Task.sleep(nanoseconds: aiChatSnapshotPollIntervalNanoseconds)
@@ -71,6 +140,13 @@ actor AIChatSessionRuntime {
         } catch is CancellationError {
             await self.handleCancellation(session: session, eventHandler: eventHandler)
         } catch {
+            logAIChatRuntimeEvent(
+                action: "ai_run_fail",
+                metadata: [
+                    "sessionId": self.persistedState.chatSessionId.isEmpty ? "-" : self.persistedState.chatSessionId,
+                    "error": error.localizedDescription
+                ]
+            )
             await self.fail(error: error, eventHandler: eventHandler)
         }
     }
@@ -240,4 +316,8 @@ private func appendAIChatRuntimeText(content: [AIChatContentPart], text: String)
     }
 
     return updatedContent
+}
+
+private func logAIChatRuntimeEvent(action: String, metadata: [String: String]) {
+    logFlashcardsError(domain: "ios_ai_runtime", action: action, metadata: metadata)
 }

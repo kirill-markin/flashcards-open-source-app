@@ -226,86 +226,35 @@ class SyncLocalStore(
         )
     }
 
-    suspend fun replaceLocalWorkspaceWithShell(workspace: CloudWorkspaceSummary) {
+    /**
+     * Linked-workspace switching must not publish a new active workspace id
+     * until Android has verified that the local shell really points at that
+     * workspace. This method is the single local migration entrypoint and
+     * returns the actual resulting local workspace row after the migration.
+     */
+    suspend fun migrateLocalShellToLinkedWorkspace(
+        workspace: CloudWorkspaceSummary,
+        remoteWorkspaceIsEmpty: Boolean
+    ): WorkspaceEntity {
         database.withTransaction {
-            val currentLocalWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
-            if (currentLocalWorkspaceId != null) {
-                database.outboxDao().deleteOutboxEntriesForWorkspace(workspaceId = currentLocalWorkspaceId)
+            if (remoteWorkspaceIsEmpty) {
+                relinkCurrentWorkspaceKeepingLocalDataInTransaction(workspace)
+            } else {
+                replaceLocalWorkspaceWithShellInTransaction(workspace)
             }
-            database.reviewLogDao().deleteAllReviewLogs()
-            database.tagDao().deleteAllCardTags()
-            database.cardDao().deleteAllCards()
-            database.deckDao().deleteAllDecks()
-            database.tagDao().deleteAllTags()
-            database.syncStateDao().deleteAllSyncState()
-            database.workspaceDao().deleteAllWorkspaces()
-
-            database.workspaceDao().insertWorkspace(
-                WorkspaceEntity(
-                    workspaceId = workspace.workspaceId,
-                    name = workspace.name,
-                    createdAtMillis = workspace.createdAtMillis
-                )
-            )
-            val defaultSettings = makeDefaultWorkspaceSchedulerSettings(
-                workspaceId = workspace.workspaceId,
-                updatedAtMillis = workspace.createdAtMillis
-            )
-            database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(
-                WorkspaceSchedulerSettingsEntity(
-                    workspaceId = defaultSettings.workspaceId,
-                    algorithm = defaultSettings.algorithm,
-                    desiredRetention = defaultSettings.desiredRetention,
-                    learningStepsMinutesJson = encodeSchedulerStepListJson(defaultSettings.learningStepsMinutes),
-                    relearningStepsMinutesJson = encodeSchedulerStepListJson(defaultSettings.relearningStepsMinutes),
-                    maximumIntervalDays = defaultSettings.maximumIntervalDays,
-                    enableFuzz = defaultSettings.enableFuzz,
-                    updatedAtMillis = defaultSettings.updatedAtMillis
-                )
-            )
-            database.syncStateDao().insertSyncState(
-                SyncStateEntity(
-                    workspaceId = workspace.workspaceId,
-                    lastSyncCursor = null,
-                    lastReviewSequenceId = 0L,
-                    hasHydratedHotState = false,
-                    hasHydratedReviewHistory = false,
-                    lastSyncAttemptAtMillis = null,
-                    lastSuccessfulSyncAtMillis = null,
-                    lastSyncError = null
-                )
-            )
-        }
-    }
-
-    suspend fun relinkCurrentWorkspaceKeepingLocalData(workspace: CloudWorkspaceSummary) {
-        val currentWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
-            "Workspace is required before linking to cloud."
-        }
-        if (currentWorkspace.workspaceId == workspace.workspaceId) {
-            database.workspaceDao().updateWorkspace(
-                currentWorkspace.copy(name = workspace.name)
-            )
-            return
         }
 
-        database.withTransaction {
-            database.workspaceDao().insertWorkspace(
-                WorkspaceEntity(
-                    workspaceId = workspace.workspaceId,
-                    name = workspace.name,
-                    createdAtMillis = workspace.createdAtMillis
-                )
-            )
-            database.cardDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-            database.deckDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-            database.tagDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-            database.reviewLogDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-            database.workspaceSchedulerSettingsDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-            database.outboxDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-            database.syncStateDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-            database.workspaceDao().deleteWorkspace(currentWorkspace.workspaceId)
+        val localWorkspaces = database.workspaceDao().loadWorkspaces()
+        check(localWorkspaces.size == 1) {
+            "Linked workspace migration must leave exactly one local workspace. " +
+                "Local workspaces=${localWorkspaces.map(WorkspaceEntity::workspaceId)}"
         }
+        val resultingWorkspace = requireNotNull(
+            database.workspaceDao().loadWorkspaceById(workspace.workspaceId)
+        ) {
+            "Linked workspace migration did not create the expected local workspace '${workspace.workspaceId}'."
+        }
+        return resultingWorkspace
     }
 
     suspend fun buildBootstrapEntries(workspaceId: String): JSONArray {
@@ -488,6 +437,84 @@ class SyncLocalStore(
             database = database,
             preferencesStore = preferencesStore
         )?.workspaceId
+    }
+
+    private suspend fun replaceLocalWorkspaceWithShellInTransaction(workspace: CloudWorkspaceSummary) {
+        val currentLocalWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
+        if (currentLocalWorkspaceId != null) {
+            database.outboxDao().deleteOutboxEntriesForWorkspace(workspaceId = currentLocalWorkspaceId)
+        }
+        database.reviewLogDao().deleteAllReviewLogs()
+        database.tagDao().deleteAllCardTags()
+        database.cardDao().deleteAllCards()
+        database.deckDao().deleteAllDecks()
+        database.tagDao().deleteAllTags()
+        database.syncStateDao().deleteAllSyncState()
+        database.workspaceDao().deleteAllWorkspaces()
+
+        database.workspaceDao().insertWorkspace(
+            WorkspaceEntity(
+                workspaceId = workspace.workspaceId,
+                name = workspace.name,
+                createdAtMillis = workspace.createdAtMillis
+            )
+        )
+        val defaultSettings = makeDefaultWorkspaceSchedulerSettings(
+            workspaceId = workspace.workspaceId,
+            updatedAtMillis = workspace.createdAtMillis
+        )
+        database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(
+            WorkspaceSchedulerSettingsEntity(
+                workspaceId = defaultSettings.workspaceId,
+                algorithm = defaultSettings.algorithm,
+                desiredRetention = defaultSettings.desiredRetention,
+                learningStepsMinutesJson = encodeSchedulerStepListJson(defaultSettings.learningStepsMinutes),
+                relearningStepsMinutesJson = encodeSchedulerStepListJson(defaultSettings.relearningStepsMinutes),
+                maximumIntervalDays = defaultSettings.maximumIntervalDays,
+                enableFuzz = defaultSettings.enableFuzz,
+                updatedAtMillis = defaultSettings.updatedAtMillis
+            )
+        )
+        database.syncStateDao().insertSyncState(
+            SyncStateEntity(
+                workspaceId = workspace.workspaceId,
+                lastSyncCursor = null,
+                lastReviewSequenceId = 0L,
+                hasHydratedHotState = false,
+                hasHydratedReviewHistory = false,
+                lastSyncAttemptAtMillis = null,
+                lastSuccessfulSyncAtMillis = null,
+                lastSyncError = null
+            )
+        )
+    }
+
+    private suspend fun relinkCurrentWorkspaceKeepingLocalDataInTransaction(workspace: CloudWorkspaceSummary) {
+        val currentWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
+            "Workspace is required before linking to cloud."
+        }
+        if (currentWorkspace.workspaceId == workspace.workspaceId) {
+            database.workspaceDao().updateWorkspace(
+                currentWorkspace.copy(name = workspace.name)
+            )
+            return
+        }
+
+        database.workspaceDao().insertWorkspace(
+            WorkspaceEntity(
+                workspaceId = workspace.workspaceId,
+                name = workspace.name,
+                createdAtMillis = workspace.createdAtMillis
+            )
+        )
+        database.cardDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
+        database.deckDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
+        database.tagDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
+        database.reviewLogDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
+        database.workspaceSchedulerSettingsDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
+        database.outboxDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
+        database.syncStateDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
+        database.workspaceDao().deleteWorkspace(currentWorkspace.workspaceId)
     }
 
     private suspend fun applyHotPayload(

@@ -39,6 +39,8 @@ private enum LiveSmokeIdentifier {
     static let aiConsentAcceptButton: String = "ai.consentAcceptButton"
     static let aiComposerTextField: String = "ai.composerTextField"
     static let aiComposerSendButton: String = "ai.composerSendButton"
+    static let aiToolCallCompletedStatus: String = "ai.toolCallCompletedStatus"
+    static let aiAssistantErrorMessage: String = "ai.assistantErrorMessage"
 }
 
 private enum LiveSmokeScreen: CaseIterable {
@@ -91,6 +93,8 @@ private enum LiveSmokeFailure: LocalizedError {
     case missingScreen(screen: String, identifier: String, timeoutSeconds: TimeInterval, currentScreen: String, step: String)
     case missingBackButton(screen: String, step: String)
     case currentWorkspacePickerNotVisible(screen: String, step: String)
+    case aiRunDidNotFinish(timeoutSeconds: TimeInterval, screen: String, step: String)
+    case aiRunReportedError(message: String, screen: String, step: String)
 
     var errorDescription: String? {
         switch self {
@@ -106,6 +110,10 @@ private enum LiveSmokeFailure: LocalizedError {
             return "Back button did not appear during step '\(step)' on screen: \(screen)"
         case .currentWorkspacePickerNotVisible(let screen, let step):
             return "Current Workspace picker did not appear during step '\(step)'. Current screen: \(screen)"
+        case .aiRunDidNotFinish(let timeoutSeconds, let screen, let step):
+            return "AI run did not finish within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. Current screen: \(screen)"
+        case .aiRunReportedError(let message, let screen, let step):
+            return "AI run reported an assistant error during step '\(step)'. Current screen: \(screen). Message: \(message)"
         }
     }
 }
@@ -115,6 +123,42 @@ private let smokeLogger = Logger(
     category: "ui-smoke"
 )
 
+private struct LiveSmokeBreadcrumb {
+    let line: String
+}
+
+private func makeLiveSmokeBreadcrumbLine(
+    event: String,
+    step: String,
+    action: String,
+    identifier: String,
+    timeoutSeconds: String,
+    durationSeconds: String,
+    screen: String,
+    result: String,
+    note: String
+) -> String {
+    let payload: [String: String] = [
+        "domain": "ios_ui_smoke",
+        "event": event,
+        "step": step,
+        "action": action,
+        "identifier": identifier,
+        "timeoutSeconds": timeoutSeconds,
+        "durationSeconds": durationSeconds,
+        "screen": screen,
+        "result": result,
+        "note": note
+    ]
+
+    guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []),
+          let line = String(data: data, encoding: .utf8) else {
+        return "{\"domain\":\"ios_ui_smoke\",\"event\":\"serialization_failed\"}"
+    }
+
+    return line
+}
+
 private func formatDuration(seconds: TimeInterval) -> String {
     String(format: "%.2fs", seconds)
 }
@@ -122,23 +166,20 @@ private func formatDuration(seconds: TimeInterval) -> String {
 final class LiveSmokeUITests: XCTestCase {
     private let shortUiTimeoutSeconds: TimeInterval = 10
     private let longUiTimeoutSeconds: TimeInterval = 30
+    private let optionalProbeTimeoutSeconds: TimeInterval = 3
     private let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
+    private let maximumStoredBreadcrumbCount: Int = 30
 
     private var app: XCUIApplication!
     private var currentStepTitle: String = "test bootstrap"
-    private var interruptionMonitor: NSObjectProtocol?
+    private var recentBreadcrumbs: [LiveSmokeBreadcrumb] = []
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false
-        self.interruptionMonitor = self.registerInterruptionMonitor()
     }
 
     override func tearDownWithError() throws {
-        if let interruptionMonitor {
-            removeUIInterruptionMonitor(interruptionMonitor)
-        }
-        self.interruptionMonitor = nil
         try super.tearDownWithError()
     }
 
@@ -181,8 +222,13 @@ final class LiveSmokeUITests: XCTestCase {
             }
 
             try self.step("relaunch the app and keep the linked session") {
+                self.logActionStart(action: "terminate_app", identifier: "application")
                 self.app.terminate()
+                self.logActionEnd(action: "terminate_app", identifier: "application", result: "success", note: "application terminated")
+                self.logActionStart(action: "relaunch_app", identifier: "application")
                 self.app.launch()
+                _ = self.dismissKnownBlockingAlertIfVisible()
+                self.logActionEnd(action: "relaunch_app", identifier: "application", result: "success", note: "application relaunched")
                 try self.openSettingsTab()
                 try self.openAccountStatus()
                 try self.assertTextExists(reviewEmail, timeout: self.longUiTimeoutSeconds)
@@ -238,6 +284,8 @@ final class LiveSmokeUITests: XCTestCase {
                 Cleanup error: \(error.localizedDescription)
                 Current screen: \(self.currentScreenSummary())
                 Visible text snapshot: \(self.visibleTextSnapshot())
+                Breadcrumbs:
+                \(self.recentBreadcrumbLines())
                 """
             )
             self.add(cleanupDiagnostics)
@@ -261,6 +309,15 @@ final class LiveSmokeUITests: XCTestCase {
 
         try XCTContext.runActivity(named: title) { activity in
             let startedAt = Date()
+            self.logSmokeBreadcrumb(
+                event: "step_start",
+                action: "step",
+                identifier: "-",
+                timeoutSeconds: "-",
+                durationSeconds: "-",
+                result: "start",
+                note: title
+            )
             smokeLogger.log(
                 "event=step_start step=\(title, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
             )
@@ -280,6 +337,15 @@ final class LiveSmokeUITests: XCTestCase {
                         """
                     )
                 )
+                self.logSmokeBreadcrumb(
+                    event: "step_end",
+                    action: "step",
+                    identifier: "-",
+                    timeoutSeconds: "-",
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: title
+                )
                 smokeLogger.log(
                     "event=step_success step=\(title, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
                 )
@@ -295,10 +361,21 @@ final class LiveSmokeUITests: XCTestCase {
                         Error: \(error.localizedDescription)
                         Current screen: \(self.currentScreenSummary())
                         Visible text snapshot: \(self.visibleTextSnapshot())
+                        Breadcrumbs:
+                        \(self.recentBreadcrumbLines())
                         """
                     )
                 )
                 self.attachFailureDiagnostics(stepTitle: title, error: error, activity: activity)
+                self.logSmokeBreadcrumb(
+                    event: "step_end",
+                    action: "step",
+                    identifier: "-",
+                    timeoutSeconds: "-",
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "failure",
+                    note: error.localizedDescription
+                )
                 smokeLogger.error(
                     "event=step_failure step=\(title, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public) error=\(error.localizedDescription, privacy: .public)"
                 )
@@ -314,7 +391,10 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func launchApplication() throws {
         self.app = XCUIApplication()
+        self.logActionStart(action: "launch_app", identifier: "application")
         self.app.launch()
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "launch_app", identifier: "application", result: "success", note: "application launched")
         smokeLogger.log(
             "event=app_launch step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
@@ -329,9 +409,12 @@ final class LiveSmokeUITests: XCTestCase {
         if self.waitForOptionalElement(
             signInButton,
             identifier: LiveSmokeIdentifier.accountStatusSignInButton,
-            timeout: self.shortUiTimeoutSeconds
+            timeout: self.optionalProbeTimeoutSeconds
         ) {
+            self.logActionStart(action: "tap_element", identifier: LiveSmokeIdentifier.accountStatusSignInButton)
             signInButton.tap()
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(action: "tap_element", identifier: LiveSmokeIdentifier.accountStatusSignInButton, result: "success", note: "sign in tapped")
             try self.typeText(
                 reviewEmail,
                 intoElementWithIdentifier: LiveSmokeIdentifier.cloudSignInEmailField,
@@ -346,9 +429,12 @@ final class LiveSmokeUITests: XCTestCase {
             if self.waitForOptionalElement(
                 createWorkspaceButton,
                 identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
-                timeout: self.longUiTimeoutSeconds
+                timeout: self.optionalProbeTimeoutSeconds
             ) {
+                self.logActionStart(action: "tap_element", identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton)
                 createWorkspaceButton.tap()
+                _ = self.dismissKnownBlockingAlertIfVisible()
+                self.logActionEnd(action: "tap_element", identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton, result: "success", note: "create workspace tapped")
             }
         }
 
@@ -445,9 +531,12 @@ final class LiveSmokeUITests: XCTestCase {
         if self.waitForOptionalElement(
             aiConsentButton,
             identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
-            timeout: self.shortUiTimeoutSeconds
+            timeout: self.optionalProbeTimeoutSeconds
         ) {
+            self.logActionStart(action: "tap_element", identifier: LiveSmokeIdentifier.aiConsentAcceptButton)
             aiConsentButton.tap()
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(action: "tap_element", identifier: LiveSmokeIdentifier.aiConsentAcceptButton, result: "success", note: "AI consent accepted")
         }
 
         try self.replaceText(
@@ -455,7 +544,11 @@ final class LiveSmokeUITests: XCTestCase {
             inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.shortUiTimeoutSeconds
         )
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionStart(action: "ai_send_1", identifier: LiveSmokeIdentifier.aiComposerSendButton)
         try self.tapElement(identifier: LiveSmokeIdentifier.aiComposerSendButton, timeout: self.shortUiTimeoutSeconds)
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "ai_send_1", identifier: LiveSmokeIdentifier.aiComposerSendButton, result: "success", note: "proposal request sent")
         try self.assertTextExists(aiFrontText, timeout: self.longUiTimeoutSeconds)
 
         try self.replaceText(
@@ -463,15 +556,39 @@ final class LiveSmokeUITests: XCTestCase {
             inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.shortUiTimeoutSeconds
         )
+        let completedMarkerCountBeforeConfirmation = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
+            .allElementsBoundByIndex.count
+        let errorMarkerCountBeforeConfirmation = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+            .allElementsBoundByIndex.count
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionStart(action: "ai_send_2", identifier: LiveSmokeIdentifier.aiComposerSendButton)
         try self.tapElement(identifier: LiveSmokeIdentifier.aiComposerSendButton, timeout: self.shortUiTimeoutSeconds)
-        try self.assertTextExists("Done", timeout: self.longUiTimeoutSeconds)
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "ai_send_2", identifier: LiveSmokeIdentifier.aiComposerSendButton, result: "success", note: "confirmation request sent")
+        try self.assertAiRunFinished(
+            timeout: self.longUiTimeoutSeconds,
+            completedMarkerCountBeforeWait: completedMarkerCountBeforeConfirmation,
+            errorMarkerCountBeforeWait: errorMarkerCountBeforeConfirmation
+        )
     }
 
     @MainActor
     private func deleteEphemeralWorkspace() throws {
+        self.logSmokeBreadcrumb(
+            event: "cleanup_start",
+            action: "delete_workspace",
+            identifier: "-",
+            timeoutSeconds: "-",
+            durationSeconds: "-",
+            result: "start",
+            note: "cleanup begins"
+        )
         smokeLogger.log(
             "event=cleanup_start step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
+        _ = self.dismissKnownBlockingAlertIfVisible()
         try self.openWorkspaceOverviewFromSettings()
         try self.tapElement(
             identifier: LiveSmokeIdentifier.workspaceOverviewDeleteWorkspaceButton,
@@ -491,7 +608,9 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+        self.logActionStart(action: "tap_element", identifier: "alert.continueButton")
         continueButton.tap()
+        self.logActionEnd(action: "tap_element", identifier: "alert.continueButton", result: "success", note: "continue alert tapped")
 
         let confirmationPhrase = self.app.staticTexts[LiveSmokeIdentifier.deleteWorkspaceConfirmationPhrase]
         if self.waitForOptionalElement(
@@ -513,6 +632,15 @@ final class LiveSmokeUITests: XCTestCase {
             timeout: self.shortUiTimeoutSeconds
         )
         try self.tapElement(identifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationButton, timeout: self.longUiTimeoutSeconds)
+        self.logSmokeBreadcrumb(
+            event: "cleanup_end",
+            action: "delete_workspace",
+            identifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationButton,
+            timeoutSeconds: formatDuration(seconds: self.longUiTimeoutSeconds),
+            durationSeconds: "-",
+            result: "success",
+            note: "cleanup finished"
+        )
         smokeLogger.log(
             "event=cleanup_success step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
@@ -584,7 +712,10 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+        self.logActionStart(action: "tap_tab", identifier: "tab.\(name)")
         tabButton.tap()
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "tap_tab", identifier: "tab.\(name)", result: "success", note: "tab tapped")
     }
 
     @MainActor
@@ -602,7 +733,10 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+        self.logActionStart(action: "tap_element", identifier: identifier)
         element.tap()
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "tap_element", identifier: identifier, result: "success", note: "element tapped")
     }
 
     @MainActor
@@ -654,8 +788,11 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+        self.logActionStart(action: "type_text", identifier: identifier)
         element.tap()
         element.typeText(text)
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "type_text", identifier: identifier, result: "success", note: "text typed")
     }
 
     @MainActor
@@ -673,6 +810,7 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+        self.logActionStart(action: "replace_text", identifier: identifier)
         element.tap()
 
         if let existingValue = element.value as? String, existingValue.isEmpty == false {
@@ -681,6 +819,8 @@ final class LiveSmokeUITests: XCTestCase {
         }
 
         element.typeText(text)
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
     }
 
     @MainActor
@@ -696,7 +836,10 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+        self.logActionStart(action: "tap_back_button", identifier: "navigation.backButton")
         backButton.tap()
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "tap_back_button", identifier: "navigation.backButton", result: "success", note: "back tapped")
     }
 
     @MainActor
@@ -719,12 +862,33 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func assertScreenVisible(screen: LiveSmokeScreen, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch
+        if timeout >= self.longUiTimeoutSeconds {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+        }
+        self.logSmokeBreadcrumb(
+            event: "screen_assert_start",
+            action: "assert_screen",
+            identifier: screen.identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: screen.title
+        )
         smokeLogger.log(
             "event=screen_assert_start step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) timeout=\(formatDuration(seconds: timeout), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
         let startedAt = Date()
         let found = element.waitForExistence(timeout: timeout)
         let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "screen_assert_end",
+            action: "assert_screen",
+            identifier: screen.identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: found ? "success" : "failure",
+            note: screen.title
+        )
         smokeLogger.log(
             "event=screen_assert_end step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) found=\(found, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
@@ -746,41 +910,70 @@ final class LiveSmokeUITests: XCTestCase {
         identifier: String,
         timeout: TimeInterval
     ) -> Bool {
+        if timeout >= self.longUiTimeoutSeconds {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+        }
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_element",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "wait begins"
+        )
         smokeLogger.log(
             "event=wait_start step=\(self.currentStepTitle, privacy: .public) identifier=\(identifier, privacy: .public) timeout=\(formatDuration(seconds: timeout), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
         let startedAt = Date()
         let found = element.waitForExistence(timeout: timeout)
         let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_element",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: found ? "success" : "failure",
+            note: "wait finished"
+        )
         smokeLogger.log(
             "event=wait_end step=\(self.currentStepTitle, privacy: .public) identifier=\(identifier, privacy: .public) found=\(found, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
         return found
     }
 
-    private func registerInterruptionMonitor() -> NSObjectProtocol {
-        addUIInterruptionMonitor(withDescription: "Unexpected UI interruption") { [weak self] alert in
-            guard let self else {
-                return false
-            }
-
-            smokeLogger.error(
-                "event=ui_interruption step=\(self.currentStepTitle, privacy: .public)"
-            )
-
-            for label in ["OK", "Close", "Dismiss", "Cancel", "Not Now", "Allow"] {
-                let button = alert.buttons[label]
-                if button.exists {
-                    button.tap()
-                    smokeLogger.log(
-                        "event=ui_interruption_handled step=\(self.currentStepTitle, privacy: .public) button=\(label, privacy: .public)"
-                    )
-                    return true
-                }
-            }
-
+    @MainActor
+    private func dismissKnownBlockingAlertIfVisible() -> Bool {
+        guard self.app != nil else {
             return false
         }
+
+        let alert = self.app.alerts.firstMatch
+        guard alert.exists else {
+            return false
+        }
+
+        for label in ["OK", "Close", "Dismiss", "Cancel", "Not Now", "Allow"] {
+            let button = alert.buttons[label]
+            guard button.exists else {
+                continue
+            }
+
+            button.tap()
+            self.logSmokeBreadcrumb(
+                event: "alert_dismissed",
+                action: "dismiss_alert",
+                identifier: label,
+                timeoutSeconds: "-",
+                durationSeconds: "-",
+                result: "success",
+                note: "known alert button tapped"
+            )
+            return true
+        }
+
+        return false
     }
 
     @MainActor
@@ -847,6 +1040,8 @@ final class LiveSmokeUITests: XCTestCase {
             Error: \(error.localizedDescription)
             Current screen: \(self.currentScreenSummary())
             Visible text snapshot: \(self.visibleTextSnapshot())
+            Breadcrumbs:
+            \(self.recentBreadcrumbLines())
             """
         )
         activity.add(diagnosticsAttachment)
@@ -873,5 +1068,154 @@ final class LiveSmokeUITests: XCTestCase {
         }
 
         return labels.joined(separator: " | ")
+    }
+
+    @MainActor
+    private func logSmokeBreadcrumb(
+        event: String,
+        action: String,
+        identifier: String,
+        timeoutSeconds: String,
+        durationSeconds: String,
+        result: String,
+        note: String
+    ) {
+        let line = makeLiveSmokeBreadcrumbLine(
+            event: event,
+            step: self.currentStepTitle,
+            action: action,
+            identifier: identifier,
+            timeoutSeconds: timeoutSeconds,
+            durationSeconds: durationSeconds,
+            screen: self.currentScreenSummary(),
+            result: result,
+            note: note
+        )
+        self.appendBreadcrumb(line: line)
+        fputs(line + "\n", stderr)
+        smokeLogger.log("\(line, privacy: .public)")
+    }
+
+    @MainActor
+    private func appendBreadcrumb(line: String) {
+        self.recentBreadcrumbs.append(LiveSmokeBreadcrumb(line: line))
+        if self.recentBreadcrumbs.count > self.maximumStoredBreadcrumbCount {
+            self.recentBreadcrumbs.removeFirst(self.recentBreadcrumbs.count - self.maximumStoredBreadcrumbCount)
+        }
+    }
+
+    @MainActor
+    private func recentBreadcrumbLines() -> String {
+        if self.recentBreadcrumbs.isEmpty {
+            return "<no breadcrumbs>"
+        }
+
+        return self.recentBreadcrumbs.map(\.line).joined(separator: "\n")
+    }
+
+    @MainActor
+    private func logActionStart(action: String, identifier: String) {
+        self.logSmokeBreadcrumb(
+            event: "action_start",
+            action: action,
+            identifier: identifier,
+            timeoutSeconds: "-",
+            durationSeconds: "-",
+            result: "start",
+            note: "action started"
+        )
+    }
+
+    @MainActor
+    private func logActionEnd(action: String, identifier: String, result: String, note: String) {
+        self.logSmokeBreadcrumb(
+            event: "action_end",
+            action: action,
+            identifier: identifier,
+            timeoutSeconds: "-",
+            durationSeconds: "-",
+            result: result,
+            note: note
+        )
+    }
+
+    @MainActor
+    private func assertAiRunFinished(
+        timeout: TimeInterval,
+        completedMarkerCountBeforeWait: Int,
+        errorMarkerCountBeforeWait: Int
+    ) throws {
+        let completedElements = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
+        let errorElements = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_ai_completion",
+            identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for AI completion or error"
+        )
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            let completedMarkerCount = completedElements.allElementsBoundByIndex.count
+            if completedMarkerCount > completedMarkerCountBeforeWait {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_completion",
+                    identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "AI completion marker appeared"
+                )
+                return
+            }
+
+            let errorMarkerCount = errorElements.allElementsBoundByIndex.count
+            if errorMarkerCount > errorMarkerCountBeforeWait {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                let errorMessage = errorElements.allElementsBoundByIndex.last?.label.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_completion",
+                    identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "failure",
+                    note: errorMessage
+                )
+                throw LiveSmokeFailure.aiRunReportedError(
+                    message: errorMessage.isEmpty ? "Assistant error message is empty." : errorMessage,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_ai_completion",
+            identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: "AI completion markers did not appear"
+        )
+        throw LiveSmokeFailure.aiRunDidNotFinish(
+            timeoutSeconds: timeout,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
     }
 }
