@@ -37,4 +37,6 @@ enum UITestIdentifier {
     static let aiConsentAcceptButton: String = "ai.consentAcceptButton"
     static let aiComposerTextField: String = "ai.composerTextField"
     static let aiComposerSendButton: String = "ai.composerSendButton"
+    static let aiToolCallCompletedStatus: String = "ai.toolCallCompletedStatus"
+    static let aiAssistantErrorMessage: String = "ai.assistantErrorMessage"
 }

@@ -269,6 +269,13 @@ class CloudIdentityLifecycleRepositoryTest {
         val localWorkspaceId = requireLocalWorkspaceId()
         val remoteGateway = FakeCloudRemoteGateway(guestUpgradeMode = CloudGuestUpgradeMode.BOUND)
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
         guestAiSessionStore.saveSession(
             localWorkspaceId = localWorkspaceId,
             session = StoredGuestAiSession(

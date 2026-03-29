@@ -459,7 +459,7 @@ class LiveSmokeTest {
 
     private fun waitForCurrentWorkspaceOperationToFinish() {
         try {
-            composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+            composeRule.waitUntil(timeoutMillis = workspaceMutationUiTimeoutMillis) {
                 val errorMessage = currentWorkspaceErrorMessageOrNull()
                 if (errorMessage != null) {
                     throw AssertionError("Current workspace operation failed: $errorMessage")
@@ -550,6 +550,7 @@ class LiveSmokeTest {
     }
 
     private fun currentWorkspaceNameOrNull(): String? {
+        scrollCurrentWorkspaceListToTopCard()
         return composeRule.onAllNodesWithTag(currentWorkspaceNameTag)
             .fetchSemanticsNodes()
             .singleOrNull()
@@ -557,6 +558,7 @@ class LiveSmokeTest {
     }
 
     private fun currentWorkspaceErrorMessageOrNull(): String? {
+        scrollCurrentWorkspaceListToTopCard()
         return composeRule.onAllNodesWithTag(currentWorkspaceErrorMessageTag)
             .fetchSemanticsNodes()
             .singleOrNull()
@@ -564,6 +566,7 @@ class LiveSmokeTest {
     }
 
     private fun currentWorkspaceOperationMessageOrNull(): String? {
+        scrollCurrentWorkspaceListToTopCard()
         return composeRule.onAllNodesWithTag(currentWorkspaceOperationMessageTag)
             .fetchSemanticsNodes()
             .singleOrNull()
@@ -573,6 +576,12 @@ class LiveSmokeTest {
     private fun scrollCurrentWorkspaceListToSelectedWorkspace() {
         composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
             matcher = hasText("(Current)", substring = true)
+        )
+    }
+
+    private fun scrollCurrentWorkspaceListToTopCard() {
+        composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
+            matcher = hasTestTag(currentWorkspaceNameTag)
         )
     }
 

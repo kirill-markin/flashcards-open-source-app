@@ -276,7 +276,14 @@ class LocalCloudAccountRepository(
                 confirmationText = confirmationText
             )
 
-            syncLocalStore.replaceLocalWorkspaceWithShell(result.workspace)
+            val localReplacementWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
+                workspace = result.workspace,
+                remoteWorkspaceIsEmpty = false
+            )
+            check(localReplacementWorkspace.workspaceId == result.workspace.workspaceId) {
+                "Workspace deletion did not promote the expected replacement workspace. " +
+                    "Expected='${result.workspace.workspaceId}' Actual='${localReplacementWorkspace.workspaceId}'."
+            }
             preferencesStore.updateCloudSettings(
                 cloudState = CloudAccountState.LINKED,
                 linkedUserId = authenticatedSession.accountSnapshot.userId,
@@ -499,10 +506,13 @@ class LocalCloudAccountRepository(
                 .put("limit", 1)
         )
 
-        if (bootstrapProbe.remoteIsEmpty) {
-            syncLocalStore.relinkCurrentWorkspaceKeepingLocalData(selectedWorkspace)
-        } else {
-            syncLocalStore.replaceLocalWorkspaceWithShell(selectedWorkspace)
+        val localLinkedWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
+            workspace = selectedWorkspace,
+            remoteWorkspaceIsEmpty = bootstrapProbe.remoteIsEmpty
+        )
+        check(localLinkedWorkspace.workspaceId == selectedWorkspace.workspaceId) {
+            "Linked workspace migration produced an unexpected local workspace. " +
+                "Expected='${selectedWorkspace.workspaceId}' Actual='${localLinkedWorkspace.workspaceId}'."
         }
 
         preferencesStore.updateCloudSettings(

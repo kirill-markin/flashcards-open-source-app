@@ -13,9 +13,11 @@ export default defineConfig({
   ],
   use: {
     baseURL: appBaseUrl,
+    actionTimeout: 10_000,
     browserName: "chromium",
     headless: true,
     ignoreHTTPSErrors: true,
+    navigationTimeout: 30_000,
     trace: "on",
     screenshot: "on",
     video: "on",
