@@ -485,7 +485,11 @@ async function createEphemeralWorkspace(
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
   await trackedClick(diagnostics, "open settings navigation", page.getByRole("link", { name: "Settings" }));
-  await trackedClick(diagnostics, "open current workspace settings", page.getByRole("link", { name: "Current Workspace" }));
+  await trackedClick(
+    diagnostics,
+    "open current workspace settings",
+    page.getByRole("navigation", { name: "Settings tabs" }).getByRole("link", { name: "Current Workspace", exact: true }),
+  );
   await trackedClick(diagnostics, "expand workspace picker card", page.getByRole("button", { name: "Workspace" }));
   await trackedClick(diagnostics, "open new workspace form", page.getByRole("button", { name: "New Workspace" }));
   await trackedFill(diagnostics, `fill workspace name ${workspaceName}`, page.getByPlaceholder("Workspace name"), workspaceName);
@@ -701,27 +705,59 @@ async function deleteEphemeralWorkspace(
   }
 
   await trackedClick(diagnostics, "open delete workspace dialog", page.getByRole("button", { name: "Delete workspace" }));
-  await trackedClick(diagnostics, "continue into delete workspace confirmation dialog", page.getByRole("button", { name: "Continue" }));
+  const deleteDialog = page.getByRole("dialog", { name: "Delete workspace" });
+  await trackedExpectVisible(
+    diagnostics,
+    "confirm delete workspace dialog is visible",
+    deleteDialog,
+    localUiTimeoutMs,
+  );
 
-  const confirmationInput = page.getByLabel("Type the phrase exactly to continue.");
-  const confirmationPhraseLabel = page.getByLabel("confirmation phrase");
+  let deleteDialogState = await trackedWaitForDeleteWorkspaceConfirmationState(
+    page,
+    diagnostics,
+    "wait for delete workspace details",
+    deleteDialog,
+    externalUiTimeoutMs,
+  );
+
+  if (deleteDialogState === "retry") {
+    await trackedClick(
+      diagnostics,
+      "retry delete workspace details fetch",
+      deleteDialog.getByRole("button", { name: "Retry" }),
+    );
+    deleteDialogState = await trackedWaitForDeleteWorkspaceConfirmationState(
+      page,
+      diagnostics,
+      "wait for delete workspace details after retry",
+      deleteDialog,
+      externalUiTimeoutMs,
+    );
+    if (deleteDialogState !== "confirmation") {
+      throw new Error("Delete workspace dialog stayed in retry state after retry");
+    }
+  }
+
+  const confirmationInput = deleteDialog.getByLabel("Type the phrase exactly to continue.");
+  const confirmationPhraseLabel = deleteDialog.getByLabel("confirmation phrase");
   const confirmationPhrase = await trackedReadRequiredTextContent(
     diagnostics,
-    "read delete workspace confirmation phrase",
+    "read delete workspace confirmation phrase after details resolve",
     confirmationPhraseLabel,
     externalUiTimeoutMs,
   );
 
   await trackedFill(
     diagnostics,
-    `fill delete workspace confirmation phrase ${confirmationPhrase}`,
+    `enter delete workspace confirmation phrase ${confirmationPhrase}`,
     confirmationInput,
     confirmationPhrase,
   );
   await trackedClick(
     diagnostics,
-    `submit delete workspace confirmation for ${workspaceName}`,
-    page.getByRole("dialog").getByRole("button", { name: "Delete workspace" }),
+    `submit workspace deletion for ${workspaceName}`,
+    deleteDialog.getByRole("button", { name: "Delete workspace" }),
   );
   await trackedExpectNotText(
     diagnostics,
@@ -856,6 +892,36 @@ async function trackedReadRequiredTextContent(
     }
 
     return textContent.trim();
+  });
+}
+
+async function trackedWaitForDeleteWorkspaceConfirmationState(
+  page: Page,
+  diagnostics: LiveSmokeDiagnostics,
+  actionName: string,
+  dialog: Locator,
+  timeoutMs: number,
+): Promise<"confirmation" | "retry"> {
+  return diagnostics.runAction(actionName, async () => {
+    const confirmationInput = dialog.getByLabel("Type the phrase exactly to continue.");
+    const confirmationPhrase = dialog.getByLabel("confirmation phrase");
+    const retryButton = dialog.getByRole("button", { name: "Retry" });
+    const timeoutAt = Date.now() + timeoutMs;
+
+    while (Date.now() < timeoutAt) {
+      const hasConfirmationState = await confirmationInput.isVisible() && await confirmationPhrase.isVisible();
+      if (hasConfirmationState) {
+        return "confirmation";
+      }
+
+      if (await retryButton.isVisible()) {
+        return "retry";
+      }
+
+      await page.waitForTimeout(250);
+    }
+
+    throw new Error("Delete workspace dialog did not reach confirmation or retry state before timeout");
   });
 }
 
