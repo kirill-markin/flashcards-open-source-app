@@ -19,6 +19,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 const val currentWorkspaceCreateButtonTag: String = "current_workspace_create_button"
+const val currentWorkspaceExistingButtonTagPrefix: String = "current_workspace_existing_button:"
+const val currentWorkspaceSelectedIndicatorTagPrefix: String = "current_workspace_selected_indicator:"
+const val currentWorkspaceListTag: String = "current_workspace_list"
+
+fun currentWorkspaceExistingButtonTag(workspaceId: String): String {
+    return currentWorkspaceExistingButtonTagPrefix + workspaceId
+}
+
+fun currentWorkspaceSelectedIndicatorTag(workspaceId: String): String {
+    return currentWorkspaceSelectedIndicatorTagPrefix + workspaceId
+}
 
 @Composable
 fun CurrentWorkspaceRoute(
@@ -30,8 +41,18 @@ fun CurrentWorkspaceRoute(
     onRetryLastWorkspaceAction: () -> Unit,
     onBack: () -> Unit
 ) {
-    LaunchedEffect(uiState.isLinked, uiState.workspaces.isEmpty(), uiState.isLoading) {
-        if (uiState.isLinked && uiState.workspaces.isEmpty() && uiState.isLoading.not()) {
+    LaunchedEffect(
+        uiState.isLinked,
+        uiState.existingWorkspaceCount,
+        uiState.hasRequestedWorkspaceLoad,
+        uiState.isLoading
+    ) {
+        if (
+            uiState.isLinked
+            && uiState.existingWorkspaceCount == 0
+            && uiState.hasRequestedWorkspaceLoad.not()
+            && uiState.isLoading.not()
+        ) {
             onReload()
         }
     }
@@ -44,7 +65,9 @@ fun CurrentWorkspaceRoute(
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(tag = currentWorkspaceListTag)
         ) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -129,7 +152,7 @@ fun CurrentWorkspaceRoute(
                                 }
                             }
 
-                            uiState.workspaces.isEmpty() -> {
+                            uiState.existingWorkspaceCount == 0 -> {
                                 Button(
                                     onClick = onReload,
                                     enabled = uiState.isSwitching.not(),
@@ -140,6 +163,9 @@ fun CurrentWorkspaceRoute(
                             }
 
                             else -> {
+                                // The live smoke verifies structural workspace changes by
+                                // counting linked workspace rows instead of relying on
+                                // transient snackbar copy.
                                 uiState.workspaces.forEach { workspace ->
                                     OutlinedButton(
                                         onClick = {
@@ -156,17 +182,40 @@ fun CurrentWorkspaceRoute(
                                                 if (workspace.isCreateNew) {
                                                     Modifier.testTag(tag = currentWorkspaceCreateButtonTag)
                                                 } else {
-                                                    Modifier
+                                                    Modifier.testTag(
+                                                        tag = currentWorkspaceExistingButtonTag(
+                                                            workspaceId = workspace.workspaceId
+                                                        )
+                                                    )
                                                 }
                                             )
                                     ) {
-                                        Text(
-                                            if (workspace.isSelected) {
-                                                "${workspace.title} (Current)"
-                                            } else {
-                                                workspace.title
-                                            }
-                                        )
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(
+                                                text = if (workspace.isSelected) {
+                                                    "${workspace.title} (Current)"
+                                                } else {
+                                                    workspace.title
+                                                },
+                                                modifier = if (workspace.isSelected) {
+                                                    Modifier.testTag(
+                                                        tag = currentWorkspaceSelectedIndicatorTag(
+                                                            workspaceId = workspace.workspaceId
+                                                        )
+                                                    )
+                                                } else {
+                                                    Modifier
+                                                }
+                                            )
+                                            Text(
+                                                text = workspace.subtitle,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                                 if (uiState.canRetryLastWorkspaceAction && uiState.errorMessage.isNotEmpty()) {

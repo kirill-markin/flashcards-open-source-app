@@ -109,12 +109,13 @@ class CloudSignInViewModel(
                     draft.postAuthErrorMessage.isNotEmpty() -> CloudPostAuthMode.FAILED
                     draft.processingTitle.isNotEmpty() -> CloudPostAuthMode.PROCESSING
                     draft.pendingSelection != null -> CloudPostAuthMode.READY_TO_AUTO_LINK
-                    draft.linkContext != null && draft.linkContext.workspaces.size > 1 -> CloudPostAuthMode.CHOOSE_WORKSPACE
+                    draft.linkContext != null -> CloudPostAuthMode.CHOOSE_WORKSPACE
                     else -> CloudPostAuthMode.IDLE
                 },
                 verifiedEmail = draft.linkContext?.email,
                 isGuestUpgrade = draft.linkContext?.guestUpgradeMode != null,
                 workspaces = buildCloudPostAuthWorkspaceItems(
+                    activeWorkspaceId = draft.linkContext?.activeWorkspaceId,
                     workspaces = draft.linkContext?.workspaces ?: emptyList()
                 ),
                 pendingWorkspaceTitle = draft.pendingSelection?.let { selection ->
@@ -155,13 +156,10 @@ class CloudSignInViewModel(
     }
 
     private fun buildPendingSelection(linkContext: CloudWorkspaceLinkContext): CloudWorkspaceLinkSelection? {
-        return when (linkContext.workspaces.size) {
-            0 -> CloudWorkspaceLinkSelection.CreateNew
-            1 -> CloudWorkspaceLinkSelection.Existing(
-                workspaceId = linkContext.workspaces.first().workspaceId
-            )
-            else -> null
-        }
+        return buildAutomaticWorkspaceSelection(
+            activeWorkspaceId = linkContext.activeWorkspaceId,
+            workspaces = linkContext.workspaces
+        )
     }
 
     private fun publishVerifiedLinkContext(

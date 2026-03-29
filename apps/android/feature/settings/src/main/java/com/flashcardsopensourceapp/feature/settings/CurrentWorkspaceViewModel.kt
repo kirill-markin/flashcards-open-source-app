@@ -35,7 +35,8 @@ private data class CurrentWorkspaceDraftState(
     val pendingWorkspaceTitle: String?,
     val retryAction: CurrentWorkspaceRetryAction?,
     val errorMessage: String,
-    val workspaces: List<CloudWorkspaceSummary>
+    val workspaces: List<CloudWorkspaceSummary>,
+    val hasRequestedWorkspaceLoad: Boolean
 )
 
 class CurrentWorkspaceViewModel(
@@ -50,7 +51,8 @@ class CurrentWorkspaceViewModel(
             pendingWorkspaceTitle = null,
             retryAction = null,
             errorMessage = "",
-            workspaces = emptyList()
+            workspaces = emptyList(),
+            hasRequestedWorkspaceLoad = false
         )
     )
 
@@ -66,6 +68,8 @@ class CurrentWorkspaceViewModel(
             isGuest = cloudSettings.cloudState == CloudAccountState.GUEST,
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
+            hasRequestedWorkspaceLoad = draft.hasRequestedWorkspaceLoad,
+            existingWorkspaceCount = draft.workspaces.size,
             isLoading = draft.operation == CurrentWorkspaceOperation.LOADING,
             isSwitching = draft.operation == CurrentWorkspaceOperation.SWITCHING
                 || draft.operation == CurrentWorkspaceOperation.SYNCING,
@@ -74,7 +78,7 @@ class CurrentWorkspaceViewModel(
             canRetryLastWorkspaceAction = draft.retryAction != null,
             errorMessage = draft.errorMessage,
             workspaces = buildCurrentWorkspaceItems(
-                currentWorkspaceName = metadata.currentWorkspaceName,
+                activeWorkspaceId = cloudSettings.activeWorkspaceId,
                 workspaces = draft.workspaces
             )
         )
@@ -88,6 +92,8 @@ class CurrentWorkspaceViewModel(
             isGuest = false,
             isLinked = false,
             isLinkingReady = false,
+            hasRequestedWorkspaceLoad = false,
+            existingWorkspaceCount = 0,
             isLoading = false,
             isSwitching = false,
             operation = CurrentWorkspaceOperation.IDLE,
@@ -114,7 +120,8 @@ class CurrentWorkspaceViewModel(
         draftState.update { state ->
             state.copy(
                 operation = CurrentWorkspaceOperation.LOADING,
-                errorMessage = ""
+                errorMessage = "",
+                hasRequestedWorkspaceLoad = true
             )
         }
         try {

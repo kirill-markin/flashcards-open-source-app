@@ -26,15 +26,19 @@ internal fun workspaceSelectionTitle(
 }
 
 internal fun buildCurrentWorkspaceItems(
-    currentWorkspaceName: String,
+    activeWorkspaceId: String?,
     workspaces: List<CloudWorkspaceSummary>
 ): List<CurrentWorkspaceItemUiState> {
-    val items = workspaces.map { workspace ->
+    val selectedWorkspaceId = resolveSelectedWorkspaceId(
+        activeWorkspaceId = activeWorkspaceId,
+        workspaces = workspaces
+    )
+    val items = workspaces.sortedByDescending(CloudWorkspaceSummary::createdAtMillis).map { workspace ->
         CurrentWorkspaceItemUiState(
             workspaceId = workspace.workspaceId,
             title = workspace.name,
             subtitle = formatTimestampLabel(workspace.createdAtMillis),
-            isSelected = workspace.isSelected || workspace.name == currentWorkspaceName,
+            isSelected = workspace.workspaceId == selectedWorkspaceId,
             isCreateNew = false
         )
     }
@@ -47,15 +51,37 @@ internal fun buildCurrentWorkspaceItems(
     )
 }
 
+internal fun resolveSelectedWorkspaceId(
+    activeWorkspaceId: String?,
+    workspaces: List<CloudWorkspaceSummary>
+): String? {
+    if (activeWorkspaceId != null && workspaces.any { workspace -> workspace.workspaceId == activeWorkspaceId }) {
+        return activeWorkspaceId
+    }
+
+    return workspaces.firstOrNull { workspace -> workspace.isSelected }?.workspaceId
+}
+
 internal fun buildCloudPostAuthWorkspaceItems(
+    activeWorkspaceId: String?,
     workspaces: List<CloudWorkspaceSummary>
 ): List<CurrentWorkspaceItemUiState> {
-    return workspaces.map { workspace ->
+    val selectedWorkspaceId = when (
+        val selection = buildAutomaticWorkspaceSelection(
+            activeWorkspaceId = activeWorkspaceId,
+            workspaces = workspaces
+        )
+    ) {
+        is CloudWorkspaceLinkSelection.Existing -> selection.workspaceId
+        CloudWorkspaceLinkSelection.CreateNew,
+        null -> null
+    }
+    return workspaces.sortedByDescending(CloudWorkspaceSummary::createdAtMillis).map { workspace ->
         CurrentWorkspaceItemUiState(
             workspaceId = workspace.workspaceId,
             title = workspace.name,
             subtitle = formatTimestampLabel(workspace.createdAtMillis),
-            isSelected = false,
+            isSelected = workspace.workspaceId == selectedWorkspaceId,
             isCreateNew = false
         )
     } + CurrentWorkspaceItemUiState(
@@ -65,4 +91,37 @@ internal fun buildCloudPostAuthWorkspaceItems(
         isSelected = false,
         isCreateNew = true
     )
+}
+
+/**
+ * Post-auth linking should auto-continue only when Android can identify one
+ * concrete workspace by id. Same-name workspaces are legal and must stay on
+ * the chooser until a unique workspace id is known.
+ */
+internal fun buildAutomaticWorkspaceSelection(
+    activeWorkspaceId: String?,
+    workspaces: List<CloudWorkspaceSummary>
+): CloudWorkspaceLinkSelection? {
+    if (workspaces.isEmpty()) {
+        return CloudWorkspaceLinkSelection.CreateNew
+    }
+
+    if (workspaces.size == 1) {
+        return CloudWorkspaceLinkSelection.Existing(
+            workspaceId = workspaces.first().workspaceId
+        )
+    }
+
+    if (activeWorkspaceId != null && workspaces.any { workspace -> workspace.workspaceId == activeWorkspaceId }) {
+        return CloudWorkspaceLinkSelection.Existing(workspaceId = activeWorkspaceId)
+    }
+
+    val selectedWorkspaceIds = workspaces.filter(CloudWorkspaceSummary::isSelected)
+        .map(CloudWorkspaceSummary::workspaceId)
+        .distinct()
+    if (selectedWorkspaceIds.size == 1) {
+        return CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspaceIds.single())
+    }
+
+    return null
 }

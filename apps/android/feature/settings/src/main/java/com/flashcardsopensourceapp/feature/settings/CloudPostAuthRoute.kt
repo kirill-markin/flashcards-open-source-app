@@ -16,8 +16,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
+
+const val cloudPostAuthExistingButtonTagPrefix: String = "cloud_post_auth_existing_button:"
+const val cloudPostAuthSelectedIndicatorTagPrefix: String = "cloud_post_auth_selected_indicator:"
+
+fun cloudPostAuthExistingButtonTag(workspaceId: String): String {
+    return cloudPostAuthExistingButtonTagPrefix + workspaceId
+}
+
+fun cloudPostAuthSelectedIndicatorTag(workspaceId: String): String {
+    return cloudPostAuthSelectedIndicatorTagPrefix + workspaceId
+}
 
 @Composable
 fun CloudPostAuthRoute(
@@ -120,9 +132,46 @@ fun CloudPostAuthRoute(
                                 )
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(
+                                if (workspace.isCreateNew) {
+                                    Modifier
+                                } else {
+                                    Modifier.testTag(
+                                        tag = cloudPostAuthExistingButtonTag(
+                                            workspaceId = workspace.workspaceId
+                                        )
+                                    )
+                                }
+                            )
                     ) {
-                        Text(workspace.title)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (workspace.isSelected) {
+                                    "${workspace.title} (Current)"
+                                } else {
+                                    workspace.title
+                                },
+                                modifier = if (workspace.isSelected) {
+                                    Modifier.testTag(
+                                        tag = cloudPostAuthSelectedIndicatorTag(
+                                            workspaceId = workspace.workspaceId
+                                        )
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            Text(
+                                text = workspace.subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
