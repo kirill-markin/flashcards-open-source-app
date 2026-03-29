@@ -185,6 +185,10 @@ class AiChatHistoryStore(
                 .put("type", "text")
                 .put("text", contentPart.text)
 
+            is AiChatContentPart.ReasoningSummary -> JSONObject()
+                .put("type", "reasoning_summary")
+                .put("summary", contentPart.summary)
+
             is AiChatContentPart.Image -> JSONObject()
                 .put("type", "image")
                 .put("fileName", contentPart.fileName)
@@ -199,7 +203,7 @@ class AiChatHistoryStore(
 
             is AiChatContentPart.ToolCall -> JSONObject()
                 .put("type", "tool_call")
-                .put("toolCallId", contentPart.toolCall.toolCallId)
+                .put("id", contentPart.toolCall.toolCallId)
                 .put("name", contentPart.toolCall.name)
                 .put("status", contentPart.toolCall.status.name)
                 .put("input", contentPart.toolCall.input)
@@ -226,6 +230,10 @@ class AiChatHistoryStore(
                 text = jsonObject.getString("text")
             )
 
+            "reasoning_summary" -> AiChatContentPart.ReasoningSummary(
+                summary = jsonObject.getString("summary")
+            )
+
             "image" -> AiChatContentPart.Image(
                 fileName = jsonObject.optString("fileName", "").ifBlank { null },
                 mediaType = jsonObject.getString("mediaType"),
@@ -240,7 +248,7 @@ class AiChatHistoryStore(
 
             "tool_call" -> AiChatContentPart.ToolCall(
                 toolCall = AiChatToolCall(
-                    toolCallId = jsonObject.getString("toolCallId"),
+                    toolCallId = jsonObject.getString("id"),
                     name = jsonObject.getString("name"),
                     status = AiChatToolCallStatus.valueOf(jsonObject.getString("status")),
                     input = jsonObject.optString("input", "").ifBlank { null },

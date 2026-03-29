@@ -90,6 +90,54 @@ test("parseStopChatRequestBody requires a non-empty sessionId", () => {
   );
 });
 
+test("parseChatRequestBody accepts tool calls only through the new id field", () => {
+  assert.deepEqual(
+    parseChatRequestBody({
+      sessionId: "session-1",
+      timezone: "Europe/Madrid",
+      content: [{
+        type: "tool_call",
+        id: "tool-1",
+        name: "sql",
+        status: "completed",
+        input: "select 1",
+        output: "[1]",
+      }],
+    }),
+    {
+      sessionId: "session-1",
+      timezone: "Europe/Madrid",
+      content: [{
+        type: "tool_call",
+        id: "tool-1",
+        name: "sql",
+        status: "completed",
+        input: "select 1",
+        output: "[1]",
+      }],
+    },
+  );
+});
+
+test("parseChatRequestBody rejects the removed toolCallId field", () => {
+  assert.throws(
+    () => parseChatRequestBody({
+      timezone: "Europe/Madrid",
+      content: [{
+        type: "tool_call",
+        toolCallId: "tool-1",
+        name: "sql",
+        status: "completed",
+        input: "select 1",
+        output: "[1]",
+      }],
+    }),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 400
+      && error.message === "content[0].id must be a string",
+  );
+});
+
 test("new chat routes allow guest transport", async () => {
   const app = createChatTestApp({
     requestContext: {

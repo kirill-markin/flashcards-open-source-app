@@ -154,7 +154,8 @@ class AiChatRemoteService {
                     return@withContext AiChatStreamOutcome(
                         requestId = requestId,
                         chatSessionId = sessionId,
-                        chatConfig = latestChatConfig
+                        chatConfig = latestChatConfig,
+                        finalSnapshot = snapshot
                     )
                 }
 
@@ -400,7 +401,7 @@ class AiChatRemoteService {
 
             is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.ToolCall -> JSONObject()
                 .put("type", "tool_call")
-                .put("toolCallId", part.toolCallId)
+                .put("id", part.toolCallId)
                 .put("name", part.name)
                 .put("status", part.status.name.lowercase())
                 .put("input", part.input)
@@ -464,6 +465,12 @@ class AiChatRemoteService {
                         )
                     )
 
+                    "reasoning_summary" -> add(
+                        AiChatContentPart.ReasoningSummary(
+                            summary = item.requireCloudString("summary", "$fieldPath[$index].summary")
+                        )
+                    )
+
                     "image" -> add(
                         AiChatContentPart.Image(
                             fileName = item.optCloudStringOrNull("fileName", "$fieldPath[$index].fileName")
@@ -484,7 +491,10 @@ class AiChatRemoteService {
                     "tool_call" -> add(
                         AiChatContentPart.ToolCall(
                             toolCall = AiChatToolCall(
-                                toolCallId = item.requireCloudString("toolCallId", "$fieldPath[$index].toolCallId"),
+                                toolCallId = decodeToolCallId(
+                                    jsonObject = item,
+                                    fieldPath = "$fieldPath[$index]"
+                                ),
                                 name = item.requireCloudString("name", "$fieldPath[$index].name"),
                                 status = decodeToolCallStatus(
                                     value = item.requireCloudString("status", "$fieldPath[$index].status"),
@@ -495,9 +505,6 @@ class AiChatRemoteService {
                             )
                         )
                     )
-
-                    "reasoning_summary" -> {
-                    }
 
                     else -> throw CloudContractMismatchException(
                         "Cloud contract mismatch for $fieldPath[$index].type: unsupported AI chat content part type \"$type\""
@@ -577,6 +584,16 @@ class AiChatRemoteService {
         outputStream.write("\r\n--$boundary--\r\n".toByteArray(StandardCharsets.UTF_8))
         return outputStream.toByteArray()
     }
+}
+
+private fun decodeToolCallId(jsonObject: JSONObject, fieldPath: String): String {
+    return jsonObject.optCloudStringOrNull("toolCallId", "$fieldPath.toolCallId")
+        ?.ifBlank { null }
+        ?: jsonObject.optCloudStringOrNull("id", "$fieldPath.id")
+        ?.ifBlank { null }
+        ?: throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: missing AI chat tool call id"
+        )
 }
 
 internal class AiChatSseParser {
@@ -673,7 +690,10 @@ private fun parseStreamEvent(jsonObject: JSONObject): AiChatStreamEvent {
 
         "tool_call" -> AiChatStreamEvent.ToolCall(
             toolCall = AiChatToolCall(
-                toolCallId = jsonObject.requireCloudString("toolCallId", "toolCallId"),
+                toolCallId = decodeToolCallId(
+                    jsonObject = jsonObject,
+                    fieldPath = "tool_call"
+                ),
                 name = jsonObject.requireCloudString("name", "name"),
                 status = decodeToolCallStatus(
                     value = jsonObject.requireCloudString("status", "status"),
@@ -686,7 +706,10 @@ private fun parseStreamEvent(jsonObject: JSONObject): AiChatStreamEvent {
 
         "tool_call_request" -> AiChatStreamEvent.ToolCallRequest(
             toolCallRequest = AiToolCallRequest(
-                toolCallId = jsonObject.requireCloudString("toolCallId", "toolCallId"),
+                toolCallId = decodeToolCallId(
+                    jsonObject = jsonObject,
+                    fieldPath = "tool_call_request"
+                ),
                 name = jsonObject.requireCloudString("name", "name"),
                 input = jsonObject.requireCloudString("input", "input")
             )
