@@ -123,7 +123,7 @@ data class CloudWorkspaceLinkContext(
     val email: String?,
     val workspaces: List<CloudWorkspaceSummary>,
     val guestUpgradeMode: CloudGuestUpgradeMode?,
-    val activeWorkspaceId: String?
+    val preferredWorkspaceId: String?
 )
 
 data class CloudSettings(

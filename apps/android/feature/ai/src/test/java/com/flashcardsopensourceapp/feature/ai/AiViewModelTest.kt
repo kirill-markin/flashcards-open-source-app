@@ -979,7 +979,7 @@ private class FakeCloudAccountRepository(
             email = "user@example.com",
             workspaces = emptyList(),
             guestUpgradeMode = null,
-            activeWorkspaceId = null
+            preferredWorkspaceId = null
         )
     }
 
@@ -1003,7 +1003,7 @@ private class FakeCloudAccountRepository(
             email = challenge.email,
             workspaces = emptyList(),
             guestUpgradeMode = null,
-            activeWorkspaceId = null
+            preferredWorkspaceId = null
         )
     }
 

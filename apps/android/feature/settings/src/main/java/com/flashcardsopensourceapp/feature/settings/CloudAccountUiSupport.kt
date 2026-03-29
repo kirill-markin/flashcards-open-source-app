@@ -55,20 +55,37 @@ internal fun resolveSelectedWorkspaceId(
     activeWorkspaceId: String?,
     workspaces: List<CloudWorkspaceSummary>
 ): String? {
-    if (activeWorkspaceId != null && workspaces.any { workspace -> workspace.workspaceId == activeWorkspaceId }) {
-        return activeWorkspaceId
+    if (activeWorkspaceId != null) {
+        return if (workspaces.any { workspace -> workspace.workspaceId == activeWorkspaceId }) {
+            activeWorkspaceId
+        } else {
+            null
+        }
     }
 
     return workspaces.firstOrNull { workspace -> workspace.isSelected }?.workspaceId
 }
 
-internal fun buildCloudPostAuthWorkspaceItems(
+internal fun currentWorkspaceSelectionErrorMessage(
     activeWorkspaceId: String?,
+    workspaces: List<CloudWorkspaceSummary>
+): String? {
+    if (activeWorkspaceId == null) {
+        return null
+    }
+    if (workspaces.any { workspace -> workspace.workspaceId == activeWorkspaceId }) {
+        return null
+    }
+    return "The current workspace selection is invalid on this device. Retry the last workspace action or reload linked workspaces."
+}
+
+internal fun buildCloudPostAuthWorkspaceItems(
+    preferredWorkspaceId: String?,
     workspaces: List<CloudWorkspaceSummary>
 ): List<CurrentWorkspaceItemUiState> {
     val selectedWorkspaceId = when (
         val selection = buildAutomaticWorkspaceSelection(
-            activeWorkspaceId = activeWorkspaceId,
+            preferredWorkspaceId = preferredWorkspaceId,
             workspaces = workspaces
         )
     ) {
@@ -99,7 +116,7 @@ internal fun buildCloudPostAuthWorkspaceItems(
  * the chooser until a unique workspace id is known.
  */
 internal fun buildAutomaticWorkspaceSelection(
-    activeWorkspaceId: String?,
+    preferredWorkspaceId: String?,
     workspaces: List<CloudWorkspaceSummary>
 ): CloudWorkspaceLinkSelection? {
     if (workspaces.isEmpty()) {
@@ -112,8 +129,12 @@ internal fun buildAutomaticWorkspaceSelection(
         )
     }
 
-    if (activeWorkspaceId != null && workspaces.any { workspace -> workspace.workspaceId == activeWorkspaceId }) {
-        return CloudWorkspaceLinkSelection.Existing(workspaceId = activeWorkspaceId)
+    if (preferredWorkspaceId != null) {
+        return if (workspaces.any { workspace -> workspace.workspaceId == preferredWorkspaceId }) {
+            CloudWorkspaceLinkSelection.Existing(workspaceId = preferredWorkspaceId)
+        } else {
+            null
+        }
     }
 
     val selectedWorkspaceIds = workspaces.filter(CloudWorkspaceSummary::isSelected)

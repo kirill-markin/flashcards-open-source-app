@@ -40,9 +40,12 @@ import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
+import com.flashcardsopensourceapp.data.local.repository.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalSyncRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.junit.After
@@ -62,6 +65,7 @@ class CloudIdentityLifecycleRepositoryTest {
     private lateinit var aiChatPreferencesStore: AiChatPreferencesStore
     private lateinit var aiChatHistoryStore: AiChatHistoryStore
     private lateinit var guestAiSessionStore: GuestAiSessionStore
+    private lateinit var operationCoordinator: CloudOperationCoordinator
     private lateinit var resetCoordinator: CloudIdentityResetCoordinator
 
     @Before
@@ -76,6 +80,7 @@ class CloudIdentityLifecycleRepositoryTest {
         aiChatPreferencesStore = AiChatPreferencesStore(context = context)
         aiChatHistoryStore = AiChatHistoryStore(context = context)
         guestAiSessionStore = GuestAiSessionStore(context = context)
+        operationCoordinator = CloudOperationCoordinator()
         ensureLocalWorkspaceShell(
             database = database,
             currentTimeMillis = 100L
@@ -237,6 +242,7 @@ class CloudIdentityLifecycleRepositoryTest {
                 database = database,
                 preferencesStore = cloudPreferencesStore
             ),
+            operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator
         )
 
@@ -289,6 +295,44 @@ class CloudIdentityLifecycleRepositoryTest {
         assertNull(cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals(localWorkspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)
+    }
+
+    @Test
+    fun prepareVerifiedSignInUsesRemotePreferredWorkspaceAndPreservesLocalActiveWorkspaceId() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        val remoteGateway = FakeCloudRemoteGateway(
+            accountSnapshot = CloudAccountSnapshot(
+                userId = "user-1",
+                email = "google-review@example.com",
+                workspaces = listOf(
+                    CloudWorkspaceSummary(
+                        workspaceId = "workspace-1",
+                        name = "Personal",
+                        createdAtMillis = 100L,
+                        isSelected = false
+                    ),
+                    CloudWorkspaceSummary(
+                        workspaceId = "workspace-2",
+                        name = "Personal",
+                        createdAtMillis = 200L,
+                        isSelected = true
+                    )
+                )
+            )
+        )
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+
+        val linkContext = repository.prepareVerifiedSignIn(
+            credentials = StoredCloudCredentials(
+                refreshToken = "refresh-token",
+                idToken = "id-token",
+                idTokenExpiresAtMillis = Long.MAX_VALUE
+            )
+        )
+
+        assertEquals(CloudAccountState.LINKING_READY, cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(localWorkspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertEquals("workspace-2", linkContext.preferredWorkspaceId)
     }
 
     @Test
@@ -468,6 +512,99 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals("Renamed Linked Workspace", renamedWorkspace.name)
     }
 
+    @Test
+    fun switchLinkedWorkspaceWaitsForForegroundSyncToFinish() = runBlocking {
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
+        val fetchEntered = CompletableDeferred<Unit>()
+        val releaseFetch = CompletableDeferred<Unit>()
+        val remoteGateway = FakeCloudRemoteGateway(
+            onFetchCloudAccountEntered = fetchEntered,
+            blockFetchCloudAccount = releaseFetch
+        )
+        val cloudRepository = createCloudAccountRepository(remoteGateway = remoteGateway)
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator
+        )
+
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+
+        val syncJob = launch {
+            syncRepository.syncNow()
+        }
+        fetchEntered.await()
+
+        val switchJob = launch {
+            cloudRepository.switchLinkedWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+        }
+
+        assertEquals(0, remoteGateway.createWorkspaceCalls)
+
+        releaseFetch.complete(Unit)
+        switchJob.join()
+        syncJob.join()
+
+        assertEquals(1, remoteGateway.createWorkspaceCalls)
+        assertEquals(
+            remoteGateway.createdWorkspaceId,
+            cloudPreferencesStore.currentCloudSettings().activeWorkspaceId
+        )
+    }
+
+    @Test
+    fun syncRepositoryReadsLinkedWorkspaceAfterAcquiringSharedCoordinatorLock() = runBlocking {
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
+        val lockAcquired = CompletableDeferred<Unit>()
+        val releaseLock = CompletableDeferred<Unit>()
+        val remoteGateway = FakeCloudRemoteGateway()
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator
+        )
+
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+        val lockJob = launch {
+            operationCoordinator.runExclusive {
+                lockAcquired.complete(Unit)
+                releaseLock.await()
+            }
+        }
+        lockAcquired.await()
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.LINKED,
+            linkedUserId = "user-1",
+            linkedWorkspaceId = "workspace-after-lock",
+            linkedEmail = "user@example.com",
+            activeWorkspaceId = "workspace-after-lock"
+        )
+
+        val syncJob = launch {
+            syncRepository.syncNow()
+        }
+
+        assertTrue(remoteGateway.bootstrapPullWorkspaceIds.isEmpty())
+
+        releaseLock.complete(Unit)
+        syncJob.join()
+        lockJob.join()
+
+        assertEquals(listOf("workspace-after-lock"), remoteGateway.bootstrapPullWorkspaceIds)
+    }
+
     private fun createCloudAccountRepository(remoteGateway: CloudRemoteGateway): LocalCloudAccountRepository {
         return LocalCloudAccountRepository(
             database = database,
@@ -477,6 +614,7 @@ class CloudIdentityLifecycleRepositoryTest {
                 database = database,
                 preferencesStore = cloudPreferencesStore
             ),
+            operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore
         )
@@ -525,6 +663,8 @@ private class FakeCloudRemoteGateway(
         createdAtMillis = 300L,
         isSelected = true
     ),
+    private val onFetchCloudAccountEntered: CompletableDeferred<Unit>? = null,
+    private val blockFetchCloudAccount: CompletableDeferred<Unit>? = null,
     private val accountSnapshot: CloudAccountSnapshot = CloudAccountSnapshot(
         userId = "user-1",
         email = "user@example.com",
@@ -541,7 +681,10 @@ private class FakeCloudRemoteGateway(
     var deleteAccountCalls: Int = 0
     var prepareGuestUpgradeCalls: Int = 0
     var completeGuestUpgradeCalls: Int = 0
+    var createWorkspaceCalls: Int = 0
     val renameWorkspaceIds = mutableListOf<String>()
+    val bootstrapPullWorkspaceIds = mutableListOf<String>()
+    val createdWorkspaceId: String = createdWorkspace.workspaceId
 
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
     }
@@ -573,6 +716,8 @@ private class FakeCloudRemoteGateway(
     }
 
     override suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot {
+        onFetchCloudAccountEntered?.complete(Unit)
+        blockFetchCloudAccount?.await()
         fetchAccountError?.let { error ->
             throw error
         }
@@ -605,6 +750,7 @@ private class FakeCloudRemoteGateway(
     }
 
     override suspend fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
+        createWorkspaceCalls += 1
         return createdWorkspace.copy(name = name)
     }
 
@@ -680,6 +826,7 @@ private class FakeCloudRemoteGateway(
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPullResponse {
+        bootstrapPullWorkspaceIds += workspaceId
         return RemoteBootstrapPullResponse(
             entries = emptyList(),
             nextCursor = null,

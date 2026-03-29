@@ -26,6 +26,7 @@ const val currentWorkspaceSelectedIndicatorTagPrefix: String = "current_workspac
 const val currentWorkspaceListTag: String = "current_workspace_list"
 const val currentWorkspaceNameTag: String = "current_workspace_name"
 const val currentWorkspaceErrorMessageTag: String = "current_workspace_error_message"
+const val currentWorkspaceOperationMessageTag: String = "current_workspace_operation_message"
 
 fun currentWorkspaceExistingButtonTag(workspaceId: String): String {
     return currentWorkspaceExistingButtonTagPrefix + workspaceId
@@ -105,7 +106,8 @@ fun CurrentWorkspaceRoute(
                                     CurrentWorkspaceOperation.IDLE,
                                     CurrentWorkspaceOperation.LOADING -> ""
                                 },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.testTag(tag = currentWorkspaceOperationMessageTag)
                             )
                         }
                     }

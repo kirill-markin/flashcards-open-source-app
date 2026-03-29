@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPref
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
+import com.flashcardsopensourceapp.data.local.repository.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalAiChatRepository
@@ -54,6 +55,7 @@ class AppGraph(
         database = database,
         preferencesStore = cloudPreferencesStore
     )
+    private val cloudOperationCoordinator = CloudOperationCoordinator()
     private val cloudIdentityResetCoordinator = CloudIdentityResetCoordinator(
         database = database,
         cloudPreferencesStore = cloudPreferencesStore,
@@ -67,6 +69,7 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
         syncLocalStore = syncLocalStore,
+        operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore
     )
@@ -75,6 +78,7 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
         syncLocalStore = syncLocalStore,
+        operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator
     )
     val cardsRepository: CardsRepository = LocalCardsRepository(

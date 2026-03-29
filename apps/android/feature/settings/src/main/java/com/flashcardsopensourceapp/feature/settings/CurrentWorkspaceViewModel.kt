@@ -26,6 +26,7 @@ private sealed interface CurrentWorkspaceRetryAction {
     ) : CurrentWorkspaceRetryAction
 
     data class SyncOnly(
+        val workspaceId: String,
         val workspaceTitle: String
     ) : CurrentWorkspaceRetryAction
 }
@@ -61,9 +62,17 @@ class CurrentWorkspaceViewModel(
         cloudAccountRepository.observeCloudSettings(),
         draftState
     ) { metadata, cloudSettings, draft ->
+        val selectionErrorMessage = currentWorkspaceSelectionErrorMessage(
+            activeWorkspaceId = cloudSettings.activeWorkspaceId,
+            workspaces = draft.workspaces
+        )
         CurrentWorkspaceUiState(
             cloudStatusTitle = displayCloudAccountStateTitle(cloudState = cloudSettings.cloudState),
-            currentWorkspaceName = metadata.currentWorkspaceName,
+            currentWorkspaceName = if (selectionErrorMessage == null) {
+                metadata.currentWorkspaceName
+            } else {
+                "Unavailable"
+            },
             linkedEmail = cloudSettings.linkedEmail,
             isGuest = cloudSettings.cloudState == CloudAccountState.GUEST,
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
@@ -76,7 +85,11 @@ class CurrentWorkspaceViewModel(
             operation = draft.operation,
             pendingWorkspaceTitle = draft.pendingWorkspaceTitle,
             canRetryLastWorkspaceAction = draft.retryAction != null,
-            errorMessage = draft.errorMessage,
+            errorMessage = if (draft.errorMessage.isNotEmpty()) {
+                draft.errorMessage
+            } else {
+                selectionErrorMessage.orEmpty()
+            },
             workspaces = buildCurrentWorkspaceItems(
                 activeWorkspaceId = cloudSettings.activeWorkspaceId,
                 workspaces = draft.workspaces
@@ -157,7 +170,18 @@ class CurrentWorkspaceViewModel(
         }
         try {
             val workspace = cloudAccountRepository.switchLinkedWorkspace(selection)
-            runWorkspaceSync(workspaceTitle = workspace.name)
+            draftState.update { state ->
+                state.copy(
+                    workspaces = applyOptimisticWorkspaceSelection(
+                        workspaces = state.workspaces,
+                        selectedWorkspace = workspace
+                    )
+                )
+            }
+            runWorkspaceSync(
+                workspaceId = workspace.workspaceId,
+                workspaceTitle = workspace.name
+            )
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
@@ -172,16 +196,22 @@ class CurrentWorkspaceViewModel(
         when (val retryAction = draftState.value.retryAction) {
             null -> Unit
             is CurrentWorkspaceRetryAction.CompleteLink -> switchWorkspace(selection = retryAction.selection)
-            is CurrentWorkspaceRetryAction.SyncOnly -> runWorkspaceSync(workspaceTitle = retryAction.workspaceTitle)
+            is CurrentWorkspaceRetryAction.SyncOnly -> runWorkspaceSync(
+                workspaceId = retryAction.workspaceId,
+                workspaceTitle = retryAction.workspaceTitle
+            )
         }
     }
 
-    private suspend fun runWorkspaceSync(workspaceTitle: String) {
+    private suspend fun runWorkspaceSync(workspaceId: String, workspaceTitle: String) {
         draftState.update { state ->
             state.copy(
                 operation = CurrentWorkspaceOperation.SYNCING,
                 pendingWorkspaceTitle = workspaceTitle,
-                retryAction = CurrentWorkspaceRetryAction.SyncOnly(workspaceTitle = workspaceTitle),
+                retryAction = CurrentWorkspaceRetryAction.SyncOnly(
+                    workspaceId = workspaceId,
+                    workspaceTitle = workspaceTitle
+                ),
                 errorMessage = ""
             )
         }
@@ -189,6 +219,15 @@ class CurrentWorkspaceViewModel(
         try {
             syncRepository.syncNow()
             val workspaces = cloudAccountRepository.listLinkedWorkspaces()
+            val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
+            val reconciliationErrorMessage = workspaceReconciliationErrorMessage(
+                expectedWorkspaceId = workspaceId,
+                activeWorkspaceId = cloudSettings.activeWorkspaceId,
+                workspaces = workspaces
+            )
+            require(reconciliationErrorMessage == null) {
+                reconciliationErrorMessage ?: "The linked workspace list did not reconcile to the expected current workspace."
+            }
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
@@ -208,6 +247,38 @@ class CurrentWorkspaceViewModel(
             }
         }
     }
+}
+
+private fun applyOptimisticWorkspaceSelection(
+    workspaces: List<CloudWorkspaceSummary>,
+    selectedWorkspace: CloudWorkspaceSummary
+): List<CloudWorkspaceSummary> {
+    return (workspaces.filterNot { workspace -> workspace.workspaceId == selectedWorkspace.workspaceId } +
+        selectedWorkspace.copy(isSelected = true)).map { workspace ->
+        workspace.copy(isSelected = workspace.workspaceId == selectedWorkspace.workspaceId)
+    }
+}
+
+private fun workspaceReconciliationErrorMessage(
+    expectedWorkspaceId: String,
+    activeWorkspaceId: String?,
+    workspaces: List<CloudWorkspaceSummary>
+): String? {
+    val selectionErrorMessage = currentWorkspaceSelectionErrorMessage(
+        activeWorkspaceId = activeWorkspaceId,
+        workspaces = workspaces
+    )
+    if (selectionErrorMessage != null) {
+        return selectionErrorMessage
+    }
+    val selectedWorkspaceId = resolveSelectedWorkspaceId(
+        activeWorkspaceId = activeWorkspaceId,
+        workspaces = workspaces
+    )
+    if (selectedWorkspaceId == expectedWorkspaceId) {
+        return null
+    }
+    return "The linked workspace list did not reconcile to the expected current workspace."
 }
 
 fun createCurrentWorkspaceViewModelFactory(

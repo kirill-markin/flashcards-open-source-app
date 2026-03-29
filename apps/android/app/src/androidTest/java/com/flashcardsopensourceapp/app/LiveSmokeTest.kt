@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.feature.settings.currentWorkspaceExistingRowT
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceListTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceNameTag
+import com.flashcardsopensourceapp.feature.settings.currentWorkspaceOperationMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeletePreviewContinueButtonTag
@@ -194,11 +195,13 @@ class LiveSmokeTest {
             matcher = hasTestTag(currentWorkspaceCreateButtonTag)
         )
         composeRule.onNodeWithTag(currentWorkspaceCreateButtonTag).performClick()
+        waitForCurrentWorkspaceOperationToStart()
         waitForSelectedWorkspaceSummaryToChange(
             beforeSummary = selectedWorkspaceSummaryBeforeCreate,
             context = "after creating a linked workspace",
-            timeoutMillis = workspaceMutationUiTimeoutMillis
+            timeoutMillis = externalUiTimeoutMillis
         )
+        waitForCurrentWorkspaceOperationToFinish()
         tapBackIcon()
 
         openSettingsSection(sectionTitle = "Workspace")
@@ -437,6 +440,44 @@ class LiveSmokeTest {
         }
     }
 
+    private fun waitForCurrentWorkspaceOperationToStart() {
+        try {
+            composeRule.waitUntil(timeoutMillis = selectionUiTimeoutMillis) {
+                currentWorkspaceOperationMessageOrNull() != null
+                    || currentWorkspaceErrorMessageOrNull() != null
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Current workspace operation did not start after tapping create. " +
+                    "SelectedRow=${selectedWorkspaceSummaryOrNull()} " +
+                    "Current workspace name=${currentWorkspaceNameOrNull()} " +
+                    "Error=${currentWorkspaceErrorMessageOrNull()}",
+                error
+            )
+        }
+    }
+
+    private fun waitForCurrentWorkspaceOperationToFinish() {
+        try {
+            composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+                val errorMessage = currentWorkspaceErrorMessageOrNull()
+                if (errorMessage != null) {
+                    throw AssertionError("Current workspace operation failed: $errorMessage")
+                }
+                currentWorkspaceOperationMessageOrNull() == null
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Current workspace operation did not finish. " +
+                    "Operation=${currentWorkspaceOperationMessageOrNull()} " +
+                    "SelectedRow=${selectedWorkspaceSummaryOrNull()} " +
+                    "Current workspace name=${currentWorkspaceNameOrNull()} " +
+                    "Error=${currentWorkspaceErrorMessageOrNull()}",
+                error
+            )
+        }
+    }
+
     private fun waitForWorkspaceRenameOutcome(expectedWorkspaceName: String) {
         try {
             composeRule.waitUntil(timeoutMillis = workspaceMutationUiTimeoutMillis) {
@@ -517,6 +558,13 @@ class LiveSmokeTest {
 
     private fun currentWorkspaceErrorMessageOrNull(): String? {
         return composeRule.onAllNodesWithTag(currentWorkspaceErrorMessageTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun currentWorkspaceOperationMessageOrNull(): String? {
+        return composeRule.onAllNodesWithTag(currentWorkspaceOperationMessageTag)
             .fetchSemanticsNodes()
             .singleOrNull()
             ?.let(::nodeSummary)
