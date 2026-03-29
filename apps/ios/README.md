@@ -71,7 +71,11 @@ The iOS app uses native Apple test tooling only:
 - release-gate UI coverage lives in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
 - accessibility identifiers used by the live smoke flows live in `apps/ios/Flashcards/Flashcards/UITestIdentifiers.swift`
 
-The iOS release-gate smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Each flow signs into the linked demo account, creates its own isolated workspace, and deletes it before finishing. It uses the same linked-account smoke contract as the other clients:
+The iOS release-gate smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Only one grouped smoke signs into the linked demo account and verifies linked workspace lifecycle. The remaining grouped smokes stay guest/local and do not perform login.
+
+Guest AI availability is part of the iOS release contract. The guest AI smoke must pass without login, and a guest-AI-disabled or guest-quota-exhausted response is a real release-gate failure.
+
+The grouped smoke suite still maps to the same top-level live-smoke contract as the other clients:
 
 - Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - Web equivalent: `apps/web/e2e/live-smoke.spec.ts`
