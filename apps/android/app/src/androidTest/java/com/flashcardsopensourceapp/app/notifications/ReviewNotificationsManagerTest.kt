@@ -2,6 +2,8 @@ package com.flashcardsopensourceapp.app.notifications
 
 import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -11,12 +13,13 @@ import org.junit.runner.RunWith
 class ReviewNotificationsManagerTest {
     @Test
     fun consumeReviewNotificationTapPayloadReturnsPayloadOnlyOncePerIntent() {
+        val persistedFilter = makePersistedReviewFilter(reviewFilter = ReviewFilter.AllCards)
         val intent = Intent().apply {
             putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationWorkspaceIdDataKey", "workspace-1")
             putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationCardIdDataKey", "card-1")
             putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFrontTextDataKey", "Front")
             putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationRequestIdDataKey", "request-1")
-            putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterKindDataKey", "all_cards")
+            putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterKindDataKey", persistedFilter.kind)
         }
 
         val firstPayload = consumeReviewNotificationTapPayload(intent = intent)
