@@ -125,7 +125,9 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
             if (uiState.completionToken != null) {
                 LaunchedEffect(uiState.completionToken) {
                     signInViewModel.acknowledgePostAuthCompletion()
-                    navigateToSettingsAccountStatus(navController = navController)
+                    runAuthNavigationOnMainThread {
+                        navigateToSettingsAccountStatus(navController = navController)
+                    }
                 }
             }
 

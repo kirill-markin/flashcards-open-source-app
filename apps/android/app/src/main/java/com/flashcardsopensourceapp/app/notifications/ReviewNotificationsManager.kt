@@ -9,6 +9,7 @@ import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.notifications.DailyReviewNotificationsSettings
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
@@ -26,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.notifications.buildInactivityRemin
 import com.flashcardsopensourceapp.data.local.notifications.decodePersistedReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
+import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +58,7 @@ private val reviewNotificationTapIntentExtraKeys: List<String> = listOf(
 class ReviewNotificationsManager(
     private val context: Context,
     private val database: AppDatabase,
+    private val preferencesStore: CloudPreferencesStore,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     private val reviewNotificationsStore: ReviewNotificationsStore
 ) {
@@ -79,7 +82,10 @@ class ReviewNotificationsManager(
 
     fun enableDefaultDailyForCurrentWorkspace() {
         scope.launch {
-            val workspace = database.workspaceDao().loadWorkspace() ?: return@launch
+            val workspace = loadCurrentWorkspaceOrNull(
+                database = database,
+                preferencesStore = preferencesStore
+            ) ?: return@launch
             val currentSettings = reviewNotificationsStore.loadSettings(workspaceId = workspace.workspaceId)
             reviewNotificationsStore.saveSettings(
                 workspaceId = workspace.workspaceId,
@@ -99,13 +105,19 @@ class ReviewNotificationsManager(
 
     fun cancelCurrentWorkspaceScheduling() {
         scope.launch {
-            val workspace = database.workspaceDao().loadWorkspace() ?: return@launch
+            val workspace = loadCurrentWorkspaceOrNull(
+                database = database,
+                preferencesStore = preferencesStore
+            ) ?: return@launch
             cancelWorkspaceScheduling(workspaceId = workspace.workspaceId)
         }
     }
 
     private suspend fun rescheduleCurrentWorkspace(nowMillis: Long) {
-        val workspace = database.workspaceDao().loadWorkspace() ?: return
+        val workspace = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        ) ?: return
         cancelWorkspaceScheduling(workspaceId = workspace.workspaceId)
 
         val settings = reviewNotificationsStore.loadSettings(workspaceId = workspace.workspaceId)

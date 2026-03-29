@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 
 const val workspaceOverviewNameFieldTag: String = "workspace_overview_name_field"
 const val workspaceOverviewSaveNameButtonTag: String = "workspace_overview_save_name_button"
+const val workspaceOverviewErrorMessageTag: String = "workspace_overview_error_message"
 const val workspaceOverviewDeleteWorkspaceButtonTag: String = "workspace_overview_delete_workspace_button"
 const val workspaceOverviewDeletePreviewContinueButtonTag: String = "workspace_overview_delete_preview_continue_button"
 const val workspaceOverviewDeleteConfirmationFieldTag: String = "workspace_overview_delete_confirmation_field"
@@ -58,7 +59,9 @@ fun WorkspaceOverviewRoute(
                         Text(
                             text = uiState.errorMessage,
                             color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(20.dp)
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .testTag(tag = workspaceOverviewErrorMessageTag)
                         )
                     }
                 }

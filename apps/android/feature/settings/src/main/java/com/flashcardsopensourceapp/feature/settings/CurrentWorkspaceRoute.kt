@@ -19,9 +19,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 const val currentWorkspaceCreateButtonTag: String = "current_workspace_create_button"
+const val currentWorkspaceExistingRowTag: String = "current_workspace_existing_row"
+const val currentWorkspaceSelectedSummaryTag: String = "current_workspace_selected_summary"
 const val currentWorkspaceExistingButtonTagPrefix: String = "current_workspace_existing_button:"
 const val currentWorkspaceSelectedIndicatorTagPrefix: String = "current_workspace_selected_indicator:"
 const val currentWorkspaceListTag: String = "current_workspace_list"
+const val currentWorkspaceNameTag: String = "current_workspace_name"
+const val currentWorkspaceErrorMessageTag: String = "current_workspace_error_message"
 
 fun currentWorkspaceExistingButtonTag(workspaceId: String): String {
     return currentWorkspaceExistingButtonTagPrefix + workspaceId
@@ -79,7 +83,10 @@ fun CurrentWorkspaceRoute(
                             text = "Current workspace",
                             style = MaterialTheme.typography.titleMedium
                         )
-                        Text(uiState.currentWorkspaceName)
+                        Text(
+                            text = uiState.currentWorkspaceName,
+                            modifier = Modifier.testTag(tag = currentWorkspaceNameTag)
+                        )
                         Text(
                             text = "Cloud status: ${uiState.cloudStatusTitle}",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -111,7 +118,9 @@ fun CurrentWorkspaceRoute(
                         Text(
                             text = uiState.errorMessage,
                             color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(20.dp)
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .testTag(tag = currentWorkspaceErrorMessageTag)
                         )
                     }
                 }
@@ -180,6 +189,13 @@ fun CurrentWorkspaceRoute(
                                             .fillMaxWidth()
                                             .then(
                                                 if (workspace.isCreateNew) {
+                                                    Modifier
+                                                } else {
+                                                    Modifier.testTag(tag = currentWorkspaceExistingRowTag)
+                                                }
+                                            )
+                                            .then(
+                                                if (workspace.isCreateNew) {
                                                     Modifier.testTag(tag = currentWorkspaceCreateButtonTag)
                                                 } else {
                                                     Modifier.testTag(
@@ -200,20 +216,23 @@ fun CurrentWorkspaceRoute(
                                                 } else {
                                                     workspace.title
                                                 },
-                                                modifier = if (workspace.isSelected) {
-                                                    Modifier.testTag(
-                                                        tag = currentWorkspaceSelectedIndicatorTag(
-                                                            workspaceId = workspace.workspaceId
-                                                        )
-                                                    )
-                                                } else {
+                                                modifier = if (workspace.isCreateNew) {
                                                     Modifier
+                                                } else if (workspace.isSelected) {
+                                                    Modifier.testTag(tag = currentWorkspaceExistingRowTag)
+                                                } else {
+                                                    Modifier.testTag(tag = currentWorkspaceExistingRowTag)
                                                 }
                                             )
                                             Text(
                                                 text = workspace.subtitle,
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = if (workspace.isSelected) {
+                                                    Modifier.testTag(tag = currentWorkspaceSelectedSummaryTag)
+                                                } else {
+                                                    Modifier
+                                                }
                                             )
                                         }
                                     }

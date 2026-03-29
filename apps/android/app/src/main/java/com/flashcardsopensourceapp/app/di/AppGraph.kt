@@ -79,10 +79,12 @@ class AppGraph(
     )
     val cardsRepository: CardsRepository = LocalCardsRepository(
         database = database,
+        preferencesStore = cloudPreferencesStore,
         syncLocalStore = syncLocalStore
     )
     val decksRepository: DecksRepository = LocalDecksRepository(
         database = database,
+        preferencesStore = cloudPreferencesStore,
         syncLocalStore = syncLocalStore
     )
     val workspaceRepository: WorkspaceRepository = LocalWorkspaceRepository(
@@ -107,6 +109,7 @@ class AppGraph(
     val reviewNotificationsManager = ReviewNotificationsManager(
         context = context,
         database = database,
+        preferencesStore = cloudPreferencesStore,
         reviewPreferencesStore = reviewPreferencesStore,
         reviewNotificationsStore = reviewNotificationsStore
     )

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 
 const val cloudPostAuthExistingButtonTagPrefix: String = "cloud_post_auth_existing_button:"
+const val cloudPostAuthWorkspaceRowTag: String = "cloud_post_auth_workspace_row"
 const val cloudPostAuthSelectedIndicatorTagPrefix: String = "cloud_post_auth_selected_indicator:"
 
 fun cloudPostAuthExistingButtonTag(workspaceId: String): String {
@@ -134,6 +135,13 @@ fun CloudPostAuthRoute(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .then(
+                                if (workspace.isCreateNew) {
+                                    Modifier
+                                } else {
+                                    Modifier.testTag(tag = cloudPostAuthWorkspaceRowTag)
+                                }
+                            )
                             .then(
                                 if (workspace.isCreateNew) {
                                     Modifier

@@ -15,7 +15,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
@@ -26,18 +25,19 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
-import com.flashcardsopensourceapp.feature.settings.cloudPostAuthExistingButtonTagPrefix
-import com.flashcardsopensourceapp.feature.settings.cloudPostAuthSelectedIndicatorTagPrefix
+import com.flashcardsopensourceapp.feature.settings.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloudSignInEmailFieldTag
 import com.flashcardsopensourceapp.feature.settings.cloudSignInSendCodeButtonTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceCreateButtonTag
-import com.flashcardsopensourceapp.feature.settings.currentWorkspaceExistingButtonTagPrefix
+import com.flashcardsopensourceapp.feature.settings.currentWorkspaceExistingRowTag
+import com.flashcardsopensourceapp.feature.settings.currentWorkspaceErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceListTag
-import com.flashcardsopensourceapp.feature.settings.currentWorkspaceSelectedIndicatorTagPrefix
+import com.flashcardsopensourceapp.feature.settings.currentWorkspaceNameTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeletePreviewContinueButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteWorkspaceButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspaceOverviewErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewSaveNameButtonTag
 import org.junit.Rule
@@ -50,17 +50,12 @@ import org.junit.runner.RunWith
 @OptIn(ExperimentalTestApi::class)
 class LiveSmokeTest {
     companion object {
-        private const val liveUiTimeoutMillis: Long = 120_000L
+        private const val externalUiTimeoutMillis: Long = 120_000L
+        private const val selectionUiTimeoutMillis: Long = 20_000L
+        private const val workspaceMutationUiTimeoutMillis: Long = 30_000L
         private const val reviewEmailArgumentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
-    }
-
-    private data class WorkspaceListSnapshot(
-        val rowsById: Map<String, String>,
-        val selectedWorkspaceIds: Set<String>
-    ) {
-        fun describe(): String {
-            return "rows=$rowsById selected=$selectedWorkspaceIds"
-        }
+        private const val cloudSyncChooserPrompt: String =
+            "Choose a linked workspace to open on this Android device, or create a new one."
     }
 
     private val appStateResetRule = AppStateResetRule()
@@ -160,31 +155,22 @@ class LiveSmokeTest {
         composeRule.onNodeWithTag(cloudSignInEmailFieldTag).performTextInput(reviewEmail)
         composeRule.onNodeWithTag(cloudSignInSendCodeButtonTag).performClick()
 
-        composeRule.waitUntil(timeoutMillis = liveUiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Sync now").fetchSemanticsNodes().isNotEmpty()
-                || captureCloudPostAuthWorkspaceSnapshot().rowsById.isNotEmpty()
-                || composeRule.onAllNodesWithText("Preparing").fetchSemanticsNodes().isNotEmpty()
+        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+            hasVisibleText(text = "Sync now")
+                || hasVisibleText(text = "Preparing", substring = true)
+                || hasVisibleText(text = cloudSyncChooserPrompt)
         }
 
-        val postAuthSnapshot = captureCloudPostAuthWorkspaceSnapshot()
-        if (postAuthSnapshot.rowsById.isNotEmpty()) {
-            if (postAuthSnapshot.selectedWorkspaceIds.size > 1) {
-                throw AssertionError(
-                    "Cloud sync chooser exposed more than one selected workspace. ${postAuthSnapshot.describe()}"
-                )
-            }
-            val selectedWorkspaceId = postAuthSnapshot.selectedWorkspaceIds.singleOrNull()
-                ?: throw AssertionError(
-                    "Cloud sync chooser remained ambiguous after loading linked workspaces. ${postAuthSnapshot.describe()}"
-                )
-            composeRule.onNodeWithTag(
-                testTag = cloudPostAuthExistingButtonTagPrefix + selectedWorkspaceId
-            ).performClick()
+        if (hasVisibleText(text = cloudSyncChooserPrompt)) {
+            throw AssertionError(
+                "Cloud sync chooser still required manual selection for the review account. " +
+                    "Visible rows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)}"
+            )
         }
 
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText("Sync now"),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = externalUiTimeoutMillis
         )
         tapBackIcon()
         tapBackIcon()
@@ -195,26 +181,23 @@ class LiveSmokeTest {
         composeRule.onNodeWithText("Current Workspace").performClick()
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText("Create new workspace"),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = selectionUiTimeoutMillis
         )
-        waitForLinkedWorkspacesToLoad(context = "before creating a linked workspace")
-        val workspaceSnapshotBeforeCreate = captureWorkspaceListSnapshot()
-        assertSingleSelectedWorkspace(
+        waitForSelectedWorkspaceSummary(
             context = "before creating a linked workspace",
-            snapshot = workspaceSnapshotBeforeCreate
+            timeoutMillis = selectionUiTimeoutMillis
         )
-        val selectedWorkspaceIdBeforeCreate = workspaceSnapshotBeforeCreate.selectedWorkspaceIds.single()
+        val selectedWorkspaceSummaryBeforeCreate = selectedWorkspaceSummary(
+            context = "before creating a linked workspace"
+        )
         composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
             matcher = hasTestTag(currentWorkspaceCreateButtonTag)
         )
         composeRule.onNodeWithTag(currentWorkspaceCreateButtonTag).performClick()
-        waitForWorkspaceListChange(
-            label = "Current workspace did not switch to the newly created linked workspace",
-            predicate = { snapshot ->
-                snapshot.selectedWorkspaceIds.size == 1
-                    && snapshot.selectedWorkspaceIds.single() != selectedWorkspaceIdBeforeCreate
-            },
-            beforeSnapshot = workspaceSnapshotBeforeCreate
+        waitForSelectedWorkspaceSummaryToChange(
+            beforeSummary = selectedWorkspaceSummaryBeforeCreate,
+            context = "after creating a linked workspace",
+            timeoutMillis = workspaceMutationUiTimeoutMillis
         )
         tapBackIcon()
 
@@ -222,13 +205,13 @@ class LiveSmokeTest {
         composeRule.onNodeWithText("Overview").performClick()
         composeRule.onNodeWithTag(workspaceOverviewNameFieldTag).performTextReplacement(workspaceName)
         composeRule.onNodeWithTag(workspaceOverviewSaveNameButtonTag).performClick()
-        composeRule.waitUntilAtLeastOneExists(
-            matcher = hasText("Workspace name saved."),
-            timeoutMillis = liveUiTimeoutMillis
-        )
+        waitForWorkspaceRenameOutcome(expectedWorkspaceName = workspaceName)
         tapBackIcon()
         tapBackIcon()
-        composeRule.onNodeWithText(workspaceName).fetchSemanticsNode()
+        openSettingsTab()
+        composeRule.onNodeWithText("Current Workspace").performClick()
+        waitForCurrentWorkspaceName(expectedWorkspaceName = workspaceName)
+        tapBackIcon()
     }
 
     private fun createManualCard(frontText: String, backText: String, markerTag: String) {
@@ -245,7 +228,7 @@ class LiveSmokeTest {
         ).performClick()
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText(frontText),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = selectionUiTimeoutMillis
         )
     }
 
@@ -253,11 +236,11 @@ class LiveSmokeTest {
         composeRule.onNodeWithText("Review").performClick()
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText("Show answer"),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = selectionUiTimeoutMillis
         )
         composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).performClick()
-        composeRule.waitUntil(timeoutMillis = liveUiTimeoutMillis) {
+        composeRule.waitUntil(timeoutMillis = selectionUiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
                 || composeRule.onAllNodesWithText("Session complete").fetchSemanticsNodes().isNotEmpty()
         }
@@ -272,7 +255,7 @@ class LiveSmokeTest {
         composeRule.onNodeWithText("Account status").performClick()
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText(reviewEmail),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = selectionUiTimeoutMillis
         )
         tapBackIcon()
         tapBackIcon()
@@ -289,7 +272,7 @@ class LiveSmokeTest {
             "Prepare exactly one flashcard proposal. Use front text '$aiFrontText', back text '$aiBackText', and include tag '$markerTag'. Wait for my confirmation before creating it."
         )
         composeRule.onNodeWithTag(aiComposerSendButtonTag).performClick()
-        composeRule.waitUntil(timeoutMillis = liveUiTimeoutMillis) {
+        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
             composeRule.onAllNodesWithText(aiFrontText, substring = true).fetchSemanticsNodes().isNotEmpty()
                 || composeRule.onAllNodesWithText(markerTag, substring = true).fetchSemanticsNodes().isNotEmpty()
         }
@@ -299,7 +282,7 @@ class LiveSmokeTest {
         composeRule.onNodeWithTag(aiComposerSendButtonTag).performClick()
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText("Done"),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = externalUiTimeoutMillis
         )
     }
 
@@ -308,13 +291,13 @@ class LiveSmokeTest {
         composeRule.onNodeWithText("Search cards").performTextReplacement(searchText)
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText(searchText),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = selectionUiTimeoutMillis
         )
     }
 
     private fun assertReviewQueueLoads() {
         composeRule.onNodeWithText("Review").performClick()
-        composeRule.waitUntil(timeoutMillis = liveUiTimeoutMillis) {
+        composeRule.waitUntil(timeoutMillis = selectionUiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
                 || composeRule.onAllNodesWithText("Session complete").fetchSemanticsNodes().isNotEmpty()
         }
@@ -329,7 +312,7 @@ class LiveSmokeTest {
         composeRule.onNodeWithText("Account status").performClick()
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText(reviewEmail),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = selectionUiTimeoutMillis
         )
         composeRule.onNodeWithText("Linked").fetchSemanticsNode()
         tapBackIcon()
@@ -344,17 +327,15 @@ class LiveSmokeTest {
         composeRule.onNodeWithText("Current Workspace").performClick()
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText("Create new workspace"),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = selectionUiTimeoutMillis
         )
-        waitForLinkedWorkspacesToLoad(context = "before deleting the isolated linked workspace")
-        val workspaceSnapshotBeforeDelete = captureWorkspaceListSnapshot()
-        if (workspaceSnapshotBeforeDelete.rowsById.isEmpty()) {
+        if (composeRule.onAllNodesWithText(workspaceName).fetchSemanticsNodes().isEmpty()) {
             tapBackIcon()
             return
         }
-        assertSingleSelectedWorkspace(
+        waitForSelectedWorkspaceSummary(
             context = "before deleting the isolated linked workspace",
-            snapshot = workspaceSnapshotBeforeDelete
+            timeoutMillis = selectionUiTimeoutMillis
         )
         tapBackIcon()
 
@@ -368,13 +349,12 @@ class LiveSmokeTest {
         tapBackIcon()
         openSettingsTab()
         composeRule.onNodeWithText("Current Workspace").performClick()
-        waitForWorkspaceListChange(
-            label = "Deleted linked workspace still appears as the current workspace after delete",
-            predicate = { snapshot ->
-                snapshot.selectedWorkspaceIds.size == 1
-                    && composeRule.onAllNodesWithText(workspaceName).fetchSemanticsNodes().isEmpty()
-            },
-            beforeSnapshot = workspaceSnapshotBeforeDelete
+        composeRule.waitUntil(timeoutMillis = workspaceMutationUiTimeoutMillis) {
+            composeRule.onAllNodesWithText(workspaceName).fetchSemanticsNodes().isEmpty()
+        }
+        waitForSelectedWorkspaceSummary(
+            context = "after deleting the isolated linked workspace",
+            timeoutMillis = workspaceMutationUiTimeoutMillis
         )
         tapBackIcon()
     }
@@ -395,7 +375,7 @@ class LiveSmokeTest {
         openSettingsTab()
         composeRule.waitUntilAtLeastOneExists(
             matcher = hasText(sectionTitle),
-            timeoutMillis = liveUiTimeoutMillis
+            timeoutMillis = selectionUiTimeoutMillis
         )
         composeRule.onNode(
             matcher = hasText(sectionTitle).and(other = hasClickAction())
@@ -414,96 +394,144 @@ class LiveSmokeTest {
         tapBackIcon()
     }
 
-    private fun assertSingleSelectedWorkspace(context: String, snapshot: WorkspaceListSnapshot) {
-        if (snapshot.selectedWorkspaceIds.size != 1) {
-            throw AssertionError(
-                "Expected exactly one selected workspace $context, but found ${snapshot.selectedWorkspaceIds.size}. ${snapshot.describe()}"
-            )
-        }
-    }
-
-    private fun waitForLinkedWorkspacesToLoad(context: String) {
+    private fun waitForSelectedWorkspaceSummary(context: String, timeoutMillis: Long) {
         try {
-            composeRule.waitUntil(timeoutMillis = liveUiTimeoutMillis) {
-                val snapshot = captureWorkspaceListSnapshot()
-                snapshot.rowsById.isNotEmpty() && snapshot.selectedWorkspaceIds.size == 1
+            scrollCurrentWorkspaceListToSelectedWorkspace()
+            composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+                selectedWorkspaceSummaryOrNull() != null
             }
         } catch (error: Throwable) {
-            val snapshot = captureWorkspaceListSnapshot()
             throw AssertionError(
-                "Linked workspaces did not finish loading $context. ${snapshot.describe()}",
+                "Current workspace selection did not settle $context. " +
+                    "Visible linked workspaces=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
+                    "Current workspace name=${currentWorkspaceNameOrNull()}",
                 error
             )
         }
     }
 
-    private fun waitForWorkspaceListChange(
-        label: String,
-        predicate: (WorkspaceListSnapshot) -> Boolean,
-        beforeSnapshot: WorkspaceListSnapshot
+    private fun waitForSelectedWorkspaceSummaryToChange(
+        beforeSummary: String,
+        context: String,
+        timeoutMillis: Long
     ) {
         try {
-            composeRule.waitUntil(timeoutMillis = liveUiTimeoutMillis) {
-                predicate(captureWorkspaceListSnapshot())
+            composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+                runCatching {
+                    val errorMessage = currentWorkspaceErrorMessageOrNull()
+                    if (errorMessage != null) {
+                        throw AssertionError("Current workspace action failed: $errorMessage")
+                    }
+                    scrollCurrentWorkspaceListToSelectedWorkspace()
+                    selectedWorkspaceSummary(context = context) != beforeSummary
+                }.getOrDefault(defaultValue = false)
             }
         } catch (error: Throwable) {
-            val afterSnapshot = captureWorkspaceListSnapshot()
             throw AssertionError(
-                "$label. Before=${beforeSnapshot.describe()} After=${afterSnapshot.describe()}",
+                "Current workspace selection did not change $context. " +
+                    "Before=$beforeSummary After=${selectedWorkspaceSummaryOrNull()} " +
+                    "Current workspace name=${currentWorkspaceNameOrNull()} " +
+                    "Error=${currentWorkspaceErrorMessageOrNull()}",
                 error
             )
         }
     }
 
-    private fun captureWorkspaceListSnapshot(): WorkspaceListSnapshot {
-        return captureWorkspaceSnapshot(
-            rowTagPrefix = currentWorkspaceExistingButtonTagPrefix,
-            selectedIndicatorTagPrefix = currentWorkspaceSelectedIndicatorTagPrefix
-        )
-    }
+    private fun waitForWorkspaceRenameOutcome(expectedWorkspaceName: String) {
+        try {
+            composeRule.waitUntil(timeoutMillis = workspaceMutationUiTimeoutMillis) {
+                val errorMessage = workspaceOverviewErrorMessageOrNull()
+                if (errorMessage != null) {
+                    throw AssertionError("Workspace rename failed: $errorMessage")
+                }
 
-    private fun captureCloudPostAuthWorkspaceSnapshot(): WorkspaceListSnapshot {
-        return captureWorkspaceSnapshot(
-            rowTagPrefix = cloudPostAuthExistingButtonTagPrefix,
-            selectedIndicatorTagPrefix = cloudPostAuthSelectedIndicatorTagPrefix
-        )
-    }
-
-    private fun captureWorkspaceSnapshot(
-        rowTagPrefix: String,
-        selectedIndicatorTagPrefix: String
-    ): WorkspaceListSnapshot {
-        composeRule.waitForIdle()
-        val mergedNodes = flattenSemanticsNodes(
-            node = composeRule.onRoot().fetchSemanticsNode()
-        )
-        val unmergedNodes = flattenSemanticsNodes(
-            node = composeRule.onRoot(useUnmergedTree = true).fetchSemanticsNode()
-        )
-        val rowsById = mergedNodes.mapNotNull { node ->
-            val tag = node.config.getOrNull(SemanticsProperties.TestTag) ?: return@mapNotNull null
-            if (tag.startsWith(rowTagPrefix).not()) {
-                return@mapNotNull null
+                workspaceOverviewNameFieldValueOrNull() == expectedWorkspaceName
+                    && hasVisibleText(text = "Saving...").not()
             }
-            val workspaceId = tag.removePrefix(rowTagPrefix)
-            workspaceId to nodeSummary(node)
-        }.toMap()
-        val selectedWorkspaceIds = unmergedNodes.mapNotNull { node ->
-            val tag = node.config.getOrNull(SemanticsProperties.TestTag) ?: return@mapNotNull null
-            if (tag.startsWith(selectedIndicatorTagPrefix).not()) {
-                return@mapNotNull null
-            }
-            tag.removePrefix(selectedIndicatorTagPrefix)
-        }.toSet()
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Workspace rename did not persist on the Overview screen. " +
+                    "FieldValue=${workspaceOverviewNameFieldValueOrNull()} " +
+                    "Error=${workspaceOverviewErrorMessageOrNull()}",
+                error
+            )
+        }
+    }
 
-        return WorkspaceListSnapshot(
-            rowsById = rowsById,
-            selectedWorkspaceIds = selectedWorkspaceIds
+    private fun waitForCurrentWorkspaceName(expectedWorkspaceName: String) {
+        try {
+            composeRule.waitUntil(timeoutMillis = selectionUiTimeoutMillis) {
+                currentWorkspaceNameOrNull() == expectedWorkspaceName
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Current Workspace top card did not update after rename. " +
+                    "TopCard=${currentWorkspaceNameOrNull()} " +
+                    "SelectedRow=${selectedWorkspaceSummaryOrNull()}",
+                error
+            )
+        }
+    }
+
+    private fun selectedWorkspaceSummary(context: String): String {
+        val selectedSummary = selectedWorkspaceSummaryOrNull()
+        return requireNotNull(selectedSummary) {
+            "Current workspace selection was missing $context."
+        }
+    }
+
+    private fun selectedWorkspaceSummaryOrNull(): String? {
+        val selectedRows = captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)
+            .filter { row -> row.contains("(Current)") }
+        if (selectedRows.size > 1) {
+            throw AssertionError(
+                "Current Workspace rendered more than one selected workspace row. " +
+                    "Visible selected rows=$selectedRows"
+            )
+        }
+        return selectedRows.singleOrNull()
+    }
+
+    private fun workspaceOverviewNameFieldValueOrNull(): String? {
+        return composeRule.onAllNodesWithTag(workspaceOverviewNameFieldTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.config
+            ?.getOrNull(SemanticsProperties.EditableText)
+            ?.text
+    }
+
+    private fun workspaceOverviewErrorMessageOrNull(): String? {
+        return composeRule.onAllNodesWithTag(workspaceOverviewErrorMessageTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun currentWorkspaceNameOrNull(): String? {
+        return composeRule.onAllNodesWithTag(currentWorkspaceNameTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun currentWorkspaceErrorMessageOrNull(): String? {
+        return composeRule.onAllNodesWithTag(currentWorkspaceErrorMessageTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun scrollCurrentWorkspaceListToSelectedWorkspace() {
+        composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
+            matcher = hasText("(Current)", substring = true)
         )
     }
 
-    private fun flattenSemanticsNodes(node: SemanticsNode): List<SemanticsNode> {
-        return listOf(node) + node.children.flatMap(::flattenSemanticsNodes)
+    private fun captureVisibleWorkspaceRows(rowTag: String): List<String> {
+        return composeRule.onAllNodesWithTag(rowTag)
+            .fetchSemanticsNodes()
+            .map(::nodeSummary)
     }
 
     private fun nodeSummary(node: SemanticsNode): String {
@@ -512,6 +540,12 @@ class LiveSmokeTest {
             ?.filter { text -> text.isNotBlank() }
             .orEmpty()
         return texts.joinToString(separator = " | ")
+    }
+
+    private fun hasVisibleText(text: String, substring: Boolean = false): Boolean {
+        return composeRule.onAllNodesWithText(text = text, substring = substring)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
     }
 
     private fun tapBackIcon() {
