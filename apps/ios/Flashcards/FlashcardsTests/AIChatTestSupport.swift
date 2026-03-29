@@ -380,16 +380,6 @@ extension AIChatMessage {
 }
 
 class AIChatTestCaseBase: XCTestCase {
-    override class func setUp() {
-        super.setUp()
-        URLProtocol.registerClass(AIChatMockUrlProtocol.self)
-    }
-
-    override class func tearDown() {
-        URLProtocol.unregisterClass(AIChatMockUrlProtocol.self)
-        super.tearDown()
-    }
-
     override func tearDown() {
         AIChatMockUrlProtocol.requestHandler = nil
         super.tearDown()

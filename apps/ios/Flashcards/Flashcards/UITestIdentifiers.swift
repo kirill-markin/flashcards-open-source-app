@@ -11,6 +11,7 @@ enum UITestIdentifier {
     static let cloudSignInSendCodeButton: String = "cloudSignIn.sendCodeButton"
     static let cloudSignInCreateWorkspaceButton: String = "cloudSignIn.createWorkspaceButton"
     static let currentWorkspaceRowButton: String = "currentWorkspace.rowButton"
+    static let currentWorkspaceCreateButton: String = "currentWorkspace.createButton"
     static let workspaceSettingsOverviewRow: String = "workspaceSettings.overviewRow"
     static let workspaceOverviewNameField: String = "workspaceOverview.nameField"
     static let workspaceOverviewSaveNameButton: String = "workspaceOverview.saveNameButton"
