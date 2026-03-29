@@ -126,7 +126,8 @@ Test only on the final supported Android target.
 
 The Android app uses native Android and Compose testing:
 
-- module and app unit tests run with the existing Gradle/JUnit stack
+- integration coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest` and `apps/android/data/local/src/androidTest`
+- shared FSRS scheduler parity stays in `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt` and uses `tests/fsrs-full-vectors.json`
 - release-gate UI coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - the live smoke flow relies on stable Compose test tags from the production UI modules, not on a separate mock shell
 
@@ -147,7 +148,7 @@ The repository policy for Android CI/CD is:
 - Firebase Test Lab is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- the release gate order is native unit/build checks first, then the native Firebase Test Lab live smoke, then Google Play release
+- the release gate order is native build/lint checks first, then the native Firebase Test Lab live smoke, then Google Play release
 - after pushing to `main`, watch both `Android CI` and `Android Release` until Google Play publication either completes or fails clearly
 
 ## Review Standard

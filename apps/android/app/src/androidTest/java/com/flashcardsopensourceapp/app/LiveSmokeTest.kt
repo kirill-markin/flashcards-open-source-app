@@ -7,6 +7,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -70,75 +71,109 @@ class LiveSmokeTest {
         .around(composeRule)
 
     @Test
-    fun liveSmokeFlowUsesRealDemoAccountAcrossTabs() {
+    fun linkedWorkspaceSessionSurvivesActivityRelaunch() {
         val runId = System.currentTimeMillis().toString()
-        val reviewEmail = InstrumentationRegistry.getArguments()
-            .getString(reviewEmailArgumentKey, "google-review@example.com")
-        val workspaceName = "E2E android $runId"
+        val reviewEmail = configuredReviewEmail()
+        val workspaceName = "E2E android session $runId"
+
+        withLinkedWorkspaceSession(
+            reviewEmail = reviewEmail,
+            workspaceName = workspaceName
+        ) {
+            step("restart the activity and keep the linked session") {
+                relaunchAndAssertAccountStatus(reviewEmail = reviewEmail)
+            }
+            step("verify linked account status and workspace state") {
+                assertLinkedAccountStatus(reviewEmail = reviewEmail, workspaceName = workspaceName)
+            }
+        }
+    }
+
+    @Test
+    fun manualCardCanBeCreatedAndReviewedInDefaultWorkspace() {
+        val runId = System.currentTimeMillis().toString()
         val manualFrontText = "Manual e2e android $runId"
         val manualBackText = "Manual answer e2e android $runId"
+
+        step("create one manual card in the default local workspace") {
+            createManualCard(
+                frontText = manualFrontText,
+                backText = manualBackText,
+                markerTag = "manual-$runId"
+            )
+        }
+        step("verify the manual card in cards and review") {
+            assertCardVisibleInCards(searchText = manualFrontText)
+            reviewOneCard()
+        }
+    }
+
+    @Test
+    fun aiCardCanBeCreatedInGuestWorkspace() {
+        val runId = System.currentTimeMillis().toString()
         val aiFrontText = "AI e2e android $runId"
         val aiBackText = "AI answer e2e android $runId"
 
+        step("create one AI card with explicit confirmation in guest mode") {
+            createAiCardWithConfirmation(
+                aiFrontText = aiFrontText,
+                aiBackText = aiBackText,
+                markerTag = "ai-$runId"
+            )
+        }
+        step("verify the AI-created card is visible in cards and review") {
+            assertCardVisibleInCards(searchText = aiFrontText)
+            assertReviewQueueLoads()
+        }
+    }
+
+    private fun configuredReviewEmail(): String {
+        return InstrumentationRegistry.getArguments()
+            .getString(reviewEmailArgumentKey, "google-review@example.com")
+    }
+
+    private fun withLinkedWorkspaceSession(
+        reviewEmail: String,
+        workspaceName: String,
+        action: () -> Unit
+    ) {
         var primaryFailure: Throwable? = null
+        var shouldDeleteWorkspace = false
 
         try {
             step("sign in with the configured review account") {
                 signInWithReviewAccount(reviewEmail = reviewEmail)
             }
             step("create an isolated linked workspace for this run") {
+                shouldDeleteWorkspace = true
                 createEphemeralWorkspace(workspaceName = workspaceName)
             }
-            step("create one manual card") {
-                createManualCard(
-                    frontText = manualFrontText,
-                    backText = manualBackText,
-                    markerTag = "manual-$runId"
-                )
-            }
-            step("verify the manual card in cards and review") {
-                assertCardVisibleInCards(searchText = manualFrontText)
-                reviewOneCard()
-            }
-            step("restart the activity and keep the linked session") {
-                relaunchAndAssertAccountStatus(reviewEmail = reviewEmail)
-            }
-            step("create one AI card with explicit confirmation") {
-                createAiCardWithConfirmation(
-                    aiFrontText = aiFrontText,
-                    aiBackText = aiBackText,
-                    markerTag = "ai-$runId"
-                )
-            }
-            step("verify the AI-created card is visible in cards and review") {
-                assertCardVisibleInCards(searchText = aiFrontText)
-                assertReviewQueueLoads()
-            }
-            step("verify linked account status and workspace state") {
-                assertLinkedAccountStatus(reviewEmail = reviewEmail, workspaceName = workspaceName)
-            }
+            action()
         } catch (error: Throwable) {
             primaryFailure = error
             throw error
         } finally {
-            try {
-                step("delete the isolated workspace") {
-                    deleteEphemeralWorkspace(workspaceName = workspaceName)
-                }
-            } catch (cleanupError: Throwable) {
-                if (primaryFailure != null) {
-                    primaryFailure.addSuppressed(cleanupError)
-                } else {
-                    throw cleanupError
+            if (shouldDeleteWorkspace) {
+                try {
+                    step("delete the isolated workspace") {
+                        deleteEphemeralWorkspace(workspaceName = workspaceName)
+                    }
+                } catch (cleanupError: Throwable) {
+                    if (primaryFailure != null) {
+                        primaryFailure.addSuppressed(cleanupError)
+                    } else {
+                        throw cleanupError
+                    }
                 }
             }
         }
     }
 
     /**
-     * This smoke test is intentionally one connected user story. Each step
-     * fails fast with its own label so the CI output points to the exact cross-
-     * screen integration boundary that regressed.
+     * This smoke suite is intentionally split into a few stateful groups.
+     * Only the linked-session group creates an isolated linked workspace.
+     * The manual and AI groups run independently on top of the default local
+     * or guest state so unrelated regressions fail independently.
      */
     private fun step(label: String, action: () -> Unit) {
         try {
@@ -201,12 +236,12 @@ class LiveSmokeTest {
         )
         clickTag(tag = currentWorkspaceCreateButtonTag, label = "Create new workspace")
         waitForCurrentWorkspaceOperationToStart()
+        waitForCurrentWorkspaceOperationToFinish()
         waitForSelectedWorkspaceSummaryToChange(
             beforeSummary = selectedWorkspaceSummaryBeforeCreate,
             context = "after creating a linked workspace",
-            timeoutMillis = externalUiTimeoutMillis
+            timeoutMillis = internalUiTimeoutMillis
         )
-        waitForCurrentWorkspaceOperationToFinish()
         tapBackIcon()
 
         openSettingsSection(sectionTitle = "Workspace")
@@ -232,14 +267,22 @@ class LiveSmokeTest {
         composeRule.onNodeWithText("Add a tag").performTextInput(markerTag)
         clickText(text = "Add tag")
         tapBackIcon()
+        scrollToText(text = "Save")
+        composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
+            failIfVisibleAppError(context = "while waiting for Save card")
+            composeRule.onAllNodes(
+                matcher = hasClickAction().and(other = hasText("Save"))
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
         clickNode(
             matcher = hasClickAction().and(other = hasText("Save")),
             label = "Save card"
         )
-        waitUntilAtLeastOneExistsOrFail(
-            matcher = hasText(frontText),
-            timeoutMillis = internalUiTimeoutMillis
-        )
+        composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
+            failIfVisibleAppError(context = "while waiting for the saved manual card to appear")
+            composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun reviewOneCard() {
@@ -514,7 +557,9 @@ class LiveSmokeTest {
         try {
             composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
                 failIfVisibleAppError(context = "while waiting for current workspace operation to finish")
-                currentWorkspaceOperationMessageOrNull() == null
+                currentWorkspaceOperationMessageOrNull() == null &&
+                    currentWorkspaceNameOrNull() != "Unavailable" &&
+                    selectedWorkspaceSummaryOrNull() != null
             }
         } catch (error: Throwable) {
             throw AssertionError(
@@ -761,5 +806,9 @@ class LiveSmokeTest {
             composeRule.waitForIdle()
         }
         failIfVisibleAppError(context = "after navigating back")
+    }
+
+    private fun scrollToText(text: String) {
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text))
     }
 }

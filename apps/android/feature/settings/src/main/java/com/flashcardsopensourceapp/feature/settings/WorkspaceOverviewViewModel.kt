@@ -279,12 +279,6 @@ class WorkspaceOverviewViewModel(
             val result = cloudAccountRepository.deleteCurrentWorkspace(
                 confirmationText = uiState.value.deleteConfirmationText
             )
-            val syncFailureMessage = try {
-                syncRepository.syncNow()
-                null
-            } catch (error: Exception) {
-                error.message ?: "Workspace sync failed after deletion."
-            }
             draftState.update { state ->
                 state.copy(
                     workspaceNameDraft = result.workspace.name,
@@ -294,21 +288,11 @@ class WorkspaceOverviewViewModel(
                     deleteConfirmationText = "",
                     showDeleteConfirmation = false,
                     deletePreview = null,
-                    errorMessage = syncFailureMessage.orEmpty(),
-                    successMessage = if (syncFailureMessage == null) {
-                        "Workspace deleted. Switched to ${result.workspace.name}."
-                    } else {
-                        "Workspace deleted. Switched to ${result.workspace.name}. Sync still needs attention."
-                    }
+                    errorMessage = "",
+                    successMessage = "Workspace deleted. Switched to ${result.workspace.name}."
                 )
             }
-            messageController.showMessage(
-                message = if (syncFailureMessage == null) {
-                    "Workspace deleted. Switched to ${result.workspace.name}."
-                } else {
-                    "Workspace deleted, but sync still needs attention."
-                }
-            )
+            messageController.showMessage(message = "Workspace deleted. Switched to ${result.workspace.name}.")
             true
         } catch (error: Exception) {
             draftState.update { state ->

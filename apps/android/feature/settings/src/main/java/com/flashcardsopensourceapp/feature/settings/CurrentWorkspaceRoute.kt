@@ -112,7 +112,7 @@ fun CurrentWorkspaceRoute(
                 }
             }
 
-            if (uiState.errorMessage.isNotEmpty()) {
+            if (uiState.errorMessage.isNotEmpty() && uiState.operation == CurrentWorkspaceOperation.IDLE) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(

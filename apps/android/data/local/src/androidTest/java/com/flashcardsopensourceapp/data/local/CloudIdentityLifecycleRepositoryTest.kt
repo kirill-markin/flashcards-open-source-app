@@ -447,7 +447,7 @@ class CloudIdentityLifecycleRepositoryTest {
 
         prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
 
-        val linkedWorkspace = repository.switchLinkedWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+        val linkedWorkspace = repository.completeLinkedWorkspaceTransition(CloudWorkspaceLinkSelection.CreateNew)
 
         assertEquals(createdWorkspace.workspaceId, linkedWorkspace.workspaceId)
         assertEquals(createdWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
@@ -471,7 +471,7 @@ class CloudIdentityLifecycleRepositoryTest {
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
 
         prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
-        repository.switchLinkedWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+        repository.completeLinkedWorkspaceTransition(CloudWorkspaceLinkSelection.CreateNew)
 
         val renamedWorkspace = repository.renameCurrentWorkspace(name = "Renamed Workspace")
 

@@ -49,7 +49,6 @@ GitHub Actions workflow: `.github/workflows/android.yml`
 - Builds `:app:assembleDebug`
 - Builds `:app:assembleDebugAndroidTest`
 - Runs `:app:lintDebug`
-- Runs the existing native unit test tasks included by `bash scripts/run-android-ci.sh`
 - Uploads the debug APK, Android test APK, and lint report as workflow artifacts
 - Validates the Firebase Test Lab configuration on `main` and on manual dispatch
 - Runs Firebase Test Lab against the native stateful live smoke class `com.flashcardsopensourceapp.app.LiveSmokeTest`
@@ -57,7 +56,7 @@ GitHub Actions workflow: `.github/workflows/android.yml`
 
 The intended Android release order is:
 
-1. Native build, lint, and unit checks in GitHub Actions
+1. Native build and lint checks in GitHub Actions
 2. Native Firebase Test Lab live smoke on the configured Android 16 device
 3. If AWS changed too, wait for the main release orchestrator to retain the AWS release for the same SHA
 4. Google Play production release from the main release orchestrator
@@ -283,6 +282,12 @@ Build the same artifacts CI expects:
 
 ```bash
 bash scripts/run-android-ci.sh
+```
+
+Run the retained Android FSRS parity test against the shared vectors:
+
+```bash
+cd apps/android && ./gradlew --no-daemon :data:local:testDebugUnitTest --tests com.flashcardsopensourceapp.data.local.model.FsrsSchedulerParityTest
 ```
 
 Build the signed release bundle with the same inputs that the release workflow uses:
