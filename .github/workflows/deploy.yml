@@ -105,10 +105,60 @@ jobs:
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  wait_ci_for_aws_release:
+    name: Wait for CI before AWS release
+    needs: changes
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Wait for CI workflow to finish for this SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AWS_CHANGED: ${{ needs.changes.outputs.aws_changed }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" != "push" ]] || [[ "${GITHUB_REF}" != "refs/heads/main" ]] || [[ "${AWS_CHANGED}" != "true" ]]; then
+            echo "Skipping CI gate for this release run."
+            exit 0
+          fi
+
+          deadline_epoch="$(( $(date +%s) + 3600 ))"
+
+          while true; do
+            runs_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=${GITHUB_SHA}&per_page=10")"
+            run_count="$(jq '.workflow_runs | length' <<< "${runs_json}")"
+
+            if [[ "${run_count}" -gt 0 ]]; then
+              latest_run_json="$(jq '.workflow_runs | sort_by(.created_at) | last' <<< "${runs_json}")"
+              status="$(jq -r '.status' <<< "${latest_run_json}")"
+              conclusion="$(jq -r '.conclusion // "null"' <<< "${latest_run_json}")"
+              run_url="$(jq -r '.html_url' <<< "${latest_run_json}")"
+
+              if [[ "${status}" == "completed" ]]; then
+                if [[ "${conclusion}" == "success" ]]; then
+                  exit 0
+                fi
+
+                echo "CI workflow finished with conclusion ${conclusion}: ${run_url}" >&2
+                exit 1
+              fi
+            fi
+
+            if [[ "$(date +%s)" -ge "${deadline_epoch}" ]]; then
+              echo "Timed out waiting for CI workflow for ${GITHUB_SHA}." >&2
+              exit 1
+            fi
+
+            sleep 30
+          done
+
   aws_deploy:
     name: Deploy AWS release
-    needs: changes
-    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
+    needs:
+      - changes
+      - wait_ci_for_aws_release
+    if: ${{ needs.changes.outputs.aws_changed == 'true' && needs.wait_ci_for_aws_release.result == 'success' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
 
@@ -472,6 +522,7 @@ jobs:
     name: Resolve AWS release outcome
     needs:
       - changes
+      - wait_ci_for_aws_release
       - aws_deploy
       - web_smoke
       - mark_aws_retained
@@ -494,7 +545,9 @@ jobs:
           retained_aws_sha=""
 
           if [[ "${{ needs.changes.outputs.aws_changed }}" == "true" ]]; then
-            if [[ "${{ needs.aws_deploy.result }}" != "success" ]]; then
+            if [[ "${{ needs.wait_ci_for_aws_release.result }}" != "success" ]]; then
+              aws_release_status="ci_gate_failed"
+            elif [[ "${{ needs.aws_deploy.result }}" != "success" ]]; then
               aws_release_status="deployment_failed"
             elif [[ "${{ needs.web_smoke.result }}" == "success" ]]; then
               aws_release_status="retained"
@@ -773,6 +826,7 @@ jobs:
     if: ${{ always() }}
     needs:
       - changes
+      - wait_ci_for_aws_release
       - aws_deploy
       - web_smoke
       - rollback_aws
@@ -792,6 +846,7 @@ jobs:
             echo "- DB migrations changed: \`${{ needs.changes.outputs.db_migrations_changed }}\`"
             echo "- Android changed: \`${{ needs.changes.outputs.android_changed }}\`"
             echo "- iOS changed: \`${{ needs.changes.outputs.ios_changed }}\`"
+            echo "- CI gate job: \`${{ needs.wait_ci_for_aws_release.result }}\`"
             echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
             echo "- Rollback performed: \`${{ needs.aws_release_status.outputs.rollback_performed }}\`"
             echo "- Retained AWS SHA: \`${{ needs.aws_release_status.outputs.retained_aws_sha || 'n/a' }}\`"

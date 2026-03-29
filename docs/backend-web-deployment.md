@@ -104,13 +104,16 @@ The release workflow assembles its own `cdk.context.local.json` inside the job f
 For AWS-backed changes, the main-branch order is:
 
 1. detect whether AWS-related paths changed
-2. deploy backend, auth, infra, and web to production
-3. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
-4. keep the new AWS release only if the smoke passes
-5. roll the whole AWS runtime back to the previous retained AWS SHA if the smoke fails and the release did not include DB migrations
-6. fail loudly and require fix-forward when the smoke fails after DB migrations
+2. on `push` to `main`, wait for the same-SHA `CI` workflow to finish successfully before starting the AWS release
+3. deploy backend, auth, infra, and web to production
+4. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
+5. keep the new AWS release only if the smoke passes
+6. roll the whole AWS runtime back to the previous retained AWS SHA if the smoke fails and the release did not include DB migrations
+7. fail loudly and require fix-forward when the smoke fails after DB migrations
 
-After pushing to `main`, watch the main release orchestrator until it either retains the AWS release, reverts it, or fails clearly. A failed AWS release with DB migrations is intentionally a fix-forward path; the next push must still be allowed to deploy.
+Manual `workflow_dispatch` runs bypass the `CI` wait and act as an explicit release override.
+
+After pushing to `main`, watch both `CI` and the main release orchestrator until the release either retains the AWS runtime, reverts it, or fails clearly. A failed AWS release with DB migrations is intentionally a fix-forward path; the next push must still be allowed to deploy.
 
 Cross-client live smoke references:
 
