@@ -20,14 +20,22 @@ Open-source offline-first flashcards app for iOS, Android, and web.
 
 ## Release Gates
 
-Production delivery is gated client-by-client with native test stacks:
+Production delivery on `main` now uses one GitHub Actions release orchestrator:
 
-- iOS uses XCTest and XCUITest, including the stateful live smoke in [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift)
-- Android uses JUnit plus native Compose instrumentation, including the stateful live smoke in [`apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`](apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt)
+- it detects which areas changed
+- deploys AWS when `api`, `auth`, `backend`, `web`, `infra`, `db`, or deploy scripts changed
+- runs the web Playwright live smoke after deploy
+- keeps the new AWS release only if the smoke passes
+- rolls the whole AWS runtime back to the previous retained AWS SHA when the smoke fails and the release did not include DB migrations
+- fails loudly and requires fix-forward when the smoke fails after DB migrations
+
+Native client gates still use native stacks:
+
+- iOS uses XCTest and XCUITest, including the stateful live smoke in [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift), and the main orchestrator waits on the matching Xcode Cloud checks for the same SHA when `apps/ios` changed
+- Android uses JUnit plus native Compose instrumentation, including the stateful live smoke in [`apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`](apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt), and the main orchestrator publishes to Google Play only after Android CI succeeds for the same SHA
 - Web uses Vitest and Playwright, including the stateful live smoke in [`apps/web/e2e/live-smoke.spec.ts`](apps/web/e2e/live-smoke.spec.ts)
 
-For web/backend/auth/infra on `main`, production deploy now happens first and the web Playwright smoke runs after deploy as an operational signal. iOS and Android keep their own native release gates.
-After every push to `main`, watch all triggered client pipelines through completion instead of assuming the release finished automatically. A failed web post-deploy smoke is expected to be fixed forward.
+After every push to `main`, watch the single main release orchestrator until it either retains the AWS release, rolls it back, or fails clearly on a non-rollbackable migration path.
 
 ## Card scheduling
 

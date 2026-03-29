@@ -34,13 +34,16 @@ Before running Android tests, also check which Android emulators are available l
 
 ## Release Gates and Monitoring
 
-Pushes to `main` use different release policies by platform:
+Pushes to `main` use one GitHub Actions release orchestrator in `.github/workflows/deploy.yml`:
 
-- Web/backend/auth/infra: GitHub Actions deploys production changes directly from `.github/workflows/deploy.yml`, then runs the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts` as a post-deploy operational signal
-- Android: GitHub Actions in `.github/workflows/android.yml` runs build, lint, and the native instrumentation live smoke in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`, then `.github/workflows/android-release.yml` can publish to Google Play
-- iOS: Xcode Cloud runs the native Swift/XCTest stack, including the XCUITest live smoke in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`, before archive and distribution continue
+- it detects whether AWS, Android, and iOS changed
+- when AWS changed, it deploys production, runs the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts`, and keeps or rolls back the whole AWS runtime based on that result
+- rollback is automatic only when the failed AWS release did not include new DB migrations
+- migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
+- when Android changed, the orchestrator waits for `.github/workflows/android.yml` to finish for the same SHA before publishing to Google Play
+- when iOS changed, the orchestrator waits for the matching Xcode Cloud checks for the same SHA
 
-When a change lands on `main`, monitor every triggered client pipeline until it either reaches release or fails clearly. For web/backend/auth/infra, a failed post-deploy web smoke does not block deploy in this phase and should be fixed forward.
+When a change lands on `main`, monitor the single main release orchestrator and any linked native client checks until the release is retained, reverted, or fails clearly.
 
 Cross-client live smoke references:
 

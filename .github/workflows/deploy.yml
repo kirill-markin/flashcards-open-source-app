@@ -1,35 +1,114 @@
-name: Deploy to AWS
+name: Main Release Orchestrator
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'api/**'
-      - 'apps/auth/**'
-      - 'apps/backend/**'
-      - 'apps/web/**'
-      - 'db/**'
-      - 'infra/**'
-      - 'scripts/**'
-      - '.github/workflows/ci.yml'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 concurrency:
-  group: deploy-aws
+  group: main-release
   cancel-in-progress: false
 
 permissions:
-  id-token: write
+  actions: read
+  checks: read
   contents: read
+  id-token: write
+  statuses: write
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   STACK_NAME: FlashcardsOpenSourceApp
 
 jobs:
-  deploy:
-    name: Deploy to AWS
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-24.04
+    outputs:
+      aws_changed: ${{ steps.detect.outputs.aws_changed }}
+      db_migrations_changed: ${{ steps.detect.outputs.db_migrations_changed }}
+      android_changed: ${{ steps.detect.outputs.android_changed }}
+      ios_changed: ${{ steps.detect.outputs.ios_changed }}
+      changed_files: ${{ steps.detect.outputs.changed_files }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed files
+        id: detect
+        env:
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          changed_files_path="${RUNNER_TEMP}/changed-files.txt"
+          before_sha="${PUSH_BEFORE_SHA:-}"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]] && [[ -n "${before_sha}" ]] && [[ "${before_sha}" != "0000000000000000000000000000000000000000" ]]; then
+            git diff --name-only "${before_sha}" "${GITHUB_SHA}" > "${changed_files_path}"
+          elif git rev-parse HEAD^ >/dev/null 2>&1; then
+            git diff --name-only HEAD^ HEAD > "${changed_files_path}"
+          else
+            git ls-files > "${changed_files_path}"
+          fi
+
+          aws_changed=false
+          if grep -Eq '^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|scripts/|\.github/workflows/(ci|deploy)\.yml$)' "${changed_files_path}"; then
+            aws_changed=true
+          fi
+
+          db_migrations_changed=false
+          if grep -Eq '^db/migrations/' "${changed_files_path}"; then
+            db_migrations_changed=true
+          fi
+
+          android_changed=false
+          if grep -Eq '^apps/android/' "${changed_files_path}"; then
+            android_changed=true
+          fi
+
+          ios_changed=false
+          if grep -Eq '^apps/ios/' "${changed_files_path}"; then
+            ios_changed=true
+          fi
+
+          {
+            echo "aws_changed=${aws_changed}"
+            echo "db_migrations_changed=${db_migrations_changed}"
+            echo "android_changed=${android_changed}"
+            echo "ios_changed=${ios_changed}"
+            echo 'changed_files<<EOF'
+            cat "${changed_files_path}"
+            echo 'EOF'
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Summarize changed areas
+        env:
+          CHANGED_FILES: ${{ steps.detect.outputs.changed_files }}
+        run: |
+          {
+            echo "## Release scope"
+            echo ""
+            echo "- AWS changed: \`${{ steps.detect.outputs.aws_changed }}\`"
+            echo "- DB migrations changed: \`${{ steps.detect.outputs.db_migrations_changed }}\`"
+            echo "- Android changed: \`${{ steps.detect.outputs.android_changed }}\`"
+            echo "- iOS changed: \`${{ steps.detect.outputs.ios_changed }}\`"
+            echo ""
+            echo "### Changed files"
+            echo ""
+            if [[ -n "${CHANGED_FILES}" ]]; then
+              printf '%s\n' "${CHANGED_FILES}"
+            else
+              echo "No changed files detected."
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  aws_deploy:
+    name: Deploy AWS release
+    needs: changes
+    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
 
@@ -39,7 +118,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: |
             api/package-lock.json
             apps/auth/package-lock.json
@@ -114,23 +193,21 @@ jobs:
       - name: Check public custom domains
         run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
 
-      - name: Migration reminder
-        if: github.event_name == 'workflow_dispatch'
-        run: echo "::warning::Migrations changed. Run scripts/migrate.sh against target database manually or via your migration pipeline."
-
       - name: Summarize deployed release
         run: |
           {
-            echo "## Production deploy"
+            echo "## AWS deploy"
             echo ""
             echo "- Deployed SHA: \`${GITHUB_SHA}\`"
             echo "- Web post-deploy smoke: pending next job"
-            echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-  web-post-deploy-smoke:
+  web_smoke:
     name: Web post-deploy smoke
-    needs: deploy
+    needs:
+      - changes
+      - aws_deploy
+    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -235,26 +312,528 @@ jobs:
             echo "- Deployed SHA: \`${GITHUB_SHA}\`"
             echo "- Result: \`${{ steps.live_smoke.outcome }}\`"
             echo "- Artifacts: \`web-playwright-report\`, \`web-playwright-test-results\`"
-            echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-  deploy-summary:
-    name: Deploy summary
-    if: always()
+  mark_aws_retained:
+    name: Mark retained AWS release
     needs:
-      - deploy
-      - web-post-deploy-smoke
+      - changes
+      - aws_deploy
+      - web_smoke
+    if: ${{ needs.changes.outputs.aws_changed == 'true' && needs.aws_deploy.result == 'success' && needs.web_smoke.result == 'success' }}
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Summarize workflow outcome
+      - name: Mark current SHA as retained AWS release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state='success' \
+            -f context='AWS retained release' \
+            -f description='retained after production deploy and web smoke' \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+  rollback_aws:
+    name: Roll back AWS release
+    needs:
+      - changes
+      - aws_deploy
+      - web_smoke
+    if: ${{ always() && needs.changes.outputs.aws_changed == 'true' && needs.aws_deploy.result == 'success' && needs.web_smoke.result == 'failure' && needs.changes.outputs.db_migrations_changed != 'true' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    outputs:
+      rollback_target_sha: ${{ steps.resolve.outputs.rollback_target_sha }}
+
+    steps:
+      - name: Resolve previous retained AWS release SHA
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          commits_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=main&per_page=50")"
+          rollback_target_sha=""
+
+          for candidate_sha in $(jq -r '.[].sha' <<< "${commits_json}"); do
+            if [[ "${candidate_sha}" == "${GITHUB_SHA}" ]]; then
+              continue
+            fi
+
+            status_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${candidate_sha}/status")"
+            retained_state="$(jq -r '.statuses[] | select(.context == "AWS retained release" and .state == "success") | .state' <<< "${status_json}" | head -n 1)"
+
+            if [[ "${retained_state}" == "success" ]]; then
+              rollback_target_sha="${candidate_sha}"
+              break
+            fi
+          done
+
+          if [[ -z "${rollback_target_sha}" ]]; then
+            echo "Could not find a previous retained AWS release SHA on main." >&2
+            exit 1
+          fi
+
+          echo "rollback_target_sha=${rollback_target_sha}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.resolve.outputs.rollback_target_sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            apps/auth/package-lock.json
+            apps/backend/package-lock.json
+            apps/web/package-lock.json
+            infra/aws/package-lock.json
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix api
+          npm ci --prefix apps/auth
+          npm ci --prefix apps/backend
+          npm ci --prefix apps/web
+          npm ci --prefix infra/aws
+
+      - name: Bundle OpenAPI spec
+        run: npm run bundle --prefix api
+
+      - name: CDK deploy retained AWS release
+        working-directory: infra/aws
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          cat > cdk.context.local.json <<CTXEOF
+          {
+            "region": "${{ vars.AWS_REGION }}",
+            "domainName": "${{ vars.CDK_DOMAIN_NAME }}",
+            "apiCertificateArn": "${{ vars.CDK_API_CERTIFICATE_ARN }}",
+            "authCertificateArn": "${{ vars.CDK_AUTH_CERTIFICATE_ARN }}",
+            "webCertificateArnUsEast1": "${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}",
+            "apexRedirectCertificateArnUsEast1": "${{ vars.CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 }}",
+            "resendApiKeySecretArn": "${{ vars.CDK_RESEND_API_KEY_SECRET_ARN }}",
+            "resendSenderEmail": "${{ vars.CDK_RESEND_SENDER_EMAIL }}",
+            "openAiApiKeySecretArn": "${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}",
+            "anthropicApiKeySecretArn": "${{ vars.CDK_ANTHROPIC_API_KEY_SECRET_ARN }}",
+            "langfusePublicKeySecretArn": "${{ vars.CDK_LANGFUSE_PUBLIC_KEY_SECRET_ARN }}",
+            "langfuseSecretKeySecretArn": "${{ vars.CDK_LANGFUSE_SECRET_KEY_SECRET_ARN }}",
+            "langfuseBaseUrl": "${{ vars.CDK_LANGFUSE_BASE_URL }}",
+            "demoEmailDostip": "${{ vars.CDK_DEMO_EMAIL_DOSTIP }}",
+            "demoPasswordSecretArn": "${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}",
+            "guestAiWeightedMonthlyTokenCap": "${{ vars.CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP }}",
+            "githubOidcProviderArn": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com",
+            "alertEmail": "${{ vars.CDK_ALERT_EMAIL }}",
+            "githubRepo": "${{ vars.CDK_GITHUB_REPO }}"
+          }
+          CTXEOF
+          npx cdk deploy --all --require-approval never
+
+      - name: Check demo Cognito users
+        run: bash scripts/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Check API health
+        run: bash scripts/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Check public API routes
+        run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Build web app
+        run: npm run build --prefix apps/web
+
+      - name: Deploy web assets
+        run: bash scripts/deploy-web.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Check public custom domains
+        run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Summarize rollback
         run: |
           {
-            echo "## Deploy workflow summary"
+            echo "## AWS rollback"
             echo ""
-            echo "- Deployed SHA: \`${GITHUB_SHA}\`"
-            echo "- Deploy job: \`${{ needs.deploy.result }}\`"
-            echo "- Web post-deploy smoke: \`${{ needs.web-post-deploy-smoke.result }}\`"
-            echo "- Artifacts: \`web-playwright-report\`, \`web-playwright-test-results\`"
+            echo "- Failed SHA: \`${GITHUB_SHA}\`"
+            echo "- Rolled back to retained SHA: \`${{ steps.resolve.outputs.rollback_target_sha }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  aws_release_status:
+    name: Resolve AWS release outcome
+    needs:
+      - changes
+      - aws_deploy
+      - web_smoke
+      - mark_aws_retained
+      - rollback_aws
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    outputs:
+      aws_release_status: ${{ steps.resolve.outputs.aws_release_status }}
+      rollback_performed: ${{ steps.resolve.outputs.rollback_performed }}
+      retained_aws_sha: ${{ steps.resolve.outputs.retained_aws_sha }}
+
+    steps:
+      - name: Resolve AWS release status
+        id: resolve
+        run: |
+          set -euo pipefail
+
+          aws_release_status="no_aws_changes"
+          rollback_performed="false"
+          retained_aws_sha=""
+
+          if [[ "${{ needs.changes.outputs.aws_changed }}" == "true" ]]; then
+            if [[ "${{ needs.aws_deploy.result }}" != "success" ]]; then
+              aws_release_status="deployment_failed"
+            elif [[ "${{ needs.web_smoke.result }}" == "success" ]]; then
+              aws_release_status="retained"
+              retained_aws_sha="${GITHUB_SHA}"
+            elif [[ "${{ needs.changes.outputs.db_migrations_changed }}" == "true" ]]; then
+              aws_release_status="fix_forward_required"
+            elif [[ "${{ needs.rollback_aws.result }}" == "success" ]]; then
+              aws_release_status="reverted"
+              rollback_performed="true"
+              retained_aws_sha="${{ needs.rollback_aws.outputs.rollback_target_sha }}"
+            else
+              aws_release_status="rollback_failed"
+            fi
+          fi
+
+          {
+            echo "aws_release_status=${aws_release_status}"
+            echo "rollback_performed=${rollback_performed}"
+            echo "retained_aws_sha=${retained_aws_sha}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Summarize AWS release outcome
+        run: |
+          {
+            echo "## AWS release outcome"
+            echo ""
+            echo "- AWS release status: \`${{ steps.resolve.outputs.aws_release_status }}\`"
+            echo "- Rollback performed: \`${{ steps.resolve.outputs.rollback_performed }}\`"
+            echo "- Retained AWS SHA: \`${{ steps.resolve.outputs.retained_aws_sha || 'n/a' }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  wait_android_ci:
+    name: Wait for Android CI
+    needs:
+      - changes
+      - aws_release_status
+    if: ${{ needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    outputs:
+      android_ci_run_url: ${{ steps.wait.outputs.android_ci_run_url }}
+
+    steps:
+      - name: Wait for Android CI to finish for this SHA
+        id: wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          deadline_epoch="$(( $(date +%s) + 5400 ))"
+
+          while true; do
+            runs_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/android.yml/runs?branch=main&event=push&head_sha=${GITHUB_SHA}&per_page=10")"
+            run_count="$(jq '.workflow_runs | length' <<< "${runs_json}")"
+
+            if [[ "${run_count}" -gt 0 ]]; then
+              latest_run_json="$(jq '.workflow_runs | sort_by(.created_at) | last' <<< "${runs_json}")"
+              status="$(jq -r '.status' <<< "${latest_run_json}")"
+              conclusion="$(jq -r '.conclusion // "null"' <<< "${latest_run_json}")"
+              run_url="$(jq -r '.html_url' <<< "${latest_run_json}")"
+
+              if [[ "${status}" == "completed" ]]; then
+                echo "android_ci_run_url=${run_url}" >> "${GITHUB_OUTPUT}"
+
+                if [[ "${conclusion}" == "success" ]]; then
+                  exit 0
+                fi
+
+                echo "Android CI finished with conclusion ${conclusion}: ${run_url}" >&2
+                exit 1
+              fi
+            fi
+
+            if [[ "$(date +%s)" -ge "${deadline_epoch}" ]]; then
+              echo "Timed out waiting for Android CI for ${GITHUB_SHA}." >&2
+              exit 1
+            fi
+
+            sleep 30
+          done
+
+  publish_android:
+    name: Publish Android bundle to Google Play production track
+    needs:
+      - changes
+      - aws_release_status
+      - wait_android_ci
+    if: ${{ needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') && needs.wait_android_ci.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Validate Google Play configuration
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          GCP_PLAY_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
+          ANDROID_PLAY_PACKAGE_NAME: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+        run: |
+          missing_values=()
+
+          for variable_name in \
+            GCP_PROJECT_ID \
+            GCP_WORKLOAD_IDENTITY_PROVIDER \
+            GCP_PLAY_SERVICE_ACCOUNT_EMAIL \
+            ANDROID_PLAY_PACKAGE_NAME; do
+            if [[ -z "${!variable_name}" ]]; then
+              missing_values+=("${variable_name}")
+            fi
+          done
+
+          if [[ "${#missing_values[@]}" -gt 0 ]]; then
+            printf 'Missing required GitHub Actions variables: %s\n' "${missing_values[*]}" >&2
+            echo "Configure them in the GitHub repository settings or with bash scripts/setup-github-android.sh." >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - uses: google-github-actions/auth@v3
+        id: auth
+        with:
+          create_credentials_file: true
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_PLAY_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Install Android SDK packages
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+
+      - name: Validate Android signing secrets
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          missing_secrets=()
+
+          for secret_name in \
+            ANDROID_UPLOAD_KEYSTORE_BASE64 \
+            ANDROID_UPLOAD_KEYSTORE_PASSWORD \
+            ANDROID_UPLOAD_KEY_ALIAS \
+            ANDROID_UPLOAD_KEY_PASSWORD; do
+            if [[ -z "${!secret_name}" ]]; then
+              missing_secrets+=("${secret_name}")
+            fi
+          done
+
+          if [[ "${#missing_secrets[@]}" -gt 0 ]]; then
+            printf 'Missing required GitHub Actions secrets: %s\n' "${missing_secrets[*]}" >&2
+            echo "Configure them in the GitHub repository settings or with bash scripts/setup-github-android.sh." >&2
+            exit 1
+          fi
+
+      - name: Prepare Android upload keystore
+        env:
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          keystore_path="${RUNNER_TEMP}/android-upload-key.jks"
+          printf '%s' "${ANDROID_UPLOAD_KEYSTORE_BASE64}" | base64 --decode > "${keystore_path}"
+
+          if [[ ! -s "${keystore_path}" ]]; then
+            echo "Decoded Android upload keystore is empty." >&2
+            exit 1
+          fi
+
+          printf 'ANDROID_KEYSTORE_PATH=%s\n' "${keystore_path}" >> "${GITHUB_ENV}"
+
+      - name: Resolve Android release version code
+        run: |
+          version_code=$(( GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT ))
+          printf 'ANDROID_VERSION_CODE=%s\n' "${version_code}" >> "${GITHUB_ENV}"
+          printf 'ANDROID_PLAY_RELEASE_NAME=main-%s\n' "${version_code}" >> "${GITHUB_ENV}"
+
+      - name: Build signed Android App Bundle
+        env:
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          bash scripts/run-android-release.sh \
+            --version-code "${ANDROID_VERSION_CODE}" \
+            --keystore-path "${ANDROID_KEYSTORE_PATH}" \
+            --keystore-password "${ANDROID_UPLOAD_KEYSTORE_PASSWORD}" \
+            --key-alias "${ANDROID_UPLOAD_KEY_ALIAS}" \
+            --key-password "${ANDROID_UPLOAD_KEY_PASSWORD}"
+
+      - name: Upload signed Android App Bundle artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-release-bundle
+          if-no-files-found: error
+          path: apps/android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload bundle to Google Play production track
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
+          packageName: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
+          releaseFiles: apps/android/app/build/outputs/bundle/release/app-release.aab
+          track: production
+          status: completed
+          releaseName: ${{ env.ANDROID_PLAY_RELEASE_NAME }}
+
+  wait_ios:
+    name: Wait for Xcode Cloud
+    needs:
+      - changes
+      - aws_release_status
+    if: ${{ needs.changes.outputs.ios_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    outputs:
+      ios_summary: ${{ steps.wait.outputs.ios_summary }}
+
+    steps:
+      - name: Wait for Xcode Cloud checks for this SHA
+        id: wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          deadline_epoch="$(( $(date +%s) + 7200 ))"
+
+          while true; do
+            checks_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs")"
+            xcode_json="$(jq '[.check_runs[] | select(.app.slug == "xcode-cloud")]' <<< "${checks_json}")"
+            xcode_count="$(jq 'length' <<< "${xcode_json}")"
+
+            if [[ "${xcode_count}" -gt 0 ]]; then
+              pending_count="$(jq '[.[] | select(.status != "completed")] | length' <<< "${xcode_json}")"
+
+              if [[ "${pending_count}" -eq 0 ]]; then
+                ios_summary="$(jq -r 'map("\(.name): \(.conclusion)") | join("; ")' <<< "${xcode_json}")"
+                echo "ios_summary=${ios_summary}" >> "${GITHUB_OUTPUT}"
+
+                failing_count="$(jq '[.[] | select(.conclusion != "success")] | length' <<< "${xcode_json}")"
+                if [[ "${failing_count}" -eq 0 ]]; then
+                  exit 0
+                fi
+
+                echo "Xcode Cloud finished with non-success conclusions: ${ios_summary}" >&2
+                exit 1
+              fi
+            fi
+
+            if [[ "$(date +%s)" -ge "${deadline_epoch}" ]]; then
+              echo "Timed out waiting for Xcode Cloud checks for ${GITHUB_SHA}." >&2
+              exit 1
+            fi
+
+            sleep 60
+          done
+
+  release_summary:
+    name: Release summary
+    if: ${{ always() }}
+    needs:
+      - changes
+      - aws_deploy
+      - web_smoke
+      - rollback_aws
+      - aws_release_status
+      - wait_android_ci
+      - publish_android
+      - wait_ios
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Summarize release outcome
+        run: |
+          {
+            echo "## Main release orchestrator summary"
+            echo ""
+            echo "- AWS changed: \`${{ needs.changes.outputs.aws_changed }}\`"
+            echo "- DB migrations changed: \`${{ needs.changes.outputs.db_migrations_changed }}\`"
+            echo "- Android changed: \`${{ needs.changes.outputs.android_changed }}\`"
+            echo "- iOS changed: \`${{ needs.changes.outputs.ios_changed }}\`"
+            echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
+            echo "- Rollback performed: \`${{ needs.aws_release_status.outputs.rollback_performed }}\`"
+            echo "- Retained AWS SHA: \`${{ needs.aws_release_status.outputs.retained_aws_sha || 'n/a' }}\`"
+            echo "- AWS deploy job: \`${{ needs.aws_deploy.result }}\`"
+            echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
+            echo "- Android CI wait job: \`${{ needs.wait_android_ci.result }}\`"
+            echo "- Android publish job: \`${{ needs.publish_android.result }}\`"
+            echo "- iOS wait job: \`${{ needs.wait_ios.result }}\`"
+            echo "- iOS summary: \`${{ needs.wait_ios.outputs.ios_summary || 'n/a' }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Fail workflow when the retained release is not healthy
+        run: |
+          set -euo pipefail
+
+          aws_release_status="${{ needs.aws_release_status.outputs.aws_release_status }}"
+
+          if [[ "${aws_release_status}" != "no_aws_changes" ]] && [[ "${aws_release_status}" != "retained" ]]; then
+            echo "AWS release finished in non-healthy state: ${aws_release_status}" >&2
+            exit 1
+          fi
+
+          if [[ "${{ needs.changes.outputs.android_changed }}" == "true" ]]; then
+            if [[ "${{ needs.changes.outputs.aws_changed }}" != "true" || "${aws_release_status}" == "retained" ]]; then
+              if [[ "${{ needs.wait_android_ci.result }}" != "success" ]]; then
+                echo "Android CI did not complete successfully for ${GITHUB_SHA}." >&2
+                exit 1
+              fi
+
+              if [[ "${{ needs.publish_android.result }}" != "success" ]]; then
+                echo "Android publish did not complete successfully for ${GITHUB_SHA}." >&2
+                exit 1
+              fi
+            fi
+          fi
+
+          if [[ "${{ needs.changes.outputs.ios_changed }}" == "true" ]]; then
+            if [[ "${{ needs.changes.outputs.aws_changed }}" != "true" || "${aws_release_status}" == "retained" ]]; then
+              if [[ "${{ needs.wait_ios.result }}" != "success" ]]; then
+                echo "Xcode Cloud did not complete successfully for ${GITHUB_SHA}." >&2
+                exit 1
+              fi
+            fi
+          fi

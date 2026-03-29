@@ -1,6 +1,6 @@
 # iOS CI/CD
 
-This repository uses Xcode Cloud as the native iOS release gate and distribution path.
+This repository uses Xcode Cloud as the native iOS release gate and distribution path, and the main GitHub release orchestrator waits for the matching Xcode Cloud checks on the same `main` SHA when `apps/ios` changed.
 
 ## Native release gate
 
@@ -49,6 +49,6 @@ This keeps the Xcode Cloud live smoke workflow pinned to the intended review/dem
 
 ## Monitoring expectations
 
-After pushing to `main`, watch the Xcode Cloud workflow through the full archive and distribution path. Do not assume the iOS release completed just because GitHub-side workflows are green.
+After pushing to `main`, watch both the main GitHub release orchestrator and the Xcode Cloud workflow through the full archive and distribution path. Do not assume the iOS release completed just because the AWS part of the GitHub workflow is green.
 
-If the native live smoke gate fails, or if archive/distribution does not continue after the smoke gate, treat that as a release failure and fix the blocking issue before considering the change deployed.
+If the native live smoke gate fails, or if archive/distribution does not continue after the smoke gate, the main release orchestrator must also fail for that SHA.

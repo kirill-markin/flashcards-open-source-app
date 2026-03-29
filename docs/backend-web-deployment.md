@@ -94,20 +94,23 @@ Run only the secret setup scripts you actually need. `setup-github.sh` rediscove
 
 ## CI/CD
 
-GitHub Actions deploys on push to `main` using the stack OIDC role. The repository stores:
+GitHub Actions uses one main release orchestrator on push to `main`. The repository stores:
 
 - GitHub variables for all non-secret deploy config, including certificate ARNs and secret ARNs
 - one GitHub secret for `AWS_DEPLOY_ROLE_ARN`
 
-The deploy workflow assembles its own `cdk.context.local.json` inside the job from GitHub deploy config.
+The release workflow assembles its own `cdk.context.local.json` inside the job from GitHub deploy config.
 
-For the web client, the expected main-branch order is:
+For AWS-backed changes, the main-branch order is:
 
-1. GitHub `CI` runs native web build and unit coverage
-2. The deploy workflow releases backend, auth, infra, and web on push to `main`
-3. The deploy workflow then runs the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts` as post-deploy verification
+1. detect whether AWS-related paths changed
+2. deploy backend, auth, infra, and web to production
+3. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
+4. keep the new AWS release only if the smoke passes
+5. roll the whole AWS runtime back to the previous retained AWS SHA if the smoke fails and the release did not include DB migrations
+6. fail loudly and require fix-forward when the smoke fails after DB migrations
 
-After pushing to `main`, watch both the `CI` workflow and the deploy workflow until the web release either completes or fails clearly. A failed web live smoke does not block deploy in this phase; it is an explicit post-deploy signal and should be fixed forward.
+After pushing to `main`, watch the main release orchestrator until it either retains the AWS release, reverts it, or fails clearly. A failed AWS release with DB migrations is intentionally a fix-forward path; the next push must still be allowed to deploy.
 
 Cross-client live smoke references:
 
