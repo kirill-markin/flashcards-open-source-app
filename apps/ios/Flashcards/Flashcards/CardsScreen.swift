@@ -120,6 +120,7 @@ struct CardsScreen: View {
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.cardsScreen)
         .navigationTitle("Cards")
         .searchable(
             text: self.$searchText,

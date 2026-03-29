@@ -4,6 +4,9 @@ import XCTest
 
 private enum LiveSmokeIdentifier {
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
+    static let reviewScreen: String = "review.screen"
+    static let cardsScreen: String = "cards.screen"
+    static let aiScreen: String = "ai.screen"
     static let settingsScreen: String = "settings.screen"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsWorkspaceSettingsRow: String = "settings.workspaceSettingsRow"
@@ -50,7 +53,30 @@ private enum LiveSmokeLaunchResetState: String {
     case localGuest = "local_guest"
 }
 
+private enum LiveSmokeSelectedTab: String {
+    case review
+    case cards
+    case ai
+    case settings
+
+    var screen: LiveSmokeScreen {
+        switch self {
+        case .review:
+            return .review
+        case .cards:
+            return .cards
+        case .ai:
+            return .ai
+        case .settings:
+            return .settings
+        }
+    }
+}
+
 private enum LiveSmokeScreen: CaseIterable {
+    case review
+    case cards
+    case ai
     case settings
     case currentWorkspace
     case workspaceSettings
@@ -60,6 +86,12 @@ private enum LiveSmokeScreen: CaseIterable {
 
     var identifier: String {
         switch self {
+        case .review:
+            return LiveSmokeIdentifier.reviewScreen
+        case .cards:
+            return LiveSmokeIdentifier.cardsScreen
+        case .ai:
+            return LiveSmokeIdentifier.aiScreen
         case .settings:
             return LiveSmokeIdentifier.settingsScreen
         case .currentWorkspace:
@@ -77,6 +109,12 @@ private enum LiveSmokeScreen: CaseIterable {
 
     var title: String {
         switch self {
+        case .review:
+            return "Review"
+        case .cards:
+            return "Cards"
+        case .ai:
+            return "AI"
         case .settings:
             return "Settings"
         case .currentWorkspace:
@@ -194,6 +232,7 @@ final class LiveSmokeUITests: XCTestCase {
     private let optionalProbeTimeoutSeconds: TimeInterval = 3
     private let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
     private let resetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
+    private let selectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
     private let maximumStoredBreadcrumbCount: Int = 30
 
     private var app: XCUIApplication!
@@ -203,6 +242,19 @@ final class LiveSmokeUITests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false
+        addUIInterruptionMonitor(withDescription: "Live smoke known interruptions") { alert in
+            for label in ["Not now", "Not Now", "OK", "Close", "Dismiss", "Cancel", "Allow"] {
+                let button = alert.buttons[label]
+                guard button.exists else {
+                    continue
+                }
+
+                button.tap()
+                return true
+            }
+
+            return false
+        }
     }
 
     override func tearDownWithError() throws {
@@ -212,64 +264,66 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     func testLiveSmokeManualCardFlow() throws {
         let context = self.makeRunContext(runLabel: "manual-card")
-        try self.runLocalScenario {
-            try self.step("create one local manual card without login") {
-                try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
-            }
+        try self.launchApplication(resetState: .localGuest, selectedTab: .cards)
 
-            try self.step("verify the local manual card in cards and review it") {
-                try self.assertTextExists(context.manualFrontText, timeout: self.longUiTimeoutSeconds)
-                try self.reviewCurrentCard(expectedFrontText: context.manualFrontText, maximumSkips: 12)
-            }
+        try self.step("create one local manual card without login") {
+            try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
+        }
+
+        try self.step("verify the local manual card in review after relaunch") {
+            try self.relaunchApplication(resetState: nil, selectedTab: .review)
+            try self.reviewCurrentCard(expectedFrontText: context.manualFrontText, maximumSkips: 12)
         }
     }
 
     @MainActor
     func testLiveSmokeGuestAiCardFlow() throws {
         let context = self.makeRunContext(runLabel: "ai-card")
-        try self.runGuestAIScenario {
-            try self.step("create one guest AI card with explicit confirmation") {
-                try self.createAiCardWithConfirmation(
-                    aiFrontText: context.aiFrontText,
-                    aiBackText: context.aiBackText,
-                    markerTag: context.markerTag
-                )
-            }
+        try self.launchApplication(resetState: .localGuest, selectedTab: .ai)
 
-            try self.step("relaunch after guest AI card creation and keep local guest state") {
-                try self.relaunchApplication(resetState: nil)
-            }
+        try self.step("create one guest AI card with explicit confirmation") {
+            try self.createAiCardWithConfirmation(
+                aiFrontText: context.aiFrontText,
+                aiBackText: context.aiBackText,
+                markerTag: context.markerTag
+            )
+        }
 
-            try self.step("verify the guest AI card is visible in cards and review it after relaunch") {
-                try self.openCardsTab()
-                try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
-                try self.reviewCurrentCard(expectedFrontText: context.aiFrontText, maximumSkips: 12)
-            }
+        try self.step("verify the guest AI card is visible in cards after relaunch") {
+            try self.relaunchApplication(resetState: nil, selectedTab: .cards)
+            try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
+        }
+
+        try self.step("review the guest AI card after relaunch") {
+            try self.relaunchApplication(resetState: nil, selectedTab: .review)
+            try self.reviewCurrentCard(expectedFrontText: context.aiFrontText, maximumSkips: 12)
         }
     }
 
     @MainActor
     func testLiveSmokeLocalNavigationFlow() throws {
-        try self.runLocalScenario {
-            try self.step("verify local navigation surfaces without login") {
-                try self.openCardsTab()
-                try self.assertElementExists(
-                    identifier: LiveSmokeIdentifier.cardsAddButton,
-                    timeout: self.shortUiTimeoutSeconds
-                )
-                try self.openReviewTab()
-                try self.openAITab()
-                try self.assertAiEntrySurfaceVisible()
-                try self.openSettingsTab()
-                try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
-                try self.openAccountStatus()
-                try self.assertElementExists(
-                    identifier: LiveSmokeIdentifier.accountStatusSignInButton,
-                    timeout: self.longUiTimeoutSeconds
-                )
-                try self.tapFirstNavigationBackButton()
-                try self.tapFirstNavigationBackButton()
-            }
+        try self.step("verify local navigation surfaces without login") {
+            try self.launchApplication(resetState: .localGuest, selectedTab: .cards)
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.cardsAddButton,
+                timeout: self.shortUiTimeoutSeconds
+            )
+
+            try self.relaunchApplication(resetState: nil, selectedTab: .review)
+            try self.assertScreenVisible(screen: .review, timeout: self.shortUiTimeoutSeconds)
+
+            try self.relaunchApplication(resetState: nil, selectedTab: .ai)
+            try self.assertAiEntrySurfaceVisible()
+
+            try self.relaunchApplication(resetState: nil, selectedTab: .settings)
+            try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
+            try self.openAccountStatus()
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.accountStatusSignInButton,
+                timeout: self.longUiTimeoutSeconds
+            )
+            try self.tapFirstNavigationBackButton()
+            try self.tapFirstNavigationBackButton()
         }
     }
 
@@ -279,7 +333,6 @@ final class LiveSmokeUITests: XCTestCase {
         let reviewEmail = ProcessInfo.processInfo.environment[self.reviewEmailEnvironmentKey] ?? "apple-review@example.com"
         try self.runSignedInLinkedWorkspaceScenario(context: context, reviewEmail: reviewEmail) {
             try self.step("verify linked account status and workspace state") {
-                try self.openSettingsTab()
                 try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
                 try self.assertTextExists(context.workspaceName, timeout: self.longUiTimeoutSeconds)
                 try self.openAccountStatus()
@@ -293,8 +346,7 @@ final class LiveSmokeUITests: XCTestCase {
             }
 
             try self.step("relaunch the app and keep the linked session") {
-                try self.relaunchApplication(resetState: nil)
-                try self.openSettingsTab()
+                try self.relaunchApplication(resetState: nil, selectedTab: .settings)
                 try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
                 try self.assertTextExists(context.workspaceName, timeout: self.longUiTimeoutSeconds)
                 try self.openAccountStatus()
@@ -324,28 +376,12 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func runLocalScenario(
-        scenario: () throws -> Void
-    ) throws {
-        try self.launchApplication(resetState: .localGuest)
-        try scenario()
-    }
-
-    @MainActor
-    private func runGuestAIScenario(
-        scenario: () throws -> Void
-    ) throws {
-        try self.launchApplication(resetState: .localGuest)
-        try scenario()
-    }
-
-    @MainActor
     private func runSignedInLinkedWorkspaceScenario(
         context: LiveSmokeRunContext,
         reviewEmail: String,
         scenario: () throws -> Void
     ) throws {
-        try self.launchApplication(resetState: nil)
+        try self.launchApplication(resetState: nil, selectedTab: .settings)
 
         var primaryFailure: Error?
         var shouldDeleteWorkspace = false
@@ -488,13 +524,17 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchApplication(resetState: LiveSmokeLaunchResetState?) throws {
+    private func launchApplication(
+        resetState: LiveSmokeLaunchResetState?,
+        selectedTab: LiveSmokeSelectedTab
+    ) throws {
         self.app = XCUIApplication()
-        self.configureLaunchEnvironment(resetState: resetState)
+        self.configureLaunchEnvironment(resetState: resetState, selectedTab: selectedTab)
         self.logActionStart(action: "launch_app", identifier: "application")
         self.app.launch()
         try self.waitForApplicationToReachForeground(timeout: self.shortUiTimeoutSeconds)
         _ = self.dismissKnownBlockingAlertIfVisible()
+        try self.waitForSelectedTabScreen(selectedTab: selectedTab, timeout: self.shortUiTimeoutSeconds)
         self.logActionEnd(action: "launch_app", identifier: "application", result: "success", note: "application launched")
         smokeLogger.log(
             "event=app_launch step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
@@ -503,7 +543,7 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func signInWithReviewAccount(reviewEmail: String) throws {
-        try self.openSettingsTab()
+        try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
         try self.openAccountStatus()
 
         let signInButton = self.app.buttons[LiveSmokeIdentifier.accountStatusSignInButton]
@@ -550,7 +590,6 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func createEphemeralWorkspace(workspaceName: String) throws {
-        try self.openSettingsTab()
         try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(
             identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow,
@@ -594,7 +633,7 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func createManualCard(frontText: String, backText: String) throws {
-        try self.openCardsTab()
+        try self.assertScreenVisible(screen: .cards, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: self.shortUiTimeoutSeconds)
         try self.typeText(
@@ -615,7 +654,7 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func reviewCurrentCard(expectedFrontText: String, maximumSkips: Int) throws {
-        try self.openReviewTab()
+        try self.assertScreenVisible(screen: .review, timeout: self.shortUiTimeoutSeconds)
 
         for _ in 0...maximumSkips {
             if self.app.staticTexts[expectedFrontText].exists {
@@ -642,7 +681,7 @@ final class LiveSmokeUITests: XCTestCase {
         aiBackText: String,
         markerTag: String
     ) throws {
-        try self.openAITab()
+        try self.assertScreenVisible(screen: .ai, timeout: self.shortUiTimeoutSeconds)
 
         let aiConsentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
         if self.waitForOptionalElement(
@@ -803,26 +842,6 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func openReviewTab() throws {
-        try self.tapTabButton(named: "Review")
-    }
-
-    @MainActor
-    private func openCardsTab() throws {
-        try self.tapTabButton(named: "Cards")
-    }
-
-    @MainActor
-    private func openAITab() throws {
-        try self.tapTabButton(named: "AI")
-    }
-
-    @MainActor
-    private func openSettingsTab() throws {
-        try self.tapTabButton(named: "Settings")
-    }
-
-    @MainActor
     private func openAccountStatus() throws {
         try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(
@@ -839,7 +858,6 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func openWorkspaceOverviewFromSettings() throws {
-        try self.openSettingsTab()
         try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(
             identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
@@ -851,23 +869,6 @@ final class LiveSmokeUITests: XCTestCase {
             timeout: self.shortUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .workspaceOverview, timeout: self.shortUiTimeoutSeconds)
-    }
-
-    @MainActor
-    private func ensureAccountIsNotLinked() throws {
-        try self.openSettingsTab()
-        try self.openAccountStatus()
-
-        if self.isAccountStatusLinked() {
-            try self.logoutFromAccountStatus()
-        }
-
-        try self.assertElementExists(
-            identifier: LiveSmokeIdentifier.accountStatusSignInButton,
-            timeout: self.shortUiTimeoutSeconds
-        )
-        try self.tapFirstNavigationBackButton()
-        try self.tapFirstNavigationBackButton()
     }
 
     @MainActor
@@ -885,27 +886,6 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.longUiTimeoutSeconds
         )
-    }
-
-    @MainActor
-    private func tapTabButton(named name: String) throws {
-        let tabButton = self.app.tabBars.buttons[name]
-        if self.waitForOptionalHittableElement(
-            tabButton,
-            identifier: "tab.\(name)",
-            timeout: self.shortUiTimeoutSeconds
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
-                identifier: "tab.\(name)",
-                timeoutSeconds: self.shortUiTimeoutSeconds,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
-        }
-        self.logActionStart(action: "tap_tab", identifier: "tab.\(name)")
-        tabButton.tap()
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "tap_tab", identifier: "tab.\(name)", result: "success", note: "tab tapped")
     }
 
     @MainActor
@@ -1454,6 +1434,54 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    private func launchEnvironmentSummary() -> String {
+        guard self.app != nil else {
+            return "<app not initialized>"
+        }
+
+        let resetState = self.app.launchEnvironment[self.resetStateEnvironmentKey] ?? "-"
+        let selectedTab = self.app.launchEnvironment[self.selectedTabEnvironmentKey] ?? "-"
+        return "resetState=\(resetState) selectedTab=\(selectedTab)"
+    }
+
+    @MainActor
+    private func activeAlertsSnapshot() -> String {
+        guard self.app != nil else {
+            return "<app not initialized>"
+        }
+        guard self.isApplicationRunning else {
+            return "<app not running>"
+        }
+
+        let alerts = self.app.alerts.allElementsBoundByIndex.map { alert in
+            let buttons = alert.buttons.allElementsBoundByIndex.map(\.label).joined(separator: ", ")
+            return "\(alert.label) [\(buttons.isEmpty ? "-" : buttons)]"
+        }
+
+        if alerts.isEmpty {
+            return "<no active alerts>"
+        }
+
+        return alerts.joined(separator: " | ")
+    }
+
+    @MainActor
+    private func rootScreenQuerySnapshot() -> String {
+        guard self.app != nil else {
+            return "<app not initialized>"
+        }
+        guard self.isApplicationRunning else {
+            return "<app not running>"
+        }
+
+        let screens: [LiveSmokeScreen] = [.review, .cards, .ai, .settings]
+        return screens.map { screen in
+            let exists = self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch.exists
+            return "\(screen.identifier)=\(exists)"
+        }.joined(separator: " | ")
+    }
+
+    @MainActor
     private func attachFailureDiagnostics(stepTitle: String, error: Error, activity: XCTActivity) {
         if self.isApplicationRunning {
             let screenshotAttachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
@@ -1473,6 +1501,9 @@ final class LiveSmokeUITests: XCTestCase {
             Step: \(stepTitle)
             Error: \(error.localizedDescription)
             Current screen: \(self.currentScreenSummary())
+            Launch environment: \(self.launchEnvironmentSummary())
+            Root screen queries: \(self.rootScreenQuerySnapshot())
+            Active alerts: \(self.activeAlertsSnapshot())
             Visible text snapshot: \(self.visibleTextSnapshot())
             Breadcrumbs:
             \(self.recentBreadcrumbLines())
@@ -1642,7 +1673,10 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func relaunchApplication(resetState: LiveSmokeLaunchResetState?) throws {
+    private func relaunchApplication(
+        resetState: LiveSmokeLaunchResetState?,
+        selectedTab: LiveSmokeSelectedTab
+    ) throws {
         self.logActionStart(action: "terminate_app", identifier: "application")
         self.app.terminate()
         self.logActionEnd(
@@ -1654,19 +1688,29 @@ final class LiveSmokeUITests: XCTestCase {
             screenOverride: "appState=notRunning screens=[-] nav=[-] alerts=[-] tabs=[-]"
         )
         self.logActionStart(action: "relaunch_app", identifier: "application")
-        self.configureLaunchEnvironment(resetState: resetState)
+        self.configureLaunchEnvironment(resetState: resetState, selectedTab: selectedTab)
         self.app.launch()
         try self.waitForApplicationToReachForeground(timeout: self.shortUiTimeoutSeconds)
         _ = self.dismissKnownBlockingAlertIfVisible()
+        try self.waitForSelectedTabScreen(selectedTab: selectedTab, timeout: self.shortUiTimeoutSeconds)
         self.logActionEnd(action: "relaunch_app", identifier: "application", result: "success", note: "application relaunched")
     }
 
     @MainActor
-    private func configureLaunchEnvironment(resetState: LiveSmokeLaunchResetState?) {
+    private func configureLaunchEnvironment(
+        resetState: LiveSmokeLaunchResetState?,
+        selectedTab: LiveSmokeSelectedTab
+    ) {
         self.app.launchEnvironment.removeValue(forKey: self.resetStateEnvironmentKey)
+        self.app.launchEnvironment[self.selectedTabEnvironmentKey] = selectedTab.rawValue
         if let resetState {
             self.app.launchEnvironment[self.resetStateEnvironmentKey] = resetState.rawValue
         }
+    }
+
+    @MainActor
+    private func waitForSelectedTabScreen(selectedTab: LiveSmokeSelectedTab, timeout: TimeInterval) throws {
+        try self.assertScreenVisible(screen: selectedTab.screen, timeout: timeout)
     }
 
     @MainActor

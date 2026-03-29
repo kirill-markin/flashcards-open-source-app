@@ -2,6 +2,9 @@ import Foundation
 
 enum UITestIdentifier {
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
+    static let reviewScreen: String = "review.screen"
+    static let cardsScreen: String = "cards.screen"
+    static let aiScreen: String = "ai.screen"
     static let settingsScreen: String = "settings.screen"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsWorkspaceSettingsRow: String = "settings.workspaceSettingsRow"

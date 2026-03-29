@@ -49,6 +49,7 @@ struct AIChatView: View {
                 self.chatContent
             }
         }
+        .accessibilityIdentifier(UITestIdentifier.aiScreen)
         .navigationTitle("AI")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaBar(edge: .bottom, spacing: 0) {
