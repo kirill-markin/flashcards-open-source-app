@@ -48,9 +48,11 @@ GitHub Actions workflow: `.github/workflows/android.yml`
 - Builds `:app:assembleDebug`
 - Builds `:app:assembleDebugAndroidTest`
 - Runs `:app:lintDebug`
+- Runs the existing native unit test tasks included by `bash scripts/run-android-ci.sh`
 - Uploads the debug APK, Android test APK, and lint report as workflow artifacts
-- Runs Firebase Test Lab instrumentation tests on `main` and on manual dispatch after Google Cloud auth is configured
-- Skips the Firebase Test Lab job entirely until the required GitHub repository variables are present
+- Validates the Firebase Test Lab configuration on `main` and on manual dispatch
+- Runs Firebase Test Lab against the native stateful live smoke class `com.flashcardsopensourceapp.app.LiveSmokeTest`
+- Fails the workflow instead of silently skipping the live smoke gate when the required repository variables are missing
 
 GitHub Actions workflow: `.github/workflows/android-release.yml`
 
@@ -59,6 +61,20 @@ GitHub Actions workflow: `.github/workflows/android-release.yml`
 - Signs the bundle with the Android upload keystore from GitHub secrets
 - Uploads the signed `.aab` as a workflow artifact
 - Publishes the bundle to the Google Play production track using Workload Identity Federation and the Play Developer API
+
+The intended Android release order is:
+
+1. Native build, lint, and unit checks in GitHub Actions
+2. Native Firebase Test Lab live smoke on the configured Android 16 device
+3. Google Play production release
+
+After pushing to `main`, watch both the `Android CI` workflow and the follow-up `Android Release` workflow until publication either completes or fails clearly.
+
+Cross-client live smoke references:
+
+- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- Web: `apps/web/e2e/live-smoke.spec.ts`
 
 Cloud Build config: `cloudbuild.android.yaml`
 
@@ -295,6 +311,7 @@ bash scripts/run-android-firebase-test-lab.sh \
   --device-version "36" \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
+  --test-targets "class com.flashcardsopensourceapp.app.LiveSmokeTest" \
   --results-bucket "gs://flashcards-open-source-app-test-lab-results" \
   --results-dir "manual/local"
 ```

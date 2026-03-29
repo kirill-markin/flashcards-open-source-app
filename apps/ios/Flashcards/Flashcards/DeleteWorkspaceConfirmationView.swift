@@ -34,6 +34,7 @@ struct DeleteWorkspaceConfirmationView: View {
                         .foregroundStyle(.secondary)
                     Text(self.preview.confirmationText)
                         .font(.body.monospaced())
+                        .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationPhrase)
                 }
 
                 TextField("delete workspace", text: self.$confirmationText)
@@ -46,6 +47,7 @@ struct DeleteWorkspaceConfirmationView: View {
                     .onSubmit {
                         self.isConfirmationFieldFocused = false
                     }
+                    .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationField)
 
                 if self.errorMessage.isEmpty == false {
                     CopyableErrorMessageView(message: self.errorMessage)
@@ -61,6 +63,7 @@ struct DeleteWorkspaceConfirmationView: View {
                 .buttonStyle(.glassProminent)
                 .tint(.red)
                 .disabled(self.isDeleteEnabled == false)
+                .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationButton)
             }
             .padding(24)
             .navigationTitle("Delete workspace")

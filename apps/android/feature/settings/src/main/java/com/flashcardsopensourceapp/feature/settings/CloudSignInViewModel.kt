@@ -154,6 +154,38 @@ class CloudSignInViewModel(
         draftState.update { state -> state.copy(code = code, errorMessage = "") }
     }
 
+    private fun buildPendingSelection(linkContext: CloudWorkspaceLinkContext): CloudWorkspaceLinkSelection? {
+        return when (linkContext.workspaces.size) {
+            0 -> CloudWorkspaceLinkSelection.CreateNew
+            1 -> CloudWorkspaceLinkSelection.Existing(
+                workspaceId = linkContext.workspaces.first().workspaceId
+            )
+            else -> null
+        }
+    }
+
+    private fun publishVerifiedLinkContext(
+        linkContext: CloudWorkspaceLinkContext,
+        isSendingCode: Boolean,
+        isVerifyingCode: Boolean
+    ) {
+        draftState.update { state ->
+            state.copy(
+                isSendingCode = isSendingCode,
+                isVerifyingCode = isVerifyingCode,
+                errorMessage = "",
+                challenge = null,
+                linkContext = linkContext,
+                pendingSelection = buildPendingSelection(linkContext),
+                processingTitle = "",
+                processingMessage = "",
+                postAuthErrorMessage = "",
+                retryAction = null,
+                completionToken = null
+            )
+        }
+    }
+
     suspend fun sendCode(): Boolean {
         draftState.update { state -> state.copy(isSendingCode = true, errorMessage = "") }
         return try {
@@ -173,16 +205,13 @@ class CloudSignInViewModel(
                 }
 
                 is CloudSendCodeResult.Verified -> {
-                    draftState.update { state ->
-                        state.copy(
-                            isSendingCode = false,
-                            errorMessage = "This account flow currently expects one-time code verification.",
-                            challenge = null,
-                            linkContext = null,
-                            pendingSelection = null
-                        )
-                    }
-                    false
+                    val linkContext = cloudAccountRepository.prepareVerifiedSignIn(result.credentials)
+                    publishVerifiedLinkContext(
+                        linkContext = linkContext,
+                        isSendingCode = false,
+                        isVerifyingCode = false
+                    )
+                    true
                 }
             }
         } catch (error: Exception) {
@@ -206,25 +235,11 @@ class CloudSignInViewModel(
                 challenge = challenge,
                 code = draftState.value.code
             )
-            draftState.update { state ->
-                state.copy(
-                    isVerifyingCode = false,
-                    errorMessage = "",
-                    linkContext = linkContext,
-                    pendingSelection = when (linkContext.workspaces.size) {
-                        0 -> CloudWorkspaceLinkSelection.CreateNew
-                        1 -> CloudWorkspaceLinkSelection.Existing(
-                            workspaceId = linkContext.workspaces.first().workspaceId
-                        )
-                        else -> null
-                    },
-                    processingTitle = "",
-                    processingMessage = "",
-                    postAuthErrorMessage = "",
-                    retryAction = null,
-                    completionToken = null
-                )
-            }
+            publishVerifiedLinkContext(
+                linkContext = linkContext,
+                isSendingCode = false,
+                isVerifyingCode = false
+            )
             true
         } catch (error: Exception) {
             draftState.update { state ->

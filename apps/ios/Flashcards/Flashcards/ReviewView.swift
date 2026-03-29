@@ -410,6 +410,7 @@ struct ReviewView: View {
                 .frame(minHeight: showAnswerButtonMinHeight)
         }
         .buttonStyle(.glassProminent)
+        .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
     }
 
     private func reviewAnswerButtonsGrid(cardId: String, options: ReviewAnswerGridOptions) -> some View {
@@ -450,6 +451,7 @@ struct ReviewView: View {
         }
         .buttonStyle(.glassProminent)
         .disabled(store.isReviewPending(cardId: cardId))
+        .accessibilityIdentifier(reviewAnswerButtonIdentifier(rating: option.rating))
     }
 
     private func reviewActionErrorMessage(card: Card) -> String? {
@@ -515,6 +517,14 @@ struct ReviewView: View {
         }
     }
 
+}
+
+private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
+    if rating == .good {
+        return UITestIdentifier.reviewRateGoodButton
+    }
+
+    return "review.rating.\(rating.rawValue)"
 }
 
 #Preview {

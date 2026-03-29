@@ -12,7 +12,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+
+const val cloudSignInEmailFieldTag: String = "cloud_sign_in_email_field"
+const val cloudSignInSendCodeButtonTag: String = "cloud_sign_in_send_code_button"
 
 @Composable
 fun CloudSignInEmailRoute(
@@ -64,7 +68,9 @@ fun CloudSignInEmailRoute(
                     label = {
                         Text("Email")
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = cloudSignInEmailFieldTag)
                 )
             }
 
@@ -72,7 +78,9 @@ fun CloudSignInEmailRoute(
                 Button(
                     onClick = onSendCode,
                     enabled = uiState.isSendingCode.not(),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = cloudSignInSendCodeButtonTag)
                 ) {
                     Text(if (uiState.isSendingCode) "Sending..." else "Send one-time code")
                 }

@@ -354,6 +354,14 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
                 showError(emailError, data.error || "Error: " + res.status);
                 return;
               }
+              if (
+                typeof data.idToken === "string" && data.idToken !== ""
+                && typeof data.refreshToken === "string" && data.refreshToken !== ""
+              ) {
+                // Review/demo emails can complete sign-in immediately.
+                window.location.href = redirectUri;
+                return;
+              }
               csrfToken = data.csrfToken || "";
               stepEmail.classList.add("hidden");
               stepOtp.classList.remove("hidden");

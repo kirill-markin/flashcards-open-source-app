@@ -35,6 +35,7 @@ struct SettingsView: View {
                         systemImage: "square.stack"
                     )
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier(UITestIdentifier.settingsCurrentWorkspaceRow)
                 } else {
                     NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
                         SettingsNavigationRow(
@@ -43,6 +44,7 @@ struct SettingsView: View {
                             systemImage: "square.stack"
                         )
                     }
+                    .accessibilityIdentifier(UITestIdentifier.settingsCurrentWorkspaceRow)
                 }
             }
 
@@ -54,6 +56,7 @@ struct SettingsView: View {
                         systemImage: "square.grid.2x2"
                     )
                 }
+                .accessibilityIdentifier(UITestIdentifier.settingsWorkspaceSettingsRow)
 
                 NavigationLink(value: SettingsNavigationDestination.account) {
                     SettingsNavigationRow(
@@ -62,6 +65,7 @@ struct SettingsView: View {
                         systemImage: "person.crop.circle"
                     )
                 }
+                .accessibilityIdentifier(UITestIdentifier.settingsAccountSettingsRow)
             }
 
             Section {

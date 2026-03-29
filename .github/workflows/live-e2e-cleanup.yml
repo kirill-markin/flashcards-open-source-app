@@ -1,0 +1,29 @@
+name: Live E2E Cleanup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: live-e2e-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Delete stale live E2E workspaces
+        env:
+          FLASHCARDS_LIVE_E2E_REVIEW_EMAILS: "apple-review@example.com,google-review@example.com"
+          FLASHCARDS_LIVE_E2E_WORKSPACE_PREFIX: "E2E "
+          FLASHCARDS_LIVE_E2E_WORKSPACE_TTL_HOURS: "48"
+        run: node scripts/cleanup-live-e2e-workspaces.mjs

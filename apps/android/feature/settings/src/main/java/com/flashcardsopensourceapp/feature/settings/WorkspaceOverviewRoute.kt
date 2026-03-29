@@ -18,8 +18,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+const val workspaceOverviewNameFieldTag: String = "workspace_overview_name_field"
+const val workspaceOverviewSaveNameButtonTag: String = "workspace_overview_save_name_button"
+const val workspaceOverviewDeleteWorkspaceButtonTag: String = "workspace_overview_delete_workspace_button"
+const val workspaceOverviewDeleteConfirmationFieldTag: String = "workspace_overview_delete_confirmation_field"
+const val workspaceOverviewDeleteConfirmationButtonTag: String = "workspace_overview_delete_confirmation_button"
 
 @Composable
 fun WorkspaceOverviewRoute(
@@ -82,14 +89,18 @@ fun WorkspaceOverviewRoute(
                                 label = {
                                     Text("Workspace name")
                                 },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag(tag = workspaceOverviewNameFieldTag)
                             )
                             Button(
                                 onClick = onSaveWorkspaceName,
                                 enabled = uiState.isSavingName.not()
                                     && uiState.workspaceNameDraft.trim().isNotEmpty()
                                     && uiState.workspaceNameDraft != uiState.workspaceName,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag(tag = workspaceOverviewSaveNameButtonTag)
                             ) {
                                 Text(if (uiState.isSavingName) "Saving..." else "Save name")
                             }
@@ -149,7 +160,9 @@ fun WorkspaceOverviewRoute(
                             enabled = uiState.isLinked &&
                                 uiState.isDeletePreviewLoading.not() &&
                                 uiState.isDeletingWorkspace.not(),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(tag = workspaceOverviewDeleteWorkspaceButtonTag)
                         ) {
                             Text(
                                 if (uiState.isDeletePreviewLoading) {
@@ -210,7 +223,8 @@ fun WorkspaceOverviewRoute(
                 TextButton(
                     onClick = onDeleteWorkspace,
                     enabled = uiState.isDeletingWorkspace.not() &&
-                        uiState.deleteConfirmationText == uiState.deletePreview.confirmationText
+                        uiState.deleteConfirmationText == uiState.deletePreview.confirmationText,
+                    modifier = Modifier.testTag(tag = workspaceOverviewDeleteConfirmationButtonTag)
                 ) {
                     Text(if (uiState.isDeletingWorkspace) "Deleting..." else "Delete workspace")
                 }
@@ -253,7 +267,9 @@ fun WorkspaceOverviewRoute(
                             Text("Confirmation text")
                         },
                         enabled = uiState.isDeletingWorkspace.not(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(tag = workspaceOverviewDeleteConfirmationFieldTag)
                     )
                 }
             }

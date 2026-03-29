@@ -83,6 +83,7 @@ extension AIChatView {
                     .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
                     .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
                     .padding(.bottom, 12)
+                    .accessibilityIdentifier(UITestIdentifier.aiComposerTextField)
 
                     Button {
                         self.handlePrimaryComposerAction()
@@ -95,6 +96,7 @@ extension AIChatView {
                     .buttonStyle(.plain)
                     .disabled(self.primaryComposerButtonDisabled)
                     .accessibilityLabel(self.chatStore.isStreaming ? "Stop response" : "Send message")
+                    .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
                     .padding(.trailing, aiChatComposerSendButtonInset)
                     .padding(.bottom, aiChatComposerSendButtonInset)
                 }

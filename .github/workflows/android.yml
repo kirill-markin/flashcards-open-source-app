@@ -73,20 +73,13 @@ jobs:
           if-no-files-found: error
           path: apps/android/app/build/reports/lint-results-debug.html
 
-  firebase-test-lab:
-    name: Firebase Test Lab
-    needs: build
+  live-smoke-config:
+    name: Validate Android live smoke configuration
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && vars.GCP_PROJECT_ID != '' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && vars.GCP_SERVICE_ACCOUNT_EMAIL != '' && vars.ANDROID_FTL_DEVICE_MODEL != '' && vars.ANDROID_FTL_DEVICE_VERSION != '' }}
-    permissions:
-      contents: read
-      id-token: write
 
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Validate Google Cloud configuration
+      - name: Validate Firebase Test Lab configuration
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -108,10 +101,25 @@ jobs:
           done
 
           if [[ "${#missing_values[@]}" -gt 0 ]]; then
-            printf 'Missing required GitHub Actions variables: %s\n' "${missing_values[*]}" >&2
+            printf 'Missing required GitHub Actions variables for Android live smoke: %s\n' "${missing_values[*]}" >&2
             echo "Configure them with bash scripts/setup-github-android.sh or in the GitHub repository settings." >&2
             exit 1
           fi
+
+  firebase-test-lab:
+    name: Firebase Test Lab
+    needs:
+      - build
+      - live-smoke-config
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    if: ${{ needs.live-smoke-config.result == 'success' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v6
 
       - uses: google-github-actions/auth@v3
         with:
@@ -171,5 +179,6 @@ jobs:
             --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
+            --test-targets "class com.flashcardsopensourceapp.app.LiveSmokeTest" \
             --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
             --results-dir "${results_dir}"

@@ -18,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
+import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
@@ -297,6 +298,51 @@ class CloudLifecycleViewModelTest {
     }
 
     @Test
+    fun cloudSignInReviewDemoBypassSkipsOtpAndCompletes() = runTest(dispatcher) {
+        val messages = FakeMessageController()
+        val workspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-2",
+            name = "Spanish",
+            createdAtMillis = 2L,
+            isSelected = false
+        )
+        val syncRepository = FakeSyncRepository()
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = FakeCloudAccountRepository(
+                initialCloudState = CloudAccountState.DISCONNECTED,
+                sendCodeResult = CloudSendCodeResult.Verified(
+                    credentials = StoredCloudCredentials(
+                        refreshToken = "refresh-token",
+                        idToken = "id-token",
+                        idTokenExpiresAtMillis = 10_000L
+                    )
+                ),
+                verifiedWorkspaces = listOf(workspace),
+                linkedWorkspaces = listOf(workspace)
+            ),
+            syncRepository = syncRepository,
+            messageController = messages
+        )
+        val uiCollectionJob = startCollecting(scope = this, viewModel = viewModel)
+        val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
+
+        viewModel.updateEmail("google-review@example.com")
+        assertTrue(viewModel.sendCode())
+        advanceUntilIdle()
+        assertEquals(CloudPostAuthMode.READY_TO_AUTO_LINK, viewModel.postAuthUiState.value.mode)
+        assertEquals("google-review@example.com", viewModel.postAuthUiState.value.verifiedEmail)
+
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(1, syncRepository.syncNowCalls)
+        assertEquals(CloudPostAuthMode.IDLE, viewModel.postAuthUiState.value.mode)
+        assertEquals(listOf("Signed in and synced Spanish."), messages.messages)
+        uiCollectionJob.cancel()
+        postAuthCollectionJob.cancel()
+    }
+
+    @Test
     fun cloudSignInGuestMergeRequiredUsesGuestUpgradeBranch() = runTest(dispatcher) {
         val messages = FakeMessageController()
         val workspace = CloudWorkspaceSummary(
@@ -550,6 +596,13 @@ private class FakeCloudAccountRepository(
     private val onRenameWorkspace: ((String) -> Unit)? = null,
     initialCloudState: CloudAccountState = CloudAccountState.LINKED,
     private val guestUpgradeMode: CloudGuestUpgradeMode? = null,
+    private val sendCodeResult: CloudSendCodeResult = CloudSendCodeResult.OtpRequired(
+        challenge = CloudOtpChallenge(
+            email = "user@example.com",
+            csrfToken = "csrf",
+            otpSessionToken = "otp"
+        )
+    ),
     verifiedWorkspaces: List<CloudWorkspaceSummary> = emptyList(),
     linkedWorkspaces: List<CloudWorkspaceSummary> = emptyList()
 ) : CloudAccountRepository {
@@ -572,6 +625,7 @@ private class FakeCloudAccountRepository(
     var switchLinkedWorkspaceCalls: Int = 0
     var completeCloudLinkCalls: Int = 0
     var completeGuestUpgradeCalls: Int = 0
+    private var lastRequestedEmail: String = "user@example.com"
 
     override fun observeCloudSettings(): Flow<CloudSettings> {
         return cloudSettingsState
@@ -611,12 +665,28 @@ private class FakeCloudAccountRepository(
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {
-        return CloudSendCodeResult.OtpRequired(
-            challenge = CloudOtpChallenge(
-                email = email,
-                csrfToken = "csrf",
-                otpSessionToken = "otp"
+        lastRequestedEmail = email
+        return when (sendCodeResult) {
+            is CloudSendCodeResult.OtpRequired -> CloudSendCodeResult.OtpRequired(
+                challenge = sendCodeResult.challenge.copy(email = email)
             )
+            is CloudSendCodeResult.Verified -> sendCodeResult
+        }
+    }
+
+    override suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
+        cloudSettingsState.value = cloudSettingsState.value.copy(
+            cloudState = CloudAccountState.LINKING_READY,
+            linkedUserId = "user-1",
+            linkedWorkspaceId = null,
+            linkedEmail = lastRequestedEmail,
+            activeWorkspaceId = null
+        )
+        return CloudWorkspaceLinkContext(
+            userId = "user-1",
+            email = lastRequestedEmail,
+            workspaces = verifiedWorkspacesState.value,
+            guestUpgradeMode = guestUpgradeMode
         )
     }
 

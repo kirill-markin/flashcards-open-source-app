@@ -39,6 +39,7 @@ struct WorkspaceOverviewView: View {
                     TextField("Workspace name", text: self.$workspaceNameDraft)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled(true)
+                        .accessibilityIdentifier(UITestIdentifier.workspaceOverviewNameField)
 
                     if self.renameErrorMessage.isEmpty == false {
                         CopyableErrorMessageView(message: self.renameErrorMessage)
@@ -50,6 +51,7 @@ struct WorkspaceOverviewView: View {
                         }
                     }
                     .disabled(self.isRenameDisabled)
+                    .accessibilityIdentifier(UITestIdentifier.workspaceOverviewSaveNameButton)
                 } else {
                     LabeledContent("Workspace") {
                         Text(self.overviewSnapshot?.workspaceName ?? store.workspace?.name ?? "Unavailable")
@@ -100,6 +102,7 @@ struct WorkspaceOverviewView: View {
                     }
                 }
                 .disabled(self.isCloudLinked == false || self.isDeletePreviewLoading)
+                .accessibilityIdentifier(UITestIdentifier.workspaceOverviewDeleteWorkspaceButton)
             }
         }
         .listStyle(.insetGrouped)

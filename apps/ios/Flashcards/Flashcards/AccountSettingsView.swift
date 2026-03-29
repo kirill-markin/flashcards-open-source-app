@@ -19,6 +19,7 @@ struct AccountSettingsView: View {
                         systemImage: "person.crop.circle"
                     )
                 }
+                .accessibilityIdentifier(UITestIdentifier.accountSettingsAccountStatusRow)
             }
 
             Section("Support") {

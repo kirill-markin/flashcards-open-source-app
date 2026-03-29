@@ -146,6 +146,7 @@ struct CardsScreen: View {
                 } label: {
                     Label("Add card", systemImage: "plus")
                 }
+                .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
             }
         }
         .sheet(item: self.$editorPresentation) { presentation in

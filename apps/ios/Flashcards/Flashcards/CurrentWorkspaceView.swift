@@ -36,6 +36,7 @@ struct CurrentWorkspaceView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(self.isWorkspaceManagementLocked ? .secondary : .primary)
+                .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRowButton)
             }
         }
         .listStyle(.insetGrouped)

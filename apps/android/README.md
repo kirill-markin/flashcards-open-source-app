@@ -122,6 +122,19 @@ Test only on the final supported Android target.
 - Do not spend time on test matrices for older API levels
 - Do not add compatibility code for older Android versions unless explicitly requested
 
+## Native Test Stack
+
+The Android app uses native Android and Compose testing:
+
+- module and app unit tests run with the existing Gradle/JUnit stack
+- release-gate UI coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- the live smoke flow relies on stable Compose test tags from the production UI modules, not on a separate mock shell
+
+The Android live smoke scenario matches the other clients on purpose:
+
+- iOS equivalent: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- Web equivalent: `apps/web/e2e/live-smoke.spec.ts`
+
 ## CI/CD
 
 Android CI/CD is documented in [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md).
@@ -134,6 +147,8 @@ The repository policy for Android CI/CD is:
 - Firebase Test Lab is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
+- the release gate order is native unit/build checks first, then the native Firebase Test Lab live smoke, then Google Play release
+- after pushing to `main`, watch both `Android CI` and `Android Release` until Google Play publication either completes or fails clearly
 
 ## Review Standard
 

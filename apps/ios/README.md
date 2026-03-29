@@ -63,6 +63,31 @@ Only test the app against the final supported iOS target.
 - Do not add compatibility code for older iOS versions unless explicitly requested
 - If tests are requested, use one locally available iPhone simulator runtime only
 
+## Native Test Stack
+
+The iOS app uses native Apple test tooling only:
+
+- unit and app-hosted tests live in `apps/ios/Flashcards/FlashcardsTests`
+- release-gate UI coverage lives in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- accessibility identifiers used by the live smoke flow live in `apps/ios/Flashcards/Flashcards/UITestIdentifiers.swift`
+
+The iOS live smoke test is intentionally one connected story across Review, Cards, AI, and Settings. It uses the same linked-account smoke contract as the other clients:
+
+- Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Web equivalent: `apps/web/e2e/live-smoke.spec.ts`
+
+## CI/CD
+
+iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
+
+The expected release gate is:
+
+1. Native unit/build checks
+2. Native XCUITest live smoke
+3. Xcode Cloud archive and distribution
+
+When a change lands on `main`, follow the Xcode Cloud workflow until the release either completes or fails with a concrete error. Do not assume the iOS release finished just because GitHub-side jobs are green.
+
 ## Review Standard
 
 When reviewing or implementing iOS changes, challenge complexity early.
