@@ -1,6 +1,27 @@
 import SwiftUI
 
 private let flashcardsUITestResetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
+private let flashcardsUITestSelectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
+
+private enum FlashcardsUITestSelectedTab: String {
+    case review
+    case cards
+    case ai
+    case settings
+
+    var appTab: AppTab {
+        switch self {
+        case .review:
+            return .review
+        case .cards:
+            return .cards
+        case .ai:
+            return .ai
+        case .settings:
+            return .settings
+        }
+    }
+}
 
 private struct CloudSyncPollingTaskID: Hashable {
     let isSceneActive: Bool
@@ -18,6 +39,9 @@ struct FlashcardsApp: App {
     @MainActor
     init() {
         let store = FlashcardsStore()
+        let selectedTab = ProcessInfo.processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
+            .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
+            ?.appTab ?? .review
         if let resetStateRawValue = ProcessInfo.processInfo.environment[flashcardsUITestResetStateEnvironmentKey],
            let resetState = FlashcardsUITestResetState(rawValue: resetStateRawValue) {
             do {
@@ -28,7 +52,14 @@ struct FlashcardsApp: App {
         }
 
         _store = State(initialValue: store)
-        _navigation = State(initialValue: AppNavigationModel())
+        _navigation = State(
+            initialValue: AppNavigationModel(
+                selectedTab: selectedTab,
+                settingsPath: [],
+                cardsPresentationRequest: nil,
+                aiChatPresentationRequest: nil
+            )
+        )
     }
 
     var body: some Scene {

@@ -103,15 +103,18 @@ struct ReviewView: View {
     }
 
     var body: some View {
-        Group {
-            if self.shouldShowReviewLoader {
-                reviewLoadingView
-            } else if let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
-                activeCardView(card: currentCard, preparedRevealState: preparedRevealState)
-            } else {
-                emptyStateView
+        ZStack {
+            Group {
+                if self.shouldShowReviewLoader {
+                    reviewLoadingView
+                } else if let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
+                    activeCardView(card: currentCard, preparedRevealState: preparedRevealState)
+                } else {
+                    emptyStateView
+                }
             }
         }
+        .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle("Review")
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
