@@ -109,8 +109,8 @@ test("v1 root discovery accepts a trailing slash", async () => {
 
 test("openapi endpoints return the same JSON document", async () => {
   setCognitoAuthMode();
-  const legacyTurnPath = "/chat" + "/turn";
-  const legacyDiagnosticsPath = legacyTurnPath + "/diagnostics";
+  const removedTurnPath = "/chat" + "/turn";
+  const removedDiagnosticsPath = removedTurnPath + "/diagnostics";
   const app = createApp("");
   const openapiResponse = await app.request("https://api.example.com/v1/openapi.json");
   const swaggerResponse = await app.request("https://api.example.com/v1/swagger.json");
@@ -132,29 +132,29 @@ test("openapi endpoints return the same JSON document", async () => {
   assert.deepEqual(agentOpenapiBody, openapiBody);
   assert.deepEqual(agentSwaggerBody, openapiBody);
   assert.equal("/workspaces/{workspaceId}/sync/push" in openapiBody.paths, false);
-  assert.equal(legacyTurnPath in openapiBody.paths, false);
-  assert.equal(legacyDiagnosticsPath in openapiBody.paths, false);
+  assert.equal(removedTurnPath in openapiBody.paths, false);
+  assert.equal(removedDiagnosticsPath in openapiBody.paths, false);
   assert.equal("/agent-api-keys" in openapiBody.paths, false);
   assert.equal("/agent/sql" in openapiBody.paths, true);
 });
 
-test("createApp no longer exposes legacy chat routes", async () => {
+test("createApp no longer exposes removed chat routes", async () => {
   process.env.AUTH_MODE = "none";
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
   resetAuthConfigForTests();
   resetGuestAiQuotaConfigForTests();
 
   const app = createApp("");
-  const legacyTurnUrl = "https://api.example.com/v1/chat" + "/turn";
-  const legacyDiagnosticsUrl = legacyTurnUrl + "/diagnostics";
-  const legacyResponse = await app.request(legacyTurnUrl, {
+  const removedTurnUrl = "https://api.example.com/v1/chat" + "/turn";
+  const removedDiagnosticsUrl = removedTurnUrl + "/diagnostics";
+  const removedResponse = await app.request(removedTurnUrl, {
     method: "POST",
     body: "{",
     headers: {
       "Content-Type": "application/json",
     },
   });
-  const legacyDiagnosticsResponse = await app.request(legacyDiagnosticsUrl, {
+  const removedDiagnosticsResponse = await app.request(removedDiagnosticsUrl, {
     method: "POST",
     body: "{}",
     headers: {
@@ -169,8 +169,8 @@ test("createApp no longer exposes legacy chat routes", async () => {
     method: "GET",
   });
 
-  assert.equal(legacyResponse.status, 404);
-  assert.equal(legacyDiagnosticsResponse.status, 404);
+  assert.equal(removedResponse.status, 404);
+  assert.equal(removedDiagnosticsResponse.status, 404);
   assert.notEqual(transcriptionsResponse.status, 404);
   assert.notEqual(reservedV2Response.status, 404);
 });

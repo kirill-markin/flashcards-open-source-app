@@ -68,7 +68,7 @@ function createChatTestApp(
   return app;
 }
 
-test("parseChatRequestBody rejects legacy chat fields", () => {
+test("parseChatRequestBody rejects unsupported request fields", () => {
   assert.throws(
     () => parseChatRequestBody({
       messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],
@@ -77,7 +77,7 @@ test("parseChatRequestBody rejects legacy chat fields", () => {
     }),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 400
-      && error.message === "Unsupported legacy chat field: messages",
+      && error.message === "Unsupported request field: messages",
   );
 });
 

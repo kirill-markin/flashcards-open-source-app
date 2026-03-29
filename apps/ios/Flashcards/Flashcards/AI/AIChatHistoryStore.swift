@@ -3,8 +3,8 @@ import Foundation
 let aiChatHistoryStorageKey: String = "ai-chat-history"
 let aiChatHistoryStorageKeyPrefix: String = "ai-chat-history::"
 private let aiChatMaxMessages: Int = 200
-private let aiChatHistoryCleanupVersionKey: String = "ai-chat-history-cleanup-version"
-private let aiChatHistoryCleanupVersion: Int = 1
+private let aiChatHistoryMigrationCleanupVersionKey: String = "ai-chat-history-cleanup-version"
+private let aiChatHistoryMigrationCleanupVersion: Int = 1
 
 func makeAIChatHistoryStorageKey(workspaceId: String) -> String {
     "\(aiChatHistoryStorageKeyPrefix)\(workspaceId)"
@@ -48,7 +48,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     func loadState() -> AIChatPersistedState {
-        self.resetLegacyStateIfNeeded()
+        self.runHistoryMigrationCleanupIfNeeded()
         guard let data = self.userDefaults.data(forKey: self.storageKey()) else {
             return AIChatPersistedState(
                 messages: [],
@@ -76,7 +76,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     func saveState(state: AIChatPersistedState) async {
-        self.resetLegacyStateIfNeeded()
+        self.runHistoryMigrationCleanupIfNeeded()
         let trimmedState = AIChatPersistedState(
             messages: Array(state.messages.suffix(aiChatMaxMessages)),
             chatSessionId: state.chatSessionId,
@@ -103,13 +103,16 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
         return makeAIChatHistoryStorageKey(workspaceId: workspaceId)
     }
 
-    private func resetLegacyStateIfNeeded() {
-        let storedVersion = self.userDefaults.integer(forKey: aiChatHistoryCleanupVersionKey)
-        if storedVersion >= aiChatHistoryCleanupVersion {
+    private func runHistoryMigrationCleanupIfNeeded() {
+        let storedVersion = self.userDefaults.integer(forKey: aiChatHistoryMigrationCleanupVersionKey)
+        if storedVersion >= aiChatHistoryMigrationCleanupVersion {
             return
         }
 
         clearStoredAIChatHistories(userDefaults: self.userDefaults)
-        self.userDefaults.set(aiChatHistoryCleanupVersion, forKey: aiChatHistoryCleanupVersionKey)
+        self.userDefaults.set(
+            aiChatHistoryMigrationCleanupVersion,
+            forKey: aiChatHistoryMigrationCleanupVersionKey
+        )
     }
 }

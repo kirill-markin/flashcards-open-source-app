@@ -612,61 +612,6 @@ struct AIChatFailureDiagnostics: Codable, Hashable, Sendable {
     let continuationToolCallIds: [String]
 }
 
-struct AIChatFailureReportBody: Codable, Hashable, Sendable {
-    let kind: String
-    let clientRequestId: String
-    let backendRequestId: String?
-    let stage: String
-    let errorKind: String
-    let statusCode: Int?
-    let eventType: String?
-    let toolName: String?
-    let toolCallId: String?
-    let lineNumber: Int?
-    let rawSnippet: String?
-    let decoderSummary: String?
-    let continuationAttempt: Int?
-    let continuationToolCallIds: [String]
-    let selectedModel: String
-    let messageCount: Int
-    let appVersion: String
-    let devicePlatform: String
-}
-
-enum AIChatLatencyResult: String, Codable, Hashable, Sendable {
-    case success = "success"
-    case responseNotOk = "response_not_ok"
-    case missingReader = "missing_reader"
-    case emptyResponse = "empty_response"
-    case cancelledBeforeHeaders = "cancelled_before_headers"
-    case cancelledBeforeFirstSseLine = "cancelled_before_first_sse_line"
-    case cancelledBeforeFirstDelta = "cancelled_before_first_delta"
-    case streamErrorBeforeFirstDelta = "stream_error_before_first_delta"
-}
-
-struct AIChatLatencyReportBody: Codable, Hashable, Sendable {
-    let kind: String
-    let clientRequestId: String
-    let backendRequestId: String?
-    let selectedModel: String
-    let messageCount: Int
-    let appVersion: String
-    let devicePlatform: String
-    let result: String
-    let statusCode: Int?
-    let firstEventType: String?
-    let didReceiveFirstSseLine: Bool
-    let didReceiveFirstDelta: Bool
-    let tapToRequestStartMs: Int?
-    let requestStartToHeadersMs: Int?
-    let headersToFirstSseLineMs: Int?
-    let firstSseLineToFirstDeltaMs: Int?
-    let requestStartToFirstDeltaMs: Int?
-    let tapToFirstDeltaMs: Int?
-    let requestStartToTerminalMs: Int?
-    let tapToTerminalMs: Int?
-}
-
 protocol AIChatFailureDiagnosticProviding: Error {
     var diagnostics: AIChatFailureDiagnostics { get }
 }

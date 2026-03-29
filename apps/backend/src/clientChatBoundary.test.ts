@@ -4,8 +4,8 @@ import path from "node:path";
 import test from "node:test";
 
 const repoRoot = path.resolve(__dirname, "../../..");
-const legacyTurnPath = "/chat" + "/turn";
-const legacyDiagnosticsPath = legacyTurnPath + "/diagnostics";
+const removedTurnPath = "/chat" + "/turn";
+const removedDiagnosticsPath = removedTurnPath + "/diagnostics";
 
 type ClientBoundaryCheck = Readonly<{
   directory: string;
@@ -16,8 +16,8 @@ const clientBoundaryChecks: ReadonlyArray<ClientBoundaryCheck> = [
   {
     directory: path.join(repoRoot, "apps/web/src"),
     forbiddenPatterns: [
-      legacyTurnPath,
-      legacyDiagnosticsPath,
+      removedTurnPath,
+      removedDiagnosticsPath,
       "selectedModelId",
       "codeInterpreterContainerId",
       "AIChatTurnRequestBody",
@@ -28,8 +28,8 @@ const clientBoundaryChecks: ReadonlyArray<ClientBoundaryCheck> = [
   {
     directory: path.join(repoRoot, "apps/ios/Flashcards/Flashcards"),
     forbiddenPatterns: [
-      legacyTurnPath,
-      legacyDiagnosticsPath,
+      removedTurnPath,
+      removedDiagnosticsPath,
       "selectedModelId",
       "codeInterpreterContainerId",
       "AIChatTurnRequestBody",
@@ -40,8 +40,8 @@ const clientBoundaryChecks: ReadonlyArray<ClientBoundaryCheck> = [
   {
     directory: path.join(repoRoot, "apps/ios/Flashcards/FlashcardsTests"),
     forbiddenPatterns: [
-      legacyTurnPath,
-      legacyDiagnosticsPath,
+      removedTurnPath,
+      removedDiagnosticsPath,
       "selectedModelId",
       "codeInterpreterContainerId",
       "AIChatTurnRequestBody",
@@ -52,8 +52,8 @@ const clientBoundaryChecks: ReadonlyArray<ClientBoundaryCheck> = [
   {
     directory: path.join(repoRoot, "apps/android"),
     forbiddenPatterns: [
-      legacyTurnPath,
-      legacyDiagnosticsPath,
+      removedTurnPath,
+      removedDiagnosticsPath,
       "selectedModelId",
       "codeInterpreterContainerId",
       "AIChatTurnRequestBody",
@@ -84,7 +84,7 @@ function collectFiles(directory: string): ReadonlyArray<string> {
 }
 
 for (const check of clientBoundaryChecks) {
-  test(`client chat boundary stays legacy-free in ${path.relative(repoRoot, check.directory)}`, () => {
+  test(`client chat boundary rejects removed chat patterns in ${path.relative(repoRoot, check.directory)}`, () => {
     const files = collectFiles(check.directory);
 
     for (const filePath of files) {
