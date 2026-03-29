@@ -52,7 +52,7 @@ type ChatFileContentPart = Readonly<{
 
 type ChatToolCallContentPart = Readonly<{
   type: "tool_call";
-  toolCallId: string;
+  id: string;
   name: string;
   status: "started" | "completed";
   input: string | null;
@@ -151,7 +151,7 @@ function parseChatContentPart(value: unknown, context: string): ChatContentPart 
 
     return {
       type: "tool_call",
-      toolCallId: expectNonEmptyString(body.toolCallId, `${context}.toolCallId`),
+      id: expectNonEmptyString(body.id, `${context}.id`),
       name: expectNonEmptyString(body.name, `${context}.name`),
       status,
       input: expectNullableString(body.input ?? null, `${context}.input`),

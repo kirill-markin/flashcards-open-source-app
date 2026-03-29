@@ -226,7 +226,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         case mediaType
         case base64Data
         case fileName
-        case toolCallId
+        case id
         case name
         case status
         case input
@@ -255,7 +255,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         case "tool_call":
             self = .toolCall(
                 AIChatToolCall(
-                    id: try container.decode(String.self, forKey: .toolCallId),
+                    id: try container.decode(String.self, forKey: .id),
                     name: try container.decode(String.self, forKey: .name),
                     status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
                     input: try container.decodeIfPresent(String.self, forKey: .input),
@@ -294,7 +294,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
             try container.encode(base64Data, forKey: .base64Data)
         case .toolCall(let toolCall):
             try container.encode("tool_call", forKey: .type)
-            try container.encode(toolCall.id, forKey: .toolCallId)
+            try container.encode(toolCall.id, forKey: .id)
             try container.encode(toolCall.name, forKey: .name)
             try container.encode(toolCall.status, forKey: .status)
             try container.encodeIfPresent(toolCall.input, forKey: .input)
@@ -334,7 +334,6 @@ private struct AIChatDecodableContentPartPayload: Decodable {
         case mediaType
         case base64Data
         case fileName
-        case toolCallId
         case id
         case name
         case status
@@ -362,24 +361,9 @@ private struct AIChatDecodableContentPartPayload: Decodable {
                 base64Data: try container.decode(String.self, forKey: .base64Data)
             )
         case "tool_call":
-            let toolCallId: String
-            if let aliasedToolCallId = try container.decodeIfPresent(String.self, forKey: .toolCallId) {
-                toolCallId = aliasedToolCallId
-            } else if let serverToolCallId = try container.decodeIfPresent(String.self, forKey: .id) {
-                toolCallId = serverToolCallId
-            } else {
-                throw DecodingError.keyNotFound(
-                    CodingKeys.toolCallId,
-                    DecodingError.Context(
-                        codingPath: decoder.codingPath,
-                        debugDescription: "AI chat tool call id is missing."
-                    )
-                )
-            }
-
             self.value = .toolCall(
                 AIChatToolCall(
-                    id: toolCallId,
+                    id: try container.decode(String.self, forKey: .id),
                     name: try container.decode(String.self, forKey: .name),
                     status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
                     input: try container.decodeIfPresent(String.self, forKey: .input),
@@ -716,7 +700,7 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case type
         case text
-        case toolCallId
+        case id
         case name
         case status
         case input
@@ -740,7 +724,7 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
         case "tool_call":
             self = .toolCall(
                 AIChatToolCall(
-                    id: try container.decode(String.self, forKey: .toolCallId),
+                    id: try container.decode(String.self, forKey: .id),
                     name: try container.decode(String.self, forKey: .name),
                     status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
                     input: try container.decodeIfPresent(String.self, forKey: .input),
@@ -750,7 +734,7 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
         case "tool_call_request":
             self = .toolCallRequest(
                 AIToolCallRequest(
-                    toolCallId: try container.decode(String.self, forKey: .toolCallId),
+                    toolCallId: try container.decode(String.self, forKey: .id),
                     name: try container.decode(String.self, forKey: .name),
                     input: try container.decode(String.self, forKey: .input)
                 )

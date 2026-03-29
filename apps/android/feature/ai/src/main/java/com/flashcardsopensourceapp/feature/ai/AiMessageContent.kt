@@ -123,6 +123,10 @@ private fun MessageBubbleContent(
                     }
                 }
 
+                is AiChatContentPart.ReasoningSummary -> {
+                    ReasoningSummaryCard(summary = contentPart.summary)
+                }
+
                 is AiChatContentPart.Image -> {
                     AttachmentContentCard(
                         title = contentPart.fileName ?: "Image attachment",
@@ -158,6 +162,34 @@ private fun MessageBubbleContent(
             }
         ) {
             TypingIndicatorRow()
+        }
+    }
+}
+
+@Composable
+private fun ReasoningSummaryCard(summary: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Reasoning summary",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            SelectionContainer {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

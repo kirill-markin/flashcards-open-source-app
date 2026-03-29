@@ -25,6 +25,7 @@ object AiChatDiagnosticsLogger {
 
     fun summarizeOutgoingContent(content: List<AiChatContentPart>): String {
         val textPartCount = content.count { part -> part is AiChatContentPart.Text }
+        val reasoningSummaryPartCount = content.count { part -> part is AiChatContentPart.ReasoningSummary }
         val imagePartCount = content.count { part -> part is AiChatContentPart.Image }
         val filePartCount = content.count { part -> part is AiChatContentPart.File }
         val toolCallPartCount = content.count { part -> part is AiChatContentPart.ToolCall }
@@ -32,6 +33,7 @@ object AiChatDiagnosticsLogger {
         val textLength = content.sumOf { part ->
             when (part) {
                 is AiChatContentPart.Text -> part.text.length
+                is AiChatContentPart.ReasoningSummary -> 0
                 is AiChatContentPart.Image -> 0
                 is AiChatContentPart.File -> 0
                 is AiChatContentPart.ToolCall -> 0
@@ -39,7 +41,7 @@ object AiChatDiagnosticsLogger {
             }
         }
 
-        return "textParts=$textPartCount,imageParts=$imagePartCount,fileParts=$filePartCount,toolCallParts=$toolCallPartCount,accountUpgradeParts=$accountUpgradePartCount,textLength=$textLength"
+        return "textParts=$textPartCount,reasoningSummaryParts=$reasoningSummaryPartCount,imageParts=$imagePartCount,fileParts=$filePartCount,toolCallParts=$toolCallPartCount,accountUpgradeParts=$accountUpgradePartCount,textLength=$textLength"
     }
 
     private fun buildMessage(event: String, fields: List<Pair<String, String?>>): String {

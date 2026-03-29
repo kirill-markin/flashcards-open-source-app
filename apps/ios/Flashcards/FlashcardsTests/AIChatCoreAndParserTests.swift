@@ -60,6 +60,26 @@ final class AIChatCoreAndParserTests: AIChatTestCaseBase {
         XCTAssertFalse(decoded.timestamp.isEmpty)
     }
 
+    func testAIChatContentPartEncodesToolCallWithNewIdFieldOnly() throws {
+        let data = try JSONEncoder().encode(
+            AIChatContentPart.toolCall(
+                AIChatToolCall(
+                    id: "tool-1",
+                    name: "sql",
+                    status: .completed,
+                    input: "select 1",
+                    output: "[1]"
+                )
+            )
+        )
+
+        let jsonObject = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(jsonObject["type"] as? String, "tool_call")
+        XCTAssertEqual(jsonObject["id"] as? String, "tool-1")
+        XCTAssertNil(jsonObject["toolCallId"])
+    }
+
     func testTypingIndicatorShowsOnlyForLastStreamingAssistantMessage() {
         let assistantMessage = AIChatMessage(
             id: "message-1",

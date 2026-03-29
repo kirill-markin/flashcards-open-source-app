@@ -69,6 +69,7 @@ internal fun AiConversation(
                     lastMessage.content.sumOf { contentPart ->
                         when (contentPart) {
                             is AiChatContentPart.Text -> contentPart.text.length
+                            is AiChatContentPart.ReasoningSummary -> contentPart.summary.length
                             is AiChatContentPart.ToolCall -> contentPart.toolCall.input?.length ?: 0
                             is AiChatContentPart.Image -> contentPart.base64Data.length
                             is AiChatContentPart.File -> contentPart.base64Data.length

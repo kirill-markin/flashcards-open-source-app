@@ -418,10 +418,15 @@ class AiViewModel(
                     }
                 )
                 draftState.update { state ->
+                    val finalSnapshot = outcome.finalSnapshot
+                    val nextMessages = finalSnapshot?.messages ?: state.persistedState.messages
+                    val nextChatConfig = finalSnapshot?.chatConfig ?: outcome.chatConfig ?: state.persistedState.lastKnownChatConfig
+                    val nextSessionId = finalSnapshot?.sessionId ?: outcome.chatSessionId
                     state.copy(
                         persistedState = state.persistedState.copy(
-                            chatSessionId = outcome.chatSessionId,
-                            lastKnownChatConfig = outcome.chatConfig ?: state.persistedState.lastKnownChatConfig
+                            messages = nextMessages,
+                            chatSessionId = nextSessionId,
+                            lastKnownChatConfig = nextChatConfig
                         )
                     )
                 }

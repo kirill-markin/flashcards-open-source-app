@@ -134,6 +134,10 @@ sealed interface AiChatContentPart {
         val text: String
     ) : AiChatContentPart
 
+    data class ReasoningSummary(
+        val summary: String
+    ) : AiChatContentPart
+
     data class Image(
         val fileName: String?,
         val mediaType: String,
@@ -248,7 +252,8 @@ sealed interface AiChatStreamEvent {
 data class AiChatStreamOutcome(
     val requestId: String?,
     val chatSessionId: String,
-    val chatConfig: AiChatServerConfig?
+    val chatConfig: AiChatServerConfig?,
+    val finalSnapshot: AiChatSessionSnapshot?
 )
 
 data class AiChatTranscriptionResult(
@@ -276,6 +281,7 @@ fun buildAiChatRequestContent(content: List<AiChatContentPart>): List<AiChatWire
     return content.mapNotNull { part ->
         when (part) {
             is AiChatContentPart.Text -> AiChatWireContentPart.Text(text = part.text)
+            is AiChatContentPart.ReasoningSummary -> null
             is AiChatContentPart.Image -> AiChatWireContentPart.Image(
                 mediaType = part.mediaType,
                 base64Data = part.base64Data

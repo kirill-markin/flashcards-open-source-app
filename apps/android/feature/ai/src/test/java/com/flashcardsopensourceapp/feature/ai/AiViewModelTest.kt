@@ -187,7 +187,8 @@ class AiViewModelTest {
                 AiChatStreamOutcome(
                     requestId = "request-1",
                     chatSessionId = "session-1",
-                    chatConfig = defaultAiChatServerConfig
+                    chatConfig = defaultAiChatServerConfig,
+                    finalSnapshot = null
                 )
             }
         )
@@ -217,6 +218,68 @@ class AiViewModelTest {
             toolCallPart.toolCall.status
         )
         assertFalse(viewModel.uiState.value.isStreaming)
+        collectionJob.cancel()
+    }
+
+    @Test
+    fun sendAppliesFinalSnapshotReasoningSummaryFromBackend() = runTest(dispatcher) {
+        val finalSnapshot = AiChatSessionSnapshot(
+            sessionId = "session-1",
+            runState = "completed",
+            updatedAtMillis = 1L,
+            mainContentInvalidationVersion = 1L,
+            messages = listOf(
+                makeUserMessage(
+                    content = listOf(AiChatContentPart.Text(text = "Summarize my cards")),
+                    timestampMillis = 1L
+                ),
+                com.flashcardsopensourceapp.data.local.model.AiChatMessage(
+                    messageId = "assistant-1",
+                    role = AiChatRole.ASSISTANT,
+                    content = listOf(
+                        AiChatContentPart.ReasoningSummary(summary = "Compared deck statistics before answering."),
+                        AiChatContentPart.Text(text = "Here is the summary.")
+                    ),
+                    timestampMillis = 2L,
+                    isError = false
+                )
+            ),
+            chatConfig = defaultAiChatServerConfig
+        )
+        val aiChatRepository = FakeAiChatRepository(
+            hasConsent = true,
+            streamHandler = { _, _, onEvent ->
+                onEvent(AiChatStreamEvent.Delta(text = "Here is the summary."))
+                onEvent(AiChatStreamEvent.Done)
+                AiChatStreamOutcome(
+                    requestId = "request-2",
+                    chatSessionId = "session-1",
+                    chatConfig = defaultAiChatServerConfig,
+                    finalSnapshot = finalSnapshot
+                )
+            }
+        )
+        val viewModel = AiViewModel(
+            aiChatRepository = aiChatRepository,
+            workspaceRepository = FakeWorkspaceRepository(),
+            cloudAccountRepository = FakeCloudAccountRepository(
+                cloudState = CloudAccountState.LINKED
+            )
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        advanceUntilIdle()
+        viewModel.updateDraftMessage("Summarize my cards")
+        advanceUntilIdle()
+        viewModel.sendMessage()
+        advanceUntilIdle()
+
+        val assistantMessage = viewModel.uiState.value.messages.last()
+        val reasoningSummary = assistantMessage.content.filterIsInstance<AiChatContentPart.ReasoningSummary>().single()
+        val textPart = assistantMessage.content.filterIsInstance<AiChatContentPart.Text>().single()
+
+        assertEquals("Compared deck statistics before answering.", reasoningSummary.summary)
+        assertEquals("Here is the summary.", textPart.text)
         collectionJob.cancel()
     }
 
@@ -716,7 +779,8 @@ private class FakeAiChatRepository(
         AiChatStreamOutcome(
             requestId = null,
             chatSessionId = "session-1",
-            chatConfig = defaultAiChatServerConfig
+            chatConfig = defaultAiChatServerConfig,
+            finalSnapshot = null
         )
     }
 ) : AiChatRepository {
