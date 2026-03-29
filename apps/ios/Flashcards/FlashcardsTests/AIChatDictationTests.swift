@@ -3,8 +3,8 @@ import SwiftUI
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class AIChatDictationTests: AIChatTestCaseBase {
+    @MainActor
     func testInsertAIChatDictationTranscriptInsertsAtCaretWithWhitespaceAroundInsertedText() {
         XCTAssertEqual(
             insertAIChatDictationTranscript(
@@ -22,6 +22,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     func testInsertAIChatDictationTranscriptReplacesSelectedRange() {
         XCTAssertEqual(
             insertAIChatDictationTranscript(
@@ -39,6 +40,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     func testInsertAIChatDictationTranscriptAppendsAtEndWhenSelectionIsMissing() {
         XCTAssertEqual(
             insertAIChatDictationTranscript(draft: "hello", transcript: "world", selection: nil),
@@ -52,6 +54,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     func testInsertAIChatDictationTranscriptReturnsOriginalDraftForBlankTranscript() {
         XCTAssertEqual(
             insertAIChatDictationTranscript(draft: "hello", transcript: "   ", selection: nil),
@@ -65,6 +68,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     func testAIChatDictationInsertionSelectionReturnsNilForStaleSelectionRange() {
         let previousText = "hello"
         let startIndex = previousText.index(previousText.startIndex, offsetBy: 1)
@@ -78,6 +82,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     func testAIChatStoreDictationPublishesCompletedTranscriptWithoutMutatingDraft() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
@@ -110,6 +115,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         XCTAssertEqual(historyStore.savedState.chatSessionId, "session-1")
     }
 
+    @MainActor
     func testAIChatStoreSilentlyStopsWhenMicrophonePermissionIsDeniedFromPrompt() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
@@ -134,6 +140,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         XCTAssertNil(chatStore.activeAlert)
     }
 
+    @MainActor
     func testAIChatStoreShowsSettingsAlertWhenMicrophonePermissionIsBlocked() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
@@ -158,6 +165,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         XCTAssertEqual(chatStore.activeAlert, .microphoneSettings)
     }
 
+    @MainActor
     func testAIChatStoreShowsGeneralAlertForTranscriptionFailures() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
@@ -186,6 +194,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     func testAIChatStoreShowsAccountUpgradePromptForGuestLimitDictationFailures() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
@@ -219,6 +228,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         XCTAssertEqual(historyStore.savedState.messages.first?.accountUpgradePrompt?.message, aiChatGuestQuotaReachedMessage)
     }
 
+    @MainActor
     func testAIChatStoreAllowsDictationWhileStreaming() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
@@ -271,6 +281,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         }
     }
 
+    @MainActor
     func testAIChatStoreBlocksDictationWhenExternalAIConsentIsMissing() throws {
         let flashcardsStore = try self.makeLinkedStoreWithoutAIConsent()
         let contextLoader = StubContextLoader()
@@ -298,6 +309,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     func testAIChatAvailabilityMessageUsesOfficialAndCustomServerCopy() {
         XCTAssertEqual(
             aiChatAvailabilityMessage(
@@ -317,6 +329,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     func testAIChatTranscriptionServiceOmitsDurationSecondsFromMultipartRequest() async throws {
         let recordedAudioFileUrl = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString.lowercased())
@@ -363,6 +376,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         XCTAssertEqual(transcript.sessionId, "session-1")
     }
 
+    @MainActor
     func testMakeAIChatUserFacingErrorMessagePreservesRequestReferences() {
         XCTAssertEqual(
             makeAIChatUserFacingErrorMessage(
@@ -376,6 +390,7 @@ final class AIChatDictationTests: AIChatTestCaseBase {
         )
     }
 
+    @MainActor
     private func waitForDictationState(
         chatStore: AIChatStore,
         state: AIChatDictationState

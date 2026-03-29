@@ -1,8 +1,8 @@
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class AppNavigationModelTests: XCTestCase {
+    @MainActor
     func testSelectTabUpdatesSelectedTab() {
         let navigation = AppNavigationModel()
 
@@ -11,6 +11,7 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertEqual(navigation.selectedTab, .cards)
     }
 
+    @MainActor
     func testOpenCardCreationSelectsCardsAndSetsPresentationRequest() {
         let navigation = AppNavigationModel()
 
@@ -20,6 +21,7 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertEqual(navigation.cardsPresentationRequest, .createCard)
     }
 
+    @MainActor
     func testClearCardsPresentationRequestRemovesPendingRequest() {
         let navigation = AppNavigationModel()
         navigation.openCardCreation()
@@ -29,6 +31,7 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertNil(navigation.cardsPresentationRequest)
     }
 
+    @MainActor
     func testOpenAICardCreationSelectsAIAndSetsPresentationRequest() {
         let navigation = AppNavigationModel()
 
@@ -38,6 +41,7 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertEqual(navigation.aiChatPresentationRequest, .createCard)
     }
 
+    @MainActor
     func testClearAIChatPresentationRequestRemovesPendingRequest() {
         let navigation = AppNavigationModel()
         navigation.openAICardCreation()
@@ -47,6 +51,7 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertNil(navigation.aiChatPresentationRequest)
     }
 
+    @MainActor
     func testOpenSettingsBuildsSettingsPath() {
         let navigation = AppNavigationModel()
 
@@ -56,6 +61,7 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertEqual(navigation.settingsPath, [.account, .accountAdvanced, .accountServer])
     }
 
+    @MainActor
     func testOpenWorkspaceExportBuildsSettingsPath() {
         let navigation = AppNavigationModel()
 
@@ -65,6 +71,7 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertEqual(navigation.settingsPath, [.workspace, .workspaceExport])
     }
 
+    @MainActor
     func testOpenCurrentWorkspaceBuildsSettingsPath() {
         let navigation = AppNavigationModel()
 
@@ -74,6 +81,7 @@ final class AppNavigationModelTests: XCTestCase {
         XCTAssertEqual(navigation.settingsPath, [.currentWorkspace])
     }
 
+    @MainActor
     func testOpenDeviceBuildsSettingsPath() {
         let navigation = AppNavigationModel()
 

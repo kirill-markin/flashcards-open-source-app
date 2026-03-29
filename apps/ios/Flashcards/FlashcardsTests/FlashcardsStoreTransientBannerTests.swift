@@ -1,8 +1,8 @@
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class FlashcardsStoreTransientBannerTests: XCTestCase {
+    @MainActor
     func testEnqueueTransientBannerPublishesCurrentBannerWhenNoneIsVisible() throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self)
         let store = context.store
@@ -14,6 +14,7 @@ final class FlashcardsStoreTransientBannerTests: XCTestCase {
         XCTAssertTrue(store.queuedTransientBanners.isEmpty)
     }
 
+    @MainActor
     func testEnqueueTransientBannerQueuesAdditionalBannersFIFO() throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self)
         let store = context.store
@@ -27,6 +28,7 @@ final class FlashcardsStoreTransientBannerTests: XCTestCase {
         XCTAssertEqual(store.queuedTransientBanners, [secondBanner])
     }
 
+    @MainActor
     func testDismissCurrentTransientBannerPromotesQueuedBanner() throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self)
         let store = context.store
@@ -41,6 +43,7 @@ final class FlashcardsStoreTransientBannerTests: XCTestCase {
         XCTAssertTrue(store.queuedTransientBanners.isEmpty)
     }
 
+    @MainActor
     func testDismissCurrentTransientBannerClearsCurrentBannerWhenQueueIsEmpty() throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self)
         let store = context.store

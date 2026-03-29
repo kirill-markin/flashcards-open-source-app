@@ -2,8 +2,8 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class FlashcardsStoreServerSettingsTests: XCTestCase {
+    @MainActor
     func testRenameCurrentWorkspacePersistsReturnedCloudNameLocally() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -29,6 +29,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(try context.database.loadBootstrapSnapshot().workspace.name, "Renamed workspace")
     }
 
+    @MainActor
     func testDeleteCurrentWorkspaceSwitchesToReplacementWorkspaceAndClearsLocalData() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -74,6 +75,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncSessions.last?.workspaceId, replacementWorkspace.workspaceId)
     }
 
+    @MainActor
     func testDisconnectCloudAccountResetsLocalStateAndRegeneratesDeviceId() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -139,6 +141,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertTrue(resetAIChatHistory.messages.isEmpty)
     }
 
+    @MainActor
     func testValidateCustomCloudServerDoesNotPersistOverrideWhenValidationFails() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -171,6 +174,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testApplyCustomCloudServerClearsCloudLinkAndPendingSyncState() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -223,6 +227,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertEqual(try context.store.currentCloudServiceConfiguration().mode, .custom)
     }
 
+    @MainActor
     func testResetToOfficialCloudServerClearsOverrideAndDisconnects() throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -263,6 +268,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertFalse(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
     }
 
+    @MainActor
     func testCompleteCloudLinkBootstrapsLocalDataAfterCustomServerSwitch() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -303,6 +309,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertFalse(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
     }
 
+    @MainActor
     func testCompleteCloudLinkBlocksBootstrapIntoNonEmptyWorkspaceAfterCustomServerSwitch() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -353,6 +360,7 @@ final class FlashcardsStoreServerSettingsTests: XCTestCase {
         XCTAssertTrue(context.store.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey))
     }
 
+    @MainActor
     func testCompleteCloudLinkAfterDisconnectUsesFreshDeviceIdForTheSameUser() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,

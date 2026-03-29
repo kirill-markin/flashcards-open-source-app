@@ -2,8 +2,8 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
+    @MainActor
     func testSaveCardUpdatesPublishedStateImmediately() async throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
 
@@ -26,6 +26,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         XCTAssertEqual(store.reviewQueue.count, 1)
     }
 
+    @MainActor
     func testDeleteCardRemovesPublishedStateImmediately() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         try store.saveCard(
@@ -42,6 +43,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         XCTAssertEqual(store.homeSnapshot.dueCount, 0)
     }
 
+    @MainActor
     func testDeckMutationsUpdatePublishedStateImmediately() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         try store.saveCard(
@@ -74,6 +76,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         XCTAssertTrue(store.deckItems.isEmpty)
     }
 
+    @MainActor
     func testSubmitReviewUpdatesPublishedReviewStateImmediately() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         try store.saveCard(
@@ -90,6 +93,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         XCTAssertTrue(store.reviewQueue.isEmpty)
     }
 
+    @MainActor
     func testReloadLoadsPersistedTagReviewFilterWhenTagExists() async throws {
         let environment = try FlashcardsStoreTestSupport.makeStoreEnvironment(testCase: self)
         let workspaceId = try testWorkspaceId(database: environment.database)
@@ -115,6 +119,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         XCTAssertEqual(store.reviewQueue.map(\.cardId), [card.cardId])
     }
 
+    @MainActor
     func testReloadResetsPersistedTagReviewFilterWhenTagIsMissing() throws {
         let environment = try FlashcardsStoreTestSupport.makeStoreEnvironment(testCase: self)
         environment.userDefaults.set(
@@ -128,6 +133,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         XCTAssertTrue(store.reviewQueue.isEmpty)
     }
 
+    @MainActor
     func testSelectReviewFilterExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         store.cloudSyncFastPollingUntil = nil
@@ -142,6 +148,7 @@ final class FlashcardsStoreMutationAndFilterTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testUpdateSchedulerSettingsExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         store.cloudSyncFastPollingUntil = nil
