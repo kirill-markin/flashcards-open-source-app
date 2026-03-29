@@ -136,22 +136,14 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     private func step(_ title: String, action: () throws -> Void) throws {
-        var capturedError: Error?
-
-        XCTContext.runActivity(named: title) { _ in
-            do {
-                try action()
-            } catch {
-                capturedError = error
-            }
-        }
-
-        if let capturedError {
+        do {
+            try action()
+        } catch {
             throw NSError(
                 domain: "LiveSmokeUITests",
                 code: 1,
                 userInfo: [
-                    NSLocalizedDescriptionKey: "iOS live smoke step failed: \(title). \(capturedError.localizedDescription)",
+                    NSLocalizedDescriptionKey: "iOS live smoke step failed: \(title). \(error.localizedDescription)",
                 ]
             )
         }
