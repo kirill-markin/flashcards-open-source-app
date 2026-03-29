@@ -2,8 +2,8 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class FlashcardsStoreCloudSyncTests: XCTestCase {
+    @MainActor
     func testPrepareCloudLinkResetsLocalStateWhenAuthenticatedUserDiffersFromStoredLinkedUser() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -42,6 +42,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertNil(try context.store.cloudRuntime.loadCredentials())
     }
 
+    @MainActor
     func testPrepareCloudLinkClearsStoredGuestSessionWhenServerConfigurationChanged() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -77,6 +78,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertNil(try context.guestCredentialStore.loadGuestSession())
     }
 
+    @MainActor
     func testSyncCloudIfLinkedResetsLocalStateWhenStoredCredentialsBelongToAnotherUser() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -111,6 +113,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.syncStatus, .idle)
     }
 
+    @MainActor
     func testRestoreCloudLinkForSameWorkspaceNoOpKeepsPublishedReviewStateStable() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -159,6 +162,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.cloudRuntime.activeCloudSession()?.workspaceId, workspaceId)
     }
 
+    @MainActor
     func testSyncCloudIfLinkedNoOpKeepsPublishedReviewStateStable() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -208,6 +212,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertNil(context.store.currentTransientBanner)
     }
 
+    @MainActor
     func testSyncCloudIfLinkedUsesActiveGuestSessionWithoutStoredCloudCredentials() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -239,6 +244,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedRestoresGuestSessionFromDisconnectedStateAfterReinstall() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -286,6 +292,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedRestoresStoredGuestSessionWithoutStoredCloudCredentials() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -338,6 +345,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedRestoresAuthenticatedSessionFromDisconnectedStateAfterReinstall() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -387,6 +395,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedClearsOrphanedStoredCredentialsFromDisconnectedStateWhenLocalStateIsNotPristine() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -413,6 +422,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedDropsAuthenticatedStoredCredentialsWhenSilentRestoreFails() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -436,6 +446,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedDoesNotRestoreAuthenticatedSessionAfterReinstallForCustomServer() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -460,6 +471,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedClearsAmbiguousStoredCredentialsAndGuestSessionFromDisconnectedState() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -494,6 +506,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedResetsGuestStateWhenStoredGuestSessionIsMissing() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -523,6 +536,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedResetsLinkedStateWhenStoredCredentialsAreMissing() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -547,6 +561,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testSyncCloudIfLinkedNoOpOnFreshInstallWithoutPersistedSecureState() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -564,6 +579,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.globalErrorMessage, "")
     }
 
+    @MainActor
     func testRestoreCloudLinkForSameWorkspaceShowsOverlayBannerWhenRemoteSyncReplacesCurrentCard() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -630,6 +646,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(context.store.cloudRuntime.activeCloudSession()?.workspaceId, workspaceId)
     }
 
+    @MainActor
     func testSyncCloudIfLinkedShowsOverlayBannerWhenRemoteSyncReplacesCurrentCard() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -697,6 +714,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertFalse(context.store.isReviewHeadLoading)
     }
 
+    @MainActor
     func testFinishCloudLinkAndParallelSyncCloudIfLinkedShareSingleInitialSyncTask() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -736,6 +754,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
     }
 
+    @MainActor
     func testParallelSyncCloudIfLinkedCallsCoalesceIntoSingleRestoreFlow() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -778,6 +797,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
     }
 
+    @MainActor
     func testFailedInitialSyncClearsInFlightLinkTaskAndAllowsRetry() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -810,6 +830,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertNil(context.store.cloudRuntime.state.activeCloudLinkTask)
     }
 
+    @MainActor
     func testSwitchLinkedWorkspaceUsesCachedWorkspaceWithoutRelinkingLocalRows() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,
@@ -862,6 +883,7 @@ final class FlashcardsStoreCloudSyncTests: XCTestCase {
         XCTAssertEqual(try context.database.loadActiveCards(workspaceId: cachedWorkspace.workspaceId).map(\.cardId), [cachedCard.cardId])
     }
 
+    @MainActor
     func testCancelForAccountDeletionClearsActiveCloudLinkTask() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreWithMockCloudSyncService(
             testCase: self,

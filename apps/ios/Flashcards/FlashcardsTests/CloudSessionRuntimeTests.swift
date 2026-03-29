@@ -2,8 +2,8 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class CloudSessionRuntimeTests: XCTestCase {
+    @MainActor
     func testSendCodeReturnsVerifiedCredentialsWhenDemoBypassSucceeds() async throws {
         let authService = MockCloudAuthService()
         authService.sendCodeResult = .verifiedCredentials(

@@ -2,8 +2,8 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class FlashcardsStoreReviewQueueTests: XCTestCase {
+    @MainActor
     func testSelectReviewFilterPublishesHeadBeforeCounts() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(
             testCase: self,
@@ -60,6 +60,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         XCTAssertEqual(store.reviewTotalCount, 2)
     }
 
+    @MainActor
     func testSelectReviewFilterDiscardsStaleAsyncResults() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(
             testCase: self,
@@ -106,6 +107,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         XCTAssertEqual(store.reviewTotalCount, 1)
     }
 
+    @MainActor
     func testSeedQueueAdvancesImmediatelyWhileCountsStillLoad() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(
             testCase: self,
@@ -166,6 +168,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         XCTAssertNil(store.reviewSubmissionFailure)
     }
 
+    @MainActor
     func testReviewQueueReplenishesWhenVisibleQueueDropsToThreshold() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(
             testCase: self,
@@ -222,6 +225,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         XCTAssertEqual(store.reviewQueue.count, 10)
     }
 
+    @MainActor
     func testEnqueueReviewSubmissionOptimisticallyRemovesCurrentCard() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self) { database in
             FlashcardsStoreTestSupport.ScriptedReviewSubmissionExecutor(
@@ -281,6 +285,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testReviewSubmissionReconcilesInPlaceWithoutLoaderFlashOrRemoteBanner() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(
             testCase: self,
@@ -334,6 +339,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         XCTAssertNil(store.currentTransientBanner)
     }
 
+    @MainActor
     func testEnqueueReviewSubmissionRejectsDuplicatePendingCard() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self) { database in
             FlashcardsStoreTestSupport.ScriptedReviewSubmissionExecutor(
@@ -373,6 +379,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testEnqueueReviewSubmissionFailureRestoresQueueAndSetsAlert() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self) { database in
             FlashcardsStoreTestSupport.ScriptedReviewSubmissionExecutor(
@@ -416,6 +423,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         XCTAssertNil(store.reviewSubmissionFailure)
     }
 
+    @MainActor
     func testReviewSubmissionProcessorContinuesAfterFailure() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self) { database in
             FlashcardsStoreTestSupport.ScriptedReviewSubmissionExecutor(
@@ -472,6 +480,7 @@ final class FlashcardsStoreReviewQueueTests: XCTestCase {
         XCTAssertTrue(failure.message.contains("First review failed"))
     }
 
+    @MainActor
     func testApplyExternalSnapshotUpdatesEffectiveQueueDuringPendingReview() async throws {
         let context = try FlashcardsStoreTestSupport.makeStoreContext(testCase: self) { database in
             FlashcardsStoreTestSupport.ScriptedReviewSubmissionExecutor(

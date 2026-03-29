@@ -33,7 +33,6 @@ private enum LiveSmokeIdentifier {
     static let aiComposerSendButton: String = "ai.composerSendButton"
 }
 
-@MainActor
 final class LiveSmokeUITests: XCTestCase {
     private let shortUiTimeoutSeconds: TimeInterval = 10
     private let longUiTimeoutSeconds: TimeInterval = 120
@@ -41,12 +40,9 @@ final class LiveSmokeUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
-    @MainActor
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false
-        self.app = XCUIApplication()
-        self.app.launch()
     }
 
     /**
@@ -55,7 +51,9 @@ final class LiveSmokeUITests: XCTestCase {
      keep the linked cloud state coherent after a relaunch. Each step fails at
      the exact screen boundary where the integration regressed.
      */
+    @MainActor
     func testLiveSmokeFlowUsesRealDemoAccountAcrossTabs() throws {
+        try self.launchApplication()
         let runId = String(Int(Date().timeIntervalSince1970))
         let reviewEmail = ProcessInfo.processInfo.environment[self.reviewEmailEnvironmentKey] ?? "apple-review@example.com"
         let workspaceName = "E2E ios \(runId)"
@@ -143,6 +141,7 @@ final class LiveSmokeUITests: XCTestCase {
         }
     }
 
+    @MainActor
     private func step(_ title: String, action: () throws -> Void) throws {
         do {
             try action()
@@ -158,6 +157,13 @@ final class LiveSmokeUITests: XCTestCase {
         }
     }
 
+    @MainActor
+    private func launchApplication() throws {
+        self.app = XCUIApplication()
+        self.app.launch()
+    }
+
+    @MainActor
     private func signInWithReviewAccount(reviewEmail: String) throws {
         try self.openSettingsTab()
         try self.tapElement(identifier: LiveSmokeIdentifier.settingsAccountSettingsRow, timeout: self.shortUiTimeoutSeconds)
@@ -190,6 +196,7 @@ final class LiveSmokeUITests: XCTestCase {
         try self.tapFirstNavigationBackButton()
     }
 
+    @MainActor
     private func createEphemeralWorkspace(workspaceName: String) throws {
         try self.openSettingsTab()
         try self.tapElement(
@@ -229,6 +236,7 @@ final class LiveSmokeUITests: XCTestCase {
         try self.assertTextExists(workspaceName, timeout: self.longUiTimeoutSeconds)
     }
 
+    @MainActor
     private func createManualCard(frontText: String, backText: String) throws {
         try self.openCardsTab()
         try self.tapElement(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: self.shortUiTimeoutSeconds)
@@ -249,6 +257,7 @@ final class LiveSmokeUITests: XCTestCase {
         try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorSaveButton, timeout: self.shortUiTimeoutSeconds)
     }
 
+    @MainActor
     private func reviewCurrentCard(expectedFrontText: String) throws {
         try self.openReviewTab()
         try self.assertTextExists(expectedFrontText, timeout: self.shortUiTimeoutSeconds)
@@ -256,6 +265,7 @@ final class LiveSmokeUITests: XCTestCase {
         try self.tapElement(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: self.shortUiTimeoutSeconds)
     }
 
+    @MainActor
     private func createAiCardWithConfirmation(
         aiFrontText: String,
         aiBackText: String,
@@ -285,6 +295,7 @@ final class LiveSmokeUITests: XCTestCase {
         try self.assertTextExists("Done", timeout: self.longUiTimeoutSeconds)
     }
 
+    @MainActor
     private func deleteEphemeralWorkspace() throws {
         try self.openSettingsTab()
         try self.tapElement(identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow, timeout: self.shortUiTimeoutSeconds)
@@ -312,49 +323,59 @@ final class LiveSmokeUITests: XCTestCase {
         try self.tapElement(identifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationButton, timeout: self.longUiTimeoutSeconds)
     }
 
+    @MainActor
     private func openReviewTab() throws {
         try self.tapTabButton(named: "Review")
     }
 
+    @MainActor
     private func openCardsTab() throws {
         try self.tapTabButton(named: "Cards")
     }
 
+    @MainActor
     private func openAITab() throws {
         try self.tapTabButton(named: "AI")
     }
 
+    @MainActor
     private func openSettingsTab() throws {
         try self.tapTabButton(named: "Settings")
     }
 
+    @MainActor
     private func openAccountStatus() throws {
         try self.tapElement(identifier: LiveSmokeIdentifier.settingsAccountSettingsRow, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow, timeout: self.shortUiTimeoutSeconds)
     }
 
+    @MainActor
     private func tapTabButton(named name: String) throws {
         let tabButton = self.app.tabBars.buttons[name]
         XCTAssertTrue(tabButton.waitForExistence(timeout: self.shortUiTimeoutSeconds), "Tab bar button '\(name)' did not appear")
         tabButton.tap()
     }
 
+    @MainActor
     private func tapElement(identifier: String, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
         XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element '\(identifier)' did not appear")
         element.tap()
     }
 
+    @MainActor
     private func assertElementExists(identifier: String, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
         XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element '\(identifier)' did not appear")
     }
 
+    @MainActor
     private func assertTextExists(_ text: String, timeout: TimeInterval) throws {
         let textElement = self.app.staticTexts[text]
         XCTAssertTrue(textElement.waitForExistence(timeout: timeout), "Text '\(text)' did not appear")
     }
 
+    @MainActor
     private func typeText(_ text: String, intoElementWithIdentifier identifier: String, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
         XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element '\(identifier)' did not appear")
@@ -362,6 +383,7 @@ final class LiveSmokeUITests: XCTestCase {
         element.typeText(text)
     }
 
+    @MainActor
     private func replaceText(_ text: String, inElementWithIdentifier identifier: String, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
         XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element '\(identifier)' did not appear")
@@ -375,12 +397,14 @@ final class LiveSmokeUITests: XCTestCase {
         element.typeText(text)
     }
 
+    @MainActor
     private func tapFirstNavigationBackButton() throws {
         let backButton = self.app.navigationBars.buttons.firstMatch
         XCTAssertTrue(backButton.waitForExistence(timeout: self.shortUiTimeoutSeconds), "Back button did not appear")
         backButton.tap()
     }
 
+    @MainActor
     private func assertCurrentWorkspacePickerIsVisible() throws {
         let pickerScreen = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.currentWorkspacePickerScreen)
@@ -400,6 +424,7 @@ final class LiveSmokeUITests: XCTestCase {
         )
     }
 
+    @MainActor
     private func attachFailureDiagnostics(stepTitle: String, error: Error) {
         let screenshotAttachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshotAttachment.name = "Failure Screenshot - \(stepTitle)"
@@ -423,6 +448,7 @@ final class LiveSmokeUITests: XCTestCase {
         self.add(diagnosticsAttachment)
     }
 
+    @MainActor
     private func visibleTextSnapshot() -> String {
         let labels = self.app.staticTexts.allElementsBoundByIndex
             .map(\.label)

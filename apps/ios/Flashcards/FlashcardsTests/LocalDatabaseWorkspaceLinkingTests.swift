@@ -2,8 +2,8 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
+    @MainActor
     func testRelinkWorkspaceMovesLocalDataIntoLinkedWorkspace() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
         let localWorkspaceId = try testWorkspaceId(database: database)
@@ -65,6 +65,7 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
         XCTAssertEqual(try database.loadLastAppliedReviewSequenceId(workspaceId: linkedSession.workspaceId), 0)
     }
 
+    @MainActor
     func testReplaceLocalWorkspaceAfterRemoteDeleteUsesReplacementWorkspaceAndPreservesCachedReplacementState() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
         let localWorkspaceId = try testWorkspaceId(database: database)
@@ -157,6 +158,7 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testSwitchActiveWorkspacePreservesCachedWorkspaceData() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
         let originalWorkspaceId = try testWorkspaceId(database: database)
@@ -208,6 +210,7 @@ final class LocalDatabaseWorkspaceLinkingTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testMissingSyncStateRowIsRecreatedOnRead() throws {
         let database = try LocalDatabaseTestSupport.makeDatabase(testCase: self)
         let workspaceId = try testWorkspaceId(database: database)

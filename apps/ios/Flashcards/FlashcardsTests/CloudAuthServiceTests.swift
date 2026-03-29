@@ -2,7 +2,6 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class CloudAuthServiceTests: XCTestCase {
     override class func setUp() {
         super.setUp()

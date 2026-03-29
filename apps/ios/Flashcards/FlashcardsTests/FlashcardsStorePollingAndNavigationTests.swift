@@ -2,8 +2,8 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
-@MainActor
 final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
+    @MainActor
     func testCurrentCloudSyncPollingIntervalReturnsFastForReviewTab() {
         let now = Date(timeIntervalSince1970: 1_773_600_000)
 
@@ -17,6 +17,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testCurrentCloudSyncPollingIntervalReturnsFastForCardsTab() {
         let now = Date(timeIntervalSince1970: 1_773_600_000)
 
@@ -30,6 +31,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testCurrentCloudSyncPollingIntervalReturnsFastForTemporaryFastWindow() {
         let now = Date(timeIntervalSince1970: 1_773_600_000)
 
@@ -43,6 +45,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testCurrentCloudSyncPollingIntervalReturnsDefaultAfterFastWindowExpires() {
         let now = Date(timeIntervalSince1970: 1_773_600_000)
 
@@ -56,6 +59,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testExtendCloudSyncFastPollingUntilDoesNotShortenExistingDeadline() {
         let now = Date(timeIntervalSince1970: 1_773_600_000)
         let currentDeadline = now.addingTimeInterval(300)
@@ -70,6 +74,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testStoreCurrentCloudSyncPollingIntervalReturnsFastForReviewTab() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         store.cloudSyncFastPollingUntil = nil
@@ -80,6 +85,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testStoreCurrentCloudSyncPollingIntervalReturnsFastForCardsTab() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         store.cloudSyncFastPollingUntil = nil
@@ -90,6 +96,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testSaveCardExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         store.cloudSyncFastPollingUntil = nil
@@ -107,6 +114,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testCreateDeckExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         store.cloudSyncFastPollingUntil = nil
@@ -123,6 +131,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testSubmitReviewExtendsTemporaryFastCloudSyncPolling() throws {
         let store = try FlashcardsStoreTestSupport.makeStore(testCase: self)
         try store.saveCard(
@@ -142,6 +151,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testAppNavigationModelOpenAICardCreationSelectsAITabAndSetsPresentationRequest() {
         let navigation = AppNavigationModel()
 
@@ -151,6 +161,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         XCTAssertEqual(navigation.aiChatPresentationRequest, .createCard)
     }
 
+    @MainActor
     func testAppNavigationModelOpenSettingsBuildsWorkspaceDecksPath() {
         let navigation = AppNavigationModel()
 
@@ -160,6 +171,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         XCTAssertEqual(navigation.settingsPath, [.workspace, .workspaceDecks])
     }
 
+    @MainActor
     func testSettingsNavigationDestinationsIncludeAccount() {
         let destinations: [SettingsNavigationDestination] = [
             .currentWorkspace,
@@ -194,6 +206,7 @@ final class FlashcardsStorePollingAndNavigationTests: XCTestCase {
         ])
     }
 
+    @MainActor
     func testFlashcardsLegalAndRepositoryUrlsMatchAppReviewSubmissionContract() {
         XCTAssertEqual(flashcardsPrivacyPolicyUrl, "https://flashcards-open-source-app.com/privacy/")
         XCTAssertEqual(flashcardsTermsOfServiceUrl, "https://flashcards-open-source-app.com/terms/")
