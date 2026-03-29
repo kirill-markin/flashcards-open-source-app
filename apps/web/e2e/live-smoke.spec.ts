@@ -80,6 +80,16 @@ type NetworkDiagnosticEvent = Readonly<{
   failureText: string | null;
 }>;
 
+type DeleteWorkspaceDialogState = "loading" | "retry" | "confirmation";
+
+type DeleteWorkspaceDialogObservation = Readonly<{
+  state: DeleteWorkspaceDialogState;
+  isLoadingVisible: boolean;
+  isRetryVisible: boolean;
+  isConfirmationPhraseVisible: boolean;
+  isConfirmationInputVisible: boolean;
+}>;
+
 type FailureDiagnosticRecord = Readonly<{
   primaryErrorMessage: string;
   primaryErrorStack: string | null;
@@ -867,6 +877,13 @@ async function deleteEphemeralWorkspace(
       "retry delete workspace details fetch",
       deleteDialog.getByRole("button", { name: "Retry" }),
     );
+    await trackedWaitForDeleteWorkspaceRetryTransition(
+      page,
+      diagnostics,
+      "wait for delete workspace dialog to transition after retry",
+      deleteDialog,
+      localUiTimeoutMs,
+    );
     deleteDialogState = await trackedWaitForDeleteWorkspaceConfirmationState(
       page,
       diagnostics,
@@ -875,7 +892,14 @@ async function deleteEphemeralWorkspace(
       externalUiTimeoutMs,
     );
     if (deleteDialogState !== "confirmation") {
-      throw new Error("Delete workspace dialog stayed in retry state after retry");
+      const finalObservation = await observeDeleteWorkspaceDialogState(deleteDialog);
+      throw new Error(
+        "Delete workspace dialog stayed in retry state after retry "
+        + `(state=${finalObservation.state}, loadingVisible=${finalObservation.isLoadingVisible}, `
+        + `retryVisible=${finalObservation.isRetryVisible}, `
+        + `confirmationPhraseVisible=${finalObservation.isConfirmationPhraseVisible}, `
+        + `confirmationInputVisible=${finalObservation.isConfirmationInputVisible})`,
+      );
     }
   }
 
@@ -1065,26 +1089,80 @@ async function trackedWaitForDeleteWorkspaceConfirmationState(
   timeoutMs: number,
 ): Promise<"confirmation" | "retry"> {
   return diagnostics.runAction(actionName, async () => {
-    const confirmationInput = dialog.getByLabel("Type the phrase exactly to continue.");
-    const confirmationPhrase = dialog.getByLabel("confirmation phrase");
-    const retryButton = dialog.getByRole("button", { name: "Retry" });
     const timeoutAt = Date.now() + timeoutMs;
+    let lastObservation = await observeDeleteWorkspaceDialogState(dialog);
 
     while (Date.now() < timeoutAt) {
-      const hasConfirmationState = await confirmationInput.isVisible() && await confirmationPhrase.isVisible();
-      if (hasConfirmationState) {
+      const nextObservation = await observeDeleteWorkspaceDialogState(dialog);
+      lastObservation = nextObservation;
+
+      if (nextObservation.state === "confirmation") {
         return "confirmation";
       }
 
-      if (await retryButton.isVisible()) {
+      if (nextObservation.state === "retry") {
         return "retry";
       }
 
       await page.waitForTimeout(250);
     }
 
-    throw new Error("Delete workspace dialog did not reach confirmation or retry state before timeout");
+    throw new Error(
+      "Delete workspace dialog did not reach confirmation or retry state before timeout "
+      + `(state=${lastObservation.state}, loadingVisible=${lastObservation.isLoadingVisible}, `
+      + `retryVisible=${lastObservation.isRetryVisible}, `
+      + `confirmationPhraseVisible=${lastObservation.isConfirmationPhraseVisible}, `
+      + `confirmationInputVisible=${lastObservation.isConfirmationInputVisible})`,
+    );
   });
+}
+
+async function trackedWaitForDeleteWorkspaceRetryTransition(
+  page: Page,
+  diagnostics: LiveSmokeDiagnostics,
+  actionName: string,
+  dialog: Locator,
+  timeoutMs: number,
+): Promise<void> {
+  await diagnostics.runAction(actionName, async () => {
+    await expect.poll(
+      async () => {
+        const observation = await observeDeleteWorkspaceDialogState(dialog);
+        return observation.state !== "retry" || observation.isLoadingVisible;
+      },
+      { timeout: timeoutMs },
+    ).toBe(true);
+
+    await page.waitForTimeout(100);
+  });
+}
+
+async function observeDeleteWorkspaceDialogState(
+  dialog: Locator,
+): Promise<DeleteWorkspaceDialogObservation> {
+  const confirmationInput = dialog.getByLabel("Type the phrase exactly to continue.");
+  const confirmationPhrase = dialog.getByLabel("confirmation phrase");
+  const retryButton = dialog.getByRole("button", { name: "Retry" });
+  const loadingText = dialog.getByText("Loading delete details…", { exact: true });
+
+  const isConfirmationInputVisible = await confirmationInput.isVisible().catch(() => false);
+  const isConfirmationPhraseVisible = await confirmationPhrase.isVisible().catch(() => false);
+  const isRetryVisible = await retryButton.isVisible().catch(() => false);
+  const isLoadingVisible = await loadingText.isVisible().catch(() => false);
+
+  const state: DeleteWorkspaceDialogState = isConfirmationInputVisible && isConfirmationPhraseVisible
+    ? "confirmation"
+    : isRetryVisible && isLoadingVisible === false && isConfirmationInputVisible === false && isConfirmationPhraseVisible === false
+      ? "retry"
+      : "loading";
+
+  return {
+    state,
+    isLoadingVisible,
+    isRetryVisible,
+    isConfirmationPhraseVisible,
+    isConfirmationInputVisible,
+  };
 }
 
 async function attachPageSnapshot(
