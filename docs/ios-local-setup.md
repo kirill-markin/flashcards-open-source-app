@@ -48,3 +48,7 @@ Set the same values in the Xcode Cloud workflow environment:
 `apps/ios/Flashcards/ci_scripts/ci_post_clone.sh` writes those values into the generated `Config/Local.xcconfig` file during Xcode Cloud builds.
 
 The iOS release-gate and monitoring expectations are documented in [`docs/ios-ci-cd.md`](ios-ci-cd.md).
+
+If Xcode Cloud should pin the live smoke flow to the standard review/demo account explicitly, also set:
+
+- `FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com`

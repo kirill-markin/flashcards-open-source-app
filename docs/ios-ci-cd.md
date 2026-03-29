@@ -37,6 +37,12 @@ The required environment values are documented in [`docs/ios-local-setup.md`](io
 
 If the workflow injects the review/demo email for the live smoke flow explicitly, use `FLASHCARDS_LIVE_REVIEW_EMAIL`.
 
+Recommended value for this repository:
+
+- `FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com`
+
+This keeps the Xcode Cloud live smoke workflow pinned to the intended review/demo account instead of relying on the default value embedded in the UI test code.
+
 ## Monitoring expectations
 
 After pushing to `main`, watch the Xcode Cloud workflow through the full archive and distribution path. Do not assume the iOS release completed just because GitHub-side workflows are green.
