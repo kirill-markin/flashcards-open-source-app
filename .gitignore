@@ -35,3 +35,4 @@ apps/web/test-results/
 # temporary files
 tmp/
 temp/
+.codex-tmp-run/
