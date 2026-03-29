@@ -12,11 +12,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.feature.settings.CloudPostAuthRoute
+import com.flashcardsopensourceapp.feature.settings.CloudSendCodeNavigationOutcome
 import com.flashcardsopensourceapp.feature.settings.CloudSignInCodeRoute
 import com.flashcardsopensourceapp.feature.settings.CloudSignInEmailRoute
 import com.flashcardsopensourceapp.feature.settings.createCloudSignInViewModelFactory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
     appGraph: AppGraph,
@@ -47,9 +50,20 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 onEmailChange = signInViewModel::updateEmail,
                 onSendCode = {
                     coroutineScope.launch {
-                        val didCreateChallenge = signInViewModel.sendCode()
-                        if (didCreateChallenge) {
-                            navController.navigate(route = SettingsAccountSignInCodeDestination.route)
+                        when (signInViewModel.sendCode()) {
+                            CloudSendCodeNavigationOutcome.OtpRequired -> {
+                                runAuthNavigationOnMainThread {
+                                    navController.navigate(route = SettingsAccountSignInCodeDestination.route)
+                                }
+                            }
+
+                            CloudSendCodeNavigationOutcome.Verified -> {
+                                runAuthNavigationOnMainThread {
+                                    navController.navigate(route = SettingsAccountPostAuthDestination.route)
+                                }
+                            }
+
+                            CloudSendCodeNavigationOutcome.NoNavigation -> Unit
                         }
                     }
                 },
@@ -81,7 +95,9 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     coroutineScope.launch {
                         val didVerify = signInViewModel.verifyCode()
                         if (didVerify) {
-                            navController.navigate(route = SettingsAccountPostAuthDestination.route)
+                            runAuthNavigationOnMainThread {
+                                navController.navigate(route = SettingsAccountPostAuthDestination.route)
+                            }
                         }
                     }
                 },
@@ -133,7 +149,9 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 onLogout = {
                     coroutineScope.launch {
                         signInViewModel.logoutAfterPostAuthFailure()
-                        navigateToSettingsAccountStatus(navController = navController)
+                        runAuthNavigationOnMainThread {
+                            navigateToSettingsAccountStatus(navController = navController)
+                        }
                     }
                 },
                 onBack = {
@@ -162,4 +180,16 @@ private fun navigateToSettingsAccountStatus(navController: NavHostController) {
         destination = SettingsDestination
     )
     navController.navigate(route = SettingsAccountStatusDestination.route)
+}
+
+/**
+ * Navigation callbacks here run after suspend auth work. Keeping the actual
+ * `NavController` mutation on `Dispatchers.Main.immediate` prevents the demo
+ * bypass path from resuming on a worker thread and tripping Navigation's
+ * lifecycle thread checks in Firebase Test Lab.
+ */
+private suspend fun runAuthNavigationOnMainThread(action: () -> Unit) {
+    withContext(Dispatchers.Main.immediate) {
+        action()
+    }
 }

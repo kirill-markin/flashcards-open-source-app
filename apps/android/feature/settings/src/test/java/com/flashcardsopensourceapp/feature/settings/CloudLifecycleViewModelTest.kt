@@ -224,7 +224,7 @@ class CloudLifecycleViewModelTest {
         val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
 
         viewModel.updateEmail("user@example.com")
-        assertTrue(viewModel.sendCode())
+        assertEquals(CloudSendCodeNavigationOutcome.OtpRequired, viewModel.sendCode())
         viewModel.updateCode("123456")
         assertTrue(viewModel.verifyCode())
         advanceUntilIdle()
@@ -272,7 +272,7 @@ class CloudLifecycleViewModelTest {
         val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
 
         viewModel.updateEmail("user@example.com")
-        assertTrue(viewModel.sendCode())
+        assertEquals(CloudSendCodeNavigationOutcome.OtpRequired, viewModel.sendCode())
         viewModel.updateCode("123456")
         assertTrue(viewModel.verifyCode())
         advanceUntilIdle()
@@ -327,7 +327,7 @@ class CloudLifecycleViewModelTest {
         val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
 
         viewModel.updateEmail("google-review@example.com")
-        assertTrue(viewModel.sendCode())
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
         advanceUntilIdle()
         assertEquals(CloudPostAuthMode.READY_TO_AUTO_LINK, viewModel.postAuthUiState.value.mode)
         assertEquals("google-review@example.com", viewModel.postAuthUiState.value.verifiedEmail)
@@ -367,7 +367,7 @@ class CloudLifecycleViewModelTest {
         val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
 
         viewModel.updateEmail("user@example.com")
-        assertTrue(viewModel.sendCode())
+        assertEquals(CloudSendCodeNavigationOutcome.OtpRequired, viewModel.sendCode())
         viewModel.updateCode("123456")
         assertTrue(viewModel.verifyCode())
         advanceUntilIdle()
