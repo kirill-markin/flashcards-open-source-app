@@ -152,20 +152,10 @@ class MainActivityTest {
             composeRule.onAllNodesWithText("This came from the Android app.").fetchSemanticsNodes().isEmpty()
         }
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Delete card").fetchSemanticsNodes().isNotEmpty() ||
-                (
-                    composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
-                        composeRule.onAllNodes(
-                            matcher = hasText("Updated Android card", substring = true).and(other = hasClickAction())
-                        ).fetchSemanticsNodes().isNotEmpty()
-                    )
+            composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isNotEmpty()
         }
-
-        if (composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNode(
-                matcher = hasText("Updated Android card", substring = true).and(other = hasClickAction())
-            ).performClick()
-        }
+        composeRule.onNodeWithText("Updated Android card").performClick()
         scrollToText(text = "Delete card")
         composeRule.onNodeWithText("Delete card").performClick()
 
