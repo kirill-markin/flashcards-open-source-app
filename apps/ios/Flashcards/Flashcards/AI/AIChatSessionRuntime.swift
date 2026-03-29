@@ -34,7 +34,7 @@ actor AIChatSessionRuntime {
             let startResponse = try await self.chatService.startRun(
                 session: session,
                 request: AIChatStartRunRequestBody(
-                    sessionId: initialState.chatSessionId,
+                    sessionId: initialState.chatSessionId.isEmpty ? nil : initialState.chatSessionId,
                     content: outgoingContent,
                     timezone: TimeZone.current.identifier
                 )
