@@ -26,8 +26,8 @@ Production delivery is gated client-by-client with native test stacks:
 - Android uses JUnit plus native Compose instrumentation, including the stateful live smoke in [`apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`](apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt)
 - Web uses Vitest and Playwright, including the stateful live smoke in [`apps/web/e2e/live-smoke.spec.ts`](apps/web/e2e/live-smoke.spec.ts)
 
-The intended release order is native unit/build checks first, then native live smoke checks, then production release.
-After every push to `main`, watch all triggered client pipelines through completion instead of assuming the release finished automatically.
+For web/backend/auth/infra on `main`, production deploy now happens first and the web Playwright smoke runs after deploy as an operational signal. iOS and Android keep their own native release gates.
+After every push to `main`, watch all triggered client pipelines through completion instead of assuming the release finished automatically. A failed web post-deploy smoke is expected to be fixed forward.
 
 ## Card scheduling
 
