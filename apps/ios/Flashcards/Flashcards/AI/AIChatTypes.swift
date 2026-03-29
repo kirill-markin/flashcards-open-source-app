@@ -325,6 +325,91 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
     }
 }
 
+private struct AIChatDecodableContentPartPayload: Decodable {
+    let value: AIChatContentPart?
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case mediaType
+        case base64Data
+        case fileName
+        case toolCallId
+        case id
+        case name
+        case status
+        case input
+        case output
+        case buttonTitle
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+
+        switch type {
+        case "text":
+            self.value = .text(try container.decode(String.self, forKey: .text))
+        case "image":
+            self.value = .image(
+                mediaType: try container.decode(String.self, forKey: .mediaType),
+                base64Data: try container.decode(String.self, forKey: .base64Data)
+            )
+        case "file":
+            self.value = .file(
+                fileName: try container.decode(String.self, forKey: .fileName),
+                mediaType: try container.decode(String.self, forKey: .mediaType),
+                base64Data: try container.decode(String.self, forKey: .base64Data)
+            )
+        case "tool_call":
+            let toolCallId: String
+            if let aliasedToolCallId = try container.decodeIfPresent(String.self, forKey: .toolCallId) {
+                toolCallId = aliasedToolCallId
+            } else if let serverToolCallId = try container.decodeIfPresent(String.self, forKey: .id) {
+                toolCallId = serverToolCallId
+            } else {
+                throw DecodingError.keyNotFound(
+                    CodingKeys.toolCallId,
+                    DecodingError.Context(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "AI chat tool call id is missing."
+                    )
+                )
+            }
+
+            self.value = .toolCall(
+                AIChatToolCall(
+                    id: toolCallId,
+                    name: try container.decode(String.self, forKey: .name),
+                    status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
+                    input: try container.decodeIfPresent(String.self, forKey: .input),
+                    output: try container.decodeIfPresent(String.self, forKey: .output)
+                )
+            )
+        case "account_upgrade_prompt":
+            self.value = .accountUpgradePrompt(
+                message: try container.decode(String.self, forKey: .text),
+                buttonTitle: try container.decode(String.self, forKey: .buttonTitle)
+            )
+        case "reasoning_summary":
+            self.value = nil
+        default:
+            throw DecodingError.dataCorruptedError(
+                forKey: .type,
+                in: container,
+                debugDescription: "Unsupported AI chat content type: \(type)"
+            )
+        }
+    }
+}
+
+private func decodeAIChatContentParts<Key: CodingKey>(
+    container: KeyedDecodingContainer<Key>,
+    key: Key
+) throws -> [AIChatContentPart] {
+    try container.decode([AIChatDecodableContentPartPayload].self, forKey: key).compactMap(\.value)
+}
+
 struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
     let id: String
     let role: AIChatRole
@@ -359,7 +444,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(String.self, forKey: .id)
         self.role = try container.decode(AIChatRole.self, forKey: .role)
-        self.content = try container.decode([AIChatContentPart].self, forKey: .content)
+        self.content = try decodeAIChatContentParts(container: container, key: .content)
         if let timestampMillis = try? container.decode(Int.self, forKey: .timestamp) {
             self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
         } else if let timestamp = try? container.decode(String.self, forKey: .timestamp) {
@@ -453,7 +538,7 @@ struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.role = try container.decode(AIChatRole.self, forKey: .role)
-        self.content = try container.decode([AIChatContentPart].self, forKey: .content)
+        self.content = try decodeAIChatContentParts(container: container, key: .content)
         if let timestampMillis = try? container.decode(Int.self, forKey: .timestamp) {
             self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
         } else if let timestamp = try? container.decode(String.self, forKey: .timestamp) {
