@@ -35,7 +35,7 @@ private enum LiveSmokeIdentifier {
 
 final class LiveSmokeUITests: XCTestCase {
     private let shortUiTimeoutSeconds: TimeInterval = 10
-    private let longUiTimeoutSeconds: TimeInterval = 120
+    private let longUiTimeoutSeconds: TimeInterval = 30
     private let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
 
     private var app: XCUIApplication!
