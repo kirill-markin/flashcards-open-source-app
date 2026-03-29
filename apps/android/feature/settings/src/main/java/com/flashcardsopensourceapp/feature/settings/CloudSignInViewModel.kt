@@ -115,7 +115,7 @@ class CloudSignInViewModel(
                 verifiedEmail = draft.linkContext?.email,
                 isGuestUpgrade = draft.linkContext?.guestUpgradeMode != null,
                 workspaces = buildCloudPostAuthWorkspaceItems(
-                    activeWorkspaceId = draft.linkContext?.activeWorkspaceId,
+                    preferredWorkspaceId = draft.linkContext?.preferredWorkspaceId,
                     workspaces = draft.linkContext?.workspaces ?: emptyList()
                 ),
                 pendingWorkspaceTitle = draft.pendingSelection?.let { selection ->
@@ -157,7 +157,7 @@ class CloudSignInViewModel(
 
     private fun buildPendingSelection(linkContext: CloudWorkspaceLinkContext): CloudWorkspaceLinkSelection? {
         return buildAutomaticWorkspaceSelection(
-            activeWorkspaceId = linkContext.activeWorkspaceId,
+            preferredWorkspaceId = linkContext.preferredWorkspaceId,
             workspaces = linkContext.workspaces
         )
     }

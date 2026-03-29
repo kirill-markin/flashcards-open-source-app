@@ -71,6 +71,49 @@ class CloudAccountUiSupportTest {
     }
 
     @Test
+    fun buildCurrentWorkspaceItemsDoesNotFallbackToServerSelectedWorkspaceWhenActiveWorkspaceIsInvalid() {
+        val items = buildCurrentWorkspaceItems(
+            activeWorkspaceId = "workspace-missing",
+            workspaces = listOf(
+                CloudWorkspaceSummary(
+                    workspaceId = "workspace-1",
+                    name = "Personal",
+                    createdAtMillis = 1L,
+                    isSelected = true
+                ),
+                CloudWorkspaceSummary(
+                    workspaceId = "workspace-2",
+                    name = "Personal",
+                    createdAtMillis = 2L,
+                    isSelected = false
+                )
+            )
+        ).filterNot(CurrentWorkspaceItemUiState::isCreateNew)
+
+        assertTrue(items.none(CurrentWorkspaceItemUiState::isSelected))
+        assertEquals(
+            "The current workspace selection is invalid on this device. Retry the last workspace action or reload linked workspaces.",
+            currentWorkspaceSelectionErrorMessage(
+                activeWorkspaceId = "workspace-missing",
+                workspaces = listOf(
+                    CloudWorkspaceSummary(
+                        workspaceId = "workspace-1",
+                        name = "Personal",
+                        createdAtMillis = 1L,
+                        isSelected = true
+                    ),
+                    CloudWorkspaceSummary(
+                        workspaceId = "workspace-2",
+                        name = "Personal",
+                        createdAtMillis = 2L,
+                        isSelected = false
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
     fun buildCurrentWorkspaceItemsKeepsSameNameWorkspaceSubtitlesDistinct() {
         val items = buildCurrentWorkspaceItems(
             activeWorkspaceId = "workspace-2",
@@ -119,9 +162,9 @@ class CloudAccountUiSupportTest {
     }
 
     @Test
-    fun buildCloudPostAuthWorkspaceItemsSelectsOnlyActiveWorkspaceIdWhenNamesMatch() {
+    fun buildCloudPostAuthWorkspaceItemsSelectsOnlyPreferredWorkspaceIdWhenNamesMatch() {
         val items = buildCloudPostAuthWorkspaceItems(
-            activeWorkspaceId = "workspace-2",
+            preferredWorkspaceId = "workspace-2",
             workspaces = listOf(
                 CloudWorkspaceSummary(
                     workspaceId = "workspace-1",
@@ -147,9 +190,9 @@ class CloudAccountUiSupportTest {
     }
 
     @Test
-    fun buildAutomaticWorkspaceSelectionUsesActiveWorkspaceIdBeforeServerSelectedFlag() {
+    fun buildAutomaticWorkspaceSelectionUsesPreferredWorkspaceIdBeforeServerSelectedFlag() {
         val selection = buildAutomaticWorkspaceSelection(
-            activeWorkspaceId = "workspace-2",
+            preferredWorkspaceId = "workspace-2",
             workspaces = listOf(
                 CloudWorkspaceSummary(
                     workspaceId = "workspace-1",
@@ -173,9 +216,9 @@ class CloudAccountUiSupportTest {
     }
 
     @Test
-    fun buildAutomaticWorkspaceSelectionRequiresUniqueServerSelectedWorkspaceWhenActiveIdIsMissing() {
+    fun buildAutomaticWorkspaceSelectionRequiresUniqueServerSelectedWorkspaceWhenPreferredIdIsMissing() {
         val selection = buildAutomaticWorkspaceSelection(
-            activeWorkspaceId = null,
+            preferredWorkspaceId = null,
             workspaces = listOf(
                 CloudWorkspaceSummary(
                     workspaceId = "workspace-1",
@@ -193,5 +236,48 @@ class CloudAccountUiSupportTest {
         )
 
         assertNull(selection)
+    }
+
+    @Test
+    fun buildAutomaticWorkspaceSelectionDoesNotFallbackWhenPreferredWorkspaceIsInvalid() {
+        val selection = buildAutomaticWorkspaceSelection(
+            preferredWorkspaceId = "workspace-missing",
+            workspaces = listOf(
+                CloudWorkspaceSummary(
+                    workspaceId = "workspace-1",
+                    name = "Personal",
+                    createdAtMillis = 1L,
+                    isSelected = true
+                ),
+                CloudWorkspaceSummary(
+                    workspaceId = "workspace-2",
+                    name = "Personal",
+                    createdAtMillis = 2L,
+                    isSelected = false
+                )
+            )
+        )
+
+        assertNull(selection)
+    }
+
+    @Test
+    fun buildAutomaticWorkspaceSelectionAutoSelectsTheOnlyWorkspaceWithoutPreferredId() {
+        val selection = buildAutomaticWorkspaceSelection(
+            preferredWorkspaceId = null,
+            workspaces = listOf(
+                CloudWorkspaceSummary(
+                    workspaceId = "workspace-1",
+                    name = "Personal",
+                    createdAtMillis = 1L,
+                    isSelected = false
+                )
+            )
+        )
+
+        assertEquals(
+            CloudWorkspaceLinkSelection.Existing(workspaceId = "workspace-1"),
+            selection
+        )
     }
 }
