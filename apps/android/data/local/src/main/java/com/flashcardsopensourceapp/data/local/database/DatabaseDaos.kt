@@ -16,11 +16,23 @@ interface WorkspaceDao {
     @Query("SELECT COUNT(*) FROM workspaces")
     suspend fun countWorkspaces(): Int
 
-    @Query("SELECT * FROM workspaces ORDER BY createdAtMillis ASC LIMIT 1")
-    fun observeWorkspace(): Flow<WorkspaceEntity?>
+    @Query("SELECT * FROM workspaces ORDER BY createdAtMillis DESC, workspaceId DESC")
+    fun observeWorkspaces(): Flow<List<WorkspaceEntity>>
 
-    @Query("SELECT * FROM workspaces ORDER BY createdAtMillis ASC LIMIT 1")
-    suspend fun loadWorkspace(): WorkspaceEntity?
+    @Query("SELECT * FROM workspaces ORDER BY createdAtMillis DESC, workspaceId DESC")
+    suspend fun loadWorkspaces(): List<WorkspaceEntity>
+
+    @Query("SELECT * FROM workspaces WHERE workspaceId = :workspaceId LIMIT 1")
+    fun observeWorkspaceById(workspaceId: String): Flow<WorkspaceEntity?>
+
+    @Query("SELECT * FROM workspaces WHERE workspaceId = :workspaceId LIMIT 1")
+    suspend fun loadWorkspaceById(workspaceId: String): WorkspaceEntity?
+
+    @Query("SELECT * FROM workspaces ORDER BY createdAtMillis ASC, workspaceId ASC LIMIT 1")
+    fun observeAnyWorkspace(): Flow<WorkspaceEntity?>
+
+    @Query("SELECT * FROM workspaces ORDER BY createdAtMillis ASC, workspaceId ASC LIMIT 1")
+    suspend fun loadAnyWorkspace(): WorkspaceEntity?
 
     @Update
     suspend fun updateWorkspace(workspace: WorkspaceEntity)

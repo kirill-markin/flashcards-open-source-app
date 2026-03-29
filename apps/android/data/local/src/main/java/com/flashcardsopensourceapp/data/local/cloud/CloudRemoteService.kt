@@ -939,11 +939,13 @@ private fun parseCloudErrorPayload(responseBody: String): Pair<String?, String?>
     return try {
         val payload = JSONObject(responseBody)
         val topLevelCode = payload.optCloudStringOrNull("code", "error.code")
-        val nestedError = payload.optCloudObjectOrNull("error", "error.error")
-        val nestedCode = nestedError?.optCloudStringOrNull("code", "error.error.code")
+        val nestedErrorValue = payload.opt("error")
+        val nestedCode = (nestedErrorValue as? JSONObject)?.optCloudStringOrNull("code", "error.error.code")
         val requestId = payload.optCloudStringOrNull("requestId", "error.requestId")
         Pair(topLevelCode ?: nestedCode, requestId)
     } catch (_: JSONException) {
+        null
+    } catch (_: CloudContractMismatchException) {
         null
     }
 }

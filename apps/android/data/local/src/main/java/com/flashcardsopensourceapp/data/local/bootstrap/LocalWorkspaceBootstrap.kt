@@ -16,7 +16,7 @@ suspend fun ensureLocalWorkspaceShell(
     currentTimeMillis: Long
 ): String {
     return database.withTransaction {
-        val existingWorkspace = database.workspaceDao().loadWorkspace()
+        val existingWorkspace = database.workspaceDao().loadAnyWorkspace()
         if (existingWorkspace != null) {
             ensureLocalWorkspaceDependencies(
                 database = database,

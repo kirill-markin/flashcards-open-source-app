@@ -136,7 +136,7 @@ class CloudIdentityLifecycleRepositoryTest {
 
         resetCoordinator.resetLocalStateForCloudIdentityChange()
 
-        val resetWorkspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+        val resetWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
             "Expected a local workspace after reset."
         }
 
@@ -179,11 +179,11 @@ class CloudIdentityLifecycleRepositoryTest {
         assertTrue(failedState is AccountDeletionState.Failed)
         assertEquals(1, remoteGateway.deleteAccountCalls)
         assertEquals(CloudAccountState.LINKED, cloudPreferencesStore.currentCloudSettings().cloudState)
-        assertEquals(initialLocalWorkspaceId, database.workspaceDao().loadWorkspace()?.workspaceId)
+        assertEquals(initialLocalWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
 
         repository.retryPendingAccountDeletion()
 
-        val resetWorkspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+        val resetWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
             "Expected a local workspace after retry."
         }
 
@@ -211,7 +211,7 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(1, remoteGateway.deleteAccountCalls)
         assertEquals(AccountDeletionState.Hidden, cloudPreferencesStore.currentAccountDeletionState())
         assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
-        assertEquals(localWorkspaceName, database.workspaceDao().loadWorkspace()?.name)
+        assertEquals(localWorkspaceName, database.workspaceDao().loadAnyWorkspace()?.name)
     }
 
     @Test
@@ -245,7 +245,7 @@ class CloudIdentityLifecycleRepositoryTest {
 
         repository.syncNow()
 
-        val resetWorkspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+        val resetWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
             "Expected a local workspace after remote deletion."
         }
 
@@ -371,12 +371,101 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(CloudAccountState.LINKED, cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(selectedWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals("user@example.com", cloudPreferencesStore.currentCloudSettings().linkedEmail)
-        assertEquals(selectedWorkspace.workspaceId, database.workspaceDao().loadWorkspace()?.workspaceId)
+        assertEquals(selectedWorkspace.workspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
         assertNull(
             guestAiSessionStore.loadAnySession(configuration = makeOfficialCloudServiceConfiguration())
         )
         assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)
         assertEquals(1, remoteGateway.completeGuestUpgradeCalls)
+    }
+
+    @Test
+    fun switchLinkedWorkspaceCreateNewReplacesCurrentLocalWorkspaceWhenRemoteWorkspaceIsEmpty() = runBlocking {
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
+        val createdWorkspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-new",
+            name = "Personal",
+            createdAtMillis = 300L,
+            isSelected = true
+        )
+        val remoteGateway = FakeCloudRemoteGateway(
+            bootstrapRemoteIsEmpty = true,
+            createdWorkspace = createdWorkspace
+        )
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+
+        val linkedWorkspace = repository.switchLinkedWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+
+        assertEquals(createdWorkspace.workspaceId, linkedWorkspace.workspaceId)
+        assertEquals(createdWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertEquals(createdWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertEquals(createdWorkspace.workspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+    }
+
+    @Test
+    fun renameCurrentWorkspaceTargetsTheCreatedLinkedWorkspaceAfterCreateNewSwitch() = runBlocking {
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
+        val createdWorkspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-new",
+            name = "Personal",
+            createdAtMillis = 300L,
+            isSelected = true
+        )
+        val remoteGateway = FakeCloudRemoteGateway(
+            bootstrapRemoteIsEmpty = true,
+            createdWorkspace = createdWorkspace
+        )
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+        repository.switchLinkedWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+
+        val renamedWorkspace = repository.renameCurrentWorkspace(name = "Renamed Workspace")
+
+        assertEquals(createdWorkspace.workspaceId, remoteGateway.renameWorkspaceIds.single())
+        assertEquals("Renamed Workspace", renamedWorkspace.name)
+        assertEquals("Renamed Workspace", database.workspaceDao().loadAnyWorkspace()?.name)
+    }
+
+    @Test
+    fun completeCloudLinkExistingWorkspaceReplacesTheLocalShellAndKeepsRenameTargetAligned() = runBlocking {
+        val linkedWorkspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-linked",
+            name = "Linked Workspace",
+            createdAtMillis = 200L,
+            isSelected = true
+        )
+        val remoteGateway = FakeCloudRemoteGateway(
+            bootstrapRemoteIsEmpty = true,
+            accountSnapshot = CloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(linkedWorkspace)
+            )
+        )
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+
+        repository.verifyCode(
+            challenge = CloudOtpChallenge(
+                email = "user@example.com",
+                csrfToken = "csrf",
+                otpSessionToken = "otp"
+            ),
+            code = "123456"
+        )
+        repository.completeCloudLink(
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = linkedWorkspace.workspaceId)
+        )
+
+        val renamedWorkspace = repository.renameCurrentWorkspace(name = "Renamed Linked Workspace")
+
+        assertEquals(linkedWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertEquals(linkedWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertEquals(linkedWorkspace.workspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertEquals(linkedWorkspace.workspaceId, remoteGateway.renameWorkspaceIds.single())
+        assertEquals("Renamed Linked Workspace", renamedWorkspace.name)
     }
 
     private fun createCloudAccountRepository(remoteGateway: CloudRemoteGateway): LocalCloudAccountRepository {
@@ -411,7 +500,7 @@ class CloudIdentityLifecycleRepositoryTest {
     }
 
     private suspend fun requireLocalWorkspaceId(): String {
-        return requireNotNull(database.workspaceDao().loadWorkspace()?.workspaceId) {
+        return requireNotNull(database.workspaceDao().loadAnyWorkspace()?.workspaceId) {
             "Expected a local workspace."
         }
     }
@@ -429,6 +518,13 @@ private class FakeCloudRemoteGateway(
     private var deleteFailuresRemaining: Int = 0,
     private val fetchAccountError: CloudRemoteException? = null,
     private val guestUpgradeMode: CloudGuestUpgradeMode? = null,
+    private val bootstrapRemoteIsEmpty: Boolean = true,
+    private val createdWorkspace: CloudWorkspaceSummary = CloudWorkspaceSummary(
+        workspaceId = "workspace-new",
+        name = "Personal",
+        createdAtMillis = 300L,
+        isSelected = true
+    ),
     private val accountSnapshot: CloudAccountSnapshot = CloudAccountSnapshot(
         userId = "user-1",
         email = "user@example.com",
@@ -445,6 +541,7 @@ private class FakeCloudRemoteGateway(
     var deleteAccountCalls: Int = 0
     var prepareGuestUpgradeCalls: Int = 0
     var completeGuestUpgradeCalls: Int = 0
+    val renameWorkspaceIds = mutableListOf<String>()
 
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
     }
@@ -508,12 +605,7 @@ private class FakeCloudRemoteGateway(
     }
 
     override suspend fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary {
-        return CloudWorkspaceSummary(
-            workspaceId = "workspace-new",
-            name = name,
-            createdAtMillis = 300L,
-            isSelected = true
-        )
+        return createdWorkspace.copy(name = name)
     }
 
     override suspend fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary {
@@ -528,7 +620,13 @@ private class FakeCloudRemoteGateway(
         workspaceId: String,
         name: String
     ): CloudWorkspaceSummary {
-        throw UnsupportedOperationException()
+        renameWorkspaceIds += workspaceId
+        return CloudWorkspaceSummary(
+            workspaceId = workspaceId,
+            name = name,
+            createdAtMillis = createdWorkspace.createdAtMillis,
+            isSelected = true
+        )
     }
 
     override suspend fun loadWorkspaceDeletePreview(
@@ -587,7 +685,7 @@ private class FakeCloudRemoteGateway(
             nextCursor = null,
             hasMore = false,
             bootstrapHotChangeId = 0L,
-            remoteIsEmpty = true
+            remoteIsEmpty = bootstrapRemoteIsEmpty
         )
     }
 

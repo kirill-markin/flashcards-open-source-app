@@ -137,14 +137,14 @@ class LocalCloudAccountRepository(
             linkedUserId = accountSnapshot.userId,
             linkedWorkspaceId = null,
             linkedEmail = accountSnapshot.email,
-            activeWorkspaceId = database.workspaceDao().loadWorkspace()?.workspaceId
+            activeWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
         )
         return CloudWorkspaceLinkContext(
             userId = accountSnapshot.userId,
             email = accountSnapshot.email,
             workspaces = accountSnapshot.workspaces,
             guestUpgradeMode = guestUpgradeMode,
-            activeWorkspaceId = database.workspaceDao().loadWorkspace()?.workspaceId
+            activeWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
         )
     }
 
@@ -193,9 +193,11 @@ class LocalCloudAccountRepository(
             "Workspace rename is available only for linked cloud workspaces."
         }
         val authenticatedSession = authenticatedSession()
-        val workspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
-            "Workspace rename requires a local workspace."
-        }
+        val workspace = requireCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore,
+            missingWorkspaceMessage = "Workspace rename requires a current local workspace."
+        )
         val trimmedName = name.trim()
         require(trimmedName.isNotEmpty()) {
             "Workspace name is required."
@@ -218,9 +220,11 @@ class LocalCloudAccountRepository(
             "Workspace deletion is available only for linked cloud workspaces."
         }
         val authenticatedSession = authenticatedSession()
-        val workspaceId = requireNotNull(database.workspaceDao().loadWorkspace()?.workspaceId) {
-            "Workspace deletion requires a local workspace."
-        }
+        val workspaceId = requireCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore,
+            missingWorkspaceMessage = "Workspace deletion requires a current local workspace."
+        ).workspaceId
         return remoteService.loadWorkspaceDeletePreview(
             apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
             bearerToken = authenticatedSession.credentials.idToken,
@@ -233,9 +237,11 @@ class LocalCloudAccountRepository(
             "Workspace deletion is available only for linked cloud workspaces."
         }
         val authenticatedSession = authenticatedSession()
-        val currentWorkspaceId = requireNotNull(database.workspaceDao().loadWorkspace()?.workspaceId) {
-            "Workspace deletion requires a local workspace."
-        }
+        val currentWorkspaceId = requireCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore,
+            missingWorkspaceMessage = "Workspace deletion requires a current local workspace."
+        ).workspaceId
         val result = remoteService.deleteWorkspace(
             apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
             bearerToken = authenticatedSession.credentials.idToken,
@@ -470,10 +476,19 @@ class LocalCloudAccountRepository(
             linkedEmail = accountSnapshot.email,
             activeWorkspaceId = selectedWorkspace.workspaceId
         )
+        val localCurrentWorkspace = requireCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore,
+            missingWorkspaceMessage = "Linked workspace is missing locally after cloud link."
+        )
+        check(localCurrentWorkspace.workspaceId == selectedWorkspace.workspaceId) {
+            "Linked workspace '${selectedWorkspace.workspaceId}' did not become the current local workspace. " +
+                "Local workspace='${localCurrentWorkspace.workspaceId}'."
+        }
     }
 
     private suspend fun activeGuestSession(configuration: CloudServiceConfiguration): StoredGuestAiSession? {
-        val localWorkspaceId = database.workspaceDao().loadWorkspace()?.workspaceId
+        val localWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
         return guestSessionStore.loadSession(
             localWorkspaceId = localWorkspaceId,
             configuration = configuration

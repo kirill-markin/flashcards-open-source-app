@@ -81,7 +81,7 @@ class AppDatabaseTest {
 
         assertEquals(firstWorkspaceId, secondWorkspaceId)
         assertEquals(1, database.workspaceDao().countWorkspaces())
-        assertEquals(localWorkspaceName, database.workspaceDao().loadWorkspace()?.name)
+        assertEquals(localWorkspaceName, database.workspaceDao().loadAnyWorkspace()?.name)
         assertEquals(0, database.outboxDao().countOutboxEntries())
         assertNotNull(database.syncStateDao().loadSyncState(workspaceId = firstWorkspaceId))
         assertNotNull(
@@ -440,6 +440,7 @@ class AppDatabaseTest {
     private fun makeCardsRepository(): CardsRepository {
         return LocalCardsRepository(
             database = database,
+            preferencesStore = preferencesStore,
             syncLocalStore = syncLocalStore
         )
     }
@@ -447,6 +448,7 @@ class AppDatabaseTest {
     private fun makeDecksRepository(): DecksRepository {
         return LocalDecksRepository(
             database = database,
+            preferencesStore = preferencesStore,
             syncLocalStore = syncLocalStore
         )
     }

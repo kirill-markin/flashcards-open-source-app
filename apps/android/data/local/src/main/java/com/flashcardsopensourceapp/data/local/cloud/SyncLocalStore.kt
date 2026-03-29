@@ -34,6 +34,7 @@ import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.parseIsoTimestamp
+import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
@@ -227,7 +228,10 @@ class SyncLocalStore(
 
     suspend fun replaceLocalWorkspaceWithShell(workspace: CloudWorkspaceSummary) {
         database.withTransaction {
-            database.outboxDao().deleteOutboxEntriesForWorkspace(workspaceId = currentWorkspaceIdOrNull().orEmpty())
+            val currentLocalWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
+            if (currentLocalWorkspaceId != null) {
+                database.outboxDao().deleteOutboxEntriesForWorkspace(workspaceId = currentLocalWorkspaceId)
+            }
             database.reviewLogDao().deleteAllReviewLogs()
             database.tagDao().deleteAllCardTags()
             database.cardDao().deleteAllCards()
@@ -275,7 +279,7 @@ class SyncLocalStore(
     }
 
     suspend fun relinkCurrentWorkspaceKeepingLocalData(workspace: CloudWorkspaceSummary) {
-        val currentWorkspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
+        val currentWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
             "Workspace is required before linking to cloud."
         }
         if (currentWorkspace.workspaceId == workspace.workspaceId) {
@@ -480,7 +484,10 @@ class SyncLocalStore(
     }
 
     private suspend fun currentWorkspaceIdOrNull(): String? {
-        return database.workspaceDao().loadWorkspace()?.workspaceId
+        return loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        )?.workspaceId
     }
 
     private suspend fun applyHotPayload(

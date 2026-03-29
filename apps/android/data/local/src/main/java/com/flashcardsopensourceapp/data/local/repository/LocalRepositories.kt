@@ -60,6 +60,7 @@ import java.util.UUID
 
 class LocalCardsRepository(
     private val database: AppDatabase,
+    private val preferencesStore: CloudPreferencesStore,
     private val syncLocalStore: SyncLocalStore
 ) : CardsRepository {
     override fun observeCards(searchQuery: String, filter: CardFilter): Flow<List<CardSummary>> {
@@ -79,9 +80,11 @@ class LocalCardsRepository(
     }
 
     override suspend fun createCard(cardDraft: CardDraft) {
-        val workspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
-            "Workspace is required before creating cards."
-        }
+        val workspace = requireCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore,
+            missingWorkspaceMessage = "Workspace is required before creating cards."
+        )
         val currentTimeMillis = System.currentTimeMillis()
         val cardId = UUID.randomUUID().toString()
         val card = CardEntity(
@@ -159,6 +162,7 @@ class LocalCardsRepository(
 
 class LocalDecksRepository(
     private val database: AppDatabase,
+    private val preferencesStore: CloudPreferencesStore,
     private val syncLocalStore: SyncLocalStore
 ) : DecksRepository {
     override fun observeDecks(): Flow<List<DeckSummary>> {
@@ -208,9 +212,11 @@ class LocalDecksRepository(
     }
 
     override suspend fun createDeck(deckDraft: DeckDraft) {
-        val workspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
-            "Workspace is required before creating decks."
-        }
+        val workspace = requireCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore,
+            missingWorkspaceMessage = "Workspace is required before creating decks."
+        )
         val normalizedDeckDraft = normalizeDeckDraft(deckDraft = deckDraft)
         val currentTimeMillis = System.currentTimeMillis()
         val deck = DeckEntity(
@@ -269,7 +275,10 @@ class LocalWorkspaceRepository(
     private val syncLocalStore: SyncLocalStore
 ) : WorkspaceRepository {
     override fun observeWorkspace(): Flow<WorkspaceSummary?> {
-        return database.workspaceDao().observeWorkspace().map { workspace ->
+        return observeCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore
+        ).map { workspace ->
             workspace?.let {
                 WorkspaceSummary(
                     workspaceId = it.workspaceId,
@@ -283,15 +292,14 @@ class LocalWorkspaceRepository(
     override fun observeAppMetadata(): Flow<AppMetadataSummary> {
         return combine(
             observeWorkspaceOverview(),
-            database.cardDao().observeCardCount(),
             preferencesStore.observeCloudSettings(),
             syncRepository.observeSyncStatus()
-        ) { overview, cardCount, cloudSettings, syncStatusSnapshot ->
+        ) { overview, cloudSettings, syncStatusSnapshot ->
             AppMetadataSummary(
                 currentWorkspaceName = overview?.workspaceName ?: "Unavailable",
                 workspaceName = overview?.workspaceName ?: "Unavailable",
                 deckCount = overview?.deckCount ?: 0,
-                cardCount = cardCount,
+                cardCount = overview?.totalCards ?: 0,
                 localStorageLabel = "Room + SQLite",
                 syncStatusText = when (cloudSettings.cloudState) {
                     CloudAccountState.DISCONNECTED -> "Not connected"
@@ -309,7 +317,10 @@ class LocalWorkspaceRepository(
 
     override fun observeWorkspaceOverview(): Flow<WorkspaceOverviewSummary?> {
         return combine(
-            database.workspaceDao().observeWorkspace(),
+            observeCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore
+            ),
             database.deckDao().observeDecks(),
             database.cardDao().observeCardsWithRelations()
         ) { workspace, decks, cards ->
@@ -318,26 +329,38 @@ class LocalWorkspaceRepository(
             }
 
             val cardSummaries = cards.map(::toCardSummary)
+            val currentWorkspaceCards = cardSummaries.filter { card ->
+                card.workspaceId == workspace.workspaceId && card.deletedAtMillis == null
+            }
             val nowMillis = System.currentTimeMillis()
-            val tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries)
+            val tagsSummary = makeWorkspaceTagsSummary(cards = currentWorkspaceCards)
 
             WorkspaceOverviewSummary(
                 workspaceId = workspace.workspaceId,
                 workspaceName = workspace.name,
-                totalCards = cardSummaries.count { card -> card.deletedAtMillis == null },
-                deckCount = decks.count { deck -> deck.deletedAtMillis == null },
-                tagsCount = tagsSummary.tags.size,
-                dueCount = cardSummaries.count { card ->
-                    card.deletedAtMillis == null && isCardDue(card = card, nowMillis = nowMillis)
+                totalCards = currentWorkspaceCards.size,
+                deckCount = decks.count { deck ->
+                    deck.workspaceId == workspace.workspaceId && deck.deletedAtMillis == null
                 },
-                newCount = cardSummaries.count { card -> card.deletedAtMillis == null && isNewCard(card) },
-                reviewedCount = cardSummaries.count { card -> card.deletedAtMillis == null && isReviewedCard(card) }
+                tagsCount = tagsSummary.tags.size,
+                dueCount = currentWorkspaceCards.count { card ->
+                    isCardDue(card = card, nowMillis = nowMillis)
+                },
+                newCount = currentWorkspaceCards.count { card ->
+                    isNewCard(card)
+                },
+                reviewedCount = currentWorkspaceCards.count { card ->
+                    isReviewedCard(card)
+                }
             )
         }
     }
 
     override fun observeWorkspaceSchedulerSettings(): Flow<WorkspaceSchedulerSettings?> {
-        return database.workspaceDao().observeWorkspace().flatMapLatest { workspace ->
+        return observeCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore
+        ).flatMapLatest { workspace ->
             if (workspace == null) {
                 return@flatMapLatest flowOf(null)
             }
@@ -355,13 +378,29 @@ class LocalWorkspaceRepository(
     }
 
     override fun observeWorkspaceTagsSummary(): Flow<WorkspaceTagsSummary> {
-        return database.cardDao().observeCardsWithRelations().map { cards ->
-            makeWorkspaceTagsSummary(cards = cards.map(::toCardSummary))
+        return combine(
+            observeCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore
+            ),
+            database.cardDao().observeCardsWithRelations()
+        ) { workspace, cards ->
+            if (workspace == null) {
+                return@combine WorkspaceTagsSummary(tags = emptyList(), totalCards = 0)
+            }
+            makeWorkspaceTagsSummary(
+                cards = cards.map(::toCardSummary).filter { card ->
+                    card.workspaceId == workspace.workspaceId
+                }
+            )
         }
     }
 
     override fun observeDeviceDiagnostics(): Flow<DeviceDiagnosticsSummary?> {
-        return database.workspaceDao().observeWorkspace().flatMapLatest { workspace ->
+        return observeCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore
+        ).flatMapLatest { workspace ->
             if (workspace == null) {
                 return@flatMapLatest flowOf(null)
             }
@@ -385,7 +424,10 @@ class LocalWorkspaceRepository(
     }
 
     override suspend fun loadWorkspaceExportData(): WorkspaceExportData? {
-        val workspace = database.workspaceDao().loadWorkspace() ?: return null
+        val workspace = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        ) ?: return null
         val cards = database.cardDao().observeCardsWithRelations().first().map(::toCardSummary)
         val activeCards = cards.filter { card ->
             card.workspaceId == workspace.workspaceId
@@ -412,9 +454,11 @@ class LocalWorkspaceRepository(
         maximumIntervalDays: Int,
         enableFuzz: Boolean
     ) {
-        val workspace = requireNotNull(database.workspaceDao().loadWorkspace()) {
-            "Workspace is required before updating scheduler settings."
-        }
+        val workspace = requireCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore,
+            missingWorkspaceMessage = "Workspace is required before updating scheduler settings."
+        )
         val updatedSettings = validateWorkspaceSchedulerSettingsInput(
             workspaceId = workspace.workspaceId,
             desiredRetention = desiredRetention,
@@ -445,10 +489,16 @@ class LocalReviewRepository(
         pendingReviewedCardIds: Set<String>
     ): Flow<ReviewSessionSnapshot> {
         return combine(
-            database.workspaceDao().observeWorkspace(),
+            observeCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore
+            ),
             database.deckDao().observeDecks(),
             database.cardDao().observeCardsWithRelations(),
-            database.workspaceDao().observeWorkspace().flatMapLatest { workspace ->
+            observeCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore
+            ).flatMapLatest { workspace ->
                 if (workspace == null) {
                     return@flatMapLatest flowOf(null)
                 }
@@ -459,18 +509,23 @@ class LocalReviewRepository(
             }
         ) { workspace, decks, cards, settingsEntity ->
             val nowMillis = System.currentTimeMillis()
-            val cardSummaries = cards.map(::toCardSummary).filter { card -> card.deletedAtMillis == null }
-            val deckSummaries = decks.filter { deck -> deck.deletedAtMillis == null }.map { deck ->
+            val workspaceId = workspace?.workspaceId
+            val cardSummaries = cards.map(::toCardSummary).filter { card ->
+                card.deletedAtMillis == null && (workspaceId == null || card.workspaceId == workspaceId)
+            }
+            val deckSummaries = decks.filter { deck ->
+                deck.deletedAtMillis == null && (workspaceId == null || deck.workspaceId == workspaceId)
+            }.map { deck ->
                 toDeckSummary(
                     deck = deck,
                     cards = cardSummaries,
                     nowMillis = nowMillis
                 )
             }
-            val workspaceId = workspace?.workspaceId ?: cardSummaries.firstOrNull()?.workspaceId.orEmpty()
+            val schedulerWorkspaceId = workspaceId ?: cardSummaries.firstOrNull()?.workspaceId.orEmpty()
             val settings = settingsEntity?.let(::toWorkspaceSchedulerSettings)
                 ?: makeDefaultWorkspaceSchedulerSettings(
-                    workspaceId = workspaceId,
+                    workspaceId = schedulerWorkspaceId,
                     updatedAtMillis = nowMillis
                 )
 
@@ -492,10 +547,18 @@ class LocalReviewRepository(
         offset: Int,
         limit: Int
     ): ReviewTimelinePage {
+        val currentWorkspaceId = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        )?.workspaceId
         val cards = database.cardDao().observeCardsWithRelations().first()
         val decks = database.deckDao().observeDecks().first()
-        val cardSummaries = cards.map(::toCardSummary).filter { card -> card.deletedAtMillis == null }
-        val deckSummaries = decks.filter { deck -> deck.deletedAtMillis == null }.map { deck ->
+        val cardSummaries = cards.map(::toCardSummary).filter { card ->
+            card.deletedAtMillis == null && (currentWorkspaceId == null || card.workspaceId == currentWorkspaceId)
+        }
+        val deckSummaries = decks.filter { deck ->
+            deck.deletedAtMillis == null && (currentWorkspaceId == null || deck.workspaceId == currentWorkspaceId)
+        }.map { deck ->
             toDeckSummary(
                 deck = deck,
                 cards = cardSummaries,

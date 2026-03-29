@@ -231,6 +231,41 @@ class CloudRemoteServiceTest {
     }
 
     @Test
+    fun fetchCloudAccountPreservesHttpErrorDetailsWhenTopLevelErrorIsAString() = runBlocking {
+        val server = createJsonServer(mutableListOf()) { exchange ->
+            when (exchange.requestURI.path to exchange.requestURI.query) {
+                "/me" to null -> jsonResponse(
+                    exchange = exchange,
+                    statusCode = 409,
+                    body = JSONObject()
+                        .put("error", "Workspace rename is not allowed.")
+                        .put("code", "WORKSPACE_OWNER_REQUIRED")
+                        .put("requestId", "request-1")
+                        .toString()
+                )
+
+                else -> jsonResponse(exchange = exchange, statusCode = 404, body = "{}")
+            }
+        }
+
+        server.use {
+            val error = expectThrows<CloudRemoteException> {
+                runBlocking {
+                    CloudRemoteService().fetchCloudAccount(
+                        apiBaseUrl = it.baseUrl,
+                        bearerToken = "token-1"
+                    )
+                }
+            }
+
+            assertEquals(409, error.statusCode)
+            assertEquals("WORKSPACE_OWNER_REQUIRED", error.errorCode)
+            assertEquals("request-1", error.requestId)
+            assertTrue(error.message.orEmpty().contains("Workspace rename is not allowed."))
+        }
+    }
+
+    @Test
     fun bootstrapPullFailsWithExplicitContractMismatchForWrongHasMoreType() = runBlocking {
         val server = createJsonServer(mutableListOf()) { exchange ->
             when (exchange.requestURI.path) {
