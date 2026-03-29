@@ -474,7 +474,7 @@ async function signInWithReviewAccount(
   await trackedExpectVisible(
     diagnostics,
     "confirm review navigation link is visible after auth",
-    page.getByRole("link", { name: "Review" }),
+    page.getByRole("link", { name: "Review", exact: true }),
     localUiTimeoutMs,
   );
 }
@@ -484,7 +484,7 @@ async function createEphemeralWorkspace(
   workspaceName: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
-  await trackedClick(diagnostics, "open settings navigation", page.getByRole("link", { name: "Settings" }));
+  await trackedClick(diagnostics, "open settings navigation", page.getByRole("link", { name: "Settings", exact: true }));
   await trackedClick(
     diagnostics,
     "open current workspace settings",
@@ -514,8 +514,8 @@ async function createManualCard(
   markerTag: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
-  await trackedClick(diagnostics, "open cards navigation", page.getByRole("link", { name: "Cards" }));
-  await trackedClick(diagnostics, "open new card screen", page.getByRole("link", { name: "New card" }));
+  await trackedClick(diagnostics, "open cards navigation", page.getByRole("link", { name: "Cards", exact: true }));
+  await trackedClick(diagnostics, "open new card screen", page.getByRole("link", { name: "New card", exact: true }));
   await trackedFill(diagnostics, `fill card front text ${frontText}`, page.getByLabel("Front"), frontText);
   await trackedFill(diagnostics, `fill card back text ${backText}`, page.getByLabel("Back"), backText);
   await trackedClick(diagnostics, "focus tag editor", page.getByText("Click to add tags"));
@@ -536,7 +536,7 @@ async function assertCardVisibleInCards(
   searchText: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
-  await trackedClick(diagnostics, "open cards navigation for verification", page.getByRole("link", { name: "Cards" }));
+  await trackedClick(diagnostics, "open cards navigation for verification", page.getByRole("link", { name: "Cards", exact: true }));
   const searchInput = page.getByPlaceholder("Search front, back, or tags");
   await trackedFill(diagnostics, "clear cards search input", searchInput, "");
   await trackedFill(diagnostics, `fill cards search input with ${searchText}`, searchInput, searchText);
@@ -553,7 +553,7 @@ async function reviewCardFromQueue(
   expectedFrontText: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
-  await trackedClick(diagnostics, "open review navigation", page.getByRole("link", { name: "Review" }));
+  await trackedClick(diagnostics, "open review navigation", page.getByRole("link", { name: "Review", exact: true }));
   await trackedExpectVisible(
     diagnostics,
     `confirm review queue shows ${expectedFrontText}`,
@@ -598,7 +598,7 @@ async function runAiCardCreationWithConfirmation(
   markerTag: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
-  await trackedClick(diagnostics, "open AI chat navigation", page.getByRole("link", { name: "AI chat" }));
+  await trackedClick(diagnostics, "open AI chat navigation", page.getByRole("link", { name: "AI chat", exact: true }));
   const messageField = page.getByPlaceholder("Ask about cards, review history, or attach notes...");
 
   await trackedFill(
@@ -630,7 +630,7 @@ async function assertCardReachableInReview(
   expectedFrontText: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
-  await trackedClick(diagnostics, "open review navigation for AI card verification", page.getByRole("link", { name: "Review" }));
+  await trackedClick(diagnostics, "open review navigation for AI card verification", page.getByRole("link", { name: "Review", exact: true }));
   await trackedExpectVisible(
     diagnostics,
     `confirm review queue shows AI card ${expectedFrontText}`,
@@ -645,15 +645,15 @@ async function assertLinkedAccountStatus(
   workspaceName: string,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
-  await trackedClick(diagnostics, "open settings navigation for account verification", page.getByRole("link", { name: "Settings" }));
+  await trackedClick(diagnostics, "open settings navigation for account verification", page.getByRole("link", { name: "Settings", exact: true }));
   await trackedExpectVisible(
     diagnostics,
     `confirm settings shows workspace ${workspaceName}`,
     page.getByText(workspaceName, { exact: true }),
     localUiTimeoutMs,
   );
-  await trackedClick(diagnostics, "open account settings screen", page.getByRole("link", { name: "Account Settings" }));
-  await trackedClick(diagnostics, "open account status screen", page.getByRole("link", { name: "Account Status" }));
+  await trackedClick(diagnostics, "open account settings screen", page.getByRole("link", { name: "Account Settings", exact: true }));
+  await trackedClick(diagnostics, "open account status screen", page.getByRole("link", { name: "Account Status", exact: true }));
   await trackedExpectVisible(
     diagnostics,
     `confirm account status shows ${email}`,
@@ -699,7 +699,7 @@ async function deleteEphemeralWorkspace(
       page.getByRole("heading", { name: "Workspace Settings" }),
       localUiTimeoutMs,
     );
-    await trackedClick(diagnostics, "open workspace overview screen", page.getByRole("link", { name: "Overview" }));
+    await trackedClick(diagnostics, "open workspace overview screen", page.getByRole("link", { name: "Overview", exact: true }));
     await trackedExpectVisible(
       diagnostics,
       "confirm workspace overview screen is visible",
