@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 const val workspaceOverviewNameFieldTag: String = "workspace_overview_name_field"
 const val workspaceOverviewSaveNameButtonTag: String = "workspace_overview_save_name_button"
 const val workspaceOverviewDeleteWorkspaceButtonTag: String = "workspace_overview_delete_workspace_button"
+const val workspaceOverviewDeletePreviewContinueButtonTag: String = "workspace_overview_delete_preview_continue_button"
 const val workspaceOverviewDeleteConfirmationFieldTag: String = "workspace_overview_delete_confirmation_field"
 const val workspaceOverviewDeleteConfirmationButtonTag: String = "workspace_overview_delete_confirmation_button"
 
@@ -188,7 +189,10 @@ fun WorkspaceOverviewRoute(
         AlertDialog(
             onDismissRequest = onDismissDeletePreviewAlert,
             confirmButton = {
-                TextButton(onClick = onOpenDeleteConfirmation) {
+                TextButton(
+                    onClick = onOpenDeleteConfirmation,
+                    modifier = Modifier.testTag(tag = workspaceOverviewDeletePreviewContinueButtonTag)
+                ) {
                     Text("Continue")
                 }
             },

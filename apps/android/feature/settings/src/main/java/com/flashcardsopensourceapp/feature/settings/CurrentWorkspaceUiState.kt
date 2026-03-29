@@ -7,6 +7,8 @@ data class CurrentWorkspaceUiState(
     val isGuest: Boolean,
     val isLinked: Boolean,
     val isLinkingReady: Boolean,
+    val hasRequestedWorkspaceLoad: Boolean,
+    val existingWorkspaceCount: Int,
     val isLoading: Boolean,
     val isSwitching: Boolean,
     val operation: CurrentWorkspaceOperation,

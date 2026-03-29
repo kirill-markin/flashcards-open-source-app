@@ -143,7 +143,8 @@ class LocalCloudAccountRepository(
             userId = accountSnapshot.userId,
             email = accountSnapshot.email,
             workspaces = accountSnapshot.workspaces,
-            guestUpgradeMode = guestUpgradeMode
+            guestUpgradeMode = guestUpgradeMode,
+            activeWorkspaceId = database.workspaceDao().loadWorkspace()?.workspaceId
         )
     }
 

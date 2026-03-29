@@ -973,6 +973,16 @@ private class FakeCloudAccountRepository(
         throw UnsupportedOperationException()
     }
 
+    override suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
+        return CloudWorkspaceLinkContext(
+            userId = "user-1",
+            email = "user@example.com",
+            workspaces = emptyList(),
+            guestUpgradeMode = null,
+            activeWorkspaceId = null
+        )
+    }
+
     override suspend fun beginAccountDeletion() {
         throw UnsupportedOperationException()
     }
@@ -992,7 +1002,8 @@ private class FakeCloudAccountRepository(
             userId = "user-1",
             email = challenge.email,
             workspaces = emptyList(),
-            guestUpgradeMode = null
+            guestUpgradeMode = null,
+            activeWorkspaceId = null
         )
     }
 

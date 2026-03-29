@@ -64,6 +64,46 @@ class CloudLifecycleViewModelTest {
     }
 
     @Test
+    fun currentWorkspaceViewModelMarksOnlyActiveWorkspaceAsCurrentWhenNamesMatch() = runTest(dispatcher) {
+        val workspaces = listOf(
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-1",
+                name = "Personal",
+                createdAtMillis = 1L,
+                isSelected = false
+            ),
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-2",
+                name = "Personal",
+                createdAtMillis = 2L,
+                isSelected = false
+            )
+        )
+        val viewModel = CurrentWorkspaceViewModel(
+            cloudAccountRepository = FakeCloudAccountRepository(
+                linkedWorkspaces = workspaces,
+                initialLinkedWorkspaceId = "workspace-2",
+                initialActiveWorkspaceId = "workspace-2"
+            ),
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController(),
+            workspaceRepository = FakeWorkspaceRepository()
+        )
+        val collectionJob = startCollecting(scope = this, viewModel = viewModel)
+
+        viewModel.loadWorkspaces()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("workspace-2"),
+            viewModel.uiState.value.workspaces
+                .filter { item -> item.isSelected }
+                .map(CurrentWorkspaceItemUiState::workspaceId)
+        )
+        collectionJob.cancel()
+    }
+
+    @Test
     fun workspaceOverviewRenameUsesCloudRepositoryAndShowsSuccess() = runTest(dispatcher) {
         val workspaceRepository = FakeWorkspaceRepository()
         val cloudAccountRepository = FakeCloudAccountRepository(
@@ -343,6 +383,152 @@ class CloudLifecycleViewModelTest {
     }
 
     @Test
+    fun cloudSignInAutoLinksMatchingActiveWorkspaceWhenSeveralNamesMatch() = runTest(dispatcher) {
+        val messages = FakeMessageController()
+        val workspaces = listOf(
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-1",
+                name = "Personal",
+                createdAtMillis = 1L,
+                isSelected = false
+            ),
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-2",
+                name = "Personal",
+                createdAtMillis = 2L,
+                isSelected = false
+            )
+        )
+        val syncRepository = FakeSyncRepository()
+        val cloudAccountRepository = FakeCloudAccountRepository(
+            initialCloudState = CloudAccountState.DISCONNECTED,
+            sendCodeResult = CloudSendCodeResult.Verified(
+                credentials = StoredCloudCredentials(
+                    refreshToken = "refresh-token",
+                    idToken = "id-token",
+                    idTokenExpiresAtMillis = 10_000L
+                )
+            ),
+            verifiedWorkspaces = workspaces,
+            linkedWorkspaces = workspaces,
+            verifiedActiveWorkspaceId = "workspace-2"
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = cloudAccountRepository,
+            syncRepository = syncRepository,
+            messageController = messages
+        )
+        val uiCollectionJob = startCollecting(scope = this, viewModel = viewModel)
+        val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
+
+        viewModel.updateEmail("google-review@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.Verified, viewModel.sendCode())
+        advanceUntilIdle()
+
+        assertEquals(CloudPostAuthMode.READY_TO_AUTO_LINK, viewModel.postAuthUiState.value.mode)
+        assertEquals(
+            listOf("workspace-2"),
+            viewModel.postAuthUiState.value.workspaces
+                .filter(CurrentWorkspaceItemUiState::isSelected)
+                .map(CurrentWorkspaceItemUiState::workspaceId)
+        )
+
+        viewModel.completePendingPostAuthIfNeeded()
+        advanceUntilIdle()
+
+        assertEquals(1, cloudAccountRepository.completeCloudLinkCalls)
+        assertEquals(1, syncRepository.syncNowCalls)
+        assertEquals(listOf("Signed in and synced Personal."), messages.messages)
+        uiCollectionJob.cancel()
+        postAuthCollectionJob.cancel()
+    }
+
+    @Test
+    fun cloudSignInAutoLinksUniqueServerSelectedWorkspaceWhenActiveIdIsMissing() = runTest(dispatcher) {
+        val workspaces = listOf(
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-1",
+                name = "Personal",
+                createdAtMillis = 1L,
+                isSelected = false
+            ),
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-2",
+                name = "Spanish",
+                createdAtMillis = 2L,
+                isSelected = true
+            )
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = FakeCloudAccountRepository(
+                initialCloudState = CloudAccountState.DISCONNECTED,
+                verifiedWorkspaces = workspaces,
+                linkedWorkspaces = workspaces
+            ),
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController()
+        )
+        val uiCollectionJob = startCollecting(scope = this, viewModel = viewModel)
+        val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
+
+        viewModel.updateEmail("user@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.OtpRequired, viewModel.sendCode())
+        viewModel.updateCode("123456")
+        assertTrue(viewModel.verifyCode())
+        advanceUntilIdle()
+
+        assertEquals(CloudPostAuthMode.READY_TO_AUTO_LINK, viewModel.postAuthUiState.value.mode)
+        assertEquals(
+            listOf("workspace-2"),
+            viewModel.postAuthUiState.value.workspaces
+                .filter(CurrentWorkspaceItemUiState::isSelected)
+                .map(CurrentWorkspaceItemUiState::workspaceId)
+        )
+        uiCollectionJob.cancel()
+        postAuthCollectionJob.cancel()
+    }
+
+    @Test
+    fun cloudSignInKeepsChooserWhenSeveralWorkspacesRemainAmbiguous() = runTest(dispatcher) {
+        val workspaces = listOf(
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-1",
+                name = "Personal",
+                createdAtMillis = 1L,
+                isSelected = true
+            ),
+            CloudWorkspaceSummary(
+                workspaceId = "workspace-2",
+                name = "Personal",
+                createdAtMillis = 2L,
+                isSelected = true
+            )
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = FakeCloudAccountRepository(
+                initialCloudState = CloudAccountState.DISCONNECTED,
+                verifiedWorkspaces = workspaces,
+                linkedWorkspaces = workspaces
+            ),
+            syncRepository = FakeSyncRepository(),
+            messageController = FakeMessageController()
+        )
+        val uiCollectionJob = startCollecting(scope = this, viewModel = viewModel)
+        val postAuthCollectionJob = startCollectingPostAuth(scope = this, viewModel = viewModel)
+
+        viewModel.updateEmail("user@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.OtpRequired, viewModel.sendCode())
+        viewModel.updateCode("123456")
+        assertTrue(viewModel.verifyCode())
+        advanceUntilIdle()
+
+        assertEquals(CloudPostAuthMode.CHOOSE_WORKSPACE, viewModel.postAuthUiState.value.mode)
+        assertTrue(viewModel.postAuthUiState.value.workspaces.none(CurrentWorkspaceItemUiState::isSelected))
+        uiCollectionJob.cancel()
+        postAuthCollectionJob.cancel()
+    }
+
+    @Test
     fun cloudSignInGuestMergeRequiredUsesGuestUpgradeBranch() = runTest(dispatcher) {
         val messages = FakeMessageController()
         val workspace = CloudWorkspaceSummary(
@@ -595,7 +781,10 @@ private class FakeCloudAccountRepository(
     connections: List<AgentApiKeyConnection> = emptyList(),
     private val onRenameWorkspace: ((String) -> Unit)? = null,
     initialCloudState: CloudAccountState = CloudAccountState.LINKED,
+    initialLinkedWorkspaceId: String? = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "workspace-1",
+    initialActiveWorkspaceId: String? = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "workspace-1",
     private val guestUpgradeMode: CloudGuestUpgradeMode? = null,
+    private val verifiedActiveWorkspaceId: String? = null,
     private val sendCodeResult: CloudSendCodeResult = CloudSendCodeResult.OtpRequired(
         challenge = CloudOtpChallenge(
             email = "user@example.com",
@@ -611,9 +800,9 @@ private class FakeCloudAccountRepository(
             deviceId = "device-1",
             cloudState = initialCloudState,
             linkedUserId = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "user-1",
-            linkedWorkspaceId = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "workspace-1",
+            linkedWorkspaceId = initialLinkedWorkspaceId,
             linkedEmail = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "user@example.com",
-            activeWorkspaceId = if (initialCloudState == CloudAccountState.DISCONNECTED) null else "workspace-1",
+            activeWorkspaceId = initialActiveWorkspaceId,
             updatedAtMillis = 1L
         )
     )
@@ -680,13 +869,14 @@ private class FakeCloudAccountRepository(
             linkedUserId = "user-1",
             linkedWorkspaceId = null,
             linkedEmail = lastRequestedEmail,
-            activeWorkspaceId = null
+            activeWorkspaceId = verifiedActiveWorkspaceId
         )
         return CloudWorkspaceLinkContext(
             userId = "user-1",
             email = lastRequestedEmail,
             workspaces = verifiedWorkspacesState.value,
-            guestUpgradeMode = guestUpgradeMode
+            guestUpgradeMode = guestUpgradeMode,
+            activeWorkspaceId = verifiedActiveWorkspaceId
         )
     }
 
@@ -699,13 +889,14 @@ private class FakeCloudAccountRepository(
             linkedUserId = "user-1",
             linkedWorkspaceId = null,
             linkedEmail = challenge.email,
-            activeWorkspaceId = null
+            activeWorkspaceId = verifiedActiveWorkspaceId
         )
         return CloudWorkspaceLinkContext(
             userId = "user-1",
             email = challenge.email,
             workspaces = verifiedWorkspacesState.value,
-            guestUpgradeMode = guestUpgradeMode
+            guestUpgradeMode = guestUpgradeMode,
+            activeWorkspaceId = verifiedActiveWorkspaceId
         )
     }
 
