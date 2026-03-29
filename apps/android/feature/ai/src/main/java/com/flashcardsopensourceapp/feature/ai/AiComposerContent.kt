@@ -30,8 +30,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+
+const val aiComposerMessageFieldTag: String = "ai_composer_message_field"
+const val aiComposerSendButtonTag: String = "ai_composer_send_button"
 
 @Composable
 internal fun AiComposer(
@@ -151,7 +155,9 @@ internal fun AiComposer(
                 },
                 minLines = 3,
                 enabled = canEditDraft,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(tag = aiComposerMessageFieldTag)
             )
 
             Row(
@@ -203,7 +209,9 @@ internal fun AiComposer(
                     onSendMessage
                 },
                 enabled = uiState.canStopStreaming || uiState.canSend,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(tag = aiComposerSendButtonTag)
             ) {
                 Icon(
                     imageVector = if (uiState.canStopStreaming) {

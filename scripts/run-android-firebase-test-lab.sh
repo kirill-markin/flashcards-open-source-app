@@ -10,6 +10,7 @@ APP_PATH=""
 TEST_PATH=""
 RESULTS_BUCKET=""
 RESULTS_DIR=""
+TEST_TARGETS=""
 MAX_INFRASTRUCTURE_RETRIES=2
 
 while [[ $# -gt 0 ]]; do
@@ -21,6 +22,7 @@ while [[ $# -gt 0 ]]; do
     --test-path) TEST_PATH="$2"; shift 2 ;;
     --results-bucket) RESULTS_BUCKET="$2"; shift 2 ;;
     --results-dir) RESULTS_DIR="$2"; shift 2 ;;
+    --test-targets) TEST_TARGETS="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -93,6 +95,13 @@ if [[ -n "${RESULTS_DIR}" ]]; then
   gcloud_args+=(
     --results-dir
     "${RESULTS_DIR}"
+  )
+fi
+
+if [[ -n "${TEST_TARGETS}" ]]; then
+  gcloud_args+=(
+    --test-targets
+    "${TEST_TARGETS}"
   )
 fi
 

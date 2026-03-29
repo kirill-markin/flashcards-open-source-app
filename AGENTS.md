@@ -15,13 +15,13 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 - Backend: AWS
 - AWS infra deploys via CI/CD only. Do not run AWS deploys locally; push to `main` and watch CI/CD.
 - Do not build AWS SDK bundles or other AWS deployment artifacts locally. Push code to `main`, and let CI/CD build and deploy everything.
-- Web app: supported
+- Web app: supported. Before making any web change, read [apps/web/README.md](apps/web/README.md).
 - iOS app: Swift (priority). Before making any iOS change, read [apps/ios/README.md](apps/ios/README.md).
 - Android app: Kotlin + Jetpack Compose. Before making any Android change, read [apps/android/README.md](apps/android/README.md).
 - Terminal / AI-agent API client: supported via the canonical machine API entrypoint `GET https://api.flashcards-open-source-app.com/v1/` (the same discovery payload is also available at `GET https://api.flashcards-open-source-app.com/v1/agent`)
 
 We support the web app, the iOS app, the Android app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
-The platform READMEs are part of the working agreement for mobile work: [apps/ios/README.md](apps/ios/README.md) for iOS changes and [apps/android/README.md](apps/android/README.md) for Android changes.
+The platform READMEs are part of the working agreement for client work: [apps/web/README.md](apps/web/README.md) for web changes, [apps/ios/README.md](apps/ios/README.md) for iOS changes, and [apps/android/README.md](apps/android/README.md) for Android changes.
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
 Running iOS tests is a heavy operation, so do not run them automatically and only run them after the user explicitly agrees.
 iOS full test runs can take a bit more than 2 minutes locally, and that is normal.
@@ -30,6 +30,24 @@ If that iPhone simulator runtime is not already available locally, do not run th
 For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.
 For Android, follow [apps/android/README.md](apps/android/README.md) for platform targets and testing focus. Tests should be run only against the final supported Android target, not against older API levels.
 Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, Android tests can be run by starting that emulator.
+
+## Release Gates and Monitoring
+
+Pushes to `main` are expected to travel through the native client release gates before production distribution:
+
+- Web: GitHub Actions in `.github/workflows/ci.yml` runs web build and native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts` before the deploy workflow can publish web changes
+- Android: GitHub Actions in `.github/workflows/android.yml` runs build, lint, and the native instrumentation live smoke in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`, then `.github/workflows/android-release.yml` can publish to Google Play
+- iOS: Xcode Cloud runs the native Swift/XCTest stack, including the XCUITest live smoke in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`, before archive and distribution continue
+
+The release gate order is: native unit/build checks first, then native live smoke tests, then production release.
+
+When a change lands on `main`, monitor every triggered client pipeline until it either reaches release or fails clearly. If a client gate fails, or if the expected release does not happen after the smoke gate, report that to the user and fix the blocking problem instead of assuming deployment completed.
+
+Cross-client live smoke references:
+
+- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Web: `apps/web/e2e/live-smoke.spec.ts`
 
 ## Repository Strategy
 

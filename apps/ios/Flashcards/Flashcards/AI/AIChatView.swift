@@ -232,6 +232,7 @@ struct AIChatView: View {
                         self.acceptExternalAIConsent()
                     }
                     .buttonStyle(.glassProminent)
+                    .accessibilityIdentifier(UITestIdentifier.aiConsentAcceptButton)
 
                     VStack(alignment: .leading, spacing: 10) {
                         if let privacyUrl = URL(string: flashcardsPrivacyPolicyUrl) {

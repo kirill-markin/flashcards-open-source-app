@@ -44,6 +44,7 @@ struct CardEditorScreen: View {
                             text: formState.frontText
                         )
                     }
+                    .accessibilityIdentifier(UITestIdentifier.cardEditorFrontRow)
 
                     NavigationLink {
                         CardTextEditorScreen(
@@ -56,6 +57,7 @@ struct CardEditorScreen: View {
                             text: formState.backText
                         )
                     }
+                    .accessibilityIdentifier(UITestIdentifier.cardEditorBackRow)
                 }
 
                 Section("Metadata") {
@@ -101,6 +103,7 @@ struct CardEditorScreen: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save", action: onSave)
+                    .accessibilityIdentifier(UITestIdentifier.cardEditorSaveButton)
             }
         }
     }
@@ -152,6 +155,7 @@ private struct CardTextEditorScreen: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(12)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .accessibilityIdentifier(cardEditorTextEditorIdentifier(title: self.title))
         }
         .padding(.vertical, 16)
         .navigationTitle(title)
@@ -161,6 +165,14 @@ private struct CardTextEditorScreen: View {
             self.isTextEditorFocused = true
         }
     }
+}
+
+private func cardEditorTextEditorIdentifier(title: String) -> String {
+    if title == "Front" {
+        return UITestIdentifier.cardEditorFrontTextEditor
+    }
+
+    return UITestIdentifier.cardEditorBackTextEditor
 }
 
 private func formatCardTextPreview(text: String) -> String {

@@ -101,6 +101,20 @@ GitHub Actions deploys on push to `main` using the stack OIDC role. The reposito
 
 The deploy workflow assembles its own `cdk.context.local.json` inside the job from GitHub deploy config.
 
+For the web client, the expected main-branch order is:
+
+1. GitHub `CI` runs native web build and unit coverage
+2. The same `CI` workflow runs the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
+3. The deploy workflow continues only after `CI` succeeds
+
+After pushing to `main`, watch both the `CI` workflow and the deploy workflow until the web release either completes or fails clearly.
+
+Cross-client live smoke references:
+
+- Web: `apps/web/e2e/live-smoke.spec.ts`
+- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+
 Guest AI quota is configured separately:
 
 - local dev uses `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` from root `.env`

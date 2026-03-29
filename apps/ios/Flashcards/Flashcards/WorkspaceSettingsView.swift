@@ -21,6 +21,7 @@ struct WorkspaceSettingsView: View {
                         systemImage: "square.text.square"
                     )
                 }
+                .accessibilityIdentifier(UITestIdentifier.workspaceSettingsOverviewRow)
             }
 
             Section("Workspace Data") {

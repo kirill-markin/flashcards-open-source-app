@@ -88,15 +88,18 @@ struct AccountStatusView: View {
                         Button("Sign in or sign up") {
                             self.isCloudSignInPresented = true
                         }
+                        .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                     case .guest:
                         Button("Sign in or sign up") {
                             self.isCloudSignInPresented = true
                         }
+                        .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                     case .linked:
                         Button("Sync now") {
                             self.syncNow()
                         }
                         .disabled(isSyncInFlight(status: store.syncStatus))
+                        .accessibilityIdentifier(UITestIdentifier.accountStatusSyncNowButton)
 
                         Button("Switch account") {
                             self.isCloudSignInPresented = true

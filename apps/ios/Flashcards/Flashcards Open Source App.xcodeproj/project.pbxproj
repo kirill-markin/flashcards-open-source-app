@@ -18,6 +18,13 @@
 			remoteGlobalIDString = A10000000000000000000004;
 			remoteInfo = "Flashcards Open Source App";
 		};
+		A10000000000000000000036 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000004;
+			remoteInfo = "Flashcards Open Source App";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +34,7 @@
 		A1000000000000000000001A /* Config/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1000000000000000000001B /* Config/Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Local.xcconfig.example; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Flashcards Open Source App Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000030 /* Flashcards Open Source App UI Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Flashcards Open Source App UI Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -38,6 +46,11 @@
 		A10000000000000000000021 /* FlashcardsTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = FlashcardsTests;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000031 /* FlashcardsUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FlashcardsUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -58,6 +71,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000032 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -67,6 +87,7 @@
 				A10000000000000000000010 /* Config */,
 				A1000000000000000000000F /* Flashcards */,
 				A10000000000000000000021 /* FlashcardsTests */,
+				A10000000000000000000031 /* FlashcardsUITests */,
 				A10000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -76,6 +97,7 @@
 			children = (
 				A10000000000000000000005 /* Flashcards Open Source App.app */,
 				A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */,
+				A10000000000000000000030 /* Flashcards Open Source App UI Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -138,6 +160,27 @@
 			productReference = A10000000000000000000020 /* Flashcards Open Source App Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		A10000000000000000000035 /* Flashcards Open Source App UI Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000038 /* Build configuration list for PBXNativeTarget "Flashcards Open Source App UI Tests" */;
+			buildPhases = (
+				A10000000000000000000033 /* Sources */,
+				A10000000000000000000032 /* Frameworks */,
+				A10000000000000000000034 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A10000000000000000000037 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000031 /* FlashcardsUITests */,
+			);
+			name = "Flashcards Open Source App UI Tests";
+			productName = "Flashcards Open Source App UI Tests";
+			productReference = A10000000000000000000030 /* Flashcards Open Source App UI Tests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -152,6 +195,10 @@
 						CreatedOnToolsVersion = 26.3;
 					};
 					A10000000000000000000022 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = A10000000000000000000004;
+					};
+					A10000000000000000000035 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = A10000000000000000000004;
 					};
@@ -176,6 +223,7 @@
 			targets = (
 				A10000000000000000000004 /* Flashcards Open Source App */,
 				A10000000000000000000022 /* Flashcards Open Source App Tests */,
+				A10000000000000000000035 /* Flashcards Open Source App UI Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -189,6 +237,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A10000000000000000000025 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000034 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -212,6 +267,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000033 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -219,6 +281,11 @@
 			isa = PBXTargetDependency;
 			target = A10000000000000000000004 /* Flashcards Open Source App */;
 			targetProxy = A10000000000000000000026 /* PBXContainerItemProxy */;
+		};
+		A10000000000000000000037 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000004 /* Flashcards Open Source App */;
+			targetProxy = A10000000000000000000036 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -386,6 +453,46 @@
 			};
 			name = Release;
 		};
+		A10000000000000000000039 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000018 /* Config/Debug.xcconfig */;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.flashcards-open-source-app.appUITests";
+				PRODUCT_MODULE_NAME = FlashcardsUITests;
+				PRODUCT_NAME = "Flashcards Open Source App UI Tests";
+				SDKROOT = iphoneos;
+				TEST_TARGET_NAME = "Flashcards Open Source App";
+			};
+			name = Debug;
+		};
+		A1000000000000000000003A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000019 /* Config/Release.xcconfig */;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.flashcards-open-source-app.appUITests";
+				PRODUCT_MODULE_NAME = FlashcardsUITests;
+				PRODUCT_NAME = "Flashcards Open Source App UI Tests";
+				SDKROOT = iphoneos;
+				TEST_TARGET_NAME = "Flashcards Open Source App";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -412,6 +519,15 @@
 			buildConfigurations = (
 				A10000000000000000000029 /* Debug */,
 				A1000000000000000000002A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000038 /* Build configuration list for PBXNativeTarget "Flashcards Open Source App UI Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000039 /* Debug */,
+				A1000000000000000000003A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

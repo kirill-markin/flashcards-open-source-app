@@ -172,6 +172,7 @@ struct CloudSignInSheet: View {
                             .textContentType(.emailAddress)
                             .submitLabel(.send)
                             .focused(self.$isEmailFieldFocused)
+                            .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailField)
                             .onSubmit {
                                 self.sendCode()
                             }
@@ -182,6 +183,7 @@ struct CloudSignInSheet: View {
                             self.sendCode()
                         }
                         .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
+                        .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
                     }
                 }
             }
@@ -740,6 +742,7 @@ private struct CloudWorkspaceSelectionSheet: View {
                                     CloudWorkspaceSelectionRow(item: item)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier(cloudWorkspaceSelectionButtonIdentifier(selection: item.selection))
                             }
                         }
                     }
@@ -755,6 +758,15 @@ private struct CloudWorkspaceSelectionSheet: View {
                 }
             }
         }
+    }
+}
+
+private func cloudWorkspaceSelectionButtonIdentifier(selection: CloudWorkspaceLinkSelection) -> String {
+    switch selection {
+    case .createNew:
+        return UITestIdentifier.cloudSignInCreateWorkspaceButton
+    case .existing(let workspaceId):
+        return "cloudSignIn.existingWorkspace.\(workspaceId)"
     }
 }
 

@@ -89,6 +89,15 @@ class LocalCloudAccountRepository(
         )
     }
 
+    override suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
+        val configuration = preferencesStore.currentServerConfiguration()
+        preferencesStore.saveCredentials(credentials)
+        return buildCloudWorkspaceLinkContext(
+            credentials = credentials,
+            configuration = configuration
+        )
+    }
+
     override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
         val configuration = preferencesStore.currentServerConfiguration()
         val credentials = remoteService.verifyCode(
@@ -97,7 +106,21 @@ class LocalCloudAccountRepository(
             authBaseUrl = configuration.authBaseUrl
         )
         preferencesStore.saveCredentials(credentials)
+        return buildCloudWorkspaceLinkContext(
+            credentials = credentials,
+            configuration = configuration
+        )
+    }
 
+    /**
+     * Review/demo accounts can skip OTP and return verified credentials
+     * directly from `sendCode()`. The UI still needs the normal post-auth link
+     * context so the live smoke can keep one continuous cross-screen story.
+     */
+    private suspend fun buildCloudWorkspaceLinkContext(
+        credentials: StoredCloudCredentials,
+        configuration: CloudServiceConfiguration
+    ): CloudWorkspaceLinkContext {
         val accountSnapshot = fetchCloudAccount(credentials = credentials, configuration = configuration)
         val guestSession = activeGuestSession(configuration = configuration)
         val guestUpgradeMode = if (guestSession == null) {

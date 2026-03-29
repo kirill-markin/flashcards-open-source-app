@@ -18,6 +18,17 @@ Open-source offline-first flashcards app for iOS, Android, and web.
 - Offline-first: browser local database on web, SQLite on iOS and Android
 - Auto-sync: clients write locally first and sync with the backend when online
 
+## Release Gates
+
+Production delivery is gated client-by-client with native test stacks:
+
+- iOS uses XCTest and XCUITest, including the stateful live smoke in [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift)
+- Android uses JUnit plus native Compose instrumentation, including the stateful live smoke in [`apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`](apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt)
+- Web uses Vitest and Playwright, including the stateful live smoke in [`apps/web/e2e/live-smoke.spec.ts`](apps/web/e2e/live-smoke.spec.ts)
+
+The intended release order is native unit/build checks first, then native live smoke checks, then production release.
+After every push to `main`, watch all triggered client pipelines through completion instead of assuming the release finished automatically.
+
 ## Card scheduling
 
 - Review scheduling uses FSRS-6 with pinned default weights
@@ -30,7 +41,9 @@ Open-source offline-first flashcards app for iOS, Android, and web.
 ## Setup Docs
 
 - [iOS local setup](docs/ios-local-setup.md)
+- [iOS CI/CD](docs/ios-ci-cd.md)
 - [Android CI/CD](docs/android-ci-cd.md)
+- [Web app notes](apps/web/README.md)
 - [Backend and web deployment](docs/backend-web-deployment.md)
 - [More architecture details](docs/architecture.md)
 
