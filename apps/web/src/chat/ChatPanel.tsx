@@ -15,6 +15,7 @@ import {
   explainBrowserMediaPermissionError,
   queryBrowserPermissionState,
 } from "../access/browserAccess";
+import { useChatDraft } from "./ChatDraftContext";
 import { useChatLayout } from "./ChatLayoutContext";
 import {
   checkFileSize,
@@ -119,13 +120,20 @@ function stopMediaRecorder(
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
+  const {
+    draft,
+    replaceInputText,
+    updateInputText,
+    replacePendingAttachments,
+    clearDraft,
+  } = useChatDraft();
   const { setIsOpen, chatWidth, setChatWidth } = useChatLayout();
   const [localWidth, setLocalWidth] = useState<number>(chatWidth);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [inputText, setInputText] = useState<string>("");
-  const [pendingAttachments, setPendingAttachments] = useState<ReadonlyArray<PendingAttachment>>([]);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
+  const inputText = draft.inputText;
+  const pendingAttachments = draft.pendingAttachments;
 
   const handleMainContentInvalidated = useCallback((mainContentInvalidationVersion: number): void => {
     if (mainContentInvalidationVersion <= 0) {
@@ -179,7 +187,7 @@ export function ChatPanel(props: Props): ReactElement {
 
   function setPendingAttachmentsState(nextAttachments: ReadonlyArray<PendingAttachment>): void {
     pendingAttachmentsRef.current = nextAttachments;
-    setPendingAttachments(nextAttachments);
+    replacePendingAttachments(nextAttachments);
   }
 
   function buildDraftRequestBodyForAttachments(
@@ -437,7 +445,7 @@ export function ChatPanel(props: Props): ReactElement {
       );
       if (isMountedRef.current) {
         acceptServerSessionId(transcription.sessionId);
-        setInputText((currentText) => {
+        updateInputText((currentText) => {
           const insertionResult = insertDictationTranscriptIntoDraft(
             currentText,
             transcription.text,
@@ -543,10 +551,10 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
-    setInputText("");
+    clearDraft();
+    pendingAttachmentsRef.current = [];
     draftSelectionRef.current = null;
     pendingTextareaSelectionRef.current = null;
-    setPendingAttachmentsState([]);
 
     await sendChatMessage({
       text: nextText,
@@ -631,6 +639,10 @@ export function ChatPanel(props: Props): ReactElement {
             className="chat-close-btn"
             onClick={() => {
               discardDictation();
+              clearDraft();
+              pendingAttachmentsRef.current = [];
+              draftSelectionRef.current = null;
+              pendingTextareaSelectionRef.current = null;
               void clearConversation();
             }}
           >
@@ -725,7 +737,7 @@ export function ChatPanel(props: Props): ReactElement {
             value={inputText}
             rows={1}
             onChange={(event) => {
-              setInputText(event.target.value);
+              replaceInputText(event.target.value);
               updateTrackedDraftSelection(event.target);
             }}
             onKeyDown={handleKeyDown}

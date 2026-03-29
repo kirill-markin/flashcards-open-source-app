@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import type { ChatSessionSnapshot } from "../types";
 import { defaultChatConfig } from "./chatConfig";
+import { ChatDraftProvider } from "./ChatDraftContext";
 
 const {
   useChatLayoutMock,
@@ -103,6 +104,7 @@ type ChatPanelTestHarness = Readonly<{
   sendMessage: (text: string) => Promise<void>;
   clickNewConversation: () => Promise<void>;
   clickStop: () => Promise<void>;
+  clickAddAttachment: () => Promise<void>;
 }>;
 
 export {
@@ -413,7 +415,13 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   async function renderChatPanel(mode: "sidebar" | "fullscreen" = "fullscreen"): Promise<void> {
     expect(root).not.toBeNull();
     await act(async () => {
-      root?.render(createElement(ChatPanel, { mode }));
+      root?.render(
+        createElement(
+          ChatDraftProvider,
+          null,
+          createElement(ChatPanel, { key: mode, mode }),
+        ),
+      );
       await Promise.resolve();
     });
   }
@@ -458,6 +466,17 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
   }
 
+  async function clickAddAttachment(): Promise<void> {
+    const mountedContainer = getContainer();
+    const addAttachmentButton = mountedContainer.querySelector('.chat-attach-btn[aria-label="Add attachment"]');
+    expect(addAttachmentButton).not.toBeNull();
+
+    await act(async () => {
+      addAttachmentButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+  }
+
   return {
     getContainer,
     getScrollToMock,
@@ -468,5 +487,6 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     sendMessage,
     clickNewConversation,
     clickStop,
+    clickAddAttachment,
   };
 }

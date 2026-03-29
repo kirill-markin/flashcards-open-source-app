@@ -615,18 +615,39 @@ async function runAiCardCreationWithConfirmation(
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
   await trackedClick(diagnostics, "open AI chat navigation", page.getByRole("link", { name: "AI chat", exact: true }));
-  const messageField = page.getByPlaceholder("Ask about cards, review history, or attach notes...");
-  const sendButton = page.getByRole("button", { name: "Send message" });
+  await trackedWaitForUrl(
+    page,
+    diagnostics,
+    "wait for AI chat route to become active",
+    /\/chat$/,
+    externalUiTimeoutMs,
+  );
+  const fullscreenChat = page.locator(".chat-sidebar-fullscreen");
+  await trackedExpectVisible(
+    diagnostics,
+    "confirm fullscreen AI chat surface is visible",
+    fullscreenChat,
+    externalUiTimeoutMs,
+  );
+  const messageField = fullscreenChat.getByPlaceholder("Ask about cards, review history, or attach notes...");
+  const sendButton = fullscreenChat.getByRole("button", { name: "Send message" });
+  const proposalPrompt = `Prepare exactly one flashcard proposal. Use front text "${aiFrontText}", back text "${aiBackText}", and include tag "${markerTag}". Wait for my confirmation before creating it.`;
+  const confirmationPrompt = "Confirmed. Create the card exactly as proposed.";
 
   await trackedFill(
     diagnostics,
     "fill AI prompt for exactly one flashcard proposal",
     messageField,
-    `Prepare exactly one flashcard proposal. Use front text "${aiFrontText}", back text "${aiBackText}", and include tag "${markerTag}". Wait for my confirmation before creating it.`,
+    proposalPrompt,
   );
-  await diagnostics.runAction("confirm AI proposal request enables send action", async () => {
-    await expect(sendButton).toBeEnabled({ timeout: localUiTimeoutMs });
-  });
+  await trackedWaitForComposerReady(
+    diagnostics,
+    "confirm AI proposal request keeps the draft and enables send action",
+    messageField,
+    sendButton,
+    proposalPrompt,
+    externalUiTimeoutMs,
+  );
   await trackedClick(diagnostics, "send AI proposal request", sendButton);
   await diagnostics.runAction("confirm assistant proposal includes front, back, and tag", async () => {
     const assistantMessages = page.locator(".chat-msg.chat-msg-assistant");
@@ -662,10 +683,15 @@ async function runAiCardCreationWithConfirmation(
     ).toContain(markerTag);
   });
 
-  await trackedFill(diagnostics, "fill AI confirmation message", messageField, "Confirmed. Create the card exactly as proposed.");
-  await diagnostics.runAction("confirm AI confirmation enables send action", async () => {
-    await expect(sendButton).toBeEnabled({ timeout: localUiTimeoutMs });
-  });
+  await trackedFill(diagnostics, "fill AI confirmation message", messageField, confirmationPrompt);
+  await trackedWaitForComposerReady(
+    diagnostics,
+    "confirm AI confirmation keeps the draft and enables send action",
+    messageField,
+    sendButton,
+    confirmationPrompt,
+    externalUiTimeoutMs,
+  );
   await trackedClick(diagnostics, "send AI confirmation", sendButton);
   await trackedExpectVisible(
     diagnostics,
@@ -1006,6 +1032,28 @@ async function trackedReadRequiredTextContent(
     }
 
     return textContent.trim();
+  });
+}
+
+async function trackedWaitForComposerReady(
+  diagnostics: LiveSmokeDiagnostics,
+  actionName: string,
+  messageField: Locator,
+  sendButton: Locator,
+  expectedDraftText: string,
+  timeoutMs: number,
+): Promise<void> {
+  await diagnostics.runAction(actionName, async () => {
+    await expect.poll(
+      async () => ({
+        inputText: await messageField.inputValue(),
+        isSendEnabled: await sendButton.isEnabled(),
+      }),
+      { timeout: timeoutMs },
+    ).toEqual({
+      inputText: expectedDraftText,
+      isSendEnabled: true,
+    });
   });
 }
 
