@@ -26,9 +26,11 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
             return
         }
 
-        NotificationCenter.default.post(
-            name: reviewNotificationTapPayloadNotificationName,
-            object: payload
-        )
+        Task { @MainActor in
+            NotificationCenter.default.post(
+                name: reviewNotificationTapPayloadNotificationName,
+                object: payload
+            )
+        }
     }
 }
