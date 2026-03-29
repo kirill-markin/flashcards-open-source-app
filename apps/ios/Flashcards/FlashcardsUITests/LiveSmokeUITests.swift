@@ -90,6 +90,8 @@ private enum LiveSmokeFailure: LocalizedError {
     case stepFailed(title: String, durationSeconds: TimeInterval, underlyingMessage: String)
     case missingElement(identifier: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case missingText(text: String, timeoutSeconds: TimeInterval, screen: String, step: String)
+    case disabledElement(identifier: String, screen: String, step: String)
+    case unexpectedElementLabel(identifier: String, expectedLabel: String, actualLabel: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case missingScreen(screen: String, identifier: String, timeoutSeconds: TimeInterval, currentScreen: String, step: String)
     case missingBackButton(screen: String, step: String)
     case currentWorkspacePickerNotVisible(screen: String, step: String)
@@ -105,6 +107,10 @@ private enum LiveSmokeFailure: LocalizedError {
             return "Element '\(identifier)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen)"
         case .missingText(let text, let timeoutSeconds, let screen, let step):
             return "Text '\(text)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen)"
+        case .disabledElement(let identifier, let screen, let step):
+            return "Element '\(identifier)' appeared but was disabled during step '\(step)' on screen: \(screen)"
+        case .unexpectedElementLabel(let identifier, let expectedLabel, let actualLabel, let timeoutSeconds, let screen, let step):
+            return "Element '\(identifier)' did not reach expected label '\(expectedLabel)' within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen). Actual label: '\(actualLabel)'"
         case .missingScreen(let screen, let identifier, let timeoutSeconds, let currentScreen, let step):
             return "Screen '\(screen)' with root identifier '\(identifier)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. Current screen: \(currentScreen)"
         case .missingBackButton(let screen, let step):
@@ -222,7 +228,11 @@ final class LiveSmokeUITests: XCTestCase {
                 )
             }
 
-            try self.step("verify the guest AI card is visible in cards and review it") {
+            try self.step("relaunch after guest AI card creation and keep local guest state") {
+                try self.relaunchApplication()
+            }
+
+            try self.step("verify the guest AI card is visible in cards and review it after relaunch") {
                 try self.openCardsTab()
                 try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
                 try self.reviewCurrentCard(expectedFrontText: context.aiFrontText, maximumSkips: 12)
@@ -656,9 +666,17 @@ final class LiveSmokeUITests: XCTestCase {
             self.logActionEnd(action: "tap_element", identifier: LiveSmokeIdentifier.aiConsentAcceptButton, result: "success", note: "AI consent accepted")
         }
 
+        let proposalErrorMarkerCountBeforeWait = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+            .allElementsBoundByIndex.count
+        let proposalPrompt = "Prepare exactly one flashcard proposal. Use front text \"\(aiFrontText)\", back text \"\(aiBackText)\", and include tag \"\(markerTag)\". Wait for my confirmation before creating it."
         try self.replaceText(
-            "Prepare exactly one flashcard proposal. Use front text \"\(aiFrontText)\", back text \"\(aiBackText)\", and include tag \"\(markerTag)\". Wait for my confirmation before creating it.",
+            proposalPrompt,
             inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.assertElementEnabled(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: self.shortUiTimeoutSeconds
         )
         _ = self.dismissKnownBlockingAlertIfVisible()
@@ -666,7 +684,24 @@ final class LiveSmokeUITests: XCTestCase {
         try self.tapElement(identifier: LiveSmokeIdentifier.aiComposerSendButton, timeout: self.shortUiTimeoutSeconds)
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: "ai_send_1", identifier: LiveSmokeIdentifier.aiComposerSendButton, result: "success", note: "proposal request sent")
-        try self.assertTextExists(aiFrontText, timeout: self.longUiTimeoutSeconds)
+        try self.assertVisibleTextContains(
+            aiFrontText,
+            timeout: self.longUiTimeoutSeconds,
+            aiErrorMarkerCountBeforeWait: proposalErrorMarkerCountBeforeWait,
+            ignoredExactLabels: [proposalPrompt]
+        )
+        try self.assertVisibleTextContains(
+            aiBackText,
+            timeout: self.longUiTimeoutSeconds,
+            aiErrorMarkerCountBeforeWait: proposalErrorMarkerCountBeforeWait,
+            ignoredExactLabels: [proposalPrompt]
+        )
+        try self.assertVisibleTextContains(
+            markerTag,
+            timeout: self.longUiTimeoutSeconds,
+            aiErrorMarkerCountBeforeWait: proposalErrorMarkerCountBeforeWait,
+            ignoredExactLabels: [proposalPrompt]
+        )
 
         try self.replaceText(
             "Confirmed. Create the card exactly as proposed.",
@@ -679,15 +714,29 @@ final class LiveSmokeUITests: XCTestCase {
         let errorMarkerCountBeforeConfirmation = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
             .allElementsBoundByIndex.count
+        try self.assertElementEnabled(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeout: self.shortUiTimeoutSeconds
+        )
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionStart(action: "ai_send_2", identifier: LiveSmokeIdentifier.aiComposerSendButton)
         try self.tapElement(identifier: LiveSmokeIdentifier.aiComposerSendButton, timeout: self.shortUiTimeoutSeconds)
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: "ai_send_2", identifier: LiveSmokeIdentifier.aiComposerSendButton, result: "success", note: "confirmation request sent")
+        try self.assertElementLabel(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            expectedLabel: "Stop response",
+            timeout: self.shortUiTimeoutSeconds
+        )
         try self.assertAiRunFinished(
             timeout: self.longUiTimeoutSeconds,
             completedMarkerCountBeforeWait: completedMarkerCountBeforeConfirmation,
             errorMarkerCountBeforeWait: errorMarkerCountBeforeConfirmation
+        )
+        try self.assertElementLabel(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            expectedLabel: "Send message",
+            timeout: self.longUiTimeoutSeconds
         )
     }
 
@@ -966,6 +1015,188 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+    }
+
+    @MainActor
+    private func assertVisibleTextContains(
+        _ text: String,
+        timeout: TimeInterval,
+        aiErrorMarkerCountBeforeWait: Int,
+        ignoredExactLabels: Set<String>
+    ) throws {
+        let errorElements = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_visible_text_contains",
+            identifier: "text.contains.\(text)",
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for visible text substring"
+        )
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            let visibleLabels = self.app.staticTexts.allElementsBoundByIndex
+                .map(\.label)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { $0.isEmpty == false }
+                .filter { ignoredExactLabels.contains($0) == false }
+            if visibleLabels.contains(where: { $0.contains(text) }) {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_visible_text_contains",
+                    identifier: "text.contains.\(text)",
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "visible text substring appeared"
+                )
+                return
+            }
+
+            let errorMarkerCount = errorElements.allElementsBoundByIndex.count
+            if errorMarkerCount > aiErrorMarkerCountBeforeWait {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                let errorMessage = errorElements.allElementsBoundByIndex.last?.label.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_visible_text_contains",
+                    identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "failure",
+                    note: errorMessage
+                )
+                throw LiveSmokeFailure.aiRunReportedError(
+                    message: errorMessage.isEmpty ? "Assistant error message is empty." : errorMessage,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_visible_text_contains",
+            identifier: "text.contains.\(text)",
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: "visible text substring did not appear"
+        )
+        throw LiveSmokeFailure.missingText(
+            text: text,
+            timeoutSeconds: timeout,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    private func assertElementEnabled(identifier: String, timeout: TimeInterval) throws {
+        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        if element.isEnabled == false {
+            throw LiveSmokeFailure.disabledElement(
+                identifier: identifier,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
+    private func assertElementLabel(
+        identifier: String,
+        expectedLabel: String,
+        timeout: TimeInterval
+    ) throws {
+        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        var lastObservedLabel = element.label
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_element_label",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: expectedLabel
+        )
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            lastObservedLabel = element.label
+            if lastObservedLabel == expectedLabel {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_element_label",
+                    identifier: identifier,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: expectedLabel
+                )
+                return
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_element_label",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: "expected=\(expectedLabel) actual=\(lastObservedLabel)"
+        )
+        throw LiveSmokeFailure.unexpectedElementLabel(
+            identifier: identifier,
+            expectedLabel: expectedLabel,
+            actualLabel: lastObservedLabel,
+            timeoutSeconds: timeout,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
     }
 
     @MainActor
@@ -1382,6 +1613,25 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+    }
+
+    @MainActor
+    private func relaunchApplication() throws {
+        self.logActionStart(action: "terminate_app", identifier: "application")
+        self.app.terminate()
+        self.logActionEnd(
+            action: "terminate_app",
+            identifier: "application",
+            result: "success",
+            note: "application terminated",
+            captureScreenSummary: false,
+            screenOverride: "appState=notRunning screens=[-] nav=[-] alerts=[-] tabs=[-]"
+        )
+        self.logActionStart(action: "relaunch_app", identifier: "application")
+        self.app.launch()
+        try self.waitForApplicationToReachForeground(timeout: self.shortUiTimeoutSeconds)
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "relaunch_app", identifier: "application", result: "success", note: "application relaunched")
     }
 
     @MainActor
