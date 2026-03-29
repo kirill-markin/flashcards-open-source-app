@@ -123,6 +123,7 @@ private struct CurrentWorkspacePickerSheet: View {
                     }
                 }
             }
+            .accessibilityIdentifier(UITestIdentifier.currentWorkspacePickerScreen)
             .navigationTitle("Choose Workspace")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

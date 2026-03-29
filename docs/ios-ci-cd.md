@@ -24,7 +24,7 @@ The shared scheme for cloud builds is:
 
 Xcode Cloud receives the same service configuration values that local builds use through `apps/ios/Flashcards/ci_scripts/ci_post_clone.sh`.
 
-The required environment values are documented in [`docs/ios-local-setup.md`](ios-local-setup.md):
+The required environment values are documented in [`docs/ios-local-setup.md`](ios-local-setup.md). Every Xcode Cloud workflow that builds this iOS project must define:
 
 - `XCODE_CLOUD_DEVELOPMENT_TEAM`
 - `XCODE_CLOUD_APP_BUNDLE_IDENTIFIER`
@@ -35,6 +35,8 @@ The required environment values are documented in [`docs/ios-local-setup.md`](io
 - `XCODE_CLOUD_SUPPORT_URL`
 - `XCODE_CLOUD_SUPPORT_EMAIL_ADDRESS`
 
+`ci_post_clone.sh` fails the build before `xcodebuild` if any required variable is missing or if any URL value is malformed for `.xcconfig` usage.
+
 If the workflow injects the review/demo email for the live smoke flow explicitly, use `FLASHCARDS_LIVE_REVIEW_EMAIL`.
 
 Recommended value for this repository:
@@ -42,6 +44,8 @@ Recommended value for this repository:
 - `FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com`
 
 This keeps the Xcode Cloud live smoke workflow pinned to the intended review/demo account instead of relying on the default value embedded in the UI test code.
+
+`FLASHCARDS_LIVE_REVIEW_EMAIL` remains optional.
 
 ## Monitoring expectations
 
