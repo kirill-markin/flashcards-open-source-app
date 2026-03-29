@@ -162,7 +162,7 @@ extension LocalDatabase {
     /// aligned with:
     /// - `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`
     /// - `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/SyncLocalStore.kt`
-    /// - `apps/ios/Flashcards/FlashcardsTests/LocalDatabaseSyncApplicationTests.swift`
+    /// - the iOS sync tests that cover review-history application semantics
     func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
         try self.core.inTransaction {
             try self.syncApplier.applyReviewHistoryEvent(workspaceId: workspaceId, reviewEvent: reviewEvent)

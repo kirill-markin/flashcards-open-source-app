@@ -130,6 +130,16 @@ private struct LiveSmokeBreadcrumb {
     let line: String
 }
 
+private struct LiveSmokeRunContext {
+    let reviewEmail: String
+    let workspaceName: String
+    let manualFrontText: String
+    let manualBackText: String
+    let aiFrontText: String
+    let aiBackText: String
+    let markerTag: String
+}
+
 private func makeLiveSmokeBreadcrumbLine(
     event: String,
     step: String,
@@ -186,44 +196,66 @@ final class LiveSmokeUITests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    /**
-     This smoke test stays stateful on purpose: one connected story verifies
-     that the app can sign in, create content, review it, call AI, and still
-     keep the linked cloud state coherent after a relaunch. Each step fails at
-     the exact screen boundary where the integration regressed.
-     */
     @MainActor
-    func testLiveSmokeFlowUsesRealDemoAccountAcrossTabs() throws {
-        try self.launchApplication()
-        let runId = String(Int(Date().timeIntervalSince1970))
-        let reviewEmail = ProcessInfo.processInfo.environment[self.reviewEmailEnvironmentKey] ?? "apple-review@example.com"
-        let workspaceName = "E2E ios \(runId)"
-        let manualFrontText = "Manual e2e ios \(runId)"
-        let manualBackText = "Manual answer e2e ios \(runId)"
-        let aiFrontText = "AI e2e ios \(runId)"
-        let aiBackText = "AI answer e2e ios \(runId)"
-        let markerTag = "e2e-ios-\(runId)"
-
-        var primaryFailure: Error?
-
-        do {
-            try self.step("sign in with the configured review account") {
-                try self.signInWithReviewAccount(reviewEmail: reviewEmail)
+    func testLiveSmokeAccountAndWorkspaceFlow() throws {
+        let context = self.makeRunContext(runLabel: "account-workspace")
+        try self.runScenarioWithSignedInWorkspace(context: context) {
+            try self.step("verify linked account status and workspace state") {
+                try self.openSettingsTab()
+                try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
+                try self.assertTextExists(context.workspaceName, timeout: self.longUiTimeoutSeconds)
+                try self.openAccountStatus()
+                try self.assertTextExists(context.reviewEmail, timeout: self.longUiTimeoutSeconds)
+                try self.assertElementExists(
+                    identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
+                    timeout: self.longUiTimeoutSeconds
+                )
+                try self.tapFirstNavigationBackButton()
+                try self.tapFirstNavigationBackButton()
             }
+        }
+    }
 
-            try self.step("create an isolated linked workspace for this run") {
-                try self.createEphemeralWorkspace(workspaceName: workspaceName)
-            }
-
+    @MainActor
+    func testLiveSmokeManualCardFlow() throws {
+        let context = self.makeRunContext(runLabel: "manual-card")
+        try self.runScenarioWithSignedInWorkspace(context: context) {
             try self.step("create one manual card") {
-                try self.createManualCard(frontText: manualFrontText, backText: manualBackText)
+                try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
             }
 
             try self.step("verify the manual card in cards and review it") {
-                try self.assertTextExists(manualFrontText, timeout: self.longUiTimeoutSeconds)
-                try self.reviewCurrentCard(expectedFrontText: manualFrontText)
+                try self.assertTextExists(context.manualFrontText, timeout: self.longUiTimeoutSeconds)
+                try self.reviewCurrentCard(expectedFrontText: context.manualFrontText)
+            }
+        }
+    }
+
+    @MainActor
+    func testLiveSmokeAiCardFlow() throws {
+        let context = self.makeRunContext(runLabel: "ai-card")
+        try self.runScenarioWithSignedInWorkspace(context: context) {
+            try self.step("create one AI card with explicit confirmation") {
+                try self.createAiCardWithConfirmation(
+                    aiFrontText: context.aiFrontText,
+                    aiBackText: context.aiBackText,
+                    markerTag: context.markerTag
+                )
             }
 
+            try self.step("verify the AI-created card is visible in cards and review it") {
+                try self.openCardsTab()
+                try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
+                try self.openReviewTab()
+                try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
+            }
+        }
+    }
+
+    @MainActor
+    func testLiveSmokeSessionPersistenceFlow() throws {
+        let context = self.makeRunContext(runLabel: "session-persistence")
+        try self.runScenarioWithSignedInWorkspace(context: context) {
             try self.step("relaunch the app and keep the linked session") {
                 self.logActionStart(action: "terminate_app", identifier: "application")
                 self.app.terminate()
@@ -241,33 +273,10 @@ final class LiveSmokeUITests: XCTestCase {
                 _ = self.dismissKnownBlockingAlertIfVisible()
                 self.logActionEnd(action: "relaunch_app", identifier: "application", result: "success", note: "application relaunched")
                 try self.openSettingsTab()
-                try self.openAccountStatus()
-                try self.assertTextExists(reviewEmail, timeout: self.longUiTimeoutSeconds)
-                try self.tapFirstNavigationBackButton()
-                try self.tapFirstNavigationBackButton()
-            }
-
-            try self.step("create one AI card with explicit confirmation") {
-                try self.createAiCardWithConfirmation(
-                    aiFrontText: aiFrontText,
-                    aiBackText: aiBackText,
-                    markerTag: markerTag
-                )
-            }
-
-            try self.step("verify the AI-created card is visible in cards and review") {
-                try self.openCardsTab()
-                try self.assertTextExists(aiFrontText, timeout: self.longUiTimeoutSeconds)
-                try self.openReviewTab()
-                try self.assertTextExists(aiFrontText, timeout: self.longUiTimeoutSeconds)
-            }
-
-            try self.step("verify linked account status and workspace state") {
-                try self.openSettingsTab()
                 try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
-                try self.assertTextExists(workspaceName, timeout: self.longUiTimeoutSeconds)
+                try self.assertTextExists(context.workspaceName, timeout: self.longUiTimeoutSeconds)
                 try self.openAccountStatus()
-                try self.assertTextExists(reviewEmail, timeout: self.longUiTimeoutSeconds)
+                try self.assertTextExists(context.reviewEmail, timeout: self.longUiTimeoutSeconds)
                 try self.assertElementExists(
                     identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
                     timeout: self.longUiTimeoutSeconds
@@ -275,34 +284,76 @@ final class LiveSmokeUITests: XCTestCase {
                 try self.tapFirstNavigationBackButton()
                 try self.tapFirstNavigationBackButton()
             }
+        }
+    }
+
+    @MainActor
+    private func makeRunContext(runLabel: String) -> LiveSmokeRunContext {
+        let runId = "\(runLabel)-\(String(Int(Date().timeIntervalSince1970)))-\(UUID().uuidString.lowercased())"
+        let reviewEmail = ProcessInfo.processInfo.environment[self.reviewEmailEnvironmentKey] ?? "apple-review@example.com"
+
+        return LiveSmokeRunContext(
+            reviewEmail: reviewEmail,
+            workspaceName: "E2E ios \(runId)",
+            manualFrontText: "Manual e2e ios \(runId)",
+            manualBackText: "Manual answer e2e ios \(runId)",
+            aiFrontText: "AI e2e ios \(runId)",
+            aiBackText: "AI answer e2e ios \(runId)",
+            markerTag: "e2e-ios-\(runId)"
+        )
+    }
+
+    @MainActor
+    private func runScenarioWithSignedInWorkspace(
+        context: LiveSmokeRunContext,
+        scenario: () throws -> Void
+    ) throws {
+        try self.launchApplication()
+
+        var primaryFailure: Error?
+        var shouldDeleteWorkspace = false
+
+        do {
+            try self.step("sign in with the configured review account") {
+                try self.signInWithReviewAccount(reviewEmail: context.reviewEmail)
+            }
+
+            try self.step("create an isolated linked workspace for this run") {
+                try self.createEphemeralWorkspace(workspaceName: context.workspaceName)
+                shouldDeleteWorkspace = true
+            }
+
+            try scenario()
         } catch {
             primaryFailure = error
         }
 
-        do {
-            try self.step("delete the isolated workspace") {
-                try self.deleteEphemeralWorkspace()
-            }
-        } catch {
-            if primaryFailure == nil {
-                throw error
-            }
+        if shouldDeleteWorkspace {
+            do {
+                try self.step("delete the isolated workspace") {
+                    try self.deleteEphemeralWorkspace()
+                }
+            } catch {
+                if primaryFailure == nil {
+                    throw error
+                }
 
-            let cleanupDiagnostics = self.makeTextAttachment(
-                name: "Cleanup Failure After Primary Failure",
-                text: """
-                Cleanup failed after primary failure.
-                Cleanup error: \(error.localizedDescription)
-                Current screen: \(self.currentScreenSummary())
-                Visible text snapshot: \(self.visibleTextSnapshot())
-                Breadcrumbs:
-                \(self.recentBreadcrumbLines())
-                """
-            )
-            self.add(cleanupDiagnostics)
-            smokeLogger.error(
-                "event=cleanup_failure_after_primary step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public) error=\(error.localizedDescription, privacy: .public)"
-            )
+                let cleanupDiagnostics = self.makeTextAttachment(
+                    name: "Cleanup Failure After Primary Failure",
+                    text: """
+                    Cleanup failed after primary failure.
+                    Cleanup error: \(error.localizedDescription)
+                    Current screen: \(self.currentScreenSummary())
+                    Visible text snapshot: \(self.visibleTextSnapshot())
+                    Breadcrumbs:
+                    \(self.recentBreadcrumbLines())
+                    """
+                )
+                self.add(cleanupDiagnostics)
+                smokeLogger.error(
+                    "event=cleanup_failure_after_primary step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                )
+            }
         }
 
         if let primaryFailure {
