@@ -43,6 +43,15 @@ const val reviewNotificationFilterKindDataKey: String = "reviewFilterKind"
 const val reviewNotificationFilterDeckIdDataKey: String = "reviewFilterDeckId"
 const val reviewNotificationFilterTagDataKey: String = "reviewFilterTag"
 const val reviewNotificationTapExtraPrefix: String = "review-notification-extra"
+private val reviewNotificationTapIntentExtraKeys: List<String> = listOf(
+    "$reviewNotificationTapExtraPrefix::$reviewNotificationWorkspaceIdDataKey",
+    "$reviewNotificationTapExtraPrefix::$reviewNotificationCardIdDataKey",
+    "$reviewNotificationTapExtraPrefix::$reviewNotificationFrontTextDataKey",
+    "$reviewNotificationTapExtraPrefix::$reviewNotificationRequestIdDataKey",
+    "$reviewNotificationTapExtraPrefix::$reviewNotificationFilterKindDataKey",
+    "$reviewNotificationTapExtraPrefix::$reviewNotificationFilterDeckIdDataKey",
+    "$reviewNotificationTapExtraPrefix::$reviewNotificationFilterTagDataKey"
+)
 
 class ReviewNotificationsManager(
     private val context: Context,
@@ -358,4 +367,14 @@ fun parseReviewNotificationTapPayload(intent: android.content.Intent): ReviewNot
         frontText = frontText,
         reviewFilter = decodePersistedReviewFilter(filter = persistedFilter)
     )
+}
+
+fun consumeReviewNotificationTapPayload(intent: android.content.Intent): ReviewNotificationTapPayload? {
+    val payload = parseReviewNotificationTapPayload(intent = intent) ?: return null
+    clearReviewNotificationTapExtras(intent = intent)
+    return payload
+}
+
+private fun clearReviewNotificationTapExtras(intent: android.content.Intent) {
+    reviewNotificationTapIntentExtraKeys.forEach(intent::removeExtra)
 }
