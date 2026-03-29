@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 private sealed interface CurrentWorkspaceRetryAction {
     data class CompleteLink(
@@ -33,11 +34,11 @@ private sealed interface CurrentWorkspaceRetryAction {
 
 private data class CurrentWorkspaceDraftState(
     val operation: CurrentWorkspaceOperation,
+    val workspaceLoadState: CurrentWorkspaceLoadState,
     val pendingWorkspaceTitle: String?,
     val retryAction: CurrentWorkspaceRetryAction?,
     val errorMessage: String,
-    val workspaces: List<CloudWorkspaceSummary>,
-    val hasRequestedWorkspaceLoad: Boolean
+    val workspaces: List<CloudWorkspaceSummary>
 )
 
 class CurrentWorkspaceViewModel(
@@ -49,11 +50,11 @@ class CurrentWorkspaceViewModel(
     private val draftState = MutableStateFlow(
         value = CurrentWorkspaceDraftState(
             operation = CurrentWorkspaceOperation.IDLE,
+            workspaceLoadState = CurrentWorkspaceLoadState.Loading,
             pendingWorkspaceTitle = null,
             retryAction = null,
             errorMessage = "",
-            workspaces = emptyList(),
-            hasRequestedWorkspaceLoad = false
+            workspaces = emptyList()
         )
     )
 
@@ -62,10 +63,14 @@ class CurrentWorkspaceViewModel(
         cloudAccountRepository.observeCloudSettings(),
         draftState
     ) { metadata, cloudSettings, draft ->
-        val selectionErrorMessage = currentWorkspaceSelectionErrorMessage(
-            activeWorkspaceId = cloudSettings.activeWorkspaceId,
-            workspaces = draft.workspaces
-        )
+        val selectionErrorMessage = if (draft.workspaceLoadState == CurrentWorkspaceLoadState.Loaded) {
+            currentWorkspaceSelectionErrorMessage(
+                activeWorkspaceId = cloudSettings.activeWorkspaceId,
+                workspaces = draft.workspaces
+            )
+        } else {
+            null
+        }
         CurrentWorkspaceUiState(
             cloudStatusTitle = displayCloudAccountStateTitle(cloudState = cloudSettings.cloudState),
             currentWorkspaceName = if (selectionErrorMessage == null) {
@@ -77,9 +82,7 @@ class CurrentWorkspaceViewModel(
             isGuest = cloudSettings.cloudState == CloudAccountState.GUEST,
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
-            hasRequestedWorkspaceLoad = draft.hasRequestedWorkspaceLoad,
-            existingWorkspaceCount = draft.workspaces.size,
-            isLoading = draft.operation == CurrentWorkspaceOperation.LOADING,
+            workspaceLoadState = draft.workspaceLoadState,
             isSwitching = draft.operation == CurrentWorkspaceOperation.SWITCHING
                 || draft.operation == CurrentWorkspaceOperation.SYNCING,
             operation = draft.operation,
@@ -105,9 +108,7 @@ class CurrentWorkspaceViewModel(
             isGuest = false,
             isLinked = false,
             isLinkingReady = false,
-            hasRequestedWorkspaceLoad = false,
-            existingWorkspaceCount = 0,
-            isLoading = false,
+            workspaceLoadState = CurrentWorkspaceLoadState.Loading,
             isSwitching = false,
             operation = CurrentWorkspaceOperation.IDLE,
             pendingWorkspaceTitle = null,
@@ -133,8 +134,8 @@ class CurrentWorkspaceViewModel(
         draftState.update { state ->
             state.copy(
                 operation = CurrentWorkspaceOperation.LOADING,
-                errorMessage = "",
-                hasRequestedWorkspaceLoad = true
+                workspaceLoadState = CurrentWorkspaceLoadState.Loading,
+                errorMessage = ""
             )
         }
         try {
@@ -142,6 +143,7 @@ class CurrentWorkspaceViewModel(
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
+                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
                     errorMessage = "",
                     workspaces = workspaces
                 )
@@ -150,9 +152,20 @@ class CurrentWorkspaceViewModel(
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
+                    workspaceLoadState = CurrentWorkspaceLoadState.Failed,
                     errorMessage = error.message ?: "Could not load linked workspaces."
                 )
             }
+        }
+    }
+
+    /**
+     * Workspace management should not be cancelled just because the current
+     * settings surface briefly leaves composition during navigation.
+     */
+    fun loadWorkspacesAsync() {
+        viewModelScope.launch {
+            loadWorkspaces()
         }
     }
 
@@ -170,6 +183,13 @@ class CurrentWorkspaceViewModel(
         }
         try {
             val workspace = cloudAccountRepository.switchLinkedWorkspace(selection)
+            val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
+            require(cloudSettings.activeWorkspaceId == workspace.workspaceId) {
+                "Workspace switch returned '${workspace.workspaceId}', but activeWorkspaceId is '${cloudSettings.activeWorkspaceId}'."
+            }
+            require(cloudSettings.linkedWorkspaceId == workspace.workspaceId) {
+                "Workspace switch returned '${workspace.workspaceId}', but linkedWorkspaceId is '${cloudSettings.linkedWorkspaceId}'."
+            }
             draftState.update { state ->
                 state.copy(
                     workspaces = applyOptimisticWorkspaceSelection(
@@ -186,9 +206,16 @@ class CurrentWorkspaceViewModel(
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
+                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
                     errorMessage = error.message ?: "Workspace switch failed."
                 )
             }
+        }
+    }
+
+    fun switchWorkspaceAsync(selection: CloudWorkspaceLinkSelection) {
+        viewModelScope.launch {
+            switchWorkspace(selection = selection)
         }
     }
 
@@ -200,6 +227,12 @@ class CurrentWorkspaceViewModel(
                 workspaceId = retryAction.workspaceId,
                 workspaceTitle = retryAction.workspaceTitle
             )
+        }
+    }
+
+    fun retryLastWorkspaceActionAsync() {
+        viewModelScope.launch {
+            retryLastWorkspaceAction()
         }
     }
 
@@ -231,6 +264,7 @@ class CurrentWorkspaceViewModel(
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
+                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
                     pendingWorkspaceTitle = null,
                     retryAction = null,
                     errorMessage = "",
@@ -242,6 +276,7 @@ class CurrentWorkspaceViewModel(
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
+                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
                     errorMessage = error.message ?: "Workspace sync failed."
                 )
             }

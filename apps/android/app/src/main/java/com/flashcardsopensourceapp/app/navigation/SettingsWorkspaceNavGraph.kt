@@ -124,25 +124,13 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             WorkspaceOverviewRoute(
                 uiState = uiState,
                 onWorkspaceNameChange = workspaceOverviewViewModel::updateWorkspaceNameDraft,
-                onSaveWorkspaceName = {
-                    coroutineScope.launch {
-                        workspaceOverviewViewModel.saveWorkspaceName()
-                    }
-                },
-                onRequestDeleteWorkspace = {
-                    coroutineScope.launch {
-                        workspaceOverviewViewModel.requestDeleteWorkspace()
-                    }
-                },
+                onSaveWorkspaceName = workspaceOverviewViewModel::saveWorkspaceNameAsync,
+                onRequestDeleteWorkspace = workspaceOverviewViewModel::requestDeleteWorkspaceAsync,
                 onDismissDeletePreviewAlert = workspaceOverviewViewModel::dismissDeletePreviewAlert,
                 onOpenDeleteConfirmation = workspaceOverviewViewModel::openDeleteConfirmation,
                 onDeleteConfirmationTextChange = workspaceOverviewViewModel::updateDeleteConfirmationText,
                 onDismissDeleteConfirmation = workspaceOverviewViewModel::dismissDeleteConfirmation,
-                onDeleteWorkspace = {
-                    coroutineScope.launch {
-                        workspaceOverviewViewModel.deleteWorkspace()
-                    }
-                },
+                onDeleteWorkspace = workspaceOverviewViewModel::deleteWorkspaceAsync,
                 onBack = {
                     navController.popBackStack()
                 }

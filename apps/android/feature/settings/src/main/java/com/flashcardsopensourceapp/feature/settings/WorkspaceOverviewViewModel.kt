@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 private data class WorkspaceOverviewDraftState(
     val workspaceNameDraft: String,
@@ -163,6 +164,16 @@ class WorkspaceOverviewViewModel(
         }
     }
 
+    /**
+     * Workspace mutations are owned by the ViewModel so they can finish even
+     * when the settings composition is recreated mid-operation.
+     */
+    fun saveWorkspaceNameAsync() {
+        viewModelScope.launch {
+            saveWorkspaceName()
+        }
+    }
+
     suspend fun requestDeleteWorkspace() {
         draftState.update { state ->
             state.copy(
@@ -193,6 +204,12 @@ class WorkspaceOverviewViewModel(
                     successMessage = ""
                 )
             }
+        }
+    }
+
+    fun requestDeleteWorkspaceAsync() {
+        viewModelScope.launch {
+            requestDeleteWorkspace()
         }
     }
 
@@ -303,6 +320,12 @@ class WorkspaceOverviewViewModel(
                 )
             }
             false
+        }
+    }
+
+    fun deleteWorkspaceAsync() {
+        viewModelScope.launch {
+            deleteWorkspace()
         }
     }
 }

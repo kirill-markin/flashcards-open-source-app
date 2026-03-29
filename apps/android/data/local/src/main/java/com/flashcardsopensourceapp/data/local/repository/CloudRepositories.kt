@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinitionJso
 import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -147,6 +148,10 @@ class LocalCloudAccountRepository(
             )
         }
         val currentCloudSettings = preferencesStore.currentCloudSettings()
+        val currentLocalWorkspaceId = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        )?.workspaceId
         val preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(
             workspaces = accountSnapshot.workspaces
         )
@@ -155,7 +160,7 @@ class LocalCloudAccountRepository(
             linkedUserId = accountSnapshot.userId,
             linkedWorkspaceId = null,
             linkedEmail = accountSnapshot.email,
-            activeWorkspaceId = currentCloudSettings.activeWorkspaceId
+            activeWorkspaceId = currentLocalWorkspaceId ?: currentCloudSettings.activeWorkspaceId
         )
         return CloudWorkspaceLinkContext(
             userId = accountSnapshot.userId,
@@ -791,6 +796,13 @@ class LocalSyncRepository(
                     lastSuccessfulSyncAtMillis = System.currentTimeMillis(),
                     lastErrorMessage = ""
                 )
+            } catch (error: CancellationException) {
+                syncStatusState.value = SyncStatusSnapshot(
+                    status = SyncStatus.Idle,
+                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
+                    lastErrorMessage = ""
+                )
+                throw error
             } catch (error: Exception) {
                 if (isRemoteAccountDeletedError(error = error)) {
                     resetCoordinator.resetLocalStateForCloudIdentityChange()

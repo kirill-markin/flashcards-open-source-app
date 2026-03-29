@@ -125,11 +125,12 @@ fun FlashcardsApp(appGraph: AppGraph) {
             appGraph.cloudAccountRepository.resumePendingAccountDeletionIfNeeded()
         }
 
-        LaunchedEffect(isAppResumed, cloudSettings.cloudState, accountDeletionState) {
+        LaunchedEffect(isAppResumed, cloudSettings.cloudState, accountDeletionState, currentDestination.route) {
             if (
                 isAppResumed.not() || shouldRunForegroundSyncPolling(
                     cloudState = cloudSettings.cloudState,
-                    accountDeletionState = accountDeletionState
+                    accountDeletionState = accountDeletionState,
+                    destination = currentDestination
                 ).not()
             ) {
                 return@LaunchedEffect
@@ -144,7 +145,8 @@ fun FlashcardsApp(appGraph: AppGraph) {
             if (
                 isAppResumed.not() || shouldRunForegroundSyncPolling(
                     cloudState = cloudSettings.cloudState,
-                    accountDeletionState = accountDeletionState
+                    accountDeletionState = accountDeletionState,
+                    destination = currentDestination
                 ).not()
             ) {
                 return@LaunchedEffect
