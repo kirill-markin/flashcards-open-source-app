@@ -5,6 +5,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -103,27 +104,39 @@ class LiveSmokeTest {
             )
         }
         step("verify the manual card in cards and review") {
-            assertCardVisibleInCards(searchText = manualFrontText)
+            assertCardVisibleInCards(
+                searchText = manualFrontText,
+                timeoutMillis = internalUiTimeoutMillis
+            )
             reviewOneCard()
         }
     }
 
     @Test
-    fun aiCardCanBeCreatedInGuestWorkspace() {
+    fun aiCardCanBeCreatedAsGuestInDefaultWorkspace() {
         val runId = System.currentTimeMillis().toString()
         val aiFrontText = "AI e2e android $runId"
         val aiBackText = "AI answer e2e android $runId"
 
-        step("create one AI card with explicit confirmation in guest mode") {
+        step("create one AI card with explicit confirmation as guest in the default workspace") {
             createAiCardWithConfirmation(
                 aiFrontText = aiFrontText,
                 aiBackText = aiBackText,
                 markerTag = "ai-$runId"
             )
         }
-        step("verify the AI-created card is visible in cards and review") {
-            assertCardVisibleInCards(searchText = aiFrontText)
-            assertReviewQueueLoads()
+        step("restart the activity after AI card creation and keep the guest session") {
+            relaunchAndAssertGuestAccountStatus()
+        }
+        step("verify the AI-created card in cards and review") {
+            assertCardVisibleInCards(
+                searchText = aiFrontText,
+                timeoutMillis = externalUiTimeoutMillis
+            )
+            assertCardReachableInReview(
+                expectedFrontText = aiFrontText,
+                timeoutMillis = externalUiTimeoutMillis
+            )
         }
     }
 
@@ -171,9 +184,8 @@ class LiveSmokeTest {
 
     /**
      * This smoke suite is intentionally split into a few stateful groups.
-     * Only the linked-session group creates an isolated linked workspace.
-     * The manual and AI groups run independently on top of the default local
-     * or guest state so unrelated regressions fail independently.
+     * The manual and AI groups stay local-first, while the linked-session group
+     * owns linked workspace setup so regressions stay independently attributable.
      */
     private fun step(label: String, action: () -> Unit) {
         try {
@@ -316,47 +328,93 @@ class LiveSmokeTest {
         tapBackIcon()
     }
 
+    private fun relaunchAndAssertGuestAccountStatus() {
+        composeRule.activityRule.scenario.recreate()
+        openSettingsTab()
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasText("Guest AI"),
+            timeoutMillis = internalUiTimeoutMillis
+        )
+        clickNode(
+            matcher = hasText("Account").and(other = hasClickAction()),
+            label = "Account"
+        )
+        clickText(text = "Account status")
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasText("Guest AI"),
+            timeoutMillis = internalUiTimeoutMillis
+        )
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasText("Guest AI session"),
+            timeoutMillis = internalUiTimeoutMillis
+        )
+        if (hasVisibleText(text = "Linked")) {
+            throw AssertionError("Guest AI smoke unexpectedly reached a linked account state.")
+        }
+        tapBackIcon()
+        tapBackIcon()
+    }
+
     private fun createAiCardWithConfirmation(
         aiFrontText: String,
         aiBackText: String,
         markerTag: String
     ) {
+        val proposalPrompt =
+            "Prepare exactly one flashcard proposal. Use front text '$aiFrontText', back text '$aiBackText', and include tag '$markerTag'. Wait for my confirmation before creating it."
+        val confirmationPrompt = "Confirmed. Create the card exactly as proposed."
+
         clickText(text = "AI")
         dismissAiConsentIfNeeded()
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(
-            "Prepare exactly one flashcard proposal. Use front text '$aiFrontText', back text '$aiBackText', and include tag '$markerTag'. Wait for my confirmation before creating it."
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(proposalPrompt)
+        waitForAiComposerReady(
+            expectedDraftText = proposalPrompt,
+            expectedButtonLabel = "Send",
+            context = "after filling the AI proposal prompt"
         )
         clickTag(tag = aiComposerSendButtonTag, label = "Send AI prompt")
         composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
             failIfVisibleAppError(context = "while waiting for the AI proposal")
-            composeRule.onAllNodesWithText(aiFrontText, substring = true).fetchSemanticsNodes().isNotEmpty()
-                || composeRule.onAllNodesWithText(markerTag, substring = true).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(aiFrontText, substring = true).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(aiBackText, substring = true).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(markerTag, substring = true).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(
-            "Confirmed. Create the card exactly as proposed."
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(confirmationPrompt)
+        waitForAiComposerReady(
+            expectedDraftText = confirmationPrompt,
+            expectedButtonLabel = "Send",
+            context = "after filling the AI confirmation prompt"
         )
         clickTag(tag = aiComposerSendButtonTag, label = "Confirm AI card creation")
         waitUntilAtLeastOneExistsOrFail(
-            matcher = hasText("Done"),
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Stop")),
             timeoutMillis = externalUiTimeoutMillis
         )
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Send")),
+            timeoutMillis = externalUiTimeoutMillis
+        )
+        if (hasVisibleText(text = "I'm missing the actual proposed card text in this chat")) {
+            throw AssertionError(
+                "AI confirmation asked for missing proposal details instead of creating the card."
+            )
+        }
     }
 
-    private fun assertCardVisibleInCards(searchText: String) {
+    private fun assertCardVisibleInCards(searchText: String, timeoutMillis: Long) {
         openCardsTab()
         composeRule.onNodeWithText("Search cards").performTextReplacement(searchText)
-        waitUntilAtLeastOneExistsOrFail(
-            matcher = hasText(searchText),
-            timeoutMillis = internalUiTimeoutMillis
-        )
+        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+            failIfVisibleAppError(context = "while waiting for cards to show '$searchText'")
+            composeRule.onAllNodesWithText(searchText).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
-    private fun assertReviewQueueLoads() {
+    private fun assertCardReachableInReview(expectedFrontText: String, timeoutMillis: Long) {
         clickText(text = "Review")
-        composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for the review queue to load")
-            composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
-                || composeRule.onAllNodesWithText("Session complete").fetchSemanticsNodes().isNotEmpty()
+        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+            failIfVisibleAppError(context = "while waiting for review to show '$expectedFrontText'")
+            composeRule.onAllNodesWithText(expectedFrontText).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
@@ -806,6 +864,55 @@ class LiveSmokeTest {
             composeRule.waitForIdle()
         }
         failIfVisibleAppError(context = "after navigating back")
+    }
+
+    private fun waitForAiComposerReady(
+        expectedDraftText: String,
+        expectedButtonLabel: String,
+        context: String
+    ) {
+        try {
+            composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+                failIfVisibleAppError(context = "while waiting for AI composer readiness $context")
+                aiComposerDraftTextOrNull() == expectedDraftText &&
+                    aiComposerSendButtonIsEnabled(expectedLabel = expectedButtonLabel)
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "AI composer was not ready $context. " +
+                    "ExpectedDraft='$expectedDraftText' " +
+                    "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                    "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedButtonLabel)}",
+                error
+            )
+        }
+    }
+
+    private fun aiComposerDraftTextOrNull(): String? {
+        return composeRule.onAllNodesWithTag(aiComposerMessageFieldTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.config
+            ?.getOrNull(SemanticsProperties.EditableText)
+            ?.text
+    }
+
+    private fun aiComposerSendButtonIsEnabled(expectedLabel: String): Boolean {
+        val node = composeRule.onAllNodes(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel))
+        ).fetchSemanticsNodes().singleOrNull() ?: return false
+        return node.config.contains(SemanticsProperties.Disabled).not()
+    }
+
+    private fun aiComposerSendButtonStateOrNull(expectedLabel: String): String? {
+        val node = composeRule.onAllNodes(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel))
+        ).fetchSemanticsNodes().singleOrNull() ?: return null
+        return if (node.config.contains(SemanticsProperties.Disabled)) {
+            "disabled"
+        } else {
+            "enabled"
+        }
     }
 
     private fun scrollToText(text: String) {

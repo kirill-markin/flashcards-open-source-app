@@ -19,6 +19,7 @@ internal fun NavGraphBuilder.registerAiNavGraph(
         val aiViewModel = viewModel<com.flashcardsopensourceapp.feature.ai.AiViewModel>(
             factory = createAiViewModelFactory(
                 aiChatRepository = appGraph.aiChatRepository,
+                syncRepository = appGraph.syncRepository,
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository
             )

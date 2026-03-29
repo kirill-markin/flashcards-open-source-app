@@ -18,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaReachedMessa
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -35,6 +36,7 @@ private const val noSpeechRecordedMessage: String = "No speech was recorded."
 
 class AiViewModel(
     private val aiChatRepository: AiChatRepository,
+    private val syncRepository: SyncRepository,
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository
 ) : ViewModel() {
@@ -68,6 +70,7 @@ class AiViewModel(
     )
     private var activeSendJob: Job? = null
     private var activeWarmUpJob: Job? = null
+    private var lastAppliedMainContentInvalidationVersion: Long = 0L
 
     val uiState: StateFlow<AiUiState> = combine(
         metadataState,
@@ -417,20 +420,21 @@ class AiViewModel(
                         applyStreamEvent(event = event)
                     }
                 )
-                draftState.update { state ->
-                    val finalSnapshot = outcome.finalSnapshot
-                    val nextMessages = finalSnapshot?.messages ?: state.persistedState.messages
-                    val nextChatConfig = finalSnapshot?.chatConfig ?: outcome.chatConfig ?: state.persistedState.lastKnownChatConfig
-                    val nextSessionId = finalSnapshot?.sessionId ?: outcome.chatSessionId
-                    state.copy(
-                        persistedState = state.persistedState.copy(
-                            messages = nextMessages,
-                            chatSessionId = nextSessionId,
-                            lastKnownChatConfig = nextChatConfig
+                val finalSnapshot = outcome.finalSnapshot
+                if (finalSnapshot != null) {
+                    applyServerSnapshot(snapshot = finalSnapshot)
+                } else {
+                    draftState.update { state ->
+                        val nextChatConfig = outcome.chatConfig ?: state.persistedState.lastKnownChatConfig
+                        state.copy(
+                            persistedState = state.persistedState.copy(
+                                chatSessionId = outcome.chatSessionId,
+                                lastKnownChatConfig = nextChatConfig
+                            )
                         )
-                    )
+                    }
+                    persistCurrentState()
                 }
-                persistCurrentState()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: AiChatRemoteException) {
@@ -621,6 +625,7 @@ class AiViewModel(
     private fun switchWorkspace(workspaceId: String?) {
         activeSendJob?.cancel()
         activeWarmUpJob?.cancel()
+        lastAppliedMainContentInvalidationVersion = 0L
         viewModelScope.launch {
             val persistedState = aiChatRepository.loadPersistedState(workspaceId = workspaceId)
             draftState.value = makeAiDraftState(
@@ -653,7 +658,9 @@ class AiViewModel(
                         aiChatRepository.loadChatSnapshot(
                             workspaceId = workspaceId,
                             sessionId = null
-                        )?.let(::applyServerSnapshot)
+                        )?.let { repairedSnapshot ->
+                            applyServerSnapshot(snapshot = repairedSnapshot)
+                        }
                     }
                 }
             } catch (error: Exception) {
@@ -671,7 +678,7 @@ class AiViewModel(
         }
     }
 
-    private fun applyServerSnapshot(snapshot: AiChatSessionSnapshot) {
+    private suspend fun applyServerSnapshot(snapshot: AiChatSessionSnapshot) {
         draftState.update { state ->
             state.copy(
                 persistedState = state.persistedState.copy(
@@ -689,6 +696,48 @@ class AiViewModel(
             )
         }
         persistCurrentState()
+        syncMainContentIfInvalidated(
+            workspaceId = draftState.value.workspaceId,
+            mainContentInvalidationVersion = snapshot.mainContentInvalidationVersion
+        )
+    }
+
+    private suspend fun syncMainContentIfInvalidated(
+        workspaceId: String?,
+        mainContentInvalidationVersion: Long
+    ) {
+        if (workspaceId == null) {
+            return
+        }
+        if (cloudSettingsState.value.cloudState != CloudAccountState.LINKED) {
+            return
+        }
+        if (mainContentInvalidationVersion <= 0L) {
+            return
+        }
+        if (mainContentInvalidationVersion <= lastAppliedMainContentInvalidationVersion) {
+            return
+        }
+
+        try {
+            syncRepository.syncNow()
+            lastAppliedMainContentInvalidationVersion = mainContentInvalidationVersion
+        } catch (error: Exception) {
+            val message = error.message ?: error.javaClass.simpleName
+            AiChatDiagnosticsLogger.error(
+                event = "main_content_refresh_failed",
+                fields = listOf(
+                    "workspaceId" to workspaceId,
+                    "mainContentInvalidationVersion" to mainContentInvalidationVersion.toString(),
+                    "cloudState" to cloudSettingsState.value.cloudState.name,
+                    "message" to message
+                ),
+                throwable = error
+            )
+            draftState.update { state ->
+                state.copy(errorMessage = "Chat content refresh failed. $message")
+            }
+        }
     }
 
     private fun persistCurrentState() {
@@ -704,6 +753,7 @@ class AiViewModel(
 
 fun createAiViewModelFactory(
     aiChatRepository: AiChatRepository,
+    syncRepository: SyncRepository,
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository
 ): ViewModelProvider.Factory {
@@ -711,6 +761,7 @@ fun createAiViewModelFactory(
         initializer {
             AiViewModel(
                 aiChatRepository = aiChatRepository,
+                syncRepository = syncRepository,
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository
             )
