@@ -95,6 +95,7 @@ private enum LiveSmokeFailure: LocalizedError {
     case currentWorkspacePickerNotVisible(screen: String, step: String)
     case aiRunDidNotFinish(timeoutSeconds: TimeInterval, screen: String, step: String)
     case aiRunReportedError(message: String, screen: String, step: String)
+    case appDidNotReachForeground(timeoutSeconds: TimeInterval, appState: String, step: String)
 
     var errorDescription: String? {
         switch self {
@@ -114,6 +115,8 @@ private enum LiveSmokeFailure: LocalizedError {
             return "AI run did not finish within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. Current screen: \(screen)"
         case .aiRunReportedError(let message, let screen, let step):
             return "AI run reported an assistant error during step '\(step)'. Current screen: \(screen). Message: \(message)"
+        case .appDidNotReachForeground(let timeoutSeconds, let appState, let step):
+            return "Application did not reach runningForeground within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. App state: \(appState)"
         }
     }
 }
@@ -224,9 +227,17 @@ final class LiveSmokeUITests: XCTestCase {
             try self.step("relaunch the app and keep the linked session") {
                 self.logActionStart(action: "terminate_app", identifier: "application")
                 self.app.terminate()
-                self.logActionEnd(action: "terminate_app", identifier: "application", result: "success", note: "application terminated")
+                self.logActionEnd(
+                    action: "terminate_app",
+                    identifier: "application",
+                    result: "success",
+                    note: "application terminated",
+                    captureScreenSummary: false,
+                    screenOverride: "appState=notRunning screens=[-] nav=[-] alerts=[-] tabs=[-]"
+                )
                 self.logActionStart(action: "relaunch_app", identifier: "application")
                 self.app.launch()
+                try self.waitForApplicationToReachForeground(timeout: self.shortUiTimeoutSeconds)
                 _ = self.dismissKnownBlockingAlertIfVisible()
                 self.logActionEnd(action: "relaunch_app", identifier: "application", result: "success", note: "application relaunched")
                 try self.openSettingsTab()
@@ -393,6 +404,7 @@ final class LiveSmokeUITests: XCTestCase {
         self.app = XCUIApplication()
         self.logActionStart(action: "launch_app", identifier: "application")
         self.app.launch()
+        try self.waitForApplicationToReachForeground(timeout: self.shortUiTimeoutSeconds)
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: "launch_app", identifier: "application", result: "success", note: "application launched")
         smokeLogger.log(
@@ -948,6 +960,9 @@ final class LiveSmokeUITests: XCTestCase {
         guard self.app != nil else {
             return false
         }
+        guard self.isApplicationRunning else {
+            return false
+        }
 
         let alert = self.app.alerts.firstMatch
         guard alert.exists else {
@@ -979,7 +994,10 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func currentScreenSummary() -> String {
         guard self.app != nil else {
-            return "screens=[-] nav=[-] alerts=[-] tabs=[-]"
+            return "appState=uninitialized screens=[-] nav=[-] alerts=[-] tabs=[-]"
+        }
+        guard self.isApplicationRunning else {
+            return "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
         }
 
         let visibleScreenTitles = LiveSmokeScreen.allCases
@@ -1014,6 +1032,7 @@ final class LiveSmokeUITests: XCTestCase {
             .joined(separator: ", ")
 
         return """
+        appState=\(self.appStateDescription()) \
         screens=[\(visibleScreenTitles.isEmpty ? "-" : visibleScreenTitles)] \
         nav=[\(navigationTitles.isEmpty ? "-" : navigationTitles)] \
         alerts=[\(alertTitles.isEmpty ? "-" : alertTitles)] \
@@ -1023,12 +1042,14 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func attachFailureDiagnostics(stepTitle: String, error: Error, activity: XCTActivity) {
-        let screenshotAttachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        screenshotAttachment.name = "Failure Screenshot - \(stepTitle)"
-        screenshotAttachment.lifetime = .keepAlways
-        activity.add(screenshotAttachment)
+        if self.isApplicationRunning {
+            let screenshotAttachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            screenshotAttachment.name = "Failure Screenshot - \(stepTitle)"
+            screenshotAttachment.lifetime = .keepAlways
+            activity.add(screenshotAttachment)
+        }
 
-        let hierarchyAttachment = XCTAttachment(string: self.app.debugDescription)
+        let hierarchyAttachment = XCTAttachment(string: self.appDebugHierarchy())
         hierarchyAttachment.name = "UI Hierarchy - \(stepTitle)"
         hierarchyAttachment.lifetime = .keepAlways
         activity.add(hierarchyAttachment)
@@ -1056,6 +1077,13 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func visibleTextSnapshot() -> String {
+        guard self.app != nil else {
+            return "<app not initialized>"
+        }
+        guard self.isApplicationRunning else {
+            return "<app not running>"
+        }
+
         let labels = self.app.staticTexts.allElementsBoundByIndex
             .map { element in
                 element.label
@@ -1071,6 +1099,18 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    private func appDebugHierarchy() -> String {
+        guard self.app != nil else {
+            return "<app not initialized>"
+        }
+        guard self.isApplicationRunning else {
+            return "<app not running>"
+        }
+
+        return self.app.debugDescription
+    }
+
+    @MainActor
     private func logSmokeBreadcrumb(
         event: String,
         action: String,
@@ -1078,8 +1118,11 @@ final class LiveSmokeUITests: XCTestCase {
         timeoutSeconds: String,
         durationSeconds: String,
         result: String,
-        note: String
+        note: String,
+        captureScreenSummary: Bool = true,
+        screenOverride: String? = nil
     ) {
+        let screen = screenOverride ?? (captureScreenSummary ? self.currentScreenSummary() : "screens=[-] nav=[-] alerts=[-] tabs=[-]")
         let line = makeLiveSmokeBreadcrumbLine(
             event: event,
             step: self.currentStepTitle,
@@ -1087,7 +1130,7 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: identifier,
             timeoutSeconds: timeoutSeconds,
             durationSeconds: durationSeconds,
-            screen: self.currentScreenSummary(),
+            screen: screen,
             result: result,
             note: note
         )
@@ -1127,7 +1170,14 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func logActionEnd(action: String, identifier: String, result: String, note: String) {
+    private func logActionEnd(
+        action: String,
+        identifier: String,
+        result: String,
+        note: String,
+        captureScreenSummary: Bool = true,
+        screenOverride: String? = nil
+    ) {
         self.logSmokeBreadcrumb(
             event: "action_end",
             action: action,
@@ -1135,8 +1185,85 @@ final class LiveSmokeUITests: XCTestCase {
             timeoutSeconds: "-",
             durationSeconds: "-",
             result: result,
-            note: note
+            note: note,
+            captureScreenSummary: captureScreenSummary,
+            screenOverride: screenOverride
         )
+    }
+
+    @MainActor
+    private func waitForApplicationToReachForeground(timeout: TimeInterval) throws {
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_app_foreground",
+            identifier: "application",
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for runningForeground",
+            captureScreenSummary: false,
+            screenOverride: "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
+        )
+        let startedAt = Date()
+        let reachedForeground = self.app.wait(for: .runningForeground, timeout: timeout)
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_app_foreground",
+            identifier: "application",
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: reachedForeground ? "success" : "failure",
+            note: "foreground wait finished",
+            captureScreenSummary: reachedForeground,
+            screenOverride: reachedForeground ? nil : "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
+        )
+
+        if reachedForeground == false {
+            throw LiveSmokeFailure.appDidNotReachForeground(
+                timeoutSeconds: timeout,
+                appState: self.appStateDescription(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
+    private var isApplicationRunning: Bool {
+        guard self.app != nil else {
+            return false
+        }
+
+        switch self.app.state {
+        case .runningForeground, .runningBackground:
+            return true
+        case .unknown, .notRunning:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+
+    @MainActor
+    private func appStateDescription() -> String {
+        guard self.app != nil else {
+            return "uninitialized"
+        }
+
+        switch self.app.state {
+        case .unknown:
+            return "unknown"
+        case .notRunning:
+            return "notRunning"
+        case .runningBackgroundSuspended:
+            return "runningBackgroundSuspended"
+        case .runningBackground:
+            return "runningBackground"
+        case .runningForeground:
+            return "runningForeground"
+        @unknown default:
+            return "unknownFutureState"
+        }
     }
 
     @MainActor
