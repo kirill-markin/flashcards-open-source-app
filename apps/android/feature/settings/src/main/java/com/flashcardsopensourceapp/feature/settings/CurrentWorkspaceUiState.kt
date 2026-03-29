@@ -1,5 +1,11 @@
 package com.flashcardsopensourceapp.feature.settings
 
+enum class CurrentWorkspaceLoadState {
+    Loading,
+    Loaded,
+    Failed
+}
+
 data class CurrentWorkspaceUiState(
     val cloudStatusTitle: String,
     val currentWorkspaceName: String,
@@ -7,9 +13,7 @@ data class CurrentWorkspaceUiState(
     val isGuest: Boolean,
     val isLinked: Boolean,
     val isLinkingReady: Boolean,
-    val hasRequestedWorkspaceLoad: Boolean,
-    val existingWorkspaceCount: Int,
-    val isLoading: Boolean,
+    val workspaceLoadState: CurrentWorkspaceLoadState,
     val isSwitching: Boolean,
     val operation: CurrentWorkspaceOperation,
     val pendingWorkspaceTitle: String?,

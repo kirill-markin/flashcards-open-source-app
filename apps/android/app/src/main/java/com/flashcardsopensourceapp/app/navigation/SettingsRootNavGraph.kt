@@ -16,7 +16,6 @@ import com.flashcardsopensourceapp.feature.settings.createCurrentWorkspaceViewMo
 import com.flashcardsopensourceapp.feature.settings.createDeviceDiagnosticsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 internal fun NavGraphBuilder.registerSettingsRootDestinations(
     appGraph: AppGraph,
@@ -72,34 +71,26 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         CurrentWorkspaceRoute(
             uiState = uiState,
             onReload = {
-                coroutineScope.launch {
-                    currentWorkspaceViewModel.loadWorkspaces()
-                }
+                currentWorkspaceViewModel.loadWorkspacesAsync()
             },
             onSwitchToExistingWorkspace = { workspaceId ->
-                coroutineScope.launch {
-                    currentWorkspaceViewModel.switchWorkspace(
-                        selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.Existing(
-                            workspaceId = workspaceId
-                        )
+                currentWorkspaceViewModel.switchWorkspaceAsync(
+                    selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.Existing(
+                        workspaceId = workspaceId
                     )
-                }
+                )
             },
             onCreateWorkspace = {
-                coroutineScope.launch {
-                    currentWorkspaceViewModel.switchWorkspace(
-                        selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.CreateNew
-                    )
-                }
+                currentWorkspaceViewModel.switchWorkspaceAsync(
+                    selection = com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection.CreateNew
+                )
             },
             onOpenSignIn = {
                 appGraph.appMessageBus.showMessage(message = "Sign in to manage linked workspaces.")
                 navController.navigate(route = SettingsAccountSignInEmailDestination.route)
             },
             onRetryLastWorkspaceAction = {
-                coroutineScope.launch {
-                    currentWorkspaceViewModel.retryLastWorkspaceAction()
-                }
+                currentWorkspaceViewModel.retryLastWorkspaceActionAsync()
             },
             onBack = {
                 navController.popBackStack()

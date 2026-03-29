@@ -27,6 +27,8 @@ const val currentWorkspaceListTag: String = "current_workspace_list"
 const val currentWorkspaceNameTag: String = "current_workspace_name"
 const val currentWorkspaceErrorMessageTag: String = "current_workspace_error_message"
 const val currentWorkspaceOperationMessageTag: String = "current_workspace_operation_message"
+const val currentWorkspaceLoadingStateTag: String = "current_workspace_loading_state"
+const val currentWorkspaceReloadButtonTag: String = "current_workspace_reload_button"
 
 fun currentWorkspaceExistingButtonTag(workspaceId: String): String {
     return currentWorkspaceExistingButtonTagPrefix + workspaceId
@@ -48,15 +50,11 @@ fun CurrentWorkspaceRoute(
 ) {
     LaunchedEffect(
         uiState.isLinked,
-        uiState.existingWorkspaceCount,
-        uiState.hasRequestedWorkspaceLoad,
-        uiState.isLoading
+        uiState.workspaceLoadState
     ) {
         if (
             uiState.isLinked
-            && uiState.existingWorkspaceCount == 0
-            && uiState.hasRequestedWorkspaceLoad.not()
-            && uiState.isLoading.not()
+            && uiState.workspaceLoadState == CurrentWorkspaceLoadState.Loading
         ) {
             onReload()
         }
@@ -156,18 +154,22 @@ fun CurrentWorkspaceRoute(
                                 }
                             }
 
-                            uiState.isLoading -> {
+                            uiState.workspaceLoadState == CurrentWorkspaceLoadState.Loading -> {
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    CircularProgressIndicator()
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.testTag(tag = currentWorkspaceLoadingStateTag)
+                                    )
                                     Text("Loading linked workspaces...")
                                 }
                             }
 
-                            uiState.existingWorkspaceCount == 0 -> {
+                            uiState.workspaceLoadState == CurrentWorkspaceLoadState.Failed -> {
                                 Button(
                                     onClick = onReload,
                                     enabled = uiState.isSwitching.not(),
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag(tag = currentWorkspaceReloadButtonTag)
                                 ) {
                                     Text("Load linked workspaces")
                                 }
