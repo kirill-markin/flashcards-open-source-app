@@ -6,11 +6,14 @@ This repository uses Xcode Cloud as the native iOS release gate and distribution
 
 The intended iOS release order is:
 
-1. Native XCTest unit and app-hosted checks
-2. Native XCUITest live smoke in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
-3. Archive and distribution from Xcode Cloud
+1. Native XCUITest grouped live smoke in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+2. Archive and distribution from Xcode Cloud
 
-The live smoke flow is intentionally one connected story across Review, Cards, AI, and Settings. It uses the same linked-account contract as the other clients:
+The live smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Only one grouped smoke signs into the linked demo account, creates an isolated linked workspace, verifies relaunch persistence, and deletes that workspace before exit. The remaining grouped smokes stay guest/local and do not perform login.
+
+Guest AI availability is part of the iOS release contract. The guest AI smoke must pass without login, and a guest-AI-disabled or guest-quota-exhausted response is treated as a real release failure.
+
+The grouped smoke suite still maps to the same top-level live-smoke contract as the other clients:
 
 - iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
@@ -19,6 +22,8 @@ The live smoke flow is intentionally one connected story across Review, Cards, A
 The shared scheme for cloud builds is:
 
 - `apps/ios/Flashcards/Flashcards Open Source App.xcodeproj/xcshareddata/xcschemes/Flashcards Open Source App.xcscheme`
+
+The shared cloud scheme runs the UI smoke bundle only. FSRS parity tests remain in `apps/ios/Flashcards/FlashcardsTests` for focused local/native verification and are not part of the Xcode Cloud release gate.
 
 ## Xcode Cloud inputs
 
@@ -37,13 +42,13 @@ The required environment values are documented in [`docs/ios-local-setup.md`](io
 
 `ci_post_clone.sh` fails the build before `xcodebuild` if any required variable is missing or if any URL value is malformed for `.xcconfig` usage.
 
-If the workflow injects the review/demo email for the live smoke flow explicitly, use `FLASHCARDS_LIVE_REVIEW_EMAIL`.
+If the workflow injects the review/demo email for the login smoke path explicitly, use `FLASHCARDS_LIVE_REVIEW_EMAIL`.
 
 Recommended value for this repository:
 
 - `FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com`
 
-This keeps the Xcode Cloud live smoke workflow pinned to the intended review/demo account instead of relying on the default value embedded in the UI test code.
+This keeps the login smoke path pinned to the intended review/demo account instead of relying on the default value embedded in the UI test code.
 
 `FLASHCARDS_LIVE_REVIEW_EMAIL` remains optional.
 
