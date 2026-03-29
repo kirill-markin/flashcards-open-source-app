@@ -41,13 +41,12 @@ final class LiveSmokeUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
+    @MainActor
     override func setUpWithError() throws {
         try super.setUpWithError()
-        MainActor.assumeIsolated {
-            continueAfterFailure = false
-            self.app = XCUIApplication()
-            self.app.launch()
-        }
+        continueAfterFailure = false
+        self.app = XCUIApplication()
+        self.app.launch()
     }
 
     /**
