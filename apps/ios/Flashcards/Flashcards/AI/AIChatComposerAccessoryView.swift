@@ -180,10 +180,6 @@ extension AIChatView {
             .foregroundStyle(.secondary)
     }
 
-    var selectedModelLabel: String {
-        self.chatStore.serverChatConfig.model.label
-    }
-
     var primaryComposerButtonDisabled: Bool {
         self.chatStore.isStreaming == false && self.chatStore.canSendMessage == false
     }

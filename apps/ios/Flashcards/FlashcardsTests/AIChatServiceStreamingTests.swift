@@ -59,11 +59,9 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
 
             let bodyData = try XCTUnwrap(request.httpBody)
             let jsonObject = try XCTUnwrap(JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+            XCTAssertEqual(Set(jsonObject.keys), ["content", "sessionId", "timezone"])
             XCTAssertEqual(jsonObject["sessionId"] as? String, "session-1")
             XCTAssertEqual(jsonObject["timezone"] as? String, "Europe/Madrid")
-            XCTAssertNil(jsonObject["messages"])
-            XCTAssertNil(jsonObject["model"])
-            XCTAssertNil(jsonObject["userContext"])
 
             let content = try XCTUnwrap(jsonObject["content"] as? [[String: Any]])
             XCTAssertEqual(content.count, 1)

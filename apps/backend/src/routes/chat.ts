@@ -85,7 +85,7 @@ type ChatRoutesOptions = Readonly<{
   requestChatRunCancellationFn?: typeof requestChatRunCancellation;
 }>;
 
-const LEGACY_CHAT_REQUEST_FIELDS = [
+const UNSUPPORTED_CHAT_REQUEST_FIELDS = [
   "messages",
   "model",
   "selectedModel",
@@ -174,12 +174,12 @@ function parseChatContentParts(value: unknown, context: string): ReadonlyArray<C
 }
 
 /**
- * Rejects request fields that only belong to the legacy client-owned chat contract.
+ * Rejects request fields that are not part of the backend-owned chat contract.
  */
-function assertNoLegacyFields(body: Record<string, unknown>): void {
-  for (const fieldName of LEGACY_CHAT_REQUEST_FIELDS) {
+function assertNoUnsupportedRequestFields(body: Record<string, unknown>): void {
+  for (const fieldName of UNSUPPORTED_CHAT_REQUEST_FIELDS) {
     if (fieldName in body) {
-      throw new HttpError(400, `Unsupported legacy chat field: ${fieldName}`);
+      throw new HttpError(400, `Unsupported request field: ${fieldName}`);
     }
   }
 }
@@ -189,7 +189,7 @@ function assertNoLegacyFields(body: Record<string, unknown>): void {
  */
 export function parseChatRequestBody(value: unknown): ChatRequestBody {
   const body = expectRecord(value);
-  assertNoLegacyFields(body);
+  assertNoUnsupportedRequestFields(body);
 
   const sessionId = body.sessionId === undefined
     ? undefined
