@@ -25,6 +25,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Playwright artifacts
+apps/web/playwright-report/
+apps/web/test-results/
+
 # macOS
 .DS_Store
 
