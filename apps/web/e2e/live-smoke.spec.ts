@@ -491,7 +491,11 @@ async function createEphemeralWorkspace(
     page.getByRole("navigation", { name: "Settings tabs" }).getByRole("link", { name: "Current Workspace", exact: true }),
   );
   await trackedClick(diagnostics, "expand workspace picker card", page.getByRole("button", { name: "Workspace" }));
-  await trackedClick(diagnostics, "open new workspace form", page.getByRole("button", { name: "New Workspace" }));
+  await trackedClick(
+    diagnostics,
+    "open new workspace form",
+    page.locator(".settings-workspace-picker").getByRole("button", { name: "New Workspace", exact: true }),
+  );
   await trackedFill(diagnostics, `fill workspace name ${workspaceName}`, page.getByPlaceholder("Workspace name"), workspaceName);
   await trackedClick(diagnostics, `submit workspace creation for ${workspaceName}`, page.getByRole("button", { name: "Create Workspace" }));
   await trackedExpectText(
