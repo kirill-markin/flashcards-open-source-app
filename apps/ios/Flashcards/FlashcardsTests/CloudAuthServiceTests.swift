@@ -3,16 +3,6 @@ import XCTest
 @testable import Flashcards
 
 final class CloudAuthServiceTests: XCTestCase {
-    override class func setUp() {
-        super.setUp()
-        URLProtocol.registerClass(MockUrlProtocol.self)
-    }
-
-    override class func tearDown() {
-        URLProtocol.unregisterClass(MockUrlProtocol.self)
-        super.tearDown()
-    }
-
     override func tearDown() {
         MockUrlProtocol.requestHandler = nil
         super.tearDown()
