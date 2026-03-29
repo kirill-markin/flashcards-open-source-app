@@ -994,10 +994,10 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func currentScreenSummary() -> String {
         guard self.app != nil else {
-            return "appState=uninitialized screens=[-] nav=[-] alerts=[-] tabs=[-]"
+            return "appState=uninitialized screens=[-]"
         }
         guard self.isApplicationRunning else {
-            return "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
+            return "appState=\(self.appStateDescription()) screens=[-]"
         }
 
         let visibleScreenTitles = LiveSmokeScreen.allCases
@@ -1006,37 +1006,10 @@ final class LiveSmokeUITests: XCTestCase {
             }
             .map(\.title)
             .joined(separator: ", ")
-        let navigationTitles = self.app.navigationBars.allElementsBoundByIndex
-            .map { element in
-                let identifier = element.identifier.trimmingCharacters(in: .whitespacesAndNewlines)
-                if identifier.isEmpty {
-                    return element.label.trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-                return identifier
-            }
-            .filter { $0.isEmpty == false }
-            .joined(separator: ", ")
-        let alertTitles = self.app.alerts.allElementsBoundByIndex
-            .map { element in
-                element.label
-            }
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.isEmpty == false }
-            .joined(separator: ", ")
-        let visibleTabs = self.app.tabBars.buttons.allElementsBoundByIndex
-            .map { element in
-                element.label
-            }
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.isEmpty == false }
-            .joined(separator: ", ")
 
         return """
         appState=\(self.appStateDescription()) \
-        screens=[\(visibleScreenTitles.isEmpty ? "-" : visibleScreenTitles)] \
-        nav=[\(navigationTitles.isEmpty ? "-" : navigationTitles)] \
-        alerts=[\(alertTitles.isEmpty ? "-" : alertTitles)] \
-        tabs=[\(visibleTabs.isEmpty ? "-" : visibleTabs)]
+        screens=[\(visibleScreenTitles.isEmpty ? "-" : visibleScreenTitles)]
         """
     }
 
@@ -1235,9 +1208,9 @@ final class LiveSmokeUITests: XCTestCase {
         }
 
         switch self.app.state {
-        case .runningForeground, .runningBackground:
+        case .runningForeground:
             return true
-        case .unknown, .notRunning:
+        case .unknown, .notRunning, .runningBackground, .runningBackgroundSuspended:
             return false
         @unknown default:
             return false
