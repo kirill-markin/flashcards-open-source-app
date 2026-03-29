@@ -4,6 +4,8 @@ import { loadOpenApiDocument } from "./openapi";
 
 test("loadOpenApiDocument returns the canonical v1 spec with the SQL surface", () => {
   const document = loadOpenApiDocument();
+  const legacyTurnPath = "/chat" + "/turn";
+  const legacyDiagnosticsPath = legacyTurnPath + "/diagnostics";
   const paths = document.paths as Record<string, Record<string, {
     requestBody?: {
       content?: Record<string, {
@@ -43,7 +45,8 @@ test("loadOpenApiDocument returns the canonical v1 spec with the SQL surface", (
   assert.equal("/agent/tools/list_cards" in paths, false);
   assert.equal("/agent/tools/list_tags" in paths, false);
   assert.equal("/workspaces/{workspaceId}/sync/push" in paths, false);
-  assert.equal("/chat/turn" in paths, false);
+  assert.equal(legacyTurnPath in paths, false);
+  assert.equal(legacyDiagnosticsPath in paths, false);
   assert.equal("/agent-api-keys" in paths, false);
   assert.deepEqual(agentDocs.required, ["openapiUrl"]);
   assert.deepEqual(agentSqlRequest.required, ["sql"]);

@@ -30,7 +30,7 @@ test("logRequestError includes validation messages for HttpError failures", () =
   try {
     logRequestError(
       "request-validation-1",
-      "/v1/chat/turn",
+      "/v1/chat",
       "POST",
       new HttpError(
         400,

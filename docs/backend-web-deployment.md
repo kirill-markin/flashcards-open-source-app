@@ -49,7 +49,6 @@ Keep the operator config in root `.env`. The important deploy-time values are:
 - `RESEND_API_KEY`
 - `RESEND_ADMIN_API_KEY`
 - optional `OPENAI_API_KEY`
-- optional `ANTHROPIC_API_KEY`
 - optional `DEMO_EMAIL_DOSTIP`
 - optional `DEMO_PASSWORD_DOSTIP`
 

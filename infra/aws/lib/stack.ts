@@ -36,7 +36,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
     const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
-    const anthropicApiKeySecretArn = getOptionalContextValue(this, "anthropicApiKeySecretArn");
     const langfusePublicKeySecretArn = getOptionalContextValue(this, "langfusePublicKeySecretArn");
     const langfuseSecretKeySecretArn = getOptionalContextValue(this, "langfuseSecretKeySecretArn");
     const langfuseBaseUrl = getOptionalContextValue(this, "langfuseBaseUrl");
@@ -82,7 +81,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       baseDomain,
       apiCertificateArn,
       openAiApiKeySecretArn,
-      anthropicApiKeySecretArn,
       langfusePublicKeySecretArn,
       langfuseSecretKeySecretArn,
       langfuseBaseUrl,

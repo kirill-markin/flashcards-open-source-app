@@ -1,5 +1,5 @@
 -- Backend-owned persisted AI chat sessions and transcript items.
--- This is the initial v2 storage layer. Legacy `/chat/turn` remains separate.
+-- This is the initial v2 storage layer. The old client-owned turn endpoint remained separate at the time.
 
 CREATE SCHEMA IF NOT EXISTS ai;
 

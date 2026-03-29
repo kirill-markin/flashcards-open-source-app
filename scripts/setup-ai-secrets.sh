@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create or update optional AI provider secrets in AWS Secrets Manager.
+# Create or update optional AI and telemetry secrets in AWS Secrets Manager.
 
 set -euo pipefail
 
@@ -8,7 +8,6 @@ REGION=""
 TEMP_DIR="$(mktemp -d)"
 
 OPENAI_SECRET_NAME="flashcards-open-source-app/openai-api-key"
-ANTHROPIC_SECRET_NAME="flashcards-open-source-app/anthropic-api-key"
 LANGFUSE_PUBLIC_KEY_SECRET_NAME="flashcards-open-source-app/langfuse-public-key"
 LANGFUSE_SECRET_KEY_SECRET_NAME="flashcards-open-source-app/langfuse-secret-key"
 
@@ -83,8 +82,8 @@ if [[ -z "${LANGFUSE_PUBLIC_KEY:-}" && -n "${LANGFUSE_SECRET_KEY:-}" ]]; then
   exit 1
 fi
 
-if [[ -z "${OPENAI_API_KEY:-}" && -z "${ANTHROPIC_API_KEY:-}" && -z "${LANGFUSE_PUBLIC_KEY:-}" && -z "${LANGFUSE_SECRET_KEY:-}" ]]; then
-  echo "Skipping optional AI secret setup: OPENAI_API_KEY, ANTHROPIC_API_KEY, and LANGFUSE_* are not set."
+if [[ -z "${OPENAI_API_KEY:-}" && -z "${LANGFUSE_PUBLIC_KEY:-}" && -z "${LANGFUSE_SECRET_KEY:-}" ]]; then
+  echo "Skipping optional AI secret setup: OPENAI_API_KEY and LANGFUSE_* are not set."
   exit 0
 fi
 
@@ -94,14 +93,6 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
     "${OPENAI_API_KEY}" \
     "OpenAI API key for flashcards-open-source-app backend chat")
   echo "Configured OpenAI API key secret in AWS Secrets Manager: ${OPENAI_SECRET_ARN}"
-fi
-
-if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
-  ANTHROPIC_SECRET_ARN=$(create_or_update_secret \
-    "$ANTHROPIC_SECRET_NAME" \
-    "${ANTHROPIC_API_KEY}" \
-    "Anthropic API key for flashcards-open-source-app backend chat")
-  echo "Configured Anthropic API key secret in AWS Secrets Manager: ${ANTHROPIC_SECRET_ARN}"
 fi
 
 if [[ -n "${LANGFUSE_PUBLIC_KEY:-}" ]]; then
