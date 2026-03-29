@@ -764,12 +764,8 @@ final class LiveSmokeUITests: XCTestCase {
                 return false
             }
 
-            let buttonLabels = alert.buttons.allElementsBoundByIndex
-                .map(\.label)
-                .filter { $0.isEmpty == false }
-                .joined(separator: ", ")
             smokeLogger.error(
-                "event=ui_interruption step=\(self.currentStepTitle, privacy: .public) description=\(alert.description, privacy: .public) buttons=\(buttonLabels, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+                "event=ui_interruption step=\(self.currentStepTitle, privacy: .public)"
             )
 
             for label in ["OK", "Close", "Dismiss", "Cancel", "Not Now", "Allow"] {
@@ -777,7 +773,7 @@ final class LiveSmokeUITests: XCTestCase {
                 if button.exists {
                     button.tap()
                     smokeLogger.log(
-                        "event=ui_interruption_handled step=\(self.currentStepTitle, privacy: .public) button=\(label, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+                        "event=ui_interruption_handled step=\(self.currentStepTitle, privacy: .public) button=\(label, privacy: .public)"
                     )
                     return true
                 }
@@ -787,6 +783,7 @@ final class LiveSmokeUITests: XCTestCase {
         }
     }
 
+    @MainActor
     private func currentScreenSummary() -> String {
         guard self.app != nil else {
             return "screens=[-] nav=[-] alerts=[-] tabs=[-]"
@@ -809,12 +806,16 @@ final class LiveSmokeUITests: XCTestCase {
             .filter { $0.isEmpty == false }
             .joined(separator: ", ")
         let alertTitles = self.app.alerts.allElementsBoundByIndex
-            .map(\.label)
+            .map { element in
+                element.label
+            }
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { $0.isEmpty == false }
             .joined(separator: ", ")
         let visibleTabs = self.app.tabBars.buttons.allElementsBoundByIndex
-            .map(\.label)
+            .map { element in
+                element.label
+            }
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { $0.isEmpty == false }
             .joined(separator: ", ")
@@ -827,6 +828,7 @@ final class LiveSmokeUITests: XCTestCase {
         """
     }
 
+    @MainActor
     private func attachFailureDiagnostics(stepTitle: String, error: Error, activity: XCTActivity) {
         let screenshotAttachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshotAttachment.name = "Failure Screenshot - \(stepTitle)"
@@ -857,9 +859,12 @@ final class LiveSmokeUITests: XCTestCase {
         return attachment
     }
 
+    @MainActor
     private func visibleTextSnapshot() -> String {
         let labels = self.app.staticTexts.allElementsBoundByIndex
-            .map(\.label)
+            .map { element in
+                element.label
+            }
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { $0.isEmpty == false }
 
