@@ -186,7 +186,7 @@ class CloudSignInViewModel(
         }
     }
 
-    suspend fun sendCode(): Boolean {
+    suspend fun sendCode(): CloudSendCodeNavigationOutcome {
         draftState.update { state -> state.copy(isSendingCode = true, errorMessage = "") }
         return try {
             when (val result = cloudAccountRepository.sendCode(draftState.value.email)) {
@@ -201,7 +201,7 @@ class CloudSignInViewModel(
                             completionToken = null
                         )
                     }
-                    true
+                    CloudSendCodeNavigationOutcome.OtpRequired
                 }
 
                 is CloudSendCodeResult.Verified -> {
@@ -211,7 +211,7 @@ class CloudSignInViewModel(
                         isSendingCode = false,
                         isVerifyingCode = false
                     )
-                    true
+                    CloudSendCodeNavigationOutcome.Verified
                 }
             }
         } catch (error: Exception) {
@@ -221,7 +221,7 @@ class CloudSignInViewModel(
                     errorMessage = error.message ?: "Could not send the sign-in code."
                 )
             }
-            false
+            CloudSendCodeNavigationOutcome.NoNavigation
         }
     }
 
