@@ -26,6 +26,10 @@ vi.mock("./chat/ChatLayoutContext", () => ({
   useChatLayout: useChatLayoutMock,
 }));
 
+vi.mock("./chat/ChatDraftContext", () => ({
+  ChatDraftProvider: ({ children }: Readonly<{ children: ReactNode }>) => <>{children}</>,
+}));
+
 vi.mock("./chat/ChatPanel", () => ({
   ChatPanel: ({ mode }: Readonly<{ mode: "sidebar" | "fullscreen" }>) => (
     <div data-testid="chat-panel" data-mode={mode}>

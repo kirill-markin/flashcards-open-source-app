@@ -3,6 +3,7 @@ import {
   createChatSnapshot,
   getChatSnapshotMock,
   resetChatSessionMock,
+  setTextareaValue,
   setupChatPanelTest,
   startChatRunMock,
   stopChatRunMock,
@@ -135,5 +136,77 @@ describe("ChatPanel backend-owned flow", () => {
     await chatPanel.sendMessage("hello");
 
     expect(refreshLocalDataMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves the unsent draft across chat panel remounts in the same workspace", async () => {
+    await chatPanel.renderChatPanel("fullscreen");
+
+    const fullscreenTextarea = chatPanel.getContainer().querySelector('textarea[name="chatMessage"]');
+    expect(fullscreenTextarea).not.toBeNull();
+
+    setTextareaValue(fullscreenTextarea as HTMLTextAreaElement, "draft survives remount");
+
+    await chatPanel.renderChatPanel("sidebar");
+
+    const sidebarTextarea = chatPanel.getContainer().querySelector('textarea[name="chatMessage"]');
+    expect(sidebarTextarea).not.toBeNull();
+    expect((sidebarTextarea as HTMLTextAreaElement).value).toBe("draft survives remount");
+  });
+
+  it("preserves pending attachments across chat panel remounts in the same workspace", async () => {
+    await chatPanel.renderChatPanel("fullscreen");
+    await chatPanel.clickAddAttachment();
+
+    expect(chatPanel.getContainer().textContent).toContain("attached.txt");
+
+    await chatPanel.renderChatPanel("sidebar");
+
+    expect(chatPanel.getContainer().textContent).toContain("attached.txt");
+  });
+
+  it("clears the draft when the active workspace changes", async () => {
+    await chatPanel.renderChatPanel("fullscreen");
+
+    const fullscreenTextarea = chatPanel.getContainer().querySelector('textarea[name="chatMessage"]');
+    expect(fullscreenTextarea).not.toBeNull();
+    setTextareaValue(fullscreenTextarea as HTMLTextAreaElement, "workspace-bound draft");
+    await chatPanel.clickAddAttachment();
+
+    useAppDataMock.mockReturnValue({
+      activeWorkspace: {
+        workspaceId: "workspace-2",
+        name: "Secondary",
+        createdAt: "2026-03-11T00:00:00.000Z",
+        isSelected: true,
+      },
+      isSessionVerified: true,
+      localCardCount: 1,
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: vi.fn(async (): Promise<void> => undefined),
+      setErrorMessage: vi.fn(),
+    });
+
+    await chatPanel.renderChatPanel("sidebar");
+
+    const sidebarTextarea = chatPanel.getContainer().querySelector('textarea[name="chatMessage"]');
+    expect(sidebarTextarea).not.toBeNull();
+    expect((sidebarTextarea as HTMLTextAreaElement).value).toBe("");
+    expect(chatPanel.getContainer().textContent).not.toContain("attached.txt");
+  });
+
+  it("clears the draft when the user starts a new conversation", async () => {
+    await chatPanel.renderChatPanel("fullscreen");
+
+    const textarea = chatPanel.getContainer().querySelector('textarea[name="chatMessage"]');
+    expect(textarea).not.toBeNull();
+    setTextareaValue(textarea as HTMLTextAreaElement, "clear me");
+    await chatPanel.clickAddAttachment();
+
+    await chatPanel.clickNewConversation();
+
+    const refreshedTextarea = chatPanel.getContainer().querySelector('textarea[name="chatMessage"]');
+    expect(refreshedTextarea).not.toBeNull();
+    expect((refreshedTextarea as HTMLTextAreaElement).value).toBe("");
+    expect(chatPanel.getContainer().textContent).not.toContain("attached.txt");
   });
 });

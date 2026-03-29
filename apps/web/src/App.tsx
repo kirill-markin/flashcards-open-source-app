@@ -10,6 +10,7 @@ import {
 } from "./accountDeletion";
 import { AppDataProvider, useAppData } from "./appData";
 import { ApiError, buildLoginUrl, buildLogoutLocalUrl, buildLogoutUrl, deleteMyAccount, primeSessionCsrfToken } from "./api";
+import { ChatDraftProvider } from "./chat/ChatDraftContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatToggle } from "./chat/ChatToggle";
 import {
@@ -531,9 +532,11 @@ export default function App(): ReactElement {
   return (
     <AppDataProvider>
       <ChatLayoutProvider>
-        <BrowserRouter>
-          <AppShell />
-        </BrowserRouter>
+        <ChatDraftProvider>
+          <BrowserRouter>
+            <AppShell />
+          </BrowserRouter>
+        </ChatDraftProvider>
       </ChatLayoutProvider>
     </AppDataProvider>
   );
