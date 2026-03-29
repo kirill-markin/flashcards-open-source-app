@@ -584,7 +584,7 @@ jobs:
     needs:
       - changes
       - aws_release_status
-    if: ${{ needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') }}
+    if: ${{ always() && needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') }}
     uses: ./.github/workflows/android-ci-reusable.yml
     with:
       run_live_smoke: true
@@ -596,7 +596,7 @@ jobs:
       - changes
       - aws_release_status
       - android_ci
-    if: ${{ needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') && needs.android_ci.result == 'success' }}
+    if: ${{ always() && needs.changes.outputs.android_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') && needs.android_ci.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -735,7 +735,7 @@ jobs:
     needs:
       - changes
       - aws_release_status
-    if: ${{ needs.changes.outputs.ios_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') }}
+    if: ${{ always() && needs.changes.outputs.ios_changed == 'true' && (needs.changes.outputs.aws_changed != 'true' || needs.aws_release_status.outputs.aws_release_status == 'retained') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     outputs:
