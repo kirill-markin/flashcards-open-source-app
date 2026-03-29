@@ -1,11 +1,12 @@
 # Android CI/CD
 
-This repository uses a split Android pipeline:
+This repository uses a split Android validation pipeline with one main-branch release orchestrator:
 
 - GitHub Actions is the primary CI entrypoint for pull requests and `main`
 - Firebase Test Lab runs instrumentation tests on Google-managed devices
-- A dedicated GitHub Actions release workflow builds a signed Android App Bundle and uploads it to the Google Play production track after `main` passes Android CI
+- the main GitHub release orchestrator publishes the signed Android App Bundle to the Google Play production track after Android CI succeeds for the same `main` SHA
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
+- `.github/workflows/android-release.yml` remains as a manual fallback only
 
 This setup keeps fast repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
 
@@ -54,21 +55,14 @@ GitHub Actions workflow: `.github/workflows/android.yml`
 - Runs Firebase Test Lab against the native stateful live smoke class `com.flashcardsopensourceapp.app.LiveSmokeTest`
 - Fails the workflow instead of silently skipping the live smoke gate when the required repository variables are missing
 
-GitHub Actions workflow: `.github/workflows/android-release.yml`
-
-- Triggers after `Android CI` succeeds on `main` or on manual dispatch
-- Builds `:app:bundleRelease`
-- Signs the bundle with the Android upload keystore from GitHub secrets
-- Uploads the signed `.aab` as a workflow artifact
-- Publishes the bundle to the Google Play production track using Workload Identity Federation and the Play Developer API
-
 The intended Android release order is:
 
 1. Native build, lint, and unit checks in GitHub Actions
 2. Native Firebase Test Lab live smoke on the configured Android 16 device
-3. Google Play production release
+3. If AWS changed too, wait for the main release orchestrator to retain the AWS release for the same SHA
+4. Google Play production release from the main release orchestrator
 
-After pushing to `main`, watch both the `Android CI` workflow and the follow-up `Android Release` workflow until publication either completes or fails clearly.
+After pushing to `main`, watch both `Android CI` and the main release orchestrator until publication either completes or fails clearly.
 
 Cross-client live smoke references:
 

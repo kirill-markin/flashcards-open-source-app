@@ -1,14 +1,10 @@
-name: Android Release
+name: Android Release (manual fallback)
 
 on:
-  workflow_run:
-    workflows: ['Android CI']
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: android-release
+  group: android-release-manual
   cancel-in-progress: false
 
 permissions:
@@ -18,14 +14,11 @@ permissions:
 jobs:
   publish-production:
     name: Publish Android bundle to Google Play production track
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Validate Google Play configuration
         env:
