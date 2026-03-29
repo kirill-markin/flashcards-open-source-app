@@ -1,10 +1,18 @@
+import Foundation
+import OSLog
 import XCTest
 
 private enum LiveSmokeIdentifier {
+    static let settingsScreen: String = "settings.screen"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsWorkspaceSettingsRow: String = "settings.workspaceSettingsRow"
     static let settingsAccountSettingsRow: String = "settings.accountSettingsRow"
+    static let currentWorkspaceScreen: String = "currentWorkspace.screen"
     static let accountSettingsAccountStatusRow: String = "accountSettings.accountStatusRow"
+    static let workspaceSettingsScreen: String = "workspaceSettings.screen"
+    static let workspaceOverviewScreen: String = "workspaceOverview.screen"
+    static let accountSettingsScreen: String = "accountSettings.screen"
+    static let accountStatusScreen: String = "accountStatus.screen"
     static let accountStatusSignInButton: String = "accountStatus.signInButton"
     static let accountStatusSyncNowButton: String = "accountStatus.syncNowButton"
     static let cloudSignInEmailField: String = "cloudSignIn.emailField"
@@ -33,16 +41,105 @@ private enum LiveSmokeIdentifier {
     static let aiComposerSendButton: String = "ai.composerSendButton"
 }
 
+private enum LiveSmokeScreen: CaseIterable {
+    case settings
+    case currentWorkspace
+    case workspaceSettings
+    case workspaceOverview
+    case accountSettings
+    case accountStatus
+
+    var identifier: String {
+        switch self {
+        case .settings:
+            return LiveSmokeIdentifier.settingsScreen
+        case .currentWorkspace:
+            return LiveSmokeIdentifier.currentWorkspaceScreen
+        case .workspaceSettings:
+            return LiveSmokeIdentifier.workspaceSettingsScreen
+        case .workspaceOverview:
+            return LiveSmokeIdentifier.workspaceOverviewScreen
+        case .accountSettings:
+            return LiveSmokeIdentifier.accountSettingsScreen
+        case .accountStatus:
+            return LiveSmokeIdentifier.accountStatusScreen
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .settings:
+            return "Settings"
+        case .currentWorkspace:
+            return "Current Workspace"
+        case .workspaceSettings:
+            return "Workspace Settings"
+        case .workspaceOverview:
+            return "Workspace Overview"
+        case .accountSettings:
+            return "Account Settings"
+        case .accountStatus:
+            return "Account Status"
+        }
+    }
+}
+
+private enum LiveSmokeFailure: LocalizedError {
+    case stepFailed(title: String, durationSeconds: TimeInterval, underlyingMessage: String)
+    case missingElement(identifier: String, timeoutSeconds: TimeInterval, screen: String, step: String)
+    case missingText(text: String, timeoutSeconds: TimeInterval, screen: String, step: String)
+    case missingScreen(screen: String, identifier: String, timeoutSeconds: TimeInterval, currentScreen: String, step: String)
+    case missingBackButton(screen: String, step: String)
+    case currentWorkspacePickerNotVisible(screen: String, step: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .stepFailed(let title, let durationSeconds, let underlyingMessage):
+            return "iOS live smoke step failed: \(title). Duration: \(formatDuration(seconds: durationSeconds)). \(underlyingMessage)"
+        case .missingElement(let identifier, let timeoutSeconds, let screen, let step):
+            return "Element '\(identifier)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen)"
+        case .missingText(let text, let timeoutSeconds, let screen, let step):
+            return "Text '\(text)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen)"
+        case .missingScreen(let screen, let identifier, let timeoutSeconds, let currentScreen, let step):
+            return "Screen '\(screen)' with root identifier '\(identifier)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. Current screen: \(currentScreen)"
+        case .missingBackButton(let screen, let step):
+            return "Back button did not appear during step '\(step)' on screen: \(screen)"
+        case .currentWorkspacePickerNotVisible(let screen, let step):
+            return "Current Workspace picker did not appear during step '\(step)'. Current screen: \(screen)"
+        }
+    }
+}
+
+private let smokeLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "flashcards-open-source-app",
+    category: "ui-smoke"
+)
+
+private func formatDuration(seconds: TimeInterval) -> String {
+    String(format: "%.2fs", seconds)
+}
+
 final class LiveSmokeUITests: XCTestCase {
     private let shortUiTimeoutSeconds: TimeInterval = 10
     private let longUiTimeoutSeconds: TimeInterval = 30
     private let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
 
     private var app: XCUIApplication!
+    private var currentStepTitle: String = "test bootstrap"
+    private var interruptionMonitor: NSObjectProtocol?
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false
+        self.interruptionMonitor = self.registerInterruptionMonitor()
+    }
+
+    override func tearDownWithError() throws {
+        if let interruptionMonitor {
+            removeUIInterruptionMonitor(interruptionMonitor)
+        }
+        self.interruptionMonitor = nil
+        try super.tearDownWithError()
     }
 
     /**
@@ -110,6 +207,7 @@ final class LiveSmokeUITests: XCTestCase {
 
             try self.step("verify linked account status and workspace state") {
                 try self.openSettingsTab()
+                try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
                 try self.assertTextExists(workspaceName, timeout: self.longUiTimeoutSeconds)
                 try self.openAccountStatus()
                 try self.assertTextExists(reviewEmail, timeout: self.longUiTimeoutSeconds)
@@ -133,7 +231,19 @@ final class LiveSmokeUITests: XCTestCase {
                 throw error
             }
 
-            XCTFail("iOS live smoke cleanup failed after a primary failure: \(error.localizedDescription)")
+            let cleanupDiagnostics = self.makeTextAttachment(
+                name: "Cleanup Failure After Primary Failure",
+                text: """
+                Cleanup failed after primary failure.
+                Cleanup error: \(error.localizedDescription)
+                Current screen: \(self.currentScreenSummary())
+                Visible text snapshot: \(self.visibleTextSnapshot())
+                """
+            )
+            self.add(cleanupDiagnostics)
+            smokeLogger.error(
+                "event=cleanup_failure_after_primary step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+            )
         }
 
         if let primaryFailure {
@@ -143,17 +253,61 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func step(_ title: String, action: () throws -> Void) throws {
-        do {
-            try action()
-        } catch {
-            self.attachFailureDiagnostics(stepTitle: title, error: error)
-            throw NSError(
-                domain: "LiveSmokeUITests",
-                code: 1,
-                userInfo: [
-                    NSLocalizedDescriptionKey: "iOS live smoke step failed: \(title). \(error.localizedDescription)",
-                ]
+        let previousStepTitle = self.currentStepTitle
+        self.currentStepTitle = title
+        defer {
+            self.currentStepTitle = previousStepTitle
+        }
+
+        try XCTContext.runActivity(named: title) { activity in
+            let startedAt = Date()
+            smokeLogger.log(
+                "event=step_start step=\(title, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
             )
+
+            do {
+                try action()
+
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                activity.add(
+                    self.makeTextAttachment(
+                        name: "Step Summary - \(title)",
+                        text: """
+                        Result: success
+                        Step: \(title)
+                        Duration: \(formatDuration(seconds: durationSeconds))
+                        Current screen: \(self.currentScreenSummary())
+                        """
+                    )
+                )
+                smokeLogger.log(
+                    "event=step_success step=\(title, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+                )
+            } catch {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                activity.add(
+                    self.makeTextAttachment(
+                        name: "Step Failure Summary - \(title)",
+                        text: """
+                        Result: failure
+                        Step: \(title)
+                        Duration: \(formatDuration(seconds: durationSeconds))
+                        Error: \(error.localizedDescription)
+                        Current screen: \(self.currentScreenSummary())
+                        Visible text snapshot: \(self.visibleTextSnapshot())
+                        """
+                    )
+                )
+                self.attachFailureDiagnostics(stepTitle: title, error: error, activity: activity)
+                smokeLogger.error(
+                    "event=step_failure step=\(title, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                )
+                throw LiveSmokeFailure.stepFailed(
+                    title: title,
+                    durationSeconds: durationSeconds,
+                    underlyingMessage: error.localizedDescription
+                )
+            }
         }
     }
 
@@ -161,16 +315,22 @@ final class LiveSmokeUITests: XCTestCase {
     private func launchApplication() throws {
         self.app = XCUIApplication()
         self.app.launch()
+        smokeLogger.log(
+            "event=app_launch step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+        )
     }
 
     @MainActor
     private func signInWithReviewAccount(reviewEmail: String) throws {
         try self.openSettingsTab()
-        try self.tapElement(identifier: LiveSmokeIdentifier.settingsAccountSettingsRow, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow, timeout: self.shortUiTimeoutSeconds)
+        try self.openAccountStatus()
 
         let signInButton = self.app.buttons[LiveSmokeIdentifier.accountStatusSignInButton]
-        if signInButton.waitForExistence(timeout: self.shortUiTimeoutSeconds) {
+        if self.waitForOptionalElement(
+            signInButton,
+            identifier: LiveSmokeIdentifier.accountStatusSignInButton,
+            timeout: self.shortUiTimeoutSeconds
+        ) {
             signInButton.tap()
             try self.typeText(
                 reviewEmail,
@@ -183,7 +343,11 @@ final class LiveSmokeUITests: XCTestCase {
             )
 
             let createWorkspaceButton = self.app.buttons[LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton]
-            if createWorkspaceButton.waitForExistence(timeout: self.longUiTimeoutSeconds) {
+            if self.waitForOptionalElement(
+                createWorkspaceButton,
+                identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
+                timeout: self.longUiTimeoutSeconds
+            ) {
                 createWorkspaceButton.tap()
             }
         }
@@ -199,10 +363,12 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func createEphemeralWorkspace(workspaceName: String) throws {
         try self.openSettingsTab()
+        try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(
             identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow,
             timeout: self.shortUiTimeoutSeconds
         )
+        try self.assertScreenVisible(screen: .currentWorkspace, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(
             identifier: LiveSmokeIdentifier.currentWorkspaceRowButton,
             timeout: self.shortUiTimeoutSeconds
@@ -218,10 +384,12 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
             timeout: self.shortUiTimeoutSeconds
         )
+        try self.assertScreenVisible(screen: .workspaceSettings, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(
             identifier: LiveSmokeIdentifier.workspaceSettingsOverviewRow,
             timeout: self.shortUiTimeoutSeconds
         )
+        try self.assertScreenVisible(screen: .workspaceOverview, timeout: self.shortUiTimeoutSeconds)
         try self.replaceText(
             workspaceName,
             inElementWithIdentifier: LiveSmokeIdentifier.workspaceOverviewNameField,
@@ -274,7 +442,11 @@ final class LiveSmokeUITests: XCTestCase {
         try self.openAITab()
 
         let aiConsentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
-        if aiConsentButton.waitForExistence(timeout: self.shortUiTimeoutSeconds) {
+        if self.waitForOptionalElement(
+            aiConsentButton,
+            identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
+            timeout: self.shortUiTimeoutSeconds
+        ) {
             aiConsentButton.tap()
         }
 
@@ -297,23 +469,43 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func deleteEphemeralWorkspace() throws {
-        try self.openSettingsTab()
-        try self.tapElement(identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.workspaceSettingsOverviewRow, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.workspaceOverviewDeleteWorkspaceButton, timeout: self.shortUiTimeoutSeconds)
+        smokeLogger.log(
+            "event=cleanup_start step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+        )
+        try self.openWorkspaceOverviewFromSettings()
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.workspaceOverviewDeleteWorkspaceButton,
+            timeout: self.shortUiTimeoutSeconds
+        )
 
         let continueButton = self.app.alerts.buttons["Continue"]
-        XCTAssertTrue(
-            continueButton.waitForExistence(timeout: self.longUiTimeoutSeconds),
-            "Workspace delete confirmation alert did not appear"
-        )
+        if self.waitForOptionalElement(
+            continueButton,
+            identifier: "alert.continueButton",
+            timeout: self.longUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: "alert.continueButton",
+                timeoutSeconds: self.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         continueButton.tap()
 
         let confirmationPhrase = self.app.staticTexts[LiveSmokeIdentifier.deleteWorkspaceConfirmationPhrase]
-        XCTAssertTrue(
-            confirmationPhrase.waitForExistence(timeout: self.longUiTimeoutSeconds),
-            "Delete workspace confirmation phrase did not appear"
-        )
+        if self.waitForOptionalElement(
+            confirmationPhrase,
+            identifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationPhrase,
+            timeout: self.longUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationPhrase,
+                timeoutSeconds: self.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
 
         try self.replaceText(
             confirmationPhrase.label,
@@ -321,6 +513,9 @@ final class LiveSmokeUITests: XCTestCase {
             timeout: self.shortUiTimeoutSeconds
         )
         try self.tapElement(identifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationButton, timeout: self.longUiTimeoutSeconds)
+        smokeLogger.log(
+            "event=cleanup_success step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+        )
     }
 
     @MainActor
@@ -345,40 +540,120 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func openAccountStatus() throws {
-        try self.tapElement(identifier: LiveSmokeIdentifier.settingsAccountSettingsRow, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow, timeout: self.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .accountSettings, timeout: self.shortUiTimeoutSeconds)
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .accountStatus, timeout: self.shortUiTimeoutSeconds)
+    }
+
+    @MainActor
+    private func openWorkspaceOverviewFromSettings() throws {
+        try self.openSettingsTab()
+        try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .workspaceSettings, timeout: self.shortUiTimeoutSeconds)
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.workspaceSettingsOverviewRow,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .workspaceOverview, timeout: self.shortUiTimeoutSeconds)
     }
 
     @MainActor
     private func tapTabButton(named name: String) throws {
         let tabButton = self.app.tabBars.buttons[name]
-        XCTAssertTrue(tabButton.waitForExistence(timeout: self.shortUiTimeoutSeconds), "Tab bar button '\(name)' did not appear")
+        if self.waitForOptionalElement(
+            tabButton,
+            identifier: "tab.\(name)",
+            timeout: self.shortUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: "tab.\(name)",
+                timeoutSeconds: self.shortUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         tabButton.tap()
     }
 
     @MainActor
     private func tapElement(identifier: String, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element '\(identifier)' did not appear")
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         element.tap()
     }
 
     @MainActor
     private func assertElementExists(identifier: String, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element '\(identifier)' did not appear")
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 
     @MainActor
     private func assertTextExists(_ text: String, timeout: TimeInterval) throws {
         let textElement = self.app.staticTexts[text]
-        XCTAssertTrue(textElement.waitForExistence(timeout: timeout), "Text '\(text)' did not appear")
+        if self.waitForOptionalElement(
+            textElement,
+            identifier: "text.\(text)",
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingText(
+                text: text,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 
     @MainActor
     private func typeText(_ text: String, intoElementWithIdentifier identifier: String, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element '\(identifier)' did not appear")
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         element.tap()
         element.typeText(text)
     }
@@ -386,7 +661,18 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func replaceText(_ text: String, inElementWithIdentifier identifier: String, timeout: TimeInterval) throws {
         let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        XCTAssertTrue(element.waitForExistence(timeout: timeout), "Element '\(identifier)' did not appear")
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         element.tap()
 
         if let existingValue = element.value as? String, existingValue.isEmpty == false {
@@ -400,7 +686,16 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func tapFirstNavigationBackButton() throws {
         let backButton = self.app.navigationBars.buttons.firstMatch
-        XCTAssertTrue(backButton.waitForExistence(timeout: self.shortUiTimeoutSeconds), "Back button did not appear")
+        if self.waitForOptionalElement(
+            backButton,
+            identifier: "navigation.backButton",
+            timeout: self.shortUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.missingBackButton(
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         backButton.tap()
     }
 
@@ -409,46 +704,159 @@ final class LiveSmokeUITests: XCTestCase {
         let pickerScreen = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.currentWorkspacePickerScreen)
             .firstMatch
-
-        if pickerScreen.waitForExistence(timeout: self.shortUiTimeoutSeconds) {
-            return
+        if self.waitForOptionalElement(
+            pickerScreen,
+            identifier: LiveSmokeIdentifier.currentWorkspacePickerScreen,
+            timeout: self.shortUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.currentWorkspacePickerNotVisible(
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
-
-        let visibleTexts = self.visibleTextSnapshot()
-        throw NSError(
-            domain: "LiveSmokeUITests",
-            code: 2,
-            userInfo: [
-                NSLocalizedDescriptionKey: "Current Workspace picker did not appear. Visible text snapshot: \(visibleTexts)",
-            ]
-        )
     }
 
     @MainActor
-    private func attachFailureDiagnostics(stepTitle: String, error: Error) {
+    private func assertScreenVisible(screen: LiveSmokeScreen, timeout: TimeInterval) throws {
+        let element = self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch
+        smokeLogger.log(
+            "event=screen_assert_start step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) timeout=\(formatDuration(seconds: timeout), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+        )
+        let startedAt = Date()
+        let found = element.waitForExistence(timeout: timeout)
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        smokeLogger.log(
+            "event=screen_assert_end step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) found=\(found, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+        )
+
+        if found == false {
+            throw LiveSmokeFailure.missingScreen(
+                screen: screen.title,
+                identifier: screen.identifier,
+                timeoutSeconds: timeout,
+                currentScreen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
+    private func waitForOptionalElement(
+        _ element: XCUIElement,
+        identifier: String,
+        timeout: TimeInterval
+    ) -> Bool {
+        smokeLogger.log(
+            "event=wait_start step=\(self.currentStepTitle, privacy: .public) identifier=\(identifier, privacy: .public) timeout=\(formatDuration(seconds: timeout), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+        )
+        let startedAt = Date()
+        let found = element.waitForExistence(timeout: timeout)
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        smokeLogger.log(
+            "event=wait_end step=\(self.currentStepTitle, privacy: .public) identifier=\(identifier, privacy: .public) found=\(found, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+        )
+        return found
+    }
+
+    private func registerInterruptionMonitor() -> NSObjectProtocol {
+        addUIInterruptionMonitor(withDescription: "Unexpected UI interruption") { [weak self] alert in
+            guard let self else {
+                return false
+            }
+
+            let buttonLabels = alert.buttons.allElementsBoundByIndex
+                .map(\.label)
+                .filter { $0.isEmpty == false }
+                .joined(separator: ", ")
+            smokeLogger.error(
+                "event=ui_interruption step=\(self.currentStepTitle, privacy: .public) description=\(alert.description, privacy: .public) buttons=\(buttonLabels, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+            )
+
+            for label in ["OK", "Close", "Dismiss", "Cancel", "Not Now", "Allow"] {
+                let button = alert.buttons[label]
+                if button.exists {
+                    button.tap()
+                    smokeLogger.log(
+                        "event=ui_interruption_handled step=\(self.currentStepTitle, privacy: .public) button=\(label, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+                    )
+                    return true
+                }
+            }
+
+            return false
+        }
+    }
+
+    private func currentScreenSummary() -> String {
+        guard self.app != nil else {
+            return "screens=[-] nav=[-] alerts=[-] tabs=[-]"
+        }
+
+        let visibleScreenTitles = LiveSmokeScreen.allCases
+            .filter { screen in
+                self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch.exists
+            }
+            .map(\.title)
+            .joined(separator: ", ")
+        let navigationTitles = self.app.navigationBars.allElementsBoundByIndex
+            .map { element in
+                let identifier = element.identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+                if identifier.isEmpty {
+                    return element.label.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                return identifier
+            }
+            .filter { $0.isEmpty == false }
+            .joined(separator: ", ")
+        let alertTitles = self.app.alerts.allElementsBoundByIndex
+            .map(\.label)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.isEmpty == false }
+            .joined(separator: ", ")
+        let visibleTabs = self.app.tabBars.buttons.allElementsBoundByIndex
+            .map(\.label)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.isEmpty == false }
+            .joined(separator: ", ")
+
+        return """
+        screens=[\(visibleScreenTitles.isEmpty ? "-" : visibleScreenTitles)] \
+        nav=[\(navigationTitles.isEmpty ? "-" : navigationTitles)] \
+        alerts=[\(alertTitles.isEmpty ? "-" : alertTitles)] \
+        tabs=[\(visibleTabs.isEmpty ? "-" : visibleTabs)]
+        """
+    }
+
+    private func attachFailureDiagnostics(stepTitle: String, error: Error, activity: XCTActivity) {
         let screenshotAttachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshotAttachment.name = "Failure Screenshot - \(stepTitle)"
         screenshotAttachment.lifetime = .keepAlways
-        self.add(screenshotAttachment)
+        activity.add(screenshotAttachment)
 
         let hierarchyAttachment = XCTAttachment(string: self.app.debugDescription)
         hierarchyAttachment.name = "UI Hierarchy - \(stepTitle)"
         hierarchyAttachment.lifetime = .keepAlways
-        self.add(hierarchyAttachment)
+        activity.add(hierarchyAttachment)
 
-        let diagnosticsAttachment = XCTAttachment(
-            string: """
+        let diagnosticsAttachment = self.makeTextAttachment(
+            name: "Failure Diagnostics - \(stepTitle)",
+            text: """
             Step: \(stepTitle)
             Error: \(error.localizedDescription)
+            Current screen: \(self.currentScreenSummary())
             Visible text snapshot: \(self.visibleTextSnapshot())
             """
         )
-        diagnosticsAttachment.name = "Failure Diagnostics - \(stepTitle)"
-        diagnosticsAttachment.lifetime = .keepAlways
-        self.add(diagnosticsAttachment)
+        activity.add(diagnosticsAttachment)
     }
 
-    @MainActor
+    private func makeTextAttachment(name: String, text: String) -> XCTAttachment {
+        let attachment = XCTAttachment(string: text)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        return attachment
+    }
+
     private func visibleTextSnapshot() -> String {
         let labels = self.app.staticTexts.allElementsBoundByIndex
             .map(\.label)

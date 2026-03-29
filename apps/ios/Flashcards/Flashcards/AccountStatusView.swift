@@ -116,6 +116,7 @@ struct AccountStatusView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.accountStatusScreen)
         .navigationTitle("Account Status")
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet()

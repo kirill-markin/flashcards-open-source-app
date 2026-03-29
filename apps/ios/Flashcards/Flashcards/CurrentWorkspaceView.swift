@@ -40,6 +40,7 @@ struct CurrentWorkspaceView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)
         .navigationTitle("Current Workspace")
         .sheet(isPresented: self.$isWorkspacePickerPresented) {
             if let linkedWorkspaces = self.linkedWorkspaces {

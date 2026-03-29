@@ -71,6 +71,7 @@ struct AccountSettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.accountSettingsScreen)
         .navigationTitle("Account Settings")
     }
 }

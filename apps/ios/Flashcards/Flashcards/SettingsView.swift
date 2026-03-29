@@ -87,6 +87,7 @@ struct SettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.settingsScreen)
         .navigationTitle("Settings")
     }
 }

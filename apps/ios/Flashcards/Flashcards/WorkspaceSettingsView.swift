@@ -69,6 +69,7 @@ struct WorkspaceSettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.workspaceSettingsScreen)
         .navigationTitle("Workspace Settings")
         .task(id: store.localReadVersion) {
             await self.reloadWorkspaceOverview()
