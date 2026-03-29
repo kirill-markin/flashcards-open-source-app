@@ -240,6 +240,63 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     }
 
     @MainActor
+    func testAIChatStoreStartsFirstRunWithoutSessionIdAndCanCancelStreaming() async throws {
+        let flashcardsStore = try self.makeLinkedStore()
+        let contextLoader = StubContextLoader()
+        let service = MockSessionChatService(
+            snapshots: [
+                makeSnapshot(
+                    sessionId: "session-1",
+                    runState: "running",
+                    messages: [
+                        AIChatMessage(
+                            id: "message-user-1",
+                            role: .user,
+                            content: [.text("hello")],
+                            timestamp: "2026-03-09T10:00:00.000Z",
+                            isError: false
+                        )
+                    ]
+                )
+            ],
+            snapshotDelayNanoseconds: 400_000_000
+        )
+        let chatStore = AIChatStore(
+            flashcardsStore: flashcardsStore,
+            historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(messages: [])),
+            chatService: service,
+            contextLoader: contextLoader
+        )
+
+        chatStore.inputText = "hello"
+        chatStore.sendMessage()
+        try await self.waitForAsyncCondition(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000,
+            failureMessage: "Timed out waiting for first backend chat run start"
+        ) {
+            let startedRequests = await service.startedRequests()
+            return startedRequests.count == 1
+        }
+
+        let startedRequests = await service.startedRequests()
+        XCTAssertNil(startedRequests.last?.sessionId)
+
+        chatStore.cancelStreaming()
+        try await self.waitForAsyncCondition(
+            timeoutNanoseconds: 3_000_000_000,
+            pollNanoseconds: 20_000_000,
+            failureMessage: "Timed out waiting for first canceled chat run to stop"
+        ) {
+            let stoppedSessionIds = await service.stoppedSessionIds()
+            return stoppedSessionIds == ["session-1"]
+        }
+
+        let stoppedSessionIds = await service.stoppedSessionIds()
+        XCTAssertEqual(stoppedSessionIds, ["session-1"])
+    }
+
+    @MainActor
     func testAIChatStoreClearHistoryResetsBackendSession() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
