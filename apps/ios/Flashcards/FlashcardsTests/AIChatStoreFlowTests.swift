@@ -97,7 +97,10 @@ final class AIChatStoreFlowTests: AIChatTestCaseBase {
     func testAIChatStoreShowsStartRunFailureInsideAssistantMessage() async throws {
         let flashcardsStore = try self.makeLinkedStore()
         let contextLoader = StubContextLoader()
-        let service = MockSessionChatService(startError: StubLocalizedError(message: "Chat failed"))
+        let service = MockSessionChatService(
+            startError: StubLocalizedError(message: "Chat failed"),
+            snapshotDelayNanoseconds: 200_000_000
+        )
         let chatStore = AIChatStore(
             flashcardsStore: flashcardsStore,
             historyStore: InMemoryHistoryStore(savedState: AIChatPersistedState(messages: [])),

@@ -625,16 +625,19 @@ final class AIChatStore {
             return
         }
 
+        let refreshBaselineState = self.currentPersistedState()
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let currentSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
+                let currentSessionId = refreshBaselineState.chatSessionId.isEmpty
+                    ? nil
+                    : refreshBaselineState.chatSessionId
                 do {
                     let snapshot = try await self.chatService.loadSnapshot(
                         session: session,
                         sessionId: currentSessionId
                     )
-                    self.applySnapshot(snapshot)
+                    self.applyRefreshedSnapshot(snapshot, baselineState: refreshBaselineState)
                 } catch {
                     guard currentSessionId != nil else {
                         throw error
@@ -644,7 +647,7 @@ final class AIChatStore {
                         session: session,
                         sessionId: nil
                     )
-                    self.applySnapshot(repairedSnapshot)
+                    self.applyRefreshedSnapshot(repairedSnapshot, baselineState: refreshBaselineState)
                 }
             } catch {
             }
@@ -683,6 +686,17 @@ final class AIChatStore {
         Task {
             await self.historyStore.saveState(state: self.currentPersistedState())
         }
+    }
+
+    private func applyRefreshedSnapshot(
+        _ snapshot: AIChatSessionSnapshot,
+        baselineState: AIChatPersistedState
+    ) {
+        guard self.currentPersistedState() == baselineState else {
+            return
+        }
+
+        self.applySnapshot(snapshot)
     }
 
     private func markAssistantError(message: String) {
