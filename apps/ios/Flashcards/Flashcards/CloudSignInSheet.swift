@@ -748,6 +748,7 @@ private struct CloudWorkspaceSelectionSheet: View {
                     }
                 }
             }
+            .accessibilityIdentifier(UITestIdentifier.cloudWorkspaceChooserScreen)
             .navigationTitle("Choose workspace")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

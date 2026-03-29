@@ -1,6 +1,7 @@
 import Foundation
 
 enum UITestIdentifier {
+    static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let settingsScreen: String = "settings.screen"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsWorkspaceSettingsRow: String = "settings.workspaceSettingsRow"
@@ -13,6 +14,8 @@ enum UITestIdentifier {
     static let accountStatusScreen: String = "accountStatus.screen"
     static let accountStatusSignInButton: String = "accountStatus.signInButton"
     static let accountStatusSyncNowButton: String = "accountStatus.syncNowButton"
+    static let accountStatusSwitchAccountButton: String = "accountStatus.switchAccountButton"
+    static let accountStatusLogoutButton: String = "accountStatus.logoutButton"
     static let cloudSignInEmailField: String = "cloudSignIn.emailField"
     static let cloudSignInSendCodeButton: String = "cloudSignIn.sendCodeButton"
     static let cloudSignInCreateWorkspaceButton: String = "cloudSignIn.createWorkspaceButton"

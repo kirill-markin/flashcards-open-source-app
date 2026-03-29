@@ -1,5 +1,7 @@
 import SwiftUI
 
+private let flashcardsUITestResetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
+
 private struct CloudSyncPollingTaskID: Hashable {
     let isSceneActive: Bool
     let selectedTab: AppTab
@@ -13,8 +15,19 @@ struct FlashcardsApp: App {
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
 
+    @MainActor
     init() {
-        _store = State(initialValue: FlashcardsStore())
+        let store = FlashcardsStore()
+        if let resetStateRawValue = ProcessInfo.processInfo.environment[flashcardsUITestResetStateEnvironmentKey],
+           let resetState = FlashcardsUITestResetState(rawValue: resetStateRawValue) {
+            do {
+                try store.applyUITestResetState(resetState: resetState)
+            } catch {
+                store.globalErrorMessage = Flashcards.errorMessage(error: error)
+            }
+        }
+
+        _store = State(initialValue: store)
         _navigation = State(initialValue: AppNavigationModel())
     }
 
