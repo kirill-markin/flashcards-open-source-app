@@ -1409,7 +1409,7 @@ final class LiveSmokeUITests: XCTestCase {
             return false
         }
 
-        for label in ["OK", "Close", "Dismiss", "Cancel", "Not Now", "Allow"] {
+        for label in ["OK", "Close", "Dismiss", "Cancel", "Not now", "Not Now", "Allow"] {
             let button = alert.buttons[label]
             guard button.exists else {
                 continue
