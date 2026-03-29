@@ -16,6 +16,10 @@ private enum PersistedCloudStateReconciliationOutcome {
     case stopSync
 }
 
+enum FlashcardsUITestResetState: String {
+    case localGuest = "local_guest"
+}
+
 @MainActor
 extension FlashcardsStore {
     /**
@@ -356,6 +360,13 @@ extension FlashcardsStore {
 
     func logoutCloudAccount() throws {
         try self.resetLocalStateForCloudIdentityChange()
+    }
+
+    func applyUITestResetState(resetState: FlashcardsUITestResetState) throws {
+        switch resetState {
+        case .localGuest:
+            try self.resetLocalStateForCloudIdentityChange()
+        }
     }
 
     func beginAccountDeletion() {

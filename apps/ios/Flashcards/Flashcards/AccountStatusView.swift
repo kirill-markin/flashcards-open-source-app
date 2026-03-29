@@ -104,10 +104,12 @@ struct AccountStatusView: View {
                         Button("Switch account") {
                             self.isCloudSignInPresented = true
                         }
+                        .accessibilityIdentifier(UITestIdentifier.accountStatusSwitchAccountButton)
 
                         Button("Log out", role: .destructive) {
                             self.isLogoutConfirmationPresented = true
                         }
+                        .accessibilityIdentifier(UITestIdentifier.accountStatusLogoutButton)
                     }
                 } else {
                     Text("Cloud settings are unavailable.")
