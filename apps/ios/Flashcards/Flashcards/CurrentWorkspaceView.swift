@@ -119,6 +119,7 @@ private struct CurrentWorkspacePickerSheet: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(self.isSwitching)
+                        .accessibilityIdentifier(currentWorkspaceSelectionButtonIdentifier(selection: item.selection))
                     }
                 }
             }
@@ -150,6 +151,15 @@ private struct CurrentWorkspacePickerSheet: View {
                 self.errorMessage = Flashcards.errorMessage(error: error)
             }
         }
+    }
+}
+
+private func currentWorkspaceSelectionButtonIdentifier(selection: CloudWorkspaceLinkSelection) -> String {
+    switch selection {
+    case .createNew:
+        return UITestIdentifier.currentWorkspaceCreateButton
+    case .existing(let workspaceId):
+        return "currentWorkspace.existingWorkspace.\(workspaceId)"
     }
 }
 

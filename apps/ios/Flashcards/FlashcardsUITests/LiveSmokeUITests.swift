@@ -11,6 +11,7 @@ private enum LiveSmokeIdentifier {
     static let cloudSignInSendCodeButton: String = "cloudSignIn.sendCodeButton"
     static let cloudSignInCreateWorkspaceButton: String = "cloudSignIn.createWorkspaceButton"
     static let currentWorkspaceRowButton: String = "currentWorkspace.rowButton"
+    static let currentWorkspaceCreateButton: String = "currentWorkspace.createButton"
     static let workspaceSettingsOverviewRow: String = "workspaceSettings.overviewRow"
     static let workspaceOverviewNameField: String = "workspaceOverview.nameField"
     static let workspaceOverviewSaveNameButton: String = "workspaceOverview.saveNameButton"
@@ -31,6 +32,7 @@ private enum LiveSmokeIdentifier {
     static let aiComposerSendButton: String = "ai.composerSendButton"
 }
 
+@MainActor
 final class LiveSmokeUITests: XCTestCase {
     private let liveUiTimeoutSeconds: TimeInterval = 120
     private let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
@@ -175,7 +177,7 @@ final class LiveSmokeUITests: XCTestCase {
         try self.openSettingsTab()
         try self.tapElement(identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow)
         try self.tapElement(identifier: LiveSmokeIdentifier.currentWorkspaceRowButton)
-        try self.tapElement(identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton)
+        try self.tapElement(identifier: LiveSmokeIdentifier.currentWorkspaceCreateButton)
         try self.tapFirstNavigationBackButton()
 
         try self.tapElement(identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow)
