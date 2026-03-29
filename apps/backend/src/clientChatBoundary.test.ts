@@ -4,6 +4,8 @@ import path from "node:path";
 import test from "node:test";
 
 const repoRoot = path.resolve(__dirname, "../../..");
+const legacyTurnPath = "/chat" + "/turn";
+const legacyDiagnosticsPath = legacyTurnPath + "/diagnostics";
 
 type ClientBoundaryCheck = Readonly<{
   directory: string;
@@ -14,7 +16,8 @@ const clientBoundaryChecks: ReadonlyArray<ClientBoundaryCheck> = [
   {
     directory: path.join(repoRoot, "apps/web/src"),
     forbiddenPatterns: [
-      "/chat/turn",
+      legacyTurnPath,
+      legacyDiagnosticsPath,
       "selectedModelId",
       "codeInterpreterContainerId",
       "AIChatTurnRequestBody",
@@ -25,7 +28,8 @@ const clientBoundaryChecks: ReadonlyArray<ClientBoundaryCheck> = [
   {
     directory: path.join(repoRoot, "apps/ios/Flashcards/Flashcards"),
     forbiddenPatterns: [
-      "/chat/turn",
+      legacyTurnPath,
+      legacyDiagnosticsPath,
       "selectedModelId",
       "codeInterpreterContainerId",
       "AIChatTurnRequestBody",
@@ -36,7 +40,8 @@ const clientBoundaryChecks: ReadonlyArray<ClientBoundaryCheck> = [
   {
     directory: path.join(repoRoot, "apps/ios/Flashcards/FlashcardsTests"),
     forbiddenPatterns: [
-      "/chat/turn",
+      legacyTurnPath,
+      legacyDiagnosticsPath,
       "selectedModelId",
       "codeInterpreterContainerId",
       "AIChatTurnRequestBody",
@@ -47,7 +52,8 @@ const clientBoundaryChecks: ReadonlyArray<ClientBoundaryCheck> = [
   {
     directory: path.join(repoRoot, "apps/android"),
     forbiddenPatterns: [
-      "/chat/turn",
+      legacyTurnPath,
+      legacyDiagnosticsPath,
       "selectedModelId",
       "codeInterpreterContainerId",
       "AIChatTurnRequestBody",

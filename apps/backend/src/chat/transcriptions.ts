@@ -7,10 +7,10 @@ import { toFile } from "openai";
 import { HttpError } from "../errors";
 import { getObservedOpenAIClient } from "./openai/client";
 import {
-  classifyAIEndpointFailure,
+  classifyChatTranscriptionFailure,
   getAIProviderFailureMetadata,
-  makeAIEndpointNotConfiguredError,
-} from "./legacy/aiAvailabilityErrors";
+  makeChatTranscriptionNotConfiguredError,
+} from "./providerFailure";
 
 export type ChatTranscriptionSource = "android" | "ios" | "web";
 
@@ -231,7 +231,7 @@ export async function transcribeChatAudioUploadWithDependencies(
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (apiKey === undefined || apiKey.trim() === "") {
-    throw makeAIEndpointNotConfiguredError("transcription");
+    throw makeChatTranscriptionNotConfiguredError();
   }
 
   try {
@@ -274,7 +274,7 @@ export async function transcribeChatAudioUploadWithDependencies(
       );
     }
 
-    const normalizedFailure = classifyAIEndpointFailure("transcription", error, "openai");
+    const normalizedFailure = classifyChatTranscriptionFailure(error);
     throw new HttpError(
       normalizedFailure.statusCode,
       normalizedFailure.message,

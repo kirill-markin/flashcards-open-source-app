@@ -15,7 +15,6 @@ export interface ApiGatewayProps {
   baseDomain: string;
   apiCertificateArn: string | undefined;
   openAiApiKeySecretArn: string | undefined;
-  anthropicApiKeySecretArn: string | undefined;
   langfusePublicKeySecretArn: string | undefined;
   langfuseSecretKeySecretArn: string | undefined;
   langfuseBaseUrl: string | undefined;
@@ -46,7 +45,6 @@ interface BackendFunctionProps {
   userPoolArn: string;
   userPoolClientId: string;
   openAiApiKeySecretArn: string | undefined;
-  anthropicApiKeySecretArn: string | undefined;
   langfusePublicKeySecretArn: string | undefined;
   langfuseSecretKeySecretArn: string | undefined;
   langfuseBaseUrl: string | undefined;
@@ -115,8 +113,7 @@ function addLambdaSecretEnvironment(
 
 /**
  * Creates a backend Lambda with the shared network, database, auth, and model
- * secret configuration used by both the buffered API handler and the
- * chat-specific streaming handler.
+ * secret configuration used by the public backend handler and detached worker.
  */
 function createBackendFunction(scope: Construct, props: BackendFunctionProps): lambdaNodejs.NodejsFunction {
   const langfuseConfig = getLangfuseSecretConfig(props);
@@ -162,13 +159,6 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     props.openAiApiKeySecretArn,
     `${props.constructId}OpenAiApiKeySecret`,
     "OPENAI_API_KEY",
-  );
-  addLambdaSecretEnvironment(
-    scope,
-    fn,
-    props.anthropicApiKeySecretArn,
-    `${props.constructId}AnthropicApiKeySecret`,
-    "ANTHROPIC_API_KEY",
   );
   if (langfuseConfig !== null) {
     addLambdaSecretEnvironment(
@@ -228,28 +218,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolArn: props.userPoolArn,
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
-    anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
-    langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
-    langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
-    langfuseBaseUrl: props.langfuseBaseUrl,
-    demoEmailDostip: props.demoEmailDostip,
-    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
-  });
-  const chatStreamingFn = createBackendFunction(scope, {
-    constructId: "ChatStreamingHandler",
-    entry: path.join(__dirname, "../../../apps/backend/src/lambda-stream.ts"),
-    baseDomain: props.baseDomain,
-    vpc: props.vpc,
-    lambdaSg: props.lambdaSg,
-    db: props.db,
-    backendDbSecret: props.backendDbSecret,
-    backendCsrfSecret,
-    allowedOrigins,
-    userPoolId: props.userPoolId,
-    userPoolArn: props.userPoolArn,
-    userPoolClientId: props.userPoolClientId,
-    openAiApiKeySecretArn: props.openAiApiKeySecretArn,
-    anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
     langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
     langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
     langfuseBaseUrl: props.langfuseBaseUrl,
@@ -270,7 +238,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     userPoolArn: props.userPoolArn,
     userPoolClientId: props.userPoolClientId,
     openAiApiKeySecretArn: props.openAiApiKeySecretArn,
-    anthropicApiKeySecretArn: props.anthropicApiKeySecretArn,
     langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
     langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
     langfuseBaseUrl: props.langfuseBaseUrl,
@@ -310,24 +277,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     scopePermissionToMethod: false,
   });
 
-  /**
-   * Routes the SSE chat endpoints through a dedicated streaming Lambda instead
-   * of waiting for the full response body.
-   *
-   * The Hono `streamHandle(app)` adapter and API Gateway response transfer mode
-   * must be used together for SSE. Applying that adapter to the main backend
-   * Lambda breaks buffered proxy routes such as `/health`, so the streaming
-   * chat paths keep their own entry point while the rest of the API stays on
-   * the classic buffered Lambda integration.
-   *
-   * Only `/chat/turn` uses this integration. The diagnostics endpoint
-   * stays on the buffered path because it returns a normal `204` response and
-   * does not need streaming semantics.
-   */
-  const streamingIntegration = new apigw.LambdaIntegration(chatStreamingFn, {
-    timeout: cdk.Duration.minutes(15),
-    responseTransferMode: apigw.ResponseTransferMode.STREAM,
-  });
   const notFoundIntegration = new apigw.MockIntegration({
     requestTemplates: {
       "application/json": '{"statusCode": 404}',
@@ -372,10 +321,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   chat.addMethod("POST", integration);
   chat.addMethod("DELETE", integration);
   chat.addResource("stop").addMethod("POST", integration);
-  const turn = chat.addResource("turn");
-  turn.addMethod("POST", streamingIntegration);
   chat.addResource("transcriptions").addMethod("POST", integration);
-  turn.addResource("diagnostics").addMethod("POST", integration);
 
   const guestAuth = restApi.root.addResource("guest-auth");
   guestAuth.addResource("session").addMethod("POST", integration);

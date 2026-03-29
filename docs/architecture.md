@@ -7,7 +7,6 @@ Web browser         -> Cloudflare -> app.<domain>  -> CloudFront + S3 web SPA
 Browser auth        -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito EMAIL_OTP
 iOS app             -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito EMAIL_OTP
 iOS + web sync/API  -> Cloudflare -> api.<domain>  -> API Gateway -> Lambda backend -> Postgres
-AI chat legacy SSE  -> Cloudflare -> api.<domain>  -> API Gateway -> streaming Lambda -> model provider APIs
 AI chat v2 worker   -> Cloudflare -> api.<domain>  -> API Gateway -> backend Lambda -> detached chat worker Lambda -> model provider APIs
 Agent bootstrap     -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito EMAIL_OTP -> API key
 Apex fallback       -> Cloudflare -> <domain>      -> CloudFront redirect -> app.<domain>
@@ -52,10 +51,9 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
 ### Backend API
 
-- `infra/aws/lib/api-gateway.ts` deploys the main API Gateway and three Lambda entrypoints:
+- `infra/aws/lib/api-gateway.ts` deploys the main API Gateway and two backend Lambda entrypoints:
   - a buffered backend Lambda for normal JSON endpoints
-  - a dedicated streaming Lambda for `/chat/turn`
-  - a detached worker Lambda for backend-owned chat v2 runs
+  - a detached worker Lambda for backend-owned chat runs
 - The backend Lambda runs in the VPC, reads the backend DB secret, verifies Cognito ID tokens, and can optionally read model-provider secrets.
 - The detached chat worker Lambda uses the same backend runtime environment, but it is invoked asynchronously by the main backend Lambda and is not published through API Gateway.
 - API Gateway predeclares the public route tree, including agent, workspace, sync, cards, chat, and system routes.
@@ -87,7 +85,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 - `agent`: machine-facing discovery, workspace bootstrap, SQL endpoint, and agent OpenAPI documents
 - `workspaces`: list/create/select workspaces and manage agent API key connections from human sessions
 - `cards`: card query and tag summary endpoints
-- `chat`: legacy streaming AI chat turn, shared transcription, and backend-owned v2 control-plane endpoints
+- `chat`: shared transcription and backend-owned chat control-plane endpoints
 - `sync`: offline-first push and pull endpoints
 
 The backend is Hono-based in local dev and in Lambda. In local dev it serves on `http://localhost:8080/v1`.
@@ -221,12 +219,7 @@ There is no separate background scheduler worker.
 
 ## AI chat architecture
 
-The app is in a temporary dual-mode AI chat migration:
-
-- Legacy compatibility still exists only on the backend through `POST /v1/chat/turn`.
-- Legacy responses are streamed over SSE from the dedicated streaming Lambda.
-- Legacy request handling is isolated under the backend legacy chat area and exists only for already released clients that have not updated yet.
-- All current first-party clients now use the backend-owned chat surface only:
+All current first-party clients use the backend-owned chat surface:
   - `GET /v1/chat`
   - `POST /v1/chat`
   - `DELETE /v1/chat`

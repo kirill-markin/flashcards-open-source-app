@@ -6,7 +6,6 @@ Use this guide after enabling Langfuse in `flashcards-open-source-app` to confir
 
 - persisted `/chat` runs export one trace per user turn with trace name `chat_turn`
 - `/chat/transcriptions` exports one trace per dictation request with trace name `chat_transcription`
-- legacy `/chat/turn` is intentionally excluded
 
 ## Required configuration
 
@@ -58,7 +57,6 @@ If traces do not appear:
 
 If traces appear but are incomplete:
 
-- confirm the request used the modern `/chat` flow rather than legacy `/chat/turn`
 - confirm the trace tags match the expected surface and runtime values
 - confirm `sessionId` is present for `chat_turn`
 - confirm file uploads show redacted metadata instead of raw `base64Data`
