@@ -131,7 +131,6 @@ private struct LiveSmokeBreadcrumb {
 }
 
 private struct LiveSmokeRunContext {
-    let reviewEmail: String
     let workspaceName: String
     let manualFrontText: String
     let manualBackText: String
@@ -197,17 +196,57 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    func testLiveSmokeAccountAndWorkspaceFlow() throws {
-        let context = self.makeRunContext(runLabel: "account-workspace")
-        try self.runScenarioWithSignedInWorkspace(context: context) {
-            try self.step("verify linked account status and workspace state") {
+    func testLiveSmokeManualCardFlow() throws {
+        let context = self.makeRunContext(runLabel: "manual-card")
+        try self.runLocalScenario {
+            try self.step("create one local manual card without login") {
+                try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
+            }
+
+            try self.step("verify the local manual card in cards and review it") {
+                try self.assertTextExists(context.manualFrontText, timeout: self.longUiTimeoutSeconds)
+                try self.reviewCurrentCard(expectedFrontText: context.manualFrontText, maximumSkips: 12)
+            }
+        }
+    }
+
+    @MainActor
+    func testLiveSmokeGuestAiCardFlow() throws {
+        let context = self.makeRunContext(runLabel: "ai-card")
+        try self.runGuestAIScenario {
+            try self.step("create one guest AI card with explicit confirmation") {
+                try self.createAiCardWithConfirmation(
+                    aiFrontText: context.aiFrontText,
+                    aiBackText: context.aiBackText,
+                    markerTag: context.markerTag
+                )
+            }
+
+            try self.step("verify the guest AI card is visible in cards and review it") {
+                try self.openCardsTab()
+                try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
+                try self.reviewCurrentCard(expectedFrontText: context.aiFrontText, maximumSkips: 12)
+            }
+        }
+    }
+
+    @MainActor
+    func testLiveSmokeLocalNavigationFlow() throws {
+        try self.runLocalScenario {
+            try self.step("verify local navigation surfaces without login") {
+                try self.openCardsTab()
+                try self.assertElementExists(
+                    identifier: LiveSmokeIdentifier.cardsAddButton,
+                    timeout: self.shortUiTimeoutSeconds
+                )
+                try self.openReviewTab()
+                try self.openAITab()
+                try self.assertAiEntrySurfaceVisible()
                 try self.openSettingsTab()
                 try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
-                try self.assertTextExists(context.workspaceName, timeout: self.longUiTimeoutSeconds)
                 try self.openAccountStatus()
-                try self.assertTextExists(context.reviewEmail, timeout: self.longUiTimeoutSeconds)
                 try self.assertElementExists(
-                    identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
+                    identifier: LiveSmokeIdentifier.accountStatusSignInButton,
                     timeout: self.longUiTimeoutSeconds
                 )
                 try self.tapFirstNavigationBackButton()
@@ -217,45 +256,24 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    func testLiveSmokeManualCardFlow() throws {
-        let context = self.makeRunContext(runLabel: "manual-card")
-        try self.runScenarioWithSignedInWorkspace(context: context) {
-            try self.step("create one manual card") {
-                try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
-            }
-
-            try self.step("verify the manual card in cards and review it") {
-                try self.assertTextExists(context.manualFrontText, timeout: self.longUiTimeoutSeconds)
-                try self.reviewCurrentCard(expectedFrontText: context.manualFrontText)
-            }
-        }
-    }
-
-    @MainActor
-    func testLiveSmokeAiCardFlow() throws {
-        let context = self.makeRunContext(runLabel: "ai-card")
-        try self.runScenarioWithSignedInWorkspace(context: context) {
-            try self.step("create one AI card with explicit confirmation") {
-                try self.createAiCardWithConfirmation(
-                    aiFrontText: context.aiFrontText,
-                    aiBackText: context.aiBackText,
-                    markerTag: context.markerTag
+    func testLiveSmokeLoginAndLinkedWorkspaceFlow() throws {
+        let context = self.makeRunContext(runLabel: "login-linked-workspace")
+        let reviewEmail = ProcessInfo.processInfo.environment[self.reviewEmailEnvironmentKey] ?? "apple-review@example.com"
+        try self.runSignedInLinkedWorkspaceScenario(context: context, reviewEmail: reviewEmail) {
+            try self.step("verify linked account status and workspace state") {
+                try self.openSettingsTab()
+                try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
+                try self.assertTextExists(context.workspaceName, timeout: self.longUiTimeoutSeconds)
+                try self.openAccountStatus()
+                try self.assertTextExists(reviewEmail, timeout: self.longUiTimeoutSeconds)
+                try self.assertElementExists(
+                    identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
+                    timeout: self.longUiTimeoutSeconds
                 )
+                try self.tapFirstNavigationBackButton()
+                try self.tapFirstNavigationBackButton()
             }
 
-            try self.step("verify the AI-created card is visible in cards and review it") {
-                try self.openCardsTab()
-                try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
-                try self.openReviewTab()
-                try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
-            }
-        }
-    }
-
-    @MainActor
-    func testLiveSmokeSessionPersistenceFlow() throws {
-        let context = self.makeRunContext(runLabel: "session-persistence")
-        try self.runScenarioWithSignedInWorkspace(context: context) {
             try self.step("relaunch the app and keep the linked session") {
                 self.logActionStart(action: "terminate_app", identifier: "application")
                 self.app.terminate()
@@ -276,7 +294,7 @@ final class LiveSmokeUITests: XCTestCase {
                 try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
                 try self.assertTextExists(context.workspaceName, timeout: self.longUiTimeoutSeconds)
                 try self.openAccountStatus()
-                try self.assertTextExists(context.reviewEmail, timeout: self.longUiTimeoutSeconds)
+                try self.assertTextExists(reviewEmail, timeout: self.longUiTimeoutSeconds)
                 try self.assertElementExists(
                     identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
                     timeout: self.longUiTimeoutSeconds
@@ -290,10 +308,8 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func makeRunContext(runLabel: String) -> LiveSmokeRunContext {
         let runId = "\(runLabel)-\(String(Int(Date().timeIntervalSince1970)))-\(UUID().uuidString.lowercased())"
-        let reviewEmail = ProcessInfo.processInfo.environment[self.reviewEmailEnvironmentKey] ?? "apple-review@example.com"
 
         return LiveSmokeRunContext(
-            reviewEmail: reviewEmail,
             workspaceName: "E2E ios \(runId)",
             manualFrontText: "Manual e2e ios \(runId)",
             manualBackText: "Manual answer e2e ios \(runId)",
@@ -304,8 +320,31 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func runScenarioWithSignedInWorkspace(
+    private func runLocalScenario(
+        scenario: () throws -> Void
+    ) throws {
+        try self.launchApplication()
+        try self.step("ensure the app is not in a linked account state") {
+            try self.ensureAccountIsNotLinked()
+        }
+        try scenario()
+    }
+
+    @MainActor
+    private func runGuestAIScenario(
+        scenario: () throws -> Void
+    ) throws {
+        try self.launchApplication()
+        try self.step("ensure guest AI starts without a linked account") {
+            try self.ensureAccountIsNotLinked()
+        }
+        try scenario()
+    }
+
+    @MainActor
+    private func runSignedInLinkedWorkspaceScenario(
         context: LiveSmokeRunContext,
+        reviewEmail: String,
         scenario: () throws -> Void
     ) throws {
         try self.launchApplication()
@@ -315,7 +354,7 @@ final class LiveSmokeUITests: XCTestCase {
 
         do {
             try self.step("sign in with the configured review account") {
-                try self.signInWithReviewAccount(reviewEmail: context.reviewEmail)
+                try self.signInWithReviewAccount(reviewEmail: reviewEmail)
             }
 
             try self.step("create an isolated linked workspace for this run") {
@@ -575,11 +614,26 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func reviewCurrentCard(expectedFrontText: String) throws {
+    private func reviewCurrentCard(expectedFrontText: String, maximumSkips: Int) throws {
         try self.openReviewTab()
-        try self.assertTextExists(expectedFrontText, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: self.shortUiTimeoutSeconds)
+
+        for _ in 0...maximumSkips {
+            if self.app.staticTexts[expectedFrontText].exists {
+                try self.tapElement(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: self.shortUiTimeoutSeconds)
+                try self.tapElement(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: self.shortUiTimeoutSeconds)
+                return
+            }
+
+            try self.tapElement(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: self.shortUiTimeoutSeconds)
+            try self.tapElement(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: self.shortUiTimeoutSeconds)
+        }
+
+        throw LiveSmokeFailure.missingText(
+            text: expectedFrontText,
+            timeoutSeconds: self.shortUiTimeoutSeconds,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
     }
 
     @MainActor
@@ -761,6 +815,63 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    private func ensureAccountIsNotLinked() throws {
+        try self.openSettingsTab()
+        try self.openAccountStatus()
+
+        let syncNowButton = self.app.buttons[LiveSmokeIdentifier.accountStatusSyncNowButton]
+        if self.waitForOptionalElement(
+            syncNowButton,
+            identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
+            timeout: self.optionalProbeTimeoutSeconds
+        ) {
+            try self.tapButton(named: "Log out", timeout: self.shortUiTimeoutSeconds)
+
+            let confirmationButton = self.app.alerts.buttons["Log out"]
+            if self.waitForOptionalElement(
+                confirmationButton,
+                identifier: "alert.logoutButton",
+                timeout: self.shortUiTimeoutSeconds
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: "alert.logoutButton",
+                    timeoutSeconds: self.shortUiTimeoutSeconds,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            self.logActionStart(action: "tap_element", identifier: "alert.logoutButton")
+            confirmationButton.tap()
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(action: "tap_element", identifier: "alert.logoutButton", result: "success", note: "logout confirmed")
+        }
+
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.accountStatusSignInButton,
+            timeout: self.longUiTimeoutSeconds
+        )
+        try self.tapFirstNavigationBackButton()
+        try self.tapFirstNavigationBackButton()
+    }
+
+    @MainActor
+    private func assertAiEntrySurfaceVisible() throws {
+        let consentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
+        if self.waitForOptionalElement(
+            consentButton,
+            identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
+            timeout: self.optionalProbeTimeoutSeconds
+        ) {
+            return
+        }
+
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeout: self.longUiTimeoutSeconds
+        )
+    }
+
+    @MainActor
     private func tapTabButton(named name: String) throws {
         let tabButton = self.app.tabBars.buttons[name]
         if self.waitForOptionalElement(
@@ -779,6 +890,27 @@ final class LiveSmokeUITests: XCTestCase {
         tabButton.tap()
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: "tap_tab", identifier: "tab.\(name)", result: "success", note: "tab tapped")
+    }
+
+    @MainActor
+    private func tapButton(named name: String, timeout: TimeInterval) throws {
+        let button = self.app.buttons[name].firstMatch
+        if self.waitForOptionalElement(
+            button,
+            identifier: "button.\(name)",
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: "button.\(name)",
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        self.logActionStart(action: "tap_button", identifier: "button.\(name)")
+        button.tap()
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "tap_button", identifier: "button.\(name)", result: "success", note: "button tapped")
     }
 
     @MainActor
