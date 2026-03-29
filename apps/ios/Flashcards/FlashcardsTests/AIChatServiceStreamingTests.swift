@@ -167,6 +167,72 @@ final class AIChatServiceStreamingTests: AIChatTestCaseBase {
         XCTAssertEqual(snapshot.messages[0].text, "Stored answer")
     }
 
+    func testAIChatServiceLoadsServerSnapshotsWithBackendToolCallIdsAndReasoningSummaries() async throws {
+        AIChatMockUrlProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat?sessionId=session-1")
+            XCTAssertEqual(request.httpMethod, "GET")
+
+            let response = HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let data = """
+            {
+              "sessionId": "session-1",
+              "runState": "idle",
+              "updatedAt": 1742811200000,
+              "mainContentInvalidationVersion": 1,
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": { "modelPickerEnabled": false, "dictationEnabled": true, "attachmentsEnabled": true }
+              },
+              "messages": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    { "type": "reasoning_summary", "summary": "Hidden reasoning" },
+                    {
+                      "type": "tool_call",
+                      "id": "tool-1",
+                      "name": "sql",
+                      "status": "completed",
+                      "input": "select 1",
+                      "output": "[1]"
+                    },
+                    { "type": "text", "text": "Stored answer" }
+                  ],
+                  "timestamp": 1742811200000,
+                  "isError": false,
+                  "isStopped": false
+                }
+              ]
+            }
+            """.data(using: .utf8)!
+            return (response, data)
+        }
+
+        let service = AIChatService(
+            session: self.makeSession(),
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder()
+        )
+
+        let snapshot = try await service.loadSnapshot(
+            session: self.makeLinkedSession(),
+            sessionId: "session-1"
+        )
+
+        XCTAssertEqual(snapshot.messages.count, 1)
+        XCTAssertEqual(snapshot.messages[0].text, "Stored answer")
+        XCTAssertEqual(snapshot.messages[0].toolCalls.count, 1)
+        XCTAssertEqual(snapshot.messages[0].toolCalls[0].id, "tool-1")
+        XCTAssertEqual(snapshot.messages[0].toolCalls[0].name, "sql")
+    }
+
     func testAIChatServiceAlwaysBuildsSyntheticSnapshotMessageIds() async throws {
         AIChatMockUrlProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://api.example.com/chat?sessionId=session-1")
